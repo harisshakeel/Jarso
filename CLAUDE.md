@@ -49,6 +49,10 @@ pnpm db:migration <name> # new migration → then pnpm db:reset && pnpm db:types
 Project skills in `.claude/skills/`: `new-feature`, `db-migration`, `api-endpoint`, `server-action`, `ui-component`, `verify`.
 Subagents in `.claude/agents/`: `supabase-architect`, `code-reviewer`, `security-auditor`, `test-engineer`.
 
+## Claude config is repo-scoped
+
+All Claude configuration lives in this repo — `.claude/settings.json`, `.claude/hooks/`, `.claude/skills/`, `.claude/agents/`, this file. Never add or depend on anything in `~/.claude`. If a guide says to install into `~/.claude`, adapt it to the project equivalent (use `$CLAUDE_PROJECT_DIR` in hook commands).
+
 ## Session Logs
 
-Always commit `.claude-logs/` with your changes.
+`.claude/settings.json` runs `.claude/hooks/extract-log.py` on `UserPromptSubmit` and `Stop`, writing prompt + final-response transcripts to `.claude-logs/`. Always commit `.claude-logs/` with your changes.

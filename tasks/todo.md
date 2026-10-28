@@ -18,8 +18,8 @@ Tailwind v4 + shadcn/ui, Supabase (`@supabase/ssr`), Zod, Biome, Husky, Vitest, 
 - [x] Commitlint (commit-msg hook + CI) and Semantic PR title workflow
 - [x] Index barrels per module; rule documented
 - [x] Domain doc from REQUIREMENTS.md
-- [ ] Session-log hooks in `~/.claude` (blocked by permission classifier — user to install)
-- [ ] Project `.claude/settings.json` (blocked by permission classifier — user to add)
+- [x] Session-log hooks — repo-scoped: `.claude/settings.json` + `.claude/hooks/extract-log.py`
+- [x] Project `.claude/settings.json`
 - [x] Docs: `docs/` (architecture, conventions, database, auth, testing, ADRs)
 - [x] Claude: `CLAUDE.md`, skills, subagents
 - [x] Verify: `pnpm lint`, `typecheck`, `test`, `build` all green
