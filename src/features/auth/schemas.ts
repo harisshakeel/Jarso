@@ -8,8 +8,13 @@ export const signInSchema = z.object({
   next: z.string().optional(),
 });
 
+/** Child accounts use this synthetic domain (family `childEmail`); parents can't sign up with it. */
+const CHILD_EMAIL_DOMAIN = "@child.jarso.invalid";
+
 export const signUpSchema = z.object({
-  email: z.email("Enter a valid email"),
+  email: z
+    .email("Enter a valid email")
+    .refine((email) => !email.toLowerCase().endsWith(CHILD_EMAIL_DOMAIN), "Enter a valid email"),
   password: z.string().min(8, "Password must be at least 8 characters").max(72),
   fullName: z.string().trim().min(1, "Name is required").max(100),
 });
