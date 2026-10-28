@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { json, withApi } from "./index";
 
-const handler = withApi(async () => json({ ok: true }));
+const handler = withApi(async (_request: Request) => json({ ok: true }));
 const call = (method: string, headers: Record<string, string> = {}) =>
   handler(new Request("http://localhost:3000/api/v1/me", { method, headers }));
 
