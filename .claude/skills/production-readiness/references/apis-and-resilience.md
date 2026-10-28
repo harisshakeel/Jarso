@@ -52,6 +52,6 @@ Doing the same request twice has the same effect as once. The realistic duplicat
 
 Our move:
 - Money entries: the client generates a UUID per intended entry and sends it; the table has a unique constraint on it; the insert uses `on conflict do nothing` and returns the existing row. The `pending` state on the button is UX, not protection.
-- Allocation of an allowance: keyed by `(user_id, allowance_period)` so marking it received twice does not double the income.
+- Allowance handover: the due occurrence is unique per `(schedule_id, period)` and the parent's confirmation is keyed to it, so confirming twice does not double the income. Deposit, withdrawal and emergency handovers are keyed by the request id.
 - Cron: keyed by `(user_id, week_start)`.
 - Incoming webhooks (if any): store the provider's event id with a unique constraint before processing.
