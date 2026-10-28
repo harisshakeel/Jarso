@@ -9,9 +9,10 @@ const nickname = z
 
 const pin = z.string().regex(/^\d{4,6}$/, "PIN must be 4 to 6 numbers");
 
-const consent = z.union([z.literal("on"), z.literal(true)], {
-  error: "A parent needs to say yes first",
-});
+/** Checkbox ("on") or JSON `true`; parsed to a boolean that is passed on to register_child. */
+const consent = z
+  .union([z.literal("on"), z.literal(true)], { error: "A parent needs to say yes first" })
+  .transform((value) => value === "on" || value === true);
 
 function isValidTimezone(value: string): boolean {
   try {

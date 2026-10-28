@@ -21,11 +21,11 @@ export const createFamilyAction = createAction(
   },
 );
 
-export const addChildAction = createAction(addChildSchema, async ({ nickname, pin }) => {
+export const addChildAction = createAction(addChildSchema, async ({ nickname, pin, consent }) => {
   const { membership } = await assertRole("parent");
   if (!membership) throw new AppError("FORBIDDEN", "Set up your family first.");
   try {
-    await addChild({ familyId: membership.familyId, nickname, pin });
+    await addChild({ familyId: membership.familyId, nickname, pin, consent });
   } catch (error) {
     if (isAppError(error) && error.code === "CONFLICT") {
       throw new AppError("CONFLICT", "Please fix the highlighted fields.", {

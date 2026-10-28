@@ -50,19 +50,89 @@ describe("addChild", () => {
     );
 
     await expect(
-      service.addChild({ familyId: "fam-1", nickname: "Sam", pin: "1234" }),
+      service.addChild({ familyId: "fam-1", nickname: "Sam", pin: "1234", consent: true }),
     ).rejects.toMatchObject({ code: "CONFLICT" });
     expect(childAuth.deleteChildAuthUser).toHaveBeenCalledWith("child-1");
   });
 
-  it("returns the child summary on success", async () => {
+  it("returns the child summary on success and passes consent to register_child", async () => {
     vi.mocked(childAuth.createChildAuthUser).mockResolvedValue("child-1");
     vi.mocked(repo.registerChild).mockResolvedValue();
 
     await expect(
-      service.addChild({ familyId: "fam-1", nickname: " Sam ", pin: "1234" }),
+      service.addChild({ familyId: "fam-1", nickname: " Sam ", pin: "1234", consent: true }),
     ).resolves.toEqual({ id: "child-1", nickname: "Sam" });
     expect(childAuth.deleteChildAuthUser).not.toHaveBeenCalled();
+    expect(repo.registerChild).toHaveBeenCalledWith(expect.anything(), {
+      childId: "child-1",
+      familyId: "fam-1",
+      nickname: " Sam ",
+      pin: "1234",
+      consent: true,
+    });
+  });
+
+  it("passes consent false through unchanged (the database rejects it)", async () => {
+    vi.mocked(childAuth.createChildAuthUser).mockResolvedValue("child-1");
+    vi.mocked(repo.registerChild).mockRejectedValue(new AppError("FORBIDDEN", "No consent."));
+
+    await expect(
+      service.addChild({ familyId: "fam-1", nickname: "Sam", pin: "1234", consent: false }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repo.registerChild).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ consent: false }),
+    );
+    expect(childAuth.deleteChildAuthUser).toHaveBeenCalledWith("child-1");
+  });
+});
+
+describe("acceptInvitation", () => {
+  const input = { invite: "ABCD2345", pin: "1234", consent: true };
+
+  it("registers the child with the invitation id, its nickname and consent", async () => {
+    vi.mocked(repo.findInvitationByHash).mockResolvedValue({ id: "inv-1", nickname: "Sam" });
+    vi.mocked(childAuth.createChildAuthUser).mockResolvedValue("child-1");
+    vi.mocked(repo.registerChild).mockResolvedValue();
+
+    await expect(service.acceptInvitation(input)).resolves.toEqual({
+      id: "child-1",
+      nickname: "Sam",
+    });
+    expect(repo.registerChild).toHaveBeenCalledWith(expect.anything(), {
+      childId: "child-1",
+      familyId: "fam-1",
+      nickname: "Sam",
+      pin: "1234",
+      consent: true,
+      invitationId: "inv-1",
+    });
+  });
+
+  it("prefers the nickname the parent typed", async () => {
+    vi.mocked(repo.findInvitationByHash).mockResolvedValue({ id: "inv-1", nickname: "Sam" });
+    vi.mocked(childAuth.createChildAuthUser).mockResolvedValue("child-1");
+    vi.mocked(repo.registerChild).mockResolvedValue();
+
+    await service.acceptInvitation({ ...input, nickname: "Sammy" });
+    expect(repo.registerChild).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ nickname: "Sammy" }),
+    );
+  });
+
+  it("throws NOT_FOUND and creates no child for an unknown invitation", async () => {
+    vi.mocked(repo.findInvitationByHash).mockResolvedValue(null);
+
+    await expect(service.acceptInvitation(input)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(childAuth.createChildAuthUser).not.toHaveBeenCalled();
+  });
+
+  it("throws FORBIDDEN for a parent without a family", async () => {
+    vi.mocked(dal.assertRole).mockResolvedValue({ user: parent, membership: null });
+
+    await expect(service.acceptInvitation(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repo.findInvitationByHash).not.toHaveBeenCalled();
   });
 });
 

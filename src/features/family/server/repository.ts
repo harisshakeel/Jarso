@@ -84,6 +84,7 @@ export async function registerChild(
     familyId: string;
     nickname: string;
     pin: string;
+    consent: boolean;
     invitationId?: string;
   },
 ): Promise<void> {
@@ -92,7 +93,7 @@ export async function registerChild(
     p_family_id: args.familyId,
     p_nickname: args.nickname,
     p_pin: args.pin,
-    p_consent: true,
+    p_consent: args.consent,
     ...(args.invitationId && { p_invitation_id: args.invitationId }),
   });
   if (error) throw toAppError(error, "Failed to add child");

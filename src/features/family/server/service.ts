@@ -69,6 +69,7 @@ export async function addChild(input: {
   familyId: string;
   nickname: string;
   pin: string;
+  consent: boolean;
   invitationId?: string;
 }): Promise<ChildSummary> {
   const { membership } = await assertRole("parent");
@@ -158,6 +159,7 @@ export async function acceptInvitation(input: AcceptInvitationInput): Promise<Ch
     familyId: membership.familyId,
     nickname: input.nickname ?? invitation.nickname,
     pin: input.pin,
+    consent: input.consent,
     invitationId: invitation.id,
   });
 }
