@@ -10,7 +10,7 @@ permissions:
 jobs:
   title:
     name: Validate PR title
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # PR titles become squash-merge commit subjects, so they must follow Conventional Commits.
       - uses: amannn/action-semantic-pull-request@v5

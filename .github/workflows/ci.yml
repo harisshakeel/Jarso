@@ -17,7 +17,7 @@ env:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
@@ -38,7 +38,7 @@ jobs:
       - run: pnpm build
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: verify
     timeout-minutes: 20
     steps:
@@ -59,7 +59,7 @@ jobs:
           retention-days: 7
 
   secrets:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -73,7 +73,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   migrations:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
