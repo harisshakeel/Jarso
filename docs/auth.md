@@ -27,6 +27,8 @@ Supabase Auth with cookie sessions via `@supabase/ssr`.
 - **Email + password:** `signIn` / `signUp` Server Actions in `src/features/auth/server/actions.ts`.
 - **Email confirmation / OAuth:** Supabase redirects to `/auth/callback?code=…`, which exchanges the code for a session. Allowed redirect URLs live in `supabase/config.toml` (`additional_redirect_urls`) and the hosted project's Auth settings.
 - **Sign-out:** `signOut` Server Action.
+- **Child PIN sign-in (ADR 0004):** `childSignIn` in `src/features/family/server/service.ts` rate-limits per IP and per family code, checks the PIN with `verify_child_pin` (admin client), then `mintChildSession` runs admin `generateLink({ type: "magiclink" })` and `verifyOtp({ type: "magiclink", token_hash })` on the cookie client. Must run in a Server Action or Route Handler. Child auth users use `<uuid>@child.jarso.invalid` (accepted by GoTrue, verified locally).
+- **Roles:** `requireRole(role, path)` (pages) and `assertRole(role)` / `assertParentOf(childId)` (actions) in `@/features/family/server`. Role comes from the approved membership, else the server-set `profiles.role`.
 
 ## Adding OAuth providers
 

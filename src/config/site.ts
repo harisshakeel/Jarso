@@ -9,6 +9,13 @@ export const routes = {
   signup: "/signup",
   dashboard: "/dashboard",
   authCallback: "/auth/callback",
+  parent: "/parent",
+  parentSetup: "/parent/setup",
+  parentNewChild: "/parent/children/new",
+  child: "/child",
+  childStart: "/start",
+  childSignIn: "/sign-in/child",
+  invite: "/invite",
 } as const;
 
 /** Route prefixes that require an authenticated user. Enforced optimistically in proxy, authoritatively in the DAL. */
