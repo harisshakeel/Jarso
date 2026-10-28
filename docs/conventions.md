@@ -76,7 +76,7 @@ Use `logger` from `@/lib` (structured JSON in production). `console.log` is a li
 
 - Add to the Zod schema in `src/config/env.client.ts` (`NEXT_PUBLIC_*`) or `env.server.ts`, and to `.env.example`.
 - Client vars must be referenced explicitly (`process.env.NEXT_PUBLIC_X`) so Next inlines them.
-- Never read `process.env` directly elsewhere.
+- Never read `process.env` directly elsewhere. Sole exception: `src/lib/logger.ts` reads `LOG_LEVEL`/`NODE_ENV` itself because it is imported by Client Components and cannot depend on `env.server`.
 
 ## Styling
 

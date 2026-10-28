@@ -2,7 +2,11 @@ type Level = "debug" | "info" | "warn" | "error";
 
 const order: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };
 
-const minLevel = (process.env.LOG_LEVEL as Level | undefined) ?? "info";
+// Isomorphic module, so it cannot import @/config/env.server. This is the one sanctioned
+// direct read of process.env outside src/config (see CLAUDE.md rule 11).
+const isLevel = (value: unknown): value is Level => typeof value === "string" && value in order;
+const requestedLevel = process.env.LOG_LEVEL;
+const minLevel: Level = isLevel(requestedLevel) ? requestedLevel : "info";
 const isProd = process.env.NODE_ENV === "production";
 
 type Context = Record<string, unknown>;

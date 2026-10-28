@@ -37,7 +37,7 @@ pnpm db:migration <name> # new migration → then pnpm db:reset && pnpm db:types
 8. **Admin client** (`@/lib/supabase/admin`) bypasses RLS — trusted server jobs only, after explicit authz.
 9. **Validation:** every external input (forms, JSON bodies, params) parsed with Zod. Server Actions via `createAction`; Route Handlers via `withApi` + `parseBody`.
 10. **Errors:** throw `AppError(code, safeMessage, { cause })`. Never leak raw errors to users. Use `logger` from `@/lib`; `console.log` is banned.
-11. **Env:** add vars to `src/config/env.{client,server}.ts` + `.env.example`. Never read `process.env` elsewhere.
+11. **Env:** add vars to `src/config/env.{client,server}.ts` + `.env.example`. Never read `process.env` elsewhere (sole exception: `src/lib/logger.ts`, which is isomorphic).
 12. **Biome only** for lint/format. No ESLint/Prettier.
 13. After `pnpm dlx shadcn add <x>`, export it from `src/components/ui/index.ts`.
 14. **Money** is integer minor units end to end; practice and recorded money never mix; jar transfers are not income.
