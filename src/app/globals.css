@@ -256,6 +256,21 @@
   }
 }
 
+/* Rise-in for cards and list items on first paint (design.md §8): 250 ms, 12 px up, 0.99 → 1.
+   Stagger by setting `--rise-index` (0–5) on each item: 40 ms apart, at most 6 items. */
+@utility rise-in {
+  animation: rise-in 250ms var(--ease-brand) both;
+  animation-delay: calc(min(var(--rise-index, 0), 5) * 40ms);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+    scale: 0.99;
+  }
+}
+
 @keyframes shimmer {
   to {
     translate: 100% 0;
@@ -286,6 +301,7 @@
   ::before,
   ::after {
     animation-duration: 0.01ms;
+    animation-delay: 0s;
     animation-iteration-count: 1;
     transition-duration: 0.01ms;
     scroll-behavior: auto;
