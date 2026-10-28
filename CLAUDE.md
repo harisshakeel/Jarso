@@ -46,7 +46,7 @@ pnpm db:migration <name> # new migration → then pnpm db:reset && pnpm db:types
 
 ## Workflows
 
-Project skills in `.claude/skills/`: `new-feature`, `db-migration`, `api-endpoint`, `server-action`, `ui-component`, `verify`.
+Project skills in `.claude/skills/`: `new-feature`, `db-migration`, `api-endpoint`, `server-action`, `ui-component`, `verify`, `production-readiness` (right-sized reliability, security and scaling decisions for ~60 users; consult it for any backend, cron, Claude API, migration or deploy change).
 Subagents in `.claude/agents/`: `supabase-architect`, `code-reviewer`, `security-auditor`, `test-engineer`.
 
 ## Claude config is repo-scoped
