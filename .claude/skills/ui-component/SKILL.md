@@ -23,10 +23,12 @@ Then add `export * from "./<component>";` to `src/components/ui/index.ts` and ru
 
 ## Rules
 
+- Read `docs/design.md` first. Use its tokens (`primary`, `secondary`, `accent`, `gold`, status chips), type styles, radius and motion rules; never introduce an ad-hoc colour or font.
+
 - Server Component by default; `"use client"` only for state/effects/browser APIs, at the leaf.
 - Presentational: data via props; no fetching inside shared components.
 - Import primitives from `@/components/ui`, `cn` from `@/lib`.
 - Accessibility: labels for every input, `aria-invalid` + described errors, keyboard reachable, visible focus, colour contrast AA.
 - Copy for ages 11–14: short, concrete, encouraging; avoid jargon; never shame spending.
 - Money displayed via a single formatter from minor units — no ad-hoc `toFixed`.
-- Use the `frontend-design` skill for new screens' visual direction.
+- New screens follow `docs/design.md` sections 5 (layout), 6 (components) and 10 (role emphasis).

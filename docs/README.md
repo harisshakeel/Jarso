@@ -8,6 +8,7 @@
 | [database.md](./database.md) | Changing the schema, writing RLS, regenerating types |
 | [auth.md](./auth.md) | Touching sessions, protected routes, authorization |
 | [api.md](./api.md) | Adding Server Actions or Route Handlers |
+| [design.md](./design.md) | Any UI work: brand assets, colour tokens, type, layout, components, motion, voice |
 | [testing.md](./testing.md) | Writing or running tests |
 | [deploy.md](./deploy.md) | Vercel project, env vars, Supabase auth URLs, rollback |
 | [security.md](./security.md) | What never enters the public repo, scanners, rotation runbook |

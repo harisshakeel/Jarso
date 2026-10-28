@@ -13,6 +13,7 @@ Full-stack Next.js 16 (App Router) + Supabase. pnpm, TypeScript strict, Tailwind
 - Conventions (naming, barrels, errors, env): `docs/conventions.md`
 - Schema / migrations / RLS: `docs/database.md`
 - Auth: `docs/auth.md` · Backend entry points: `docs/api.md` · Tests: `docs/testing.md`
+- UI and brand: `docs/design.md` (tokens, type, components, voice). Logos in `public/brand/`.
 - Next.js 16 APIs differ from training data — check `node_modules/next/dist/docs/` before using an unfamiliar API.
 
 ## Commands
