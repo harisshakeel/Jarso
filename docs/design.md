@@ -76,7 +76,7 @@ Why the primary is not the brand teal: `#027A98` on white is 4.95:1, which passe
 | Secondary (quiet buttons, selected chips) | teal-100 `#C4F4FF` with teal-800 text | teal-900 `#003548` with teal-100 text | ≥ 9:1 |
 | Accent (highlights, lid, info) | brand cyan `#01D8ED` fill with ink text; cyan-700 `#006570` as text | cyan-300 fill with ink; cyan-300 as text | fill 9.9:1; text 6.2:1 light, 9.5:1 dark |
 | Money / Save / celebration | brand gold `#FDC301` fill with ink text; gold-600 `#8B6900` as text | brand gold fill with ink; brand gold as text | fill 9.3:1; text 5.1:1 light, 10.5:1 dark |
-| Destructive (form errors, irreversible actions only) | `oklch(0.577 0.245 27)` (existing) | `oklch(0.704 0.191 22)` (existing) | |
+| Destructive (form errors, irreversible actions only) | `oklch(0.56 0.245 27)`, darkened to meet §11 AA on paper | `oklch(0.704 0.191 22)` (existing) | 4.6:1 on paper, 5.0:1 white on it; 5.9:1 on dark bg |
 | Focus ring | cyan-500 `#0098A8`, 3 px, offset 2 px | cyan-300 `#00D6EB` | 3.5:1 against white (non-text minimum 3:1) |
 | Border, input | `#E6E2DA`; card edges use the hairline | `#234853` | |
 | Muted | `#EFECE5` with `#566469` text (5.2:1) | `#163842` with `#9DB6BE` (8:1) | |
@@ -269,7 +269,7 @@ Replace the neutral `:root` and `.dark` blocks with these. Chart and sidebar var
   --accent: oklch(0.806 0.138 207);             /* brand cyan fill */
   --accent-foreground: oklch(0.220 0.013 223);
   --accent-text: oklch(0.463 0.080 208);           /* cyan-700, cyan as text */
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.56 0.245 27.325);      /* darkened to meet §11 AA on paper */
   --border: oklch(0.914 0.012 85);               /* #E6E2DA */
   --input: oklch(0.914 0.012 85);
   --hairline: rgb(20 28 31 / 0.08);

@@ -147,7 +147,7 @@
   --accent: oklch(0.806 0.138 207); /* brand cyan fill */
   --accent-foreground: oklch(0.22 0.013 223);
   --accent-text: oklch(0.463 0.08 208); /* cyan-700, cyan as text */
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.56 0.245 27.325); /* darkened to meet §11 AA on paper (4.6:1) */
   --border: oklch(0.914 0.012 85); /* #E6E2DA */
   --input: oklch(0.914 0.012 85);
   --hairline: rgb(20 28 31 / 0.08);
