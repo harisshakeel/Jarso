@@ -8,6 +8,10 @@ describe("safeNextPath", () => {
     ["https://evil.com", "/dashboard"],
     ["//evil.com", "/dashboard"],
     ["/\\evil.com", "/dashboard"],
+    ["/invite?token=abc123", "/invite?token=abc123"],
+    ["/parent/setup?next=%2Finvite%3Ftoken%3Dabc", "/parent/setup?next=%2Finvite%3Ftoken%3Dabc"],
+    ["//evil.com/invite?token=abc", "/dashboard"],
+    ["https://evil.com/?next=/invite", "/dashboard"],
   ])("%s → %s", (input, expected) => {
     expect(safeNextPath(input)).toBe(expected);
   });
