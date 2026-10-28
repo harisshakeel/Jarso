@@ -19,7 +19,12 @@ export const routes = {
 } as const;
 
 /** Route prefixes that require an authenticated user. Enforced optimistically in proxy, authoritatively in the DAL. */
-export const protectedRoutePrefixes = [routes.dashboard] as const;
+export const protectedRoutePrefixes = [
+  routes.dashboard,
+  routes.parent,
+  routes.child,
+  routes.invite,
+] as const;
 
 /** Auth pages that signed-in users should be bounced away from. */
 export const authRoutePrefixes = [routes.login, routes.signup] as const;
