@@ -1,6 +1,6 @@
 # Jarso
 
-Pocket-money learning app for children aged 11–14 (savings goals, Spend/Save jars, money diary, daily missions, AI money guide). Scope: `REQUIREMENTS.md`. Domain map + invariants: `docs/domain.md`.
+Pocket-money learning app for children aged 11–14 (parent + child accounts, allowance schedules, Spend/Save jars, savings requests, savings goals, money diary, daily missions; AI money guide in a later version). Scope: `REQUIREMENTS.md`. Domain map + invariants: `docs/domain.md`.
 
 Full-stack Next.js 16 (App Router) + Supabase. pnpm, TypeScript strict, Tailwind v4 + shadcn/ui, Zod, Biome, Vitest, Playwright.
 
