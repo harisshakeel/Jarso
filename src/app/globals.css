@@ -159,7 +159,7 @@
   --gold-foreground: oklch(0.22 0.013 223);
   --gold-text: oklch(0.54 0.111 86); /* gold-600 */
   --keycap-ledge: oklch(0.3 0.06 223); /* teal-900 under the primary keycap */
-  --keycap-ledge-gold: var(--color-gold-700); /* gold-700 under the gold keycap */
+  --keycap-ledge-gold: #705300; /* gold-700 under the gold keycap (literal: theme vars are tree-shaken) */
   --chart-1: oklch(0.541 0.1 223);
   --chart-2: oklch(0.846 0.173 87);
   --chart-3: oklch(0.622 0.107 208);
@@ -204,7 +204,7 @@
   --shadow-rest: 0 0 0 1px rgb(230 241 244 / 0.1);
   --shadow-raised: 0 0 0 1px rgb(230 241 244 / 0.14);
   --keycap-ledge: oklch(0.385 0.074 227); /* teal-800 */
-  --keycap-ledge-gold: var(--color-gold-700);
+  --keycap-ledge-gold: #705300; /* gold-700 */
   --chart-1: oklch(0.541 0.1 223);
   --chart-2: oklch(0.846 0.173 87);
   --chart-3: oklch(0.622 0.107 208);
