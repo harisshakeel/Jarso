@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { clientEnv, routes } from "@/config";
-import { AppError, createAction } from "@/lib";
+import { AppError, createAction, logger } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath, signInSchema, signUpSchema } from "../schemas";
 
@@ -27,7 +27,15 @@ export const signUp = createAction(signUpSchema, async ({ email, password, fullN
     },
   });
 
-  if (error) throw new AppError("VALIDATION", error.message, { cause: error });
+  if (error) {
+    // Raw Supabase messages reveal whether an email is registered; log them, show a generic one.
+    logger.warn("Sign-up rejected", { code: error.code, status: error.status });
+    throw new AppError(
+      "VALIDATION",
+      "We couldn't create your account. Check your details and try again.",
+      { cause: error },
+    );
+  }
 
   // Email confirmation enabled → no session yet.
   if (!data.session) return { needsConfirmation: true };
