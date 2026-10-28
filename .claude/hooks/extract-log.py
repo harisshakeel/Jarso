@@ -37,7 +37,7 @@ REDACTIONS: List[Tuple[re.Pattern, str]] = [
     (re.compile(r'\bAIza[0-9A-Za-z_\-]{30,}'), 'AIza[REDACTED]'),
     (re.compile(r'\bxox[baprs]-[A-Za-z0-9\-]{10,}'), 'xox-[REDACTED]'),
     # Connection strings with embedded passwords
-    (re.compile(r'((?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://[^:\s/@]+:)[^@\s]+@'), r'\1[REDACTED]@'),
+    (re.compile(r'((?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://[A-Za-z0-9._%\-]+:)[A-Za-z0-9._%+!$*#~\-]{4,}@'), r'\1[REDACTED]@'),
     # Authorization headers
     (re.compile(r'(?i)(bearer\s+)[A-Za-z0-9_\-.=]{16,}'), r'\1[REDACTED]'),
     # PEM private keys
