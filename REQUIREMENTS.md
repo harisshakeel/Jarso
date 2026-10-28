@@ -66,7 +66,7 @@ FR02–FR06, FR08, FR10–FR12, emergency funds (FR15), web push and app install
 
 - The child can record purchases and money received from other sources (for example a gift).
 - Each entry includes an amount, a short label, and the relevant jar.
-- Purchases are always recorded, whatever the limits (FR14).
+- Limits never block a purchase. The only refusal is a purchase that would take Spend below zero while overspending is not allowed (FR14).
 - Entries can be reviewed, corrected, or undone. Corrections stay traceable in the history.
 - Balances and goal progress update accordingly.
 - The linked parent can see the diary.
@@ -158,8 +158,7 @@ The initial topics are:
 ### Purchases
 
 - The parent can set spending limits for the child.
-- A purchase is always recorded when the child enters it. Limits never block it.
-- A purchase that would take Spend below zero is refused unless the parent has allowed overspending. Limits never block.
+- A purchase the child enters is recorded, and limits never block it. The one exception: a purchase that would take Spend below zero is refused unless the parent has allowed overspending.
 - When a purchase breaks a limit, the parent receives a notice showing the purchase and the limit.
 
 ### Savings deposits

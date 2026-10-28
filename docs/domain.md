@@ -21,7 +21,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Jar | `spend` (cash the child holds) or `save` (money the parent keeps). Balance derived from ledger entries. |
 | Transfer | Move between jars. **Not income.** Spend → Save is a savings deposit; Save → Spend is a savings withdrawal. Both are requests. |
 | Savings deposit | Request to move cash from Spend to Save: `pending` → `confirmed` (parent received the cash), or `cancelled` / `rejected`. Posts only at confirmation. |
-| Purchase | Spend recorded by the child. Always recorded; breaking a spending limit sends the parent a notice. |
+| Purchase | Spend recorded by the child. Limits never block it (only the Spend-below-zero rule can, unless the parent allows overspending); breaking a spending limit sends the parent a notice. |
 | Spending limit | Parent-set threshold (per purchase, per week or per month) that triggers a limit notice. Never blocks a purchase. |
 | Savings withdrawal | Request to take money from Save: `pending` → `approved` → `handed_over`, or `rejected`. Posts only at handover. Pending and approved amounts are **reserved**. |
 | Reserved | Save money tied up by a pending or approved withdrawal. Still in the balance; excluded from goal progress and from the withdrawal cap. |

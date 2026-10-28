@@ -599,6 +599,7 @@ Assumed by the architecture, to be confirmed when first implemented:
 - Mission content as versioned JSON in the repo.
 - Practice money in the same ledger table under `mode`.
 - Email provider is Resend; swap is a single adapter in `notifications/server/channels`.
+
 Also decided on 2026-10-28 (see REQUIREMENTS.md "Decided for the pilot"):
 
 - Partial handovers close the occurrence and record `shortfall_minor`; over-handover is rejected.
