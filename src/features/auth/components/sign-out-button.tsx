@@ -9,7 +9,7 @@ export function SignOutButton() {
   const [, action, pending] = useActionState(signOut, idle);
   return (
     <form action={action}>
-      <Button type="submit" variant="outline" size="sm" disabled={pending}>
+      <Button type="submit" variant="outline" size="lg" disabled={pending}>
         Sign out
       </Button>
     </form>
