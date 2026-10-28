@@ -93,9 +93,19 @@ def get_git_author() -> str:
 
 
 def get_github_user() -> str:
-    """Get the authenticated GitHub login via `gh`. Returns 'unknown' if unavailable."""
+    """GitHub login for attribution.
+
+    Order: GITHUB_USER env var, then the login embedded in a GitHub noreply commit email
+    (the identity that actually authors the commits), then the active `gh` account as a last
+    resort. The `gh` account is last because a developer may be signed in to several accounts,
+    and these logs are public: attributing a session to whichever account happens to be active
+    would publish an unrelated identity.
+    """
     if login := os.environ.get('GITHUB_USER'):
         return login
+    noreply = re.match(r'^(?:\d+\+)?([A-Za-z0-9-]+)@users\.noreply\.github\.com$', get_git_email())
+    if noreply:
+        return noreply.group(1)
     try:
         result = subprocess.run(
             ['gh', 'api', 'user', '--jq', '.login'],
