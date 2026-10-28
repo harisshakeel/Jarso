@@ -64,10 +64,10 @@ select ok(not public.is_parent_of(:'pa'::uuid), 'is_parent_of false across famil
 
 -- Child CH joins family A (as postgres: register_child arrives in a later task).
 select tests.clear_auth();
-insert into public.family_members (family_id, profile_id, role, status, consent_at, consent_by)
-values (:'fa'::uuid, :'ch'::uuid, 'child', 'approved', now(), :'pa'::uuid);
+insert into public.family_members (family_id, profile_id, role, status, nickname_key, consent_at, consent_by)
+values (:'fa'::uuid, :'ch'::uuid, 'child', 'approved', 'ch', now(), :'pa'::uuid);
 select throws_ok(
-  format('insert into public.family_members (family_id, profile_id, role) values (%L, %L, %L)', :'fb', :'px', 'child'),
+  format('insert into public.family_members (family_id, profile_id, role, nickname_key) values (%L, %L, %L, %L)', :'fb', :'px', 'child', 'px'),
   '23514', null, 'child membership requires consent');
 
 select tests.authenticate_as(:'pa'::uuid);

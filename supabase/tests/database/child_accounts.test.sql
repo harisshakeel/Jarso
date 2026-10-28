@@ -1,14 +1,15 @@
 begin;
 \ir _helpers.psql
-select plan(44);
+select plan(60);
 
--- Fixtures: PA owns family A, PB owns family B; C, C2, C3 are child-role users; PX is a parent with no family.
+-- Fixtures: PA owns family A, PB owns family B; C, C2, C3, C4 are child-role users; PX is a parent with no family.
 select tests.create_user('pa@example.com') as pa \gset
 select tests.create_user('pb@example.com') as pb \gset
 select tests.create_user('px@example.com') as px \gset
 select tests.create_user('c@example.com', 'child') as c \gset
 select tests.create_user('c2@example.com', 'child') as c2 \gset
 select tests.create_user('c3@example.com', 'child') as c3 \gset
+select tests.create_user('c4@example.com', 'child') as c4 \gset
 
 select tests.authenticate_as(:'pb'::uuid);
 select public.create_family('EUR', 'UTC') as fb \gset
@@ -203,6 +204,123 @@ select results_eq(
   $$ select public.hit_rate_limit('k', '1 minute', 2) from generate_series(1, 3) $$,
   $$ values (true), (true), (false) $$,
   'hit_rate_limit allows max hits per window');
+
+-- ---------------------------------------------------------------------------
+-- Hardening: escalating lockout (C3 in family B, PIN 5555)
+-- ---------------------------------------------------------------------------
+
+select public.verify_child_pin(:'code_b', 'sam', '0000') from generate_series(1, 5);
+select is(
+  (select lock_count || '/' || failed_attempts || '/' || (locked_until = now() + interval '15 minutes')::text
+   from public.child_credentials where profile_id = :'c3'::uuid),
+  '1/0/true', 'first lock: 15 minutes, lock_count 1');
+select results_eq(
+  format('select child_id, status from public.verify_child_pin(%L, %L, %L)', :'code_b', 'sam', '0000'),
+  $$ values (null::uuid, 'locked'::text) $$, 'attempts while locked do not count');
+
+reset role; -- service_role cannot use schema tests
+select tests.clear_auth();
+update public.child_credentials set locked_until = now() - interval '1 second' where profile_id = :'c3'::uuid;
+set local role service_role;
+select public.verify_child_pin(:'code_b', 'sam', '0000') from generate_series(1, 4);
+select is(
+  (select lock_count || '/' || failed_attempts || '/' || (locked_until < now())::text
+   from public.child_credentials where profile_id = :'c3'::uuid),
+  '1/4/true', 'lock expiry keeps lock_count; four new failures not yet locked');
+select public.verify_child_pin(:'code_b', 'sam', '0000');
+select is(
+  (select lock_count || '/' || failed_attempts || '/' || (locked_until = now() + interval '30 minutes')::text
+   from public.child_credentials where profile_id = :'c3'::uuid),
+  '2/0/true', 'second lock: 30 minutes, lock_count 2');
+
+reset role; -- service_role cannot use schema tests
+select tests.clear_auth();
+update public.child_credentials set locked_until = now() - interval '1 second' where profile_id = :'c3'::uuid;
+set local role service_role;
+select public.verify_child_pin(:'code_b', 'sam', '0000') from generate_series(1, 5);
+select is(
+  (select lock_count || '/' || (locked_until = now() + interval '60 minutes')::text
+   from public.child_credentials where profile_id = :'c3'::uuid),
+  '3/true', 'third lock: 60 minutes');
+
+reset role; -- service_role cannot use schema tests
+select tests.clear_auth();
+update public.child_credentials set locked_until = now() - interval '1 second', lock_count = 1000
+where profile_id = :'c3'::uuid;
+set local role service_role;
+select public.verify_child_pin(:'code_b', 'sam', '0000') from generate_series(1, 5);
+select is(
+  (select lock_count || '/' || (locked_until = now() + interval '24 hours')::text
+   from public.child_credentials where profile_id = :'c3'::uuid),
+  '1001/true', 'lock duration capped at 24 hours');
+
+reset role; -- service_role cannot use schema tests
+select tests.clear_auth();
+update public.child_credentials set locked_until = now() - interval '1 second', failed_attempts = 2
+where profile_id = :'c3'::uuid;
+set local role service_role;
+select results_eq(
+  format('select child_id, status from public.verify_child_pin(%L, %L, %L)', :'code_b', 'sam', '5555'),
+  format('values (%L::uuid, %L::text)', :'c3', 'ok'),
+  'correct PIN after expiry → ok');
+select is(
+  (select lock_count || '/' || failed_attempts || '/' || coalesce(locked_until::text, 'none')
+   from public.child_credentials where profile_id = :'c3'::uuid),
+  '0/0/none', 'success resets lock_count and counters');
+select public.verify_child_pin(:'code_b', 'sam', '0000') from generate_series(1, 5);
+select ok(
+  (select lock_count = 1 and locked_until = now() + interval '15 minutes'
+   from public.child_credentials where profile_id = :'c3'::uuid),
+  'after a success the next lock starts at 15 minutes again');
+
+-- set_child_pin clears everything.
+reset role;
+select tests.clear_auth();
+update public.child_credentials set lock_count = 4, failed_attempts = 3 where profile_id = :'c3'::uuid;
+select tests.authenticate_as(:'pb'::uuid);
+select lives_ok(format('select public.set_child_pin(%L, %L)', :'c3', '6666'), 'parent resets locked PIN');
+reset role;
+select tests.clear_auth();
+select is(
+  (select lock_count || '/' || failed_attempts || '/' || coalesce(locked_until::text, 'none')
+   from public.child_credentials where profile_id = :'c3'::uuid),
+  '0/0/none', 'set_child_pin resets lock_count, counters and lock');
+
+-- ---------------------------------------------------------------------------
+-- Hardening: nickname_key iff child
+-- ---------------------------------------------------------------------------
+
+select throws_ok(
+  format($$ insert into public.family_members (family_id, profile_id, role, consent_at)
+            values (%L, %L, 'child', now()) $$, :'fa', :'c4'),
+  '23514', null, 'child membership without nickname_key rejected');
+select throws_ok(
+  format($$ insert into public.family_members (family_id, profile_id, role, nickname_key)
+            values (%L, %L, 'parent', 'px') $$, :'fa', :'px'),
+  '23514', null, 'parent membership with nickname_key rejected');
+
+-- ---------------------------------------------------------------------------
+-- Hardening: register_child overwrites a stale credential row
+-- ---------------------------------------------------------------------------
+
+insert into public.child_credentials (profile_id, pin_hash, failed_attempts, locked_until, lock_count, set_by)
+values (:'c4'::uuid, 'stale', 3, now() + interval '1 hour', 2, :'pb'::uuid);
+select tests.authenticate_as(:'pa'::uuid);
+select lives_ok(
+  format('select public.register_child(%L, %L, %L, %L, true)', :'c4', :'fa', 'Zed', '4321'),
+  'register_child succeeds over a stale credential row');
+reset role;
+select tests.clear_auth();
+select is(
+  (select lock_count || '/' || failed_attempts || '/' || coalesce(locked_until::text, 'none') || '/' || set_by::text
+   from public.child_credentials where profile_id = :'c4'::uuid),
+  '0/0/none/' || :'pa', 'stale credential row reset and re-owned');
+set local role service_role;
+select results_eq(
+  format('select child_id, status from public.verify_child_pin(%L, %L, %L)', :'code_a', 'zed', '4321'),
+  format('values (%L::uuid, %L::text)', :'c4', 'ok'),
+  'new PIN replaces the stale hash');
+reset role;
 
 select * from finish();
 rollback;
