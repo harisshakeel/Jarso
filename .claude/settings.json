@@ -21,5 +21,30 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.development)",
+      "Read(./.env.development.local)",
+      "Read(./.env.production)",
+      "Read(./.env.production.local)",
+      "Read(./.env.test)",
+      "Read(./.env.test.local)",
+      "Bash(cat .env)",
+      "Bash(cat .env.local)",
+      "Bash(cat .env.*)",
+      "Bash(supabase db push:*)",
+      "Bash(pnpm db:push:*)",
+      "Bash(pnpm exec supabase db push:*)",
+      "Bash(npx supabase db push:*)",
+      "Bash(supabase status:*)",
+      "Bash(pnpm exec supabase status:*)",
+      "Bash(gh secret:*)",
+      "Bash(vercel env pull:*)",
+      "Bash(supabase secrets:*)",
+      "Bash(pnpm exec supabase secrets:*)"
+    ]
   }
 }

@@ -1,0 +1,35 @@
+# Gitleaks config. Runs in CI (secrets job) over every push and PR. Keep in sync with
+# scripts/check-secrets.sh and the REDACTIONS list in .claude/hooks/extract-log.py.
+title = "Jarso"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "supabase-api-key"
+description = "Supabase secret or publishable API key"
+regex = '''sb_(secret|publishable)_[A-Za-z0-9_-]{12,}'''
+keywords = ["sb_secret_", "sb_publishable_"]
+
+[[rules]]
+id = "supabase-access-token"
+description = "Supabase personal access token"
+regex = '''sbp_[A-Za-z0-9]{20,}'''
+keywords = ["sbp_"]
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API key"
+regex = '''sk-ant-[A-Za-z0-9_-]{12,}'''
+keywords = ["sk-ant-"]
+
+[[allowlists]]
+description = "Placeholders, fixtures and lockfile hashes"
+paths = ['''\.env\.example$''', '''pnpm-lock\.yaml$''']
+regexes = [
+  '''sb_(secret|publishable)_(\.\.\.|…|\[REDACTED\])''',
+  '''\[(JWT |PRIVATE KEY )?REDACTED\]''',
+  '''ci-placeholder''',
+  '''test-publishable-key''',
+  '''db password leaked in message''',
+]

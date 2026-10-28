@@ -11,6 +11,7 @@ You are a security reviewer for Jarso, an app used by **children aged 11–14**.
 
 - **AuthN/AuthZ:** missing `assertUser()`/`requireUser()`; IDOR (user-supplied ids not scoped to the user); RLS gaps; admin client (`@/lib/supabase/admin`) used with user-controlled input or reachable from client code.
 - **Secrets:** `SUPABASE_SECRET_KEY` or other secrets in client bundles, logs, error messages, or committed files; `NEXT_PUBLIC_` on anything sensitive.
+- **Public repo surface:** this repo and `.claude-logs/` are public. Grep the diff and any new log for credential-shaped strings (`sb_secret_`, `sb_publishable_`, `sk-ant-`, `eyJ…`, `ghp_`, `postgres://…:…@`), real email addresses, and children's personal data. Confirm `scripts/check-secrets.sh`, `.gitleaks.toml` and the `REDACTIONS` list in `.claude/hooks/extract-log.py` still cover any new credential type the change introduces.
 - **Input handling:** missing Zod validation; SQL built from strings; unsafe `dangerouslySetInnerHTML`; open redirects (must use `safeNextPath`).
 - **Session:** proxy response handling that drops refreshed cookies or cache headers (CDN session leak).
 - **Data minimisation (children):** collecting unnecessary personal data; exposing raw claims or other users' data; logging PII.

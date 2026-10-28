@@ -43,10 +43,11 @@ pnpm db:migration <name> # new migration → then pnpm db:reset && pnpm db:types
 14. **Money** is integer minor units end to end; practice and recorded money never mix; jar transfers are not income.
 15. **Child users.** Simple, encouraging copy. Collect minimum data. AI guide stays within FR09 boundaries.
 16. **Commits** follow Conventional Commits (`feat: …`, `fix(scope): …`), enforced by commitlint on `commit-msg`. PR titles are validated the same way (squash-merge subject).
+17. **Public repo.** Everything here, including `.claude-logs/`, is public. Never read `.env*` files, never print, echo, paste or quote a credential (Supabase keys, Anthropic keys, tokens, connection strings), and never ask the user to paste one into chat. Use placeholders like `sb_secret_…`. If a real secret appears in any output, stop, tell the user, and follow the rotation runbook in `docs/security.md`. See the `public-repo-security` skill.
 
 ## Workflows
 
-Project skills in `.claude/skills/`: `new-feature`, `db-migration`, `api-endpoint`, `server-action`, `ui-component`, `verify`, `production-readiness` (right-sized reliability, security and scaling decisions for ~60 users; consult it for any backend, cron, Claude API, migration or deploy change).
+Project skills in `.claude/skills/`: `new-feature`, `db-migration`, `api-endpoint`, `server-action`, `ui-component`, `verify`, `production-readiness` (right-sized reliability, security and scaling decisions for ~60 users; consult it for any backend, cron, Claude API, migration or deploy change), `public-repo-security` (secret handling, logging hygiene and the rotation runbook for this public repo).
 Subagents in `.claude/agents/`: `supabase-architect`, `code-reviewer`, `security-auditor`, `test-engineer`.
 
 ## Claude config is repo-scoped
@@ -56,3 +57,5 @@ All Claude configuration lives in this repo — `.claude/settings.json`, `.claud
 ## Session Logs
 
 `.claude/settings.json` runs `.claude/hooks/extract-log.py` on `UserPromptSubmit` and `Stop`, writing prompt + final-response transcripts to `.claude-logs/`. Always commit `.claude-logs/` with your changes.
+
+The logs are public (hackathon evaluation). The hook redacts credential-shaped strings and non-GitHub email addresses before writing, `scripts/check-secrets.sh` blocks commits that still contain any, and CI runs gitleaks. Redaction is a safety net, not permission: still never put a secret in a prompt or response.

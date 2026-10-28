@@ -1,3 +1,4 @@
+sh scripts/check-secrets.sh
 pnpm exec biome check --staged --write --no-errors-on-unmatched
 git update-index --again
 pnpm typecheck

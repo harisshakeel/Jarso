@@ -1,7 +1,26 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { clientEnv } from "@/config";
 import { AppError, isAppError } from "../errors";
 import { logger } from "../logger";
+
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * CSRF guard for cookie-authenticated Route Handlers. Browsers always send `Origin` on
+ * non-GET fetches, so a mismatch with our own origin means another site made the request.
+ * Requests without an `Origin` header (curl, server-to-server) are allowed; they carry no cookies.
+ */
+export function assertSameOrigin(request: Request) {
+  if (SAFE_METHODS.has(request.method)) return;
+  const origin = request.headers.get("origin");
+  if (!origin) return;
+
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const allowed =
+    origin === new URL(clientEnv.NEXT_PUBLIC_APP_URL).origin || new URL(origin).host === host;
+  if (!allowed) throw new AppError("FORBIDDEN", "Cross-origin request rejected");
+}
 
 export type ApiError = { error: { code: string; message: string; details?: unknown } };
 
@@ -29,10 +48,12 @@ function toErrorResponse(error: unknown) {
   );
 }
 
-/** Wraps a route handler with uniform error → JSON mapping. */
+/** Wraps a route handler with the CSRF guard and uniform error → JSON mapping. */
 export function withApi<Args extends unknown[]>(handler: (...args: Args) => Promise<Response>) {
   return async (...args: Args): Promise<Response> => {
     try {
+      const [request] = args;
+      if (request instanceof Request) assertSameOrigin(request);
       return await handler(...args);
     } catch (error) {
       return toErrorResponse(error);

@@ -10,6 +10,70 @@ from datetime import datetime
 from typing import List, Optional, Tuple, Dict, Any
 
 
+# ---------------------------------------------------------------------------
+# Redaction. These logs are committed to a PUBLIC repository, so every prompt
+# and response passes through redact() before it is written. Patterns cover the
+# credentials this project can plausibly touch plus the common cloud formats.
+# Keep in sync with scripts/check-secrets.sh and .gitleaks.toml.
+# ---------------------------------------------------------------------------
+
+_SECRET_CHARS = r'[A-Za-z0-9_\-]'
+
+REDACTIONS: List[Tuple[re.Pattern, str]] = [
+    # Supabase API keys (new format) and personal access tokens
+    (re.compile(r'sb_(secret|publishable)_' + _SECRET_CHARS + r'{12,}'), r'sb_\1_[REDACTED]'),
+    (re.compile(r'sbp_[A-Za-z0-9]{20,}'), 'sbp_[REDACTED]'),
+    # JWTs (Supabase legacy anon/service_role keys, session tokens)
+    (re.compile(r'eyJ' + _SECRET_CHARS + r'{10,}\.eyJ' + _SECRET_CHARS + r'{10,}\.' + _SECRET_CHARS + r'{10,}'),
+     '[JWT REDACTED]'),
+    # Anthropic, OpenAI, Stripe
+    (re.compile(r'sk-ant-' + _SECRET_CHARS + r'{12,}'), 'sk-ant-[REDACTED]'),
+    (re.compile(r'sk-(?:proj-|live_|test_)' + _SECRET_CHARS + r'{12,}'), 'sk-[REDACTED]'),
+    # GitHub tokens
+    (re.compile(r'\b(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}'), r'\1_[REDACTED]'),
+    (re.compile(r'github_pat_[A-Za-z0-9_]{20,}'), 'github_pat_[REDACTED]'),
+    # AWS, Google, Slack
+    (re.compile(r'\bAKIA[0-9A-Z]{16}\b'), 'AKIA[REDACTED]'),
+    (re.compile(r'\bAIza[0-9A-Za-z_\-]{30,}'), 'AIza[REDACTED]'),
+    (re.compile(r'\bxox[baprs]-[A-Za-z0-9\-]{10,}'), 'xox-[REDACTED]'),
+    # Connection strings with embedded passwords
+    (re.compile(r'((?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://[^:\s/@]+:)[^@\s]+@'), r'\1[REDACTED]@'),
+    # Authorization headers
+    (re.compile(r'(?i)(bearer\s+)[A-Za-z0-9_\-.=]{16,}'), r'\1[REDACTED]'),
+    # PEM private keys
+    (re.compile(r'-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----'),
+     '[PRIVATE KEY REDACTED]'),
+    # KEY=value / KEY: value lines whose name says secret and whose value looks real
+    # (12+ token characters, not a placeholder like "..." or "<ref>" or "${VAR}")
+    (re.compile(
+        r'(?im)^(\s*(?:export\s+)?[A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API_KEY|APIKEY|PRIVATE_KEY'
+        r'|ACCESS_KEY|CLIENT_SECRET|DATABASE_URL|SERVICE_ROLE)[A-Z0-9_]*\s*[=:]\s*["\']?)'
+        r'(?!\[REDACTED\])([A-Za-z0-9_\-+/=.:@]{12,})(?<!\.\.\.)(["\']?\s*(?:#.*)?)$'),
+     r'\1[REDACTED]\3'),
+    # "password": "..." style literals in JSON/YAML/TS
+    (re.compile(r'(?i)(["\']?(?:password|passwd|secret|token|api[_-]?key|client[_-]?secret)["\']?\s*[:=]\s*["\'])([^"\']{8,})(["\'])'),
+     r'\1[REDACTED]\3'),
+    # Email addresses other than GitHub noreply (children's app: minimise personal data)
+    (re.compile(r'[A-Za-z0-9._%+\-]+@(?!users\.noreply\.github\.com\b)[A-Za-z0-9.\-]+\.[A-Za-z]{2,}'),
+     '[email redacted]'),
+]
+
+
+def redact(text: str) -> str:
+    """Mask credential-shaped strings. Idempotent: redacted text redacts to itself."""
+    for pattern, replacement in REDACTIONS:
+        text = pattern.sub(replacement, text)
+    return text
+
+
+def mask_email(email: str) -> str:
+    """Keep GitHub noreply addresses (already public); mask the local part of anything else."""
+    if email.endswith('@users.noreply.github.com') or '@' not in email:
+        return email
+    local, domain = email.split('@', 1)
+    return f"{local[:1]}***@{domain}"
+
+
 def get_git_author() -> str:
     """Get the author for attribution. Checks CLAUDE_AUTHOR env var first, then git config."""
     if author := os.environ.get('CLAUDE_AUTHOR'):
@@ -138,12 +202,12 @@ def extract_clean_log(jsonl_path: Path) -> List[Tuple[str, str, str]]:
         if is_user_prompt(entry):
             content = entry.get('message', {}).get('content', '')
             if isinstance(content, str) and content.strip():
-                entries.append((timestamp, 'user', content.strip()))
+                entries.append((timestamp, 'user', redact(content.strip())))
 
         elif entry.get('type') == 'assistant':
             text = extract_assistant_text(entry)
             if text:
-                entries.append((timestamp, 'assistant', text))
+                entries.append((timestamp, 'assistant', redact(text)))
 
     return entries
 
@@ -306,7 +370,7 @@ def main():
 
     author = get_git_author()
     github_user = get_github_user()
-    git_email = get_git_email()
+    git_email = mask_email(get_git_email())
     lines = ["---"]
     lines.append(f"session_id: {session_id}")
     lines.append(f"date: {date}")
@@ -369,7 +433,7 @@ def main():
             lines.append(f"chars: {len(content)}")
             lines.append(f"\n{content}\n")
 
-    output_path.write_text('\n'.join(lines))
+    output_path.write_text(redact('\n'.join(lines)))
 
 
 if __name__ == '__main__':
