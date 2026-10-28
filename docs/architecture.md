@@ -202,7 +202,14 @@ erDiagram
     uuid id PK
     text code "6 chars, child sign-in"
     text currency
+    text timezone "IANA name, default UTC"
+    interval clock_offset "demo clock, default 0"
+    bool demo_clock_enabled "seed or flagged action only"
     uuid created_by
+  }
+  child_settings {
+    uuid child_id PK
+    bool allow_negative_spend "default false, parent-set, audited"
   }
   family_members {
     uuid family_id FK
@@ -211,6 +218,8 @@ erDiagram
     text status "invited | approved | removed"
     uuid approved_by
     timestamptz approved_at
+    timestamptz consent_at "child rows, guardian consent"
+    uuid consent_by "consenting parent"
   }
   invitations {
     uuid id PK
@@ -219,6 +228,7 @@ erDiagram
     text parent_email "child-initiated only"
     text nickname
     text token_hash
+    text short_code "shown by the child to the parent"
     text status "pending | accepted | expired"
     timestamptz expires_at
   }
@@ -245,7 +255,9 @@ erDiagram
     uuid schedule_id FK
     text period_key "YYYY-MM-DD; unique with schedule"
     date due_on
-    text status "due | confirmed | closed"
+    bigint amount_minor "schedule amount when generated"
+    bigint shortfall_minor "due less cash and saved, default 0"
+    text status "due | confirmed | closed (closed unused in first milestone)"
     bigint cash_minor
     bigint saved_minor
     uuid confirmed_by
@@ -284,7 +296,7 @@ erDiagram
   spending_limits {
     uuid id PK
     uuid child_id FK
-    text type "per_purchase | per_week"
+    text type "per_purchase | per_week | per_month; one active per child and type"
     bigint amount_minor
     bool active
   }
@@ -418,9 +430,10 @@ sequenceDiagram
   Note over C,E: Child-initiated
   C->>A: startChildOnboarding(nickname, parentEmail)
   A->>DB: create_invitation(kind=child_to_parent)
-  A->>E: invite email with tokenised link
+  A-->>C: link + short code to show the parent
+  A->>E: invite email with tokenised link (only when email is configured)
   P->>A: open link → sign up / sign in as parent
-  A->>DB: accept_invitation(token) → family, parent member, child profile + auth user, PIN setup pending
+  A->>DB: accept_invitation(token, consent) → family (or the parent's existing family), parent member, child profile + auth user, PIN setup pending
   P->>A: setChildPin(childId, pin)
   A->>DB: set_child_pin → bcrypt hash
   P-->>C: tells child the family code and PIN
@@ -446,13 +459,15 @@ sequenceDiagram
   P->>A: confirmHandover(occurrenceId, cashMinor, savedMinor, idemKey)
   A->>A: assertUser, assertParentOf(child)
   A->>DB: confirm_handover(...)
-  DB->>DB: lock occurrence; require status=due; cash+saved = due amount
+  DB->>DB: lock occurrence; require status=due; 0 < cash+saved <= due amount; shortfall = due - (cash+saved)
   DB->>DB: insert ledger allowance_in (spend, cash), allowance_in (save, saved) with idempotency keys
-  DB->>DB: occurrence → confirmed; notifications(handover_done)
+  DB->>DB: occurrence → confirmed (closed, shortfall stored); notifications(handover_done)
   A->>P: refresh(); jar fill animation
 ```
 
-Reminders: a second cron job (`send_handover_reminders`, hourly) creates `reminder` notifications for occurrences still `due` after the configured delay, at most one per day per occurrence. Reminder timing stays an open product decision; the job reads it from `families.settings`.
+Reminders: a second cron job (`send_handover_reminders`, hourly) creates a `reminder` notification when `today - due_on` is a positive multiple of 3 days (family timezone) for an occurrence still `due`, idempotent on `(occurrence_id, reminder_date)`. The `due` notice itself goes out the day it falls due. The interval is fixed at 3 for now. `due_on` and these day counts use the family timezone (`families.timezone`); monthly, quarterly and annual dates on day 29–31 clamp to the month's last day.
+
+Demo clock: `family_now(family_id)` returns `now() + families.clock_offset`, and every time-based function uses it. A parent-only action advances the offset (forward only) and runs generation and reminders for that family. It exists only when `FEATURE_DEMO_CLOCK` is on and the family's `demo_clock_enabled` flag is set.
 
 ### 7.3 Purchase and limit notice
 
@@ -464,6 +479,7 @@ sequenceDiagram
   participant DB as Postgres
   C->>A: recordPurchase(amount, label, idemKey)
   A->>DB: record_entry(kind=purchase, jar=spend)
+  DB->>DB: lock child (advisory); refuse insufficient_spend if spend - amount < 0 and not allow_negative_spend
   DB->>DB: insert ledger (never blocked by limits)
   DB->>DB: evaluate_limits(entry) → if breached, notifications(limit_notice) to parents
   A->>C: refresh(); balance updates
@@ -478,7 +494,7 @@ pending ──(parent approves)──► approved ──(parent confirms hand ov
    └──(child cancels)───► cancelled
 ```
 
-Withdrawal cap is checked against `available_save` at `pending` and again inside `complete_request`; deposits are checked against the Spend balance the same way. `complete_request` is the only transition that writes to the ledger, and it is idempotent on the request id.
+Withdrawal cap is checked against `available_save` at `pending` and again inside `complete_request`; deposits are checked against the Spend balance the same way, and never take Spend below zero even when overspending is allowed. `complete_request` is the only transition that writes to the ledger, and it is idempotent on the request id.
 
 ## 8. Notifications
 
@@ -563,8 +579,8 @@ Delivery pipeline: PR → CI (lint, typecheck, unit, build, e2e, gitleaks, migra
 
 | Milestone | Modules | Tables and functions | Screens |
 | --- | --- | --- | --- |
-| **First milestone** (FR13, FR01, FR03, FR14 purchases + withdrawals, FR16 inbox) | `family`, `allowance`, `ledger`, `jars` (read), `diary` (purchases), `requests` (withdrawal), `limits`, `notifications` (inbox + email) | families, family_members, invitations, child_credentials, allowance_schedules/occurrences, ledger_entries, requests, spending_limits, notifications, notification_deliveries, job_runs; functions `create_child_account`, `accept_invitation`, `verify_child_pin`, `generate_due_occurrences`, `confirm_handover`, `record_entry`, `evaluate_limits`, `complete_request` | parent: onboarding, family, allowance setup, home with due + requests, handover sheet, limits, inbox; child: sign-in, home, jars, record purchase, request withdrawal, inbox |
-| **Rest of pilot** (FR02, FR04–FR06, FR08, FR10–FR12, FR15, deposits, push, PWA) | `goals`, `diary` full, `learning`, `reviews`, `requests` (deposit, emergency), `notifications` (push), PWA shell | goals, mission_progress, review_items, weekly_reviews, push_subscriptions, `reverse_entry`, review jobs | goal, diary, missions, topics, weekly review, emergency request, settings |
+| **First milestone** (FR13, FR01, FR03, FR14 purchases + deposits + withdrawals, FR16 inbox) | `family`, `allowance`, `ledger`, `jars` (read), `diary` (purchases), `requests` (withdrawal, deposit), `limits`, `notifications` (inbox + email), demo clock | families, family_members, invitations, child_credentials, child_settings, allowance_schedules/occurrences, ledger_entries, requests, spending_limits, notifications, notification_deliveries, job_runs; functions `create_child_account`, `accept_invitation`, `verify_child_pin`, `generate_due_occurrences`, `confirm_handover`, `record_entry`, `evaluate_limits`, `complete_request`, `family_now`, `send_handover_reminders` | parent: onboarding with child switcher, family, allowance setup, home with due + requests, handover sheet, limits and overspend toggle, demo clock, inbox; child: sign-in, home, jars, record purchase, request withdrawal or deposit, inbox |
+| **Rest of pilot** (FR02, FR04–FR06, FR08, FR10–FR12, FR15, push, PWA) | `goals`, `diary` full, `learning`, `reviews`, `requests` (emergency), `notifications` (push), PWA shell | goals, mission_progress, review_items, weekly_reviews, push_subscriptions, `reverse_entry`, review jobs | goal, diary, missions, topics, weekly review, emergency request, settings |
 | **Later** (FR07, FR09) | `guide` | usage_counters (token budgets), guide_messages | guide chat with streaming |
 
 ## 15. Decisions and assumptions
@@ -583,9 +599,17 @@ Assumed by the architecture, to be confirmed when first implemented:
 - Mission content as versioned JSON in the repo.
 - Practice money in the same ledger table under `mode`.
 - Email provider is Resend; swap is a single adapter in `notifications/server/channels`.
-- Partial handovers close the occurrence and record a `shortfall_minor` on it (open decision in REQUIREMENTS.md); the schema holds the column, the UI decides later.
+Also decided on 2026-10-28 (see REQUIREMENTS.md "Decided for the pilot"):
 
-Open questions carried from `REQUIREMENTS.md`: parental verification strength, reminder timing, limit types, purchases larger than Spend, emergency grant jar, schedule edge cases, pilot thresholds.
+- Partial handovers close the occurrence and record `shortfall_minor`; over-handover is rejected.
+- Purchases that would take Spend below zero are refused unless `child_settings.allow_negative_spend` is on.
+- Limit types are per purchase, per week and per month; weeks and months follow the family timezone.
+- Reminders every 3 days from the due date; missed occurrences stay due separately; schedule changes apply from the next occurrence.
+- Parent verification is email confirmation plus a stored guardian-consent checkbox.
+- Savings deposits are in the first milestone; a parent can link several children; invitations always give a link and short code.
+- A per-family demo clock (feature-flagged) lets the demo fast-forward time.
+
+Open questions carried from `REQUIREMENTS.md`: pilot countries and stronger parental verification, emergency grant jar, pilot thresholds.
 
 ## 16. Scaling notes
 

@@ -20,12 +20,12 @@ One parent and one child can complete, without push notifications:
 4. An allowance falling due on schedule, with the due badge and reminder (FR01, FR16).
 5. Parent handover confirmation posting the allowance to Spend and Save (FR01, FR03).
 6. A purchase recorded by the child, and a limit notice to the parent when it breaks a limit (FR14, FR16).
-7. A savings withdrawal request, the parent's new-request notice and decision, and the handover (FR14, FR16).
+7. A savings withdrawal request, the parent's new-request notice and decision, and the handover; and a savings deposit confirmed by the parent on receiving the cash (FR14, FR16).
 8. Correct due amounts, balances, and request status for both accounts.
 
 ### Rest of the pilot
 
-FR02–FR06, FR08, FR10–FR12, emergency funds (FR15), savings deposits (FR14), web push and app install (FR16).
+FR02–FR06, FR08, FR10–FR12, emergency funds (FR15), web push and app install (FR16).
 
 ### Later versions
 
@@ -159,6 +159,7 @@ The initial topics are:
 
 - The parent can set spending limits for the child.
 - A purchase is always recorded when the child enters it. Limits never block it.
+- A purchase that would take Spend below zero is refused unless the parent has allowed overspending. Limits never block.
 - When a purchase breaks a limit, the parent receives a notice showing the purchase and the limit.
 
 ### Savings deposits
@@ -238,12 +239,19 @@ Agree on the evaluation period, definitions, and numerical targets before launch
 
 ## Open decisions
 
-- Pilot countries and the parental verification process. Email confirmation alone has not been shown to be enough.
-- Handover amounts different from the due amount: does the shortfall stay due, or does confirmation close the occurrence?
-- Reminder timing: when the first reminder fires and how often it repeats.
-- Supported spending limit types (for example per purchase or per week).
-- A purchase larger than the Spend balance: allow a negative balance, or ask for a correction?
-- Allowance schedule rules: start date, mid-cycle changes, and several missed occurrences piling up.
+- Pilot countries, and stronger parental verification than email confirmation plus the guardian-consent checkbox.
 - Which jar receives an emergency grant.
-- Whether a parent can link more than one child in the pilot.
 - Pilot duration and success thresholds.
+
+### Decided for the pilot (2026-10-28)
+
+- **Handover shortfall.** Confirmation closes the occurrence. The shortfall (due less cash plus saved) is stored on the occurrence and shown in history. A handover larger than the due amount is rejected.
+- **Purchase larger than Spend.** Refused unless the parent has allowed overspending for that child (off by default). When refused, the child sees a friendly explanation. When allowed, Spend may go negative and is shown clearly. Spending limits still never block.
+- **Spending limit types.** Per purchase, per week and per month, in any combination, at most one active of each type per child.
+- **Reminders.** The first notice is the day the allowance falls due, then a reminder every 3 days while it is still due.
+- **Missed occurrences.** Each stays due separately, with no roll-up and no expiry. The parent confirms each one.
+- **Schedule changes.** The parent picks the start date. Amount or frequency changes apply from the next occurrence; occurrences already due keep their amount.
+- **Parent verification.** Email confirmation plus a guardian-consent checkbox ("I am this child's parent or guardian"), stored with a timestamp and the consenting parent.
+- **Savings deposits** are part of the first milestone, on the same request flow as withdrawals.
+- **Several children.** A parent can link more than one child. Parent screens are per child, with a child switcher.
+- **Invitations.** Always a copyable link plus a short code the child shows the parent. Email is sent additionally only when a sending domain is configured; nothing in the pilot depends on email delivery.

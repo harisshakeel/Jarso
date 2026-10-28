@@ -11,7 +11,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Term | Meaning |
 | --- | --- |
 | Parent / Child | The two roles. A parent manages only children linked to them; a child sees only their own data. |
-| Family link | Parent–child relationship with an approval status. A child has no app access until approved. Child-initiated onboarding stores only a nickname and the parent's email until then. |
+| Family link | Parent–child relationship with an approval status. A child has no app access until approved. Child-initiated onboarding stores only a nickname and the parent's email until then. Approval records the parent's guardian consent (timestamp and consenting parent). A parent can have several linked children. |
 | Allowance | Parent-set amount + frequency (weekly/monthly/quarterly/annual). |
 | Due allowance | One scheduled occurrence, created automatically, awaiting handover. Shows a due badge. Not balance. |
 | Handover confirmation | Parent's one-screen record of cash given to the child (→ Spend) and amount kept as savings (→ Save). The only way allowance reaches a balance. |
@@ -22,7 +22,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Transfer | Move between jars. **Not income.** Spend → Save is a savings deposit; Save → Spend is a savings withdrawal. Both are requests. |
 | Savings deposit | Request to move cash from Spend to Save: `pending` → `confirmed` (parent received the cash), or `cancelled` / `rejected`. Posts only at confirmation. |
 | Purchase | Spend recorded by the child. Always recorded; breaking a spending limit sends the parent a notice. |
-| Spending limit | Parent-set threshold that triggers a limit notice. Never blocks a purchase. |
+| Spending limit | Parent-set threshold (per purchase, per week or per month) that triggers a limit notice. Never blocks a purchase. |
 | Savings withdrawal | Request to take money from Save: `pending` → `approved` → `handed_over`, or `rejected`. Posts only at handover. Pending and approved amounts are **reserved**. |
 | Reserved | Save money tied up by a pending or approved withdrawal. Still in the balance; excluded from goal progress and from the withdrawal cap. |
 | Emergency grant | Extra money requested by the child; same approve → handover flow. Its own ledger kind. |
@@ -57,7 +57,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 3. Allowance, savings-deposit, savings-withdrawal and emergency money reach the ledger only through a parent's handover or receipt confirmation. Due and pending amounts never count as balance. Gifts the child records post immediately.
 4. Each scheduled occurrence is created once and confirmed at most once. Each request posts at most once. Every balance-changing write carries an idempotency key.
 5. Pending, approved-not-handed-over, cancelled and rejected requests never touch the ledger. Handover and its ledger entry commit together.
-6. Limits never block a purchase. A limit breach produces a notice, not a rejection.
+6. Limits never block a purchase. A limit breach produces a notice, not a rejection. Separately, a purchase that would take Spend below zero is refused unless the parent allows overspending (D2).
 7. A savings withdrawal never exceeds the unreserved Save balance, and a savings deposit never exceeds the Spend balance, checked at request and again at handover or confirmation. Pending and approved withdrawals reserve Save: included in the balance, excluded from goal progress and from the cap.
 8. Transfers between jars do not change total income.
 9. Spending from Spend does not change the savings estimate when future save contributions are unchanged (FR05).
