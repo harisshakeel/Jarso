@@ -1,0 +1,54 @@
+# Jarso
+
+Pocket-money learning app for children aged 11–14 (savings goals, Spend/Save jars, money diary, daily missions, AI money guide). Scope: `REQUIREMENTS.md`. Domain map + invariants: `docs/domain.md`.
+
+Full-stack Next.js 16 (App Router) + Supabase. pnpm, TypeScript strict, Tailwind v4 + shadcn/ui, Zod, Biome, Vitest, Playwright.
+
+@AGENTS.md
+
+## Read before working
+
+- Product scope & domain invariants: `REQUIREMENTS.md`, `docs/domain.md`
+- Architecture & folder layout: `docs/architecture.md`
+- Conventions (naming, barrels, errors, env): `docs/conventions.md`
+- Schema / migrations / RLS: `docs/database.md`
+- Auth: `docs/auth.md` · Backend entry points: `docs/api.md` · Tests: `docs/testing.md`
+- Next.js 16 APIs differ from training data — check `node_modules/next/dist/docs/` before using an unfamiliar API.
+
+## Commands
+
+```bash
+pnpm dev                 # dev server
+pnpm check               # lint + typecheck + unit tests — run before declaring work done
+pnpm build               # needs NEXT_PUBLIC_* env (see .env.example)
+pnpm test:e2e            # Playwright
+pnpm db:migration <name> # new migration → then pnpm db:reset && pnpm db:types
+```
+
+## Hard rules
+
+1. **Feature modules.** Domain code lives in `src/features/<name>/` (`components/`, `schemas.ts`, `types.ts`, `server/{actions,service,repository}.ts`). `src/app` only routes and composes.
+2. **Index barrels.** Every module exposes an `index.ts`. Cross-module imports go through the barrel (`@/features/auth`, `@/lib`, `@/components/ui`, `@/config`, `@/types`) — never deep paths into another module. Inside a module use relative imports.
+3. **Never mix server and client in a barrel.** Server-only API lives in `features/<f>/server/index.ts` beginning with `import "server-only"`. Direct-import exceptions: `@/lib/supabase/{client,server,admin,proxy}`, `@/config/env.server`.
+4. **Layering:** route/action → service → repository → Supabase. Only repositories touch table/column names. No business logic in `app/`.
+5. **Auth:** call `requireUser()` (pages) or `assertUser()` (actions/APIs) from `@/features/auth/server`. Proxy redirects are optimistic only. Never use `getSession()` on the server.
+6. **Cache Components are on.** Anything reading cookies/headers/searchParams/Supabase-server renders inside `<Suspense>`. Don't await the session at a layout's top level.
+7. **Database:** schema changes only via `supabase/migrations`. Every new table enables RLS with explicit per-operation policies in the same migration. Regenerate and commit `src/types/database.types.ts`.
+8. **Admin client** (`@/lib/supabase/admin`) bypasses RLS — trusted server jobs only, after explicit authz.
+9. **Validation:** every external input (forms, JSON bodies, params) parsed with Zod. Server Actions via `createAction`; Route Handlers via `withApi` + `parseBody`.
+10. **Errors:** throw `AppError(code, safeMessage, { cause })`. Never leak raw errors to users. Use `logger` from `@/lib`; `console.log` is banned.
+11. **Env:** add vars to `src/config/env.{client,server}.ts` + `.env.example`. Never read `process.env` elsewhere.
+12. **Biome only** for lint/format. No ESLint/Prettier.
+13. After `pnpm dlx shadcn add <x>`, export it from `src/components/ui/index.ts`.
+14. **Money** is integer minor units end to end; practice and recorded money never mix; jar transfers are not income.
+15. **Child users.** Simple, encouraging copy. Collect minimum data. AI guide stays within FR09 boundaries.
+16. **Commits** follow Conventional Commits (`feat: …`, `fix(scope): …`), enforced by commitlint on `commit-msg`. PR titles are validated the same way (squash-merge subject).
+
+## Workflows
+
+Project skills in `.claude/skills/`: `new-feature`, `db-migration`, `api-endpoint`, `server-action`, `ui-component`, `verify`.
+Subagents in `.claude/agents/`: `supabase-architect`, `code-reviewer`, `security-auditor`, `test-engineer`.
+
+## Session Logs
+
+Always commit `.claude-logs/` with your changes.
