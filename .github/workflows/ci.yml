@@ -65,7 +65,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.122.0 # keep in sync with the `supabase` devDependency
       - name: Apply migrations to a fresh local database
         run: |
           supabase db start
