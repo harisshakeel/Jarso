@@ -1,0 +1,2 @@
+-- Local development seed data. Runs on `pnpm db:reset`.
+-- Never put production data or secrets here.
