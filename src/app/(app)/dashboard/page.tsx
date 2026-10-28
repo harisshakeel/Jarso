@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { routes } from "@/config";
 import { requireUser } from "@/features/auth/server";
 import { ProfileCard } from "@/features/profiles";
 import { getProfile } from "@/features/profiles/server";
@@ -7,7 +8,7 @@ import { getProfile } from "@/features/profiles/server";
 export const metadata: Metadata = { title: "Dashboard" };
 
 async function DashboardContent() {
-  const user = await requireUser();
+  const user = await requireUser(routes.dashboard);
   const profile = await getProfile(user.id);
   return <ProfileCard profile={profile} email={user.email} />;
 }

@@ -22,10 +22,10 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   };
 });
 
-/** For pages: redirect to login when signed out. */
-export async function requireUser(): Promise<SessionUser> {
+/** For pages: redirect to login when signed out. Pass the page's path so login can return to it. */
+export async function requireUser(next?: string): Promise<SessionUser> {
   const user = await getCurrentUser();
-  if (!user) redirect(routes.login);
+  if (!user) redirect(next ? `${routes.login}?next=${encodeURIComponent(next)}` : routes.login);
   return user;
 }
 

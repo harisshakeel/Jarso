@@ -7,7 +7,7 @@ Supabase Auth with cookie sessions via `@supabase/ssr`.
 | Layer | File | Role |
 | --- | --- | --- |
 | Proxy | `src/proxy.ts`, `src/lib/supabase/proxy.ts` | Refreshes the session cookie on every request. **Optimistic** redirects: signed-out → `/login?next=…` for `protectedRoutePrefixes`; signed-in → `/dashboard` for auth pages. |
-| DAL | `src/features/auth/server/session.ts` | `getCurrentUser()` verifies the JWT (`getClaims`) and returns a narrow `SessionUser`. `requireUser()` for pages (redirects), `assertUser()` for actions/APIs (throws 401). Memoised per request. |
+| DAL | `src/features/auth/server/session.ts` | `getCurrentUser()` verifies the JWT (`getClaims`) and returns a narrow `SessionUser`. `requireUser(path)` for pages (redirects to `/login?next=<path>`), `assertUser()` for actions/APIs (throws 401). Memoised per request. |
 | RLS | `supabase/migrations/*` | Final authority. Even a bug in app code cannot read another user's rows. |
 
 **Proxy is not security.** Every page, action and route handler that touches user data must call `requireUser()` / `assertUser()`.
@@ -20,7 +20,7 @@ Supabase Auth with cookie sessions via `@supabase/ssr`.
 - Session reads are request-time → render inside `<Suspense>`.
 - Post-login redirects go through `safeNextPath()` (blocks open redirects).
 - Expose only `SessionUser` to the client, never raw claims.
-- Protect a new area by adding its prefix to `protectedRoutePrefixes` in `src/config/site.ts` **and** calling `requireUser()` in its pages.
+- Protect a new area by adding its prefix to `protectedRoutePrefixes` in `src/config/site.ts` **and** calling `requireUser(routes.<page>)` in its pages.
 
 ## Flows
 
