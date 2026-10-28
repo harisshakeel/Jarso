@@ -6,7 +6,7 @@ The pilot is a responsive web app. It supports **one currency, two money jars (S
 
 Jarso records and teaches money decisions. It does not hold, transfer, deposit, or withdraw real money. Every balance is a recorded number.
 
-**A balance counts only money a parent has confirmed handing over.** Spend is the cash the child holds. Save is the money the parent keeps for the child. Money that is due but not yet handed over is shown as due, never as balance.
+**Allowance, savings-deposit, savings-withdrawal and emergency money count toward a balance only once a parent has confirmed handing it over.** Spend is the cash the child holds. Save is the money the parent keeps for the child. Money that is due or requested but not yet handed over is shown as due or pending, never as balance. Money the child receives from other sources, such as a gift, is recorded by the child and counts immediately (FR04).
 
 ## Delivery
 
@@ -19,13 +19,13 @@ One parent and one child can complete, without push notifications:
 3. Allowance schedule setup (FR01).
 4. An allowance falling due on schedule, with the due badge and reminder (FR01, FR16).
 5. Parent handover confirmation posting the allowance to Spend and Save (FR01, FR03).
-6. A purchase recorded by the child, and a limit notice to the parent when it breaks a limit (FR14).
-7. A savings withdrawal request, parent decision, and handover (FR14).
+6. A purchase recorded by the child, and a limit notice to the parent when it breaks a limit (FR14, FR16).
+7. A savings withdrawal request, the parent's new-request notice and decision, and the handover (FR14, FR16).
 8. Correct due amounts, balances, and request status for both accounts.
 
 ### Rest of the pilot
 
-FR02–FR06, FR10–FR12, emergency funds (FR15), web push and app install (FR16).
+FR02–FR06, FR08, FR10–FR12, emergency funds (FR15), savings deposits (FR14), web push and app install (FR16).
 
 ### Later versions
 
@@ -48,7 +48,7 @@ FR02–FR06, FR10–FR12, emergency funds (FR15), web push and app install (FR16
 ## FR02 — Personal savings goal
 
 - The child can choose something they want and enter its price.
-- The app shows the amount saved, amount remaining, and progress toward the goal. Saved means confirmed in Save; due money is not counted.
+- The app shows the amount saved, amount remaining, and progress toward the goal. Saved means confirmed in Save less any reserved withdrawals (FR14); due and pending money is not counted.
 - The child can plan how much to save from each allowance.
 - The app estimates the number of allowance payments needed from the plan and updates this estimate when the plan changes.
 
@@ -58,7 +58,7 @@ FR02–FR06, FR10–FR12, emergency funds (FR15), web push and app install (FR16
 - The child can plan and preview how each allowance should be split. The plan prefills the parent's handover screen; the parent's confirmation records the actual split.
 - Each jar displays its confirmed balance. Due allowances are shown separately.
 - The child can see how a planned split or transfer affects their goal.
-- Moving money from Spend to Save means the child hands cash to the parent. It posts when the parent confirms receiving it.
+- Moving money from Spend to Save is a savings deposit: the child hands cash to the parent. It is a request (FR14) that posts only when the parent confirms receiving the cash.
 - Moving money from Save to Spend is a savings withdrawal (FR14).
 - Transfers between jars do not count as new income.
 
@@ -144,6 +144,8 @@ The initial topics are:
 
 - Jarso has two roles: **parent** and **child**.
 - A child may start onboarding, or a parent may onboard their child.
+- A child who starts onboarding enters only a nickname and the parent's email address. The child's own email, full name and date of birth are not collected.
+- The parent creates or signs in to their own account from that invitation, links the child, and approves. Until then the child account holds nothing beyond the nickname and the pending link.
 - A child cannot use the app until the linked parent's approval is recorded.
 - The parent–child link and its approval status are stored.
 - A parent can view and manage only children linked to them.
@@ -151,7 +153,7 @@ The initial topics are:
 - Every permission is enforced on the server. One family can never see or change another family's records.
 - Only the minimum data needed is collected about the child.
 
-## FR14 — Purchases, limits, and savings withdrawals
+## FR14 — Purchases, limits, savings deposits, and savings withdrawals
 
 ### Purchases
 
@@ -159,13 +161,20 @@ The initial topics are:
 - A purchase is always recorded when the child enters it. Limits never block it.
 - When a purchase breaks a limit, the parent receives a notice showing the purchase and the limit.
 
+### Savings deposits
+
+- Moving money from Spend to Save is a request to the parent, with the amount. It records that the child is handing cash over.
+- The request is pending until the parent confirms receiving the cash, which posts it exactly once. The child can cancel it while pending; the parent can reject it. Cancellation and rejection leave balances unchanged.
+- A deposit never exceeds the Spend balance, checked when requested and again at confirmation.
+
 ### Savings withdrawals
 
 - Taking money out of Save is a request to the parent, with the amount and a short reason.
 - The parent approves or rejects it. Both see the current status: pending, approved (waiting for handover), handed over, or rejected.
 - Approval alone does not move money. The withdrawal posts, exactly once, when the parent confirms handing the cash over.
 - Rejection leaves balances unchanged.
-- A withdrawal never exceeds the Save balance, checked when requested and again at handover.
+- Pending and approved withdrawals are shown as **reserved**. The Save balance stays confirmed-only, but goal progress (FR02) and the withdrawal cap treat reserved money as unavailable, so two requests cannot be approved against the same money.
+- A withdrawal never exceeds the unreserved Save balance, checked when requested and again at handover.
 
 ## FR15 — Emergency funds
 
@@ -177,8 +186,8 @@ The initial topics are:
 ## FR16 — Notifications
 
 - Parents and children have an in-app notification inbox that is kept between visits.
-- The inbox covers due allowances, handover reminders, limit notices, requests, and decisions.
-- The due badge and the parent's handover reminder ship in the first milestone and work without push.
+- The inbox covers due allowances, handover reminders, limit notices, new requests, and decisions.
+- The inbox ships in the first milestone, in-app only: due badge, handover reminders, limit notices, new-request notices and decision notices all work without push.
 - Web push is offered for the same events, after the user grants permission.
 - The app can be installed on compatible devices.
 - Every essential action works when push is unavailable, denied, disabled, or missed.
@@ -187,7 +196,8 @@ The initial topics are:
 
 ## Money rules
 
-- Only a parent's handover confirmation adds allowance, savings-withdrawal, or emergency money to a balance.
+- Only a parent's handover confirmation adds allowance, savings-deposit, savings-withdrawal, or emergency money to a balance. Money from other sources that the child records counts immediately.
+- Pending and approved requests reserve money; they never move it.
 - Allowances, handovers, received money, purchases, transfers, emergency grants, and corrections are each recorded as distinct entries. The history is never rewritten.
 - Each action changes a balance at most once, including after repeated taps, concurrent submissions, or network retries.
 - A completed request and its balance change are always consistent.
@@ -204,7 +214,10 @@ With one parent account and one child account:
 - Both accounts show the due badge, and the parent gets a reminder while it stays unconfirmed.
 - The parent's handover confirmation posts the entered cash and savings amounts to Spend and Save exactly once.
 - A purchase over a limit is recorded and the parent gets a limit notice.
-- A savings withdrawal posts only after approval and handover. Rejection changes nothing.
+- A savings withdrawal posts only after approval and handover. Rejection changes nothing. While pending or approved it is shown as reserved and cannot be requested again.
+- A savings deposit posts only after the parent confirms receiving the cash. Cancellation and rejection change nothing.
+- The parent receives in-app notices for a new request and for a limit breach, with push disabled.
+- Child-initiated onboarding collects only a nickname and the parent's email.
 - Repeated or concurrent confirmations and decisions cannot duplicate a balance change.
 - The whole flow works with push disabled.
 - An unlinked account cannot view, confirm, or decide anything for the family.
@@ -230,7 +243,6 @@ Agree on the evaluation period, definitions, and numerical targets before launch
 - Reminder timing: when the first reminder fires and how often it repeats.
 - Supported spending limit types (for example per purchase or per week).
 - A purchase larger than the Spend balance: allow a negative balance, or ask for a correction?
-- Whether money from other sources (gifts) needs parent confirmation to count.
 - Allowance schedule rules: start date, mid-cycle changes, and several missed occurrences piling up.
 - Which jar receives an emergency grant.
 - Whether a parent can link more than one child in the pilot.
