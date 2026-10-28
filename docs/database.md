@@ -53,4 +53,11 @@ service.ts  ──►  repository.ts  ──►  supabase client
 
 | Table | Purpose | RLS |
 | --- | --- | --- |
-| `profiles` | 1:1 with `auth.users`; created by `on_auth_user_created` trigger | owner can select/update |
+| `profiles` | 1:1 with `auth.users`; created by `on_auth_user_created` trigger. `role` (`parent`/`child`) comes from `raw_app_meta_data.jarso_role` only; `nickname` is child-only | select: self, parent of, or approved member of caller's family; update: self, columns `full_name`, `avatar_url` only |
+| `families` | Family hub: 6-char sign-in `code`, `currency` (ISO 4217), IANA `timezone` | select: approved members; writes via functions only |
+| `family_members` | Profile ↔ family link with `role`, `status` (`approved`/`removed`), consent and approval; `profile_id` unique (one family per profile) | select: approved members of the family; writes via functions only |
+| `audit_log` | Append-only record of parent-controlled changes (`action`, `subject_id`, `details`) | select: approved parents of the family; insert via functions only |
+
+RLS helpers (`stable security definer`, `search_path = ''`, executable by `authenticated` only): `is_approved_member(family_id)`, `is_parent_of(child_id)`, `is_self(child_id)`, `current_family_id()`. Reuse them in every family-scoped policy.
+
+Functions: `create_family(currency, timezone) → uuid` — caller must be a `parent` with no membership; raises `JA401` / `JA403` / `JA409`, `22023` for an unknown timezone.
