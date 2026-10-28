@@ -1,20 +1,17 @@
-import Link from "next/link";
-import { routes, siteConfig } from "@/config";
+import { AppHeader } from "@/components/shell";
+import { routes } from "@/config";
 import { SignOutButton } from "@/features/auth";
 
-/** Shell for authenticated routes. No session read here — keep it static; pages read the user behind <Suspense>. */
+/**
+ * Shell for authenticated routes. No session read here — keep it static; pages read the user
+ * behind <Suspense>. Role layouts (parent/child) render <BottomNav> with their own tabs; the
+ * `has-data-[slot=bottom-nav]` padding keeps content clear of it.
+ */
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="border-b">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-6">
-          <Link href={routes.dashboard} className="font-semibold">
-            {siteConfig.name}
-          </Link>
-          <SignOutButton />
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">{children}</main>
+    <div className="flex flex-1 flex-col has-data-[slot=bottom-nav]:pb-[calc(4rem+env(safe-area-inset-bottom))] lg:has-data-[slot=bottom-nav]:pb-0 lg:has-data-[slot=bottom-nav]:pl-24">
+      <AppHeader homeHref={routes.dashboard} action={<SignOutButton />} />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</main>
     </div>
   );
 }
