@@ -17,6 +17,7 @@ export const signUpSchema = z.object({
     .refine((email) => !email.toLowerCase().endsWith(CHILD_EMAIL_DOMAIN), "Enter a valid email"),
   password: z.string().min(8, "Password must be at least 8 characters").max(72),
   fullName: z.string().trim().min(1, "Name is required").max(100),
+  next: z.string().optional(),
 });
 
 export type SignInInput = z.infer<typeof signInSchema>;
@@ -29,4 +30,10 @@ export function safeNextPath(
 ): Route {
   if (!next?.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
   return next as Route;
+}
+
+/** `path?next=…` when `next` is a safe same-origin path, else just `path`. Keeps `next` across auth pages. */
+export function withNext(path: Route, next: string | null | undefined): Route {
+  if (!next || safeNextPath(next, path) !== next) return path;
+  return `${path}?next=${encodeURIComponent(next)}` as Route;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeNextPath, signUpSchema } from "./schemas";
+import { safeNextPath, signUpSchema, withNext } from "./schemas";
 
 describe("safeNextPath", () => {
   it.each([
@@ -17,7 +17,26 @@ describe("safeNextPath", () => {
   });
 });
 
+describe("withNext", () => {
+  it("appends a safe next, encoded", () => {
+    expect(withNext("/signup", "/invite?token=abc")).toBe("/signup?next=%2Finvite%3Ftoken%3Dabc");
+  });
+
+  it.each([undefined, null, "", "//evil.com", "https://evil.com"])("drops %s", (next) => {
+    expect(withNext("/signup", next)).toBe("/signup");
+  });
+});
+
 describe("signUpSchema", () => {
+  const valid = { email: "parent@example.com", password: "long enough", fullName: "A" };
+
+  it("keeps an optional next", () => {
+    expect(signUpSchema.parse({ ...valid, next: "/invite?token=abc" }).next).toBe(
+      "/invite?token=abc",
+    );
+    expect(signUpSchema.parse(valid).next).toBeUndefined();
+  });
+
   it("rejects short passwords", () => {
     const result = signUpSchema.safeParse({ email: "a@b.co", password: "short", fullName: "A" });
     expect(result.success).toBe(false);

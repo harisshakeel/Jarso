@@ -6,6 +6,7 @@ import { Field, FormError } from "@/components/form";
 import { Button } from "@/components/ui";
 import { routes } from "@/config";
 import { idle } from "@/lib";
+import { withNext } from "../schemas";
 import { signIn } from "../server/actions";
 
 export function SignInForm({ next }: { next?: string }) {
@@ -37,7 +38,7 @@ export function SignInForm({ next }: { next?: string }) {
       </Button>
       <p className="text-muted-foreground text-center text-sm">
         No account?{" "}
-        <Link href={routes.signup} className="underline underline-offset-4">
+        <Link href={withNext(routes.signup, next)} className="underline underline-offset-4">
           Sign up
         </Link>
       </p>
