@@ -34,6 +34,10 @@ pnpm dev                         # http://localhost:3000
 
 Conventional Commits (`feat: …`, `fix(goals): …`) — enforced by commitlint and the Semantic PR check.
 
+## Deploy
+
+Production: https://jarso.vercel.app (Vercel, Tokyo) on Supabase `ap-northeast-1`. See [docs/deploy.md](./docs/deploy.md).
+
 ## Docs
 
 Start at [docs/README.md](./docs/README.md). Architecture: [docs/architecture.md](./docs/architecture.md).
