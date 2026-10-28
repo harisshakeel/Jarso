@@ -1,11 +1,13 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "cn";
+import { Loader2Icon } from "lucide-react";
 
 /**
  * design.md §6: standalone actions are pills, 44 px tall by default (`default`, `lg`, `icon`)
- * so every child-facing control meets §11. `sm` / `icon-sm` (36 px) only inside parent tables. `keycap` / `keycap-gold` is the child's one
- * primary action per screen. Focus ring comes from the global `:focus-visible` rule.
+ * so every child-facing control meets §11. `sm` / `icon-sm` (36 px) only inside parent tables.
+ * `keycap` / `keycap-gold` is the child's one primary action per screen. `loading` keeps the
+ * button's width and overlays a spinner. Focus ring comes from the global `:focus-visible` rule.
  */
 const buttonVariants = cva(
   "group/button inline-flex shrink-0 items-center justify-center rounded-full border bg-clip-padding font-bold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,translate] select-none active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
@@ -47,14 +49,34 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  loading = false,
+  disabled,
+  children,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & { loading?: boolean }) {
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(buttonVariants({ variant, size, className }), loading && "relative")}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
-    />
+    >
+      {loading ? (
+        <>
+          {/* Label stays in the layout (keeps the width) and in the accessible name, just unseen. */}
+          <span
+            data-slot="button-label"
+            className="inline-flex items-center gap-[inherit] opacity-0"
+          >
+            {children}
+          </span>
+          <Loader2Icon aria-hidden className="absolute animate-spin" />
+        </>
+      ) : (
+        children
+      )}
+    </ButtonPrimitive>
   );
 }
 
