@@ -2,7 +2,7 @@
 
 The visual language for the app, derived from the two logos in `public/brand/`. Scope decisions behind it: playful and rounded; deep teal as the action colour with gold reserved for money; same component system for parent and child with different emphasis; bottom tab navigation; rounded friendly type; Lucide icons plus the jar as the recurring illustration; light motion; light and dark themes; WCAG AA, 44 px targets, 360 px phones first; warm coach voice.
 
-Code owners: tokens live in `src/app/globals.css`, fonts in `src/app/layout.tsx`, primitives in `src/components/ui`. Change this document and the tokens together.
+Visual references, and what we take from each, are in section 15. Code owners: tokens live in `src/app/globals.css`, fonts in `src/app/layout.tsx`, primitives in `src/components/ui`. Change this document and the tokens together.
 
 ## 1. Brand assets
 
@@ -50,17 +50,20 @@ Brand gold `#FDC301` sits between gold-200 and gold-300 and is used as-is for fi
 
 ### 2.3 Neutrals
 
-Teal-tinted greys so surfaces feel like the brand rather than generic grey.
+A warm paper canvas with near-black ink, the same family as the reference sites (section 15), so the teal and gold read as the only colour on the page. White cards sit on the paper; card edges are hairlines drawn with ink at low alpha so they work on any surface.
 
 | Token | Light | Dark |
 | --- | --- | --- |
-| Ink (foreground) | `#0F2A33` | `#E6F1F4` |
-| Ink 2 (secondary text) | `#3D5660` | `#C2D5DB` |
-| Muted foreground | `#5C7580` | `#9DB6BE` |
-| Border | `#D7E4E8` | `#234853` |
-| Surface 2 (muted, inputs) | `#EEF5F7` | `#163842` |
+| Canvas (page background) | `#F7F5F0` paper | `#0B1F26` |
 | Surface (card) | `#FFFFFF` | `#12303A` |
-| Background | `#F6FAFB` | `#0B1F26` |
+| Surface 2 (muted, inputs, chips) | `#EFECE5` | `#163842` |
+| Ink (foreground) | `#141C1F` | `#E6F1F4` |
+| Ink 2 (secondary text) | `#3E4B50` | `#C2D5DB` |
+| Muted foreground | `#566469` | `#9DB6BE` |
+| Hairline | `rgb(20 28 31 / 0.08)`, strong `0.14` | `rgb(230 241 244 / 0.10)`, strong `0.18` |
+| Border (inputs) | `#E6E2DA` | `#234853` |
+
+Measured on the paper canvas: ink 15.9:1, ink 2 8.3:1, muted foreground 5.6:1, primary teal-700 6.3:1, gold-600 text 4.7:1, cyan-700 text 6.2:1, focus ring 3.2:1. All pass AA. Cyan-600 does not pass as text on paper (4.4:1), which is why the cyan text token is cyan-700 in light mode.
 
 ### 2.4 Semantic roles
 
@@ -71,16 +74,16 @@ Why the primary is not the brand teal: `#027A98` on white is 4.95:1, which passe
 | Primary (buttons, links, active tab) | teal-700 `#00627D`, foreground white | teal-400 `#65ADC6`, foreground ink | 6.9:1 on white; 6.5:1 on dark bg |
 | Primary hover | teal-800 / teal-300 | | |
 | Secondary (quiet buttons, selected chips) | teal-100 `#C4F4FF` with teal-800 text | teal-900 `#003548` with teal-100 text | ≥ 9:1 |
-| Accent (highlights, lid, info) | brand cyan `#01D8ED` fill with ink text; cyan-600 `#007E8C` as text | cyan-300 fill with ink; cyan-300 as text | fill 8.6:1; text 4.8:1 light, 9.5:1 dark |
+| Accent (highlights, lid, info) | brand cyan `#01D8ED` fill with ink text; cyan-700 `#006570` as text | cyan-300 fill with ink; cyan-300 as text | fill 9.9:1; text 6.2:1 light, 9.5:1 dark |
 | Money / Save / celebration | brand gold `#FDC301` fill with ink text; gold-600 `#8B6900` as text | brand gold fill with ink; brand gold as text | fill 9.3:1; text 5.1:1 light, 10.5:1 dark |
 | Destructive (form errors, irreversible actions only) | `oklch(0.577 0.245 27)` (existing) | `oklch(0.704 0.191 22)` (existing) | |
 | Focus ring | cyan-500 `#0098A8`, 3 px, offset 2 px | cyan-300 `#00D6EB` | 3.5:1 against white (non-text minimum 3:1) |
-| Border, input | `#D7E4E8` | `#234853` | |
-| Muted | `#EEF5F7` with `#5C7580` text (4.9:1) | `#163842` with `#9DB6BE` (8:1) | |
+| Border, input | `#E6E2DA`; card edges use the hairline | `#234853` | |
+| Muted | `#EFECE5` with `#566469` text (5.2:1) | `#163842` with `#9DB6BE` (8:1) | |
 
 Hard rules:
 
-- Gold and cyan are **never** text on light surfaces at their brand values. Use gold-600 or cyan-600 for text, or put ink text on a gold or cyan fill.
+- Gold and cyan are **never** text on light surfaces at their brand values. Use gold-600 or cyan-700 for text, or put ink text on a gold or cyan fill.
 - White text only on teal-700 or darker, never on brand teal, gold or cyan.
 - Destructive red never represents money. A negative, due or over-limit amount is shown in ink with explicit words, never in red: an eleven-year-old should not be shamed by a colour.
 - Colour is never the only signal. Every status has an icon or a word next to it.
@@ -125,15 +128,22 @@ Money is set with `font-variant-numeric: tabular-nums lining-nums` so columns of
 | Money L | 28 / 32 | 700 tabular | Balances on home cards |
 | Money | 20 / 24 | 700 tabular | Diary rows, request amounts |
 
+Large headlines (Display, H1, Money XL) are set tight, `letter-spacing: -0.02em`, line-height 1.1, as every reference site does; body stays at normal tracking. An **eyebrow** style (12 / 16, 600, teal-700, `letter-spacing: 0.08em`, sentence case) labels sections and steps ("Step 2 of 3", "Due Friday"). The reference sites set eyebrows in all caps with 0.14em tracking; we keep sentence case for children and allow all caps only on parent tables and the marketing page.
+
 Currency symbol sits before the number at 60 % of the number's size, aligned to the cap height. Minor units are shown only when non-zero on child screens ("£12" not "£12.00"), always on parent confirmation screens.
 
 Sentence case everywhere. No all-caps labels; children read them more slowly.
 
 ## 4. Shape, space, elevation
 
-- **Radius token** `--radius: 0.875rem` (14 px). With the existing multipliers: controls 14 px, cards about 20 px, large cards and sheets about 25 px, chips fully rounded. This echoes the mark's curves without turning dense parent tables into pills.
+- **Radius token** `--radius: 0.875rem` (14 px). With the existing multipliers: inputs and in-card buttons 14 px, cards about 20 px, large cards and sheets about 25 px. **Standalone action buttons and chips are pills** (9999 px), as on all three product references; the pill is the brand's button shape, the 14 px radius is for things that sit inside a form row.
 - **Spacing** on a 4 px grid: 4, 8, 12, 16, 24, 32, 48. Card padding 16 on phones, 24 on tablet and up. Screen gutter 16 at 360 px, 24 from 640 px.
-- **Elevation** is mostly borders, not shadows. One soft shadow for raised cards and the bottom bar: `0 1px 2px oklch(0.27 0.04 223 / 6%), 0 8px 24px -12px oklch(0.27 0.04 223 / 18%)`. Dark mode uses borders only.
+- **Elevation** has three steps, all drawn with ink alpha so they sit on paper and on white alike:
+  - Resting card: hairline `0 0 0 1px rgb(20 28 31 / 0.06), 0 1px 2px rgb(20 28 31 / 0.06)`.
+  - Raised (primary card, sheets, popovers): `0 1px 0 rgb(20 28 31 / 0.04), 0 14px 40px -22px rgb(20 28 31 / 0.35)`.
+  - Keycap (child primary button, see section 6): `inset 0 1px 0 rgb(255 255 255 / 0.5), 0 3px 0 <ledge colour>, 0 8px 16px -10px rgb(20 28 31 / 0.25)`; pressed state removes the 3 px ledge and translates down 2 px.
+  Dark mode keeps the hairlines at `rgb(230 241 244 / 0.10)` and drops the long shadows.
+- **Sticky bars** (header, bottom tab bar) are canvas at 85 % opacity with `backdrop-filter: blur(16px)` and a hairline on the content side, so content scrolls under them.
 - **Jar silhouette** (rounded rectangle, wider lid) is the one custom shape. Use it for jar cards, goal progress and empty states; do not invent other blobs.
 
 ## 5. Layout and navigation
@@ -160,7 +170,8 @@ Built on the existing shadcn primitives in `src/components/ui`. Add with `pnpm d
 
 | Component | Notes |
 | --- | --- |
-| Button | Default = primary; `outline` for secondary actions; `ghost` in lists; `destructive` only for irreversible actions. Height 44 px (`lg`) for any action a child taps; 36 px allowed in parent tables. Loading state keeps width and shows a spinner. |
+| Button | Pill. Default = primary teal-700 with white text; `outline` on canvas with the hairline for secondary actions; `ghost` in lists; `destructive` only for irreversible actions. Height 44 px (`lg`) for any action a child taps; 36 px allowed in parent tables. Loading state keeps width and shows a spinner. |
+| Keycap button | The child's one primary action per screen (Record purchase, Ask a parent, Confirm). Primary pill plus the keycap shadow: a 3 px teal-900 ledge below; pressed state drops the ledge and moves 2 px down. Gold keycap (gold fill, ink text, gold-700 ledge) only for money moments such as confirming a handover. Never more than one keycap per screen. |
 | Card | White surface, 20 px radius, border, optional soft shadow when it is the page's primary card. |
 | Jar card | Mark-shaped illustration on the left, jar name, Money L balance, a one-line status chip (due, reserved). Spend is teal, Save is gold. |
 | Progress | Goal: ring on the goal card, bar in lists. Gold on teal-100. Shows amount saved, remaining and estimated payments. |
@@ -172,7 +183,8 @@ Built on the existing shadcn primitives in `src/components/ui`. Add with `pnpm d
 | Forms | Label above, 44 px input, helper text below, error text in destructive with icon, `aria-invalid` and `aria-describedby` wired (already in `Field`). |
 | Empty state | Mark illustration, one sentence, one action. |
 | Toast | Sonner, bottom above the tab bar, 4 s, never for errors that need action. |
-| Skeleton | Teal-tinted pulse on surface-2 for every Suspense boundary. |
+| Skeleton | Surface-2 block with a left-to-right shimmer (a translucent white band translating across, 1.5 s) for every Suspense boundary. |
+| Step indicator | Eyebrow "Step 2 of 3" plus three pill dots; used by onboarding, missions and the handover sheet. Borrowed from the numbered "stops" pattern on the AFK site. |
 
 Primitives to add next: `badge`, `progress`, `tabs`, `sheet`, `dialog`, `avatar`, `separator`, `skeleton`, `tooltip`.
 
@@ -187,13 +199,14 @@ Primitives to add next: `badge`, `progress`, `tabs`, `sheet`, `dialog`, `avatar`
 
 | Moment | Motion | Duration |
 | --- | --- | --- |
-| Buttons, chips, tab switch | Colour and 1 px press translate | 150 ms |
+| Buttons, chips, tab switch | Colour and 1 px press translate; keycap drops 2 px | 150 ms |
+| Cards and list items on first paint | Rise-in: opacity 0 to 1, translateY 12 px to 0, scale 0.99 to 1; stagger 40 ms per item, at most 6 items | 250 ms |
 | Sheets, dialogs, page transitions | Slide up / fade | 250 ms |
-| Jar fill after a confirmed handover | Fill level rises, two coins drop | 500 ms |
+| Jar fill after a confirmed handover | Fill level rises, two coins drop; the coin icon in the toast does one `rotateY` flip | 500 ms |
 | Goal reached, mission complete | Ring completes, badge scales in once | 600 ms |
-| Skeletons | Gentle pulse | 1.5 s loop |
+| Skeletons | Shimmer band | 1.5 s loop |
 
-Easing `cubic-bezier(0.2, 0.8, 0.2, 1)`. With `prefers-reduced-motion: reduce`, everything becomes an instant state change; the coins do not fall. Nothing loops except skeletons. No confetti in the pilot.
+Easing `cubic-bezier(0.2, 0.8, 0.2, 1)`. With `prefers-reduced-motion: reduce`, everything becomes an instant state change; the coins do not fall and the rise-in is skipped. Nothing loops except skeletons. No confetti, no smooth-scroll library, no parallax: those belong to marketing pages, not to an app a child uses daily.
 
 ## 9. Voice
 
@@ -208,6 +221,8 @@ Warm coach, plain words, second person, short sentences. Parent screens use the 
 | You went over your limit. Your parent has been told. | Limit violation |
 | Try again? Here's a hint. | Incorrect |
 | mission, practice | task, assignment, lesson module |
+
+Headlines use the two-beat cadence the reference sites use ("Link in. Notes out.", "Your turn."): "Due today. Hand it over.", "Saved up. Nearly there.", "Three missions. Ten minutes." One idea per beat, a full stop between.
 
 Never: exclamation marks in errors, "oops", shame words, or anything that calls the child's balance small.
 
@@ -230,7 +245,7 @@ Same tokens and components; different hierarchy.
 
 ## 12. Dark theme
 
-Follow the system setting, toggled by `next-themes` (already installed). Dark is a tinted navy-teal, not black: background `#0B1F26`, cards `#12303A`, borders `#234853`. Primary becomes teal-400 with ink text; brand gold and cyan stay at their brand values and are allowed as text because they clear 9:1 on these surfaces. Shadows are dropped; borders carry elevation. Illustrations keep their colours; the jar outline uses teal-300.
+Follow the system setting, toggled by `next-themes` (already installed). The warm paper canvas is a light-mode idea only; dark is a tinted navy-teal, not black: background `#0B1F26`, cards `#12303A`, hairlines at 10 % light ink, input borders `#234853`. Primary becomes teal-400 with ink text; brand gold and cyan stay at their brand values and are allowed as text because they clear 9:1 on these surfaces. Shadows are dropped; borders carry elevation. Illustrations keep their colours; the jar outline uses teal-300.
 
 ## 13. Tokens for `globals.css`
 
@@ -239,27 +254,33 @@ Replace the neutral `:root` and `.dark` blocks with these. Chart and sidebar var
 ```css
 :root {
   --radius: 0.875rem;
-  --background: oklch(0.982 0.004 214);
-  --foreground: oklch(0.268 0.037 223);
+  --background: oklch(0.970 0.007 89);           /* paper canvas #F7F5F0 */
+  --foreground: oklch(0.220 0.013 223);          /* ink #141C1F */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.268 0.037 223);
+  --card-foreground: oklch(0.220 0.013 223);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.268 0.037 223);
+  --popover-foreground: oklch(0.220 0.013 223);
   --primary: oklch(0.462 0.087 225);            /* teal-700 */
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.94 0.055 223);           /* teal-100 */
   --secondary-foreground: oklch(0.385 0.074 227); /* teal-800 */
-  --muted: oklch(0.965 0.008 217);
-  --muted-foreground: oklch(0.547 0.034 227);
-  --accent: oklch(0.806 0.138 207);             /* brand cyan */
-  --accent-foreground: oklch(0.268 0.037 223);
+  --muted: oklch(0.943 0.010 87);                /* surface-2 #EFECE5 */
+  --muted-foreground: oklch(0.493 0.019 221);    /* #566469 */
+  --accent: oklch(0.806 0.138 207);             /* brand cyan fill */
+  --accent-foreground: oklch(0.220 0.013 223);
+  --accent-text: oklch(0.463 0.080 208);           /* cyan-700, cyan as text */
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.91 0.015 218);
-  --input: oklch(0.91 0.015 218);
+  --border: oklch(0.914 0.012 85);               /* #E6E2DA */
+  --input: oklch(0.914 0.012 85);
+  --hairline: rgb(20 28 31 / 0.08);
+  --hairline-strong: rgb(20 28 31 / 0.14);
+  --shadow-rest: 0 0 0 1px rgb(20 28 31 / 0.06), 0 1px 2px rgb(20 28 31 / 0.06);
+  --shadow-raised: 0 1px 0 rgb(20 28 31 / 0.04), 0 14px 40px -22px rgb(20 28 31 / 0.35);
   --ring: oklch(0.622 0.107 208);               /* cyan-500 */
   --gold: oklch(0.846 0.173 87);                /* brand gold, fills */
-  --gold-foreground: oklch(0.268 0.037 223);
+  --gold-foreground: oklch(0.220 0.013 223);
   --gold-text: oklch(0.54 0.111 86);            /* gold-600 */
+  --keycap-ledge: oklch(0.30 0.06 223);         /* teal-900 under the primary keycap */
   --chart-1: oklch(0.541 0.100 223);
   --chart-2: oklch(0.846 0.173 87);
   --chart-3: oklch(0.622 0.107 208);
@@ -286,13 +307,19 @@ Replace the neutral `:root` and `.dark` blocks with these. Chart and sidebar var
   --border: oklch(0.379 0.046 220);
   --input: oklch(0.379 0.046 220);
   --ring: oklch(0.801 0.137 207);               /* cyan-300 */
+  --accent-text: oklch(0.801 0.137 207);
   --gold: oklch(0.846 0.173 87);
   --gold-foreground: oklch(0.226 0.029 223);
   --gold-text: oklch(0.846 0.173 87);
+  --hairline: rgb(230 241 244 / 0.10);
+  --hairline-strong: rgb(230 241 244 / 0.18);
+  --shadow-rest: 0 0 0 1px rgb(230 241 244 / 0.10);
+  --shadow-raised: 0 0 0 1px rgb(230 241 244 / 0.14);
+  --keycap-ledge: oklch(0.385 0.074 227);       /* teal-800 */
 }
 ```
 
-Add to `@theme inline`: `--color-gold: var(--gold); --color-gold-foreground: var(--gold-foreground); --color-gold-text: var(--gold-text);` and switch `--font-sans` to the Nunito variable.
+Add to `@theme inline`: `--color-gold: var(--gold); --color-gold-foreground: var(--gold-foreground); --color-gold-text: var(--gold-text); --color-accent-text: var(--accent-text); --shadow-rest: var(--shadow-rest); --shadow-raised: var(--shadow-raised);` and switch `--font-sans` to the Nunito variable. Keycap and shimmer are two small utilities in `globals.css`.
 
 ## 14. Implementation order
 
@@ -303,5 +330,18 @@ Add to `@theme inline`: `--color-gold: var(--gold); --color-gold-foreground: var
 5. Brand components: `JarsoMark`, `JarIllustration`, `Money` (formats minor units with tabular figures), `StatusChip`.
 6. Shell: bottom tab bar and header in `src/app/(app)/layout.tsx`, role-aware tabs once FR13 lands.
 7. Replace the placeholder home with the wordmark on white and the two sign-in actions.
+
+## 15. Reference sites and what we borrow
+
+Studied from their live HTML and CSS on 2026-10-28. Three are products in the same family as the hackathon host; matching their surface language makes Jarso feel at home next to them while the teal, gold and jar keep it unmistakably ours.
+
+| Site | What it is | Palette and type | What we take | What we leave |
+| --- | --- | --- | --- | --- |
+| 8xresearch.com | AI user-interview product | Paper canvas `#F6F5F2`, ink `#0A0A0A`, indigo accent `#4F46E5`; Inter and Onest with `ss01 cv11` features | Paper-and-ink base; one accent used sparingly; pill buttons with a 2 px outline offset on focus; blurred sticky header; short two-beat section titles ("Your turn.") | Indigo; marketing density; smooth-scroll library |
+| karma.business | Reddit marketing product | Canvas `#F3F2F0`, ink `#1D212C`, teal `#0B5E55` and `#0E9384`, pink `#FF7AB8`, peach `#FFB08F`; General Sans display, Switzer body, `-0.035em` headlines | Hairline-plus-shadow card recipe (`0 0 0 1px ink/6%`); 20 to 24 px card radii next to pill buttons; `hero-rise` entrance (12 px up, fade); the "one calm console" layout for the parent home | Pink and peach gradients; 3D hero |
+| afk-ai-tau.vercel.app | Meeting notetaker (your own) | Canvas `#F9F6F0`, ink `#1E1711`, violet `#7041FB`, amber "now" `#FFE7B5`; Instrument Sans, JetBrains Mono eyebrows | Keycap button shadow and press state; numbered "Stop 01" steps as our step indicator; `coin` rotateY flip; shimmer skeleton; semantic colour names (`signal`, `now`, `match`) as the model for our status tokens | Violet; mono eyebrows on child screens |
+| harisshakeel.site | Your portfolio | Dark `#161A15`, cream `#F5F3EC`, lime `#D2E76A`; Anton display, Montserrat body, mono labels | Typographic confidence: one huge headline, lots of air, labelled sections; a marquee only for the marketing page, if ever | Dark default; condensed display face; glitch and marquee motion in-app |
+
+Rules of thumb distilled from all four: one accent per screen, everything else is paper and ink; headline big and tight, body relaxed; borders are hairlines, elevation is rare and soft; motion enters once and then stays still; copy is short, concrete and a little playful.
 
 Everything above is a starting point for the pilot. Change it when a screen proves it wrong, and change this document in the same PR.
