@@ -1,80 +1,595 @@
 # Architecture
 
-Single Next.js 16 app (App Router) holding both frontend and backend. Supabase provides Postgres, Auth and Storage.
+Jarso is a single Next.js 16 application on Vercel, backed by one Supabase project (Postgres, Auth, Storage, pg_cron, Realtime), with email through a transactional provider and, later, web push and the Claude API. This document is the map: who talks to what, which module owns which data, how money moves, and where every planned component lives. Product scope is `REQUIREMENTS.md`; domain terms and invariants are `docs/domain.md`; visual system is `docs/design.md`; operational posture is the `production-readiness` skill.
 
-## Principles
+Diagrams are Mermaid and render on GitHub.
 
-1. **Feature modules own their domain.** Everything for a domain (UI, validation, data access, business logic) lives in `src/features/<name>/`.
-2. **The route layer is thin.** `src/app/**` composes features. Pages, Route Handlers and Server Actions validate input, resolve the user, call a service, and render/return. No SQL, no business rules.
-3. **Explicit server/client boundary.** Server-only code is fenced with `import "server-only"` and lives under `server/`. Barrels never mix the two.
-4. **Defense in depth for auth.** Proxy does optimistic redirects; the DAL verifies the user; Postgres RLS is the final authority.
-5. **Typed end to end.** Generated DB types → repository → domain types → Zod-validated inputs → typed `ActionResult` / JSON envelope.
+## 1. Principles
 
-## Layout
+1. **One source of truth for money.** The append-only `ledger_entries` table. Balances are derived, never stored as the truth. Only three paths write to it: a parent's handover confirmation, a child's recorded entry (purchase, gift, correction), and a request reaching its final state. Each path is a Postgres function running in one transaction.
+2. **Feature modules own their domain.** UI, validation, data access and business rules for one area live in `src/features/<name>/`. `src/app` routes and composes. Modules talk through barrels only.
+3. **Authorization in three layers, the database last and loudest.** Proxy redirects optimistically, the data access layer verifies the user and role, Row Level Security decides. A bug in app code cannot read another family's rows.
+4. **Records are authoritative, notifications are derived.** The inbox, email and push are projections of records. Delivery can fail; the record cannot be lost.
+5. **Idempotent by construction.** Every balance-changing write carries a key with a unique constraint. Retries, double taps and cron reruns are no-ops.
+6. **Small on purpose.** Sixty users, one region, one database, no queue broker, no second service. Escalation triggers are listed in the production-readiness skill.
+
+## 2. System context
+
+```mermaid
+flowchart LR
+  child([Child, 11–14<br/>phone or tablet]) -->|PWA / browser| app
+  parent([Parent<br/>phone or laptop]) -->|browser| app
+  parent -. email .-> email
+  subgraph vercel [Vercel, hnd1]
+    app[Next.js 16 app<br/>pages · server actions · route handlers · proxy]
+  end
+  subgraph supabase [Supabase, ap-northeast-1]
+    auth[Auth]
+    db[(Postgres + RLS)]
+    cron[pg_cron]
+    storage[Storage]
+    realtime[Realtime]
+  end
+  app --> auth
+  app --> db
+  app --> storage
+  cron --> db
+  db -. database webhook .-> app
+  app -->|send| email[Email provider<br/>Resend]
+  app -->|later| push[Browser push services<br/>VAPID]
+  app -->|later| claude[Claude API<br/>money guide]
+  github[GitHub · CI · Dependabot] -->|push to main| vercel
+  github -->|migrations| db
+```
+
+External dependencies and what happens when each is down:
+
+| Dependency | Used for | If unavailable |
+| --- | --- | --- |
+| Supabase Postgres + Auth | everything | App shows the error boundary; nothing is written; no silent fallback. |
+| pg_cron | due allowances, reminders, retention jobs | Occurrences generate late, never twice; next run catches up. |
+| Email provider | parent reminders, request notices | Inbox still has the item; delivery rows retry with backoff and dead-letter after 5 attempts. |
+| Browser push (later) | same events, opt-in | Inbox is the fallback by design (FR16). |
+| Claude API (later) | guide answers | Friendly fallback copy; topic material still available. |
+| Vercel | hosting | Status page; nothing to do in-app. |
+
+## 3. Runtime view
+
+| Runtime piece | Where | Responsibility |
+| --- | --- | --- |
+| `src/proxy.ts` | Vercel edge of every request | Refresh Supabase session cookie; optimistic redirects for protected and auth routes; attach a request id header. No data access. |
+| Server Components | Vercel function | Read data through services inside `<Suspense>`; never mutate. |
+| Server Actions (`createAction`) | Vercel function | Mutations from our own UI: validate with Zod, `assertUser()`, call a service, `refresh()`. |
+| Route Handlers (`withApi`) | Vercel function | Non-UI callers: cron triggers, webhooks, `/api/v1/*` for a future mobile app. CSRF origin check built in. |
+| Postgres functions (`rpc`) | Supabase | Every multi-row money write, PIN verification, due generation, limit evaluation. One transaction each. |
+| pg_cron jobs | Supabase | Hourly due-occurrence generation, reminder scheduling, notification dispatch kick, nightly retention and reconciliation. |
+| Database webhook → `/api/hooks/notifications` | Supabase → Vercel | Fires on `notification_deliveries` insert so email goes out within seconds; cron sweeps anything missed. |
+| Service worker (later) | Browser | Push subscription and offline shell for the installed PWA. |
+
+Rendering model: `cacheComponents` is on. Anything reading cookies, headers or the user's rows is request-time and renders inside `<Suspense>`. Shared content (lesson topics, marketing) uses `"use cache"` with tags. Per-user data is never placed in a shared cache.
+
+## 4. Code architecture
+
+### 4.1 Layers
+
+```
+route / action / handler  →  service  →  repository  →  Supabase (RLS, functions)
+        thin                business      only place that
+                            rules         knows tables
+```
+
+- **Repository**: typed Supabase calls, row → domain mapping, every `error` checked and wrapped in `AppError`. Calls Postgres functions for writes that touch more than one row.
+- **Service**: business rules, invariants that the database cannot express, composition across repositories of the same module. Takes a verified `SessionUser` or ids, never a request.
+- **Entry points**: validate, authenticate, authorize at the role level, call one service, map errors. No SQL, no business rules.
+
+### 4.2 Layout
 
 ```
 src/
-├── app/                      # Routing only. Route groups don't affect URLs.
-│   ├── (marketing)/          # Public pages
-│   ├── (auth)/               # Login / signup (signed-in users bounced to /dashboard)
-│   ├── (app)/                # Authenticated app shell
-│   ├── auth/callback/        # Supabase PKCE code exchange
-│   ├── api/                  # Route Handlers: /api/health, /api/v1/*
-│   ├── layout.tsx            # Root layout + providers
-│   └── error.tsx, global-error.tsx, not-found.tsx
+├── app/
+│   ├── (marketing)/              # public pages
+│   ├── (auth)/                   # login, signup (parent), child sign-in, invite acceptance
+│   ├── (app)/                    # authenticated shell: header + bottom tab bar
+│   │   ├── child/…               # home, jars, diary, learn, inbox, goal, requests
+│   │   └── parent/…              # home, requests, allowance, family, limits, inbox
+│   ├── api/
+│   │   ├── health/               # shallow + deep health
+│   │   ├── cron/[job]/           # CRON_SECRET-guarded triggers (fallback to pg_cron)
+│   │   ├── hooks/notifications/  # database webhook receiver
+│   │   └── v1/…                  # versioned API for non-UI callers
+│   └── auth/callback/            # PKCE exchange
 ├── features/
-│   └── <feature>/
-│       ├── index.ts          # PUBLIC client-safe barrel: components, schemas, types, actions
-│       ├── schemas.ts        # Zod schemas (shared client + server)
-│       ├── types.ts          # Domain types
-│       ├── components/       # Presentational + client components
-│       └── server/
-│           ├── index.ts      # SERVER-ONLY barrel: services, DAL
-│           ├── actions.ts    # "use server" — Server Actions (thin)
-│           ├── service.ts    # Business logic
-│           └── repository.ts # Supabase queries; only place that knows table/column names
-├── components/
-│   ├── ui/                   # shadcn/ui primitives (+ index.ts barrel)
-│   └── providers/            # Client providers (theme, toaster)
-├── config/                   # site config, routes, env (validated with Zod)
-├── lib/
-│   ├── index.ts              # Isomorphic: errors, logger, createAction, cn
-│   ├── api/                  # Route Handler helpers: withApi, json, parseBody
-│   └── supabase/             # client.ts (browser) · server.ts · admin.ts (bypasses RLS) · proxy.ts
-├── types/                    # Generated Supabase types (+ barrel)
-└── proxy.ts                  # Session refresh + optimistic route guards (Next 16 "middleware")
-supabase/                     # config.toml, migrations/, seed.sql
-tests/                        # setup.ts, e2e/ (Playwright). Unit tests are colocated *.test.ts
+│   ├── auth/         ✅ sessions, DAL (requireUser/assertUser/requireRole), parent email auth
+│   ├── profiles/     ✅ profile read/update (role and family never writable here)
+│   ├── family/          families, members, invitations, child accounts + PIN, approval
+│   ├── allowance/       schedules, due occurrences, handover confirmation, planned split
+│   ├── ledger/          entries, balances, reservations, corrections; the only writer of money
+│   ├── jars/            jar views, planned split preview, transfer entry points
+│   ├── requests/        deposits, withdrawals, emergency requests and their lifecycle
+│   ├── limits/          spending limits, post-purchase evaluation, limit notices
+│   ├── goals/           goal, plan, payments-remaining estimate, what-if simulation
+│   ├── diary/           diary UI over ledger entries (add, correct, undo)
+│   ├── learning/        missions, topics, hints, spaced review, skill progress
+│   ├── reviews/         weekly review generation and next-step recommendation
+│   ├── notifications/   inbox, deliveries, channels (inbox, email, push), preferences
+│   └── guide/  (later)  Claude-backed money guide with FR09 boundaries
+├── components/ui/      shadcn primitives + brand components (JarsoMark, JarIllustration, Money, StatusChip)
+├── config/             routes, site, env (Zod-validated), feature flags
+├── lib/                errors, logger, createAction, api helpers, supabase clients, money formatting
+├── content/            missions and topics as versioned JSON (see 5.3)
+└── types/              generated database types
+supabase/migrations/    schema, RLS, functions, cron registrations
 ```
 
-## Request flow
+Each feature keeps the fixed shape: `index.ts` (client-safe barrel), `schemas.ts`, `types.ts`, `components/`, `server/{index,actions,service,repository}.ts`.
+
+### 4.3 Module dependency graph
+
+Arrows mean "imports through the barrel". `ledger` has no dependencies on other domain modules; everything that moves money depends on it.
+
+```mermaid
+flowchart TD
+  auth --> family
+  family --> allowance
+  family --> requests
+  family --> limits
+  family --> goals
+  family --> notifications
+  ledger --> jars
+  ledger --> diary
+  ledger --> goals
+  ledger --> reviews
+  allowance --> ledger
+  allowance --> notifications
+  allowance --> goals
+  requests --> ledger
+  requests --> notifications
+  limits --> ledger
+  limits --> notifications
+  diary --> limits
+  learning --> reviews
+  learning --> notifications
+  reviews --> notifications
+  guide(("guide (later)")) --> learning
+  guide --> ledger
+```
+
+Writers of `ledger_entries`, enforced by which Postgres function may insert:
+
+| Writer | Function | Kinds written |
+| --- | --- | --- |
+| `allowance` | `confirm_handover` | `allowance_in` to Spend and Save |
+| `requests` | `complete_request` | `deposit_out/in`, `withdrawal_out/in`, `grant_in` |
+| `diary` | `record_entry`, `reverse_entry` | `purchase`, `gift_in`, `reversal` |
+
+No other code path inserts into the ledger. The table's insert policy is `false` for all roles; only these `security definer` functions write, after their own authorization checks.
+
+## 5. Data architecture
+
+### 5.1 Entity model
+
+```mermaid
+erDiagram
+  profiles ||--o{ family_members : "is member"
+  families ||--o{ family_members : has
+  families ||--o{ invitations : issues
+  profiles ||--o| child_credentials : "child only"
+  profiles ||--o{ allowance_schedules : "child has"
+  allowance_schedules ||--o{ allowance_occurrences : generates
+  profiles ||--o{ ledger_entries : "child owns"
+  profiles ||--o{ requests : "child raises"
+  profiles ||--o{ spending_limits : "child has"
+  profiles ||--o{ goals : "child has"
+  profiles ||--o{ mission_progress : tracks
+  profiles ||--o{ review_items : scheduled
+  profiles ||--o{ weekly_reviews : receives
+  profiles ||--o{ notifications : receives
+  notifications ||--o{ notification_deliveries : "sent via"
+  profiles ||--o{ push_subscriptions : registers
+  allowance_occurrences ||--o{ ledger_entries : "posts as"
+  requests ||--o{ ledger_entries : "posts as"
+  ledger_entries ||--o| ledger_entries : reverses
+
+  profiles {
+    uuid id PK "= auth.users.id"
+    text role "parent | child, server-set"
+    text display_name
+    text nickname "child only, unique per family"
+    text currency "ISO 4217, from family"
+    timestamptz created_at
+  }
+  families {
+    uuid id PK
+    text code "6 chars, child sign-in"
+    text currency
+    uuid created_by
+  }
+  family_members {
+    uuid family_id FK
+    uuid profile_id FK
+    text role "parent | child"
+    text status "invited | approved | removed"
+    uuid approved_by
+    timestamptz approved_at
+  }
+  invitations {
+    uuid id PK
+    uuid family_id FK "null when child-initiated"
+    text kind "child_to_parent | parent_to_child"
+    text parent_email "child-initiated only"
+    text nickname
+    text token_hash
+    text status "pending | accepted | expired"
+    timestamptz expires_at
+  }
+  child_credentials {
+    uuid profile_id PK
+    text pin_hash "bcrypt via pgcrypto"
+    int failed_attempts
+    timestamptz locked_until
+    uuid set_by "parent"
+  }
+  allowance_schedules {
+    uuid id PK
+    uuid child_id FK
+    uuid family_id FK
+    bigint amount_minor
+    text frequency "weekly | monthly | quarterly | annual"
+    date starts_on
+    date next_due_on
+    bigint planned_save_minor "child's plan"
+    bool active
+  }
+  allowance_occurrences {
+    uuid id PK
+    uuid schedule_id FK
+    text period_key "YYYY-MM-DD; unique with schedule"
+    date due_on
+    text status "due | confirmed | closed"
+    bigint cash_minor
+    bigint saved_minor
+    uuid confirmed_by
+    timestamptz confirmed_at
+  }
+  ledger_entries {
+    uuid id PK
+    uuid family_id FK
+    uuid child_id FK
+    text mode "recorded | practice"
+    text jar "spend | save"
+    text kind "allowance_in | gift_in | purchase | deposit_out | deposit_in | withdrawal_out | withdrawal_in | grant_in | reversal"
+    text direction "in | out"
+    bigint amount_minor "> 0"
+    text label
+    text source_type "occurrence | request | diary"
+    uuid source_id
+    uuid reverses_entry_id FK
+    text idempotency_key "unique"
+    uuid created_by
+    timestamptz occurred_at
+  }
+  requests {
+    uuid id PK
+    uuid family_id FK
+    uuid child_id FK
+    text type "deposit | withdrawal | emergency"
+    bigint amount_minor
+    text reason
+    text status "pending | approved | completed | rejected | cancelled"
+    uuid decided_by
+    timestamptz decided_at
+    timestamptz completed_at
+    text idempotency_key "unique"
+  }
+  spending_limits {
+    uuid id PK
+    uuid child_id FK
+    text type "per_purchase | per_week"
+    bigint amount_minor
+    bool active
+  }
+  goals {
+    uuid id PK
+    uuid child_id FK
+    text title
+    bigint price_minor
+    text status "active | reached | archived"
+    timestamptz reached_at
+  }
+  mission_progress {
+    uuid child_id FK
+    text mission_key "from content/"
+    text status "started | completed"
+    int score
+    int hints_used
+    timestamptz completed_at
+  }
+  review_items {
+    uuid id PK
+    uuid child_id FK
+    text skill_key
+    date due_on
+    int interval_days
+  }
+  weekly_reviews {
+    uuid child_id FK
+    date week_start "unique with child"
+    jsonb summary
+    timestamptz generated_at
+  }
+  notifications {
+    uuid id PK
+    uuid recipient_id FK
+    uuid family_id FK
+    text type "due | reminder | limit_notice | request_new | request_decided | handover_done | mission"
+    text subject_type
+    uuid subject_id
+    text title
+    text body
+    timestamptz read_at
+  }
+  notification_deliveries {
+    uuid id PK
+    uuid notification_id FK
+    text channel "inbox | email | push"
+    text status "queued | sent | failed | dead"
+    int attempts
+    timestamptz next_attempt_at
+    text last_error
+  }
+  push_subscriptions {
+    uuid id PK
+    uuid profile_id FK
+    text endpoint "unique"
+    jsonb keys
+  }
+```
+
+Also: `usage_counters` (rate limits, later the guide's token budget), `job_runs` (one row per cron run with counts and duration), `audit_log` (parent-controlled setting changes: schedule, limits, PIN resets).
+
+### 5.2 Derived values
+
+| Value | How | Where |
+| --- | --- | --- |
+| Jar balance | `sum(in) - sum(out)` over `ledger_entries` for `(child_id, jar, mode = recorded)` | SQL function `balance(child_id, jar)`; indexed on `(child_id, mode, jar, occurred_at desc)` |
+| Reserved Save | `sum(amount)` of `requests` where `type = withdrawal` and `status in (pending, approved)` | SQL function `reserved_save(child_id)` |
+| Available Save | balance(save) − reserved | SQL function; also the cap checked at request and completion |
+| Goal progress | available Save vs `goals.price_minor` | `goals` service |
+| Payments remaining | ceil((price − available Save) / `planned_save_minor`) | `goals` service, pure function with tests |
+| Due now | `allowance_occurrences` with `status = due` | query; drives badges |
+
+Sixty children at ten entries a day is about 220k rows a year; summing per child stays in single-digit milliseconds with the index. A maintained balance column is a later optimisation, reconciled nightly by `job_runs` if ever added.
+
+### 5.3 Content
+
+Missions, topics and hints are authored as versioned JSON under `src/content/` (validated by Zod at build time) so they ship with the code, are reviewable in PRs, and need no admin UI. Only progress lives in the database, keyed by `mission_key` and `skill_key`. When content changes, keys stay stable; a mission is retired by flag, never deleted.
+
+### 5.4 Practice money
+
+Practice entries live in the same `ledger_entries` table with `mode = practice`. Every balance function takes `mode` and defaults to `recorded`. A check constraint forbids `mode = practice` on entries with `source_type in (occurrence, request)`, so practice money can never originate from a handover. The UI shows the practice chip whenever `mode = practice` (design.md 2.5).
+
+## 6. Authentication and authorization
+
+### 6.1 Identities
+
+| Actor | Supabase Auth identity | Sign-in |
+| --- | --- | --- |
+| Parent | Email + password (OAuth later), PKCE callback | `/login` |
+| Child | Real `auth.users` row created by the parent through the admin client, with a synthetic non-deliverable email (`<uuid>@child.jarso.invalid`) and a random unguessable password the child never sees | `/child/sign-in`: family code + nickname + PIN |
+
+Child sign-in flow: the Server Action looks up the child by family code and nickname, calls `verify_child_pin(profile_id, pin)` which checks the bcrypt hash, increments `failed_attempts`, and sets `locked_until` after five failures for fifteen minutes. On success the server mints a session with `auth.admin.generateLink({ type: "magiclink" })` and `auth.verifyOtp({ token_hash })`, so the cookie session is a normal Supabase session scoped to the child's identity. PINs are set and reset by a parent only. Nothing about this path exposes a password to the child or stores the PIN in plain text.
+
+### 6.2 Roles and membership
+
+`profiles.role` and `family_members` are set only by `security definer` functions (`create_child_account`, `accept_invitation`, `approve_member`). The profile update policy grants `update` on `display_name`, `avatar_url` and preferences columns only; role and nickname are not in the column grant. `updateProfileSchema` never includes them.
+
+RLS helper predicates, all `stable` and `security definer`:
+
+- `is_approved_member(family_id)`: the caller has an approved `family_members` row for this family.
+- `is_parent_of(child_id)`: caller is an approved parent in the child's family.
+- `is_self(child_id)`: caller is the child.
+
+| Table | select | insert | update | delete |
+| --- | --- | --- | --- | --- |
+| profiles | self, or parent of | trigger only | self (limited columns) | never |
+| families, family_members | approved members | functions only | functions only | functions only |
+| allowance_schedules, spending_limits | child or parent of | parent of | parent of | parent of (soft) |
+| allowance_occurrences | child or parent of | functions only | functions only | never |
+| ledger_entries | child or parent of | functions only | never | never |
+| requests | child or parent of | child (self) via function | functions only | never |
+| goals, mission_progress, review_items | self or parent of (read) | self | self | self (goals archive only) |
+| notifications | recipient | functions only | recipient (`read_at` only) | never |
+| notification_deliveries, push_subscriptions | service role; subscriptions: self | self (subscriptions) | service role | self (subscriptions) |
+
+The DAL mirrors this at the app layer: `requireUser()` for pages, `assertUser()` for actions and handlers, plus `requireRole("parent" | "child")` and `assertParentOf(childId)` so a wrong-role request fails before the database is asked.
+
+## 7. Key flows
+
+### 7.1 Onboarding
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant C as Child (browser)
+  participant P as Parent (browser/email)
+  participant A as Next.js actions
+  participant DB as Postgres functions
+  participant E as Email
+  Note over C,E: Child-initiated
+  C->>A: startChildOnboarding(nickname, parentEmail)
+  A->>DB: create_invitation(kind=child_to_parent)
+  A->>E: invite email with tokenised link
+  P->>A: open link → sign up / sign in as parent
+  A->>DB: accept_invitation(token) → family, parent member, child profile + auth user, PIN setup pending
+  P->>A: setChildPin(childId, pin)
+  A->>DB: set_child_pin → bcrypt hash
+  P-->>C: tells child the family code and PIN
+  C->>A: childSignIn(code, nickname, pin)
+  A->>DB: verify_child_pin → ok
+  A->>A: mint session (generateLink + verifyOtp)
+  Note over C,E: Parent-initiated: parent signs up, createChildAccount(nickname, pin) does steps 5–7 directly.
+```
+
+### 7.2 Allowance falls due and is handed over
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant CR as pg_cron (hourly)
+  participant DB as Postgres
+  participant N as notifications
+  participant P as Parent UI
+  participant A as Server Action
+  CR->>DB: generate_due_occurrences()
+  DB->>DB: insert allowance_occurrences (schedule_id, period_key) on conflict do nothing
+  DB->>N: notifications(type=due) for child and parent; deliveries(inbox, email)
+  P->>A: confirmHandover(occurrenceId, cashMinor, savedMinor, idemKey)
+  A->>A: assertUser, assertParentOf(child)
+  A->>DB: confirm_handover(...)
+  DB->>DB: lock occurrence; require status=due; cash+saved = due amount
+  DB->>DB: insert ledger allowance_in (spend, cash), allowance_in (save, saved) with idempotency keys
+  DB->>DB: occurrence → confirmed; notifications(handover_done)
+  A->>P: refresh(); jar fill animation
+```
+
+Reminders: a second cron job (`send_handover_reminders`, hourly) creates `reminder` notifications for occurrences still `due` after the configured delay, at most one per day per occurrence. Reminder timing stays an open product decision; the job reads it from `families.settings`.
+
+### 7.3 Purchase and limit notice
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant C as Child UI
+  participant A as Server Action
+  participant DB as Postgres
+  C->>A: recordPurchase(amount, label, idemKey)
+  A->>DB: record_entry(kind=purchase, jar=spend)
+  DB->>DB: insert ledger (never blocked by limits)
+  DB->>DB: evaluate_limits(entry) → if breached, notifications(limit_notice) to parents
+  A->>C: refresh(); balance updates
+```
+
+### 7.4 Request lifecycle (deposit, withdrawal, emergency)
 
 ```
-Browser ─► proxy.ts ─ refresh session cookie, optimistic redirect
-            │
-            ├─► Page (Server Component) ─► <Suspense> ─► requireUser() ─► service ─► repository ─► Supabase (RLS)
-            ├─► Server Action (createAction) ─► Zod ─► assertUser() ─► service ─► …
-            └─► Route Handler (withApi)      ─► Zod ─► assertUser() ─► service ─► …
+pending ──(parent approves)──► approved ──(parent confirms hand over / receipt)──► completed ──► ledger posts
+   │                                 │
+   ├──(parent rejects)──► rejected   └──(parent rejects)──► rejected
+   └──(child cancels)───► cancelled
 ```
 
-Services are the reuse point: the same `updateProfile` backs both the Server Action and `PATCH /api/v1/me`.
+Withdrawal cap is checked against `available_save` at `pending` and again inside `complete_request`; deposits are checked against the Spend balance the same way. `complete_request` is the only transition that writes to the ledger, and it is idempotent on the request id.
 
-## Rendering model
+## 8. Notifications
 
-`cacheComponents` and `partialPrefetching` are on. Consequences:
+```mermaid
+flowchart LR
+  rec[(record change<br/>function)] --> n[(notifications)]
+  n --> d[(notification_deliveries<br/>inbox · email · push)]
+  d -->|inbox row is the inbox| ui[Inbox tab + badge]
+  d -->|webhook on insert| disp[/api/hooks/notifications<br/>dispatcher]
+  cr[pg_cron sweep<br/>every 10 min] --> disp
+  disp -->|Resend| mail[Parent email]
+  disp -->|web-push, VAPID| push[Browser push]
+  disp -->|status, attempts, next_attempt_at| d
+```
 
-- Anything reading cookies/headers/searchParams (incl. Supabase server client) is request-time and **must render inside `<Suspense>`**.
-- Never `await` the session at the top of a layout — it blocks the whole segment. Push it into a child component behind a boundary.
-- Static UI (shells, marketing) prerenders automatically.
-- See `node_modules/next/dist/docs/01-app/02-guides/authentication-with-cache-components.md`.
+- Notifications are created inside the same transaction as the record change, so a posted handover always has its notification.
+- The inbox is just `notifications` filtered by recipient; no delivery step can lose it.
+- Email goes to parents for `due`, `reminder`, `request_new` and `limit_notice`; children get inbox only in the pilot. Batching rule: at most one email per parent per hour, grouping pending items.
+- Push is opt-in per device (`push_subscriptions`), added later in the pilot with the PWA.
+- The dispatcher is idempotent per delivery row and backs off (1, 5, 30, 120 minutes), then marks `dead`. A weekly query lists dead deliveries.
+- Preferences per profile (`notification_prefs` jsonb on `profiles`) can mute email per type; the inbox cannot be muted.
 
-## Adding a feature
+## 9. Scheduling
 
-Use the `new-feature` skill (`.claude/skills/new-feature`). Checklist: migration + RLS → regenerate types → repository → service → schemas → actions / route → components → barrels → tests.
+| Job | Schedule | Function | Idempotency |
+| --- | --- | --- | --- |
+| `generate_due_occurrences` | hourly | creates occurrences whose `due_on <= today` | unique `(schedule_id, period_key)` |
+| `send_handover_reminders` | hourly | reminder notifications for stale `due` occurrences | one per occurrence per day |
+| `dispatch_notifications` | every 10 min | sweeps `queued` and retryable deliveries (webhook does the fast path) | per delivery row |
+| `schedule_reviews` | nightly | spaced-repetition items due tomorrow | unique `(child_id, skill_key, due_on)` |
+| `generate_weekly_reviews` | weekly | FR11 summaries | unique `(child_id, week_start)` |
+| `reconcile_and_retain` | nightly | balance sanity checks, expire invitations, prune `job_runs` | n/a |
 
-## Scaling notes
+All jobs run in `pg_cron` with `job_runs` rows for observability. If a job needs app code (Claude, email), it enqueues deliveries or rows and `/api/cron/[job]` (guarded by `CRON_SECRET`) does the app-side work; the Vercel Hobby plan's cron limits are the reason the schedule itself lives in Postgres.
 
-- Grow by adding feature modules, not by growing `lib/`. `lib/` is for cross-cutting infrastructure only.
-- Features may import other features **only through their barrels**. If two features become tightly coupled, extract the shared part into a new feature rather than reaching into internals.
-- API versioning: public/external HTTP APIs live under `/api/v1`. Breaking changes → `/api/v2`, keep v1 until consumers migrate.
-- If the backend must be split out later, `features/*/server` is already the seam: services take plain inputs and return domain types.
+## 10. Cross-cutting concerns
+
+| Concern | Mechanism | Reference |
+| --- | --- | --- |
+| Validation | Zod on every input; `createAction`, `withApi` + `parseBody` | `docs/api.md` |
+| Errors | `AppError(code)` mapped to results and HTTP; raw errors never shown | `docs/conventions.md` |
+| Logging | structured `logger` with request id and `userId`; no PII | `docs/security.md` |
+| Caching | `"use cache"` + tags for shared content; request-time for user data; `refresh()` after mutations | production-readiness skill |
+| Idempotency | keys on ledger and requests; natural keys on cron outputs | section 5 |
+| Rate limits | `usage_counters` for PIN attempts (also `child_credentials`), request creation, future guide | production-readiness skill |
+| CSRF / CORS | Server Action origin checks; `withApi` origin guard; no permissive CORS | `docs/security.md` |
+| Secrets | host env vars only; public repo controls; redacted session logs | `docs/security.md` |
+| Feature flags | `FEATURE_*` env vars validated in `env.server.ts`; `feature_flags` table when per-family rollout is needed | production-readiness skill |
+| Money formatting | `Money` component and `formatMinor()`; integers end to end | `docs/design.md` |
+| Accessibility | AA, 44 px targets, reduced motion | `docs/design.md` |
+
+## 11. Environments and delivery
+
+| Environment | App | Database | Notes |
+| --- | --- | --- | --- |
+| Local | `pnpm dev` | Supabase in Docker (`pnpm db:start`), migrations + `seed.sql` | Inbucket catches email. |
+| Preview | Vercel preview per PR | **Production project** (pilot decision) | Test families are flagged `families.is_test = true` and excluded from metrics; previews never run cron (pg_cron is in the database, shared, by design). Revisit with a staging project or Supabase Branching if real families join before the pilot ends. |
+| Production | Vercel `hnd1`, https://jarso.vercel.app | Supabase `sbnakvwvaymzypwmpqzv`, `ap-northeast-1` | `docs/deploy.md` |
+
+Delivery pipeline: PR → CI (lint, typecheck, unit, build, e2e, gitleaks, migration reset) → review → merge to `main` → CI applies migrations to the hosted project (`supabase db push --linked`, to be added) → Vercel builds and promotes. Migrations are expand/contract so the previous build keeps working during the minute both run. Rollback is Vercel's promote-previous; schema never rolls back.
+
+## 12. Observability and operations
+
+- Uptime monitor on `/api/health?deep=1` (runs a trivial query).
+- Error tracking (Sentry free tier) on client and server with source maps.
+- `job_runs` and `notification_deliveries` are the operational tables; two saved SQL queries ("failed jobs last 7 days", "dead deliveries") are the dashboard.
+- Metrics for the pilot evaluation come from SQL over `families`, `allowance_occurrences` (due → confirmed lag), `requests` (unanswered), `mission_progress`, and a nightly reconciliation of balances versus ledger sums.
+- SLOs: 99.5 % availability of the deep health check; p95 dashboard under 2 s from Japan and the pilot country.
+
+## 13. Testing strategy
+
+| Layer | What | How |
+| --- | --- | --- |
+| Postgres functions and RLS | invariants: exactly-once posting, caps, family isolation, role immutability | pgTAP tests run by the CI `migrations` job against a reset database, with two families and three users |
+| Services | plans, estimates, limit evaluation, request transitions | Vitest with repository mocks |
+| Schemas | every Zod schema | Vitest |
+| Components | behaviour by role | Testing Library |
+| Flows | onboarding both ways, due → handover, purchase → notice, withdrawal lifecycle, with push disabled | Playwright against local Supabase with seeded families |
+| Security | cross-family access attempts, child calling parent actions, PIN lockout | Playwright + pgTAP |
+
+## 14. Roadmap mapping
+
+| Milestone | Modules | Tables and functions | Screens |
+| --- | --- | --- | --- |
+| **First milestone** (FR13, FR01, FR03, FR14 purchases + withdrawals, FR16 inbox) | `family`, `allowance`, `ledger`, `jars` (read), `diary` (purchases), `requests` (withdrawal), `limits`, `notifications` (inbox + email) | families, family_members, invitations, child_credentials, allowance_schedules/occurrences, ledger_entries, requests, spending_limits, notifications, notification_deliveries, job_runs; functions `create_child_account`, `accept_invitation`, `verify_child_pin`, `generate_due_occurrences`, `confirm_handover`, `record_entry`, `evaluate_limits`, `complete_request` | parent: onboarding, family, allowance setup, home with due + requests, handover sheet, limits, inbox; child: sign-in, home, jars, record purchase, request withdrawal, inbox |
+| **Rest of pilot** (FR02, FR04–FR06, FR08, FR10–FR12, FR15, deposits, push, PWA) | `goals`, `diary` full, `learning`, `reviews`, `requests` (deposit, emergency), `notifications` (push), PWA shell | goals, mission_progress, review_items, weekly_reviews, push_subscriptions, `reverse_entry`, review jobs | goal, diary, missions, topics, weekly review, emergency request, settings |
+| **Later** (FR07, FR09) | `guide` | usage_counters (token budgets), guide_messages | guide chat with streaming |
+
+## 15. Decisions and assumptions
+
+Decided with the product owner on 2026-10-28:
+
+- Child identity: parent-created Supabase user with family code + nickname + PIN sign-in; no child email (ADR 0004).
+- Family model: `families` hub with many parents and many children (ADR 0005).
+- Environments: one hosted project; previews share it for the pilot.
+- Notification channels: inbox for everyone, email for parent actions, push later (ADR 0006).
+
+Assumed by the architecture, to be confirmed when first implemented:
+
+- Balances derived from the ledger, not stored; reservations derived from `requests`.
+- `pg_cron` owns schedules; app-side cron is a guarded fallback.
+- Mission content as versioned JSON in the repo.
+- Practice money in the same ledger table under `mode`.
+- Email provider is Resend; swap is a single adapter in `notifications/server/channels`.
+- Partial handovers close the occurrence and record a `shortfall_minor` on it (open decision in REQUIREMENTS.md); the schema holds the column, the UI decides later.
+
+Open questions carried from `REQUIREMENTS.md`: parental verification strength, reminder timing, limit types, purchases larger than Spend, emergency grant jar, schedule edge cases, pilot thresholds.
+
+## 16. Scaling notes
+
+- Grow by adding feature modules, not by growing `lib/`.
+- Features import other features only through barrels; if two become entangled, extract a third.
+- The backend seam is `features/*/server`: services take plain inputs and return domain types, so a mobile app or a separate API can reuse them behind `/api/v1`.
+- Revisit this document at the escalation triggers in the production-readiness skill: roughly 1,000 daily active users, 10 GB of data, a second region, or a second deployable.

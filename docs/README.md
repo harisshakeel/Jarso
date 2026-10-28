@@ -3,7 +3,7 @@
 | Doc | Read when |
 | --- | --- |
 | [domain.md](./domain.md) | Understanding the product, glossary, planned modules, money invariants |
-| [architecture.md](./architecture.md) | Orienting in the codebase, adding a new feature or layer |
+| [architecture.md](./architecture.md) | System context, modules, data model, flows, auth, notifications, scheduling, environments, roadmap |
 | [conventions.md](./conventions.md) | Writing any code — naming, imports, barrels, errors |
 | [database.md](./database.md) | Changing the schema, writing RLS, regenerating types |
 | [auth.md](./auth.md) | Touching sessions, protected routes, authorization |
