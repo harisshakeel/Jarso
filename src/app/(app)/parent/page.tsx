@@ -1,5 +1,5 @@
 import { PlusIcon } from "lucide-react";
-import type { Metadata, Route } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
@@ -11,9 +11,6 @@ import { type ChildSummary, ChildSwitcher, FamilyCodeCard, SetPinForm } from "@/
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 
 export const metadata: Metadata = { title: "Your family" };
-
-// The invite page lands in a later slice-1 task; cast until it exists (typedRoutes).
-const invite = routes.invite as Route;
 
 const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
 
@@ -52,7 +49,7 @@ function FirstChildCard() {
             <PlusIcon aria-hidden />
             Add a child
           </Link>
-          <Link href={invite} className={buttonVariants({ variant: "outline", size: "lg" })}>
+          <Link href={routes.invite} className={buttonVariants({ variant: "outline", size: "lg" })}>
             Accept an invitation
           </Link>
         </div>
@@ -96,7 +93,7 @@ function ChildrenSection({ children }: { children: ChildSummary[] }) {
           <PlusIcon aria-hidden />
           Add a child
         </Link>
-        <Link href={invite} className={buttonVariants({ variant: "outline", size: "lg" })}>
+        <Link href={routes.invite} className={buttonVariants({ variant: "outline", size: "lg" })}>
           Accept an invitation
         </Link>
       </div>

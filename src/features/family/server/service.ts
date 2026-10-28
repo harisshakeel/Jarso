@@ -31,6 +31,10 @@ import {
 
 const INVITE_CODE_LENGTH = 8;
 
+/** Shown for unknown, expired and used invitations alike, so none can be told apart. */
+export const INVITATION_GONE =
+  "This invitation has expired or was already used. Ask your child to start again.";
+
 type Limit = { key: string; window: string; max: number };
 
 /** Records a hit on every limit (so each window counts all attempts); throws if any denies. */
@@ -152,7 +156,7 @@ export async function acceptInvitation(input: AcceptInvitationInput): Promise<Ch
 
   const invitation = await findInvitation(input.invite);
   if (!invitation) {
-    throw new AppError("NOT_FOUND", "That invite has expired or was already used.");
+    throw new AppError("NOT_FOUND", INVITATION_GONE);
   }
 
   return addChild({
