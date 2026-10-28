@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { Field, FormError } from "@/components/form";
 import { Button } from "@/components/ui";
 import { routes } from "@/config";
 import { idle } from "@/lib";
 import { signIn } from "../server/actions";
-import { Field } from "./field";
 
 export function SignInForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(signIn, idle);
@@ -31,11 +31,7 @@ export function SignInForm({ next }: { next?: string }) {
         required
         errors={fieldErrors?.password}
       />
-      {state?.ok === false && !fieldErrors ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error.message}
-        </p>
-      ) : null}
+      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
       <Button type="submit" disabled={pending}>
         {pending ? "Signing in…" : "Sign in"}
       </Button>

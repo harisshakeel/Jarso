@@ -42,6 +42,7 @@ Every module exposes its public API through an `index.ts` barrel. Import from th
 | `@/features/<f>` | components, schemas, types, server actions | ✅ |
 | `@/features/<f>/server` | services, DAL (`import "server-only"`) | ❌ server only |
 | `@/components/ui` | shadcn primitives | ✅ |
+| `@/components/form` | `Field`, `FieldError`, `FormError` (design.md §6 Forms) | ✅ |
 | `@/lib` | errors, logger, `createAction`, `cn` | ✅ |
 | `@/lib/api` | Route Handler helpers | ❌ server only |
 | `@/config` | `routes`, `siteConfig`, `clientEnv` | ✅ |
