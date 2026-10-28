@@ -8,7 +8,7 @@ useDefault = true
 [[rules]]
 id = "supabase-api-key"
 description = "Supabase secret or publishable API key"
-regex = '''sb_(secret|publishable)_[A-Za-z0-9_-]{12,}'''
+regex = '''sb_(secret|publishable)_[A-Za-z0-9_-]{4,}'''
 keywords = ["sb_secret_", "sb_publishable_"]
 
 [[rules]]

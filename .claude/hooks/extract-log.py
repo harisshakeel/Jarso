@@ -21,7 +21,7 @@ _SECRET_CHARS = r'[A-Za-z0-9_\-]'
 
 REDACTIONS: List[Tuple[re.Pattern, str]] = [
     # Supabase API keys (new format) and personal access tokens
-    (re.compile(r'sb_(secret|publishable)_' + _SECRET_CHARS + r'{12,}'), r'sb_\1_[REDACTED]'),
+    (re.compile(r'sb_(secret|publishable)_' + _SECRET_CHARS + r'{4,}'), r'sb_\1_[REDACTED]'),
     (re.compile(r'sbp_[A-Za-z0-9]{20,}'), 'sbp_[REDACTED]'),
     # JWTs (Supabase legacy anon/service_role keys, session tokens)
     (re.compile(r'eyJ' + _SECRET_CHARS + r'{10,}\.eyJ' + _SECRET_CHARS + r'{10,}\.' + _SECRET_CHARS + r'{10,}'),
