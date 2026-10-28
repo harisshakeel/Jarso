@@ -49,6 +49,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"child_credentials": {
+                  Row: {
+                    "failed_attempts": number,"locked_until": string | null,"pin_hash": string,"profile_id": string,"set_by": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "failed_attempts"?: number,"locked_until"?: string | null,"pin_hash": string,"profile_id": string,"set_by": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "failed_attempts"?: number,"locked_until"?: string | null,"pin_hash"?: string,"profile_id"?: string,"set_by"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_credentials_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "child_credentials_set_by_fkey"
+      columns: ["set_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"families": {
                   Row: {
                     "code": string,"created_at": string,"created_by": string,"currency": string,"id": string,"timezone": string,"updated_at": string
@@ -71,14 +97,14 @@ isOneToOne: false
                   ]
                 },"family_members": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"consent_at": string | null,"consent_by": string | null,"created_at": string,"family_id": string,"profile_id": string,"role": string,"status": string
+                    "approved_at": string | null,"approved_by": string | null,"consent_at": string | null,"consent_by": string | null,"created_at": string,"family_id": string,"nickname_key": string | null,"profile_id": string,"role": string,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"created_at"?: string,"family_id": string,"profile_id": string,"role": string,"status"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"created_at"?: string,"family_id": string,"nickname_key"?: string | null,"profile_id": string,"role": string,"status"?: string
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"created_at"?: string,"family_id"?: string,"profile_id"?: string,"role"?: string,"status"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"created_at"?: string,"family_id"?: string,"nickname_key"?: string | null,"profile_id"?: string,"role"?: string,"status"?: string
                   }
                   Relationships: [
                     {
@@ -121,6 +147,20 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"usage_counters": {
+                  Row: {
+                    "count": number,"key": string,"window_start": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "count"?: number,"key": string,"window_start": string
+                  }
+                  Update: {
+                    "count"?: number,"key"?: string,"window_start"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
@@ -133,6 +173,9 @@ isOneToOne: true
 "current_family_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"hit_rate_limit":
+{ Args: { "p_key": string,"p_max": number,"p_window": string }; Returns: boolean
+                           },
 "is_approved_member":
 { Args: { "p_family_id": string }; Returns: boolean
                            },
@@ -141,6 +184,17 @@ isOneToOne: true
                            },
 "is_self":
 { Args: { "p_child_id": string }; Returns: boolean
+                           },
+"register_child":
+{ Args: { "p_child_id": string,"p_consent": boolean,"p_family_id": string,"p_invitation_id"?: string,"p_nickname": string,"p_pin": string }; Returns: undefined
+                           },
+"set_child_pin":
+{ Args: { "p_child_id": string,"p_pin": string }; Returns: undefined
+                           },
+"verify_child_pin":
+{ Args: { "p_family_code": string,"p_nickname": string,"p_pin": string }; Returns: {
+              "child_id": string,"status": string
+            }[]
                            }
           }
           Enums: {

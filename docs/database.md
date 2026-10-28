@@ -55,9 +55,17 @@ service.ts  ──►  repository.ts  ──►  supabase client
 | --- | --- | --- |
 | `profiles` | 1:1 with `auth.users`; created by `on_auth_user_created` trigger. `role` (`parent`/`child`) comes from `raw_app_meta_data.jarso_role` only; `nickname` is child-only | select: self, parent of, or approved member of caller's family; update: self, columns `full_name`, `avatar_url` only |
 | `families` | Family hub: 6-char sign-in `code`, `currency` (ISO 4217), IANA `timezone` | select: approved members; writes via functions only |
-| `family_members` | Profile ↔ family link with `role`, `status` (`approved`/`removed`), consent and approval; `profile_id` unique (one family per profile) | select: approved members of the family; writes via functions only |
+| `family_members` | Profile ↔ family link with `role`, `status` (`approved`/`removed`), consent and approval; `profile_id` unique (one family per profile); child rows carry `nickname_key` = `lower(btrim(nickname))`, unique per family | select: approved members of the family; writes via functions only |
 | `audit_log` | Append-only record of parent-controlled changes (`action`, `subject_id`, `details`) | select: approved parents of the family; insert via functions only |
+| `child_credentials` | Child PIN as bcrypt `pin_hash`, `failed_attempts`, `locked_until`, `set_by` | RLS on, **no policies**: service role and definer functions only |
+| `usage_counters` | Fixed-window rate-limit counters keyed by (`key`, `window_start`) | RLS on, **no policies**: service role only |
 
 RLS helpers (`stable security definer`, `search_path = ''`, executable by `authenticated` only): `is_approved_member(family_id)`, `is_parent_of(child_id)`, `is_self(child_id)`, `current_family_id()`. Reuse them in every family-scoped policy.
 
-Functions: `create_family(currency, timezone) → uuid` — caller must be a `parent` with no membership; raises `JA401` / `JA403` / `JA409`, `22023` for an unknown timezone.
+Functions:
+
+- `create_family(currency, timezone) → uuid` — caller must be a `parent` with no membership; raises `JA401` / `JA403` / `JA409`, `22023` for an unknown timezone.
+- `register_child(child_id, family_id, nickname, pin, consent, invitation_id default null)` — approved parent of the family adds a child-role profile with no membership. Raises `JA403` (not a parent of the family, or no consent), `22023` (PIN not 4–6 digits, nickname not 1–20 chars), `JA409` (child unavailable or nickname taken). Audits `child.added`.
+- `set_child_pin(child_id, pin)` — `is_parent_of` caller; sets the PIN and clears the lockout. Audits `child.pin_reset`.
+- `verify_child_pin(family_code, nickname, pin) → table(child_id, status)` — **service_role only**. Normalises the code (upper, no spaces/hyphens) and nickname (`lower(btrim)`). `status` is `ok` (child_id set), `invalid` (unknown family/nickname, removed child or wrong PIN) or `locked` (`locked_until > now()`). Never raises for a bad sign-in so the failure counter commits; the 5th consecutive wrong PIN locks for 15 minutes.
+- `hit_rate_limit(key, window, max) → boolean` — **service_role only**; counts a hit in the `date_bin(window, now(), epoch)` window and returns `true` while the count is within `max`.
