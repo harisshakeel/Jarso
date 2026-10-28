@@ -9,6 +9,7 @@ export {
   childSignIn,
   createFamily,
   findInvitation,
+  getChildNickname,
   getFamily,
   INVITATION_GONE,
   listChildren,

@@ -36,6 +36,16 @@ export async function findProfileRole(db: Client, userId: string): Promise<"pare
   return data?.role === "child" ? "child" : "parent";
 }
 
+export async function findNickname(db: Client, userId: string): Promise<string | null> {
+  const { data, error } = await db
+    .from("profiles")
+    .select("nickname")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load profile");
+  return data?.nickname ?? null;
+}
+
 export async function isParentOf(db: Client, childId: string): Promise<boolean> {
   const { data, error } = await db.rpc("is_parent_of", { p_child_id: childId });
   if (error) throw toAppError(error, "Failed to check access");

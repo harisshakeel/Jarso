@@ -8,6 +8,7 @@ import { AppError, createAction, isAppError } from "@/lib";
 import {
   acceptInvitationSchema,
   addChildSchema,
+  childSignInSchema,
   createFamilySchema,
   setChildPinSchema,
   startChildOnboardingSchema,
@@ -17,6 +18,7 @@ import { assertParentOf, assertRole } from "./dal";
 import {
   acceptInvitation,
   addChild,
+  childSignIn,
   createFamily,
   setChildPin,
   startChildOnboarding,
@@ -60,6 +62,12 @@ export const addChildAction = createAction(addChildSchema, async ({ nickname, pi
 export const startChildOnboardingAction = createAction(startChildOnboardingSchema, async (input) =>
   startChildOnboarding(input, await getClientIp()),
 );
+
+/** Public: child PIN sign-in. The service rate-limits and mints the session cookie. */
+export const childSignInAction = createAction(childSignInSchema, async (input) => {
+  await childSignIn(input, await getClientIp());
+  redirect(routes.child);
+});
 
 export const acceptInvitationAction = createAction(acceptInvitationSchema, async (input) => {
   try {

@@ -8,6 +8,7 @@ vi.mock("@/features/notifications/server", () => ({ sendEmail: vi.fn() }));
 vi.mock("./repository", () => ({
   findFamilyById: vi.fn(),
   findInvitationByHash: vi.fn(),
+  findNickname: vi.fn(),
   hitRateLimit: vi.fn(),
   insertFamily: vi.fn(),
   insertInvitation: vi.fn(),

@@ -1,5 +1,4 @@
 import "server-only";
-import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { routes } from "@/config";
@@ -26,15 +25,20 @@ const getRole = cache(async (userId: string): Promise<Role> => {
   return membership?.role ?? findProfileRole(await createClient(), userId);
 });
 
-// Cast: typed routes only know pages that exist; the role homes are built in Tasks 7–9.
-const homeOf = (role: Role) => (role === "parent" ? routes.parent : routes.child) as Route;
+const homeOf = (role: Role) => (role === "parent" ? routes.parent : routes.child);
+
+/** Signed out → that role's sign-in: children use their PIN page, parents the login (with next). */
+async function requireSignedIn(role: Role, next: string): Promise<SessionUser> {
+  if (role === "parent") return requireUser(next);
+  return (await getCurrentUser()) ?? redirect(routes.childSignIn);
+}
 
 /**
- * For pages. Signed out → login; wrong role → that role's own home. A parent without a family
- * passes with `membership: null` so the page can send them to setup.
+ * For pages. Signed out → the role's sign-in; wrong role → that role's own home. A parent
+ * without a family passes with `membership: null` so the page can send them to setup.
  */
 export async function requireRole(role: Role, next: string): Promise<RoleContext> {
-  const user = await requireUser(next);
+  const user = await requireSignedIn(role, next);
   const actual = await getRole(user.id);
   if (actual !== role) redirect(homeOf(actual));
   return { user, membership: await getMembership() };

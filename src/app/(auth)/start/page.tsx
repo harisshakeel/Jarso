@@ -1,4 +1,4 @@
-import type { Metadata, Route } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { JarsoMark } from "@/components/brand";
 import { buttonVariants } from "@/components/ui";
@@ -6,9 +6,6 @@ import { routes } from "@/config";
 import { StartOnboardingForm } from "@/features/family";
 
 export const metadata: Metadata = { title: "Start here" };
-
-// Child sign-in lands in a later slice-1 task; cast until its page exists (typedRoutes).
-const childSignIn = routes.childSignIn as Route;
 
 /** Child-started onboarding (public). Nothing here reads the session, so it stays static. */
 export default function StartPage() {
@@ -22,7 +19,7 @@ export default function StartPage() {
         </p>
       </header>
       <StartOnboardingForm />
-      <Link href={childSignIn} className={buttonVariants({ variant: "link", size: "lg" })}>
+      <Link href={routes.childSignIn} className={buttonVariants({ variant: "link", size: "lg" })}>
         I already have a family code
       </Link>
     </div>

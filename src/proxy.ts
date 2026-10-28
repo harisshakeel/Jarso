@@ -13,6 +13,11 @@ export async function proxy(request: NextRequest) {
   const { response, claims } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
 
+  if (!claims && matches(pathname, [routes.child])) {
+    // Children sign in with their family code and PIN, never the parent login.
+    return redirectWithSession(request, response, routes.childSignIn);
+  }
+
   if (!claims && matches(pathname, protectedRoutePrefixes)) {
     // Keep the query so e.g. /invite?token=… survives the trip through /login.
     return redirectWithSession(request, response, routes.login, { next: pathname + search });

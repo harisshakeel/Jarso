@@ -18,6 +18,7 @@ import { assertParentOf, assertRole, getMembership } from "./dal";
 import {
   findFamilyById,
   findInvitationByHash,
+  findNickname,
   hitRateLimit,
   insertFamily,
   insertInvitation,
@@ -63,6 +64,12 @@ export async function listChildren(): Promise<ChildSummary[]> {
   const membership = await getMembership();
   if (!membership) return [];
   return listChildMembers(await createClient(), membership.familyId);
+}
+
+/** The signed-in child's nickname, for the greeting. Children only. */
+export async function getChildNickname(): Promise<string> {
+  const { user } = await assertRole("child");
+  return (await findNickname(await createClient(), user.id)) ?? "";
 }
 
 /**
