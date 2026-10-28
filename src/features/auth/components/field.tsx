@@ -1,0 +1,29 @@
+import type { ComponentProps } from "react";
+import { Input, Label } from "@/components/ui";
+
+type FieldProps = ComponentProps<typeof Input> & {
+  name: string;
+  label: string;
+  errors?: string[];
+};
+
+export function Field({ name, label, errors, ...props }: FieldProps) {
+  const errorId = `${name}-error`;
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={name}>{label}</Label>
+      <Input
+        id={name}
+        name={name}
+        aria-invalid={errors?.length ? true : undefined}
+        aria-describedby={errors?.length ? errorId : undefined}
+        {...props}
+      />
+      {errors?.length ? (
+        <p id={errorId} className="text-destructive text-sm">
+          {errors[0]}
+        </p>
+      ) : null}
+    </div>
+  );
+}
