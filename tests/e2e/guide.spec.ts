@@ -163,12 +163,14 @@ test("the parent reads chats flagged first, without the private safety message",
   await expect(chats).toHaveCount(3);
   await expect(chats.first()).toContainText("Needs a look");
   await chats.first().click();
+  await expect(parent).toHaveURL(new RegExp(`${childBase}/guide/[0-9a-f-]+$`));
+  const transcript = parent.getByRole("list", { name: "Chat" });
   await expect(
-    parent.getByText("A safety response was shown. The message itself is not kept."),
+    transcript.getByText("A safety response was shown. The message itself is not kept."),
   ).toBeVisible();
-  await expect(parent.getByText("someone at school hurt me")).toHaveCount(0);
-  await expect(parent.getByText("What is saving?")).toBeVisible();
-  await expect(parent.getByText("Your child found this helpful")).toBeVisible();
+  await expect(transcript.getByText("someone at school hurt me")).toHaveCount(0);
+  await expect(transcript.getByText("What is saving?")).toBeVisible();
+  await expect(transcript.getByText("Your child found this helpful")).toBeVisible();
 });
 
 test("turning the guide off hides it from the child", async () => {
