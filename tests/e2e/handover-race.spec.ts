@@ -56,6 +56,11 @@ function childAt(i: number): string {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+/** Signs in `n` separate clients up front, so the race calls themselves start together. */
+function parentClients(n: number): Promise<SupabaseClient[]> {
+  return Promise.all(Array.from({ length: n }, () => parentClient()));
+}
+
 function tally(values: string[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const v of values) counts[v] = (counts[v] ?? 0) + 1;
@@ -140,9 +145,10 @@ test.afterAll(async () => {
 test("five concurrent confirm_handover calls confirm once", async () => {
   const parent = await parentClient();
   const id = await dueOccurrence(parent, childAt(0));
+  const clients = await parentClients(5);
   const results = await Promise.all(
-    Array.from({ length: 5 }, async (_, i) =>
-      rpcText(await parentClient(), "confirm_handover", {
+    clients.map((client, i) =>
+      rpcText(client, "confirm_handover", {
         p_occurrence_id: id,
         p_cash_minor: 300,
         p_saved_minor: 200,
@@ -157,16 +163,16 @@ test("five concurrent confirm_handover calls confirm once", async () => {
 test("confirm_handover racing mark_not_given changes state once", async () => {
   const parent = await parentClient();
   const id = await dueOccurrence(parent, childAt(1));
+  const [first, second] = await parentClients(2);
+  if (!first || !second) throw new Error("unreachable");
   const [a, b] = await Promise.all([
-    parentClient().then((c) =>
-      rpcText(c, "confirm_handover", {
-        p_occurrence_id: id,
-        p_cash_minor: 300,
-        p_saved_minor: 200,
-        p_idempotency_key: `race-${randomUUID()}`,
-      }),
-    ),
-    parentClient().then((c) => rpcText(c, "mark_not_given", { p_occurrence_id: id })),
+    rpcText(first, "confirm_handover", {
+      p_occurrence_id: id,
+      p_cash_minor: 300,
+      p_saved_minor: 200,
+      p_idempotency_key: `race-${randomUUID()}`,
+    }),
+    rpcText(second, "mark_not_given", { p_occurrence_id: id }),
   ]);
   const confirmedWon = a === "confirmed";
   expect(confirmedWon ? b : a).toBe(confirmedWon ? "already_handled" : "already_confirmed");
@@ -179,9 +185,10 @@ test("confirm_handover racing mark_not_given changes state once", async () => {
 test("five concurrent confirm_gift_handover calls confirm once", async () => {
   const parent = await parentClient();
   const id = await dueGift(parent, childAt(2));
+  const clients = await parentClients(5);
   const results = await Promise.all(
-    Array.from({ length: 5 }, async (_, i) =>
-      rpcText(await parentClient(), "confirm_gift_handover", {
+    clients.map((client, i) =>
+      rpcText(client, "confirm_gift_handover", {
         p_gift_id: id,
         p_cash_minor: 300,
         p_saved_minor: 200,
