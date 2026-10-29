@@ -1,8 +1,7 @@
-import { cn } from "cn";
 import Link from "next/link";
 import { Badge, buttonVariants, Card } from "@/components/ui";
 import { routes } from "@/config";
-import { formatMoney } from "@/lib";
+import { cn, formatMoney } from "@/lib";
 import { cadenceAfterAmount, formatDay } from "../describe";
 import { runningSchedule } from "../due";
 import type { Schedule } from "../types";

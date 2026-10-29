@@ -21,7 +21,7 @@ async function EditGiftContent({
     routes.parentGiftEdit(childId, giftId),
   );
   const gift = (await listGifts(childId)).find((g) => g.id === giftId);
-  const title = `Allowance for ${child.nickname}`;
+  const title = `Gift for ${child.nickname}`;
   const back = { href: routes.parentChild(childId), label: child.nickname };
 
   if (gift?.status !== "pending") {

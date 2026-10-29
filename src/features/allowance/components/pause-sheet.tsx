@@ -32,8 +32,8 @@ export function PauseSheet({ scheduleId, nickname, today }: PauseSheetProps) {
         <SheetHeader>
           <SheetTitle>Pause {nickname}'s allowance</SheetTitle>
           <SheetDescription>
-            No allowance falls due while paused. Missed weeks aren't paid later. Anything already
-            due stays due.
+            No allowance falls due while paused. Missed allowances aren't paid later. Anything
+            already due stays due.
           </SheetDescription>
         </SheetHeader>
         {/* Lives inside the sheet, so it unmounts on close and opens fresh each time. */}

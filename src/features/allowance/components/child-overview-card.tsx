@@ -31,7 +31,7 @@ export function ChildOverviewCard({
   dueCount,
   currency,
 }: ChildOverviewCardProps) {
-  const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
+  const money = (minor: number) => formatMoney(minor, currency);
   return (
     <Card className="relative transition-shadow hover:shadow-raised">
       <div className="grid gap-3 px-(--card-spacing)">
