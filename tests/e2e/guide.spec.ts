@@ -180,7 +180,8 @@ test("turning the guide off hides it from the child", async () => {
   await expect(toggle).toHaveAttribute("aria-checked", "false");
   await expect(toggle).toBeEnabled();
   await child.goto("/child");
-  await expect(child.getByRole("heading", { name: /Five quick questions/ })).toBeVisible();
+  // By now the child has started a mission, so Home leads with "Keep going"; wait on the greeting.
+  await expect(child.getByRole("heading", { name: "Hi, Remi!" })).toBeVisible();
   await child.waitForLoadState("networkidle");
   await expect(child.getByRole("button", { name: "Ask the money guide" })).toHaveCount(0);
 });
