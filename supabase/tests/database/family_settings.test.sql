@@ -72,7 +72,9 @@ select is(
 select throws_ok(
   $$select public.update_family_timezone('Mars/Olympus')$$,
   '22023', null, 'unknown timezone rejected');
+select tests.clear_auth();
 select is((select timezone from public.families where id = :'fb'::uuid), 'UTC', 'other family untouched');
+select tests.authenticate_as(:'pa'::uuid);
 
 select tests.authenticate_as(:'px'::uuid);
 select throws_ok(
@@ -128,6 +130,7 @@ select throws_ok(
 select tests.authenticate_as(:'pa'::uuid);
 
 -- The freed nickname can be given to a new child.
+select tests.clear_auth();
 select tests.create_user('c3@example.com', 'child') as c3 \gset
 select tests.authenticate_as(:'pa'::uuid);
 select lives_ok(

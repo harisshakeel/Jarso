@@ -16,11 +16,15 @@ alter table public.family_members
 create index family_members_removed_by_idx on public.family_members (removed_by);
 
 -- nickname_key is the per-family uniqueness key (partial unique index on role = 'child').
--- Only approved children hold one; removal frees it so a new child can take the nickname.
+-- An approved child always holds one and only children may; a removed child may keep or
+-- drop it (remove_child drops it so a new child can take the nickname).
 alter table public.family_members
   drop constraint family_members_nickname_key_check,
   add constraint family_members_nickname_key_check
-    check ((role = 'child' and status = 'approved') = (nickname_key is not null));
+    check (
+      (nickname_key is null or role = 'child')
+      and (role <> 'child' or status <> 'approved' or nickname_key is not null)
+    );
 
 comment on column public.family_members.removed_at is 'Set by remove_child; status is removed from then on.';
 comment on column public.family_members.removed_by is 'Parent who removed the member.';
