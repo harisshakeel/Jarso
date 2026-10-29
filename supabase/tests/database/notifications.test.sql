@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(20);
+select plan(22);
 
 select tests.create_user('pa@example.com') as pa \gset
 select tests.create_user('pb@example.com') as pb \gset
@@ -53,6 +53,14 @@ select tests.authenticate_as(:'c1'::uuid);
 select is((select count(*)::int from public.notifications), 1, 'child sees only the notice addressed to them');
 select tests.authenticate_as(:'pz'::uuid);
 select is((select count(*)::int from public.notifications), 0, 'another family''s parent sees none');
+
+-- A parent removed from the family no longer reads their old notices.
+select tests.clear_auth();
+select is((select count(*)::int from public.notifications where recipient_id = :'pb'::uuid), 4, 'second parent has four notices');
+update public.family_members set status = 'removed' where profile_id = :'pb'::uuid;
+select tests.authenticate_as(:'pb'::uuid);
+select is((select count(*)::int from public.notifications), 0, 'a removed parent sees none of their old notices');
+select tests.clear_auth();
 
 -- Writes and internal functions
 select tests.authenticate_as(:'pa'::uuid);

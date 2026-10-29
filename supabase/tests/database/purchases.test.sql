@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(61);
+select plan(62);
 
 -- Fixtures: PA owns family A (UTC) with children C1 and C2; PB owns family B (Asia/Kolkata) with C3.
 select tests.create_user('pa@example.com') as pa \gset
@@ -120,6 +120,15 @@ select is((select count(*)::int from public.ledger_entries where reverses_entry_
 select is(
   (select reversed from public.list_ledger_history(:'c1'::uuid) h where h.id = ((:'r3'::jsonb)->>'entry_id')::uuid),
   false, 'a live purchase is not reversed');
+
+-- A child whose membership is no longer approved cannot undo.
+select (public.record_purchase(:'c1'::uuid, 50, null, 'p4'))->>'entry_id' as e4 \gset
+select tests.clear_auth();
+update public.family_members set status = 'removed' where profile_id = :'c1'::uuid;
+select tests.authenticate_as(:'c1'::uuid);
+select throws_ok(format($$select public.undo_purchase(%L)$$, :'e4'), 'JA403', null, 'a child no longer approved cannot undo');
+select tests.clear_auth();
+update public.family_members set status = 'approved' where profile_id = :'c1'::uuid;
 
 -- 25 hours old: too late. Called as postgres with the child's claims.
 select tests.clear_auth();

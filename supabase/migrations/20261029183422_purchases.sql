@@ -241,6 +241,16 @@ begin
   if not found or not public.is_self(v_e.child_id) then
     raise exception using errcode = 'JA403', message = 'Not allowed';
   end if;
+  -- Same gate as record_purchase: only an approved child member may write.
+  if not exists (
+    select 1 from public.family_members fm
+    where fm.profile_id = v_e.child_id
+      and fm.family_id = v_e.family_id
+      and fm.role = 'child'
+      and fm.status = 'approved'
+  ) then
+    raise exception using errcode = 'JA403', message = 'Not allowed';
+  end if;
   if v_e.kind <> 'purchase' or p_now is null then
     raise exception using errcode = '22023', message = 'Only a purchase can be undone';
   end if;
@@ -282,7 +292,7 @@ as $$
 $$;
 
 comment on function public.undo_purchase(uuid) is
-  'Child undoes their own purchase within 24 hours by posting a reversal (key reversal:<entry>). Returns undone, already_undone or too_late. JA403 (not the entry''s child, or missing), 22023 (not a purchase).';
+  'Child undoes their own purchase within 24 hours by posting a reversal (key reversal:<entry>). Returns undone, already_undone or too_late. JA403 (not the entry''s child, missing, or no approved child membership), 22023 (not a purchase).';
 
 -- ---------------------------------------------------------------------------
 -- list_ledger_history v2: reversal link and reversed flag

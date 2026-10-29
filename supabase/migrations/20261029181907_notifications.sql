@@ -18,7 +18,7 @@ create table public.notifications (
   read_at timestamptz
 );
 
-comment on table public.notifications is 'In-app notice for one recipient. Written only by notify_parents / notify_child; read by the recipient.';
+comment on table public.notifications is 'In-app notice for one recipient. Written only by notify_parents / notify_child; read by the recipient while they are an approved member of the family.';
 comment on column public.notifications.window_key is 'Dedupe key (for example a limit window). Null means never deduplicated.';
 comment on column public.notifications.source_id is 'Originating ledger entry or request; polymorphic, no FK.';
 
@@ -35,10 +35,10 @@ alter table public.notifications enable row level security;
 revoke all on public.notifications from anon;
 revoke insert, update, delete, truncate on public.notifications from authenticated;
 
-create policy "Notifications are viewable by their recipient"
+create policy "Notifications are viewable by their recipient while an approved member"
   on public.notifications for select
   to authenticated
-  using (recipient_id = (select auth.uid()));
+  using (recipient_id = (select auth.uid()) and public.is_approved_member(family_id));
 
 -- ---------------------------------------------------------------------------
 -- Internal writers (no grants)
