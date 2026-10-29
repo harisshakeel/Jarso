@@ -55,4 +55,13 @@ Vercel → Deployments → previous Ready deployment → "Promote to Production"
 - One concurrent build; a push during a build queues.
 - Preview deployments may be behind Vercel Authentication (Deployment Protection). Production is public.
 
-Migrations are not applied by Vercel. They run from CI or `pnpm db:push` against the linked project; see `docs/database.md`.
+## Database migrations
+
+Vercel does not touch the database. On every push to `main` that changes `supabase/migrations/`, the `Deploy database` GitHub workflow applies the new migrations to the hosted project, in parallel with the Vercel build. One-time setup, under GitHub → Settings → Secrets and variables → Actions:
+
+| Secret | Where it comes from |
+| --- | --- |
+| `SUPABASE_ACCESS_TOKEN` | supabase.com → Account → Access Tokens. Create one named for CI. |
+| `SUPABASE_DB_PASSWORD` | Supabase → Project Settings → Database (reset it there if unknown). |
+
+Without both, the workflow posts a warning and skips; run `pnpm db:push` by hand. The job uses the GitHub environment `production`, so required reviewers can be added there if migrations should wait for a manual approval. Details in `docs/database.md`.
