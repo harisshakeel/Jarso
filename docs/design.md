@@ -61,9 +61,11 @@ A warm paper canvas with near-black ink, the same family as the reference sites 
 | Ink 2 (secondary text) | `#3E4B50` | `#C2D5DB` |
 | Muted foreground | `#566469` | `#9DB6BE` |
 | Hairline | `rgb(20 28 31 / 0.08)`, strong `0.14` | `rgb(230 241 244 / 0.10)`, strong `0.18` |
-| Border (inputs) | `#E6E2DA` | `#234853` |
+| Border (inputs) | `#8F8C84` | `#577D89` |
 
 Measured on the paper canvas: ink 15.9:1, ink 2 8.3:1, muted foreground 5.6:1, primary teal-700 6.3:1, gold-600 text 4.7:1, cyan-700 text 6.2:1, focus ring 3.2:1. All pass AA. Cyan-600 does not pass as text on paper (4.4:1), which is why the cyan text token is cyan-700 in light mode.
+
+Input borders were darkened (light) and lightened (dark) in the same hue so §11's 3:1 for component boundaries holds, as with destructive: light `#8F8C84` is 3.4:1 on white cards and 3.1:1 on paper; dark `#577D89` is 3.1:1 on cards and 3.8:1 on the background. Card edges keep the soft border token.
 
 ### 2.4 Semantic roles
 
@@ -78,7 +80,7 @@ Why the primary is not the brand teal: `#027A98` on white is 4.95:1, which passe
 | Money / Save / celebration | brand gold `#FDC301` fill with ink text; gold-600 `#8B6900` as text | brand gold fill with ink; brand gold as text | fill 9.3:1; text 5.1:1 light, 10.5:1 dark |
 | Destructive (form errors, irreversible actions only) | `oklch(0.56 0.245 27)`, darkened to meet §11 AA on paper | `oklch(0.704 0.191 22)` (existing) | 4.6:1 on paper, 5.0:1 white on it; 5.9:1 on dark bg |
 | Focus ring | cyan-500 `#0098A8`, 3 px, offset 2 px | cyan-300 `#00D6EB` | 3.5:1 against white (non-text minimum 3:1) |
-| Border, input | `#E6E2DA`; card edges use the hairline | `#234853` | |
+| Border, input | border `#E6E2DA`, card edges use the hairline; input `#8F8C84`, darkened to meet §11 | border `#234853`; input `#577D89` | input 3.4:1 on white, 3.1:1 on paper; 3.1:1 on dark card |
 | Muted | `#EFECE5` with `#566469` text (5.2:1) | `#163842` with `#9DB6BE` (8:1) | |
 
 Hard rules:
@@ -271,7 +273,7 @@ Replace the neutral `:root` and `.dark` blocks with these. Chart and sidebar var
   --accent-text: oklch(0.463 0.080 208);           /* cyan-700, cyan as text */
   --destructive: oklch(0.56 0.245 27.325);      /* darkened to meet §11 AA on paper */
   --border: oklch(0.914 0.012 85);               /* #E6E2DA */
-  --input: oklch(0.914 0.012 85);
+  --input: oklch(0.64 0.012 85);                 /* #8F8C84, darkened to meet §11 3:1 */
   --hairline: rgb(20 28 31 / 0.08);
   --hairline-strong: rgb(20 28 31 / 0.14);
   --shadow-rest: 0 0 0 1px rgb(20 28 31 / 0.06), 0 1px 2px rgb(20 28 31 / 0.06);
@@ -305,7 +307,7 @@ Replace the neutral `:root` and `.dark` blocks with these. Chart and sidebar var
   --accent-foreground: oklch(0.226 0.029 223);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(0.379 0.046 220);
-  --input: oklch(0.379 0.046 220);
+  --input: oklch(0.565 0.046 220);              /* #577D89, lightened to meet §11 3:1 */
   --ring: oklch(0.801 0.137 207);               /* cyan-300 */
   --accent-text: oklch(0.801 0.137 207);
   --gold: oklch(0.846 0.173 87);
