@@ -517,13 +517,22 @@ describe("removeChild", () => {
     expect(childAuth.deleteChildIdentity).not.toHaveBeenCalled();
   });
 
-  it("touches nothing when the caller is not the child's parent", async () => {
-    vi.mocked(dal.assertParentOf).mockRejectedValue(new AppError("FORBIDDEN", "No."));
+  it("touches nothing when the caller is not a parent", async () => {
+    vi.mocked(dal.assertRole).mockRejectedValue(new AppError("FORBIDDEN", "No."));
 
     await expect(service.removeChild(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(repo.removeChildMember).not.toHaveBeenCalled();
     expect(repo.revokeUserSessions).not.toHaveBeenCalled();
     expect(childAuth.deleteChildIdentity).not.toHaveBeenCalled();
+  });
+
+  it("leaves authorisation to remove_child, so a retry after a partial removal can run", async () => {
+    vi.mocked(repo.removeChildMember).mockResolvedValue(true);
+
+    await service.removeChild(input);
+
+    expect(dal.assertParentOf).not.toHaveBeenCalled();
+    expect(repo.removeChildMember).toHaveBeenCalledWith({ kind: "user" }, input.childId);
   });
 
   it("does not sign out or delete when the database refuses", async () => {

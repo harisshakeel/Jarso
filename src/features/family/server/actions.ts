@@ -114,8 +114,10 @@ export const renameChildAction = createAction(renameChildSchema, async (input) =
   refresh();
 });
 
+// No assertParentOf here: after a partial removal the child is no longer "approved", so that
+// check would block the retry. remove_child authorises in the database (see removeChild).
 export const removeChildAction = createAction(removeChildSchema, async (input) => {
-  await assertParentOf(input.childId);
+  await assertRole("parent");
   await removeChild(input);
   refresh();
 });

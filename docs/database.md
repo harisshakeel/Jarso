@@ -23,7 +23,7 @@ pnpm exec supabase link --project-ref <ref>
 pnpm db:push                  # always --linked (explicit; CLI default is changing)
 ```
 
-Normally you don't run this: when a merge to `main` touches `supabase/migrations/`, the `Deploy database` workflow (`.github/workflows/deploy-db.yml`) links the hosted project, shows the pending migrations (`--dry-run`) and applies them. It needs the repository secrets `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD`; without them it warns and skips, and the commands above are the fallback. It can also be started by hand from the Actions tab. Migrations must be forward-only and expand/contract, because the workflow and the Vercel build run side by side; to undo, write a new migration.
+Normally you don't run this: on any push to `main` that changes `supabase/migrations/` or the workflow file itself, and when started by hand from the Actions tab, the `Deploy database` workflow (`.github/workflows/deploy-db.yml`) links the hosted project, shows the pending migrations (`--dry-run`) and applies them. It needs the repository secrets `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD`; without them it warns and skips, and the commands above are the fallback. It can also be started by hand from the Actions tab. Migrations must be forward-only and expand/contract, because the workflow and the Vercel build run side by side; to undo, write a new migration.
 
 ## Migration rules
 

@@ -22,7 +22,15 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `SUPABASE_SECRET_KEY` | set (sensitive) | set (sensitive) | Required: the admin client creates child auth users (`features/family`). Previews share the production project, so they need it too. Missing it fails add-child with the generic error, which was the hosted bug behind PR #10's known issue. |
 | `LOG_LEVEL` | `info` | `info` | Optional. |
 
-To change a value from a terminal: `printf '<value>' | vercel env add NAME production --force` (pipe it; never type a key into a command line). To take the Supabase keys straight from the CLI, pass `--reveal`: `supabase projects api-keys --project-ref <ref> --reveal -o json`. Without it the secret key comes back masked, and a masked value stored on Vercel fails every admin call with the generic "Failed to …" message (this happened on 2026-10-29). Env changes apply to the next deployment only; redeploy or merge afterwards.
+To change a value from a terminal: `printf '<value>' | vercel env add NAME production --force` (pipe it; never type a key into a command line). To take a Supabase key straight from the CLI, pass `--reveal` and pipe the one key into Vercel so it never appears on screen or in a log:
+
+```bash
+supabase projects api-keys --project-ref <ref> --reveal -o json \
+  | python3 -c 'import json,sys; t=sys.stdin.read(); print(next(k["api_key"] for k in json.loads(t[t.index("["):]) if k["api_key"].startswith("sb_secret_")), end="")' \
+  | vercel env add SUPABASE_SECRET_KEY production --sensitive --force
+```
+
+Never run the `--reveal` command on its own: it prints every secret key. Without `--reveal` the secret key comes back masked, and a masked value stored on Vercel fails every admin call with the generic "Failed to …" message (this happened on 2026-10-29). Env changes apply to the next deployment only; redeploy or merge afterwards.
 
 ## Supabase auth settings for production
 

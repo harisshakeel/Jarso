@@ -301,12 +301,16 @@ export async function setChildPin(input: SetChildPinInput): Promise<void> {
 /**
  * Parent removes a child (ADR 0007). The database disables the child first (membership
  * removed, nickname freed, PIN gone); then every device is signed out and, while the child has
- * no money history, the auth identity is deleted. If a later step fails the parent sees an
- * error and can run it again: the database step is idempotent, and a half-removed child is
- * disabled, never usable.
+ * no money history, the auth identity is deleted. If a later step fails the dialog stays open
+ * with the error and "Remove" runs it again: the database step is idempotent, and a
+ * half-removed child is disabled, never usable.
+ *
+ * Authorisation is remove_child's: the caller must be an approved parent of the child's
+ * family, whether the child is still approved or already removed. assertParentOf would refuse
+ * the retry, because it only recognises approved children.
  */
 export async function removeChild(input: RemoveChildInput): Promise<void> {
-  await assertParentOf(input.childId);
+  await assertRole("parent");
   const deletable = await removeChildMember(await createClient(), input.childId);
   try {
     await revokeUserSessions(createAdminClient(), input.childId);

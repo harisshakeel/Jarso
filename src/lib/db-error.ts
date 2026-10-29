@@ -26,6 +26,7 @@ export function toAppError(
   // Unexpected database/PostgREST failure: the user sees `fallback`, the log keeps the cause.
   // Only code and message: Postgres DETAIL/HINT can embed key values (a future unique index on
   // an email or label would put PII in the log).
-  logger.error("Database call failed", { fallback, code: error?.code, message: error?.message });
+  // `dbMessage`, not `message`: the production logger spreads context over its own fields.
+  logger.error("Database call failed", { fallback, code: error?.code, dbMessage: error?.message });
   return new AppError("INTERNAL", fallback, { cause: error });
 }

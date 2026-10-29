@@ -1,7 +1,7 @@
 -- Family settings (feat/family-settings-unlink): remove a child, rename a child, change the
 -- family timezone. Removing a child marks the membership removed and frees the nickname,
--- deletes the PIN credentials and attempt counters, expires the child's pending invitations
--- and writes an audit row. The app then revokes the child's sessions and deletes the auth
+-- deletes the PIN credentials and attempt counters, and writes an audit row; it is idempotent
+-- so a parent can retry. The app then revokes the child's sessions and deletes the auth
 -- identity while the child has no money history (ADR 0007); once ledger rows exist for a
 -- child, remove_child returns false and the identity is kept, disabled.
 

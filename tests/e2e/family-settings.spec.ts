@@ -102,7 +102,7 @@ test("settings: gear opens the parent settings; rename and timezone persist", as
   // Timezone.
   await parent.getByRole("combobox", { name: "Timezone" }).click();
   await parent.getByRole("option", { name: "Asia/Karachi" }).click();
-  await parent.getByRole("button", { name: "Save" }).click();
+  await parent.getByRole("button", { name: "Save", exact: true }).click();
   await expect(parent.getByText("Family settings saved")).toBeVisible();
   await parent.reload();
   await expect(parent.getByRole("combobox", { name: "Timezone" })).toHaveText("Asia/Karachi");
