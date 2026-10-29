@@ -186,6 +186,60 @@ test("child-started: Mia asks, parent approves with the code, Mia signs in", asy
   await expect(parent.getByText(INVITATION_GONE)).toBeVisible();
 });
 
+/** A signed-out child asks a parent to join from /start. */
+async function childAsks(page: Page, nickname: string, email: string): Promise<void> {
+  await page.goto("/start");
+  await page.getByLabel("Your nickname").fill(nickname);
+  await page.getByLabel("Your parent's email").fill(email);
+  await page.getByRole("button", { name: "Ask my parent" }).click();
+  await expect(page.getByText("Show this to your parent.")).toBeVisible();
+}
+
+test("invitations list: parent refreshes, sees Ava's invite and accepts it", async ({
+  browser,
+}) => {
+  const parent = await newActor(browser);
+  await signUpParent(parent, "Dana Parent", parentEmail("dana"));
+  await createFamily(parent);
+
+  await parent.goto("/invite");
+  await expect(parent.getByText("No invitations waiting.", { exact: false })).toBeVisible();
+
+  // Mixed case: matching the parent's email ignores case.
+  const child = await newActor(browser);
+  await childAsks(child, "Ava", parentEmail("dana").toUpperCase());
+
+  // Someone else's invitation never shows up in Dana's list.
+  await childAsks(await newActor(browser), "Otto", parentEmail("nobody"));
+
+  await parent.getByRole("button", { name: "Refresh invitations" }).click();
+  const list = parent.getByRole("region", { name: "Waiting for you" });
+  const row = list.getByRole("listitem").filter({ hasText: "Ava" });
+  await expect(row).toBeVisible();
+  await expect(row.getByText(/^Sent /)).toBeVisible();
+  await expect(list.getByText("Otto")).toHaveCount(0);
+
+  await row.getByRole("link", { name: "Accept Ava" }).click();
+  await expect(parent).toHaveURL((url) => url.pathname === "/invite" && url.searchParams.has("id"));
+  const acceptedId = new URL(parent.url()).searchParams.get("id") ?? "";
+  await expect(parent.getByLabel("Nickname")).toHaveValue("Ava");
+  await parent.getByLabel("PIN", { exact: true }).fill("1357");
+  await giveConsent(parent);
+  await parent.getByRole("button", { name: "Add child" }).click();
+  await expect(parent).toHaveURL(at("/parent"));
+  await expect(parent.getByRole("listitem").filter({ hasText: "Ava" })).toBeVisible();
+
+  // Accepted invitations leave the list, and their id no longer opens the form.
+  await parent.goto("/invite");
+  await expect(parent.getByText("No invitations waiting.", { exact: false })).toBeVisible();
+  await parent.goto(`/invite?id=${acceptedId}`);
+  await expect(parent.getByText(INVITATION_GONE)).toBeVisible();
+
+  // An id that isn't in this parent's list shows the same message as a used one.
+  await parent.goto(`/invite?id=${randomUUID()}`);
+  await expect(parent.getByText(INVITATION_GONE)).toBeVisible();
+});
+
 test("isolation and roles: other families stay hidden, each role lands on its own home", async ({
   browser,
 }) => {
