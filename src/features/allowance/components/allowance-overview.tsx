@@ -4,6 +4,7 @@ import { Badge, buttonVariants, Card } from "@/components/ui";
 import { routes } from "@/config";
 import { formatMoney } from "@/lib";
 import { cadenceAfterAmount, formatDay } from "../describe";
+import { runningSchedule } from "../due";
 import type { Schedule } from "../types";
 
 export type AllowanceOverviewRow = {
@@ -17,12 +18,8 @@ export type AllowanceOverviewRow = {
 
 type AllowanceOverviewProps = { rows: AllowanceOverviewRow[]; currency: string };
 
-/** A running or paused schedule; a stopped one reads like none. */
-const runningOf = (schedule: Schedule | null) =>
-  schedule && schedule.status !== "stopped" ? schedule : null;
-
 function amountLine(schedule: Schedule | null, currency: string): string {
-  const running = runningOf(schedule);
+  const running = runningSchedule(schedule);
   if (!running) return "No allowance yet";
   return `${formatMoney(running.amountMinor, currency)} ${cadenceAfterAmount(running.frequency, running.anchorOn)}`;
 }
@@ -59,7 +56,7 @@ function DueBadge({ count }: { count: number }) {
 
 /** "Manage" for a running allowance, "Set up" otherwise. 36 px in the table, 44 px on phones. */
 function RowAction({ row, size }: { row: AllowanceOverviewRow; size: "sm" | "lg" }) {
-  const manage = runningOf(row.schedule) !== null;
+  const manage = runningSchedule(row.schedule) !== null;
   return (
     <Link
       href={routes.parentAllowance(row.childId)}
@@ -72,7 +69,7 @@ function RowAction({ row, size }: { row: AllowanceOverviewRow; size: "sm" | "lg"
 }
 
 const nextOf = (schedule: Schedule | null) => {
-  const next = runningOf(schedule)?.nextDueOn;
+  const next = runningSchedule(schedule)?.nextDueOn;
   return next ? formatDay(next) : "—";
 };
 
@@ -111,7 +108,7 @@ export function AllowanceOverview({ rows, currency }: AllowanceOverviewProps) {
                 <td
                   className={cn(
                     "money px-2 py-2",
-                    runningOf(row.schedule) ? "font-semibold" : "text-ink-2",
+                    runningSchedule(row.schedule) ? "font-semibold" : "text-ink-2",
                   )}
                 >
                   {amountLine(row.schedule, currency)}
@@ -143,7 +140,7 @@ export function AllowanceOverview({ rows, currency }: AllowanceOverviewProps) {
                 </div>
                 <div className="grid gap-1">
                   <p className="money font-semibold">{amountLine(row.schedule, currency)}</p>
-                  {runningOf(row.schedule)?.nextDueOn ? (
+                  {runningSchedule(row.schedule)?.nextDueOn ? (
                     <p className="text-ink-2 text-sm">Next: {nextOf(row.schedule)}</p>
                   ) : null}
                 </div>

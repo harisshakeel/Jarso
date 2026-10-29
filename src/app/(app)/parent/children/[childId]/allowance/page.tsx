@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { routes } from "@/config";
-import { AllowanceForm, AllowanceSummary } from "@/features/allowance";
+import { AllowanceForm, AllowanceSummary, runningSchedule } from "@/features/allowance";
 import { getSchedule } from "@/features/allowance/server";
 import { loadChild } from "../load-child";
 import { FormSkeleton, PageShell } from "../page-shell";
@@ -12,8 +12,7 @@ export const metadata: Metadata = { title: "Allowance" };
 async function AllowanceContent({ params }: { params: Promise<{ childId: string }> }) {
   const { childId } = await params;
   const { child, currency, today } = await loadChild(childId, routes.parentAllowance(childId));
-  const schedule = await getSchedule(childId);
-  const running = schedule && schedule.status !== "stopped" ? schedule : null;
+  const running = runningSchedule(await getSchedule(childId));
 
   return (
     <PageShell

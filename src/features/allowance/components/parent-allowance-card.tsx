@@ -3,6 +3,7 @@ import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { formatMoney } from "@/lib";
 import { cadenceAfterAmount, describeAllowanceState } from "../describe";
+import { runningSchedule } from "../due";
 import type { Schedule } from "../types";
 
 type ParentAllowanceCardProps = {
@@ -14,7 +15,7 @@ type ParentAllowanceCardProps = {
 
 /** The parent's allowance card on the child page: amount, how often, where it stands, one action. */
 export function ParentAllowanceCard({ childId, schedule, currency }: ParentAllowanceCardProps) {
-  const running = schedule && schedule.status !== "stopped" ? schedule : null;
+  const running = runningSchedule(schedule);
   return (
     <Card>
       <CardContent>

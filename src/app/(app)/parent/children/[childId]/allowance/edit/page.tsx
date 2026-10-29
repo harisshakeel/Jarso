@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
-import { AllowanceForm } from "@/features/allowance";
+import { AllowanceForm, runningSchedule } from "@/features/allowance";
 import { getSchedule } from "@/features/allowance/server";
 import { loadChild } from "../../load-child";
 import { FormSkeleton, PageShell } from "../../page-shell";
@@ -13,10 +13,10 @@ export const metadata: Metadata = { title: "Change allowance" };
 async function EditContent({ params }: { params: Promise<{ childId: string }> }) {
   const { childId } = await params;
   const { child, currency, today } = await loadChild(childId, routes.parentAllowanceEdit(childId));
-  const schedule = await getSchedule(childId);
+  const schedule = runningSchedule(await getSchedule(childId));
   const title = `Allowance for ${child.nickname}`;
 
-  if (!schedule || schedule.status === "stopped") {
+  if (!schedule) {
     return (
       <PageShell title={title}>
         <Card className="rise-in">

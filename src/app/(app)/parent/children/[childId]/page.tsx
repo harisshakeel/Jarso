@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { routes } from "@/config";
-import { DueList, GiftList, ParentAllowanceCard } from "@/features/allowance";
+import { DueList, GiftList, ParentAllowanceCard, upcomingGifts } from "@/features/allowance";
 import { getSchedule, listDue, listGifts } from "@/features/allowance/server";
 import { Jars, RecentHistory } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
@@ -23,7 +23,7 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
     getSchedule(childId),
     listGifts(childId),
   ]);
-  const upcoming = gifts.filter((gift) => gift.giveOn > today);
+  const upcoming = upcomingGifts(gifts, today);
 
   return (
     <PageShell title={child.nickname} back={back} wide>
