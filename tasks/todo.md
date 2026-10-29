@@ -48,3 +48,11 @@ Tailwind v4 + shadcn/ui, Supabase (`@supabase/ssr`), Zod, Biome, Husky, Vitest, 
 ## Later
 - [ ] Retention cron for expired invitations + old `usage_counters` (slice 2, pg_cron).
 - [ ] Deferred minors: orphan auth user on ambiguous create; child sign-out landing; nickname charset rejects combining marks; `nicknameConflict` maps every CONFLICT; 5th wrong PIN copy; `findProfileRole` default; FK `on delete`; DAL unit tests.
+
+# Slice 3 (purchases, limits, undo)
+
+- [x] SQL: notifications, money rules, purchases with overspend rule, undo (pgTAP)
+- [x] Server modules: `rules`, `diary` (record, undo), ledger history with purchases and Undone lines
+- [x] Screens: child purchase sheet and undo; parent money rules page with overspend switch
+- [x] E2E: `tests/e2e/purchases.spec.ts`
+- [ ] Slice 4: savings deposits and withdrawals as requests (`requests` table, `create_request`, `decide_request`, `complete_request`), withdrawal cap and auto-approve / auto-confirm rules in use, request screens, notices for requests

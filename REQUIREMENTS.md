@@ -62,8 +62,8 @@ FR02–FR06, FR08, FR10–FR12, emergency funds (FR15), web push and app install
 - The child can plan and preview how each allowance should be split. *Deferred: the parent decides the split at handover in the pilot.* The handover screen starts from the previous handover's split, and the parent's confirmation records the actual split.
 - Each jar displays its confirmed balance. Due allowances are shown separately.
 - The child can see how a planned split or transfer affects their goal.
-- Moving money from Spend to Save is a savings deposit: the child hands cash to the parent. It is a request (FR14) that posts only when the parent confirms receiving the cash.
-- Moving money from Save to Spend is a savings withdrawal (FR14).
+- Moving money from Spend to Save is a savings deposit: the child hands cash to the parent. It is a request (FR14) that posts when the parent confirms receiving the cash, or at once if the parent's auto-confirm rule covers it.
+- Moving money from Save to Spend is a savings withdrawal request (FR14). It posts when the parent hands the cash over. An auto-approve rule only skips the approval step.
 - Transfers between jars do not count as new income.
 
 ## FR04 — Money diary
@@ -180,7 +180,7 @@ The initial topics are:
 ### Savings deposits
 
 - Moving money from Spend to Save is a request to the parent, with the amount. It records that the child is handing cash over.
-- The request is pending until the parent confirms receiving the cash, which posts it exactly once. The child can cancel it while pending; the parent can reject it. Cancellation and rejection leave balances unchanged.
+- The request is pending until the parent confirms receiving the cash, which posts it exactly once, unless the parent's auto-confirm rule covers it. The child can cancel it while pending; the parent can reject it. Cancellation and rejection leave balances unchanged.
 - A deposit never exceeds the Spend balance, checked when requested and again at confirmation.
 - A pending deposit holds its amount in Spend, so the same money cannot be spent or deposited twice.
 

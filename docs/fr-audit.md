@@ -1,6 +1,6 @@
 # Functional requirements audit — 2026-10-29 (slice 2 checkpoint)
 
-State of `main` at `fa62b9f` (after PRs #18–#25: slice 2 allowance, gifts and handover, plus its review fixes) and of the hosted database, against `REQUIREMENTS.md` and the first-milestone spec (`docs/superpowers/specs/2026-10-28-first-milestone-design.md`). Verified from the source tree, migrations, tests, CI runs and the hosted catalog, not from PR descriptions.
+State of `main` at `fa62b9f` (after PRs #18–#25: slice 2 allowance, gifts and handover, plus its review fixes) and of the hosted database, against `REQUIREMENTS.md` (rows marked "slice 3 branch" reflect `feat/purchases-limits`, 2026-10-30) and the first-milestone spec (`docs/superpowers/specs/2026-10-28-first-milestone-design.md`). Verified from the source tree, migrations, tests, CI runs and the hosted catalog, not from PR descriptions.
 
 Legend: **Built** = on `main`, usable end to end, tested, live on production · **Partial** = some pieces built, not usable for the whole requirement · **Not started** · **Later** = deferred by decision.
 
@@ -11,7 +11,7 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 | FR01 | Allowance schedule and handover | Partial: all but the reminder | Weekly, monthly, every 3 months and yearly schedules; due exactly once from the hourly `generate-due-occurrences` job; change, pause (through a date or until resumed), resume, stop; handover with the Spend/Save split starting from the last split; not given (S10); one-time gifts that stay hidden from the child until handover (S2–S5); due badges on both sides; child allowance card and history. | The parent **reminder** while an allowance stays unconfirmed (needs the FR16 inbox). | 2, 5 |
 | FR02 | Personal savings goal | Not started | Nothing. | `goals`, planned split, progress and payments-remaining estimate, goal screen | rest of pilot |
 | FR03 | Spend and Save jars | Partial | `ledger_entries`, `balance()`, `list_ledger_history`; confirmed balances per jar with due shown separately; the handover records the actual split; child and parent history. | Savings deposits and withdrawals (FR14, slice 4); effect on a goal (FR02). Child split planning is deferred by decision. | 4 |
-| FR04 | Money diary | Not started | Only the ledger history view, which the diary will extend. | Child-recorded purchases and money from other sources that counts immediately, corrections with traceable history, the parent's view of the diary | 3, later |
+| FR04 | Money diary | Partial (slice 3 branch) | Child records purchases (amount, optional label); undo within 24 hours as a reversing entry, shown as Undone to child and parent; purchases in both histories. | Money from other sources recorded by the child, corrections beyond undo, a dedicated diary screen | 3, later |
 | FR05 | Predict before deciding | Not started | Nothing. | What-if simulation, prompt UI | rest of pilot |
 | FR06 | Interactive daily learning | Not started | Nothing. | Mission content, progress, mission player, hints, spaced return | rest of pilot |
 | FR07 | AI money guide | Later | Nothing, by decision. | — | later version |
@@ -21,9 +21,9 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 | FR11 | Weekly review | Not started | Nothing. | Review generation and screen | rest of pilot |
 | FR12 | Return experience | Not started | Homes show balances and what is due. | Next-step logic, resume state | 5, later |
 | FR13 | Family accounts and onboarding | **Built** | Families, members, invitations (link and short code), child PIN sign-in with lockout, rate limits, audit log, both onboarding paths. Parent settings in tabs: family, children (rename, reset PIN, remove per ADR 0007), and the parent's own details. Parent profile completion behind a blocking dialog (ADR 0008); reads stay open, actions are gated in the app. A child with money history keeps their account when removed. | Minor: child sign-out landing, nickname charset for combining marks, invitation retention job. | 1 |
-| FR14 | Purchases, limits, deposits, withdrawals | Not started | Nothing. | Purchases with the overspend rule (D2), limits (D3), `requests` with reservations, deposits and withdrawals, screens | 3, 4 |
+| FR14 | Purchases, limits, deposits, withdrawals | Partial (slice 3 branch) | Purchases with the overspend rule (D2) and a per-child overspend switch; money rules (spending limit, withdrawal cap, auto-approve, auto-confirm; per item, week or month) with the Spending section on the parent's rules page; a spending-limit notice once per window. | `requests` with reservations, deposits and withdrawals, their rule sections and screens | 3, 4 |
 | FR15 | Emergency funds | Not started | Nothing. | `emergency` request type on the slice-4 machinery | rest of pilot |
-| FR16 | Notifications | Partial | Optional Resend email adapter (invitation email). Due badges and the parent's "Needs you" list are on screen but are not notifications. | Notifications and deliveries, inbox and badge, due and handover reminders, dispatcher, deep links, the `/api/cron` fallback; push and PWA later | 5 |
+| FR16 | Notifications | Partial | `notifications` table written in the same transaction as the record (slice 3: limit notices). Optional Resend email adapter (invitation email). Due badges and the parent's "Needs you" list are on screen but are not notifications. | Notifications and deliveries, inbox and badge, due and handover reminders, dispatcher, deep links, the `/api/cron` fallback; push and PWA later | 5 |
 
 ## Production state (hosted database)
 
@@ -39,11 +39,11 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 | Criterion | Met |
 | --- | --- |
 | Both onboarding paths reach parent-approved state | Yes |
-| Parent sets allowance schedule and limits | Partly: schedule yes, limits not started |
+| Parent sets allowance schedule and limits | Yes on the slice 3 branch |
 | Allowance becomes due exactly once, no balance change | Yes (pgTAP `allowance_generation`, live job) |
 | Due badge on both accounts and parent reminder | Partly: badges yes, reminder needs FR16 |
 | Handover posts cash and savings exactly once | Yes (pgTAP `handover`, `handover-race` e2e) |
-| Over-limit purchase recorded and parent notified | No |
+| Over-limit purchase recorded and parent notified | Recorded with a notice row on the slice 3 branch; shown to the parent with the slice 5 inbox |
 | Withdrawal posts only after approval and handover; reservation | No |
 | Deposit posts only after receipt confirmation | No |
 | Parent gets in-app notices for request and limit breach | No |
