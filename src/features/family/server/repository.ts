@@ -115,6 +115,27 @@ export async function updateChildPin(db: Client, childId: string, pin: string): 
   if (error) throw toAppError(error, "Failed to update PIN");
 }
 
+/** Parent removes a child (remove_child). True when the auth identity may be deleted. */
+export async function removeChildMember(db: Client, childId: string): Promise<boolean> {
+  const { data, error } = await db.rpc("remove_child", { p_child_id: childId });
+  if (error) throw toAppError(error, "Failed to remove the child");
+  return data === true;
+}
+
+export async function renameChildMember(
+  db: Client,
+  childId: string,
+  nickname: string,
+): Promise<void> {
+  const { error } = await db.rpc("rename_child", { p_child_id: childId, p_nickname: nickname });
+  if (error) throw toAppError(error, "Failed to rename the child");
+}
+
+export async function updateFamilyTimezone(db: Client, timezone: string): Promise<void> {
+  const { error } = await db.rpc("update_family_timezone", { p_timezone: timezone });
+  if (error) throw toAppError(error, "Failed to update the family settings");
+}
+
 export async function findInvitationByHash(
   admin: Client,
   hash: string,

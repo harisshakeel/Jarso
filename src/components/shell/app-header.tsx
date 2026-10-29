@@ -1,9 +1,11 @@
+import { SettingsIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { JarsoMark } from "@/components/brand";
 import { ThemeSwitch } from "@/components/theme";
-import { siteConfig } from "@/config";
+import { buttonVariants } from "@/components/ui";
+import { routes, siteConfig } from "@/config";
 
 type AppHeaderProps = {
   /** Where the mark links to (the signed-in user's home). */
@@ -25,6 +27,13 @@ export function AppHeader({ homeHref, action }: AppHeaderProps) {
           {siteConfig.name}
         </Link>
         <div className="flex items-center gap-1">
+          <Link
+            href={routes.settings}
+            className={buttonVariants({ variant: "ghost", size: "icon" })}
+            aria-label="Settings"
+          >
+            <SettingsIcon aria-hidden />
+          </Link>
           <ThemeSwitch />
           {action}
         </div>

@@ -39,6 +39,24 @@ export async function deleteChildAuthUser(id: string): Promise<void> {
 }
 
 /**
+ * Deletes a removed child's identity (ADR 0007). Throws so the parent sees the failure and can
+ * run the removal again: `remove_child` is idempotent for an already-removed child.
+ */
+export async function deleteChildIdentity(id: string): Promise<void> {
+  const { error } = await createAdminClient().auth.admin.deleteUser(id);
+  if (error) {
+    logger.error("Removed child identity deletion failed", {
+      childId: id,
+      code: error.code,
+      status: error.status,
+    });
+    throw new AppError("INTERNAL", "We couldn't finish removing the child. Please try again.", {
+      cause: error,
+    });
+  }
+}
+
+/**
  * Replaces the child's password with a fresh random one nobody knows. A child session could set
  * its own password and then sign in without the PIN; rotating on every PIN sign-in and PIN reset
  * ends that. GoTrue may also end the user's other sessions here.

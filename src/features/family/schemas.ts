@@ -87,11 +87,22 @@ export const childSignInSchema = z.object({
 
 export const setChildPinSchema = z.object({ childId: z.uuid(), pin });
 
+export const renameChildSchema = z.object({ childId: z.uuid(), nickname });
+
+export const removeChildSchema = z.object({ childId: z.uuid() });
+
+export const updateFamilySettingsSchema = z.object({
+  timezone: z.string().refine(isValidTimezone, "Choose a valid timezone"),
+});
+
 export type CreateFamilyInput = z.infer<typeof createFamilySchema>;
 export type AddChildInput = z.infer<typeof addChildSchema>;
 export type StartChildOnboardingInput = z.infer<typeof startChildOnboardingSchema>;
 export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
 export type AcceptListedInvitationInput = z.infer<typeof acceptListedInvitationSchema>;
 export type InviteParams = z.infer<typeof inviteParamsSchema>;
+export type RenameChildInput = z.infer<typeof renameChildSchema>;
+export type RemoveChildInput = z.infer<typeof removeChildSchema>;
+export type UpdateFamilySettingsInput = z.infer<typeof updateFamilySettingsSchema>;
 export type ChildSignInInput = z.infer<typeof childSignInSchema>;
 export type SetChildPinInput = z.infer<typeof setChildPinSchema>;

@@ -187,14 +187,14 @@ isOneToOne: false
                   ]
                 },"family_members": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"consent_at": string | null,"consent_by": string | null,"created_at": string,"family_id": string,"nickname_key": string | null,"profile_id": string,"role": string,"status": string
+                    "approved_at": string | null,"approved_by": string | null,"consent_at": string | null,"consent_by": string | null,"created_at": string,"family_id": string,"nickname_key": string | null,"profile_id": string,"removed_at": string | null,"removed_by": string | null,"role": string,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"created_at"?: string,"family_id": string,"nickname_key"?: string | null,"profile_id": string,"role": string,"status"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"created_at"?: string,"family_id": string,"nickname_key"?: string | null,"profile_id": string,"removed_at"?: string | null,"removed_by"?: string | null,"role": string,"status"?: string
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"created_at"?: string,"family_id"?: string,"nickname_key"?: string | null,"profile_id"?: string,"role"?: string,"status"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"created_at"?: string,"family_id"?: string,"nickname_key"?: string | null,"profile_id"?: string,"removed_at"?: string | null,"removed_by"?: string | null,"role"?: string,"status"?: string
                   }
                   Relationships: [
                     {
@@ -219,6 +219,12 @@ isOneToOne: false
       foreignKeyName: "family_members_profile_id_fkey"
       columns: ["profile_id"]
 isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "family_members_removed_by_fkey"
+      columns: ["removed_by"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
@@ -533,6 +539,12 @@ isOneToOne: false
 "register_child":
 { Args: { "p_child_id": string,"p_consent": boolean,"p_family_id": string,"p_invitation_id"?: string,"p_nickname": string,"p_pin": string }; Returns: undefined
                            },
+"remove_child":
+{ Args: { "p_child_id": string }; Returns: boolean
+                           },
+"rename_child":
+{ Args: { "p_child_id": string,"p_nickname": string }; Returns: undefined
+                           },
 "resume_allowance":
 { Args: { "p_schedule_id": string }; Returns: string
                            },
@@ -544,6 +556,9 @@ isOneToOne: false
                            },
 "stop_allowance":
 { Args: { "p_schedule_id": string }; Returns: string
+                           },
+"update_family_timezone":
+{ Args: { "p_timezone": string }; Returns: undefined
                            },
 "update_gift":
 { Args: { "p_amount_minor": number,"p_gift_id": string,"p_give_on": string,"p_note": string }; Returns: string

@@ -6,6 +6,7 @@ export {
   assertParentOf,
   assertRole,
   assertSelfOrParentOf,
+  currentRole,
   getMembership,
   requireRole,
 } from "./dal";
@@ -22,6 +23,9 @@ export {
   INVITATION_GONE,
   listChildren,
   listMyInvitations,
+  removeChild,
+  renameChild,
   setChildPin,
   startChildOnboarding,
+  updateFamilySettings,
 } from "./service";

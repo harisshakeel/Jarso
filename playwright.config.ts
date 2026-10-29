@@ -44,6 +44,12 @@ export default defineConfig({
     { name: "child-home", testMatch: "child-home.spec.ts", use: { ...devices["Desktop Chrome"] } },
     // No browser: concurrent RPC calls against local Supabase.
     { name: "handover-race", testMatch: "handover-race.spec.ts" },
+    // A spec only runs if a project matches it; add a project here for every new spec file.
+    {
+      name: "settings",
+      testMatch: "family-settings.spec.ts",
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
