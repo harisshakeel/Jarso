@@ -186,13 +186,15 @@ test("child-started: Mia asks, parent approves with the code, Mia signs in", asy
   await expect(parent.getByText(INVITATION_GONE)).toBeVisible();
 });
 
-/** A signed-out child asks a parent to join from /start. */
-async function childAsks(page: Page, nickname: string, email: string): Promise<void> {
+/** A signed-out child asks a parent to join from /start. Returns the invite code shown. */
+async function childAsks(page: Page, nickname: string, email: string): Promise<string> {
   await page.goto("/start");
   await page.getByLabel("Your nickname").fill(nickname);
   await page.getByLabel("Your parent's email").fill(email);
   await page.getByRole("button", { name: "Ask my parent" }).click();
   await expect(page.getByText("Show this to your parent.")).toBeVisible();
+  const shown = page.getByText("Your code").locator("xpath=following-sibling::p[1]");
+  return ((await shown.textContent()) ?? "").replace(/\s/g, "");
 }
 
 test("invitations list: parent refreshes, sees Ava's invite and accepts it", async ({
@@ -210,7 +212,7 @@ test("invitations list: parent refreshes, sees Ava's invite and accepts it", asy
   await childAsks(child, "Ava", parentEmail("dana").toUpperCase());
 
   // Someone else's invitation never shows up in Dana's list.
-  await childAsks(await newActor(browser), "Otto", parentEmail("nobody"));
+  const ottoCode = await childAsks(await newActor(browser), "Otto", parentEmail("nobody"));
 
   await parent.getByRole("button", { name: "Refresh invitations" }).click();
   const list = parent.getByRole("region", { name: "Waiting for you" });
@@ -238,6 +240,10 @@ test("invitations list: parent refreshes, sees Ava's invite and accepts it", asy
   // An id that isn't in this parent's list shows the same message as a used one.
   await parent.goto(`/invite?id=${randomUUID()}`);
   await expect(parent.getByText(INVITATION_GONE)).toBeVisible();
+
+  // Otto's invitation (sent to another parent) is untouched: still pending, opens by its code.
+  await parent.goto(`/invite?code=${ottoCode}`);
+  await expect(parent.getByLabel("Nickname")).toHaveValue("Otto");
 });
 
 test("isolation and roles: other families stay hidden, each role lands on its own home", async ({
