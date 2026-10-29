@@ -40,4 +40,29 @@ describe("createAction", () => {
     const result = await action(null, { name: "a" });
     expect(result).toMatchObject({ ok: false, error: { code: "INTERNAL" } });
   });
+
+  it("builds the schema per call when given a factory", async () => {
+    const action = createAction(
+      async () => z.object({ n: z.coerce.number().max(5) }),
+      async ({ n }) => n,
+    );
+    expect(await action(null, { n: "3" })).toEqual({ ok: true, data: 3 });
+    expect(await action(null, { n: "9" })).toMatchObject({
+      ok: false,
+      error: { code: "VALIDATION" },
+    });
+  });
+
+  it("maps an AppError from the schema factory to a typed failure", async () => {
+    const action = createAction(
+      async (): Promise<typeof schema> => {
+        throw new AppError("FORBIDDEN", "Set up your family first.");
+      },
+      async () => "unreachable",
+    );
+    expect(await action(null, { name: "a" })).toMatchObject({
+      ok: false,
+      error: { code: "FORBIDDEN", message: "Set up your family first." },
+    });
+  });
 });
