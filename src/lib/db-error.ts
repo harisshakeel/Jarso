@@ -1,4 +1,5 @@
 import { AppError, type ErrorCode } from "./errors";
+import { logger } from "./logger";
 
 const mapped: Record<string, { code: ErrorCode; message: string }> = {
   JA401: { code: "UNAUTHORIZED", message: "Please sign in again." },
@@ -20,7 +21,11 @@ export function toAppError(
 ): AppError {
   // Own keys only: a code like "__proto__" or "constructor" must not hit Object.prototype.
   const hit = error?.code && Object.hasOwn(mapped, error.code) ? mapped[error.code] : undefined;
-  return hit
-    ? new AppError(hit.code, hit.message, { cause: error })
-    : new AppError("INTERNAL", fallback, { cause: error });
+  if (hit) return new AppError(hit.code, hit.message, { cause: error });
+
+  // Unexpected database/PostgREST failure: the user sees `fallback`, the log keeps the cause.
+  // Only code and message: Postgres DETAIL/HINT can embed key values (a future unique index on
+  // an email or label would put PII in the log).
+  logger.error("Database call failed", { fallback, code: error?.code, message: error?.message });
+  return new AppError("INTERNAL", fallback, { cause: error });
 }
