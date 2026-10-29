@@ -50,7 +50,21 @@ describe("PurchaseSheet", () => {
     await submit("9");
     expect(
       await screen.findByText(
-        "That's more than you have in Spend (£7.00). Record money you got first, or ask a parent.",
+        "That's more than you have in Spend (£7). Record money you got first, or ask a parent.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it.each([0, -250])("says the Spend jar is empty when free Spend is %i", async (freeMinor) => {
+    recordPurchaseAction.mockResolvedValue({
+      ok: true,
+      data: { status: "not_enough_spend", freeMinor },
+    });
+    openSheet();
+    await submit("9");
+    expect(
+      await screen.findByText(
+        "Your Spend jar is empty right now. Record money you got first, or ask a parent.",
       ),
     ).toBeInTheDocument();
   });

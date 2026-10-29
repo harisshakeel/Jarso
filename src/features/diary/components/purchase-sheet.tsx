@@ -59,7 +59,9 @@ function PurchaseForm({ currency, onDone }: { currency: string; onDone: () => vo
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
   const notEnough = state?.ok && state.data.status === "not_enough_spend" ? state.data : undefined;
   const message = notEnough
-    ? `That's more than you have in Spend (${formatMoney(notEnough.freeMinor, currency)}). Record money you got first, or ask a parent.`
+    ? notEnough.freeMinor <= 0
+      ? "Your Spend jar is empty right now. Record money you got first, or ask a parent."
+      : `That's more than you have in Spend (${formatMoney(notEnough.freeMinor, currency, { showMinor: "nonzero" })}). Record money you got first, or ask a parent.`
     : state?.ok === false && !fieldErrors
       ? state.error.message
       : undefined;

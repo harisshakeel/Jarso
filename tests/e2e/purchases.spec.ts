@@ -139,9 +139,7 @@ test("the parent gets a limit_exceeded notice", async () => {
 test("a purchase above Spend is refused and nothing is recorded", async () => {
   await spend("1000", "Too much");
   const sheet = child.getByRole("dialog");
-  await expect(
-    sheet.getByText(/That's more than you have in Spend \(US\$400\.00\)\. /),
-  ).toBeVisible();
+  await expect(sheet.getByText(/That's more than you have in Spend \(US\$400\)\. /)).toBeVisible();
   await expect(sheet.getByText("Record money you got first, or ask a parent.")).toBeVisible();
   await sheet.getByRole("button", { name: "Close" }).click();
   await expect(child.getByRole("dialog")).toHaveCount(0);
