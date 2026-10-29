@@ -17,9 +17,9 @@ describe("toAppError", () => {
     expect(result.cause).toBe(error);
   });
 
-  it("uses a friendly lockout message for JA423", () => {
+  it("uses a friendly lockout message for JA423 without a fixed wait (locks escalate)", () => {
     expect(toAppError({ code: "JA423" }, "f").message).toBe(
-      "Too many tries. Ask your parent or wait 15 minutes.",
+      "Too many tries. Ask your parent or wait a little while.",
     );
   });
 

@@ -5,7 +5,10 @@ const mapped: Record<string, { code: ErrorCode; message: string }> = {
   JA403: { code: "FORBIDDEN", message: "You can't do that." },
   JA404: { code: "NOT_FOUND", message: "We couldn't find that." },
   JA409: { code: "CONFLICT", message: "That already exists." },
-  JA423: { code: "RATE_LIMITED", message: "Too many tries. Ask your parent or wait 15 minutes." },
+  JA423: {
+    code: "RATE_LIMITED",
+    message: "Too many tries. Ask your parent or wait a little while.",
+  },
   JA429: { code: "RATE_LIMITED", message: "Too many tries. Please wait a little and try again." },
   "22023": { code: "VALIDATION", message: "Please check what you entered and try again." },
 };
