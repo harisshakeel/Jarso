@@ -562,7 +562,7 @@ All jobs run in `pg_cron` with `job_runs` rows for observability. If a job needs
 | Preview | Vercel preview per PR | **Production project** (pilot decision) | Test families are flagged `families.is_test = true` and excluded from metrics; previews never run cron (pg_cron is in the database, shared, by design). Revisit with a staging project or Supabase Branching if real families join before the pilot ends. |
 | Production | Vercel `hnd1`, https://jarso.vercel.app | Supabase `sbnakvwvaymzypwmpqzv`, `ap-northeast-1` | `docs/deploy.md` |
 
-Delivery pipeline: PR → CI (lint, typecheck, unit, build, e2e, gitleaks, migration reset + pgTAP) → review → squash merge to `main` → in parallel, the `Deploy database` workflow applies new migrations to the hosted project (`supabase db push --linked`) and Vercel builds and promotes. Migrations are expand/contract so the previous build keeps working during the minute both run. Rollback is Vercel's promote-previous; schema never rolls back.
+Delivery pipeline: PR → CI (lint, typecheck, unit, build, e2e, gitleaks, migration reset + pgTAP) → review → squash merge to `main` → in parallel, Supabase's GitHub integration applies new migrations to the hosted project (production branch `main` only, no preview databases) and Vercel builds and promotes. Migrations are expand/contract so the previous build keeps working during the minute both run. Rollback is Vercel's promote-previous; schema never rolls back.
 
 ## 12. Observability and operations
 

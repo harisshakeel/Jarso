@@ -65,11 +65,12 @@ Vercel → Deployments → previous Ready deployment → "Promote to Production"
 
 ## Database migrations
 
-Vercel does not touch the database. On every push to `main` that changes `supabase/migrations/`, the `Deploy database` GitHub workflow applies the new migrations to the hosted project, in parallel with the Vercel build. One-time setup, under GitHub → Settings → Secrets and variables → Actions:
+Vercel does not touch the database. Supabase's GitHub integration applies new migrations to the hosted project when they are merged to `main`, in parallel with the Vercel build. Nothing is stored in GitHub secrets.
 
-| Secret | Where it comes from |
-| --- | --- |
-| `SUPABASE_ACCESS_TOKEN` | supabase.com → Account → Access Tokens. Create one named for CI. |
-| `SUPABASE_DB_PASSWORD` | Supabase → Project Settings → Database (reset it there if unknown). |
+One-time setup, in Supabase → Project Settings → Integrations → GitHub Integration:
 
-Without both, the workflow posts a warning and skips; run `pnpm db:push` by hand. The job uses the GitHub environment `production`, so required reviewers can be added there if migrations should wait for a manual approval. Details in `docs/database.md`.
+1. Authorize GitHub and choose `harisshakeel/Jarso`.
+2. Working directory `.`; production branch `main`.
+3. Turn **Deploy to production** on. Leave automatic (preview) branching off: only `main` deploys.
+
+After each merge that adds a migration, check the deploy in the Supabase dashboard, or run `supabase migration list --linked`. If the integration is off or a deploy fails, run `pnpm db:push` from `main` by hand. Details in `docs/database.md`.
