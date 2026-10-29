@@ -3,7 +3,7 @@
 # This repository is PUBLIC. Keep patterns in sync with .claude/hooks/extract-log.py and .gitleaks.toml.
 set -eu
 
-pattern='sb_(secret|publishable)_[A-Za-z0-9_-]{4,}|sbp_[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9_-]{12,}|sk-(proj-|live_|test_)[A-Za-z0-9_-]{12,}|(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|xox[baprs]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|(postgres(ql)?|mysql|mongodb(\+srv)?|redis|amqp)://[A-Za-z0-9._%-]+:[A-Za-z0-9._%+!$*#~-]{4,}@|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+pattern='sb_(secret|publishable)_[A-Za-z0-9_-]{4,}|sbp_[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9_-]{12,}|sk-(proj-|live_|test_)[A-Za-z0-9_-]{12,}|\bre_[A-Za-z0-9_]{20,}|(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|xox[baprs]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|(postgres(ql)?|mysql|mongodb(\+srv)?|redis|amqp)://[A-Za-z0-9._%-]+:[A-Za-z0-9._%+!$*#~-]{4,}@|-----BEGIN [A-Z ]*PRIVATE KEY-----'
 
 files=$(git diff --cached --name-only --diff-filter=ACMR || true)
 [ -z "$files" ] && exit 0

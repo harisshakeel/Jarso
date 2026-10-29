@@ -27,7 +27,7 @@ Every variable is declared in `src/config/env.client.ts` or `env.server.ts`; not
 ## Layers that keep secrets out
 
 1. **Agent permissions.** `.claude/settings.json` denies the agent reading `.env*` files, `~/.claude`, and running `supabase db push`, `gh secret` or `vercel env pull`. The agent therefore never has a secret to leak into a transcript.
-2. **Log redaction.** `.claude/hooks/extract-log.py` masks credential-shaped strings (Supabase, Anthropic, OpenAI, GitHub, AWS, Google, Slack, JWTs, connection strings, bearer tokens, PEM blocks, `KEY=value` lines, `"password": "…"` literals) and non-GitHub email addresses before writing a log. Redaction is a net, not a licence; rule 17 in `CLAUDE.md` still forbids putting a secret in a prompt.
+2. **Log redaction.** `.claude/hooks/extract-log.py` masks credential-shaped strings (Supabase, Anthropic, OpenAI, Resend, GitHub, AWS, Google, Slack, JWTs, connection strings, bearer tokens, PEM blocks, `KEY=value` lines, `"password": "…"` literals) and non-GitHub email addresses before writing a log. Redaction is a net, not a licence; rule 17 in `CLAUDE.md` still forbids putting a secret in a prompt.
 3. **Pre-commit.** `scripts/check-secrets.sh` (Husky `pre-commit`) blocks staged `.env` files and credential-shaped strings in added lines.
 4. **CI.** The `secrets` job runs gitleaks with `.gitleaks.toml` over the full history on every push and PR.
 5. **GitHub.** Secret scanning and push protection are enabled on the repository; GitHub rejects pushes containing known token formats and alerts on anything that slips through. Dependabot watches npm and Actions dependencies.
@@ -44,7 +44,9 @@ All three pattern lists (`extract-log.py`, `check-secrets.sh`, `.gitleaks.toml`)
 - **Output:** React escaping; guide output rendered as text or HTML-escaped Markdown; `AppError` messages only, never raw errors.
 - **Headers:** `next.config.ts` sets `nosniff`, `X-Frame-Options: DENY`, referrer policy, permissions policy and HSTS. Add a Content-Security-Policy when the first third-party script arrives.
 - **Open redirects:** `safeNextPath()` for every post-login target.
-- **Children's data:** collect the minimum (FR09, `CLAUDE.md` rule 15); never log emails, names or message bodies; the guide never asks for personal or account information.
+- **Children's data:** collect the minimum (FR09, `CLAUDE.md` rule 15); never log emails, names or message bodies; the guide never asks for personal or account information. Rate-limit keys and lockout rows store SHA-256 hex of IPs and (normalised) emails, never the raw values; an invitation's `parent_email` is cleared when it is accepted.
+- **Client IP:** `getClientIp` (`src/features/family/server/client-ip.ts`) trusts the first `x-forwarded-for` hop. That is safe only because Vercel overwrites the header with the real client address. Self-hosting or putting another proxy or CDN in front means changing it to read that platform's trusted header (or the socket address); otherwise a client can pick its own IP and dodge the per-IP limits and per-source PIN lockout.
+- **Child passwords:** children sign in with a PIN only. `/login` refuses the child email domain, and the child's random password is rotated on every PIN sign-in and PIN reset (`docs/auth.md`).
 
 ## Rotation runbook
 

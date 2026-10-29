@@ -2,20 +2,37 @@ import type { Route } from "next";
 import { z } from "zod";
 import { routes } from "@/config";
 
+/**
+ * Child accounts use this synthetic domain (family `childEmail`). Parents can't sign up with it,
+ * and nobody can sign in with it by password: children sign in with their PIN only.
+ */
+const CHILD_EMAIL_DOMAIN = "@child.jarso.invalid";
+
+const parentEmail = z
+  .email("Enter a valid email")
+  .refine((email) => !email.toLowerCase().endsWith(CHILD_EMAIL_DOMAIN), "Enter a valid email");
+
 export const signInSchema = z.object({
-  email: z.email("Enter a valid email"),
+  email: parentEmail,
   password: z.string().min(1, "Password is required"),
   next: z.string().optional(),
 });
 
 export const signUpSchema = z.object({
-  email: z.email("Enter a valid email"),
+  email: parentEmail,
   password: z.string().min(8, "Password must be at least 8 characters").max(72),
   fullName: z.string().trim().min(1, "Name is required").max(100),
+  next: z.string().optional(),
 });
 
 export type SignInInput = z.infer<typeof signInSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;
+
+/** Control characters and whitespace: URL parsers drop tabs/newlines, so "/\t/x" becomes "//x". */
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is the point.
+const UNSAFE_PATH_CHARS = /[\x00-\x20\x7f]/;
+/** Reserved, never-resolvable origin used only to check that a path stays on our origin. */
+const PROBE_ORIGIN = "http://n.invalid";
 
 /** Only allow same-origin relative paths as post-login targets (prevents open redirects). */
 export function safeNextPath(
@@ -23,5 +40,63 @@ export function safeNextPath(
   fallback: Route = routes.dashboard,
 ): Route {
   if (!next?.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
-  return next as Route;
+  if (UNSAFE_PATH_CHARS.test(next) || !URL.canParse(next, PROBE_ORIGIN)) return fallback;
+  // Defence in depth: resolve it the way a browser would and require it to stay on our origin.
+  const url = new URL(next, PROBE_ORIGIN);
+  const path = `${url.pathname}${url.search}${url.hash}`;
+  if (url.origin !== PROBE_ORIGIN || !path.startsWith("/") || path.startsWith("//"))
+    return fallback;
+  return path as Route;
+}
+
+/** `path?next=…` when `next` is a safe same-origin path, else just `path`. Keeps `next` across auth pages. */
+export function withNext(path: Route, next: string | null | undefined): Route {
+  if (!next || safeNextPath(next, path) !== next) return path;
+  return `${path}?next=${encodeURIComponent(next)}` as Route;
+}
+
+/**
+ * Query of the email confirmation link (`/auth/confirm`). Only sign-up confirmation types:
+ * recovery and email change would need their own follow-up screens.
+ */
+export const emailConfirmSchema = z.object({
+  token_hash: z.string().min(1),
+  type: z.enum(["email", "signup"]),
+  next: z.string().optional(),
+});
+
+/**
+ * The post-confirmation path carried by an email link. The template sends `{{ .RedirectTo }}`,
+ * the absolute `emailRedirectTo` URL (`<app>/auth/callback?next=…`), so that wrapper is unwrapped
+ * to its inner `next`. Only URLs on `allowedOrigins` are trusted (blocks open redirects).
+ */
+export function nextFromEmailLink(
+  value: string | null | undefined,
+  allowedOrigins: readonly string[],
+  fallback: Route = routes.dashboard,
+): Route {
+  const [base] = allowedOrigins;
+  if (!value || !base || UNSAFE_PATH_CHARS.test(value) || !URL.canParse(value, base))
+    return fallback;
+  const url = new URL(value, base);
+  if (!allowedOrigins.includes(url.origin)) return fallback;
+  const path =
+    url.pathname === routes.authCallback
+      ? url.searchParams.get("next")
+      : `${url.pathname}${url.search}`;
+  return safeNextPath(path, fallback);
+}
+
+/** `/login?error=` codes set by the auth route handlers (design.md §9: calm, plain, no blame). */
+const loginLinkErrors: Record<string, string> = {
+  auth_confirm:
+    "We couldn't confirm your email. The link may have expired or been used already. Try signing in, or sign up again for a new link.",
+  auth_callback: "We couldn't finish signing you in. Please try again.",
+};
+
+/** Message for a `/login?error=` value; unknown values (including `__proto__`) give none. */
+export function loginLinkError(value: unknown): string | undefined {
+  return typeof value === "string" && Object.hasOwn(loginLinkErrors, value)
+    ? loginLinkErrors[value]
+    : undefined;
 }

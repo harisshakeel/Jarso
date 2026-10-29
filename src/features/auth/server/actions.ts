@@ -16,14 +16,19 @@ export const signIn = createAction(signInSchema, async ({ email, password, next 
   redirect(safeNextPath(next));
 });
 
-export const signUp = createAction(signUpSchema, async ({ email, password, fullName }) => {
+export const signUp = createAction(signUpSchema, async ({ email, password, fullName, next }) => {
+  const target = safeNextPath(next);
+  const callback = new URL(routes.authCallback, clientEnv.NEXT_PUBLIC_APP_URL);
+  // Carries e.g. /invite?token=… through email confirmation. The confirmation email links to
+  // /auth/confirm with this URL as `next` (unwrapped there); /auth/callback reads it directly.
+  callback.searchParams.set("next", target);
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { full_name: fullName },
-      emailRedirectTo: new URL(routes.authCallback, clientEnv.NEXT_PUBLIC_APP_URL).toString(),
+      emailRedirectTo: callback.toString(),
     },
   });
 
@@ -40,7 +45,7 @@ export const signUp = createAction(signUpSchema, async ({ email, password, fullN
   // Email confirmation enabled → no session yet.
   if (!data.session) return { needsConfirmation: true };
 
-  redirect(routes.dashboard);
+  redirect(target);
 });
 
 export const signOut = createAction(z.object({}), async () => {

@@ -11,10 +11,16 @@ const matches = (pathname: string, prefixes: readonly string[]) =>
  */
 export async function proxy(request: NextRequest) {
   const { response, claims } = await updateSession(request);
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
+
+  if (!claims && matches(pathname, [routes.child])) {
+    // Children sign in with their family code and PIN, never the parent login.
+    return redirectWithSession(request, response, routes.childSignIn);
+  }
 
   if (!claims && matches(pathname, protectedRoutePrefixes)) {
-    return redirectWithSession(request, response, routes.login, { next: pathname });
+    // Keep the query so e.g. /invite?token=… survives the trip through /login.
+    return redirectWithSession(request, response, routes.login, { next: pathname + search });
   }
 
   if (claims && matches(pathname, authRoutePrefixes)) {

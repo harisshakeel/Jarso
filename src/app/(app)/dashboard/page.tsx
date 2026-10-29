@@ -1,25 +1,24 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { routes } from "@/config";
-import { requireUser } from "@/features/auth/server";
-import { ProfileCard } from "@/features/profiles";
-import { getProfile } from "@/features/profiles/server";
+import { requireRole } from "@/features/family/server";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Home" };
 
-async function DashboardContent() {
-  const user = await requireUser(routes.dashboard);
-  const profile = await getProfile(user.id);
-  return <ProfileCard profile={profile} email={user.email} />;
+/**
+ * Role router. requireRole sends signed-out users to login and children to their own home;
+ * a parent goes to setup until their family exists, then to the parent home.
+ */
+async function RoleRedirect(): Promise<null> {
+  const { membership } = await requireRole("parent", routes.dashboard);
+  redirect(membership ? routes.parent : routes.parentSetup);
 }
 
 export default function DashboardPage() {
   return (
-    <div className="grid gap-6">
-      <h1 className="font-semibold text-2xl">Dashboard</h1>
-      <Suspense fallback={<div className="h-32 animate-pulse rounded-xl bg-muted" />}>
-        <DashboardContent />
-      </Suspense>
-    </div>
+    <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
+      <RoleRedirect />
+    </Suspense>
   );
 }

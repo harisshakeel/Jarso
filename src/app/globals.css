@@ -4,6 +4,78 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Design tokens: docs/design.md. Change that document and these tokens together. */
+
+/* Tonal scales (design.md §2.2). Use steps, never ad-hoc hex values. */
+@theme {
+  --color-teal-50: #d2ffff;
+  --color-teal-100: #c4f4ff;
+  --color-teal-200: #abe1f6;
+  --color-teal-300: #8ac8df;
+  --color-teal-400: #65adc6;
+  --color-teal-500: #3d92ae;
+  --color-teal-600: #057b99;
+  --color-teal-700: #00627d;
+  --color-teal-800: #004b62;
+  --color-teal-900: #003548;
+  --color-teal-950: #002233;
+
+  --color-gold-50: #fff077;
+  --color-gold-100: #ffe462;
+  --color-gold-200: #ffcf36;
+  --color-gold-300: #ebb500;
+  --color-gold-400: #c99a00;
+  --color-gold-500: #a87f00;
+  --color-gold-600: #8b6900;
+  --color-gold-700: #705300;
+  --color-gold-800: #563e00;
+  --color-gold-900: #3d2b00;
+  --color-gold-950: #281a00;
+
+  --color-cyan-50: #92ffff;
+  --color-cyan-100: #7fffff;
+  --color-cyan-200: #59efff;
+  --color-cyan-300: #00d6eb;
+  --color-cyan-400: #00b6c9;
+  --color-cyan-500: #0098a8;
+  --color-cyan-600: #007e8c;
+  --color-cyan-700: #006570;
+  --color-cyan-800: #004d56;
+  --color-cyan-900: #00363d;
+  --color-cyan-950: #002329;
+
+  /* Type scale (design.md §3). */
+  --text-display: 2.5rem;
+  --text-display--line-height: 2.75rem;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 800;
+  --text-h1: 2rem;
+  --text-h1--line-height: 2.375rem;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h1--font-weight: 800;
+  --text-h2: 1.5rem;
+  --text-h2--line-height: 1.875rem;
+  --text-h2--font-weight: 700;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.625rem;
+  --text-h3--font-weight: 700;
+  --text-money-xl: 2.75rem;
+  --text-money-xl--line-height: 3rem;
+  --text-money-xl--letter-spacing: -0.02em;
+  --text-money-xl--font-weight: 800;
+  --text-money-l: 1.75rem;
+  --text-money-l--line-height: 2rem;
+  --text-money-l--font-weight: 700;
+  --text-money: 1.25rem;
+  --text-money--line-height: 1.5rem;
+  --text-money--font-weight: 700;
+
+  /* Motion (design.md §8). */
+  --ease-brand: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: var(--ease-brand);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -26,9 +98,16 @@
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-gold-text: var(--gold-text);
+  --color-ink-2: var(--ink-2);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -39,6 +118,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --shadow-rest: var(--shadow-rest);
+  --shadow-raised: var(--shadow-raised);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,82 +130,180 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --radius: 0.875rem;
+  --background: oklch(0.97 0.007 89); /* paper canvas #F7F5F0 */
+  --foreground: oklch(0.22 0.013 223); /* ink #141C1F */
+  --ink-2: oklch(0.403 0.019 223); /* ink 2 #3E4B50 */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.22 0.013 223);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.22 0.013 223);
+  --primary: oklch(0.462 0.087 225); /* teal-700 */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.94 0.055 223); /* teal-100 */
+  --secondary-foreground: oklch(0.385 0.074 227); /* teal-800 */
+  --muted: oklch(0.943 0.01 87); /* surface-2 #EFECE5 */
+  --muted-foreground: oklch(0.493 0.019 221); /* #566469 */
+  --accent: oklch(0.806 0.138 207); /* brand cyan fill */
+  --accent-foreground: oklch(0.22 0.013 223);
+  --accent-text: oklch(0.463 0.08 208); /* cyan-700, cyan as text */
+  --destructive: oklch(0.56 0.245 27.325); /* darkened to meet §11 AA on paper (4.6:1) */
+  --border: oklch(0.914 0.012 85); /* #E6E2DA */
+  --input: oklch(0.64 0.012 85); /* #8F8C84, darkened to meet §11 3:1 (3.4:1 card, 3.1:1 paper) */
+  --hairline: rgb(20 28 31 / 0.08);
+  --hairline-strong: rgb(20 28 31 / 0.14);
+  --shadow-rest: 0 0 0 1px rgb(20 28 31 / 0.06), 0 1px 2px rgb(20 28 31 / 0.06);
+  --shadow-raised: 0 1px 0 rgb(20 28 31 / 0.04), 0 14px 40px -22px rgb(20 28 31 / 0.35);
+  --ring: oklch(0.622 0.107 208); /* cyan-500 */
+  --gold: oklch(0.846 0.173 87); /* brand gold, fills */
+  --gold-foreground: oklch(0.22 0.013 223);
+  --gold-text: oklch(0.54 0.111 86); /* gold-600 */
+  --keycap-ledge: oklch(0.3 0.06 223); /* teal-900 under the primary keycap */
+  --keycap-ledge-gold: #705300; /* gold-700 under the gold keycap (literal: theme vars are tree-shaken) */
+  --chart-1: oklch(0.541 0.1 223);
+  --chart-2: oklch(0.846 0.173 87);
+  --chart-3: oklch(0.622 0.107 208);
+  --chart-4: oklch(0.8 0.06 223);
+  --chart-5: oklch(0.711 0.145 87);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--secondary-foreground);
+  --sidebar-border: var(--hairline);
+  --sidebar-ring: var(--ring);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.226 0.029 223);
+  --foreground: oklch(0.951 0.012 216);
+  --ink-2: oklch(0.861 0.022 218); /* ink 2 #C2D5DB */
+  --card: oklch(0.291 0.04 223);
+  --card-foreground: oklch(0.951 0.012 216);
+  --popover: oklch(0.291 0.04 223);
+  --popover-foreground: oklch(0.951 0.012 216);
+  --primary: oklch(0.71 0.07 223); /* teal-400 */
+  --primary-foreground: oklch(0.226 0.029 223);
+  --secondary: oklch(0.3 0.06 223); /* teal-900 */
+  --secondary-foreground: oklch(0.94 0.055 223);
+  --muted: oklch(0.33 0.04 223);
+  --muted-foreground: oklch(0.76 0.03 219);
+  --accent: oklch(0.801 0.137 207);
+  --accent-foreground: oklch(0.226 0.029 223);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --border: oklch(0.379 0.046 220);
+  --input: oklch(0.565 0.046 220); /* #577D89, lightened to meet §11 3:1 (3.1:1 card, 3.8:1 bg) */
+  --ring: oklch(0.801 0.137 207); /* cyan-300 */
+  --accent-text: oklch(0.801 0.137 207);
+  --gold: oklch(0.846 0.173 87);
+  --gold-foreground: oklch(0.226 0.029 223);
+  --gold-text: oklch(0.846 0.173 87);
+  --hairline: rgb(230 241 244 / 0.1);
+  --hairline-strong: rgb(230 241 244 / 0.18);
+  --shadow-rest: 0 0 0 1px rgb(230 241 244 / 0.1);
+  --shadow-raised: 0 0 0 1px rgb(230 241 244 / 0.14);
+  --keycap-ledge: oklch(0.385 0.074 227); /* teal-800 */
+  --keycap-ledge-gold: #705300; /* gold-700 */
+  --chart-1: oklch(0.541 0.1 223);
+  --chart-2: oklch(0.846 0.173 87);
+  --chart-3: oklch(0.622 0.107 208);
+  --chart-4: oklch(0.8 0.06 223);
+  --chart-5: oklch(0.711 0.145 87);
+}
+
+/* Money figures align in columns (design.md §3). */
+@utility money {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Eyebrow label: 12/16, 600, teal-700 (primary in dark), sentence case (design.md §3). */
+@utility eyebrow {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+}
+
+/* Keycap press (design.md §4, §6): 3 px ledge; pressed drops the ledge and moves 2 px down. */
+@utility keycap {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    0 3px 0 var(--keycap-ledge),
+    0 8px 16px -10px rgb(20 28 31 / 0.25);
+  /* The 2 px press translate is applied by the Button variant (translate-y-0.5). */
+  &:active:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5);
+  }
+}
+
+@utility keycap-gold {
+  --keycap-ledge: var(--keycap-ledge-gold);
+}
+
+/* Skeleton shimmer: translucent band left to right, 1.5 s (design.md §6, §8). */
+@utility shimmer {
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    translate: -100% 0;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.5), transparent);
+    animation: shimmer 1.5s linear infinite;
+  }
+}
+
+/* Rise-in for cards and list items on first paint (design.md §8): 250 ms, 12 px up, 0.99 → 1.
+   Stagger by setting `--rise-index` (0–5) on each item: 40 ms apart, at most 6 items. */
+@utility rise-in {
+  animation: rise-in 250ms var(--ease-brand) both;
+  animation-delay: calc(min(var(--rise-index, 0), 5) * 40ms);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+    scale: 0.99;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    translate: 100% 0;
+  }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+  /* Visible focus everywhere: 3 px ring, 2 px offset (design.md §2.4, §11). Never remove outlines. */
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Reduced motion: every transition becomes an instant state change (design.md §8).
+   Unlayered, so it overrides every layered Tailwind utility without !important. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms;
+    animation-delay: 0s;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

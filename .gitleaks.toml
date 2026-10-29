@@ -23,6 +23,12 @@ description = "Anthropic API key"
 regex = '''sk-ant-[A-Za-z0-9_-]{12,}'''
 keywords = ["sk-ant-"]
 
+[[rules]]
+id = "resend-api-key"
+description = "Resend API key (invitation email)"
+regex = '''\bre_[A-Za-z0-9_]{20,}'''
+keywords = ["re_"]
+
 [[allowlists]]
 description = "Placeholders, fixtures and lockfile hashes"
 paths = ['''\.env\.example$''', '''pnpm-lock\.yaml$''']

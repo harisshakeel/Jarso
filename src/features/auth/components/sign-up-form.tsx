@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { Field, FormError } from "@/components/form";
 import { Button } from "@/components/ui";
 import { routes } from "@/config";
 import { idle } from "@/lib";
+import { withNext } from "../schemas";
 import { signUp } from "../server/actions";
-import { Field } from "./field";
 
-export function SignUpForm() {
+export function SignUpForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(signUp, idle);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
@@ -18,6 +19,7 @@ export function SignUpForm() {
 
   return (
     <form action={action} className="grid gap-4" noValidate>
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       <Field
         name="fullName"
         label="Name"
@@ -41,17 +43,13 @@ export function SignUpForm() {
         required
         errors={fieldErrors?.password}
       />
-      {state?.ok === false && !fieldErrors ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error.message}
-        </p>
-      ) : null}
+      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
       <Button type="submit" disabled={pending}>
         {pending ? "Creating account…" : "Create account"}
       </Button>
       <p className="text-muted-foreground text-center text-sm">
         Already have an account?{" "}
-        <Link href={routes.login} className="underline underline-offset-4">
+        <Link href={withNext(routes.login, next)} className="underline underline-offset-4">
           Sign in
         </Link>
       </p>
