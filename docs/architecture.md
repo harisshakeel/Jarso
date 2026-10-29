@@ -161,6 +161,7 @@ Writers of `ledger_entries`, enforced by which Postgres function may insert:
 | Writer | Function | Kinds written |
 | --- | --- | --- |
 | `allowance` | `confirm_handover` | `allowance_in` to Spend and Save |
+| `allowance` | `confirm_gift_handover` | `parent_gift_in` to Spend and Save |
 | `requests` | `complete_request` | `deposit_out/in`, `withdrawal_out/in`, `grant_in` |
 | `diary` | `record_entry`, `reverse_entry` | `purchase`, `gift_in`, `reversal` |
 
