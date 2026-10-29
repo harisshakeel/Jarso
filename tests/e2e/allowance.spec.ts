@@ -35,6 +35,38 @@ function nextSunday(): { iso: string; label: string } {
   };
 }
 
+/**
+ * Generates Sam's due allowances as if `days` had passed. Scoped to Sam's schedule, because
+ * the global `generate_due_occurrences` would also touch schedules of specs running alongside.
+ */
+async function generateDueIn(days: number) {
+  const local = loadLocalSupabase();
+  if (!local) throw new Error("Local Supabase is required.");
+  const admin = createClient(local.url, local.secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const childId = childPath.split("/").pop() ?? "";
+  const { data: schedule, error: scheduleError } = await admin
+    .from("allowance_schedules")
+    .select("id, family_id")
+    .eq("child_id", childId)
+    .eq("status", "active")
+    .single();
+  expect(scheduleError).toBeNull();
+  if (!schedule) throw new Error("Sam has no active allowance.");
+  const later = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+  const { data: today, error: todayError } = await admin.rpc("family_today", {
+    p_family_id: schedule.family_id,
+    p_now: later,
+  });
+  expect(todayError).toBeNull();
+  const { error } = await admin.rpc("generate_for_schedule", {
+    p_schedule_id: schedule.id,
+    p_today: today,
+  });
+  expect(error).toBeNull();
+}
+
 test.beforeAll(async ({ browser }) => {
   const context = await browser.newContext({
     baseURL: test.info().project.use.baseURL,
@@ -200,15 +232,8 @@ test("parent cancels a due gift from the handover screen", async () => {
 });
 
 test("parent marks a due allowance as not given", async () => {
-  const local = loadLocalSupabase();
-  if (!local) throw new Error("Local Supabase is required.");
-  const admin = createClient(local.url, local.secretKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
   // A week later the weekly allowance falls due again.
-  const later = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await admin.rpc("generate_due_occurrences", { p_now: later });
-  expect(error).toBeNull();
+  await generateDueIn(8);
 
   await page.reload();
   const due = page.getByRole("region", { name: "Due now" });
@@ -227,15 +252,8 @@ test("parent marks a due allowance as not given", async () => {
 });
 
 test("Home lists what needs the parent; handing over lands on the child page", async () => {
-  const local = loadLocalSupabase();
-  if (!local) throw new Error("Local Supabase is required.");
-  const admin = createClient(local.url, local.secretKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
   // Two weeks on, the weekly allowance falls due once more.
-  const later = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await admin.rpc("generate_due_occurrences", { p_now: later });
-  expect(error).toBeNull();
+  await generateDueIn(15);
 
   await page.goto("/parent");
   const needsYou = page.getByRole("region", { name: /Needs you/ });
