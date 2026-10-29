@@ -1,5 +1,6 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { cache } from "react";
 import { routes } from "@/config";
 import { AppError } from "@/lib";
@@ -11,6 +12,9 @@ import type { SessionUser } from "../types";
  * or null. Memoised per request. Reads cookies, so callers must sit behind <Suspense>.
  */
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
+  // Partial prefetching prerenders the cookie-dependent shell, and auth-js calls Date.now()
+  // synchronously in getClaims(). Stop prerendering here so the session is read per request.
+  await connection();
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
 
