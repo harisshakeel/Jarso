@@ -11,7 +11,11 @@ export const signIn = createAction(signInSchema, async ({ email, password, next 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) throw new AppError("UNAUTHORIZED", "Invalid email or password", { cause: error });
+  if (error) {
+    // One message for every failure (no account enumeration); the code goes to the server log.
+    logger.warn("Sign-in rejected", { code: error.code, status: error.status });
+    throw new AppError("UNAUTHORIZED", "Invalid email or password", { cause: error });
+  }
 
   redirect(safeNextPath(next));
 });
