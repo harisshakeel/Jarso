@@ -71,5 +71,5 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 14. Notifications are derived from records; delivery failure never loses or reverses an action.
 15. Role and parent–child links are assigned server-side. No user-writable input (profile update, sign-up metadata, API body) can set or change them.
 16. Child-initiated onboarding stores only a nickname and the parent's email until the parent approves.
-17. A pending parent gift is invisible to the child: no row, count, total or date reaches a child session. Enforced by RLS and by keeping parent-only aggregates out of child reach.
+17. A pending parent gift is invisible to the child: no row, count, total or date reaches a child session. Enforced by RLS (`parent_gifts` is readable by parents only) and by keeping parent-only aggregates out of child reach. A given gift reaches the child only as its ledger rows, labelled with the note.
 18. *(When the guide ships)* Guide never asks for personal/account info, recommends investments, or tells the child to buy something (FR09).

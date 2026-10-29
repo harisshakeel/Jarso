@@ -182,9 +182,10 @@ select set_eq(
 -- The child after handover
 -- ---------------------------------------------------------------------------
 select tests.authenticate_as(:'c1'::uuid);
-select set_eq('select id from public.parent_gifts', format($$values (%L::uuid), (%L::uuid)$$, :'g1', :'g5'),
-  'child sees only the given gifts');
-select is((select count(*)::int from public.parent_gifts where id = :'g4'::uuid), 0, 'child never sees the cancelled gift');
+select is((select count(*)::int from public.parent_gifts), 0, 'child sees no gift rows, even given ones');
+select is(
+  (select count(*)::int from public.ledger_entries where source_id = :'g1'::uuid and label = 'Great report card!'),
+  1, 'child sees the given gift as a ledger row with its note');
 select is(
   (select count(*)::int from public.list_ledger_history(:'c1'::uuid)
    where kind = 'parent_gift_in' and label = 'Great report card!' and amount_minor = 1500),

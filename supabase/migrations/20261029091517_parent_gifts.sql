@@ -1,7 +1,7 @@
 -- Hidden one-time parent gifts. Slice 2 design §3 S2-S5, §4.2-4.4, §11.
--- A pending or cancelled gift is invisible to the child everywhere: RLS shows
--- the child only given gifts, every function below is parent-only, and nothing
--- reaches the ledger until handover. Writes go through security definer
+-- A gift row is invisible to the child everywhere: RLS shows gifts to parents
+-- only, every function below is parent-only, and nothing reaches the ledger
+-- until handover (the child then sees the ledger rows, labelled with the note). Writes go through security definer
 -- functions only.
 
 -- ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ create table public.parent_gifts (
   constraint parent_gifts_amount_minor_max check (amount_minor <= 100000000000)
 );
 
-comment on table public.parent_gifts is 'One-time gifts from a parent. The child sees a row only once it is given. Written only by security definer functions.';
+comment on table public.parent_gifts is 'One-time gifts from a parent. Parents only: the child sees a given gift through its ledger rows. Written only by security definer functions.';
 comment on column public.parent_gifts.amount_minor is 'Planned amount. The handed-over total (cash + saved) may differ; no shortfall for gifts.';
 comment on column public.parent_gifts.give_on is 'Family date the gift is due; due = pending and give_on <= family today.';
 comment on column public.parent_gifts.note is 'Optional trimmed note to the child, max 140 chars; shown as plain text after handover.';
@@ -50,10 +50,12 @@ alter table public.parent_gifts enable row level security;
 revoke all on public.parent_gifts from anon;
 revoke insert, update, delete, truncate on public.parent_gifts from authenticated;
 
-create policy "Gifts are viewable by parents, and by the child once given"
+-- Parents only. The child sees a given gift through its ledger rows (label = note), never
+-- through this table, so no gift row of any status reaches a child session.
+create policy "Gifts are viewable by the child's parents"
   on public.parent_gifts for select
   to authenticated
-  using (public.is_parent_of(child_id) or (public.is_self(child_id) and status = 'given'));
+  using (public.is_parent_of(child_id));
 
 -- ---------------------------------------------------------------------------
 -- Lock helper (internal)

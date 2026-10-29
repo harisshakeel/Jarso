@@ -379,7 +379,7 @@ erDiagram
 
 Also: `usage_counters` (rate limits, later the guide's token budget), `job_runs` (one row per cron run with counts and duration), `audit_log` (parent-controlled setting changes: schedule, pause, stop, not-given, limits, PIN resets).
 
-RLS on `parent_gifts`: a child can select a row only when `status = given`; a parent of the child can select all of the family's rows. Nobody writes the table directly; creating, editing, cancelling and handing over a gift are `security definer` functions. A pending gift is therefore invisible to a child session, including through counts and totals.
+RLS on `parent_gifts`: only a parent of the child can select rows; a child never reads the table and sees a given gift through its ledger rows (label = note). Nobody writes the table directly; creating, editing, cancelling and handing over a gift are `security definer` functions. A pending gift is therefore invisible to a child session, including through counts and totals.
 
 The next due date of a schedule is computed from `anchor_on` and `next_index` (stepping by frequency, clamping day 29–31), not stored.
 
