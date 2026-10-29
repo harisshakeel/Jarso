@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { routes } from "@/config";
 import { ChildAllowanceCard } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
+import { PurchaseSheet, UndoButton } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
 import { HistoryList, Jars } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
@@ -29,7 +30,14 @@ async function ChildHome() {
         dueTotalMinor={due.totalMinor}
         currency={family.currency}
       />
-      <HistoryList items={history} currency={family.currency} />
+      <PurchaseSheet currency={family.currency} />
+      <HistoryList
+        items={history}
+        currency={family.currency}
+        renderAction={(item) =>
+          item.canUndo && item.entryId ? <UndoButton entryId={item.entryId} /> : null
+        }
+      />
     </>
   );
 }

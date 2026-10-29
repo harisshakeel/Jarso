@@ -1,4 +1,5 @@
 import { GiftIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui";
 import { formatMoney } from "@/lib";
 import type { HistoryItem } from "../types";
@@ -12,6 +13,8 @@ type HistoryListProps = {
   skippedLabel?: string;
   /** Parents see exact amounts ("always"); the child sees "₹500" for whole amounts. */
   showMinor?: ShowMinor;
+  /** Extra control beside a line, e.g. the child's undo button on a purchase. */
+  renderAction?: (item: HistoryItem) => ReactNode;
 };
 
 /** `YYYY-MM-DD` as "2 Nov", without shifting the day. */
@@ -56,6 +59,7 @@ export function HistoryList({
   currency,
   skippedLabel = "Skipped",
   showMinor = "nonzero",
+  renderAction,
 }: HistoryListProps) {
   return (
     <Card className="shadow-raised">
@@ -92,7 +96,10 @@ export function HistoryList({
                       {item.undone ? " · Undone" : ""}
                     </span>
                   </div>
-                  <Amount item={item} currency={currency} showMinor={showMinor} />
+                  <div className="flex items-baseline gap-2">
+                    <Amount item={item} currency={currency} showMinor={showMinor} />
+                    {renderAction?.(item)}
+                  </div>
                 </li>
               ))}
             </ul>

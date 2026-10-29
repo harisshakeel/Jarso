@@ -12,4 +12,5 @@ export * from "./separator";
 export * from "./sheet";
 export * from "./slider";
 export * from "./sonner";
+export * from "./switch";
 export * from "./tabs";

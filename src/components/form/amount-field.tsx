@@ -1,5 +1,5 @@
-import { FieldError } from "@/components/form";
 import { Label } from "@/components/ui";
+import { FieldError } from "./field";
 
 function currencySymbol(currency: string): string {
   const part = new Intl.NumberFormat("en-GB", {

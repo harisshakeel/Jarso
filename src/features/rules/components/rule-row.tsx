@@ -1,0 +1,101 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+import { Field, FormError } from "@/components/form";
+import { Button, Switch } from "@/components/ui";
+import { toMajorString } from "@/features/allowance";
+import { describeRule } from "../describe";
+import { setRuleAction } from "../server/actions";
+import type { MoneyRule, Period, RuleKind } from "../types";
+
+const PERIOD_LABEL: Record<Period, string> = {
+  item: "Per time",
+  week: "A week",
+  month: "A month",
+};
+
+type RuleRowProps = {
+  childId: string;
+  nickname: string;
+  currency: string;
+  kind: RuleKind;
+  period: Period;
+  /** The saved rule, if one is on. */
+  rule?: MoneyRule;
+};
+
+/** One rule: a switch, an amount and the sentence it makes. Switching off clears the rule. */
+export function RuleRow({ childId, nickname, currency, kind, period, rule }: RuleRowProps) {
+  const [saved, setSaved] = useState(rule);
+  const [on, setOn] = useState(Boolean(rule));
+  const [amount, setAmount] = useState(rule ? toMajorString(rule.amountMinor, currency) : "");
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string>();
+  const [fieldError, setFieldError] = useState<string>();
+  const id = `${kind}-${period}`;
+
+  function send(value: string, onOk: () => void) {
+    setError(undefined);
+    setFieldError(undefined);
+    start(async () => {
+      const result = await setRuleAction(null, { childId, kind, period, amount: value });
+      if (result.ok) return onOk();
+      const first = result.error.fieldErrors?.amount?.[0];
+      if (first) setFieldError(first);
+      else setError(result.error.message);
+    });
+  }
+
+  function toggle(next: boolean) {
+    if (next) return setOn(true);
+    if (!saved) return setOn(false);
+    send("", () => {
+      setOn(false);
+      setSaved(undefined);
+      setAmount("");
+    });
+  }
+
+  function save(event: React.FormEvent) {
+    event.preventDefault();
+    send(amount, () => {
+      toast.success("Saved");
+    });
+  }
+
+  const sentence = saved
+    ? describeRule(saved, nickname, currency)
+    : `${PERIOD_LABEL[period]}: no limit`;
+
+  return (
+    <form onSubmit={save} className="grid gap-3" noValidate>
+      <div className="flex items-center justify-between gap-4">
+        <label htmlFor={id} className="font-semibold">
+          {PERIOD_LABEL[period]}
+        </label>
+        <Switch id={id} checked={on} disabled={pending} onCheckedChange={toggle} />
+      </div>
+      <p className="text-ink-2 text-sm">{sentence}</p>
+      {on ? (
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <Field
+              name={`${id}-amount`}
+              label={`${PERIOD_LABEL[period]} limit`}
+              inputMode="decimal"
+              autoComplete="off"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              errors={fieldError ? [fieldError] : undefined}
+            />
+          </div>
+          <Button type="submit" variant="outline" size="lg" loading={pending}>
+            Save
+          </Button>
+        </div>
+      ) : null}
+      <FormError message={error} />
+    </form>
+  );
+}

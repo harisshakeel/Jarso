@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useActionState, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Field, FormError } from "@/components/form";
+import { AmountField, Field, FormError } from "@/components/form";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -24,7 +24,6 @@ import { type ActionState, idle } from "@/lib";
 import { toMajorString } from "../describe";
 import { cancelGiftAction, createGiftAction, updateGiftAction } from "../server/actions";
 import type { Gift } from "../types";
-import { AmountField } from "./amount-field";
 
 type GiftFormProps = {
   childId: string;
