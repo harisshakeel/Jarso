@@ -90,7 +90,7 @@ Calls I made (correct if wrong):
 - One server function per source, or one function taking a source; *builder's call*. Both lock the row (`for update`), require that it is due, take `(cash_minor, saved_minor, idempotency_key)`, require `cash, saved >= 0` and `cash + saved > 0`, and insert one ledger entry per non-zero jar with an idempotency key. Then they mark the row confirmed/given with who and when.
 - Allowance: `cash + saved <= amount_minor`; `shortfall_minor = amount − (cash + saved)` (D1).
 - Gift: no upper bound against the planned amount and no shortfall (S4). *My call:* a sanity cap of 100× the planned amount guards against typos.
-- Repeat call with the same idempotency key returns the original result. A different key on an already-confirmed row returns `already_confirmed`, which the UI shows as success.
+- Exactly once comes from the row lock, not the key: any call on a row that is no longer due returns `already_confirmed`, whatever key it carries, and the UI shows that as success. The key is required but not stored; ledger keys derive from the source row (`occurrence:<id>:spend|save`, `parent_gift:<id>:spend|save`).
 - **Not given (S10):** a parent-only function locks the due occurrence, sets `closed` with who and when, posts nothing, and writes `audit_log`. It is refused for a row that isn't due, and it races safely with `confirm_handover`: exactly one wins. The handover screen offers it as a quiet secondary action ("Mark as not given", with a confirm step).
 
 ### 4.4 What each role sees

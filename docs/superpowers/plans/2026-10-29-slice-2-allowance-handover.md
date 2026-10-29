@@ -218,7 +218,7 @@ REQUIREMENTS.md, docs/domain.md, docs/architecture.md, docs/database.md
     1. Lock the row and require `is_parent_of(child)`.
     2. If its status is not `'due'`, return `'already_confirmed'` (covers confirmed and closed).
     3. Require `cash, saved >= 0`, `cash + saved > 0` and `cash + saved <= amount_minor` (`22023`).
-    4. Insert `allowance_in` entries for each non-zero jar (spend = cash, save = saved), with keys `p_idempotency_key || ':spend'` and `':save'`, `source_type 'occurrence'`, label `'Allowance'`, `created_by` the caller and `occurred_at now()`.
+    4. Insert `allowance_in` entries for each non-zero jar (spend = cash, save = saved), with keys `'occurrence:' || id || ':spend'` and `':save'` (derived from the row; `p_idempotency_key` must be non-blank but is not stored), `source_type 'occurrence'`, label `'Allowance'`, `created_by` the caller and `occurred_at now()`.
     5. Set `confirmed`, `cash_minor`, `saved_minor`, `shortfall_minor = amount − cash − saved`, `confirmed_by` and `confirmed_at`.
     6. Leave a `-- slice 5: notify(handover_done)` comment.
   - `public.mark_not_given(p_occurrence_id uuid) returns text` (`'closed' | 'already_handled'`) — locks the row and requires the parent. If due: set `closed`, `confirmed_by` and `confirmed_at`, write `audit_log('allowance.not_given')`. Posts no ledger rows.
