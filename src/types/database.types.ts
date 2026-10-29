@@ -373,6 +373,9 @@ isOneToOne: false
               "id": string,"nickname": string
             }[]
                            },
+"generate_due_occurrences":
+{ Args: { "p_now"?: string }; Returns: number
+                           },
 "generate_for_schedule":
 { Args: { "p_schedule_id": string,"p_today": string }; Returns: number
                            },
