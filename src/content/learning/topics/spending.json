@@ -1,0 +1,39 @@
+{
+  "key": "spending",
+  "title": "What fits in Spend",
+  "intro": "Know what's in Spend, and you'll always know what you can buy and what's left.",
+  "explanation": [
+    "Spend is the cash you hold. Before you buy something, compare the price with what's in Spend. If the price is the same or less, it fits.",
+    "When you buy a few things, keep a running total. Add each price as you go, then take the total away from what you had. That's what's left.",
+    "Buys you make often add up. A snack every school day can come to more in a week than one bigger thing."
+  ],
+  "example": {
+    "title": "Three buys, one running total",
+    "lines": [
+      "Noor has {m:1500} in Spend.",
+      "A book for {m:600}. Running total: {m:600}.",
+      "A drink for {m:150}. Running total: {m:750}.",
+      "A pen for {m:200}. Running total: {m:950}.",
+      "{m:1500} take away {m:950} leaves {m:550} in Spend."
+    ]
+  },
+  "practice": {
+    "type": "amount",
+    "key": "topic-spending-practice",
+    "skill": "balance.running_total",
+    "prompt": "Jo has {m:2000}. Jo buys a T-shirt for {m:850} and socks for {m:350}. How much is left?",
+    "unit": "money",
+    "answer": 800,
+    "misconceptions": [
+      { "value": 3200, "feedback": "Not quite. That adds everything. Each buy takes money away." },
+      { "value": 1200, "feedback": "Not quite. That's what Jo spent. Take it away from {m:2000}." }
+    ],
+    "wrong": "Not quite. Add the two buys, then take the total away from {m:2000}.",
+    "hints": [
+      "Keep a running total of the two buys.",
+      "The buys come to {m:1200}. Take that away from {m:2000}."
+    ],
+    "correct": "That's it. The buys come to {m:1200}, so {m:800} is left."
+  },
+  "skills": ["balance.afford", "balance.running_total"]
+}

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { formatMoney, MAX_AMOUNT_MINOR, minorDigits, parseMoney } from "@/lib";
+import { addDays, formatMoney, MAX_AMOUNT_MINOR, minorDigits, parseMoney } from "@/lib";
 import { frequencies } from "./types";
 
 /**
@@ -11,24 +11,6 @@ import { frequencies } from "./types";
 const MAX_TEXT = 140;
 /** Dates a parent picks are at most this far ahead (the database functions cap them too). */
 const MAX_DAYS_AHEAD = 366;
-
-/** The family's local date, ISO `YYYY-MM-DD`. */
-export function familyToday(timezone: string, now: Date = new Date()): string {
-  // en-CA formats dates as YYYY-MM-DD.
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
-}
-
-/** ISO `YYYY-MM-DD` plus whole days, in UTC so no timezone shifts the day. */
-export function addDays(isoDate: string, days: number): string {
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
 
 function moneyMessage(currency: string): string {
   return minorDigits(currency) > 0

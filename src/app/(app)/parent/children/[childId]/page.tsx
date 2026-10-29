@@ -1,12 +1,16 @@
 import { PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { routes } from "@/config";
 import { DueList, GiftList, ParentAllowanceCard, upcomingGifts } from "@/features/allowance";
 import { getSchedule, listDue, listGifts } from "@/features/allowance/server";
+import { LearningSummaryCard } from "@/features/learning";
+import { getLearningOverview } from "@/features/learning/server";
 import { Jars, RecentHistory } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
+import { logger } from "@/lib";
 import { loadChild } from "./load-child";
 import { FormSkeleton, PageShell } from "./page-shell";
 
@@ -42,6 +46,9 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
               Give a gift
             </Link>
           </div>
+          <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
+            <ChildLearning childId={childId} nickname={child.nickname} />
+          </Suspense>
         </div>
         <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
           <ChildHistory childId={childId} currency={currency} />
@@ -49,6 +56,26 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
       </div>
     </PageShell>
   );
+}
+
+/** Learning streams on its own and hides itself on error, so money stays visible. */
+async function ChildLearning({ childId, nickname }: { childId: string; nickname: string }) {
+  try {
+    const learning = await getLearningOverview(childId);
+    return (
+      <LearningSummaryCard
+        overview={learning}
+        nickname={nickname}
+        href={routes.parentChildLearning(childId)}
+      />
+    );
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Learning card unavailable", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    return null;
+  }
 }
 
 /** The newest few history lines as the parent sees them (exact amounts). */

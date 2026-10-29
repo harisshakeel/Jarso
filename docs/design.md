@@ -190,6 +190,11 @@ Built on the existing shadcn primitives in `src/components/ui`. Add with `pnpm d
 | Toast | Sonner, bottom above the tab bar, 4 s, never for errors that need action. |
 | Skeleton | Surface-2 block with a left-to-right shimmer (a translucent white band translating across, 1.5 s) for every Suspense boundary. |
 | Step indicator | Eyebrow "Step 2 of 3" plus three pill dots; used by onboarding, missions and the handover sheet. Borrowed from the numbered "stops" pattern on the AFK site. |
+| Mission player | One step per card (`features/learning`): eyebrow "Step 3 of 7" (or "One more look: 1 of 2" for replays) above a row of progress dots, the prompt as H2, the input, then one keycap (Check, Continue or Try again) with an outline Hint button beside it. Inputs: option cards with a radio, a money or count field with the currency symbol and unit, a Spend/Save slider with live teal and gold readouts, two-choice pills per item for sorting, a select per term for matching. Focus moves to the prompt on each step and to the feedback heading after Check. |
+| Feedback panel | Inline under the input, `role="status"`: teal-100 with a check icon for "That's it.", muted with a bulb for "Have another go." and, after the second try, "Here's how it works." plus the answer. Predictions reveal their outcome only once the step is final. Never "Incorrect". |
+| Path | The Learn tab's vertical journey: a 48 px circle per day (teal check when done, gold play ring for the current mission, muted lock after it), eyebrow "Day 2 · Spending within your balance", title and one line. The parent's copy is read-only. |
+| Next-step card | First card on the child's Home (§5): eyebrow "Next step", a two-beat headline ("Practice time. About a minute."), one line, one keycap link. Order: unfinished mission, due practice, the check-in before mission 1, the next mission. |
+| Skill list | Per topic, each skill with its level word (Not started, Started, Practised, Got it) and three dots. Learning only, never beside money (invariant 11). |
 
 Primitives to add next: `badge`, `progress`, `tabs`, `sheet`, `dialog`, `avatar`, `separator`, `skeleton`, `tooltip`.
 

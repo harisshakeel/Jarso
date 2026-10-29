@@ -1,0 +1,35 @@
+{
+  "key": "changing-plans",
+  "title": "When plans change",
+  "intro": "Prices change and weeks get skipped. A good plan bends instead of breaking.",
+  "explanation": [
+    "Plans change all the time, and that's normal. A price can go up or down. Your weekly saving can change. A gift can arrive, or a week's allowance can be skipped.",
+    "When something changes, work out the new numbers first: what's left to save, and how many weeks that takes now.",
+    "Then pick a calm fix. You could wait a bit longer, save a little more each week, or choose a different goal. Any of these is fine."
+  ],
+  "example": {
+    "title": "When a price goes up",
+    "lines": [
+      "Ari saves {m:500} a week for a {m:4000} goal. That's 8 weeks.",
+      "The price goes up to {m:4500}. Now it's 9 weeks.",
+      "Fix 1: wait one more week.",
+      "Fix 2: save {m:600} a week instead. Then it's still 8 weeks."
+    ]
+  },
+  "practice": {
+    "type": "amount",
+    "key": "topic-changing-plans-practice",
+    "skill": "plan.adjust",
+    "prompt": "You're just starting to save {m:400} a week for a {m:2000} goal. The price drops to {m:1600}. How many weeks now?",
+    "unit": "count",
+    "suffix": "weeks",
+    "answer": 4,
+    "misconceptions": [
+      { "value": 5, "feedback": "Not quite. That's the old price. Work it out with {m:1600}." }
+    ],
+    "wrong": "Not quite. Use the new price, then count the weeks.",
+    "hints": ["Use the new price, {m:1600}.", "Count up to {m:1600} in steps of {m:400}."],
+    "correct": "That's it. 4 weeks, one week sooner than before."
+  },
+  "skills": ["plan.adjust"]
+}

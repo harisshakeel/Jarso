@@ -1,0 +1,244 @@
+[
+  {
+    "type": "amount",
+    "key": "weeks-r1",
+    "skill": "goal.weeks_needed",
+    "prompt": "A tent costs {m:5000}. Jo starts from zero and saves {m:600} a week. How many weeks will it take?",
+    "unit": "count",
+    "suffix": "weeks",
+    "answer": 9,
+    "misconceptions": [
+      {
+        "value": 8,
+        "feedback": "Not quite. 8 weeks gives {m:4800}. That's {m:200} short, so round up to the next week."
+      }
+    ],
+    "wrong": "Not quite. See how many weeks of {m:600} it takes to reach {m:5000}.",
+    "hints": [
+      "Count up in steps of {m:600}.",
+      "8 weeks gives {m:4800}. Is that enough for {m:5000}?"
+    ],
+    "correct": "That's it. 9 weeks. After 8 weeks Jo is {m:200} short, so you round up."
+  },
+  {
+    "type": "amount",
+    "key": "weeks-r2",
+    "skill": "goal.weeks_needed",
+    "prompt": "Ari is saving {m:3200} for a trip. Save has {m:1200}, and Ari adds {m:400} a week. How many more weeks?",
+    "unit": "count",
+    "suffix": "weeks",
+    "answer": 5,
+    "misconceptions": [
+      { "value": 8, "feedback": "Not quite. That's counting from zero. Ari already has {m:1200}." },
+      {
+        "value": 3,
+        "feedback": "Not quite. You need what's left after the {m:1200}, not the {m:1200} itself."
+      }
+    ],
+    "wrong": "Not quite. Work out what's left to save, then count the weeks.",
+    "hints": [
+      "First take what's in Save away from {m:3200}.",
+      "{m:2000} is left. How many weeks of {m:400} is that?"
+    ],
+    "correct": "That's it. {m:2000} is left, which takes 5 weeks."
+  },
+  {
+    "type": "predict",
+    "key": "weeks-r3",
+    "skill": "goal.weeks_needed",
+    "prompt": "Lee saves {m:500} a week and needs 4 more weeks. Lee pays {m:800} for a game from Spend. When will Lee reach the goal?",
+    "options": [
+      { "id": "same", "text": "Still in 4 weeks", "feedback": "That's it." },
+      {
+        "id": "later",
+        "text": "In about 6 weeks",
+        "feedback": "Not quite. The game came out of Spend. The goal only counts Save."
+      },
+      {
+        "id": "sooner",
+        "text": "In fewer than 4 weeks",
+        "feedback": "Not quite. Buying something doesn't add to Save."
+      }
+    ],
+    "answer": "same",
+    "outcome": "The game came out of Spend, not Save, and Lee still saves {m:500} a week. So the goal date doesn't move.",
+    "hints": ["Which jar paid for the game?", "Did Lee's weekly saving change?"],
+    "correct": "Right. Spending from Spend doesn't move a goal date when saving stays the same."
+  },
+  {
+    "type": "choice",
+    "key": "weeks-r4",
+    "skill": "goal.weeks_needed",
+    "prompt": "Kai starts from zero, needs {m:2700} and saves {m:600} a week. How many weeks will it take?",
+    "options": [
+      {
+        "id": "four",
+        "text": "4 weeks",
+        "feedback": "Not quite. 4 weeks gives {m:2400}. That's {m:300} short."
+      },
+      {
+        "id": "four-half",
+        "text": "4 and a half weeks",
+        "feedback": "Not quite. Saving happens once a week, so half a week can't happen. Round up."
+      },
+      {
+        "id": "five",
+        "text": "5 weeks",
+        "feedback": "Yes. 4 weeks is {m:300} short, so it takes a 5th week."
+      }
+    ],
+    "answer": "five",
+    "hints": [
+      "Count up in steps of {m:600}.",
+      "4 weeks gives {m:2400}. What happens to the last {m:300}?"
+    ],
+    "correct": "Nice. That's it. 5 weeks. Part of a week still counts as a whole week."
+  },
+  {
+    "type": "reason",
+    "key": "weeks-r5",
+    "skill": "goal.weeks_needed",
+    "prompt": "Why do you round the number of weeks up, not down?",
+    "options": [
+      {
+        "id": "leftover",
+        "text": "The leftover still needs a week of saving",
+        "feedback": "That's it."
+      },
+      {
+        "id": "cheaper",
+        "text": "Rounding up makes the goal cost less",
+        "feedback": "Not quite. The price doesn't change. Rounding up counts the week you need for the last bit."
+      },
+      {
+        "id": "guess-high",
+        "text": "It's always best to guess high",
+        "feedback": "Not quite. It isn't a guess. A short last week still has to happen."
+      }
+    ],
+    "answer": "leftover",
+    "hints": [
+      "What happens after the last full week?",
+      "If you round down, part of the price is still missing."
+    ],
+    "correct": "Right. Round down and you'd still be short. The leftover needs one more week."
+  },
+  {
+    "type": "amount",
+    "key": "progress-r1",
+    "skill": "goal.progress",
+    "prompt": "A goal costs {m:6000}. Noor has {m:3800} in Save. How much is left to save?",
+    "unit": "money",
+    "answer": 2200,
+    "misconceptions": [
+      {
+        "value": 9800,
+        "feedback": "Not quite. That adds the two. Take what's saved away from the price."
+      },
+      {
+        "value": 3800,
+        "feedback": "Not quite. That's what Noor has saved. How much more is needed?"
+      }
+    ],
+    "wrong": "Not quite. Take what's in Save away from the price.",
+    "hints": ["What's left is the price minus what's saved.", "{m:6000} take away {m:3800}."],
+    "correct": "That's it. {m:2200} to go."
+  },
+  {
+    "type": "choice",
+    "key": "progress-r2",
+    "skill": "goal.progress",
+    "prompt": "Save has {m:1400}. An allowance of {m:600} is due but not handed over yet. How much counts toward the goal?",
+    "options": [
+      { "id": "save-only", "text": "{m:1400}", "feedback": "Yes. Only what's in Save counts." },
+      {
+        "id": "both",
+        "text": "{m:2000}",
+        "feedback": "Not quite. The {m:600} is due, not handed over. It counts once it's in Save."
+      },
+      {
+        "id": "due-only",
+        "text": "{m:600}",
+        "feedback": "Not quite. That's the due allowance. What's already in Save?"
+      }
+    ],
+    "answer": "save-only",
+    "hints": ["Only money in Save counts.", "Has the {m:600} reached Save yet?"],
+    "correct": "Nice. That's it. {m:1400} counts now. The rest counts once it's handed over."
+  },
+  {
+    "type": "choice",
+    "key": "progress-r3",
+    "skill": "goal.progress",
+    "prompt": "A goal costs {m:2000}. Jo has {m:1500} in Save. How far along is Jo?",
+    "options": [
+      {
+        "id": "half",
+        "text": "Halfway",
+        "feedback": "Not quite. Half of {m:2000} is {m:1000}. Jo has more than that."
+      },
+      {
+        "id": "three-quarters",
+        "text": "Three quarters of the way",
+        "feedback": "Yes. {m:1500} is three quarters of {m:2000}."
+      },
+      { "id": "all", "text": "All the way", "feedback": "Not quite. Jo still needs {m:500}." }
+    ],
+    "answer": "three-quarters",
+    "hints": [
+      "Split {m:2000} into four equal parts.",
+      "Each quarter is {m:500}. How many quarters does Jo have?"
+    ],
+    "correct": "Nice. That's it. Three quarters of the way, with {m:500} to go."
+  },
+  {
+    "type": "amount",
+    "key": "progress-r4",
+    "skill": "goal.progress",
+    "prompt": "Kai's goal costs {m:3000}. Save has {m:2000}. Kai moves {m:500} from Spend into Save. How much is left to save now?",
+    "unit": "money",
+    "answer": 500,
+    "misconceptions": [
+      {
+        "value": 1000,
+        "feedback": "Not quite. That's before the move. The {m:500} is in Save now, so it counts."
+      },
+      {
+        "value": 1500,
+        "feedback": "Not quite. That takes the {m:500} off what's saved. Moving money into Save adds to it."
+      }
+    ],
+    "wrong": "Not quite. Add the move to Save, then take Save away from the price.",
+    "hints": [
+      "Moving money into Save adds to it.",
+      "Save now has {m:2500}. Take that away from {m:3000}."
+    ],
+    "correct": "That's it. Save has {m:2500}, so {m:500} is left."
+  },
+  {
+    "type": "predict",
+    "key": "progress-r5",
+    "skill": "goal.progress",
+    "prompt": "Jo has {m:1000} in Save for a {m:4000} goal and saves {m:500} a week. After 2 more weeks, how far along will Jo be?",
+    "options": [
+      {
+        "id": "quarter",
+        "text": "A quarter of the way",
+        "feedback": "Not quite. A quarter is where Jo starts. Two weeks of saving adds more."
+      },
+      { "id": "half", "text": "Halfway", "feedback": "That's it." },
+      {
+        "id": "three-quarters",
+        "text": "Three quarters of the way",
+        "feedback": "Not quite. Three quarters is {m:3000}. Jo will have less than that."
+      }
+    ],
+    "answer": "half",
+    "outcome": "Two weeks add {m:1000}, so Save reaches {m:2000}. That's half of {m:4000}.",
+    "hints": [
+      "Add 2 weeks of saving to what's in Save.",
+      "{m:1000} plus {m:1000}. Compare that with {m:4000}."
+    ],
+    "correct": "Right. {m:2000} is halfway to {m:4000}."
+  }
+]

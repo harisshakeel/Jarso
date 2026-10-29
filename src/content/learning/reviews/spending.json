@@ -1,0 +1,246 @@
+[
+  {
+    "type": "amount",
+    "key": "afford-r1",
+    "skill": "balance.afford",
+    "prompt": "Remi has {m:2500} in Spend and buys a board game for {m:1750}. How much is left?",
+    "unit": "money",
+    "answer": 750,
+    "misconceptions": [
+      {
+        "value": 4250,
+        "feedback": "Not quite. That adds the two amounts. Buying takes money away."
+      },
+      {
+        "value": 1750,
+        "feedback": "Not quite. That's the price of the game. What's left after paying it?"
+      }
+    ],
+    "wrong": "Not quite. Take the price away from what Remi has.",
+    "hints": [
+      "Start with {m:2500} and take away the price.",
+      "{m:2500} take away {m:1500} is {m:1000}. Now take away {m:250} more."
+    ],
+    "correct": "That's it. {m:750} is left in Spend."
+  },
+  {
+    "type": "choice",
+    "key": "afford-r2",
+    "skill": "balance.afford",
+    "prompt": "Jo has {m:1350}. Which of these can Jo buy?",
+    "options": [
+      {
+        "id": "lamp",
+        "text": "A lamp for {m:1400}",
+        "feedback": "Not quite. {m:1400} is {m:50} more than Jo has."
+      },
+      {
+        "id": "frame",
+        "text": "A photo frame for {m:1300}",
+        "feedback": "Yes. {m:1300} is just under {m:1350}."
+      },
+      {
+        "id": "backpack",
+        "text": "A backpack for {m:2200}",
+        "feedback": "Not quite. {m:2200} is more than {m:1350}."
+      }
+    ],
+    "answer": "frame",
+    "hints": [
+      "Compare each price with {m:1350}.",
+      "Look closely. One price is just over {m:1350} and one is just under."
+    ],
+    "correct": "Nice. That's it. The frame fits, with {m:50} to spare."
+  },
+  {
+    "type": "predict",
+    "key": "afford-r3",
+    "skill": "balance.afford",
+    "prompt": "Lee has {m:700} and spends {m:450} on a present for a friend. Can Lee still pay {m:300} for a swim session?",
+    "options": [
+      {
+        "id": "yes",
+        "text": "Yes, there's enough",
+        "feedback": "Not quite. Work out what's left after the present first."
+      },
+      { "id": "no", "text": "No, not enough left", "feedback": "That's it." }
+    ],
+    "answer": "no",
+    "outcome": "After the present Lee has {m:250}. The swim costs {m:300}, so Lee is {m:50} short. Checking what's left first means no surprise at the door.",
+    "hints": [
+      "Work out what's left after the present.",
+      "{m:700} take away {m:450}. Is that enough for {m:300}?"
+    ],
+    "correct": "Right. {m:250} is left, which is less than {m:300}."
+  },
+  {
+    "type": "amount",
+    "key": "afford-r4",
+    "skill": "balance.afford",
+    "prompt": "Tickets for a school show cost {m:250} each. You have {m:1100}. How many tickets can you buy?",
+    "unit": "count",
+    "suffix": "tickets",
+    "answer": 4,
+    "misconceptions": [
+      { "value": 5, "feedback": "Not quite. 5 tickets cost {m:1250}. That's more than you have." },
+      {
+        "value": 3,
+        "feedback": "Not quite. 3 tickets cost {m:750}. There's enough left for one more."
+      }
+    ],
+    "wrong": "Not quite. See how many times {m:250} fits into {m:1100}.",
+    "hints": [
+      "Add {m:250} at a time without going over {m:1100}.",
+      "{m:250}, {m:500}, {m:750}, {m:1000}. Is there room for another?"
+    ],
+    "correct": "That's it. 4 tickets cost {m:1000}, and {m:100} is left over."
+  },
+  {
+    "type": "sort",
+    "key": "afford-r5",
+    "skill": "balance.afford",
+    "prompt": "Sam has {m:600}. Could Sam buy each one on its own?",
+    "buckets": [{ "id": "can", "label": "Can buy" }, { "id": "not-yet", "label": "Not yet" }],
+    "items": [
+      { "id": "paint-set", "text": "Paint set, {m:550}", "bucket": "can" },
+      { "id": "wheels", "text": "Skateboard wheels, {m:900}", "bucket": "not-yet" },
+      { "id": "card-game", "text": "Card game, {m:600}", "bucket": "can" },
+      { "id": "model-kit", "text": "Model kit, {m:650}", "bucket": "not-yet" },
+      { "id": "pens", "text": "Pack of pens, {m:300}", "bucket": "can" }
+    ],
+    "wrong": "Not quite. Compare each price with {m:600} on its own.",
+    "hints": [
+      "Compare each price with {m:600}.",
+      "Watch the ones close to {m:600}. Just under or exactly fits. Just over doesn't."
+    ],
+    "correct": "All sorted. Anything up to {m:600} fits on its own."
+  },
+  {
+    "type": "amount",
+    "key": "running-r1",
+    "skill": "balance.running_total",
+    "prompt": "Ari picks up bread for {m:150}, eggs for {m:200} and milk for {m:100} for the family. What's the total?",
+    "unit": "money",
+    "answer": 450,
+    "misconceptions": [
+      { "value": 350, "feedback": "Not quite. That leaves out the milk. Add all three prices." },
+      { "value": 300, "feedback": "Not quite. That leaves out the bread. Add all three prices." },
+      { "value": 250, "feedback": "Not quite. That leaves out the eggs. Add all three prices." }
+    ],
+    "wrong": "Not quite. Add the prices one at a time.",
+    "hints": [
+      "Add two prices, then add the third.",
+      "{m:150} and {m:200} make {m:350}. Now add {m:100}."
+    ],
+    "correct": "That's it. The three come to {m:450}."
+  },
+  {
+    "type": "amount",
+    "key": "running-r2",
+    "skill": "balance.running_total",
+    "prompt": "Noor has {m:2000} for a day out. The train is {m:600}, lunch is {m:450} and a museum gift is {m:300}. How much is left?",
+    "unit": "money",
+    "answer": 650,
+    "misconceptions": [
+      { "value": 3350, "feedback": "Not quite. That adds everything. Each cost takes money away." },
+      {
+        "value": 1350,
+        "feedback": "Not quite. That's what Noor spent. Take it away from {m:2000}."
+      },
+      {
+        "value": 1400,
+        "feedback": "Not quite. That only takes off the train. Lunch and the gift come off too."
+      }
+    ],
+    "wrong": "Not quite. Add up the three costs, then take the total away from {m:2000}.",
+    "hints": [
+      "Keep a running total: the train, then lunch, then the gift.",
+      "The three come to {m:1350}. Take that away from {m:2000}."
+    ],
+    "correct": "That's it. Noor spends {m:1350} and has {m:650} left."
+  },
+  {
+    "type": "predict",
+    "key": "running-r3",
+    "skill": "balance.running_total",
+    "prompt": "Sam buys a {m:200} drink each weekday and a {m:300} snack on Saturday. Will the week cost more than {m:1000}?",
+    "options": [
+      { "id": "more", "text": "Yes, more than {m:1000}", "feedback": "That's it." },
+      {
+        "id": "less",
+        "text": "No, less than {m:1000}",
+        "feedback": "Not quite. Add up the five drinks first, then the snack."
+      },
+      {
+        "id": "exactly",
+        "text": "Exactly {m:1000}",
+        "feedback": "Not quite. The drinks alone make {m:1000}. The snack adds more."
+      }
+    ],
+    "answer": "more",
+    "outcome": "Five drinks at {m:200} come to {m:1000}. Add the {m:300} snack and the week costs {m:1300}. Buys that repeat add up fast, and one extra tips the total over.",
+    "hints": [
+      "Add up the drinks first.",
+      "Five drinks at {m:200} come to {m:1000}. Then there's the snack."
+    ],
+    "correct": "Right. The week comes to {m:1300}, which is more than {m:1000}."
+  },
+  {
+    "type": "choice",
+    "key": "running-r4",
+    "skill": "balance.running_total",
+    "prompt": "Jo has {m:1200}. Jo buys a cap for {m:400}, then a book for {m:350}. What's the most the next buy can cost?",
+    "options": [
+      {
+        "id": "spent",
+        "text": "{m:750}",
+        "feedback": "Not quite. That's what Jo has spent. What's left?"
+      },
+      {
+        "id": "left",
+        "text": "{m:450}",
+        "feedback": "Yes. {m:1200} take away {m:750} leaves {m:450}."
+      },
+      {
+        "id": "cap-only",
+        "text": "{m:800}",
+        "feedback": "Not quite. That only takes off the cap. The book comes off too."
+      }
+    ],
+    "answer": "left",
+    "hints": [
+      "Take away each buy in turn.",
+      "After the cap, Jo has {m:800}. Now take away the book."
+    ],
+    "correct": "Nice. That's it. {m:450} is left, so that's the most the next buy can cost."
+  },
+  {
+    "type": "reason",
+    "key": "running-r5",
+    "skill": "balance.running_total",
+    "prompt": "Kai has {m:1500} and plans four buys. Why add them up before buying the first one?",
+    "options": [
+      {
+        "id": "check-fit",
+        "text": "To check they all fit before spending anything",
+        "feedback": "That's it."
+      },
+      {
+        "id": "lower-prices",
+        "text": "To make the prices lower",
+        "feedback": "Not quite. Adding up doesn't change prices. It shows whether they fit."
+      },
+      {
+        "id": "buy-all",
+        "text": "Because you have to buy all four",
+        "feedback": "Not quite. Kai can buy fewer. The total helps Kai decide."
+      }
+    ],
+    "answer": "check-fit",
+    "hints": [
+      "What could happen if Kai only adds up at the end?",
+      "If the total is over {m:1500}, the last buy won't fit."
+    ],
+    "correct": "Right. Adding up first shows whether the whole plan fits, before any money is gone."
+  }
+]

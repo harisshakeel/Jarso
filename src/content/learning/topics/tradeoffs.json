@@ -1,0 +1,51 @@
+{
+  "key": "tradeoffs",
+  "title": "Choosing between things",
+  "intro": "Every time you choose, you give something up. Seeing that helps you pick what matters most to you.",
+  "explanation": [
+    "Money can only be spent once. If you choose one thing, you give up what else that money could have done. That's a tradeoff.",
+    "Some things are needs: things you must have, like getting home or lunch on a school trip. Others are wants: nice to have, but you could manage without. Cover needs first, then wants.",
+    "A choice that repeats adds up. Spending {m:200} a week instead of saving it comes to {m:800} over 4 weeks.",
+    "There's no single right answer. A good choice is one that fits what you care about."
+  ],
+  "example": {
+    "title": "The game or the day out",
+    "lines": [
+      "Jo has {m:1500}.",
+      "A game costs {m:1200}. A day out costs {m:800}.",
+      "Both together cost {m:2000}, which is more than Jo has.",
+      "Picking the game means giving up the day out, for now.",
+      "Picking the day out leaves {m:700}, which isn't enough for the game."
+    ]
+  },
+  "practice": {
+    "type": "choice",
+    "key": "topic-tradeoffs-practice",
+    "skill": "tradeoff.need_want",
+    "prompt": "Which of these is a need?",
+    "options": [
+      {
+        "id": "game",
+        "text": "A game you'd like to try",
+        "feedback": "Not quite. A game is fun, but you could manage without it. That makes it a want."
+      },
+      {
+        "id": "coat",
+        "text": "A coat, as yours no longer fits",
+        "feedback": "Yes. You need a coat that fits."
+      },
+      {
+        "id": "stickers",
+        "text": "Stickers for your notebook",
+        "feedback": "Not quite. Stickers are a nice extra. That makes them a want."
+      }
+    ],
+    "answer": "coat",
+    "hints": [
+      "A need is something you must have.",
+      "Which one would leave you stuck if you didn't have it?"
+    ],
+    "correct": "Right. A coat that fits is a need. The others are nice extras."
+  },
+  "skills": ["tradeoff.give_up", "tradeoff.need_want"]
+}

@@ -1,0 +1,207 @@
+{
+  "key": "whats-in-spend",
+  "version": 1,
+  "day": 1,
+  "title": "What's in Spend?",
+  "topic": "spending",
+  "summary": "Check what you have before you buy, and work out what's left.",
+  "steps": [
+    {
+      "type": "info",
+      "key": "spend-is-cash",
+      "title": "Spend is the cash you hold",
+      "body": "Before you buy something, check what's in Spend. If the price is the same or less, you can pay. What you have minus the price is what's left.",
+      "example": "You have {m:1200} in Spend. A book costs {m:750}. After buying it you have {m:450} left."
+    },
+    {
+      "type": "choice",
+      "key": "which-can-you-buy",
+      "skill": "balance.afford",
+      "prompt": "You have {m:900} in Spend. Which one can you buy today?",
+      "options": [
+        {
+          "id": "comic",
+          "text": "A comic for {m:650}",
+          "feedback": "Yes. {m:650} is less than {m:900}."
+        },
+        {
+          "id": "headphones",
+          "text": "Headphones for {m:1500}",
+          "feedback": "Not quite. {m:1500} is more than the {m:900} you have."
+        },
+        {
+          "id": "game",
+          "text": "A game for {m:2000}",
+          "feedback": "Not quite. {m:2000} is more than double what you have."
+        }
+      ],
+      "answer": "comic",
+      "hints": ["Compare each price with {m:900}.", "Only one price is smaller than {m:900}."],
+      "correct": "Nice. That's it. The comic fits inside what you have.",
+      "replay": {
+        "type": "choice",
+        "skill": "balance.afford",
+        "prompt": "You have {m:1100} in Spend. Which one can you buy today?",
+        "options": [
+          {
+            "id": "scarf",
+            "text": "A scarf for {m:1400}",
+            "feedback": "Not quite. {m:1400} is more than {m:1100}."
+          },
+          {
+            "id": "puzzle",
+            "text": "A puzzle for {m:850}",
+            "feedback": "Yes. {m:850} is less than {m:1100}."
+          },
+          {
+            "id": "speaker",
+            "text": "A speaker for {m:2500}",
+            "feedback": "Not quite. {m:2500} is far more than {m:1100}."
+          }
+        ],
+        "answer": "puzzle",
+        "hints": ["Compare each price with {m:1100}.", "Look for the price below {m:1100}."],
+        "correct": "Nice. That's it. The puzzle fits inside what you have."
+      }
+    },
+    {
+      "type": "amount",
+      "key": "whats-left",
+      "skill": "balance.afford",
+      "prompt": "You have {m:1500} in Spend. You buy a hat for {m:900}. How much is left?",
+      "unit": "money",
+      "answer": 600,
+      "misconceptions": [
+        { "value": 2400, "feedback": "That adds the two amounts. Buying takes money away." },
+        { "value": 900, "feedback": "That's the price of the hat. What's left after paying it?" }
+      ],
+      "wrong": "Not quite. Take the price away from what you have.",
+      "hints": ["Start with {m:1500} and take away the price.", "{m:1500} take away {m:900}."],
+      "correct": "That's it. {m:600} is left in Spend.",
+      "replay": {
+        "type": "amount",
+        "skill": "balance.afford",
+        "prompt": "You have {m:2000} in Spend. You buy socks for {m:450}. How much is left?",
+        "unit": "money",
+        "answer": 1550,
+        "misconceptions": [
+          { "value": 2450, "feedback": "That adds the two amounts. Buying takes money away." },
+          {
+            "value": 450,
+            "feedback": "That's the price of the socks. What's left after paying it?"
+          }
+        ],
+        "wrong": "Not quite. Take the price away from what you have.",
+        "hints": ["Start with {m:2000} and take away the price.", "{m:2000} take away {m:450}."],
+        "correct": "That's it. {m:1550} is left in Spend."
+      }
+    },
+    {
+      "type": "predict",
+      "key": "snack-then-ticket",
+      "skill": "balance.afford",
+      "prompt": "You have {m:800}. You buy a snack for {m:300}. Can you still buy a {m:600} ticket?",
+      "options": [
+        {
+          "id": "yes",
+          "text": "Yes, there's enough",
+          "feedback": "Not quite. Check what's left after the snack first."
+        },
+        { "id": "no", "text": "No, not enough left", "feedback": "That's it." }
+      ],
+      "answer": "no",
+      "outcome": "After the snack you have {m:500}. The ticket costs {m:600}, so you'd be {m:100} short. Each buy changes what's left for the next one.",
+      "hints": [
+        "Work out what's left after the snack.",
+        "{m:800} take away {m:300} is {m:500}. Is that enough for {m:600}?"
+      ],
+      "correct": "Right. The snack leaves {m:500}, which is less than {m:600}."
+    },
+    {
+      "type": "sort",
+      "key": "afford-or-not-yet",
+      "skill": "balance.afford",
+      "prompt": "You have {m:1000} in Spend. Could you buy each one on its own?",
+      "buckets": [{ "id": "can", "label": "Can buy" }, { "id": "not-yet", "label": "Not yet" }],
+      "items": [
+        { "id": "pen", "text": "Pen, {m:250}", "bucket": "can" },
+        { "id": "board-game", "text": "Board game, {m:1800}", "bucket": "not-yet" },
+        { "id": "cinema", "text": "Cinema ticket, {m:900}", "bucket": "can" },
+        { "id": "trainers", "text": "Trainers, {m:4500}", "bucket": "not-yet" },
+        { "id": "book", "text": "Book, {m:1000}", "bucket": "can" }
+      ],
+      "wrong": "One of them is in the wrong group. A price the same as what you have still fits.",
+      "hints": ["Compare each price with {m:1000}.", "A price of exactly {m:1000} still fits."],
+      "correct": "All sorted. Anything up to {m:1000} fits on its own."
+    },
+    {
+      "type": "amount",
+      "key": "how-many-packs",
+      "skill": "balance.afford",
+      "prompt": "You have {m:1200}. Sticker packs cost {m:300} each. How many packs can you buy?",
+      "unit": "count",
+      "suffix": "packs",
+      "answer": 4,
+      "misconceptions": [
+        {
+          "value": 3,
+          "feedback": "Three packs cost {m:900}. You'd still have {m:300}, enough for one more."
+        },
+        { "value": 5, "feedback": "Five packs would cost {m:1500}. That's more than you have." }
+      ],
+      "wrong": "Not quite. See how many times {m:300} fits into {m:1200}.",
+      "hints": [
+        "Add {m:300} at a time until you reach {m:1200}.",
+        "{m:300}, {m:600}, {m:900}, {m:1200}. Count the steps."
+      ],
+      "correct": "That's it. Four packs cost exactly {m:1200}.",
+      "replay": {
+        "type": "amount",
+        "skill": "balance.afford",
+        "prompt": "You have {m:1500}. Sticker packs cost {m:400} each. How many packs can you buy?",
+        "unit": "count",
+        "suffix": "packs",
+        "answer": 3,
+        "misconceptions": [
+          { "value": 4, "feedback": "Four packs would cost {m:1600}. That's more than you have." },
+          { "value": 2, "feedback": "Two packs cost {m:800}. There's enough left for one more." }
+        ],
+        "wrong": "Not quite. See how many times {m:400} fits into {m:1500}.",
+        "hints": [
+          "Add {m:400} at a time without going over {m:1500}.",
+          "{m:400}, {m:800}, {m:1200}. The next one goes over."
+        ],
+        "correct": "That's it. Three packs cost {m:1200}, and {m:300} is left over."
+      }
+    },
+    {
+      "type": "reason",
+      "key": "why-check-first",
+      "skill": "balance.afford",
+      "prompt": "Why is it worth checking Spend before you buy?",
+      "options": [
+        {
+          "id": "know",
+          "text": "So you know you can pay and what will be left",
+          "feedback": "That's it."
+        },
+        {
+          "id": "prices",
+          "text": "Because prices always go up",
+          "feedback": "Prices can change, but that isn't the reason. Think about what you have."
+        },
+        {
+          "id": "all",
+          "text": "So you can spend all of it at once",
+          "feedback": "Not quite. Checking helps you decide, not spend everything."
+        }
+      ],
+      "answer": "know",
+      "hints": [
+        "What does checking tell you?",
+        "Checking shows whether the price fits and what you'd have after."
+      ],
+      "correct": "Right. Checking first means no surprises at the till."
+    }
+  ]
+}

@@ -1,0 +1,252 @@
+{
+  "key": "small-buys-add-up",
+  "version": 1,
+  "day": 2,
+  "title": "Small buys add up",
+  "topic": "spending",
+  "summary": "Keep a running total of a few buys, so you always know what's left.",
+  "steps": [
+    {
+      "type": "info",
+      "key": "add-as-you-go",
+      "title": "Keep a running total",
+      "body": "When you buy a few things, add each price as you go. That's a running total. Take the total away from what you had, and you know what's left.",
+      "example": "You have {m:1000}. You buy a drink for {m:150}, a snack for {m:200} and a pen for {m:250}. That's {m:600} in total, so {m:400} is left."
+    },
+    {
+      "type": "amount",
+      "key": "three-buys-total",
+      "skill": "balance.running_total",
+      "prompt": "You buy a snack for {m:150}, a drink for {m:100} and a comic for {m:350}. What do they cost in total?",
+      "unit": "money",
+      "answer": 600,
+      "misconceptions": [
+        { "value": 500, "feedback": "Not quite. That leaves out the drink. Add all three prices." },
+        { "value": 450, "feedback": "Not quite. That leaves out the snack. Add all three prices." },
+        { "value": 250, "feedback": "Not quite. That leaves out the comic. Add all three prices." }
+      ],
+      "wrong": "Not quite. Add the prices one at a time.",
+      "hints": [
+        "Add the first two prices, then add the third.",
+        "{m:150} and {m:100} make {m:250}. Now add {m:350}."
+      ],
+      "correct": "Nice. That's it. The three buys come to {m:600}.",
+      "replay": {
+        "type": "amount",
+        "skill": "balance.running_total",
+        "prompt": "You buy a pen for {m:200}, a drink for {m:150} and a magazine for {m:400}. What do they cost in total?",
+        "unit": "money",
+        "answer": 750,
+        "misconceptions": [
+          { "value": 550, "feedback": "Not quite. That leaves out the pen. Add all three prices." },
+          {
+            "value": 600,
+            "feedback": "Not quite. That leaves out the drink. Add all three prices."
+          },
+          {
+            "value": 350,
+            "feedback": "Not quite. That leaves out the magazine. Add all three prices."
+          }
+        ],
+        "wrong": "Not quite. Add the prices one at a time.",
+        "hints": [
+          "Add the first two prices, then add the third.",
+          "{m:200} and {m:150} make {m:350}. Now add {m:400}."
+        ],
+        "correct": "Nice. That's it. The three buys come to {m:750}."
+      }
+    },
+    {
+      "type": "amount",
+      "key": "left-after-two",
+      "skill": "balance.running_total",
+      "prompt": "You have {m:1500} in Spend. You buy a sandwich for {m:350}, then a drink for {m:150}. How much is left?",
+      "unit": "money",
+      "answer": 1000,
+      "misconceptions": [
+        {
+          "value": 2000,
+          "feedback": "Not quite. That adds everything together. Each buy takes money away."
+        },
+        {
+          "value": 1150,
+          "feedback": "Not quite. That only takes away the sandwich. The drink comes off too."
+        },
+        {
+          "value": 1350,
+          "feedback": "Not quite. That only takes away the drink. The sandwich comes off too."
+        }
+      ],
+      "wrong": "Not quite. Take both prices away from {m:1500}.",
+      "hints": [
+        "Take away the first price, then the second.",
+        "{m:1500} take away {m:350} is {m:1150}. Now take away {m:150}."
+      ],
+      "correct": "That's it. Both buys come off, and {m:1000} is left in Spend.",
+      "replay": {
+        "type": "amount",
+        "skill": "balance.running_total",
+        "prompt": "You have {m:1200} in Spend. You buy a notebook for {m:250}, then a snack for {m:200}. How much is left?",
+        "unit": "money",
+        "answer": 750,
+        "misconceptions": [
+          {
+            "value": 1650,
+            "feedback": "Not quite. That adds everything together. Each buy takes money away."
+          },
+          {
+            "value": 950,
+            "feedback": "Not quite. That only takes away the notebook. The snack comes off too."
+          },
+          {
+            "value": 1000,
+            "feedback": "Not quite. That only takes away the snack. The notebook comes off too."
+          }
+        ],
+        "wrong": "Not quite. Take both prices away from {m:1200}.",
+        "hints": [
+          "Take away the first price, then the second.",
+          "{m:1200} take away {m:250} is {m:950}. Now take away {m:200}."
+        ],
+        "correct": "That's it. Both buys come off, and {m:750} is left in Spend."
+      }
+    },
+    {
+      "type": "predict",
+      "key": "snack-every-day",
+      "skill": "balance.running_total",
+      "prompt": "Kai buys a {m:150} snack on each of five school days. Will that cost more than {m:500} in the week?",
+      "options": [
+        { "id": "more", "text": "Yes, more than {m:500}", "feedback": "That's it." },
+        {
+          "id": "less",
+          "text": "No, less than {m:500}",
+          "feedback": "Not quite. One snack is under {m:500}, but five of them add up to more."
+        },
+        {
+          "id": "same",
+          "text": "About {m:500}",
+          "feedback": "Not quite. Add {m:150} five times and see where you land."
+        }
+      ],
+      "answer": "more",
+      "outcome": "Five snacks at {m:150} come to {m:750} in a week. That's {m:250} more than {m:500}. A buy you make often adds up faster than you'd guess.",
+      "hints": [
+        "Add {m:150} once for each school day.",
+        "{m:150}, {m:300}, {m:450}. Keep going until you've counted five days."
+      ],
+      "correct": "Right. Five snacks come to {m:750}, which is more than {m:500}."
+    },
+    {
+      "type": "choice",
+      "key": "what-can-you-still-buy",
+      "skill": "balance.running_total",
+      "prompt": "You have {m:1000}. You've already bought a comic for {m:400} and a drink for {m:150}. What else could you still buy?",
+      "options": [
+        {
+          "id": "book",
+          "text": "A book for {m:500}",
+          "feedback": "Not quite. After the comic and drink you have {m:450} left. {m:500} is more than that."
+        },
+        {
+          "id": "badge",
+          "text": "A badge for {m:400}",
+          "feedback": "Yes. {m:450} is left, and {m:400} fits."
+        },
+        {
+          "id": "cap",
+          "text": "A cap for {m:600}",
+          "feedback": "Not quite. Only {m:450} is left after the first two buys."
+        }
+      ],
+      "answer": "badge",
+      "hints": [
+        "First work out what's left after the comic and the drink.",
+        "The two buys come to {m:550}. What's left from {m:1000}?"
+      ],
+      "correct": "Nice. That's it. {m:450} is left, so the {m:400} badge fits.",
+      "replay": {
+        "type": "choice",
+        "skill": "balance.running_total",
+        "prompt": "You have {m:1200}. You've already bought a ticket for {m:500} and a snack for {m:200}. What else could you still buy?",
+        "options": [
+          {
+            "id": "kite",
+            "text": "A kite for {m:550}",
+            "feedback": "Not quite. After the ticket and snack you have {m:500} left. {m:550} is more than that."
+          },
+          {
+            "id": "game",
+            "text": "A game for {m:900}",
+            "feedback": "Not quite. Only {m:500} is left after the first two buys."
+          },
+          {
+            "id": "poster",
+            "text": "A poster for {m:450}",
+            "feedback": "Yes. {m:500} is left, and {m:450} fits."
+          }
+        ],
+        "answer": "poster",
+        "hints": [
+          "First work out what's left after the ticket and the snack.",
+          "The two buys come to {m:700}. What's left from {m:1200}?"
+        ],
+        "correct": "Nice. That's it. {m:500} is left, so the {m:450} poster fits."
+      }
+    },
+    {
+      "type": "sort",
+      "key": "does-the-set-fit",
+      "skill": "balance.running_total",
+      "prompt": "You have {m:1000}. Sort each set of buys. Does the whole set fit?",
+      "buckets": [{ "id": "fits", "label": "Fits" }, { "id": "too-much", "label": "Too much" }],
+      "items": [
+        { "id": "drink-snack", "text": "Drink {m:150} and snack {m:200}", "bucket": "fits" },
+        {
+          "id": "ticket-popcorn",
+          "text": "Ticket {m:700} and popcorn {m:400}",
+          "bucket": "too-much"
+        },
+        {
+          "id": "comic-pen-drink",
+          "text": "Comic {m:450}, pen {m:250} and drink {m:150}",
+          "bucket": "fits"
+        },
+        { "id": "book-puzzle", "text": "Book {m:650} and puzzle {m:500}", "bucket": "too-much" },
+        { "id": "four-drinks", "text": "Four drinks at {m:250} each", "bucket": "fits" }
+      ],
+      "wrong": "Not quite. Add up each set first, then compare the total with {m:1000}.",
+      "hints": ["Add the prices in each set.", "A set that comes to exactly {m:1000} still fits."],
+      "correct": "All sorted. Add up each set, and anything up to {m:1000} fits."
+    },
+    {
+      "type": "reason",
+      "key": "why-running-total",
+      "skill": "balance.running_total",
+      "prompt": "Why is it worth keeping a running total when you buy a few things?",
+      "options": [
+        {
+          "id": "know-left",
+          "text": "You always know what's left for the next buy",
+          "feedback": "That's it."
+        },
+        {
+          "id": "cheaper",
+          "text": "It makes each thing cost less",
+          "feedback": "Not quite. Prices stay the same. The total just shows you where you are."
+        },
+        {
+          "id": "more-money",
+          "text": "It gives you more money to spend",
+          "feedback": "Not quite. It doesn't add money. It shows how much of yours is left."
+        }
+      ],
+      "answer": "know-left",
+      "hints": [
+        "Think about what the total tells you.",
+        "The total, taken away from what you had, shows what's left."
+      ],
+      "correct": "Right. A running total means no surprises when you reach the last buy."
+    }
+  ]
+}

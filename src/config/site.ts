@@ -26,7 +26,16 @@ export const routes = {
     `/parent/children/${childId}/gifts/${giftId}/edit` as Route,
   parentHandover: (childId: string, kind: "allowance" | "gift", id: string) =>
     `/parent/children/${childId}/handover/${kind}/${id}` as Route,
+  parentChildLearning: (childId: string) => `/parent/children/${childId}/learning` as Route,
   child: "/child",
+  /** Learn: the seven-day journey (FR06). */
+  childLearn: "/child/learn" as Route,
+  childMission: (missionKey: string) => `/child/learn/${missionKey}` as Route,
+  childCheckIn: "/child/learn/check-in" as Route,
+  childPractice: "/child/learn/practice" as Route,
+  /** A topic page (FR08); `from` is the mission to return to. */
+  childTopic: (topicKey: string, from?: string) =>
+    `/child/learn/topics/${topicKey}${from ? `?from=${encodeURIComponent(from)}` : ""}` as Route,
   childStart: "/start",
   childSignIn: "/sign-in/child",
   invite: "/invite",
