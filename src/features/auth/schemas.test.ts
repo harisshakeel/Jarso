@@ -12,6 +12,15 @@ describe("safeNextPath", () => {
     ["/parent/setup?next=%2Finvite%3Ftoken%3Dabc", "/parent/setup?next=%2Finvite%3Ftoken%3Dabc"],
     ["//evil.com/invite?token=abc", "/dashboard"],
     ["https://evil.com/?next=/invite", "/dashboard"],
+    // Browsers and the URL parser strip tabs and newlines, so "/\t/evil.com" becomes "//evil.com".
+    ["/\t/evil.com", "/dashboard"],
+    ["/\n/evil.com", "/dashboard"],
+    ["/\r/evil.com", "/dashboard"],
+    ["/\u0000/evil.com", "/dashboard"],
+    ["/\u007f/evil.com", "/dashboard"],
+    [" /evil", "/dashboard"],
+    ["/parent /x", "/dashboard"],
+    ["/parent", "/parent"],
   ])("%s → %s", (input, expected) => {
     expect(safeNextPath(input)).toBe(expected);
   });

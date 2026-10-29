@@ -64,6 +64,13 @@ describe("GET /auth/confirm", () => {
     callbackRedirect("//evil.com"),
     `https://evil.com/auth/callback?next=${encodeURIComponent("/parent")}`,
     "javascript:alert(1)",
+    "/\t/evil.com",
+    "/\n/evil.com",
+    "/\r/evil.com",
+    " /evil",
+    `${APP}/auth/callback?next=%2F%09%2Fevil.com`,
+    `${APP}/auth/callback?next=%2F%0A%2Fevil.com`,
+    `${APP}/auth/callback?next=%2F%0D%2Fevil.com`,
   ])("replaces unsafe next %s with the dashboard", async (next) => {
     expect(await visit(confirmUrl({ token_hash: "h", type: "email", next }))).toBe("/dashboard");
   });

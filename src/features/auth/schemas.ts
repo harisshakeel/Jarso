@@ -23,13 +23,25 @@ export const signUpSchema = z.object({
 export type SignInInput = z.infer<typeof signInSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;
 
+/** Control characters and whitespace: URL parsers drop tabs/newlines, so "/\t/x" becomes "//x". */
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is the point.
+const UNSAFE_PATH_CHARS = /[\x00-\x20\x7f]/;
+/** Reserved, never-resolvable origin used only to check that a path stays on our origin. */
+const PROBE_ORIGIN = "http://n.invalid";
+
 /** Only allow same-origin relative paths as post-login targets (prevents open redirects). */
 export function safeNextPath(
   next: string | null | undefined,
   fallback: Route = routes.dashboard,
 ): Route {
   if (!next?.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
-  return next as Route;
+  if (UNSAFE_PATH_CHARS.test(next) || !URL.canParse(next, PROBE_ORIGIN)) return fallback;
+  // Defence in depth: resolve it the way a browser would and require it to stay on our origin.
+  const url = new URL(next, PROBE_ORIGIN);
+  const path = `${url.pathname}${url.search}${url.hash}`;
+  if (url.origin !== PROBE_ORIGIN || !path.startsWith("/") || path.startsWith("//"))
+    return fallback;
+  return path as Route;
 }
 
 /** `path?next=…` when `next` is a safe same-origin path, else just `path`. Keeps `next` across auth pages. */
@@ -59,7 +71,8 @@ export function nextFromEmailLink(
   fallback: Route = routes.dashboard,
 ): Route {
   const [base] = allowedOrigins;
-  if (!value || !base || !URL.canParse(value, base)) return fallback;
+  if (!value || !base || UNSAFE_PATH_CHARS.test(value) || !URL.canParse(value, base))
+    return fallback;
   const url = new URL(value, base);
   if (!allowedOrigins.includes(url.origin)) return fallback;
   const path =
