@@ -41,6 +41,7 @@ export default defineConfig({
     { name: "onboarding", testMatch: "onboarding.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "auth", testMatch: "email-confirm.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "allowance", testMatch: "allowance.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    { name: "child-home", testMatch: "child-home.spec.ts", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined

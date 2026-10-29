@@ -39,6 +39,7 @@ import {
   pauseSchedule,
   resumeSchedule,
   stopSchedule,
+  sumDueOccurrences,
 } from "./repository";
 
 /**
@@ -99,6 +100,17 @@ export async function getSchedule(childId: string): Promise<Schedule | null> {
   if (!row) return null;
   const nextDueOn = row.status === "stopped" ? null : await fetchNextDueOn(db, row.id);
   return { ...row, nextDueOn };
+}
+
+/**
+ * Allowances waiting for a parent (total and count). Child or parent. Allowances only: pending
+ * gifts stay secret until handed over.
+ */
+export async function listDueForChild(
+  childId: string,
+): Promise<{ totalMinor: number; count: number }> {
+  await assertSelfOrParentOf(childId);
+  return sumDueOccurrences(await createClient(), childId);
 }
 
 /** Due allowances and due gifts, oldest first. Parent only: it reveals pending gifts. */

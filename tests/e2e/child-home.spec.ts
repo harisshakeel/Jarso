@@ -52,6 +52,7 @@ test.beforeAll(async ({ browser }) => {
   await parent.getByRole("button", { name: "Add child" }).click();
   await expect(parent).toHaveURL(at("/parent"));
   await parent.getByRole("link", { name: "Allowance for Sam" }).click();
+  await expect(parent.getByRole("heading", { name: "Allowance for Sam" })).toBeVisible();
   allowancePath = new URL(parent.url()).pathname;
   childBase = allowancePath.replace("/allowance", "");
 

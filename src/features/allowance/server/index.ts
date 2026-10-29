@@ -12,6 +12,7 @@ export {
   getLastSplit,
   getSchedule,
   listDue,
+  listDueForChild,
   listGifts,
   markNotGiven,
   pauseAllowance,

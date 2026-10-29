@@ -156,6 +156,23 @@ export async function listDueForParent(db: Client, childId: string): Promise<Due
   }));
 }
 
+/** Total and count of the child's allowances waiting for a parent. Never reads gifts. */
+export async function sumDueOccurrences(
+  db: Client,
+  childId: string,
+): Promise<{ totalMinor: number; count: number }> {
+  const { data, error } = await db
+    .from("allowance_occurrences")
+    .select("amount_minor")
+    .eq("child_id", childId)
+    .eq("status", "due");
+  if (error) throw toAppError(error, "Failed to load what's waiting");
+  return {
+    totalMinor: data.reduce((sum, row) => sum + Number(row.amount_minor), 0),
+    count: data.length,
+  };
+}
+
 export async function findLatestAllowanceSplit(
   db: Client,
   childId: string,
