@@ -42,6 +42,8 @@ export default defineConfig({
     { name: "auth", testMatch: "email-confirm.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "allowance", testMatch: "allowance.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "child-home", testMatch: "child-home.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    // No browser: concurrent RPC calls against local Supabase.
+    { name: "handover-race", testMatch: "handover-race.spec.ts" },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
