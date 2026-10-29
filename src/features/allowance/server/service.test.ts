@@ -4,6 +4,7 @@ import { AppError, toAppError } from "@/lib";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
 vi.mock("@/features/auth/server", () => ({ assertUser: vi.fn() }));
 vi.mock("@/features/family/server", () => ({
+  assertParentCanRead: vi.fn(),
   assertParentOf: vi.fn(),
   assertRole: vi.fn(),
   assertSelfOrParentOf: vi.fn(),
@@ -52,6 +53,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.useRealTimers();
   vi.mocked(family.assertParentOf).mockResolvedValue(parent);
+  vi.mocked(family.assertParentCanRead).mockResolvedValue(parent);
   vi.mocked(family.assertRole).mockResolvedValue({ user: parent, membership: null });
   vi.mocked(family.getFamily).mockResolvedValue({
     id: "fam-1",
@@ -259,6 +261,24 @@ describe("updateGift", () => {
       service.updateGift({ giftId: "gift-1", amountMinor: 900, giveOn: "2026-10-21", note: null }),
     ).rejects.toMatchObject({ code: "VALIDATION" });
     expect(repo.changeGift).not.toHaveBeenCalled();
+  });
+});
+
+describe("parent-only reads", () => {
+  // They render behind the profile dialog (ADR 0008); the action guard would throw there.
+  it.each([
+    ["listDue", () => service.listDue(childId)],
+    ["listGifts", () => service.listGifts(childId)],
+    ["getLastSplit", () => service.getLastSplit(childId)],
+  ])("%s checks parenthood without the profile gate", async (_, run) => {
+    vi.mocked(repo.listDueForParent).mockResolvedValue([]);
+    vi.mocked(repo.listPendingGifts).mockResolvedValue([]);
+    vi.mocked(repo.findLatestAllowanceSplit).mockResolvedValue(null);
+    vi.mocked(repo.findLatestGiftSplit).mockResolvedValue(null);
+
+    await run();
+    expect(family.assertParentCanRead).toHaveBeenCalledWith(childId);
+    expect(family.assertParentOf).not.toHaveBeenCalled();
   });
 });
 

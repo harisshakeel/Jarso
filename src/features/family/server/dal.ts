@@ -53,11 +53,17 @@ const PROFILE_INCOMPLETE = "Finish your profile first.";
  * action is blocked until then, not only the ones the completion dialog covers.
  */
 export async function assertRole(role: Role): Promise<RoleContext> {
-  const user = await assertUser();
-  if ((await getRole(user.id)) !== role) throw new AppError("FORBIDDEN", "You can't do that.");
-  if (role === "parent" && !(await isParentProfileComplete(user.id))) {
+  const context = await assertSignedInAs(role);
+  if (role === "parent" && !(await isParentProfileComplete(context.user.id))) {
     throw new AppError("FORBIDDEN", PROFILE_INCOMPLETE);
   }
+  return context;
+}
+
+/** Signed in with this role. No profile check: only reads may skip it (assertParentCanRead). */
+async function assertSignedInAs(role: Role): Promise<RoleContext> {
+  const user = await assertUser();
+  if ((await getRole(user.id)) !== role) throw new AppError("FORBIDDEN", "You can't do that.");
   return { user, membership: await getMembership() };
 }
 
@@ -75,12 +81,30 @@ const parentOfChild = cache(
   async (childId: string): Promise<boolean> => isParentOf(await createClient(), childId),
 );
 
-/** Throws FORBIDDEN unless the signed-in user is an approved parent of this child. */
-export async function assertParentOf(childId: string): Promise<SessionUser> {
-  const { user } = await assertRole("parent");
+async function assertParentOfChild(childId: string): Promise<void> {
   if (!(await parentOfChild(childId))) {
     throw new AppError("FORBIDDEN", "You can't do that.");
   }
+}
+
+/**
+ * For actions: throws FORBIDDEN unless the signed-in user is an approved parent of this child
+ * with a completed profile (ADR 0008).
+ */
+export async function assertParentOf(childId: string): Promise<SessionUser> {
+  const { user } = await assertRole("parent");
+  await assertParentOfChild(childId);
+  return user;
+}
+
+/**
+ * For parent-only reads: an approved parent of this child, profile complete or not. Parent
+ * pages render behind the completion dialog (ADR 0008), so their reads must not throw for a
+ * parent who hasn't finished it; every action still goes through assertParentOf.
+ */
+export async function assertParentCanRead(childId: string): Promise<SessionUser> {
+  const { user } = await assertSignedInAs("parent");
+  await assertParentOfChild(childId);
   return user;
 }
 
@@ -88,5 +112,5 @@ export async function assertParentOf(childId: string): Promise<SessionUser> {
 export async function assertSelfOrParentOf(childId: string): Promise<SessionUser> {
   const user = await assertUser();
   if (user.id === childId) return user;
-  return assertParentOf(childId);
+  return assertParentCanRead(childId);
 }

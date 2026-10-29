@@ -1,6 +1,7 @@
 import "server-only";
 import { assertUser } from "@/features/auth/server";
 import {
+  assertParentCanRead,
   assertParentOf,
   assertRole,
   assertSelfOrParentOf,
@@ -115,19 +116,19 @@ export async function listDueForChild(
 
 /** Due allowances and due gifts, oldest first. Parent only: it reveals pending gifts. */
 export async function listDue(childId: string): Promise<DueItem[]> {
-  await assertParentOf(childId);
+  await assertParentCanRead(childId);
   return listDueForParent(await createClient(), childId);
 }
 
 /** Gifts not handed over yet (due and future), soonest first. Parent only. */
 export async function listGifts(childId: string): Promise<Gift[]> {
-  await assertParentOf(childId);
+  await assertParentCanRead(childId);
   return listPendingGifts(await createClient(), childId);
 }
 
 /** The split of the child's most recent handover (allowance or gift), for the prefill. */
 export async function getLastSplit(childId: string): Promise<Split | null> {
-  await assertParentOf(childId);
+  await assertParentCanRead(childId);
   const db = await createClient();
   const [allowance, gift] = await Promise.all([
     findLatestAllowanceSplit(db, childId),

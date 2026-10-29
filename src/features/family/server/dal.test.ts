@@ -21,7 +21,8 @@ vi.mock("@/features/profiles/server", () => ({ isParentProfileComplete: vi.fn() 
 const auth = await import("@/features/auth/server");
 const repo = await import("./repository");
 const profiles = await import("@/features/profiles/server");
-const { assertRole, assertSelfOrParentOf, requireRole } = await import("./dal");
+const { assertParentCanRead, assertParentOf, assertRole, assertSelfOrParentOf, requireRole } =
+  await import("./dal");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -96,6 +97,65 @@ describe("assertSelfOrParentOf", () => {
     vi.mocked(profiles.isParentProfileComplete).mockResolvedValue(true);
 
     await expect(assertSelfOrParentOf("child-1")).resolves.toBe(parent);
+  });
+
+  it("lets a parent of the child read before their profile is complete", async () => {
+    const parent = { id: "parent-1", email: "p@example.com" };
+    vi.mocked(auth.assertUser).mockResolvedValue(parent);
+    vi.mocked(auth.getCurrentUser).mockResolvedValue(parent);
+    vi.mocked(repo.findMembership).mockResolvedValue({
+      familyId: "fam-1",
+      role: "parent",
+      status: "approved",
+    });
+    vi.mocked(repo.isParentOf).mockResolvedValue(true);
+    vi.mocked(profiles.isParentProfileComplete).mockResolvedValue(false);
+
+    await expect(assertSelfOrParentOf("child-1")).resolves.toBe(parent);
+  });
+});
+
+describe("assertParentOf vs assertParentCanRead (ADR 0008)", () => {
+  const parent = { id: "parent-1", email: "p@example.com" };
+
+  beforeEach(() => {
+    vi.mocked(auth.assertUser).mockResolvedValue(parent);
+    vi.mocked(auth.getCurrentUser).mockResolvedValue(parent);
+    vi.mocked(repo.findMembership).mockResolvedValue({
+      familyId: "fam-1",
+      role: "parent",
+      status: "approved",
+    });
+    vi.mocked(repo.isParentOf).mockResolvedValue(true);
+    vi.mocked(profiles.isParentProfileComplete).mockResolvedValue(false);
+  });
+
+  // Parent pages render behind the completion dialog, so their reads must not throw.
+  it("lets an incomplete parent read their child's data", async () => {
+    await expect(assertParentCanRead("child-1")).resolves.toBe(parent);
+  });
+
+  it("still refuses an incomplete parent's actions", async () => {
+    await expect(assertParentOf("child-1")).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Finish your profile first.",
+    });
+  });
+
+  it("refuses a read of a child who isn't theirs", async () => {
+    vi.mocked(repo.isParentOf).mockResolvedValue(false);
+
+    await expect(assertParentCanRead("child-1")).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("refuses a parent-only read by a child", async () => {
+    vi.mocked(repo.findMembership).mockResolvedValue({
+      familyId: "fam-1",
+      role: "child",
+      status: "approved",
+    });
+
+    await expect(assertParentCanRead("child-1")).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
 
