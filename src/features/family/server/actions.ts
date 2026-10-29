@@ -7,6 +7,7 @@ import { safeNextPath } from "@/features/auth";
 import { AppError, createAction, isAppError } from "@/lib";
 import {
   acceptInvitationSchema,
+  acceptListedInvitationSchema,
   addChildSchema,
   childSignInSchema,
   createFamilySchema,
@@ -17,6 +18,7 @@ import { getClientIp } from "./client-ip";
 import { assertParentOf, assertRole } from "./dal";
 import {
   acceptInvitation,
+  acceptListedInvitation,
   addChild,
   childSignIn,
   createFamily,
@@ -77,6 +79,18 @@ export const acceptInvitationAction = createAction(acceptInvitationSchema, async
   }
   redirect(routes.parent);
 });
+
+export const acceptListedInvitationAction = createAction(
+  acceptListedInvitationSchema,
+  async (input) => {
+    try {
+      await acceptListedInvitation(input);
+    } catch (error) {
+      nicknameConflict(error);
+    }
+    redirect(routes.parent);
+  },
+);
 
 export const setChildPinAction = createAction(setChildPinSchema, async (input) => {
   await assertParentOf(input.childId);

@@ -13,6 +13,7 @@ vi.mock("./repository", () => ({
   insertFamily: vi.fn(),
   insertInvitation: vi.fn(),
   listChildMembers: vi.fn(),
+  listInvitationsForCaller: vi.fn(),
   registerChild: vi.fn(),
   revokeUserSessions: vi.fn(),
   updateChildPin: vi.fn(),
@@ -183,6 +184,91 @@ describe("acceptInvitation", () => {
 
     await expect(service.acceptInvitation(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(repo.findInvitationByHash).not.toHaveBeenCalled();
+  });
+});
+
+describe("listMyInvitations", () => {
+  it("lists through the parent's own client", async () => {
+    const rows = [{ id: "inv-1", nickname: "Sam", createdAt: "c", expiresAt: "e" }];
+    vi.mocked(repo.listInvitationsForCaller).mockResolvedValue(rows);
+
+    await expect(service.listMyInvitations()).resolves.toEqual(rows);
+    expect(dal.assertRole).toHaveBeenCalledWith("parent");
+    expect(repo.listInvitationsForCaller).toHaveBeenCalledWith({ kind: "user" });
+  });
+
+  it("refuses non-parents before any lookup", async () => {
+    vi.mocked(dal.assertRole).mockRejectedValue(new AppError("FORBIDDEN", "You can't do that."));
+
+    await expect(service.listMyInvitations()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repo.listInvitationsForCaller).not.toHaveBeenCalled();
+  });
+});
+
+describe("acceptListedInvitation", () => {
+  const mine = "6f1c2b8e-4d3a-4e5f-9a7b-1c2d3e4f5a6b";
+  const foreign = "0b9e8d7c-6a5b-4c3d-8e2f-1a0b9c8d7e6f";
+  const input = { invitationId: mine, pin: "1234", consent: true };
+
+  beforeEach(() => {
+    vi.mocked(repo.listInvitationsForCaller).mockResolvedValue([
+      { id: mine, nickname: "Mia", createdAt: "c", expiresAt: "e" },
+    ]);
+  });
+
+  it("findMyInvitation resolves only ids in the parent's own list", async () => {
+    await expect(service.findMyInvitation(mine)).resolves.toEqual({ id: mine, nickname: "Mia" });
+    await expect(service.findMyInvitation(foreign)).resolves.toBeNull();
+  });
+
+  it("registers the child with the listed invitation's id and nickname", async () => {
+    vi.mocked(childAuth.createChildAuthUser).mockResolvedValue("child-1");
+    vi.mocked(repo.registerChild).mockResolvedValue();
+
+    await expect(service.acceptListedInvitation(input)).resolves.toEqual({
+      id: "child-1",
+      nickname: "Mia",
+    });
+    expect(repo.registerChild).toHaveBeenCalledWith(expect.anything(), {
+      childId: "child-1",
+      familyId: "fam-1",
+      nickname: "Mia",
+      pin: "1234",
+      consent: true,
+      invitationId: mine,
+    });
+    // The id path never touches the service_role lookup or its rate limit.
+    expect(repo.findInvitationByHash).not.toHaveBeenCalled();
+  });
+
+  it("rejects an id that is not in the parent's list with INVITATION_GONE", async () => {
+    await expect(
+      service.acceptListedInvitation({ ...input, invitationId: foreign }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND", message: service.INVITATION_GONE });
+    expect(childAuth.createChildAuthUser).not.toHaveBeenCalled();
+    expect(repo.registerChild).not.toHaveBeenCalled();
+  });
+
+  it("shows INVITATION_GONE when a concurrent accept used the invitation first", async () => {
+    vi.mocked(childAuth.createChildAuthUser).mockResolvedValue("child-1");
+    vi.mocked(repo.registerChild).mockRejectedValue(
+      new AppError("NOT_FOUND", "We couldn't find that."),
+    );
+
+    await expect(service.acceptListedInvitation(input)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: service.INVITATION_GONE,
+    });
+    expect(childAuth.deleteChildAuthUser).toHaveBeenCalledWith("child-1");
+  });
+
+  it("throws FORBIDDEN for a parent without a family, before any lookup", async () => {
+    vi.mocked(dal.assertRole).mockResolvedValue({ user: parent, membership: null });
+
+    await expect(service.acceptListedInvitation(input)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(repo.listInvitationsForCaller).not.toHaveBeenCalled();
   });
 });
 
