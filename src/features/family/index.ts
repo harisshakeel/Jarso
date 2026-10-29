@@ -8,6 +8,7 @@ export * from "./components/children-settings-list";
 export * from "./components/create-family-form";
 export * from "./components/family-code-card";
 export * from "./components/family-settings-form";
+export * from "./components/first-child-card";
 export * from "./components/invitation-list";
 export * from "./components/invite-share-card";
 export * from "./components/refresh-invitations-button";

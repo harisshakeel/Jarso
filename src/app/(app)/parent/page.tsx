@@ -4,8 +4,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
-import { JarsoMark } from "@/components/brand";
-import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import {
   type ChildDueItem,
@@ -15,7 +13,7 @@ import {
   type Schedule,
 } from "@/features/allowance";
 import { getSchedule, listDue } from "@/features/allowance/server";
-import type { ChildSummary } from "@/features/family";
+import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 import type { JarBalances } from "@/features/ledger";
 import { getJars } from "@/features/ledger/server";
@@ -115,27 +113,6 @@ async function ChildCard({ read, currency }: { read: ChildReads; currency: strin
       dueCount={due.length}
       currency={currency}
     />
-  );
-}
-
-/** design.md §6 Empty state: mark, one sentence, one action. It is the next step, so it leads. */
-function FirstChildCard() {
-  return (
-    <Card className="rise-in shadow-raised">
-      <CardContent className="flex flex-col items-center gap-4 text-center">
-        <JarsoMark size={64} />
-        <p className="text-h3">Add your first child to get started.</p>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Link href={routes.parentNewChild} className={buttonVariants({ size: "lg" })}>
-            <PlusIcon aria-hidden />
-            Add a child
-          </Link>
-          <Link href={routes.invite} className={buttonVariants({ variant: "outline", size: "lg" })}>
-            Accept an invitation
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
