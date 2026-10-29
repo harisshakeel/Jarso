@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { minorDigits, parseMoney } from "@/lib";
+import { formatMoney, MAX_AMOUNT_MINOR, minorDigits, parseMoney } from "@/lib";
 import { frequencies } from "./types";
 
 /**
@@ -46,6 +46,12 @@ function money(currency: string, { allowZero = false } = {}) {
     }
     if (minor === 0 && !allowZero) {
       ctx.addIssue({ code: "custom", message: "Enter an amount more than 0." });
+      return z.NEVER;
+    }
+    // Above the database cap the function would refuse it with no field to point at.
+    if (minor > MAX_AMOUNT_MINOR) {
+      const max = formatMoney(MAX_AMOUNT_MINOR, currency, { showMinor: "nonzero" });
+      ctx.addIssue({ code: "custom", message: `Enter an amount up to ${max}.` });
       return z.NEVER;
     }
     return minor;

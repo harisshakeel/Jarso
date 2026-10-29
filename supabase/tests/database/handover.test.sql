@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(36);
+select plan(37);
 
 select tests.create_user('pa@example.com') as pa \gset
 select tests.create_user('pb@example.com') as pb \gset
@@ -80,7 +80,8 @@ select throws_ok(
 -- Not given
 select is(public.mark_not_given(:'o4'::uuid), 'closed', 'not given closes');
 select is((select count(*)::int from public.ledger_entries where source_id = :'o4'::uuid), 0, 'not given posts no ledger rows');
-select is(public.confirm_handover(:'o4'::uuid, 300, 200, 'k4'), 'already_confirmed', 'confirm after not given is already_confirmed');
+select is(public.confirm_handover(:'o4'::uuid, 300, 200, 'k4'), 'not_given', 'confirm after not given is not_given, not success');
+select is((select count(*)::int from public.ledger_entries where source_id = :'o4'::uuid), 0, 'confirm after not given still posts nothing');
 
 select is((select count(*)::int from public.audit_log where action = 'allowance.not_given' and subject_id = :'o4'::uuid), 1, 'not given writes an audit row');
 select is(public.mark_not_given(:'o1'::uuid), 'already_handled', 'not given on a confirmed row is already_handled');

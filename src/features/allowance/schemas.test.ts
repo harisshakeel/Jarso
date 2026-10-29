@@ -161,6 +161,14 @@ describe("handoverSchema", () => {
   it("rejects a missing idempotency key", () => {
     expect(handoverSchema("GBP").safeParse({ ...valid, idempotencyKey: "" }).success).toBe(false);
   });
+
+  it("accepts a jar at the database cap and rejects one above it, on that field", () => {
+    expect(handoverSchema("GBP").safeParse({ ...valid, cash: "1000000000" }).success).toBe(true);
+    const result = handoverSchema("GBP").safeParse({ ...valid, cash: "1000000000.01" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(["cash"]);
+    expect(messages(result)).toContain("Enter an amount up to £1,000,000,000.");
+  });
 });
 
 describe("familyToday", () => {

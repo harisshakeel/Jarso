@@ -234,6 +234,26 @@ describe("confirmHandover", () => {
     );
     expect(repo.confirmOccurrenceHandover).not.toHaveBeenCalled();
   });
+
+  it("is a CONFLICT, not success, when the allowance was marked not given", async () => {
+    vi.mocked(repo.confirmOccurrenceHandover).mockResolvedValue("not_given");
+
+    await expect(service.confirmHandover(input)).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: "This allowance was marked as not given, so nothing was recorded.",
+    });
+  });
+
+  it("is a CONFLICT, not success, when the gift was cancelled", async () => {
+    vi.mocked(repo.confirmGiftHandover).mockResolvedValue("cancelled");
+
+    await expect(
+      service.confirmHandover({ ...input, kind: "gift", id: "gift-1" }),
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: "This gift was cancelled, so nothing was recorded.",
+    });
+  });
 });
 
 describe("markNotGiven", () => {

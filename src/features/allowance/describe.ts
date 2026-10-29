@@ -93,6 +93,49 @@ export function prefillSplit(amountMinor: number, last: Split | null): Split {
   return { cash: amountMinor - saved, saved };
 }
 
+/** A handover split against what was due. Only an allowance has a shortfall or a cap (D1). */
+export type SplitCheck = { valid: boolean; total: number; short: number; over: boolean };
+
+/** `null` amounts are inputs that don't parse yet. */
+export function checkSplit(
+  cashMinor: number | null,
+  savedMinor: number | null,
+  amountMinor: number,
+  kind: "allowance" | "gift",
+): SplitCheck {
+  if (cashMinor === null || savedMinor === null) {
+    return { valid: false, total: 0, short: 0, over: false };
+  }
+  const total = cashMinor + savedMinor;
+  if (kind === "gift") return { valid: true, total, short: 0, over: false };
+  return {
+    valid: true,
+    total,
+    short: total > 0 && total < amountMinor ? amountMinor - total : 0,
+    over: total > amountMinor,
+  };
+}
+
+/** The slider at `percent`: that share of the amount to Save, Spend getting the rest. */
+export function splitAtShare(amountMinor: number, percent: number): Split {
+  const saved = Math.round((amountMinor * percent) / 100);
+  return { cash: amountMinor - saved, saved };
+}
+
+/** Slider position for a Save amount: its share of the amount, in steps of 5, at most 100. */
+export function shareOf(savedMinor: number, amountMinor: number): number {
+  if (amountMinor <= 0) return 0;
+  return Math.min(100, Math.round(((savedMinor / amountMinor) * 100) / 5) * 5);
+}
+
+/**
+ * Spend to fill in after the parent types Save: the rest of what was due. `null` leaves Spend
+ * as it is (Save doesn't parse yet, or is more than was due).
+ */
+export function cashForSaved(savedMinor: number | null, amountMinor: number): number | null {
+  return savedMinor !== null && savedMinor <= amountMinor ? amountMinor - savedMinor : null;
+}
+
 /**
  * Where an allowance stands, in one short line for parent lists: "Next: 2 Nov",
  * "Paused until 9 Nov", "Paused", "Stopped" or "No allowance yet".

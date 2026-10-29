@@ -23,7 +23,14 @@ import {
 } from "@/components/ui";
 import { routes } from "@/config";
 import { type ActionState, formatMoney, idle, parseMoney } from "@/lib";
-import { formatDay, toMajorString } from "../describe";
+import {
+  cashForSaved,
+  checkSplit,
+  formatDay,
+  shareOf,
+  splitAtShare,
+  toMajorString,
+} from "../describe";
 import { confirmHandoverAction, markNotGivenAction } from "../server/actions";
 import type { HandoverResult, Split } from "../types";
 
@@ -84,12 +91,11 @@ export function HandoverForm({
 
   const [cash, setCash] = useState(toMajorString(prefill.cash, currency));
   const [saved, setSaved] = useState(toMajorString(prefill.saved, currency));
+  // Once the parent types Spend, typing Save no longer fills it in: their number stays.
+  const [cashTyped, setCashTyped] = useState(false);
   const cashMinor = parseMoney(cash, currency);
   const savedMinor = parseMoney(saved, currency);
-  const valid = cashMinor !== null && savedMinor !== null;
-  const total = valid ? cashMinor + savedMinor : 0;
-  const short = isAllowance && valid && total > 0 && total < amountMinor ? amountMinor - total : 0;
-  const over = isAllowance && valid && total > amountMinor;
+  const { valid, total, short, over } = checkSplit(cashMinor, savedMinor, amountMinor, kind);
 
   const fieldErrors = !dirty && state?.ok === false ? state.error.fieldErrors : undefined;
   const cashError = cash.trim() && cashMinor === null ? MONEY_ERROR : fieldErrors?.cash?.[0];
@@ -100,27 +106,31 @@ export function HandoverForm({
 
   function setShare(percent: number) {
     setDirty(true);
-    const share = Math.round((amountMinor * percent) / 100);
-    setSaved(toMajorString(share, currency));
-    setCash(toMajorString(amountMinor - share, currency));
+    const split = splitAtShare(amountMinor, percent);
+    setSaved(toMajorString(split.saved, currency));
+    setCash(toMajorString(split.cash, currency));
+    setCashTyped(false);
+  }
+
+  function typeCash(value: string) {
+    setDirty(true);
+    setCash(value);
+    setCashTyped(true);
   }
 
   function typeSaved(value: string) {
     setDirty(true);
     setSaved(value);
-    const minor = parseMoney(value, currency);
-    // Spend takes the rest of what was due, so the parent only types one number.
-    if (minor !== null && minor <= amountMinor)
-      setCash(toMajorString(amountMinor - minor, currency));
+    if (cashTyped) return;
+    // Spend takes the rest of what was due, so the parent usually types one number.
+    const rest = cashForSaved(parseMoney(value, currency), amountMinor);
+    if (rest !== null) setCash(toMajorString(rest, currency));
   }
 
   const barBase = Math.max(amountMinor, total);
-  const spendWidth = valid && barBase > 0 ? (cashMinor / barBase) * 100 : 0;
-  const saveWidth = valid && barBase > 0 ? (savedMinor / barBase) * 100 : 0;
-  const sliderValue =
-    valid && amountMinor > 0
-      ? Math.min(100, Math.round(((savedMinor / amountMinor) * 100) / 5) * 5)
-      : 0;
+  const spendWidth = valid && cashMinor !== null && barBase > 0 ? (cashMinor / barBase) * 100 : 0;
+  const saveWidth = valid && savedMinor !== null && barBase > 0 ? (savedMinor / barBase) * 100 : 0;
+  const sliderValue = valid && savedMinor !== null ? shareOf(savedMinor, amountMinor) : 0;
 
   return (
     <form action={action} className="grid gap-4" noValidate>
@@ -166,10 +176,7 @@ export function HandoverForm({
               inputMode="decimal"
               autoComplete="off"
               value={cash}
-              onChange={(event) => {
-                setDirty(true);
-                setCash(event.target.value);
-              }}
+              onChange={(event) => typeCash(event.target.value)}
               errors={cashError ? [cashError] : undefined}
             />
             <Field

@@ -4,6 +4,9 @@
 const DEFAULT_LOCALE = "en-GB";
 const SYMBOL_LOCALES = ["en", "en-GB", "en-US", "en-IN", "en-AU", "en-CA", "ja-JP"];
 
+/** Largest single amount Jarso records, in minor units; the database functions cap it too. */
+export const MAX_AMOUNT_MINOR = 100_000_000_000;
+
 /** Number of minor-unit digits for a currency (GBP 2, JPY 0). */
 export function minorDigits(currency: string): number {
   return (
