@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeNextPath, signInSchema, signUpSchema, withNext } from "./schemas";
+import { loginLinkError, safeNextPath, signInSchema, signUpSchema, withNext } from "./schemas";
 
 describe("safeNextPath", () => {
   it.each([
@@ -83,4 +83,17 @@ describe("signInSchema", () => {
       true,
     );
   });
+});
+
+describe("loginLinkError", () => {
+  it("maps known codes", () => {
+    expect(loginLinkError("auth_callback")).toMatch(/couldn't finish signing you in/);
+  });
+
+  it.each(["__proto__", "constructor", "toString", "nope", undefined, ["auth_callback"]])(
+    "ignores %s",
+    (value) => {
+      expect(loginLinkError(value)).toBeUndefined();
+    },
+  );
 });

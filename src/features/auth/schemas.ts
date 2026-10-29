@@ -86,3 +86,17 @@ export function nextFromEmailLink(
       : `${url.pathname}${url.search}`;
   return safeNextPath(path, fallback);
 }
+
+/** `/login?error=` codes set by the auth route handlers (design.md §9: calm, plain, no blame). */
+const loginLinkErrors: Record<string, string> = {
+  auth_confirm:
+    "We couldn't confirm your email. The link may have expired or been used already. Try signing in, or sign up again for a new link.",
+  auth_callback: "We couldn't finish signing you in. Please try again.",
+};
+
+/** Message for a `/login?error=` value; unknown values (including `__proto__`) give none. */
+export function loginLinkError(value: unknown): string | undefined {
+  return typeof value === "string" && Object.hasOwn(loginLinkErrors, value)
+    ? loginLinkErrors[value]
+    : undefined;
+}

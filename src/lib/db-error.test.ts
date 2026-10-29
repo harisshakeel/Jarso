@@ -23,6 +23,15 @@ describe("toAppError", () => {
     );
   });
 
+  it.each(["__proto__", "constructor", "toString", "hasOwnProperty"])(
+    "treats the inherited key %s as unknown",
+    (code) => {
+      const result = toAppError({ code, message: "raw" }, "f");
+      expect(result.code).toBe("INTERNAL");
+      expect(result.message).toBe("f");
+    },
+  );
+
   it("falls back to INTERNAL for unknown codes and null", () => {
     const unknown = toAppError({ code: "XX000", message: "boom" }, "f");
     expect(unknown.code).toBe("INTERNAL");

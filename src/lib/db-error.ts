@@ -15,7 +15,8 @@ export function toAppError(
   error: { code?: string; message?: string } | null,
   fallback: string,
 ): AppError {
-  const hit = error?.code ? mapped[error.code] : undefined;
+  // Own keys only: a code like "__proto__" or "constructor" must not hit Object.prototype.
+  const hit = error?.code && Object.hasOwn(mapped, error.code) ? mapped[error.code] : undefined;
   return hit
     ? new AppError(hit.code, hit.message, { cause: error })
     : new AppError("INTERNAL", fallback, { cause: error });
