@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, minorDigits, moneySchema, parseMoney } from "./money";
+import { formatMoney, minorDigits, moneySchema, parseMoney, toMajorString } from "./money";
 
 describe("minorDigits", () => {
   it("returns currency fraction digits", () => {
@@ -87,5 +87,13 @@ describe("moneySchema", () => {
     expect(moneySchema("GBP", { allowZero: true }).parse("0")).toBe(0);
     expect(moneySchema("GBP", { allowEmpty: true }).parse(" ")).toBeNull();
     expect(moneySchema("GBP").safeParse("").success).toBe(false);
+  });
+});
+
+describe("toMajorString", () => {
+  it("turns minor units into an input value", () => {
+    expect(toMajorString(50000, "INR")).toBe("500.00");
+    expect(toMajorString(550, "GBP")).toBe("5.50");
+    expect(toMajorString(500, "JPY")).toBe("500");
   });
 });

@@ -30,7 +30,7 @@ export function UndoButton({ entryId }: { entryId: string }) {
         Undo
       </Button>
       {error ? (
-        <span role="alert" className="text-destructive text-xs">
+        <span role="alert" className="text-destructive text-sm">
           {error}
         </span>
       ) : null}

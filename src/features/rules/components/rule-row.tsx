@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Field, FormError } from "@/components/form";
+import { AmountField, FormError } from "@/components/form";
 import { Button, Switch } from "@/components/ui";
-import { toMajorString } from "@/features/allowance";
+import { parseMoney, toMajorString } from "@/lib";
 import { describeRule } from "../describe";
 import { setRuleAction } from "../server/actions";
 import type { MoneyRule, Period, RuleKind } from "../types";
@@ -60,13 +60,19 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
   function save(event: React.FormEvent) {
     event.preventDefault();
     send(amount, () => {
+      // The server stored this, or cleared the rule when the amount was blank.
+      const amountMinor = parseMoney(amount, currency);
+      setSaved(amountMinor === null ? undefined : { kind, period, amountMinor });
+      if (amountMinor === null) setOn(false);
       toast.success("Saved");
     });
   }
 
   const sentence = saved
     ? describeRule(saved, nickname, currency)
-    : `${PERIOD_LABEL[period]}: no limit`;
+    : on
+      ? "Set an amount, then Save"
+      : `${PERIOD_LABEL[period]}: no limit`;
 
   return (
     <form onSubmit={save} className="grid gap-3" noValidate>
@@ -80,13 +86,12 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
       {on ? (
         <div className="flex items-end gap-3">
           <div className="flex-1">
-            <Field
-              name={`${id}-amount`}
+            <AmountField
+              id={`${id}-amount`}
               label={`${PERIOD_LABEL[period]} limit`}
-              inputMode="decimal"
-              autoComplete="off"
+              currency={currency}
               value={amount}
-              onChange={(event) => setAmount(event.target.value)}
+              onValueChange={setAmount}
               errors={fieldError ? [fieldError] : undefined}
             />
           </div>

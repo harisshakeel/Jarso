@@ -20,8 +20,8 @@ import {
   CardContent,
 } from "@/components/ui";
 import { routes } from "@/config";
-import { type ActionState, idle } from "@/lib";
-import { toMajorString } from "../describe";
+import { type ActionState, idle, toMajorString } from "@/lib";
+
 import { cancelGiftAction, createGiftAction, updateGiftAction } from "../server/actions";
 import type { Gift } from "../types";
 

@@ -17,6 +17,12 @@ export function minorDigits(currency: string): number {
   );
 }
 
+/** Minor units as a plain major-unit string for an input ("500", "5.50"). */
+export function toMajorString(minor: number, currency: string): string {
+  const digits = minorDigits(currency);
+  return digits === 0 ? String(minor) : (minor / 10 ** digits).toFixed(digits);
+}
+
 /** Format minor units for display. `showMinor: "nonzero"` hides ".00" on whole amounts. */
 export function formatMoney(
   minor: number,
