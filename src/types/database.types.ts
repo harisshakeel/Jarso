@@ -191,6 +191,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"parent_details": {
+                  Row: {
+                    "completed_at": string,"country": string,"date_of_birth": string,"gender": string,"profile_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "completed_at"?: string,"country": string,"date_of_birth": string,"gender": string,"profile_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "completed_at"?: string,"country"?: string,"date_of_birth"?: string,"gender"?: string,"profile_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parent_details_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "avatar_url": string | null,"created_at": string,"full_name": string | null,"id": string,"nickname": string | null,"role": string,"updated_at": string
@@ -225,7 +245,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "create_family":
+            "complete_parent_profile":
+{ Args: { "p_country": string,"p_date_of_birth": string,"p_gender": string }; Returns: undefined
+                           },
+"create_family":
 { Args: { "p_currency": string,"p_timezone": string }; Returns: string
                            },
 "create_invitation":

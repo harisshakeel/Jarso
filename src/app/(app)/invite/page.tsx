@@ -13,6 +13,7 @@ import {
   listMyInvitations,
   requireRole,
 } from "@/features/family/server";
+import { isParentProfileComplete } from "@/features/profiles/server";
 import { isAppError } from "@/lib";
 
 export const metadata: Metadata = { title: "Accept an invitation" };
@@ -43,7 +44,12 @@ async function InviteContent({ searchParams }: { searchParams: SearchParams }) {
   const id = token || code ? undefined : params.id;
   const here = invitePath({ token, code, id });
 
-  const { membership } = await requireRole("parent", here);
+  const { user, membership } = await requireRole("parent", here);
+  // The lookups below refuse an incomplete parent (ADR 0008). Say so here, and let the
+  // profile dialog in the layout do its job, instead of failing into the error page.
+  if (!(await isParentProfileComplete(user.id))) {
+    return <Notice message="Finish your profile first. Then you can accept invitations here." />;
+  }
   if (!membership) {
     const setup = `${routes.parentSetup}?next=${encodeURIComponent(here)}` as Route;
     return (

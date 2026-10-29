@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 /**
  * Marks the page's Supabase session cookie as expired so the next request must use the refresh
@@ -36,4 +36,29 @@ export async function expireAccessToken(page: Page): Promise<void> {
       httpOnly,
     })),
   );
+}
+
+/**
+ * Fills the profile-completion dialog every new parent sees (ADR 0008) and waits for it to
+ * close. Selects render their options in a portal, so options are found on the page.
+ */
+export async function completeParentProfile(
+  page: Page,
+  details: { dateOfBirth?: string; country?: string; gender?: string } = {},
+): Promise<void> {
+  const dialog = page.getByRole("alertdialog", { name: "Finish your profile" });
+  await expect(dialog).toBeVisible();
+  await dialog
+    .getByLabel("Date of birth", { exact: true })
+    .fill(details.dateOfBirth ?? "1985-06-15");
+  await dialog.getByRole("combobox", { name: "Country" }).click();
+  await page
+    .getByRole("option", { name: details.country ?? "United Kingdom", exact: true })
+    .click();
+  await dialog.getByRole("combobox", { name: "Gender" }).click();
+  await page
+    .getByRole("option", { name: details.gender ?? "Prefer not to say", exact: true })
+    .click();
+  await dialog.getByRole("button", { name: "Save and continue" }).click();
+  await expect(dialog).toBeHidden();
 }
