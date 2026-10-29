@@ -29,6 +29,27 @@ describe("parseMoney", () => {
     expect(parseMoney("5.5", "JPY")).toBeNull();
   });
 
+  it.each(["5.", ".5", "1e3", "5₹5", "1,00", "1,0000", ",100", "100,"])(
+    "rejects %j (INR)",
+    (input) => {
+      expect(parseMoney(input, "INR")).toBeNull();
+    },
+  );
+
+  it("accepts symbols only at the start or end", () => {
+    expect(parseMoney("5₹", "INR")).toBe(500);
+    expect(parseMoney("₹ 1,000.50", "INR")).toBe(100050);
+  });
+
+  it("rejects a decimal comma instead of guessing", () => {
+    expect(parseMoney("5,50", "EUR")).toBeNull();
+    expect(parseMoney("1,000", "EUR")).toBe(100000);
+  });
+
+  it("rejects values beyond the safe integer range", () => {
+    expect(parseMoney("90071992547409.92", "INR")).toBeNull();
+  });
+
   it("strips multi-character symbols", () => {
     expect(parseMoney("A$5", "AUD")).toBe(500);
     expect(parseMoney("£5.25", "GBP")).toBe(525);

@@ -31,7 +31,11 @@ export function formatMoney(
   }).format(minor / factor);
 }
 
+const symbolCache = new Map<string, string[]>();
+
 function currencySymbols(currency: string): string[] {
+  const cached = symbolCache.get(currency);
+  if (cached) return cached;
   const symbols = new Set<string>();
   for (const locale of SYMBOL_LOCALES) {
     for (const display of ["symbol", "narrowSymbol"] as const) {
@@ -46,17 +50,33 @@ function currencySymbols(currency: string): string[] {
     }
   }
   // Longest first so "A$" is removed before "$".
-  return [...symbols].sort((a, b) => b.length - a.length);
+  const sorted = [...symbols].sort((a, b) => b.length - a.length);
+  symbolCache.set(currency, sorted);
+  return sorted;
 }
+
+/** Remove one currency symbol from the start or end of the text, never mid-string. */
+function stripSymbol(text: string, currency: string): string {
+  for (const symbol of currencySymbols(currency)) {
+    if (text.startsWith(symbol)) return text.slice(symbol.length).trim();
+    if (text.endsWith(symbol)) return text.slice(0, -symbol.length).trim();
+  }
+  return text;
+}
+
+// A comma is only ever a thousands separator; "5,50" is ambiguous and rejected.
+const THOUSANDS = /^\d{1,3}(,\d{3})+(\.\d+)?$/;
 
 /**
  * Parse a major-unit string ("5.50", "₹1,000") to minor units.
  * Returns null when invalid, negative, or more precise than the currency allows.
  */
 export function parseMoney(input: string, currency: string): number | null {
-  let text = input.trim();
-  for (const symbol of currencySymbols(currency)) text = text.split(symbol).join("");
-  text = text.replace(/[\s, ]/g, "");
+  let text = stripSymbol(input.trim(), currency).replace(/[\s\u00a0\u202f]/g, "");
+  if (text.includes(",")) {
+    if (!THOUSANDS.test(text)) return null;
+    text = text.replace(/,/g, "");
+  }
 
   const match = /^(\d+)(?:\.(\d+))?$/.exec(text);
   if (!match) return null;
