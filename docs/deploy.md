@@ -26,13 +26,7 @@ To change a value from a terminal: `printf '<value>' | vercel env add NAME produ
 
 ## Supabase auth settings for production
 
-Supabase → Authentication → URL Configuration:
-
-- Site URL: `https://jarso.vercel.app`
-- Redirect URLs: add `https://jarso.vercel.app/auth/callback**` and keep `http://localhost:3000/auth/callback**` for local development. The `**` matters: sign-up appends `?next=…`, and an exact entry would not match it.
-- Email Templates → Confirm signup: paste the template from [auth.md → Hosted setup](auth.md#hosted-setup), so confirmation links work on any device.
-
-Without the redirect URL, confirmation emails sent from production cannot land back in the app.
+Applied from the repo: `supabase/config.toml` has a `[remotes.production]` block (Site URL, redirect URLs for production and localhost, secure password change, and the hosted-only values pinned). `supabase config diff` previews, `supabase config push --yes` applies. Dashboard-only items and the free-tier email limits are in `docs/auth.md` → "Hosted setup".
 
 ## How deploys happen
 

@@ -49,10 +49,15 @@ Supabase Auth with cookie sessions via `@supabase/ssr`.
 
 ## Hosted setup
 
-Done by hand in the Supabase dashboard; the repo can't apply it.
+Most of it is applied from the repo. `supabase/config.toml` carries a `[remotes.production]` block keyed by the project ref; `supabase config diff` previews and `supabase config push --yes` applies it to the linked project, leaving the base values for local development untouched. Applied on 2026-10-29: Site URL `https://jarso.vercel.app`; redirect URLs `https://jarso.vercel.app/auth/callback`, `https://jarso.vercel.app/auth/callback**`, `http://localhost:3000/auth/callback`, `http://localhost:3000/auth/callback**`; secure password change on. The block also pins the hosted-only values (email confirmation on, secure email change on, MFA on, hosted pooler sizes) so a push can never downgrade them to the local settings. Run `supabase config diff` after editing either section; the only expected remaining difference is the confirmation template (below).
 
-1. **Authentication → URL Configuration.** Site URL: `https://jarso.vercel.app`. Redirect URLs: `https://jarso.vercel.app/auth/callback**`, plus `http://localhost:3000/auth/callback**` for local dev against hosted. `/auth/confirm` needs no entry: the email builds it from the Site URL.
-2. **Authentication → Email Templates → Confirm signup.** Subject `Confirm your Jarso account`, body:
+Still by hand in the dashboard:
+
+1. **Email confirmation: temporarily OFF (since 2026-10-29).** Switched off in `[remotes.production.auth.email]` so sign-up needs no email while everything is test data. REQUIRED ON before any real family joins: `list_my_invitations` shows a parent the invitations addressed to their `auth.users.email` and trusts `email_confirmed_at`; with confirmation off, sign-up auto-confirms any address, so anyone could sign up with a parent's email and see, then accept, invitations meant for them. Turning it on needs custom SMTP first (item 2). Secure email change stays on.
+
+2. **Custom SMTP, before anyone outside the team signs up.** On the free tier with Supabase's default email provider two limits apply: confirmation emails are only delivered to addresses that belong to the project's team, and email templates cannot be customised (the config push of the template is rejected with "Email template modification is not available for free tier projects using the default email provider"). Configure a custom SMTP provider (Resend offers SMTP once a sending domain is verified) under Authentication → SMTP Settings; after that, push the template with `supabase config push` and raise `auth.rate_limit.email_sent` in the `[remotes.production]` block.
+
+3. **Confirm signup template** (applies once custom SMTP exists). Subject `Confirm your Jarso account`, body:
 
 ```html
 <h2>Confirm your email</h2>
@@ -64,11 +69,9 @@ Done by hand in the Supabase dashboard; the repo can't apply it.
 <p>If you didn't sign up for Jarso, you can ignore this email.</p>
 ```
 
-Keep it identical to `supabase/templates/confirmation.html`. The link goes to the Site URL's host, so the Site URL must be the app's real origin.
+Keep it identical to `supabase/templates/confirmation.html`; the push reads that file. Until it is applied, the hosted project sends Supabase's default template, whose link goes through the PKCE code exchange at `/auth/callback` and therefore only works in the browser that started the sign-up. `/auth/confirm` (token hash, any browser) becomes active with the custom template.
 
-3. **Authentication → Providers → Email → Secure password change: on** (matches `secure_password_change = true` in `supabase/config.toml`). It makes a password change need a recent sign-in, which narrows the child-password bypass described under *Children*. It doesn't close it on its own: a freshly minted child session counts as recent. The full fix, if the plan allows auth hooks, is a **Password Verification Attempt** hook that rejects users whose `app_metadata.jarso_role` is `child`; until then the password rotation on every PIN sign-in and reset is what ends a self-set password.
-
-4. **Authentication → Providers → Email → Confirm email: ON** and **Secure email change: ON**. REQUIRED: `list_my_invitations` shows a parent the invitations addressed to their `auth.users.email` and trusts `email_confirmed_at`. With confirmation off, sign-up auto-confirms any address (as the local stack does, `enable_confirmations = false`), so anyone could sign up with a parent's email and see, then accept, invitations meant for them. Secure email change keeps a changed email unconfirmed until both addresses approve it.
+4. **Secure password change** is on (pushed). It makes a password change need a recent sign-in, which narrows the child-password bypass described under *Children*. It doesn't close it on its own: a freshly minted child session counts as recent. The full fix, if the plan allows auth hooks, is a **Password Verification Attempt** hook that rejects users whose `app_metadata.jarso_role` is `child`; until then the password rotation on every PIN sign-in and reset is what ends a self-set password.
 
 ## Adding OAuth providers
 
