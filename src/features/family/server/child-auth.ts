@@ -24,6 +24,7 @@ export async function createChildAuthUser(): Promise<string> {
     app_metadata: { jarso_role: "child" },
   });
   if (error) {
+    logger.error("Child auth user creation failed", { code: error.code, status: error.status });
     throw new AppError("INTERNAL", "We couldn't create the child account. Please try again.", {
       cause: error,
     });
