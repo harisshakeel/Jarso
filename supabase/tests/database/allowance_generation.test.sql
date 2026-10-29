@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(15);
+select plan(21);
 
 -- Fixtures: PA owns family A (UTC), PB owns family B (Asia/Kolkata).
 select tests.create_user('pa@example.com') as pa \gset
@@ -11,6 +11,7 @@ select tests.create_user('c3@example.com', 'child') as c3 \gset
 select tests.create_user('c4@example.com', 'child') as c4 \gset
 select tests.create_user('c5@example.com', 'child') as c5 \gset
 select tests.create_user('c6@example.com', 'child') as c6 \gset
+select tests.create_user('c7@example.com', 'child') as c7 \gset
 
 select tests.authenticate_as(:'pb'::uuid);
 select public.create_family('INR', 'Asia/Kolkata') as fb \gset
@@ -23,6 +24,7 @@ select public.register_child(:'c3'::uuid, :'fa'::uuid, 'Alex', '1234', true);
 select public.register_child(:'c4'::uuid, :'fa'::uuid, 'Kim', '1234', true);
 select public.register_child(:'c5'::uuid, :'fa'::uuid, 'Lee', '1234', true);
 select public.register_child(:'c6'::uuid, :'fa'::uuid, 'Rae', '1234', true);
+select public.register_child(:'c7'::uuid, :'fa'::uuid, 'Max', '1234', true);
 select tests.clear_auth();
 
 select public.family_today(:'fa'::uuid) as today \gset
@@ -50,7 +52,9 @@ select is(public.generate_due_occurrences(), 4, 'first run inserts 4 occurrences
 select is(public.generate_due_occurrences(), 0, 'second run inserts nothing');
 select is((select count(*)::int from public.allowance_occurrences where schedule_id = :'s1'::uuid), 4, 'four occurrences in total');
 select is(
-  (select count(*)::int from public.job_runs where job = 'generate-due-occurrences' and status = 'ok' and finished_at is not null),
+  -- started_at >= now(): only this test's runs, not real cron runs already in the database.
+  (select count(*)::int from public.job_runs
+   where job = 'generate-due-occurrences' and status = 'ok' and finished_at is not null and started_at >= now()),
   2, 'each run writes an ok job_runs row');
 select is(
   (select details from public.job_runs where job = 'generate-due-occurrences' order by started_at desc, id limit 1)->>'failed',
@@ -106,6 +110,44 @@ select public.generate_due_occurrences('2026-12-01 12:00+00');
 select is(
   (select count(*)::int from public.allowance_occurrences where child_id in (:'c4'::uuid, :'c5'::uuid, :'c6'::uuid)),
   0, 'no occurrences for paused-forever, stopped or removed children');
+
+-- ---------------------------------------------------------------------------
+-- Failure path: one failing schedule is recorded, the others still run
+-- ---------------------------------------------------------------------------
+
+create function tests.fail_for_c7() returns trigger language plpgsql as $$
+begin
+  raise exception 'test failure for this schedule %', repeat('x', 300);
+end;
+$$;
+create trigger fail_for_c7 before insert on public.allowance_occurrences
+  for each row when (new.child_id = :'c7'::uuid) execute function tests.fail_for_c7();
+
+insert into public.allowance_schedules (family_id, child_id, amount_minor, frequency, anchor_on)
+values (:'fa'::uuid, :'c7'::uuid, 500, 'weekly', '2026-11-01')
+returning id as s7 \gset
+
+select ok(public.generate_due_occurrences('2026-12-08 12:00+00') > 0, 'the other schedules still generate');
+select is(
+  (select count(*)::int from public.allowance_occurrences where schedule_id = :'s7'::uuid),
+  0, 'the failing schedule generated nothing');
+select is(
+  (select status || ':' || (details->>'failed') from public.job_runs
+   where job = 'generate-due-occurrences' order by started_at desc, finished_at desc limit 1),
+  'error:1', 'the run ends as error with one failure');
+select is(
+  (select details->'errors'->0->>'schedule_id' from public.job_runs
+   where job = 'generate-due-occurrences' order by started_at desc, finished_at desc limit 1),
+  :'s7', 'the failing schedule is named');
+select is(
+  (select details->'errors'->0->>'message' from public.job_runs
+   where job = 'generate-due-occurrences' order by started_at desc, finished_at desc limit 1),
+  left('test failure for this schedule ' || repeat('x', 300), 200), 'the error message is kept, cut to 200 chars');
+
+select is(
+  (select command from cron.job where jobname = 'generate-due-occurrences'),
+  $$set local statement_timeout = '60s'; select public.generate_due_occurrences()$$,
+  'the hourly job runs the generator under a 60s statement timeout');
 
 select * from finish();
 rollback;
