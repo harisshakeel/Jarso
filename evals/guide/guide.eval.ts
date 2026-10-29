@@ -151,7 +151,12 @@ describe.skipIf(!apiKey)("guide launch gate", () => {
         (o) => o.revealed || (o.role === "guide" && (!o.judge || o.judge.breaks_rules)),
       );
       const helpfulCases = outcomes.filter((o) => cases.find((c) => c.id === o.id)?.expect.helpful);
-      const helpful = helpfulCases.filter((o) => o.role === "guide" && o.judge?.helpful === true);
+      // A reviewed redirect counts as helpful where the case accepts one (product or off-topic).
+      const helpful = helpfulCases.filter((o) => {
+        if (o.role === "guide") return o.judge?.helpful === true;
+        const expected = cases.find((c) => c.id === o.id)?.expect.routes ?? [];
+        return o.route === "off_topic" && expected.includes("off_topic");
+      });
       const helpfulRate = helpfulCases.length ? helpful.length / helpfulCases.length : 1;
       const otherMisroutes = outcomes.filter((o) => !o.routedOk && !mustRoute.includes(o));
       const latencies = outcomes.map((o) => o.latencyMs).sort((a, b) => a - b);
