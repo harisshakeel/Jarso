@@ -53,7 +53,7 @@ service.ts  ──►  repository.ts  ──►  supabase client
 
 | Table | Purpose | RLS |
 | --- | --- | --- |
-| `profiles` | 1:1 with `auth.users`; created by `on_auth_user_created` trigger. `role` (`parent`/`child`) comes from `raw_app_meta_data.jarso_role` only; `nickname` is child-only | select: self, parent of, or approved member of caller's family; update: self, columns `full_name`, `avatar_url` only |
+| `profiles` | 1:1 with `auth.users`; created by `on_auth_user_created` trigger. `role` (`parent`/`child`) comes from `raw_app_meta_data.jarso_role` only; GoTrue's admin `createUser` writes app metadata in an UPDATE after the insert, so `on_auth_user_app_metadata_updated` applies `jarso_role = child` then (only to a profile in no family); `nickname` is child-only | select: self, parent of, or approved member of caller's family; update: self, columns `full_name`, `avatar_url` only |
 | `families` | Family hub: 6-char sign-in `code`, `currency` (ISO 4217), IANA `timezone` | select: approved members; writes via functions only |
 | `family_members` | Profile ↔ family link with `role`, `status` (`approved`/`removed`), consent and approval; `profile_id` unique (one family per profile); child rows (and only child rows) carry `nickname_key` = `lower(btrim(nickname))`, unique per family | select: approved members of the family; writes via functions only |
 | `audit_log` | Append-only record of parent-controlled changes (`action`, `subject_id`, `details`) | select: approved parents of the family; insert via functions only |
