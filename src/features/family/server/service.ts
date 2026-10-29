@@ -1,7 +1,7 @@
 import "server-only";
 import { clientEnv, routes } from "@/config";
 import { sendEmail } from "@/features/notifications/server";
-import { AppError, logger } from "@/lib";
+import { AppError, isAppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -60,7 +60,13 @@ async function enforceLimits(limits: Limit[], message: string): Promise<void> {
 export async function createFamily(input: CreateFamilyInput): Promise<Family> {
   await assertRole("parent");
   const db = await createClient();
-  const id = await insertFamily(db, input.currency, input.timezone);
+  const id = await insertFamily(db, input.currency, input.timezone).catch((error: unknown) => {
+    // create_family raises 22023 (VALIDATION) only for a timezone Postgres doesn't know. The
+    // timezone comes from the device, so the parent can't fix it: use UTC instead of a dead end.
+    if (!isAppError(error) || error.code !== "VALIDATION") throw error;
+    logger.warn("Device timezone rejected, using UTC", { timezone: input.timezone });
+    return insertFamily(db, input.currency, "UTC");
+  });
   const family = await findFamilyById(db, id);
   if (!family) throw new AppError("INTERNAL", "Failed to load the new family");
   return family;
@@ -188,13 +194,21 @@ export async function acceptInvitation(input: AcceptInvitationInput): Promise<Ch
     throw new AppError("NOT_FOUND", INVITATION_GONE);
   }
 
-  return addChild({
-    familyId: membership.familyId,
-    nickname: input.nickname ?? invitation.nickname,
-    pin: input.pin,
-    consent: input.consent,
-    invitationId: invitation.id,
-  });
+  try {
+    return await addChild({
+      familyId: membership.familyId,
+      nickname: input.nickname ?? invitation.nickname,
+      pin: input.pin,
+      consent: input.consent,
+      invitationId: invitation.id,
+    });
+  } catch (error) {
+    // A concurrent accept (e.g. a double tap) used the invitation between lookup and insert.
+    if (isAppError(error) && error.code === "NOT_FOUND") {
+      throw new AppError("NOT_FOUND", INVITATION_GONE, { cause: error });
+    }
+    throw error;
+  }
 }
 
 /** Child PIN sign-in (ADR 0004). Must run where cookies are writable. */

@@ -93,6 +93,36 @@ describe("addChild", () => {
   });
 });
 
+describe("createFamily", () => {
+  it("falls back to UTC when the database rejects the device timezone", async () => {
+    vi.mocked(repo.insertFamily)
+      .mockRejectedValueOnce(new AppError("VALIDATION", "Please check what you entered."))
+      .mockResolvedValueOnce("fam-1");
+    const family = { id: "fam-1", code: "ABC234", currency: "GBP", timezone: "UTC" };
+    vi.mocked(repo.findFamilyById).mockResolvedValue(family);
+
+    await expect(
+      service.createFamily({ currency: "GBP", timezone: "America/Ciudad_Juarez" }),
+    ).resolves.toEqual(family);
+    expect(repo.insertFamily).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      "GBP",
+      "America/Ciudad_Juarez",
+    );
+    expect(repo.insertFamily).toHaveBeenNthCalledWith(2, expect.anything(), "GBP", "UTC");
+  });
+
+  it("does not retry other errors", async () => {
+    vi.mocked(repo.insertFamily).mockRejectedValue(new AppError("CONFLICT", "Already in a family"));
+
+    await expect(
+      service.createFamily({ currency: "GBP", timezone: "Europe/London" }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(repo.insertFamily).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("acceptInvitation", () => {
   const input = { invite: "ABCD2345", pin: "1234", consent: true };
 
@@ -132,6 +162,20 @@ describe("acceptInvitation", () => {
 
     await expect(service.acceptInvitation(input)).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(childAuth.createChildAuthUser).not.toHaveBeenCalled();
+  });
+
+  it("shows INVITATION_GONE when a concurrent accept used the invitation first", async () => {
+    vi.mocked(repo.findInvitationByHash).mockResolvedValue({ id: "inv-1", nickname: "Sam" });
+    vi.mocked(childAuth.createChildAuthUser).mockResolvedValue("child-1");
+    vi.mocked(repo.registerChild).mockRejectedValue(
+      new AppError("NOT_FOUND", "We couldn't find that."),
+    );
+
+    await expect(service.acceptInvitation(input)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: service.INVITATION_GONE,
+    });
+    expect(childAuth.deleteChildAuthUser).toHaveBeenCalledWith("child-1");
   });
 
   it("throws FORBIDDEN for a parent without a family", async () => {
