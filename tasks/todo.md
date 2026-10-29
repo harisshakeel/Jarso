@@ -32,17 +32,17 @@ Tailwind v4 + shadcn/ui, Supabase (`@supabase/ssr`), Zod, Biome, Husky, Vitest, 
 # Slice 1 follow-ups (after PRs #9, #10)
 
 ## Blocking
-- [ ] Add child fails on hosted: GoTrue admin `createUser` errors (local OK). Get the logged code (`Child auth user creation failed`): `email_address_invalid` → change synthetic child email domain (ADR 0004, `childEmail`, sign-in/up domain checks); `weak_password` → reset hosted password rules or mixed-class token.
+- [x] Add child fails on hosted — resolved 2026-10-29. Root cause was the Vercel deployment missing `SUPABASE_SECRET_KEY`, so `createAdminClient()` threw before GoTrue was called; the `.invalid` domain and password policy were not involved (GoTrue's Admin `createUser` only syntax-checks the email). Key added to Vercel (production + preview, sensitive); add child verified against the hosted project from localhost (parent setup → add child → child PIN sign-in, no errors).
 
 ## Should fix
 - [ ] Password rotation on every PIN sign-in signs the child out of other devices (GoTrue logs out all sessions on password change). Rotate only on PIN reset; rely on hosted "Secure password change".
 - [ ] `invite:global` exhaustible by one IP: denied requests still increment. Check global cap only after per-IP/per-email limits pass.
 
 ## Hosted setup (user)
-- [ ] `pnpm db:push` (6 migrations); confirm `revoke_user_sessions` can delete `auth.sessions`.
-- [ ] Confirm-signup email template from docs/auth.md → Hosted setup.
-- [ ] Redirect URLs `<app>/auth/callback**`.
-- [ ] Enable "Secure password change"; keep default password strength.
+- [x] `pnpm db:push` (all 8 migrations applied; `migration list --linked` matches).
+- [ ] Confirm-signup email template — blocked on the free tier with the default email provider; needs custom SMTP first (docs/auth.md → Hosted setup).
+- [x] Redirect URLs (production + localhost, plain and `**`) — applied via `supabase config push` from `[remotes.production]`.
+- [x] "Secure password change" on — applied via config push. Email confirmation temporarily OFF for development (must be on before real families).
 - [ ] Delete leftover test users (`smoke…@gmail.com`, `child.jarso`).
 
 ## Later

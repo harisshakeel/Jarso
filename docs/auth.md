@@ -47,6 +47,10 @@ Supabase Auth with cookie sessions via `@supabase/ssr`.
 
 **Redirects.** Signed out, `/child` goes to `/sign-in/child` (proxy and `requireRole("child")`), never to the parent login. A child opening a parent page lands on `/child`; a parent opening `/child` lands on `/parent`. The e2e suite (`tests/e2e/onboarding.spec.ts`) covers all of these.
 
+## Children: deployment prerequisite
+
+Child accounts are created through the admin client, so every environment that creates children needs `SUPABASE_SECRET_KEY` (Vercel production and preview, local `.env.local`). Without it `createAdminClient()` throws before GoTrue is called and the parent sees the generic "couldn't create the child account" message; that was the hosted failure recorded in PR #10. GoTrue's Admin `createUser` only syntax-checks the email, so the synthetic `.invalid` domain is fine on hosted.
+
 ## Hosted setup
 
 Most of it is applied from the repo. `supabase/config.toml` carries a `[remotes.production]` block keyed by the project ref; `supabase config diff` previews and `supabase config push --yes` applies it to the linked project, leaving the base values for local development untouched. Applied on 2026-10-29: Site URL `https://jarso.vercel.app`; redirect URLs `https://jarso.vercel.app/auth/callback`, `https://jarso.vercel.app/auth/callback**`, `http://localhost:3000/auth/callback`, `http://localhost:3000/auth/callback**`; secure password change on. The block also pins the hosted-only values (email confirmation on, secure email change on, MFA on, hosted pooler sizes) so a push can never downgrade them to the local settings. Run `supabase config diff` after editing either section; the only expected remaining difference is the confirmation template (below).

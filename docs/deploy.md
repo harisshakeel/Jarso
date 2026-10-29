@@ -19,8 +19,8 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `NEXT_PUBLIC_APP_URL` | `https://jarso.vercel.app` | same as production | Used for email redirect targets and the CSRF origin check. Preview hosts still pass the CSRF check via the host match. |
 | `NEXT_PUBLIC_SUPABASE_URL` | set | set | Public by design. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | set | set | Public by design; still never committed. |
-| `SUPABASE_SECRET_KEY` | not set | not set | Only the admin client needs it and nothing calls it yet. Add it the day a trusted server job does, production only. |
-| `LOG_LEVEL` | default `info` | default | Optional. |
+| `SUPABASE_SECRET_KEY` | set (sensitive) | set (sensitive) | Required: the admin client creates child auth users (`features/family`). Previews share the production project, so they need it too. Missing it fails add-child with the generic error, which was the hosted bug behind PR #10's known issue. |
+| `LOG_LEVEL` | `info` | `info` | Optional. |
 
 To change a value from a terminal: `printf '<value>' | vercel env add NAME production --force` (pipe it; never type a key into a command line). Then redeploy.
 
