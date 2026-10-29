@@ -43,7 +43,8 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
         : await createAllowanceAction(null, formData);
       if (result.ok) {
         toast.success("Allowance saved");
-        if (changing) router.push(routes.parentAllowance(childId));
+        // A change goes back to the manage page; a new allowance to the child's page.
+        router.push(changing ? routes.parentAllowance(childId) : routes.parentChild(childId));
       }
       return result;
     },
