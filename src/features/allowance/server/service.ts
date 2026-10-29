@@ -160,6 +160,12 @@ export async function createAllowance(input: {
   );
 }
 
+const NEXT_ON = "Pick a later date: after the last allowance, after any pause, and within a year.";
+
+/**
+ * The schema already checks the amount and how often, so the database refusing a change as
+ * invalid (22023) is about the next date: put it on that field.
+ */
 export async function changeAllowance(input: {
   scheduleId: string;
   amountMinor: number;
@@ -168,7 +174,17 @@ export async function changeAllowance(input: {
 }): Promise<void> {
   const db = await createClient();
   await assertParentOfChild(await findScheduleChildId(db, input.scheduleId));
-  await conflictAs(changeSchedule(db, input), "This allowance has stopped. Set up a new one.");
+  try {
+    await conflictAs(changeSchedule(db, input), "This allowance has stopped. Set up a new one.");
+  } catch (error) {
+    if (isAppError(error) && error.code === "VALIDATION") {
+      throw new AppError("VALIDATION", NEXT_ON, {
+        fieldErrors: { nextOn: [NEXT_ON] },
+        cause: error,
+      });
+    }
+    throw error;
+  }
 }
 
 export async function pauseAllowance(input: {

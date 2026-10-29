@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(61);
+select plan(77);
 
 -- ---------------------------------------------------------------------------
 -- allowance_due_on: stepped from the anchor, month-end clamped
@@ -254,5 +254,83 @@ select is(
 select throws_ok(
   format($$update public.allowance_schedules set amount_minor = 100000000001 where id = %L$$, :'s5'),
   '23514', null, 'schedule amount above the maximum violates its check');
+-- ---------------------------------------------------------------------------
+-- Denials: a child and another family's parent cannot change, pause, resume or stop
+-- ---------------------------------------------------------------------------
+
+select tests.create_user('c5@example.com', 'child') as c5 \gset
+select tests.authenticate_as(:'pa'::uuid);
+select public.register_child(:'c5'::uuid, :'fa'::uuid, 'Ray', '1234', true);
+select public.create_allowance(:'c5'::uuid, 400, 'weekly', :'today'::date) as s6 \gset
+select tests.clear_auth();
+
+select tests.authenticate_as(:'c5'::uuid);
+select throws_ok(
+  format('select public.change_allowance(%L, 900, %L, %L)', :'s6', 'weekly', (:'today'::date + 1)),
+  'JA403', null, 'child cannot change their allowance');
+select throws_ok(format('select public.pause_allowance(%L, null, null)', :'s6'), 'JA403', null, 'child cannot pause');
+select throws_ok(format('select public.resume_allowance(%L)', :'s6'), 'JA403', null, 'child cannot resume');
+select throws_ok(format('select public.stop_allowance(%L)', :'s6'), 'JA403', null, 'child cannot stop');
+select tests.clear_auth();
+
+select tests.authenticate_as(:'pb'::uuid);
+select throws_ok(
+  format('select public.change_allowance(%L, 900, %L, %L)', :'s6', 'weekly', (:'today'::date + 1)),
+  'JA403', null, 'other-family parent cannot change');
+select throws_ok(format('select public.resume_allowance(%L)', :'s6'), 'JA403', null, 'other-family parent cannot resume');
+select throws_ok(format('select public.stop_allowance(%L)', :'s6'), 'JA403', null, 'other-family parent cannot stop');
+select tests.clear_auth();
+select is((select status from public.allowance_schedules where id = :'s6'::uuid), 'active', 'denied calls changed nothing');
+
+-- ---------------------------------------------------------------------------
+-- Manual resume after a dated pause that already ended (the hourly job has not run yet):
+-- only the periods inside the pause are skipped.
+-- ---------------------------------------------------------------------------
+
+select tests.authenticate_as(:'pa'::uuid);
+select public.pause_allowance(:'s6'::uuid, :'today'::date + 7, null);
+select tests.clear_auth();
+-- Three weeks pass: today's period becomes today - 21 and the pause ended at today - 14.
+-- Periods: today - 21 (due before the pause), today - 14 (in it), today - 7 and today (after it).
+update public.allowance_schedules
+  set anchor_on = anchor_on - 21, paused_through = paused_through - 21
+  where id = :'s6'::uuid;
+update public.allowance_occurrences
+  set due_on = due_on - 21, period_key = to_char(due_on - 21, 'YYYY-MM-DD')
+  where schedule_id = :'s6'::uuid;
+
+select tests.authenticate_as(:'pa'::uuid);
+select public.resume_allowance(:'s6'::uuid);
+select tests.clear_auth();
+select is(
+  (select array_agg(due_on order by due_on) from public.allowance_occurrences where schedule_id = :'s6'::uuid),
+  array[:'today'::date - 21, :'today'::date - 7, :'today'::date],
+  'resume after an ended pause skips only the period inside it');
+
+-- ---------------------------------------------------------------------------
+-- change_allowance while paused through a date: the next date must be after the pause
+-- ---------------------------------------------------------------------------
+
+select tests.authenticate_as(:'pa'::uuid);
+select public.pause_allowance(:'s6'::uuid, :'today'::date + 10, null);
+select throws_ok(
+  format('select public.change_allowance(%L, 400, %L, %L)', :'s6', 'weekly', (:'today'::date + 3)),
+  '22023', null, 'change while paused refuses a next date inside the pause');
+select lives_ok(
+  format('select public.change_allowance(%L, 400, %L, %L)', :'s6', 'weekly', (:'today'::date + 11)),
+  'change while paused accepts a next date after the pause');
+select tests.clear_auth();
+
+-- ---------------------------------------------------------------------------
+-- Internal helpers are not executable by service_role (the admin client) either, except
+-- generate_for_schedule, which the e2e suite (and later the demo clock) fast-forwards with
+-- ---------------------------------------------------------------------------
+
+select is(has_function_privilege('service_role', 'public.generate_for_schedule(uuid, date)', 'execute'), true, 'service_role keeps generate_for_schedule for fast-forward');
+select is(has_function_privilege('service_role', 'public.lock_allowance_for_parent(uuid)', 'execute'), false, 'service_role cannot run lock_allowance_for_parent');
+select is(has_function_privilege('service_role', 'public.lock_occurrence_for_parent(uuid)', 'execute'), false, 'service_role cannot run lock_occurrence_for_parent');
+select is(has_function_privilege('service_role', 'public.lock_gift_for_parent(uuid)', 'execute'), false, 'service_role cannot run lock_gift_for_parent');
+select is(has_function_privilege('service_role', 'public.generate_due_occurrences(timestamptz)', 'execute'), false, 'service_role cannot run generate_due_occurrences');
+
 select * from finish();
 rollback;

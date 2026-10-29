@@ -203,6 +203,23 @@ describe("conflicts", () => {
     vi.mocked(repo.stopSchedule).mockRejectedValue(new AppError("INTERNAL", "boom"));
     await expect(service.stopAllowance("s-1")).rejects.toMatchObject({ code: "INTERNAL" });
   });
+
+  it("puts a refused next date (22023) on the date field", async () => {
+    vi.mocked(repo.changeSchedule).mockRejectedValue(
+      toAppError({ code: "22023", message: "Next date must be after the pause" }, "x"),
+    );
+
+    const message =
+      "Pick a later date: after the last allowance, after any pause, and within a year.";
+    await expect(
+      service.changeAllowance({
+        scheduleId: "s-1",
+        amountMinor: 500,
+        frequency: "weekly",
+        nextOn: "2026-11-01",
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION", message, fieldErrors: { nextOn: [message] } });
+  });
 });
 
 describe("confirmHandover", () => {
