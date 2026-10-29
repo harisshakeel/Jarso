@@ -11,3 +11,4 @@ Short records of significant decisions. Copy `0000-template.md`, increment the n
 | [0005](./0005-families-hub-model.md) | Families as a hub table with many parents and many children | Accepted |
 | [0006](./0006-notifications-as-derived-records.md) | Notifications as derived records with inbox, email and push channels | Accepted |
 | [0007](./0007-removing-a-child.md) | Removing a child deletes the identity while there is no money history | Accepted |
+| [0008](./0008-parent-profile-completion.md) | Parents complete a private profile before using the app | Accepted |

@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
-import { expireAccessToken, readFamilyCode } from "./helpers";
+import { completeParentProfile, expireAccessToken, readFamilyCode } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -62,6 +62,7 @@ test("setup: parent signs up, creates a family and adds Sam", async ({ browser }
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Create account" }).click();
   await expect(parent).toHaveURL(at("/parent/setup"));
+  await completeParentProfile(parent);
   await parent.getByRole("button", { name: "Create family" }).click();
   await expect(parent).toHaveURL(at("/parent"));
   state.familyCode = await readFamilyCode(parent);

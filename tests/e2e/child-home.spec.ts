@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { readFamilyCode } from "./helpers";
+import { completeParentProfile, readFamilyCode } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Child home (jars, allowance card, history) against the LOCAL Supabase stack. */
@@ -42,6 +42,7 @@ test.beforeAll(async ({ browser }) => {
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Create account" }).click();
   await expect(parent).toHaveURL(at("/parent/setup"));
+  await completeParentProfile(parent);
   await parent.getByRole("button", { name: "Create family" }).click();
   await expect(parent).toHaveURL(at("/parent"));
   const code = await readFamilyCode(parent);

@@ -13,8 +13,8 @@ import {
   isCurrency,
 } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
-import { DisplayNameForm } from "@/features/profiles";
-import { getProfile } from "@/features/profiles/server";
+import { DisplayNameForm, ParentDetailsForm } from "@/features/profiles";
+import { getParentDetails, getProfile } from "@/features/profiles/server";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -23,10 +23,11 @@ const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
 async function ParentSettings() {
   const { user, membership } = await requireRole("parent", routes.parentSettings);
   if (!membership) redirect(routes.parentSetup);
-  const [family, children, profile] = await Promise.all([
+  const [family, children, profile, details] = await Promise.all([
     getFamily(),
     listChildren(),
     getProfile(user.id),
+    getParentDetails(user.id),
   ]);
   if (!family) redirect(routes.parentSetup);
 
@@ -56,6 +57,18 @@ async function ParentSettings() {
         <DisplayNameForm fullName={profile.fullName} />
         <SignOutButton />
       </Section>
+
+      {/* Before first completion the layout's dialog collects these; rendering the form here
+          too would duplicate its field ids. */}
+      {details ? (
+        <Section index={3} title="Your details" description="Only you can see these.">
+          <ParentDetailsForm
+            defaults={details}
+            submitLabel="Save details"
+            successMessage="Details saved"
+          />
+        </Section>
+      ) : null}
     </>
   );
 }

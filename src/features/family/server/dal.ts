@@ -4,6 +4,7 @@ import { cache } from "react";
 import { routes } from "@/config";
 import type { SessionUser } from "@/features/auth";
 import { assertUser, getCurrentUser, requireUser } from "@/features/auth/server";
+import { isParentProfileComplete } from "@/features/profiles/server";
 import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import type { Membership } from "../types";
@@ -44,10 +45,19 @@ export async function requireRole(role: Role, next: string): Promise<RoleContext
   return { user, membership: await getMembership() };
 }
 
-/** For actions / route handlers: throws UNAUTHORIZED when signed out, FORBIDDEN on wrong role. */
+const PROFILE_INCOMPLETE = "Finish your profile first.";
+
+/**
+ * For actions / route handlers: throws UNAUTHORIZED when signed out, FORBIDDEN on wrong role,
+ * and FORBIDDEN for a parent who has not completed their profile (ADR 0008), so every parent
+ * action is blocked until then, not only the ones the completion dialog covers.
+ */
 export async function assertRole(role: Role): Promise<RoleContext> {
   const user = await assertUser();
   if ((await getRole(user.id)) !== role) throw new AppError("FORBIDDEN", "You can't do that.");
+  if (role === "parent" && !(await isParentProfileComplete(user.id))) {
+    throw new AppError("FORBIDDEN", PROFILE_INCOMPLETE);
+  }
   return { user, membership: await getMembership() };
 }
 

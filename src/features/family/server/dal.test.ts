@@ -16,10 +16,12 @@ vi.mock("./repository", () => ({
   findProfileRole: vi.fn(),
   isParentOf: vi.fn(),
 }));
+vi.mock("@/features/profiles/server", () => ({ isParentProfileComplete: vi.fn() }));
 
 const auth = await import("@/features/auth/server");
 const repo = await import("./repository");
-const { assertSelfOrParentOf, requireRole } = await import("./dal");
+const profiles = await import("@/features/profiles/server");
+const { assertRole, assertSelfOrParentOf, requireRole } = await import("./dal");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -91,7 +93,41 @@ describe("assertSelfOrParentOf", () => {
       status: "approved",
     });
     vi.mocked(repo.isParentOf).mockResolvedValue(true);
+    vi.mocked(profiles.isParentProfileComplete).mockResolvedValue(true);
 
     await expect(assertSelfOrParentOf("child-1")).resolves.toBe(parent);
+  });
+});
+
+describe("assertRole and the parent profile gate (ADR 0008)", () => {
+  const user = { id: "user-1", email: "p@example.com" };
+
+  beforeEach(() => {
+    vi.mocked(auth.assertUser).mockResolvedValue(user);
+    vi.mocked(repo.findMembership).mockResolvedValue(null);
+  });
+
+  it("refuses a parent whose profile is incomplete", async () => {
+    vi.mocked(repo.findProfileRole).mockResolvedValue("parent");
+    vi.mocked(profiles.isParentProfileComplete).mockResolvedValue(false);
+
+    await expect(assertRole("parent")).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Finish your profile first.",
+    });
+  });
+
+  it("lets a parent with a complete profile through", async () => {
+    vi.mocked(repo.findProfileRole).mockResolvedValue("parent");
+    vi.mocked(profiles.isParentProfileComplete).mockResolvedValue(true);
+
+    await expect(assertRole("parent")).resolves.toMatchObject({ user });
+  });
+
+  it("never checks the profile for a child", async () => {
+    vi.mocked(repo.findProfileRole).mockResolvedValue("child");
+
+    await expect(assertRole("child")).resolves.toMatchObject({ user });
+    expect(profiles.isParentProfileComplete).not.toHaveBeenCalled();
   });
 });

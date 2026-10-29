@@ -50,6 +50,7 @@ export default defineConfig({
       testMatch: "family-settings.spec.ts",
       use: { ...devices["Desktop Chrome"] },
     },
+    { name: "profile", testMatch: "parent-profile.spec.ts", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
