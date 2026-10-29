@@ -8,7 +8,7 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 
 | FR | Requirement | Status | What exists | What is missing | Slice |
 | --- | --- | --- | --- | --- | --- |
-| FR01 | Allowance schedule and handover | **Built** | Weekly, monthly, every 3 months and yearly schedules; due exactly once from the hourly `generate-due-occurrences` job; change, pause (through a date or until resumed), resume, stop; handover with the Spend/Save split starting from the last split; not given (S10); one-time gifts that stay hidden from the child until handover (S2–S5); due badges on both sides; child allowance card and history. | The parent **reminder** while an allowance stays unconfirmed (needs the FR16 inbox). | 2, 5 |
+| FR01 | Allowance schedule and handover | Partial: all but the reminder | Weekly, monthly, every 3 months and yearly schedules; due exactly once from the hourly `generate-due-occurrences` job; change, pause (through a date or until resumed), resume, stop; handover with the Spend/Save split starting from the last split; not given (S10); one-time gifts that stay hidden from the child until handover (S2–S5); due badges on both sides; child allowance card and history. | The parent **reminder** while an allowance stays unconfirmed (needs the FR16 inbox). | 2, 5 |
 | FR02 | Personal savings goal | Not started | Nothing. | `goals`, planned split, progress and payments-remaining estimate, goal screen | rest of pilot |
 | FR03 | Spend and Save jars | Partial | `ledger_entries`, `balance()`, `list_ledger_history`; confirmed balances per jar with due shown separately; the handover records the actual split; child and parent history. | Savings deposits and withdrawals (FR14, slice 4); effect on a goal (FR02). Child split planning is deferred by decision. | 4 |
 | FR04 | Money diary | Not started | Only the ledger history view, which the diary will extend. | Child-recorded purchases and money from other sources that counts immediately, corrections with traceable history, the parent's view of the diary | 3, later |
@@ -75,7 +75,7 @@ Six of thirteen are met and three are partly met. The rest need purchases and li
 
 - Design system from `docs/design.md`: Nunito, tokens, light and dark themes with a one-click toggle, primitives including alert dialog, sheet and tabs, brand components including light and dark wordmarks, app shell with Home and Allowance navigation.
 - Delivery: CI (lint, typecheck, unit, build, gitleaks, pgTAP, e2e on a fresh Supabase), Vercel on `main`, the Supabase GitHub integration for migrations, squash-merge workflow.
-- Security for a public repo: secret scanners, redacted session logs, CSRF guard, owner-only personal data, internal SQL helpers not callable by API roles.
+- Security for a public repo: secret scanners, redacted session logs, CSRF guard, owner-only personal data, internal SQL helpers not callable by `anon` or `authenticated` (`generate_for_schedule` stays callable by `service_role` for the e2e fast-forward and the demo clock).
 
 ## Cross-cutting, not built
 
