@@ -11,6 +11,7 @@ export * from "./components/needs-you";
 export * from "./components/parent-allowance-card";
 export * from "./components/pause-sheet";
 export * from "./describe";
+export * from "./due";
 export * from "./schemas";
 export {
   cancelGiftAction,

@@ -6,9 +6,9 @@ import type { CSSProperties } from "react";
 import { Suspense } from "react";
 import { routes } from "@/config";
 import {
-  type ChildDueItem,
   ChildOverviewCard,
   type DueItem,
+  mergeDue,
   NeedsYou,
   type Schedule,
 } from "@/features/allowance";
@@ -92,13 +92,9 @@ async function ParentHome() {
 /** Everything due across the family, oldest first. */
 async function NeedsYouSection({ reads, currency }: { reads: ChildReads[]; currency: string }) {
   const perChild = await Promise.all(
-    reads.map(
-      async ({ child, due }): Promise<ChildDueItem[]> =>
-        (await due).map((item) => ({ ...item, childId: child.id, nickname: child.nickname })),
-    ),
+    reads.map(async ({ child, due }) => ({ child, due: await due })),
   );
-  const items = perChild.flat().sort((a, b) => a.dueOn.localeCompare(b.dueOn));
-  return <NeedsYou items={items} currency={currency} />;
+  return <NeedsYou items={mergeDue(perChild)} currency={currency} />;
 }
 
 async function ChildCard({ read, currency }: { read: ChildReads; currency: string }) {
