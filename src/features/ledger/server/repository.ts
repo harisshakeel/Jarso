@@ -31,15 +31,17 @@ export async function fetchBalance(db: Client, childId: string, jar: Jar): Promi
   return Number(data ?? 0);
 }
 
-/** Recorded-mode entries, newest first. */
+/** Recorded-mode entries, newest first; only those before `before` when given. */
 export async function listLedgerRows(
   db: Client,
   childId: string,
   limit: number,
+  before?: string,
 ): Promise<LedgerRow[]> {
   const { data, error } = await db.rpc("list_ledger_history", {
     p_child_id: childId,
     p_limit: limit,
+    p_before: before,
   });
   if (error) throw toAppError(error, "Failed to load history");
   return data.map((row) => ({
@@ -72,20 +74,21 @@ export async function listOccurrenceAmounts(
   }));
 }
 
-/** Allowance occurrences closed as not given, newest first. */
+/** Allowance occurrences closed as not given, newest first; only those before `before` when given. */
 export async function listClosedOccurrences(
   db: Client,
   childId: string,
   limit: number,
+  before?: string,
 ): Promise<ClosedOccurrence[]> {
-  const { data, error } = await db
+  let query = db
     .from("allowance_occurrences")
     .select("id, confirmed_at")
     .eq("child_id", childId)
     .eq("status", "closed")
-    .not("confirmed_at", "is", null)
-    .order("confirmed_at", { ascending: false })
-    .limit(limit);
+    .not("confirmed_at", "is", null);
+  if (before) query = query.lt("confirmed_at", before);
+  const { data, error } = await query.order("confirmed_at", { ascending: false }).limit(limit);
   if (error) throw toAppError(error, "Failed to load history");
   return data.flatMap((row) =>
     row.confirmed_at ? [{ id: row.id, closedAt: row.confirmed_at }] : [],

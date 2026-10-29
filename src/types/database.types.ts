@@ -476,7 +476,7 @@ isOneToOne: false
             }[]
                            },
 "list_ledger_history":
-{ Args: { "p_child_id": string,"p_limit"?: number }; Returns: {
+{ Args: { "p_before"?: string,"p_child_id": string,"p_limit"?: number }; Returns: {
               "amount_minor": number,"direction": string,"id": string,"jar": string,"kind": string,"label": string,"occurred_at": string,"source_id": string,"source_type": string
             }[]
                            },

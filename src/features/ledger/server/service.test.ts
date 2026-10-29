@@ -15,7 +15,7 @@ vi.mock("./repository", () => ({
 
 const family = await import("@/features/family/server");
 const repo = await import("./repository");
-const { getHistory, getJars } = await import("./service");
+const { getHistory, getHistoryPage, getJars } = await import("./service");
 
 const childId = "child-1";
 const row = (over: Partial<Awaited<ReturnType<typeof repo.listLedgerRows>>[number]>) => ({
@@ -106,5 +106,81 @@ describe("getHistory", () => {
       ["allowance", "occ-1", 500, null, "2026-10-20"],
     ]);
     expect(items[0]?.label).toBe("Well done");
+  });
+});
+
+describe("getHistoryPage", () => {
+  /** `n` single-row gifts, one minute apart, newest first, starting at `from`. */
+  const gifts = (n: number, from = Date.parse("2026-10-28T12:00:00Z")) =>
+    Array.from({ length: n }, (_, i) =>
+      row({
+        id: `g${i}`,
+        sourceType: "parent_gift",
+        sourceId: `gift-${i}`,
+        amountMinor: 100,
+        occurredAt: new Date(from - i * 60_000).toISOString(),
+      }),
+    );
+
+  it("is the last page when everything fits", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue(gifts(3));
+    const page = await getHistoryPage(childId);
+    expect(page.items).toHaveLength(3);
+    expect(page.olderBefore).toBeNull();
+  });
+
+  it("passes the cursor to both reads", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([]);
+    await getHistoryPage(childId, "2026-10-01T00:00:00Z");
+    expect(repo.listLedgerRows).toHaveBeenCalledWith(
+      expect.anything(),
+      childId,
+      100,
+      "2026-10-01T00:00:00Z",
+    );
+    expect(repo.listClosedOccurrences).toHaveBeenCalledWith(
+      expect.anything(),
+      childId,
+      51,
+      "2026-10-01T00:00:00Z",
+    );
+  });
+
+  it("keeps 50 items and points the cursor at the oldest one shown", async () => {
+    const rows = gifts(60);
+    vi.mocked(repo.listLedgerRows).mockResolvedValue(rows);
+    const page = await getHistoryPage(childId);
+    expect(page.items).toHaveLength(50);
+    expect(page.items.at(-1)?.id).toBe("gift-49");
+    expect(page.olderBefore).toBe(rows[49]?.occurredAt);
+  });
+
+  it("leaves a source cut in two by a full read, and anything older, to the next page", async () => {
+    // 100 rows: 49 two-row allowances, then one more allowance with only its Spend row read.
+    const start = Date.parse("2026-10-28T12:00:00Z");
+    const rows = Array.from({ length: 100 }, (_, i) =>
+      row({
+        id: `r${i}`,
+        jar: i % 2 === 0 ? "spend" : "save",
+        amountMinor: 100,
+        sourceId: `occ-${Math.floor(i / 2)}`,
+        occurredAt: new Date(start - Math.floor(i / 2) * 60_000).toISOString(),
+      }),
+    );
+    rows[99] = row({ ...rows[98], id: "r99", sourceId: "occ-50" });
+    rows[98] = row({ ...rows[98], sourceId: "occ-49" });
+    vi.mocked(repo.listLedgerRows).mockResolvedValue(rows);
+    // Not given long ago: older than the cut, so it belongs to a later page.
+    vi.mocked(repo.listClosedOccurrences).mockResolvedValue([
+      { id: "occ-old", closedAt: "2026-01-01T00:00:00Z" },
+    ]);
+
+    const page = await getHistoryPage(childId);
+    const ids = page.items.map((i) => i.id);
+    expect(ids).not.toContain("occ-49");
+    expect(ids).not.toContain("occ-50");
+    expect(ids).not.toContain("occ-old");
+    expect(page.items).toHaveLength(49);
+    expect(page.olderBefore).toBe(rows[97]?.occurredAt);
   });
 });

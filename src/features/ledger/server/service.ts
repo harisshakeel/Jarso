@@ -69,22 +69,26 @@ function groupBySource(rows: LedgerRow[]): Group[] {
       });
     }
   }
-  const list = [...groups.values()];
-  // A full page may have cut the oldest source's rows in two: drop it rather than show half.
-  if (rows.length >= ROW_LIMIT) list.pop();
-  return list;
+  return [...groups.values()];
 }
+
+export type HistoryPage = {
+  items: HistoryItem[];
+  /** Cursor for the next, older page (`before`), or null when this is the last page. */
+  olderBefore: string | null;
+};
 
 /**
  * Allowances and gifts that reached the jars (Spend and Save of one handover as one item), plus
- * allowances closed as not given (`skipped`, no amount). Newest first, at most 50.
+ * allowances closed as not given (`skipped`, no amount). Newest first, at most 50, and only
+ * those before the `before` cursor when given.
  */
-export async function getHistory(childId: string): Promise<HistoryItem[]> {
+export async function getHistoryPage(childId: string, before?: string): Promise<HistoryPage> {
   await assertSelfOrParentOf(childId);
   const db = await createClient();
   const [rows, closed, family] = await Promise.all([
-    listLedgerRows(db, childId, ROW_LIMIT),
-    listClosedOccurrences(db, childId, HISTORY_LIMIT),
+    listLedgerRows(db, childId, ROW_LIMIT, before),
+    listClosedOccurrences(db, childId, HISTORY_LIMIT + 1, before),
     getFamily(),
   ]);
   const timezone = family?.timezone ?? "UTC";
@@ -119,8 +123,23 @@ export async function getHistory(childId: string): Promise<HistoryItem[]> {
     })),
   ];
 
-  return items
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
-    .slice(0, HISTORY_LIMIT)
-    .map(({ at: _at, ...item }) => item);
+  // A full read of rows may have cut the oldest source's rows in two, and says nothing about
+  // anything older: keep only what is newer than its last row, and leave the rest to the next page.
+  const lastRow = rows.length >= ROW_LIMIT ? rows[rows.length - 1] : undefined;
+  const cutoff = lastRow ? Date.parse(lastRow.occurredAt) : Number.NEGATIVE_INFINITY;
+  const sorted = items
+    .filter((item) => Date.parse(item.at) > cutoff)
+    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+  const page = sorted.slice(0, HISTORY_LIMIT);
+  const hasOlder = sorted.length > HISTORY_LIMIT || lastRow !== undefined;
+
+  return {
+    items: page.map(({ at: _at, ...item }) => item),
+    olderBefore: hasOlder ? (page.at(-1)?.at ?? null) : null,
+  };
+}
+
+/** The newest page of history, for previews. */
+export async function getHistory(childId: string): Promise<HistoryItem[]> {
+  return (await getHistoryPage(childId)).items;
 }

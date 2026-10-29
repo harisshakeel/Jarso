@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(27);
+select plan(28);
 
 -- Fixtures: PA owns family A with child C; PB owns family B.
 select tests.create_user('pa@example.com') as pa \gset
@@ -35,6 +35,7 @@ select is(public.balance(:'c'::uuid, 'save'), 400::bigint, 'save balance = in - 
 select is(public.balance(:'c'::uuid, 'spend', 'practice'), -9999::bigint, 'practice balance kept separate');
 select is((select count(*)::int from public.list_ledger_history(:'c'::uuid)), 4, 'history is recorded only');
 select is((select amount_minor from public.list_ledger_history(:'c'::uuid, 1)), 100::bigint, 'history newest first, limit applied');
+select is((select count(*)::int from public.list_ledger_history(:'c'::uuid, 50, now() + interval '30 minutes')), 3, 'history before a cursor skips newer rows');
 select throws_ok(
   format('insert into public.ledger_entries (family_id, child_id, jar, kind, direction, amount_minor, source_type, idempotency_key) values (%L, %L, %L, %L, %L, 1, %L, %L)',
          :'fa', :'c', 'spend', 'gift_in', 'in', 'diary', 'k6'),
