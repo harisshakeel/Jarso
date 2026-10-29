@@ -66,7 +66,7 @@ async function ParentHome() {
             </li>
           ))}
         </ul>
-        <p className="text-sm">
+        <p className="flex flex-wrap items-center text-sm">
           <Link
             href={routes.parentNewChild}
             className="inline-flex min-h-11 items-center gap-1 font-semibold text-primary underline-offset-4 hover:underline"
