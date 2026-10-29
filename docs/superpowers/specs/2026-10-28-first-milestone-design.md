@@ -42,7 +42,7 @@ These resolve REQUIREMENTS.md "Open decisions" for the pilot.
 | --- | --- | --- |
 | D1 | Handover amount ≠ due amount | Confirmation **closes** the occurrence. `shortfall_minor = due − (cash + saved)` is stored on the occurrence and shown in history. Over-handover (cash + saved > due) is rejected. |
 | D2 | Purchase larger than Spend balance | **Blocked unless the parent has allowed overspending** for that child (`allow_negative_spend`, default off). When blocked, the child sees a friendly explanation (not enough in Spend; record money received or ask a parent). When allowed, Spend may go negative and is shown clearly. Spending limits still never block (FR14 / invariant 6 unchanged). This refines FR14 "always recorded": limits never block, only the balance rule can. |
-| D3 | Spending limit types | `per_purchase`, `per_week`, `per_month`. Any combination, at most one active of each type per child. |
+| D3 | Spending limit types | `per_purchase`, `per_week`, `per_month`. Any combination, at most one active of each type per child. Extended by slices 3–4 design P4 to four rule kinds. |
 | D4 | Reminder timing | First notice the day the occurrence falls due (`due`), then a `reminder` **every 3 days** while still due. |
 | D5 | Missed occurrences | Each stays due separately. No roll-up, no expiry. Parent confirms each. |
 | D6 | Schedule changes | Parent picks `starts_on` at creation. Amount/frequency changes apply from the **next** occurrence; already-due occurrences keep their amount. |

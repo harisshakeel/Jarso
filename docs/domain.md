@@ -27,6 +27,10 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Purchase | Spend recorded by the child. Limits never block it (only the Spend-below-zero rule can, unless the parent allows overspending); breaking a spending limit sends the parent a notice. |
 | Spending limit | Parent-set threshold (per purchase, per week or per month) that triggers a limit notice. Never blocks a purchase. |
 | Savings withdrawal | Request to take money from Save: `pending` → `approved` → `handed_over`, or `rejected`. Posts only at handover. Pending and approved amounts are **reserved**. |
+| Money rule | Parent-set rule for a child, one of four kinds: spending limit, withdrawal cap, auto-approve withdrawals, auto-confirm deposits. Each can be per item, per week and per month, at most one per kind and period. All off by default. |
+| Auto-approve | A withdrawal that fits every auto-approve rule is approved at once. It still waits for the parent's handover before posting. |
+| Auto-confirm | A deposit that fits every auto-confirm rule posts at once, without the parent confirming receipt. A parent-chosen exception (P6). |
+| Held (Spend) | Spend money tied up by a pending deposit. Still in the balance; excluded from what the child can spend or deposit again. |
 | Reserved | Save money tied up by a pending or approved withdrawal. Still in the balance; excluded from goal progress and from the withdrawal cap. |
 | Emergency grant | Extra money requested by the child; same approve → handover flow. Its own ledger kind. |
 | Goal | Item + price the child saves toward; progress = confirmed Save balance vs price. |
@@ -57,11 +61,11 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 
 1. Money is integer **minor units**. No floats anywhere in money math.
 2. Practice and recorded money never combine in a balance, total, or goal.
-3. Allowance, parent-gift, savings-deposit, savings-withdrawal and emergency money reach the ledger only through a parent's handover or receipt confirmation. Due and pending amounts never count as balance. Gifts the child records post immediately.
+3. Allowance, parent-gift, savings-deposit, savings-withdrawal and emergency money reach the ledger only through a parent's handover or receipt confirmation. Due and pending amounts never count as balance. Gifts the child records post immediately. The one exception is a deposit the parent's auto-confirm rule covers (P6).
 4. Each scheduled occurrence is created once and confirmed at most once. Each request posts at most once. Every balance-changing write carries an idempotency key.
 5. Pending, approved-not-handed-over, cancelled and rejected requests never touch the ledger. Handover and its ledger entry commit together.
 6. Limits never block a purchase. A limit breach produces a notice, not a rejection. Separately, a purchase that would take Spend below zero is refused unless the parent allows overspending (D2).
-7. A savings withdrawal never exceeds the unreserved Save balance, and a savings deposit never exceeds the Spend balance, checked at request and again at handover or confirmation. Pending and approved withdrawals reserve Save: included in the balance, excluded from goal progress and from the cap.
+7. A savings withdrawal never exceeds the unreserved Save balance, and a savings deposit never exceeds the Spend balance, checked at request and again at handover or confirmation. Pending and approved withdrawals reserve Save: included in the balance, excluded from goal progress and from the cap. A pending deposit holds its amount in Spend.
 8. Transfers between jars do not change total income.
 9. Spending from Spend does not change the savings estimate when future save contributions are unchanged (FR05).
 10. Simulations ("predict before deciding", alternatives) never write recorded data.

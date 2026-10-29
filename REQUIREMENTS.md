@@ -165,12 +165,24 @@ The initial topics are:
 - The parent can set spending limits for the child.
 - A purchase the child enters is recorded, and limits never block it. The one exception: a purchase that would take Spend below zero is refused unless the parent has allowed overspending.
 - When a purchase breaks a limit, the parent receives a notice showing the purchase and the limit.
+- The child can undo their own purchase within 24 hours of recording it. The undo is a reversing entry, so the purchase stays in history marked "Undone". The parent is not notified.
+
+### Money rules
+
+- The parent sets money rules per child. There are four kinds: spending limit, withdrawal cap, auto-approve withdrawals and auto-confirm deposits.
+- Each kind can be set per item, per week and per month, in any combination, with at most one rule per kind and period.
+- All rules are off by default.
+- Spending limits only notify; they never block a purchase. A withdrawal cap stops a request above the cap.
+- A withdrawal that fits every auto-approve rule set for the child is approved at once. The parent still confirms the handover before it posts, because real cash changes hands.
+- A deposit that fits every auto-confirm rule posts at once, without the parent confirming receipt. This is a parent-chosen exception to "counts only after confirmation". It stays off unless the parent sets it.
+- Auto-approved and auto-confirmed moves send no notice.
 
 ### Savings deposits
 
 - Moving money from Spend to Save is a request to the parent, with the amount. It records that the child is handing cash over.
 - The request is pending until the parent confirms receiving the cash, which posts it exactly once. The child can cancel it while pending; the parent can reject it. Cancellation and rejection leave balances unchanged.
 - A deposit never exceeds the Spend balance, checked when requested and again at confirmation.
+- A pending deposit holds its amount in Spend, so the same money cannot be spent or deposited twice.
 
 ### Savings withdrawals
 
@@ -272,3 +284,14 @@ Agree on the evaluation period, definitions, and numerical targets before launch
 - **S8 Stop.** Ends the schedule. No new occurrences; already-due ones stay due. The parent can set up a new allowance afterwards.
 - **S9 Child view when paused.** A "Paused" label, the date it runs until and the next one (or "until a parent resumes it"), and the parent's message if any.
 - **S10 Not given.** The parent can mark a due allowance as not given: it closes with no ledger entry, stops its badge and reminders, and is recorded. This refines the rule on missed occurrences above: each still stays due one by one, until the parent hands over or marks it not given.
+
+### Decided for the pilot: slices 3 and 4 (2026-10-29)
+
+- **P1 Purchase logging.** The child taps to record a purchase: an amount and an optional "what for". Automatic logging comes with a payment provider, later.
+- **P2 Withdrawals and deposits log themselves.** The ledger rows are written when the money moves: parent handover, receipt confirmation, or auto-confirm. The child never records them.
+- **P3 Save is a pretend account.** For now. A real bank account through a payment provider comes later. The step that moves the money is one function so a provider can call it.
+- **P4 Money rules are flexible.** Four rule kinds, each per item, per week and per month, in any combination. This extends the spending limit types decision above.
+- **P5 Auto-approve.** A withdrawal that fits every auto-approve rule is approved at once. It still waits for the parent's handover before posting.
+- **P6 Auto-confirm deposits.** A deposit that fits every auto-confirm rule posts at once. This is a parent-chosen exception to counting only after confirmation, and it is off unless the parent sets it.
+- **P7 Anti-goals.** All four matter equally: a parent buried in notifications, a child who gives up logging, a parent who cannot work out the rules, and a wrong balance.
+- **P8 Undo a purchase.** The child can undo their own purchase within 24 hours. The parent sees it marked "Undone" in history, with no notification.
