@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(25);
+select plan(27);
 
 -- Fixtures: PA owns family A with child C; PB owns family B.
 select tests.create_user('pa@example.com') as pa \gset
@@ -98,6 +98,14 @@ select throws_ok(
 select lives_ok(
   format($$insert into public.ledger_entries (family_id, child_id, jar, kind, direction, amount_minor, source_type, idempotency_key, reverses_entry_id) values (%L, %L, 'spend', %L, %L, %s, 'diary', %L, %L)$$, :'fa', :'c', 'gift_in', 'in', '100000000000', 'mx2', null),
   'amount at the maximum accepted');
+
+-- Money history outlives a removed child (ADR 0007): the identity is kept, never cascaded away.
+select tests.authenticate_as(:'pa'::uuid);
+select is(public.remove_child(:'c'::uuid), false, 'remove_child keeps the identity once the child has ledger rows');
+select tests.clear_auth();
+select throws_ok(
+  format('delete from auth.users where id = %L', :'c'),
+  '23503', null, 'deleting a child with ledger rows is refused, so history is never cascade-deleted');
 
 select * from finish();
 rollback;
