@@ -4,61 +4,40 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ThemeSwitch } from "./theme-switch";
 
 const setTheme = vi.fn();
-let theme = "dark";
-vi.mock("next-themes", () => ({ useTheme: () => ({ theme, setTheme }) }));
+let resolvedTheme: string | undefined = "dark";
+vi.mock("next-themes", () => ({ useTheme: () => ({ resolvedTheme, setTheme }) }));
 
 afterEach(() => {
   cleanup();
   setTheme.mockClear();
-  theme = "dark";
+  resolvedTheme = "dark";
 });
-
-async function openMenu() {
-  const trigger = screen.getByRole("button", { name: /^Theme/ });
-  fireEvent.pointerDown(trigger, { button: 0, pointerType: "mouse" });
-  fireEvent.mouseDown(trigger, { button: 0 });
-  fireEvent.pointerUp(trigger, { button: 0, pointerType: "mouse" });
-  fireEvent.click(trigger);
-  await screen.findByRole("menu");
-}
 
 describe("ThemeSwitch", () => {
   it("renders a neutral, unnamed-by-theme button before mount", () => {
     const html = renderToString(<ThemeSwitch />);
     expect(html).toContain('aria-label="Theme"');
-    expect(html).not.toContain("Theme:");
+    expect(html).not.toContain("Switch to");
   });
 
-  it("names the button with the current choice", () => {
+  it("offers the other theme in its name", () => {
     render(<ThemeSwitch />);
-    expect(screen.getByRole("button", { name: "Theme: Dark" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Switch to light theme" })).toBeInTheDocument();
   });
 
-  it("falls back to System when no choice is stored", () => {
-    theme = "";
+  it("opens no menu", () => {
     render(<ThemeSwitch />);
-    expect(screen.getByRole("button", { name: "Theme: System" })).toBeInTheDocument();
-  });
-
-  it("offers three radio options and marks the selected one", async () => {
-    render(<ThemeSwitch />);
-    await openMenu();
-    expect(screen.getAllByRole("menuitemradio")).toHaveLength(3);
-    expect(screen.getByRole("menuitemradio", { name: "Dark" })).toBeChecked();
-    expect(screen.getByRole("menuitemradio", { name: "Light" })).not.toBeChecked();
-    expect(screen.getByRole("menuitemradio", { name: "System" })).not.toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: /^Switch to/ }));
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
   it.each([
-    ["Light", "light"],
-    ["Dark", "dark"],
-    ["System", "system"],
-  ])("selecting %s calls setTheme(%s)", async (label, value) => {
-    // Start from a different theme so Dark is a real change too.
-    theme = value === "dark" ? "light" : "dark";
+    ["dark", "light"],
+    ["light", "dark"],
+  ])("one click from %s sets %s", (from, to) => {
+    resolvedTheme = from;
     render(<ThemeSwitch />);
-    await openMenu();
-    fireEvent.click(screen.getByRole("menuitemradio", { name: label }));
-    expect(setTheme).toHaveBeenCalledWith(value);
+    fireEvent.click(screen.getByRole("button", { name: `Switch to ${to} theme` }));
+    expect(setTheme).toHaveBeenCalledWith(to);
   });
 });

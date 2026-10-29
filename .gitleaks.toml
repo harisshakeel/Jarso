@@ -35,6 +35,7 @@ paths = ['''\.env\.example$''', '''pnpm-lock\.yaml$''']
 regexes = [
   '''sb_(secret|publishable)_(\.\.\.|…|\[REDACTED\])''',
   '''\[(JWT |PRIVATE KEY )?REDACTED\]''',
+  '''[?&]key=\[REDACTED\]''',
   '''ci-placeholder''',
   '''test-publishable-key''',
   '''db password leaked in message''',
