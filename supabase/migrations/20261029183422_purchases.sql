@@ -152,6 +152,7 @@ begin
   if p_amount_minor is null or p_amount_minor < 1 or p_amount_minor > 100000000000
      or pg_catalog.char_length(v_label) > 60
      or p_idempotency_key is null or pg_catalog.btrim(p_idempotency_key) = ''
+     or pg_catalog.char_length(p_idempotency_key) > 200
      or p_now is null then
     raise exception using errcode = '22023', message = 'Invalid purchase';
   end if;
@@ -218,7 +219,7 @@ as $$
 $$;
 
 comment on function public.record_purchase(uuid, bigint, text, text) is
-  'Child records a purchase from Spend (key purchase:<child>:<key>). Returns {status: recorded, entry_id, notices} or {status: not_enough_spend, free_minor}; a repeated key returns the original entry. Overspend off refuses amount > balance(spend) - held_spend; on refuses only going below held_spend. Then evaluates spending limits. JA403 (not the child), 22023 (amount outside 1..100000000000, label over 60, blank key).';
+  'Child records a purchase from Spend (key purchase:<child>:<key>). Returns {status: recorded, entry_id, notices} or {status: not_enough_spend, free_minor}; a repeated key returns the original entry. Overspend off refuses amount > balance(spend) - held_spend; on refuses only going below held_spend. Then evaluates spending limits. JA403 (not the child), 22023 (amount outside 1..100000000000, label over 60, blank key or key over 200).';
 
 -- ---------------------------------------------------------------------------
 -- undo_purchase

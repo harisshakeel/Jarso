@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(62);
+select plan(63);
 
 -- Fixtures: PA owns family A (UTC) with children C1 and C2; PB owns family B (Asia/Kolkata) with C3.
 select tests.create_user('pa@example.com') as pa \gset
@@ -60,6 +60,7 @@ select throws_ok(format($$select public.record_purchase(%L, 100000000001, null, 
 select throws_ok(format($$select public.record_purchase(%L, 100, %L, 'kv3')$$, :'c1', repeat('x', 61)), '22023', null, 'label over 60 chars rejected');
 select throws_ok(format($$select public.record_purchase(%L, 100, null, '  ')$$, :'c1'), '22023', null, 'blank key rejected');
 select throws_ok(format($$select public.record_purchase(%L, 100, null, null)$$, :'c1'), '22023', null, 'null key rejected');
+select throws_ok(format($$select public.record_purchase(%L, 100, null, %L)$$, :'c1', repeat('k', 201)), '22023', null, 'key over 200 chars rejected');
 
 select is(tests.holds_ledger_lock(:'c1'::uuid), false, 'no ledger lock before a purchase');
 select public.record_purchase(:'c1'::uuid, 300, '  Snack  ', 'p1') as r1 \gset
