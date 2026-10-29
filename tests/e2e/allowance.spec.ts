@@ -132,7 +132,7 @@ test("parent hands over a due allowance with a split", async () => {
   await expect(page.getByRole("heading", { name: "Hand over to Sam" })).toBeVisible();
   const spend = page.getByLabel("Spend (cash to Sam)");
   const save = page.getByLabel("Save (you keep)", { exact: true });
-  await expect(page.getByText("Same split as last time. Drag or type to change.")).toBeVisible();
+  await expect(page.getByText("Drag or type to change.", { exact: true })).toBeVisible();
   await expect(spend).toHaveValue("500.00");
   await expect(save).toHaveValue("0.00");
 
@@ -147,6 +147,7 @@ test("parent hands over a due allowance with a split", async () => {
 test("the next handover starts from the last split", async () => {
   const due = page.getByRole("region", { name: "Due now" });
   await due.getByRole("link", { name: /^Gift/ }).click();
+  await expect(page.getByText("Same split as last time. Drag or type to change.")).toBeVisible();
   await expect(page.getByLabel("Spend (cash to Sam)")).toHaveValue("30.00");
   await expect(page.getByLabel("Save (you keep)", { exact: true })).toHaveValue("20.00");
   await page.getByRole("button", { name: "Confirm I handed it over" }).click();

@@ -46,6 +46,7 @@ async function HandoverContent({
         dueOn={item.dueOn}
         note={item.note}
         prefill={prefillSplit(item.amountMinor, last)}
+        hasPrevious={last !== null}
       />
     </PageShell>
   );

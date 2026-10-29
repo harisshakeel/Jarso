@@ -39,6 +39,8 @@ type HandoverFormProps = {
   note: string | null;
   /** Starting split in minor units (last time's share applied to this amount). */
   prefill: Split;
+  /** True when an earlier handover set the split, so the hint can say "as last time". */
+  hasPrevious?: boolean;
 };
 
 const MONEY_ERROR = "Enter an amount like 5 or 5.50.";
@@ -54,15 +56,20 @@ export function HandoverForm({
   dueOn,
   note,
   prefill,
+  hasPrevious = false,
 }: HandoverFormProps) {
   const router = useRouter();
   const isAllowance = kind === "allowance";
   // Made on the client after mount so server and client markup agree; one key per form mount.
   const [idempotencyKey, setIdempotencyKey] = useState("");
   useEffect(() => setIdempotencyKey(crypto.randomUUID()), []);
+  // Server field errors describe the last submit, so they go once the parent edits anything.
+  const [dirty, setDirty] = useState(false);
+  const [notGivenPending, setNotGivenPending] = useState(false);
 
   const [state, action, pending] = useActionState(
     async (_prev: ActionState<HandoverResult>, formData: FormData) => {
+      setDirty(false);
       const result = await confirmHandoverAction(null, formData);
       if (result.ok) {
         toast.success(
@@ -84,7 +91,7 @@ export function HandoverForm({
   const short = isAllowance && valid && total > 0 && total < amountMinor ? amountMinor - total : 0;
   const over = isAllowance && valid && total > amountMinor;
 
-  const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
+  const fieldErrors = !dirty && state?.ok === false ? state.error.fieldErrors : undefined;
   const cashError = cash.trim() && cashMinor === null ? MONEY_ERROR : fieldErrors?.cash?.[0];
   const savedError = saved.trim() && savedMinor === null ? MONEY_ERROR : fieldErrors?.saved?.[0];
   const totalError = over
@@ -92,12 +99,14 @@ export function HandoverForm({
     : undefined;
 
   function setShare(percent: number) {
+    setDirty(true);
     const share = Math.round((amountMinor * percent) / 100);
     setSaved(toMajorString(share, currency));
     setCash(toMajorString(amountMinor - share, currency));
   }
 
   function typeSaved(value: string) {
+    setDirty(true);
     setSaved(value);
     const minor = parseMoney(value, currency);
     // Spend takes the rest of what was due, so the parent only types one number.
@@ -109,7 +118,9 @@ export function HandoverForm({
   const spendWidth = valid && barBase > 0 ? (cashMinor / barBase) * 100 : 0;
   const saveWidth = valid && barBase > 0 ? (savedMinor / barBase) * 100 : 0;
   const sliderValue =
-    valid && amountMinor > 0 ? Math.min(100, Math.round((savedMinor / amountMinor) * 100)) : 0;
+    valid && amountMinor > 0
+      ? Math.min(100, Math.round(((savedMinor / amountMinor) * 100) / 5) * 5)
+      : 0;
 
   return (
     <form action={action} className="grid gap-4" noValidate>
@@ -155,7 +166,10 @@ export function HandoverForm({
               inputMode="decimal"
               autoComplete="off"
               value={cash}
-              onChange={(event) => setCash(event.target.value)}
+              onChange={(event) => {
+                setDirty(true);
+                setCash(event.target.value);
+              }}
               errors={cashError ? [cashError] : undefined}
             />
             <Field
@@ -168,7 +182,11 @@ export function HandoverForm({
               errors={savedError ? [savedError] : undefined}
             />
           </div>
-          <p className="text-ink-2 text-sm">Same split as last time. Drag or type to change.</p>
+          <p className="text-ink-2 text-sm">
+            {hasPrevious
+              ? "Same split as last time. Drag or type to change."
+              : "Drag or type to change."}
+          </p>
           <FieldError errors={totalError ? [totalError] : undefined} />
           {short > 0 ? (
             <p role="status" className="text-ink-2 text-sm">
@@ -184,17 +202,31 @@ export function HandoverForm({
         </CardContent>
       </Card>
 
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError
+        message={
+          !dirty && state?.ok === false && !state.error.fieldErrors
+            ? state.error.message
+            : undefined
+        }
+      />
       <div className="flex flex-col gap-3">
         <Button
           type="submit"
           size="lg"
           loading={pending}
-          disabled={!idempotencyKey || !valid || over}
+          disabled={!idempotencyKey || !valid || over || notGivenPending}
         >
           Confirm I handed it over
         </Button>
-        {isAllowance ? <NotGivenButton id={id} childId={childId} nickname={nickname} /> : null}
+        {isAllowance ? (
+          <NotGivenButton
+            id={id}
+            childId={childId}
+            nickname={nickname}
+            disabled={pending}
+            onPendingChange={setNotGivenPending}
+          />
+        ) : null}
         <Link
           href={routes.parentAllowance(childId)}
           className={buttonVariants({ variant: "ghost", size: "lg" })}
@@ -210,15 +242,21 @@ function NotGivenButton({
   id,
   childId,
   nickname,
+  disabled,
+  onPendingChange,
 }: {
   id: string;
   childId: string;
   nickname: string;
+  disabled: boolean;
+  onPendingChange: (pending: boolean) => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
+
+  useEffect(() => onPendingChange(pending), [pending, onPendingChange]);
 
   function confirm() {
     setError(undefined);
@@ -235,7 +273,9 @@ function NotGivenButton({
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger render={<Button type="button" variant="outline" size="lg" />}>
+      <AlertDialogTrigger
+        render={<Button type="button" variant="outline" size="lg" disabled={disabled} />}
+      >
         Mark as not given
       </AlertDialogTrigger>
       <AlertDialogContent>
