@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   allowanceSchema,
+  changeAllowanceSchema,
   familyToday,
   giftSchema,
   handoverSchema,
@@ -45,10 +46,29 @@ describe("allowanceSchema", () => {
     expect(messages(result)).toContain("Enter an amount like 500.");
   });
 
+  it("rejects a first date more than 366 days ahead", () => {
+    expect(
+      allowanceSchema("GBP", today).safeParse({ ...valid, firstOn: "2027-10-30" }).success,
+    ).toBe(true);
+    const far = allowanceSchema("GBP", today).safeParse({ ...valid, firstOn: "2027-10-31" });
+    expect(messages(far)).toContain("Pick a date within a year.");
+  });
+
   it("rejects zero and unknown frequencies", () => {
     expect(allowanceSchema("GBP", today).safeParse({ ...valid, amount: "0" }).success).toBe(false);
     expect(allowanceSchema("GBP", today).safeParse({ ...valid, frequency: "daily" }).success).toBe(
       false,
+    );
+  });
+});
+
+describe("changeAllowanceSchema", () => {
+  it("rejects a next date more than 366 days ahead", () => {
+    const base = { scheduleId: id, amount: "5", frequency: "weekly" };
+    const schema = changeAllowanceSchema("GBP", today);
+    expect(schema.safeParse({ ...base, nextOn: "2027-10-30" }).success).toBe(true);
+    expect(messages(schema.safeParse({ ...base, nextOn: "2027-10-31" }))).toContain(
+      "Pick a date within a year.",
     );
   });
 });
@@ -76,8 +96,19 @@ describe("giftSchema", () => {
     );
   });
 
+  it("rejects a give-on date more than 366 days ahead, new or edited", () => {
+    const far = giftSchema("GBP", today).safeParse({ ...valid, giveOn: "2027-10-31" });
+    expect(messages(far)).toContain("Pick a date within a year.");
+    const edited = updateGiftSchema("GBP", today).safeParse({
+      giftId: id,
+      amount: "10",
+      giveOn: "2027-10-31",
+    });
+    expect(messages(edited)).toContain("Pick a date within a year.");
+  });
+
   it("lets an edit keep a past date (the service checks a changed one)", () => {
-    const result = updateGiftSchema("GBP").safeParse({
+    const result = updateGiftSchema("GBP", today).safeParse({
       giftId: id,
       amount: "10",
       giveOn: "2026-10-01",

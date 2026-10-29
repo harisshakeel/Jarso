@@ -20,7 +20,8 @@ create table public.allowance_schedules (
   pause_message text check (char_length(pause_message) <= 140),
   created_by uuid references public.profiles (id) on delete set null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint allowance_schedules_amount_minor_max check (amount_minor <= 100000000000)
 );
 
 comment on table public.allowance_schedules is 'Recurring allowance per child (at most one active or paused). Written only by security definer functions.';
@@ -61,7 +62,8 @@ create table public.allowance_occurrences (
   confirmed_by uuid references public.profiles (id) on delete set null,
   confirmed_at timestamptz,
   created_at timestamptz not null default now(),
-  unique (schedule_id, period_key)
+  unique (schedule_id, period_key),
+  constraint allowance_occurrences_amount_minor_max check (amount_minor <= 100000000000)
 );
 
 comment on table public.allowance_occurrences is 'One row per generated allowance period. Written only by security definer functions.';
@@ -266,12 +268,13 @@ begin
     raise exception using errcode = 'JA403', message = 'Not allowed';
   end if;
 
-  if p_amount_minor is null or p_amount_minor <= 0
+  if p_amount_minor is null or p_amount_minor <= 0 or p_amount_minor > 100000000000
      or p_frequency is null or p_frequency not in ('weekly', 'monthly', 'quarterly', 'annual') then
     raise exception using errcode = '22023', message = 'Invalid allowance';
   end if;
-  if p_first_on is null or p_first_on < public.family_today(v_family_id) then
-    raise exception using errcode = '22023', message = 'First date must be today or later';
+  if p_first_on is null or p_first_on < public.family_today(v_family_id)
+     or p_first_on > public.family_today(v_family_id) + 366 then
+    raise exception using errcode = '22023', message = 'First date must be from today to a year ahead';
   end if;
 
   begin
@@ -298,7 +301,7 @@ begin
 end;
 $$;
 
-comment on function public.create_allowance(uuid, bigint, text, date) is 'Parent sets up the child''s recurring allowance; a first date of today is due at once. JA403, JA409 (one already active or paused), 22023 (bad amount/frequency or first date before family today).';
+comment on function public.create_allowance(uuid, bigint, text, date) is 'Parent sets up the child''s recurring allowance; a first date of today is due at once. JA403, JA409 (one already active or paused), 22023 (bad amount/frequency, amount over 100000000000, or first date outside family today..today + 366).';
 
 create or replace function public.change_allowance(
   p_schedule_id uuid,
@@ -324,7 +327,7 @@ begin
     raise exception using errcode = 'JA409', message = 'Allowance has stopped';
   end if;
 
-  if p_amount_minor is null or p_amount_minor <= 0
+  if p_amount_minor is null or p_amount_minor <= 0 or p_amount_minor > 100000000000
      or p_frequency is null or p_frequency not in ('weekly', 'monthly', 'quarterly', 'annual') then
     raise exception using errcode = '22023', message = 'Invalid allowance';
   end if;
@@ -338,8 +341,8 @@ begin
   from public.allowance_occurrences o
   where o.schedule_id = v_s.id;
 
-  if p_next_on is null or p_next_on < v_today or p_next_on <= v_last_due then
-    raise exception using errcode = '22023', message = 'Next date must be today or later and after the last allowance';
+  if p_next_on is null or p_next_on < v_today or p_next_on > v_today + 366 or p_next_on <= v_last_due then
+    raise exception using errcode = '22023', message = 'Next date must be within a year and after the last allowance';
   end if;
 
   -- Same cadence and next date: keep the anchor, so a 31st stays the 31st after a short
@@ -370,7 +373,7 @@ begin
 end;
 $$;
 
-comment on function public.change_allowance(uuid, bigint, text, date) is 'Parent changes amount/frequency from p_next_on. Same frequency and p_next_on = the current next due date keeps the anchor; otherwise p_next_on is the new anchor. Generated occurrences keep their amount (D6); a next date of today is due at once. JA403, JA409 (stopped), 22023 (bad values, or p_next_on before today or not after the last generated due date).';
+comment on function public.change_allowance(uuid, bigint, text, date) is 'Parent changes amount/frequency from p_next_on. Same frequency and p_next_on = the current next due date keeps the anchor; otherwise p_next_on is the new anchor. Generated occurrences keep their amount (D6); a next date of today is due at once. JA403, JA409 (stopped), 22023 (bad values, amount over 100000000000, or p_next_on outside today..today + 366 or not after the last generated due date).';
 
 create or replace function public.pause_allowance(p_schedule_id uuid, p_through date, p_message text)
 returns uuid
@@ -391,8 +394,9 @@ begin
   end if;
 
   v_today := public.family_today(v_s.family_id);
-  if p_through < v_today then
-    raise exception using errcode = '22023', message = 'Pause date must be today or later';
+  -- Capped so next-due and auto-resume never walk an unbounded number of periods.
+  if p_through < v_today or p_through > v_today + 366 then
+    raise exception using errcode = '22023', message = 'Pause date must be from today to a year ahead';
   end if;
   if pg_catalog.char_length(v_message) > 140 then
     raise exception using errcode = '22023', message = 'Message is too long';
@@ -417,7 +421,7 @@ begin
 end;
 $$;
 
-comment on function public.pause_allowance(uuid, date, text) is 'Parent pauses from today, through p_through (null = until resumed), with an optional message. Catches up first. JA403, JA409 (not active), 22023 (past date, message over 140).';
+comment on function public.pause_allowance(uuid, date, text) is 'Parent pauses from today, through p_through (null = until resumed), with an optional message. Catches up first. JA403, JA409 (not active), 22023 (p_through outside today..today + 366, message over 140).';
 
 create or replace function public.resume_allowance(p_schedule_id uuid)
 returns uuid

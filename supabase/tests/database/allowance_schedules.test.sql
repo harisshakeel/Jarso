@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(54);
+select plan(61);
 
 -- ---------------------------------------------------------------------------
 -- allowance_due_on: stepped from the anchor, month-end clamped
@@ -63,6 +63,12 @@ select throws_ok(
   format('select public.create_allowance(%L, 0, %L, %L)', :'c2', 'weekly', :'today'),
   '22023', null, 'non-positive amount refused');
 select throws_ok(
+  format('select public.create_allowance(%L, 100000000001, %L, %L)', :'c2', 'weekly', :'today'),
+  '22023', null, 'amount above the maximum refused');
+select throws_ok(
+  format('select public.create_allowance(%L, 500, %L, %L)', :'c2', 'weekly', (:'today'::date + 367)),
+  '22023', null, 'first date more than 366 days ahead refused');
+select throws_ok(
   format('select public.generate_for_schedule(%L, %L)', :'s1', :'today'),
   '42501', null, 'generate_for_schedule not executable by authenticated');
 select tests.clear_auth();
@@ -99,6 +105,12 @@ select tests.authenticate_as(:'pa'::uuid);
 select throws_ok(
   format('select public.change_allowance(%L, 800, %L, %L)', :'s1', 'monthly', :'today'),
   '22023', null, 'next date not after the last generated due refused');
+select throws_ok(
+  format('select public.change_allowance(%L, 800, %L, %L)', :'s1', 'monthly', (:'today'::date + 367)),
+  '22023', null, 'next date more than 366 days ahead refused');
+select throws_ok(
+  format('select public.change_allowance(%L, 100000000001, %L, %L)', :'s1', 'monthly', (:'today'::date + 1)),
+  '22023', null, 'changed amount above the maximum refused');
 select lives_ok(
   format('select public.change_allowance(%L, 800, %L, %L)', :'s1', 'monthly', (:'today'::date + 1)),
   'change with a later next date succeeds');
@@ -169,6 +181,12 @@ select throws_ok(
 select throws_ok(
   format('select public.pause_allowance(%L, %L, null)', :'s2', (:'today'::date - 1)),
   '22023', null, 'pause through a past date refused');
+select throws_ok(
+  format('select public.pause_allowance(%L, %L, null)', :'s2', (:'today'::date + 367)),
+  '22023', null, 'pause more than 366 days ahead refused');
+select lives_ok(
+  format('select public.pause_allowance(%L, %L, null)', :'s2', (:'today'::date + 366)),
+  'pause exactly 366 days ahead accepted');
 select tests.clear_auth();
 
 -- ---------------------------------------------------------------------------
@@ -232,5 +250,9 @@ select is(
   array[row(:'m31'::date, 500::bigint)::text, row(:'m_short'::date, 900::bigint)::text, row(:'m_next31'::date, 900::bigint)::text],
   'later period returns to the 31st after the short month');
 
+-- Table backstop: amounts above 100000000000 minor never get in.
+select throws_ok(
+  format($$update public.allowance_schedules set amount_minor = 100000000001 where id = %L$$, :'s5'),
+  '23514', null, 'schedule amount above the maximum violates its check');
 select * from finish();
 rollback;

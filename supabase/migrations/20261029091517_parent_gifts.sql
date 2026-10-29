@@ -23,7 +23,8 @@ create table public.parent_gifts (
   created_by uuid references public.profiles (id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (status <> 'given' or (cash_minor is not null and saved_minor is not null and given_at is not null))
+  check (status <> 'given' or (cash_minor is not null and saved_minor is not null and given_at is not null)),
+  constraint parent_gifts_amount_minor_max check (amount_minor <= 100000000000)
 );
 
 comment on table public.parent_gifts is 'One-time gifts from a parent. The child sees a row only once it is given. Written only by security definer functions.';
@@ -114,11 +115,12 @@ begin
     raise exception using errcode = 'JA403', message = 'Not allowed';
   end if;
 
-  if p_amount_minor is null or p_amount_minor <= 0 then
+  if p_amount_minor is null or p_amount_minor <= 0 or p_amount_minor > 100000000000 then
     raise exception using errcode = '22023', message = 'Invalid gift amount';
   end if;
-  if p_give_on is null or p_give_on < public.family_today(v_family_id) then
-    raise exception using errcode = '22023', message = 'Give-on date must be today or later';
+  if p_give_on is null or p_give_on < public.family_today(v_family_id)
+     or p_give_on > public.family_today(v_family_id) + 366 then
+    raise exception using errcode = '22023', message = 'Give-on date must be from today to a year ahead';
   end if;
   if pg_catalog.char_length(v_note) > 140 then
     raise exception using errcode = '22023', message = 'Note is too long';
@@ -141,7 +143,7 @@ begin
 end;
 $$;
 
-comment on function public.create_gift(uuid, bigint, date, text) is 'Parent plans a one-time gift for the child (hidden from the child until given). Note trimmed, empty = null. JA403, 22023 (amount <= 0, give_on before family today, note over 140).';
+comment on function public.create_gift(uuid, bigint, date, text) is 'Parent plans a one-time gift for the child (hidden from the child until given). Note trimmed, empty = null. JA403, 22023 (amount outside 1..100000000000, give_on outside family today..today + 366, note over 140).';
 
 create or replace function public.update_gift(
   p_gift_id uuid,
@@ -165,13 +167,15 @@ begin
     raise exception using errcode = 'JA409', message = 'Gift is no longer pending';
   end if;
 
-  if p_amount_minor is null or p_amount_minor <= 0 then
+  if p_amount_minor is null or p_amount_minor <= 0 or p_amount_minor > 100000000000 then
     raise exception using errcode = '22023', message = 'Invalid gift amount';
   end if;
-  -- An unchanged date may already be past (a due gift); a new date may not.
+  -- An unchanged date may already be past (a due gift); a new date must be today..today + 366.
   if p_give_on is null
-     or (p_give_on <> v_g.give_on and p_give_on < public.family_today(v_g.family_id)) then
-    raise exception using errcode = '22023', message = 'Give-on date must be today or later';
+     or (p_give_on <> v_g.give_on
+         and (p_give_on < public.family_today(v_g.family_id)
+              or p_give_on > public.family_today(v_g.family_id) + 366)) then
+    raise exception using errcode = '22023', message = 'Give-on date must be from today to a year ahead';
   end if;
   if pg_catalog.char_length(v_note) > 140 then
     raise exception using errcode = '22023', message = 'Note is too long';
@@ -196,7 +200,7 @@ begin
 end;
 $$;
 
-comment on function public.update_gift(uuid, bigint, date, text) is 'Parent edits a pending gift''s amount, date and note. JA403, JA409 (not pending), 22023 (amount <= 0, a changed give_on before family today, note over 140).';
+comment on function public.update_gift(uuid, bigint, date, text) is 'Parent edits a pending gift''s amount, date and note. JA403, JA409 (not pending), 22023 (amount outside 1..100000000000, a changed give_on outside family today..today + 366, note over 140).';
 
 create or replace function public.cancel_gift(p_gift_id uuid)
 returns uuid
@@ -258,6 +262,7 @@ begin
   -- numeric avoids bigint overflow on absurd inputs.
   if p_cash_minor is null or p_saved_minor is null
      or p_cash_minor < 0 or p_saved_minor < 0
+     or p_cash_minor > 100000000000 or p_saved_minor > 100000000000
      or p_cash_minor::numeric + p_saved_minor <= 0
      or p_cash_minor::numeric + p_saved_minor > v_g.amount_minor::numeric * 100
      or p_idempotency_key is null or pg_catalog.btrim(p_idempotency_key) = '' then
@@ -301,7 +306,7 @@ begin
 end;
 $$;
 
-comment on function public.confirm_gift_handover(uuid, bigint, bigint, text) is 'Ledger keys derive from the gift; p_idempotency_key must be non-blank but is not stored. Parent records what was handed over: cash to Spend, saved to Save (sum 1..100x planned, no shortfall); label = note or ''Gift''. Exactly once: any non-pending gift (given or cancelled) returns already_confirmed. JA403, JA409 (give_on after family today), 22023.';
+comment on function public.confirm_gift_handover(uuid, bigint, bigint, text) is 'Ledger keys derive from the gift; p_idempotency_key must be non-blank but is not stored. Parent records what was handed over: cash to Spend, saved to Save (each <= 100000000000, sum 1..100x planned, no shortfall); label = note or ''Gift''. Exactly once: any non-pending gift (given or cancelled) returns already_confirmed. JA403, JA409 (give_on after family today), 22023.';
 
 -- ---------------------------------------------------------------------------
 -- Parent reads

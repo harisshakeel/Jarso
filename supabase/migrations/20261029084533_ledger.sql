@@ -45,7 +45,8 @@ create table public.ledger_entries (
   created_by uuid references public.profiles (id) on delete set null,
   occurred_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
-  check (mode = 'recorded' or source_type not in ('occurrence', 'parent_gift', 'request'))
+  check (mode = 'recorded' or source_type not in ('occurrence', 'parent_gift', 'request')),
+  constraint ledger_entries_amount_minor_max check (amount_minor <= 100000000000)
 );
 
 comment on table public.ledger_entries is 'Append-only record of all money movement; balances are derived. Written only by security definer functions.';

@@ -9,7 +9,8 @@ import { frequencies } from "./types";
  */
 
 const MAX_TEXT = 140;
-const MAX_PAUSE_DAYS = 366;
+/** Dates a parent picks are at most this far ahead (the database functions cap them too). */
+const MAX_DAYS_AHEAD = 366;
 
 /** The family's local date, ISO `YYYY-MM-DD`. */
 export function familyToday(timezone: string, now: Date = new Date()): string {
@@ -60,8 +61,13 @@ const isoDate = z
   }, "Pick a date.");
 
 /** ISO dates compare correctly as strings. */
+const withinYear = (today: string) => (value: string) => value <= addDays(today, MAX_DAYS_AHEAD);
+
+/** Today up to a year ahead. */
 const dateFrom = (today: string) =>
-  isoDate.refine((value) => value >= today, "Pick today or a later date.");
+  isoDate
+    .refine((value) => value >= today, "Pick today or a later date.")
+    .refine(withinYear(today), "Pick a date within a year.");
 
 /** Optional plain text for the child (gift note, pause message): trimmed, blank → null. */
 const childText = z
@@ -101,12 +107,7 @@ export const pauseSchema = (today: string) =>
   z.object({
     scheduleId: z.uuid(),
     through: z
-      .preprocess(
-        (value) => (value === "" ? undefined : value),
-        dateFrom(today)
-          .refine((value) => value <= addDays(today, MAX_PAUSE_DAYS), "Pick a date within a year.")
-          .optional(),
-      )
+      .preprocess((value) => (value === "" ? undefined : value), dateFrom(today).optional())
       .transform((value) => value ?? null),
     message: childText,
   });
@@ -125,12 +126,12 @@ export const giftSchema = (currency: string, today: string) =>
  * Editing may keep a give-on date that is already past (a due gift), so the date has no lower
  * bound here; `updateGift` rejects a changed date before today.
  */
-export const updateGiftSchema = (currency: string) =>
+export const updateGiftSchema = (currency: string, today: string) =>
   z
     .object({
       giftId: z.uuid(),
       amount: money(currency),
-      giveOn: isoDate,
+      giveOn: isoDate.refine(withinYear(today), "Pick a date within a year."),
       note: childText,
     })
     .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));

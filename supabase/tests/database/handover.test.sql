@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(28);
+select plan(30);
 
 select tests.create_user('pa@example.com') as pa \gset
 select tests.create_user('pb@example.com') as pb \gset
@@ -68,6 +68,12 @@ select is((select shortfall_minor from public.allowance_occurrences where id = :
 select throws_ok(format($$select public.confirm_handover(%L, 400, 200, 'k3a')$$, :'o3'), '22023', null, 'over amount rejected');
 select throws_ok(format($$select public.confirm_handover(%L, 0, 0, 'k3b')$$, :'o3'), '22023', null, 'zero total rejected');
 select throws_ok(format($$select public.confirm_handover(%L, -1, 0, 'k3c')$$, :'o3'), '22023', null, 'negative rejected');
+select throws_ok(
+  format($$select public.confirm_handover(%L, 9223372036854775807, 1, 'k3d')$$, :'o3'),
+  '22023', null, 'sum beyond bigint is 22023, not an overflow');
+select throws_ok(
+  format($$select public.confirm_handover(%L, 100000000001, 0, 'k3e')$$, :'o3'),
+  '22023', null, 'cash above the maximum rejected');
 
 -- Not given
 select is(public.mark_not_given(:'o4'::uuid), 'closed', 'not given closes');

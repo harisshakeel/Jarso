@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(66);
+select plan(73);
 
 select tests.create_user('pa@example.com') as pa \gset
 select tests.create_user('pb@example.com') as pb \gset
@@ -51,6 +51,12 @@ select throws_ok(
 select throws_ok(format($$select public.create_gift(%L, 0, %L, null)$$, :'c1', :'today'), '22023', null, 'zero amount rejected');
 select throws_ok(format($$select public.create_gift(%L, -5, %L, null)$$, :'c1', :'today'), '22023', null, 'negative amount rejected');
 select throws_ok(format($$select public.create_gift(%L, 100, null, null)$$, :'c1'), '22023', null, 'null give_on rejected');
+select throws_ok(
+  format($$select public.create_gift(%L, 100, %L, null)$$, :'c1', (:'today'::date + 367)),
+  '22023', null, 'give_on more than 366 days ahead rejected');
+select throws_ok(
+  format($$select public.create_gift(%L, 100000000001, %L, null)$$, :'c1', :'today'),
+  '22023', null, 'amount above the maximum rejected');
 select throws_ok(
   format($$select public.create_gift(%L, 100, %L, %L)$$, :'c1', :'today', repeat('x', 141)),
   '22023', null, 'note over 140 rejected');
@@ -110,6 +116,12 @@ select throws_ok(
   '22023', null, 'update to a past date rejected');
 select throws_ok(format($$select public.update_gift(%L, 0, %L, null)$$, :'g2', :'next_week'), '22023', null, 'update to zero rejected');
 select throws_ok(
+  format($$select public.update_gift(%L, 2500, %L, null)$$, :'g2', (:'today'::date + 367)),
+  '22023', null, 'update to more than 366 days ahead rejected');
+select throws_ok(
+  format($$select public.update_gift(%L, 100000000001, %L, null)$$, :'g2', :'next_week'),
+  '22023', null, 'update to an amount above the maximum rejected');
+select throws_ok(
   format($$select public.update_gift(%L, 2500, %L, %L)$$, :'g2', :'next_week', repeat('y', 141)),
   '22023', null, 'update with long note rejected');
 
@@ -132,6 +144,14 @@ select throws_ok(format($$select public.confirm_gift_handover(%L, 100001, 0, 'k5
 select throws_ok(format($$select public.confirm_gift_handover(%L, -1, 500, 'k5c')$$, :'g5'), '22023', null, 'negative rejected');
 select throws_ok(format($$select public.confirm_gift_handover(%L, 100, 0, '  ')$$, :'g5'), '22023', null, 'blank key rejected');
 select throws_ok(format($$select public.confirm_gift_handover(%L, 100, 0, null)$$, :'g5'), '22023', null, 'null key rejected');
+select public.create_gift(:'c1'::uuid, 100000000000, :'today'::date, null) as g6 \gset
+select throws_ok(
+  format($$select public.confirm_gift_handover(%L, 100000000001, 0, 'k6a')$$, :'g6'),
+  '22023', null, 'gift cash above the maximum rejected');
+select throws_ok(
+  format($$select public.confirm_gift_handover(%L, 0, 100000000001, 'k6b')$$, :'g6'),
+  '22023', null, 'gift saved above the maximum rejected');
+select is(public.cancel_gift(:'g6'::uuid), :'g6'::uuid, 'the oversize test gift is cancelled');
 select is(public.confirm_gift_handover(:'g5'::uuid, 60000, 40000, 'k5'), 'confirmed', 'exactly 100x planned accepted');
 select is(
   (select string_agg(jar || ':' || amount_minor || ':' || label, ',' order by jar)

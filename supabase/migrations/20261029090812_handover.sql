@@ -45,10 +45,12 @@ begin
     return 'already_confirmed';
   end if;
 
+  -- numeric sums cannot overflow, so absurd inputs are 22023 rather than 22003.
   if p_cash_minor is null or p_saved_minor is null
      or p_cash_minor < 0 or p_saved_minor < 0
-     or p_cash_minor + p_saved_minor <= 0
-     or p_cash_minor + p_saved_minor > v_o.amount_minor
+     or p_cash_minor > 100000000000 or p_saved_minor > 100000000000
+     or p_cash_minor::numeric + p_saved_minor <= 0
+     or p_cash_minor::numeric + p_saved_minor > v_o.amount_minor
      or p_idempotency_key is null or pg_catalog.btrim(p_idempotency_key) = '' then
     raise exception using errcode = '22023', message = 'Invalid handover amounts';
   end if;
@@ -89,7 +91,7 @@ begin
 end;
 $$;
 
-comment on function public.confirm_handover(uuid, bigint, bigint, text) is 'Ledger keys derive from the occurrence; p_idempotency_key must be non-blank but is not stored. Parent records what was handed over: cash to Spend, saved to Save (sum 1..amount; the rest is shortfall). Exactly once: any non-due occurrence returns already_confirmed. JA403, 22023.';
+comment on function public.confirm_handover(uuid, bigint, bigint, text) is 'Ledger keys derive from the occurrence; p_idempotency_key must be non-blank but is not stored. Parent records what was handed over: cash to Spend, saved to Save (each <= 100000000000, sum 1..amount; the rest is shortfall). Exactly once: any non-due occurrence returns already_confirmed. JA403, 22023.';
 
 create or replace function public.mark_not_given(p_occurrence_id uuid)
 returns text

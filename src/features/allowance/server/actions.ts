@@ -84,7 +84,10 @@ export const createGiftAction = createAction(
 );
 
 export const updateGiftAction = createAction(
-  async () => updateGiftSchema((await getFamilyContext()).currency),
+  async () => {
+    const { currency, today } = await getFamilyContext();
+    return updateGiftSchema(currency, today);
+  },
   async (input) => {
     await updateGift(input);
     refresh();
