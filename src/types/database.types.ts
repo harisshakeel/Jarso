@@ -353,6 +353,9 @@ isOneToOne: false
 "change_allowance":
 { Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
                            },
+"confirm_handover":
+{ Args: { "p_cash_minor": number,"p_idempotency_key": string,"p_occurrence_id": string,"p_saved_minor": number }; Returns: string
+                           },
 "create_allowance":
 { Args: { "p_amount_minor": number,"p_child_id": string,"p_first_on": string,"p_frequency": string }; Returns: string
                            },
@@ -423,6 +426,32 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"lock_occurrence_for_parent":
+{ Args: { "p_occurrence_id": string }; Returns: {
+              "amount_minor": number,
+"cash_minor": number | null,
+"child_id": string,
+"confirmed_at": string | null,
+"confirmed_by": string | null,
+"created_at": string,
+"due_on": string,
+"family_id": string,
+"id": string,
+"period_key": string,
+"saved_minor": number | null,
+"schedule_id": string,
+"shortfall_minor": number,
+"status": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "allowance_occurrences"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"mark_not_given":
+{ Args: { "p_occurrence_id": string }; Returns: string
+                           },
 "pause_allowance":
 { Args: { "p_message": string,"p_schedule_id": string,"p_through": string }; Returns: string
                            },
