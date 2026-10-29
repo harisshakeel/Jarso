@@ -41,7 +41,7 @@ REDACTIONS: List[Tuple[re.Pattern, str]] = [
     # Connection strings with embedded passwords
     (re.compile(r'((?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://[A-Za-z0-9._%\-]+:)[A-Za-z0-9._%+!$*#~\-]{4,}@'), r'\1[REDACTED]@'),
     # Session keys in local tool URLs (e.g. the brainstorm mockup server's http://localhost:port/?key=…)
-    (re.compile(r'(https?://(?:localhost|127\.0\.0\.1)(?::\d+)?/\S*?[?&]key=)[A-Za-z0-9_\-]{16,}'),
+    (re.compile(r'(https?://(?:localhost|127\.0\.0\.1)(?::\d+)?(?:/\S*?)?[?&]key=)[A-Za-z0-9_\-]{16,}'),
      r'\1[REDACTED]'),
     # Authorization headers
     (re.compile(r'(?i)(bearer\s+)[A-Za-z0-9_\-.=]{16,}'), r'\1[REDACTED]'),
