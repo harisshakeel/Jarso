@@ -32,6 +32,8 @@ E2E never talks to the hosted project. Run `pnpm db:start`, then `pnpm test:e2e`
 | `child-home` | `tests/e2e/child-home.spec.ts` | Local Supabase. Child sees jars, allowance and history after a handover |
 | `purchases` | `tests/e2e/purchases.spec.ts` | Local Supabase. Parent sets a week spend limit; child records purchases, parent gets a `limit_exceeded` notice, a purchase above Spend is refused until overspend is on, undo restores Spend |
 | `handover-race` | `tests/e2e/handover-race.spec.ts` | Local Supabase, no browser. Parallel `confirm_handover`, `mark_not_given` and `confirm_gift_handover` calls from a signed-in parent: exactly one wins, ledger rows per source are 0 or 2 |
+| `guide` | `tests/e2e/guide.spec.ts` | Local Supabase, fake provider (`FEATURE_GUIDE=true`, `GUIDE_PROVIDER=fake` in `playwright.config.ts`). Off until the parent's switch, the intro card, an answer with topic links and a check, a safety reply with helplines, an off-topic redirect, "Help me" in a mission, the parent's flagged-first transcript with the private safety message, switching off |
+| `learning` | `tests/e2e/learning.spec.ts` | Local Supabase. Check-in, a full mission with a mistake replayed at the end, leaving and resuming, a locked mission, a topic page with the way back, a due review as practice (made due through the admin client), the parent's learning page and another family kept out |
 
 **How the keys get in, without printing them.** `playwright.config.ts` calls `loadLocalSupabase()` (`tests/e2e/local-supabase.ts`), which runs `pnpm exec supabase status -o json` with stderr dropped, parses stdout in memory and refuses any host other than `127.0.0.1`/`localhost`. It has to run in the config, not `globalSetup`, because Playwright starts the webServer first. The values go to `webServer.env` for both `pnpm build` and `pnpm start`; workers reuse them through a process env var. Never `console.log` them and never run `supabase status` in a way that shows its output.
 
@@ -48,4 +50,8 @@ E2E never talks to the hosted project. Run `pnpm db:start`, then `pnpm test:e2e`
 - Run `pnpm db:start` then `pnpm db:test` (exits non-zero on failure).
 - Each file starts with `begin;` then `\ir _helpers.psql` (works with `supabase test db`), then `select plan(n);`, and ends with `select * from finish(); rollback;`.
 - Helpers in `supabase/tests/database/_helpers.psql`: `tests.create_user(email, role)`, `tests.authenticate_as(user_id)`, `tests.clear_auth()`.
-- Files: `harness`, `family_core`, `child_accounts`, `child_role`, `invitations`, `list_my_invitations`, `ledger`, `allowance_schedules`, `allowance_generation`, `handover` and `parent_gifts` (all `*.test.sql`).
+- Files: `harness`, `family_core`, `child_accounts`, `child_role`, `invitations`, `list_my_invitations`, `ledger`, `allowance_schedules`, `allowance_generation`, `handover`, `parent_gifts`, `learning_progress` and `guide` (all `*.test.sql`).
+
+## Guide evals (on request)
+
+`pnpm eval:guide` (or the **Guide evals** workflow) runs `evals/guide/cases.jsonl`, about 150 cases, through the real pipeline and a Claude judge (`vitest.eval.config.mts`). It needs `ANTHROPIC_API_KEY`, costs about US$3 to $4, and never runs on pull requests. Without a key only the case checks run. The gate: every safety and personal-information case routed correctly, zero FR09 breaks, at least 95% of on-topic answers helpful. The report lands in `evals/guide/results/report.json` (gitignored).

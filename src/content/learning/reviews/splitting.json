@@ -1,0 +1,213 @@
+[
+  {
+    "type": "split",
+    "key": "amounts-r1",
+    "skill": "split.amounts",
+    "prompt": "Lee gets {m:1500} and wants {m:900} to stay in Spend. Set the split.",
+    "total": 1500,
+    "increment": 50,
+    "rule": { "exactSave": 600 },
+    "wrong": "Not quite. Spend should show {m:900}. Save gets the rest.",
+    "hints": [
+      "Look at the Spend number as you slide.",
+      "Spend and Save make {m:1500}. If Spend is {m:900}, what's left for Save?"
+    ],
+    "correct": "Nice. That's it. {m:900} in Spend and {m:600} in Save make {m:1500}."
+  },
+  {
+    "type": "amount",
+    "key": "amounts-r2",
+    "skill": "split.amounts",
+    "prompt": "Remi's allowance is {m:1800}. Remi keeps {m:1100} for Spend. How much goes to Save?",
+    "unit": "money",
+    "answer": 700,
+    "misconceptions": [
+      {
+        "value": 2900,
+        "feedback": "Not quite. That adds the two. Spend is part of the {m:1800}, so take it away."
+      },
+      { "value": 1100, "feedback": "Not quite. That's the Spend part. What's left for Save?" }
+    ],
+    "wrong": "Not quite. Save gets whatever doesn't go to Spend.",
+    "hints": ["Spend and Save together make {m:1800}.", "{m:1800} take away {m:1100}."],
+    "correct": "That's it. {m:700} goes to Save, and {m:1100} plus {m:700} makes {m:1800}."
+  },
+  {
+    "type": "split",
+    "key": "amounts-r3",
+    "skill": "split.amounts",
+    "prompt": "Ari gets {m:2000}. Split it so at least {m:1200} stays in Spend for a trip, and some goes to Save.",
+    "total": 2000,
+    "increment": 50,
+    "rule": { "minSave": 50, "maxSave": 800 },
+    "wrong": "Not quite. Check that Spend has at least {m:1200} and Save isn't empty.",
+    "hints": [
+      "Watch the Spend number as you slide.",
+      "If Save goes above {m:800}, Spend drops below {m:1200}."
+    ],
+    "correct": "Nice. That's it. Spend covers the trip, and the rest is in Save."
+  },
+  {
+    "type": "predict",
+    "key": "amounts-r4",
+    "skill": "split.amounts",
+    "prompt": "Jo takes {m:400} out of Save and puts it in Spend. Does Jo have more money in total now?",
+    "options": [
+      {
+        "id": "more",
+        "text": "Yes, {m:400} more",
+        "feedback": "Not quite. Spend goes up, but Save goes down by the same amount."
+      },
+      { "id": "same", "text": "No, the total is the same", "feedback": "That's it." },
+      {
+        "id": "less",
+        "text": "No, less than before",
+        "feedback": "Not quite. Nothing leaves Jo's jars. It just moves from one to the other."
+      }
+    ],
+    "answer": "same",
+    "outcome": "Save goes down by {m:400} and Spend goes up by {m:400}. Jo's total stays the same. Moving money between jars is never new money.",
+    "hints": ["Look at both jars.", "One jar goes up by {m:400}. What happens to the other?"],
+    "correct": "Right. The total is the same. The money just moved."
+  },
+  {
+    "type": "choice",
+    "key": "amounts-r5",
+    "skill": "split.amounts",
+    "prompt": "Noor plans {m:350} for Save and {m:550} for Spend from a {m:1000} allowance. What's off about this plan?",
+    "options": [
+      {
+        "id": "missing",
+        "text": "{m:100} isn't in either jar",
+        "feedback": "Yes. {m:350} and {m:550} make {m:900}, so {m:100} is missing."
+      },
+      {
+        "id": "save-bigger",
+        "text": "Save should be bigger",
+        "feedback": "Not quite. How much to save is Noor's choice. Check that the parts add up."
+      },
+      {
+        "id": "fine",
+        "text": "Nothing, it adds up",
+        "feedback": "Not quite. Add {m:350} and {m:550}, then compare with {m:1000}."
+      }
+    ],
+    "answer": "missing",
+    "hints": ["Add the two parts together.", "Do {m:350} and {m:550} make {m:1000}?"],
+    "correct": "Nice. That's it. The parts must add up to the whole, so {m:100} still needs a jar."
+  },
+  {
+    "type": "split",
+    "key": "share-r1",
+    "skill": "split.share",
+    "prompt": "Sam gets {m:1800}. Save exactly a third and keep the rest in Spend.",
+    "total": 1800,
+    "increment": 50,
+    "rule": { "exactSave": 600 },
+    "wrong": "Not quite. A third is one of three equal parts. Save gets one part.",
+    "hints": [
+      "Split {m:1800} into three equal parts.",
+      "Three lots of what make {m:1800}? Try {m:500}, then go up."
+    ],
+    "correct": "Nice. That's it. A third of {m:1800} is {m:600}, so {m:1200} is for Spend."
+  },
+  {
+    "type": "amount",
+    "key": "share-r2",
+    "skill": "split.share",
+    "prompt": "Kai saves a tenth of a {m:3000} birthday gift. How much goes to Save?",
+    "unit": "money",
+    "answer": 300,
+    "misconceptions": [
+      { "value": 1000, "feedback": "Not quite. That's a third. A tenth means ten equal parts." },
+      { "value": 2700, "feedback": "Not quite. That's what's left for Spend. Save gets the tenth." }
+    ],
+    "wrong": "Not quite. Split {m:3000} into ten equal parts. Save gets one.",
+    "hints": ["A tenth means ten equal parts.", "Ten lots of what make {m:3000}?"],
+    "correct": "That's it. A tenth of {m:3000} is {m:300}."
+  },
+  {
+    "type": "choice",
+    "key": "share-r3",
+    "skill": "split.share",
+    "prompt": "Which of these saves exactly half of the allowance?",
+    "options": [
+      {
+        "id": "four-of-ten",
+        "text": "{m:400} saved from {m:1000}",
+        "feedback": "Not quite. Double {m:400} is {m:800}, not {m:1000}."
+      },
+      {
+        "id": "half",
+        "text": "{m:450} saved from {m:900}",
+        "feedback": "Yes. Double {m:450} is {m:900}."
+      },
+      {
+        "id": "three-of-eight",
+        "text": "{m:300} saved from {m:800}",
+        "feedback": "Not quite. Double {m:300} is {m:600}, not {m:800}."
+      }
+    ],
+    "answer": "half",
+    "hints": [
+      "Half means the Save part, doubled, makes the whole allowance.",
+      "Double each Save amount. Which one matches its allowance?"
+    ],
+    "correct": "Nice. That's it. {m:450} and {m:450} make {m:900}."
+  },
+  {
+    "type": "predict",
+    "key": "share-r4",
+    "skill": "split.share",
+    "prompt": "Remi always saves a quarter. Remi's allowance goes up from {m:800} to {m:1200}. What happens to the Save part?",
+    "options": [
+      { "id": "up-100", "text": "It goes up by {m:100}", "feedback": "That's it." },
+      {
+        "id": "same",
+        "text": "It stays at {m:200}",
+        "feedback": "Not quite. A share changes when the whole changes. Find a quarter of {m:1200}."
+      },
+      {
+        "id": "up-400",
+        "text": "It goes up by {m:400}",
+        "feedback": "Not quite. That's the whole rise. Only a quarter of it goes to Save."
+      }
+    ],
+    "answer": "up-100",
+    "outcome": "A quarter of {m:800} is {m:200}. A quarter of {m:1200} is {m:300}. Saving a share means your saving grows when your allowance does.",
+    "hints": [
+      "Work out a quarter of each allowance.",
+      "A quarter of {m:800} is {m:200}. Now try {m:1200}."
+    ],
+    "correct": "Right. The Save part goes from {m:200} to {m:300}."
+  },
+  {
+    "type": "reason",
+    "key": "share-r5",
+    "skill": "split.share",
+    "prompt": "Why might someone save a share, like a quarter, instead of a set amount each time?",
+    "options": [
+      {
+        "id": "grows",
+        "text": "Their saving grows when their allowance grows",
+        "feedback": "That's it."
+      },
+      {
+        "id": "always-more",
+        "text": "A share is always more money",
+        "feedback": "Not quite. A share can be more or less than a set amount. It moves with the allowance."
+      },
+      {
+        "id": "no-plan",
+        "text": "With a share you never need to plan",
+        "feedback": "Not quite. You still choose the share. It just keeps working when the allowance changes."
+      }
+    ],
+    "answer": "grows",
+    "hints": [
+      "What happens to a quarter when the allowance goes up?",
+      "A set amount stays put. A share moves with the allowance."
+    ],
+    "correct": "Right. A share keeps the same balance between Spend and Save, whatever you get."
+  }
+]

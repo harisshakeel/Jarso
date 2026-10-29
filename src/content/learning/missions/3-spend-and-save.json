@@ -1,0 +1,205 @@
+{
+  "key": "spend-and-save",
+  "version": 1,
+  "day": 3,
+  "title": "Spend and Save",
+  "topic": "splitting",
+  "summary": "Split an allowance between Spend and Save, in amounts and in shares.",
+  "steps": [
+    {
+      "type": "info",
+      "key": "two-parts-one-whole",
+      "title": "Two jars, one allowance",
+      "body": "Your allowance can be split. Some goes to Spend, the cash you hold. The rest goes to Save, which your parent keeps for you. The two parts always add up to the whole.",
+      "example": "You get {m:1000}. You put {m:300} in Save. That leaves {m:700} for Spend, because {m:300} and {m:700} make {m:1000}."
+    },
+    {
+      "type": "split",
+      "key": "save-at-least",
+      "skill": "split.amounts",
+      "prompt": "You get {m:1000}. Split it so at least {m:300} goes to Save.",
+      "total": 1000,
+      "increment": 50,
+      "rule": { "minSave": 300 },
+      "wrong": "Not quite. Save has less than {m:300}. Slide more toward Save.",
+      "hints": [
+        "Watch the Save number as you move the slider.",
+        "Keep sliding until Save reaches {m:300}. More than that is fine too."
+      ],
+      "correct": "Nice. That's it. Save has at least {m:300}, and the rest is yours in Spend.",
+      "replay": {
+        "type": "split",
+        "skill": "split.amounts",
+        "prompt": "You get {m:800}. Split it so at least {m:200} goes to Save.",
+        "total": 800,
+        "increment": 50,
+        "rule": { "minSave": 200 },
+        "wrong": "Not quite. Save has less than {m:200}. Slide more toward Save.",
+        "hints": [
+          "Watch the Save number as you move the slider.",
+          "Keep sliding until Save reaches {m:200}. More than that is fine too."
+        ],
+        "correct": "Nice. That's it. Save has at least {m:200}, and the rest is yours in Spend."
+      }
+    },
+    {
+      "type": "amount",
+      "key": "spend-part",
+      "skill": "split.amounts",
+      "prompt": "You get {m:1200}. {m:450} goes to Save. How much goes to Spend?",
+      "unit": "money",
+      "answer": 750,
+      "misconceptions": [
+        {
+          "value": 1650,
+          "feedback": "Not quite. That adds the two. Save is part of the {m:1200}, so take it away."
+        },
+        { "value": 450, "feedback": "Not quite. That's the Save part. What's left for Spend?" }
+      ],
+      "wrong": "Not quite. Spend gets whatever doesn't go to Save.",
+      "hints": ["Save and Spend together make {m:1200}.", "{m:1200} take away {m:450}."],
+      "correct": "That's it. {m:750} goes to Spend, and {m:450} plus {m:750} makes {m:1200}.",
+      "replay": {
+        "type": "amount",
+        "skill": "split.amounts",
+        "prompt": "You get {m:900}. {m:350} goes to Save. How much goes to Spend?",
+        "unit": "money",
+        "answer": 550,
+        "misconceptions": [
+          {
+            "value": 1250,
+            "feedback": "Not quite. That adds the two. Save is part of the {m:900}, so take it away."
+          },
+          { "value": 350, "feedback": "Not quite. That's the Save part. What's left for Spend?" }
+        ],
+        "wrong": "Not quite. Spend gets whatever doesn't go to Save.",
+        "hints": ["Save and Spend together make {m:900}.", "{m:900} take away {m:350}."],
+        "correct": "That's it. {m:550} goes to Spend, and {m:350} plus {m:550} makes {m:900}."
+      }
+    },
+    {
+      "type": "split",
+      "key": "save-a-quarter",
+      "skill": "split.share",
+      "prompt": "You get {m:1200}. Put exactly a quarter in Save and the rest in Spend.",
+      "total": 1200,
+      "increment": 50,
+      "rule": { "exactSave": 300 },
+      "wrong": "Not quite. A quarter is one of four equal parts. Split {m:1200} into four.",
+      "hints": ["A quarter is half of a half.", "Half of {m:1200} is {m:600}. Now halve that."],
+      "correct": "Nice. That's it. A quarter of {m:1200} is {m:300}, so {m:900} is left for Spend.",
+      "replay": {
+        "type": "split",
+        "skill": "split.share",
+        "prompt": "You get {m:800}. Put exactly a quarter in Save and the rest in Spend.",
+        "total": 800,
+        "increment": 50,
+        "rule": { "exactSave": 200 },
+        "wrong": "Not quite. A quarter is one of four equal parts. Split {m:800} into four.",
+        "hints": ["A quarter is half of a half.", "Half of {m:800} is {m:400}. Now halve that."],
+        "correct": "Nice. That's it. A quarter of {m:800} is {m:200}, so {m:600} is left for Spend."
+      }
+    },
+    {
+      "type": "choice",
+      "key": "biggest-share",
+      "skill": "split.share",
+      "prompt": "Three friends each save {m:300}. Who saves the biggest share of their allowance?",
+      "options": [
+        {
+          "id": "sam",
+          "text": "Sam, who gets {m:1200}",
+          "feedback": "Not quite. {m:300} of {m:1200} is a quarter. Someone saves a bigger share."
+        },
+        {
+          "id": "jo",
+          "text": "Jo, who gets {m:600}",
+          "feedback": "Yes. {m:300} of {m:600} is half."
+        },
+        {
+          "id": "lee",
+          "text": "Lee, who gets {m:900}",
+          "feedback": "Not quite. {m:300} of {m:900} is a third. Someone saves a bigger share."
+        }
+      ],
+      "answer": "jo",
+      "hints": [
+        "Compare {m:300} with each allowance.",
+        "The fewer times {m:300} fits into an allowance, the bigger the share."
+      ],
+      "correct": "Nice. That's it. Jo saves half, Lee a third and Sam a quarter. Same amount, different shares.",
+      "replay": {
+        "type": "choice",
+        "skill": "split.share",
+        "prompt": "Three friends each save {m:500}. Who saves the biggest share of their allowance?",
+        "options": [
+          {
+            "id": "ari",
+            "text": "Ari, who gets {m:2000}",
+            "feedback": "Not quite. {m:500} of {m:2000} is a quarter. Someone saves a bigger share."
+          },
+          {
+            "id": "noor",
+            "text": "Noor, who gets {m:1500}",
+            "feedback": "Not quite. {m:500} of {m:1500} is a third. Someone saves a bigger share."
+          },
+          {
+            "id": "remi",
+            "text": "Remi, who gets {m:1000}",
+            "feedback": "Yes. {m:500} of {m:1000} is half."
+          }
+        ],
+        "answer": "remi",
+        "hints": [
+          "Compare {m:500} with each allowance.",
+          "The fewer times {m:500} fits into an allowance, the bigger the share."
+        ],
+        "correct": "Nice. That's it. Remi saves half, Noor a third and Ari a quarter. Same amount, different shares."
+      }
+    },
+    {
+      "type": "predict",
+      "key": "move-to-save",
+      "skill": "split.amounts",
+      "prompt": "Alex moves {m:300} from Spend into Save. Does Alex have more money in total now?",
+      "options": [
+        {
+          "id": "more",
+          "text": "Yes, {m:300} more",
+          "feedback": "Not quite. Save goes up, but Spend goes down by the same amount."
+        },
+        { "id": "same", "text": "No, the total is the same", "feedback": "That's it." },
+        {
+          "id": "less",
+          "text": "No, less than before",
+          "feedback": "Not quite. Nothing leaves Alex's jars. It just moves from one to the other."
+        }
+      ],
+      "answer": "same",
+      "outcome": "Spend goes down by {m:300} and Save goes up by {m:300}. The total stays the same. Moving money between jars changes where it sits, not how much there is.",
+      "hints": [
+        "Think about both jars, not just Save.",
+        "One jar goes up by {m:300}. What happens to the other?"
+      ],
+      "correct": "Right. Moving money between jars isn't new money."
+    },
+    {
+      "type": "match",
+      "key": "shares-of-twenty",
+      "skill": "split.share",
+      "prompt": "Your allowance is {m:2000}. Match each share to its amount.",
+      "pairs": [
+        { "id": "half", "term": "Half", "meaning": "{m:1000}" },
+        { "id": "quarter", "term": "A quarter", "meaning": "{m:500}" },
+        { "id": "fifth", "term": "A fifth", "meaning": "{m:400}" },
+        { "id": "tenth", "term": "A tenth", "meaning": "{m:200}" }
+      ],
+      "wrong": "Not quite. Split {m:2000} into that many equal parts, then take one part.",
+      "hints": [
+        "Half means two equal parts, a quarter four, a fifth five and a tenth ten.",
+        "Bigger shares have bigger amounts. Half is the biggest share, then a quarter."
+      ],
+      "correct": "All matched. The more parts you split into, the less each share is."
+    }
+  ]
+}

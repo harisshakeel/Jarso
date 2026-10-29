@@ -56,3 +56,5 @@ next-env.d.ts
 
 # misc
 junk/
+# guide eval reports (may hold model replies)
+/evals/guide/results/

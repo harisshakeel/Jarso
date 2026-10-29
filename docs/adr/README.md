@@ -12,3 +12,5 @@ Short records of significant decisions. Copy `0000-template.md`, increment the n
 | [0006](./0006-notifications-as-derived-records.md) | Notifications as derived records with inbox, email and push channels | Accepted |
 | [0007](./0007-removing-a-child.md) | Removing a child deletes the identity while there is no money history | Accepted |
 | [0008](./0008-parent-profile-completion.md) | Parents complete a private profile before using the app | Accepted |
+| [0009](./0009-learning-content-as-code.md) | Learning content as versioned JSON, progress in Postgres | Accepted |
+| [0010](./0010-ai-money-guide.md) | AI money guide: a screened Claude pipeline behind two switches | Accepted |

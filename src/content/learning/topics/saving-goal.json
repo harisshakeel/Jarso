@@ -1,0 +1,43 @@
+{
+  "key": "saving-goal",
+  "title": "Saving for a goal",
+  "intro": "A goal turns a price into a plan: what you've saved, what's left and how many weeks it takes.",
+  "explanation": [
+    "Your goal counts what's in Save. Money that's due but not handed over yet doesn't count. Cash in Spend doesn't count either.",
+    "What's left is the price minus what's in Save. To find how many weeks, see how many times your weekly saving fits into what's left.",
+    "If it doesn't fit exactly, round up. The last bit still needs a whole week of saving.",
+    "Spending from Spend doesn't change your goal date, as long as you keep saving the same each week."
+  ],
+  "example": {
+    "title": "Working out the weeks",
+    "lines": [
+      "Lee's goal costs {m:4500}. Save has {m:1000}.",
+      "What's left: {m:4500} take away {m:1000} is {m:3500}.",
+      "Lee saves {m:400} a week.",
+      "8 weeks gives {m:3200}, still short. 9 weeks gives {m:3600}.",
+      "So Lee needs 9 more weeks."
+    ]
+  },
+  "practice": {
+    "type": "amount",
+    "key": "topic-saving-goal-practice",
+    "skill": "goal.weeks_needed",
+    "prompt": "A goal costs {m:1400}. You start from zero and save {m:300} a week. How many weeks will it take?",
+    "unit": "count",
+    "suffix": "weeks",
+    "answer": 5,
+    "misconceptions": [
+      {
+        "value": 4,
+        "feedback": "Not quite. 4 weeks gives {m:1200}. That's {m:200} short, so round up to the next week."
+      }
+    ],
+    "wrong": "Not quite. See how many weeks of {m:300} it takes to reach {m:1400}.",
+    "hints": [
+      "Count up in steps of {m:300}.",
+      "4 weeks gives {m:1200}. Is that enough for {m:1400}?"
+    ],
+    "correct": "That's it. 5 weeks. After 4 weeks you're {m:200} short, so you round up."
+  },
+  "skills": ["goal.weeks_needed", "goal.progress"]
+}

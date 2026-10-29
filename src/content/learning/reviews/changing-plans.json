@@ -1,0 +1,156 @@
+[
+  {
+    "type": "amount",
+    "key": "adjust-r1",
+    "skill": "plan.adjust",
+    "prompt": "Jo planned to save {m:500} a week for a {m:3500} goal. Before starting, Jo raises it to {m:700} a week. How many weeks now?",
+    "unit": "count",
+    "suffix": "weeks",
+    "answer": 5,
+    "misconceptions": [
+      { "value": 7, "feedback": "Not quite. That's at the old {m:500} a week. Use {m:700}." }
+    ],
+    "wrong": "Not quite. Use the new weekly amount, then count the weeks.",
+    "hints": ["Use the new weekly amount, {m:700}.", "Count up to {m:3500} in steps of {m:700}."],
+    "correct": "That's it. 5 weeks, two weeks sooner than the old plan."
+  },
+  {
+    "type": "amount",
+    "key": "adjust-r2",
+    "skill": "plan.adjust",
+    "prompt": "Remi needs {m:2000} more for a goal. Remi takes {m:300} out of Save to fix a bike. How much does Remi need now?",
+    "unit": "money",
+    "answer": 2300,
+    "misconceptions": [
+      {
+        "value": 1700,
+        "feedback": "Not quite. Taking money out of Save means Remi needs more, not less."
+      },
+      { "value": 300, "feedback": "Not quite. That's the repair. Add it to what Remi still needs." }
+    ],
+    "wrong": "Not quite. Remi took money out of Save, so the amount still needed grows.",
+    "hints": ["Money taken out of Save has to be saved again.", "{m:2000} plus {m:300}."],
+    "correct": "That's it. Remi now needs {m:2300}. A setback, and the plan still works."
+  },
+  {
+    "type": "predict",
+    "key": "adjust-r3",
+    "skill": "plan.adjust",
+    "prompt": "Noor is just starting to save {m:500} a week for a goal. The price drops from {m:3000} to {m:2500}. What happens to the plan?",
+    "options": [
+      { "id": "one-sooner", "text": "It finishes one week sooner", "feedback": "That's it." },
+      {
+        "id": "no-change",
+        "text": "Nothing changes",
+        "feedback": "Not quite. A lower price means less to save, so fewer weeks."
+      },
+      {
+        "id": "five-sooner",
+        "text": "It finishes five weeks sooner",
+        "feedback": "Not quite. The price drops by {m:500}. That's one week of Noor's saving."
+      }
+    ],
+    "answer": "one-sooner",
+    "outcome": "At {m:3000} it would take 6 weeks. At {m:2500} it takes 5. A lower price means fewer weeks.",
+    "hints": [
+      "Work out the weeks at each price.",
+      "{m:3000} is 6 weeks of {m:500}. What about {m:2500}?"
+    ],
+    "correct": "Right. The plan finishes one week sooner."
+  },
+  {
+    "type": "choice",
+    "key": "adjust-r4",
+    "skill": "plan.adjust",
+    "prompt": "Kai's goal now takes 3 weeks longer than planned. Which is a calm way to handle it?",
+    "options": [
+      {
+        "id": "give-up",
+        "text": "Give up on saving",
+        "feedback": "Not quite. One change doesn't undo a plan. There's usually a fix."
+      },
+      {
+        "id": "fix",
+        "text": "Choose a fix, like waiting longer or saving a bit more",
+        "feedback": "Yes. Either one keeps the goal going."
+      },
+      {
+        "id": "spend-all",
+        "text": "Spend everything in Save now",
+        "feedback": "Not quite. That would push the goal further away. Look for a fix instead."
+      }
+    ],
+    "answer": "fix",
+    "hints": [
+      "What could Kai change: the time, the amount or the goal?",
+      "The best options keep the goal going."
+    ],
+    "correct": "Right. A change is a reason to adjust, not to stop."
+  },
+  {
+    "type": "split",
+    "key": "adjust-r5",
+    "skill": "plan.adjust",
+    "prompt": "Lee is {m:400} away from a goal. This week Lee gets {m:1000}. Split it so Lee reaches the goal this week.",
+    "total": 1000,
+    "increment": 50,
+    "rule": { "minSave": 400 },
+    "wrong": "Not quite. Save needs enough to close the gap to the goal.",
+    "hints": [
+      "How much more does Lee need?",
+      "Save has to cover the whole gap. More than that is fine too."
+    ],
+    "correct": "Nice. That's it. Save covers the gap, so Lee reaches the goal this week."
+  },
+  {
+    "type": "choice",
+    "key": "adjust-r6",
+    "skill": "plan.adjust",
+    "prompt": "Ari's allowance is paused for 2 weeks. What happens to the {m:1500} already in Save?",
+    "options": [
+      {
+        "id": "stays",
+        "text": "It stays in Save",
+        "feedback": "Yes. A pause stops new money. What's saved stays saved."
+      },
+      {
+        "id": "goes-down",
+        "text": "It goes down by 2 weeks of saving",
+        "feedback": "Not quite. A pause stops new money coming in. It doesn't take any out."
+      },
+      {
+        "id": "paid-back",
+        "text": "It has to be paid back",
+        "feedback": "Not quite. Nothing is paid back. What's saved stays saved."
+      }
+    ],
+    "answer": "stays",
+    "hints": [
+      "A pause stops new money. Does it touch money already saved?",
+      "Think about what's already in Save, not what's coming next."
+    ],
+    "correct": "Right. The {m:1500} stays put. Only new saving stops, so the goal moves back 2 weeks."
+  },
+  {
+    "type": "match",
+    "key": "adjust-r7",
+    "skill": "plan.adjust",
+    "prompt": "Match each change to what it does to a savings plan.",
+    "pairs": [
+      { "id": "price-up", "term": "The price goes up", "meaning": "You need more in total" },
+      { "id": "gift", "term": "A gift goes into Save", "meaning": "You need less from now on" },
+      {
+        "id": "spend-snack",
+        "term": "You buy a snack from Spend",
+        "meaning": "Your goal date stays the same"
+      },
+      { "id": "skipped", "term": "A week is skipped", "meaning": "One week adds nothing to Save" }
+    ],
+    "wrong": "Not quite. For each change, ask what it does to Save or to the price.",
+    "hints": [
+      "Think about Save and the price for each change.",
+      "Spending from Spend doesn't touch Save at all."
+    ],
+    "correct": "All matched. You can see how each change moves a plan."
+  }
+]

@@ -261,6 +261,90 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"guide_access": {
+                  Row: {
+                    "changed_at": string,"changed_by": string | null,"child_id": string,"enabled": boolean,"family_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "changed_at"?: string,"changed_by"?: string | null,"child_id": string,"enabled"?: boolean,"family_id": string
+                  }
+                  Update: {
+                    "changed_at"?: string,"changed_by"?: string | null,"child_id"?: string,"enabled"?: boolean,"family_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "guide_access_changed_by_fkey"
+      columns: ["changed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "guide_access_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "guide_access_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"guide_conversations": {
+                  Row: {
+                    "child_id": string,"context_key": string,"created_at": string,"entry": string,"family_id": string,"flagged": boolean,"id": string,"last_message_at": string,"turns": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"context_key": string,"created_at"?: string,"entry": string,"family_id": string,"flagged"?: boolean,"id"?: string,"last_message_at"?: string,"turns"?: number
+                  }
+                  Update: {
+                    "child_id"?: string,"context_key"?: string,"created_at"?: string,"entry"?: string,"family_id"?: string,"flagged"?: boolean,"id"?: string,"last_message_at"?: string,"turns"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "guide_conversations_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "guide_conversations_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"guide_messages": {
+                  Row: {
+                    "child_id": string,"conversation_id": string,"created_at": string,"flagged": boolean,"id": string,"latency_ms": number | null,"main_cache_read_tokens": number,"main_cache_write_tokens": number,"main_input_tokens": number,"main_output_tokens": number,"model": string | null,"rating": number | null,"role": string,"route": string | null,"screen_input_tokens": number,"screen_output_tokens": number,"text": string,"text_blanked_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"conversation_id": string,"created_at"?: string,"flagged"?: boolean,"id"?: string,"latency_ms"?: number | null,"main_cache_read_tokens"?: number,"main_cache_write_tokens"?: number,"main_input_tokens"?: number,"main_output_tokens"?: number,"model"?: string | null,"rating"?: number | null,"role": string,"route"?: string | null,"screen_input_tokens"?: number,"screen_output_tokens"?: number,"text": string,"text_blanked_at"?: string | null
+                  }
+                  Update: {
+                    "child_id"?: string,"conversation_id"?: string,"created_at"?: string,"flagged"?: boolean,"id"?: string,"latency_ms"?: number | null,"main_cache_read_tokens"?: number,"main_cache_write_tokens"?: number,"main_input_tokens"?: number,"main_output_tokens"?: number,"model"?: string | null,"rating"?: number | null,"role"?: string,"route"?: string | null,"screen_input_tokens"?: number,"screen_output_tokens"?: number,"text"?: string,"text_blanked_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "guide_messages_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "guide_messages_conversation_fkey"
+      columns: ["conversation_id","child_id"]
+isOneToOne: false
+      referencedRelation: "guide_conversations"
+      referencedColumns: ["id","child_id"]
+    }
+                  ]
                 },"invitations": {
                   Row: {
                     "accepted_by": string | null,"child_id": string | null,"code_hash": string,"created_at": string,"expires_at": string,"family_id": string | null,"id": string,"kind": string,"nickname": string,"parent_email": string | null,"status": string,"token_hash": string
@@ -307,6 +391,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"learning_checkins": {
+                  Row: {
+                    "child_id": string,"completed_at": string,"content_version": number,"correct_count": number,"question_count": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"completed_at"?: string,"content_version": number,"correct_count": number,"question_count": number
+                  }
+                  Update: {
+                    "child_id"?: string,"completed_at"?: string,"content_version"?: number,"correct_count"?: number,"question_count"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "learning_checkins_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"ledger_entries": {
                   Row: {
                     "amount_minor": number,"child_id": string,"created_at": string,"created_by": string | null,"direction": string,"family_id": string,"id": string,"idempotency_key": string,"jar": string,"kind": string,"label": string | null,"mode": string,"occurred_at": string,"reverses_entry_id": string | null,"source_id": string | null,"source_type": string
@@ -342,6 +446,32 @@ isOneToOne: false
       columns: ["reverses_entry_id"]
 isOneToOne: false
       referencedRelation: "ledger_entries"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mission_attempts": {
+                  Row: {
+                    "child_id": string,"completed_at": string | null,"content_version": number,"family_id": string,"id": string,"mission_key": string,"started_at": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"completed_at"?: string | null,"content_version": number,"family_id": string,"id"?: string,"mission_key": string,"started_at"?: string,"status"?: string
+                  }
+                  Update: {
+                    "child_id"?: string,"completed_at"?: string | null,"content_version"?: number,"family_id"?: string,"id"?: string,"mission_key"?: string,"started_at"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mission_attempts_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mission_attempts_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
       referencedColumns: ["id"]
     }
                   ]
@@ -473,6 +603,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"practice_results": {
+                  Row: {
+                    "answered_at": string,"answered_on": string,"child_id": string,"correct": boolean,"hints_used": number,"id": string,"item_key": string,"skill_key": string,"tries": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "answered_at"?: string,"answered_on": string,"child_id": string,"correct": boolean,"hints_used": number,"id"?: string,"item_key": string,"skill_key": string,"tries": number
+                  }
+                  Update: {
+                    "answered_at"?: string,"answered_on"?: string,"child_id"?: string,"correct"?: boolean,"hints_used"?: number,"id"?: string,"item_key"?: string,"skill_key"?: string,"tries"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "practice_results_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "avatar_url": string | null,"created_at": string,"full_name": string | null,"id": string,"nickname": string | null,"role": string,"updated_at": string
@@ -486,6 +636,72 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"review_items": {
+                  Row: {
+                    "box": number,"child_id": string,"due_on": string,"last_result": string | null,"last_reviewed_on": string | null,"skill_key": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "box"?: number,"child_id": string,"due_on": string,"last_result"?: string | null,"last_reviewed_on"?: string | null,"skill_key": string
+                  }
+                  Update: {
+                    "box"?: number,"child_id"?: string,"due_on"?: string,"last_result"?: string | null,"last_reviewed_on"?: string | null,"skill_key"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "review_items_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"skill_progress": {
+                  Row: {
+                    "child_id": string,"correct_with_hints": number,"first_try_correct": number,"level": number,"reasons_correct": number,"reviews_passed": number,"skill_key": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"correct_with_hints"?: number,"first_try_correct"?: number,"level"?: number,"reasons_correct"?: number,"reviews_passed"?: number,"skill_key": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "child_id"?: string,"correct_with_hints"?: number,"first_try_correct"?: number,"level"?: number,"reasons_correct"?: number,"reviews_passed"?: number,"skill_key"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "skill_progress_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"step_results": {
+                  Row: {
+                    "answered_at": string,"attempt_id": string,"child_id": string,"correct": boolean,"hints_used": number,"phase": string,"skill_key": string,"step_key": string,"step_type": string,"tries": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "answered_at"?: string,"attempt_id": string,"child_id": string,"correct": boolean,"hints_used": number,"phase": string,"skill_key": string,"step_key": string,"step_type": string,"tries": number
+                  }
+                  Update: {
+                    "answered_at"?: string,"attempt_id"?: string,"child_id"?: string,"correct"?: boolean,"hints_used"?: number,"phase"?: string,"skill_key"?: string,"step_key"?: string,"step_type"?: string,"tries"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "step_results_attempt_fkey"
+      columns: ["attempt_id","child_id"]
+isOneToOne: false
+      referencedRelation: "mission_attempts"
+      referencedColumns: ["id","child_id"]
+    },{
+      foreignKeyName: "step_results_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"usage_counters": {
                   Row: {
@@ -516,11 +732,20 @@ isOneToOne: false
 "balance":
 { Args: { "p_child_id": string,"p_jar": string,"p_mode"?: string }; Returns: number
                            },
+"blank_old_guide_text":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "cancel_gift":
 { Args: { "p_gift_id": string }; Returns: string
                            },
 "change_allowance":
 { Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
+                           },
+"complete_checkin":
+{ Args: { "p_content_version": number,"p_correct_count": number,"p_question_count": number }; Returns: boolean
+                           },
+"complete_mission":
+{ Args: { "p_attempt_id": string }; Returns: boolean
                            },
 "complete_parent_profile":
 { Args: { "p_country": string,"p_date_of_birth": string,"p_gender": string }; Returns: undefined
@@ -563,6 +788,17 @@ isOneToOne: false
 "generate_for_schedule":
 { Args: { "p_schedule_id": string,"p_today": string }; Returns: number
                            },
+"guide_record_turn":
+{ Args: { "p_child_id": string,"p_child_text": string,"p_conversation_id": string,"p_flagged": boolean,"p_latency_ms": number,"p_model": string,"p_reply_role": string,"p_reply_text": string,"p_route": string,"p_usage": Json }; Returns: string
+                           },
+"guide_start_conversation":
+{ Args: { "p_child_id": string,"p_context_key": string,"p_entry": string }; Returns: string
+                           },
+"guide_usage_since":
+{ Args: { "p_since": string }; Returns: {
+              "main_cache_read": number,"main_cache_write": number,"main_input": number,"main_output": number,"model": string,"screen_input": number,"screen_output": number
+            }[]
+                           },
 "held_spend":
 { Args: { "p_child_id": string }; Returns: number
                            },
@@ -577,6 +813,9 @@ isOneToOne: false
                            },
 "is_self":
 { Args: { "p_child_id": string }; Returns: boolean
+                           },
+"learning_child_family":
+{ Args: Record<PropertyKey, never>; Returns: string
                            },
 "list_due_for_parent":
 { Args: { "p_child_id": string }; Returns: {
@@ -673,11 +912,20 @@ isOneToOne: false
 "pause_allowance":
 { Args: { "p_message": string,"p_schedule_id": string,"p_through": string }; Returns: string
                            },
+"rate_guide_message":
+{ Args: { "p_message_id": string,"p_rating": number }; Returns: undefined
+                           },
+"record_practice_result":
+{ Args: { "p_correct": boolean,"p_hints_used": number,"p_item_key": string,"p_skill_key": string,"p_tries": number }; Returns: boolean
+                           },
 "record_purchase":
 { Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_label": string }; Returns: Json
                            },
 "record_purchase_at":
 { Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_label": string,"p_now": string }; Returns: Json
+                           },
+"record_step_result":
+{ Args: { "p_attempt_id": string,"p_correct": boolean,"p_hints_used": number,"p_phase": string,"p_skill_key": string,"p_step_key": string,"p_step_type": string,"p_tries": number }; Returns: boolean
                            },
 "register_child":
 { Args: { "p_child_id": string,"p_consent": boolean,"p_family_id": string,"p_invitation_id"?: string,"p_nickname": string,"p_pin": string }; Returns: undefined
@@ -703,8 +951,14 @@ isOneToOne: false
 "set_child_pin":
 { Args: { "p_child_id": string,"p_pin": string }; Returns: undefined
                            },
+"set_guide_access":
+{ Args: { "p_child_id": string,"p_enabled": boolean }; Returns: undefined
+                           },
 "set_money_rule":
 { Args: { "p_amount_minor": number,"p_child_id": string,"p_kind": string,"p_period": string }; Returns: undefined
+                           },
+"start_mission":
+{ Args: { "p_content_version": number,"p_mission_key": string }; Returns: string
                            },
 "stop_allowance":
 { Args: { "p_schedule_id": string }; Returns: string

@@ -1,0 +1,35 @@
+{
+  "key": "splitting",
+  "title": "Splitting your allowance",
+  "intro": "Split each allowance between Spend and Save, so you have some for now and some for later.",
+  "explanation": [
+    "Spend is the cash you hold. Save is money your parent keeps for you. When an allowance comes, it can be split between the two. The two parts always add up to the whole.",
+    "You can split in amounts, like {m:300} to Save. Or you can split in shares, like half or a quarter. A share grows when your allowance grows.",
+    "Moving money between jars doesn't make new money. One jar goes up and the other goes down by the same amount."
+  ],
+  "example": {
+    "title": "A quarter to Save",
+    "lines": [
+      "Ari gets {m:1600}.",
+      "A quarter of {m:1600} is {m:400}, so {m:400} goes to Save.",
+      "The rest, {m:1200}, goes to Spend.",
+      "Check: {m:400} and {m:1200} make {m:1600}."
+    ]
+  },
+  "practice": {
+    "type": "split",
+    "key": "topic-splitting-practice",
+    "skill": "split.amounts",
+    "prompt": "You get {m:1500}. Split it so at least {m:500} goes to Save and at least {m:500} stays in Spend.",
+    "total": 1500,
+    "increment": 50,
+    "rule": { "minSave": 500, "maxSave": 1000 },
+    "wrong": "Not quite. Check both jars. Each one needs at least {m:500}.",
+    "hints": [
+      "Watch both numbers as you move the slider.",
+      "If Save goes above {m:1000}, Spend drops below {m:500}."
+    ],
+    "correct": "Nice. That's it. Both jars have at least {m:500}."
+  },
+  "skills": ["split.amounts", "split.share"]
+}

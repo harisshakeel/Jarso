@@ -7,6 +7,8 @@ export const siteConfig = {
 
 export const routes = {
   home: "/",
+  /** Public: how the AI guide keeps children safe (spec §5, G3). */
+  safety: "/safety" as Route,
   login: "/login",
   signup: "/signup",
   dashboard: "/dashboard",
@@ -27,7 +29,20 @@ export const routes = {
     `/parent/children/${childId}/gifts/${giftId}/edit` as Route,
   parentHandover: (childId: string, kind: "allowance" | "gift", id: string) =>
     `/parent/children/${childId}/handover/${kind}/${id}` as Route,
+  parentChildLearning: (childId: string) => `/parent/children/${childId}/learning` as Route,
+  /** The parent's view of a child's guide chats (ADR 0010). */
+  parentChildGuide: (childId: string) => `/parent/children/${childId}/guide` as Route,
+  parentChildGuideChat: (childId: string, conversationId: string) =>
+    `/parent/children/${childId}/guide/${conversationId}` as Route,
   child: "/child",
+  /** Learn: the seven-day journey (FR06). */
+  childLearn: "/child/learn" as Route,
+  childMission: (missionKey: string) => `/child/learn/${missionKey}` as Route,
+  childCheckIn: "/child/learn/check-in" as Route,
+  childPractice: "/child/learn/practice" as Route,
+  /** A topic page (FR08); `from` is the mission to return to. */
+  childTopic: (topicKey: string, from?: string) =>
+    `/child/learn/topics/${topicKey}${from ? `?from=${encodeURIComponent(from)}` : ""}` as Route,
   childStart: "/start",
   childSignIn: "/sign-in/child",
   invite: "/invite",

@@ -1,0 +1,269 @@
+{
+  "key": "put-it-together",
+  "version": 1,
+  "day": 7,
+  "title": "Put it together",
+  "topic": "mixed",
+  "summary": "Use everything from the week in new situations.",
+  "steps": [
+    {
+      "type": "info",
+      "key": "all-together",
+      "title": "Everything at once",
+      "body": "Today mixes everything from the week: checking what fits, keeping a running total, splitting, tracking a goal, choosing and handling changes. Take each step on its own.",
+      "example": "Kai gets {m:1200}. Kai puts {m:400} in Save and keeps {m:800} in Spend, then buys a {m:300} snack. Spend now has {m:500}, and Save still has {m:400}."
+    },
+    {
+      "type": "choice",
+      "key": "pair-that-fits",
+      "skill": "balance.afford",
+      "prompt": "Kai has {m:650} in Spend. Which pair could Kai buy together?",
+      "options": [
+        {
+          "id": "cap-book",
+          "text": "A cap for {m:300} and a book for {m:400}",
+          "feedback": "Not quite. Together those cost {m:700}, which is more than {m:650}."
+        },
+        {
+          "id": "keyring-comic",
+          "text": "A keyring for {m:250} and a comic for {m:350}",
+          "feedback": "Yes. Together they cost {m:600}, which fits in {m:650}."
+        },
+        {
+          "id": "game-pen",
+          "text": "A game for {m:500} and a pen for {m:200}",
+          "feedback": "Not quite. Together those cost {m:700}, which is more than {m:650}."
+        }
+      ],
+      "answer": "keyring-comic",
+      "hints": ["Add the two prices in each pair.", "Only one pair comes to less than {m:650}."],
+      "correct": "Nice. That's it. {m:600} fits, with {m:50} to spare.",
+      "replay": {
+        "type": "choice",
+        "skill": "balance.afford",
+        "prompt": "Noor has {m:900} in Spend. Which pair could Noor buy together?",
+        "options": [
+          {
+            "id": "scarf-book",
+            "text": "A scarf for {m:450} and a book for {m:500}",
+            "feedback": "Not quite. Together those cost {m:950}, which is more than {m:900}."
+          },
+          {
+            "id": "game-snack",
+            "text": "A game for {m:600} and a snack for {m:350}",
+            "feedback": "Not quite. Together those cost {m:950}, which is more than {m:900}."
+          },
+          {
+            "id": "tshirt-puzzle",
+            "text": "A T-shirt for {m:400} and a puzzle for {m:450}",
+            "feedback": "Yes. Together they cost {m:850}, which fits in {m:900}."
+          }
+        ],
+        "answer": "tshirt-puzzle",
+        "hints": ["Add the two prices in each pair.", "Only one pair comes to less than {m:900}."],
+        "correct": "Nice. That's it. {m:850} fits, with {m:50} to spare."
+      }
+    },
+    {
+      "type": "amount",
+      "key": "fair-running-total",
+      "skill": "balance.running_total",
+      "prompt": "Kai takes {m:800} to a school fair and buys a cake for {m:150}, a badge for {m:200} and a plant for {m:250}. What's left?",
+      "unit": "money",
+      "answer": 200,
+      "misconceptions": [
+        {
+          "value": 1400,
+          "feedback": "Not quite. That adds everything. Each buy takes money away."
+        },
+        { "value": 600, "feedback": "Not quite. That's what Kai spent. Take it away from {m:800}." }
+      ],
+      "wrong": "Not quite. Add the three buys, then take the total away from {m:800}.",
+      "hints": [
+        "Keep a running total of the three buys.",
+        "The buys come to {m:600}. Take that away from {m:800}."
+      ],
+      "correct": "That's it. The buys come to {m:600}, so {m:200} is left.",
+      "replay": {
+        "type": "amount",
+        "skill": "balance.running_total",
+        "prompt": "Noor takes {m:1000} to a book sale and buys three books for {m:150}, {m:250} and {m:300}. What's left?",
+        "unit": "money",
+        "answer": 300,
+        "misconceptions": [
+          {
+            "value": 1700,
+            "feedback": "Not quite. That adds everything. Each buy takes money away."
+          },
+          {
+            "value": 700,
+            "feedback": "Not quite. That's what Noor spent. Take it away from {m:1000}."
+          }
+        ],
+        "wrong": "Not quite. Add the three books, then take the total away from {m:1000}.",
+        "hints": [
+          "Keep a running total of the three books.",
+          "The books come to {m:700}. Take that away from {m:1000}."
+        ],
+        "correct": "That's it. The books come to {m:700}, so {m:300} is left."
+      }
+    },
+    {
+      "type": "split",
+      "key": "gift-half",
+      "skill": "split.share",
+      "prompt": "Kai gets a {m:1600} birthday gift. Split it so at least half goes to Save.",
+      "total": 1600,
+      "increment": 50,
+      "rule": { "minSave": 800 },
+      "wrong": "Not quite. Save has less than half. Split {m:1600} into two equal parts to find half.",
+      "hints": [
+        "Half means two equal parts.",
+        "Half of {m:1600} is half of {m:1000} plus half of {m:600}."
+      ],
+      "correct": "Nice. That's it. At least half is in Save, and the rest is in Spend.",
+      "replay": {
+        "type": "split",
+        "skill": "split.share",
+        "prompt": "Ari gets a {m:1400} birthday gift. Split it so at least half goes to Save.",
+        "total": 1400,
+        "increment": 50,
+        "rule": { "minSave": 700 },
+        "wrong": "Not quite. Save has less than half. Split {m:1400} into two equal parts to find half.",
+        "hints": [
+          "Half means two equal parts.",
+          "Half of {m:1400} is half of {m:1000} plus half of {m:400}."
+        ],
+        "correct": "Nice. That's it. At least half is in Save, and the rest is in Spend."
+      }
+    },
+    {
+      "type": "choice",
+      "key": "how-far-along",
+      "skill": "goal.progress",
+      "prompt": "Kai's goal costs {m:5000}. Kai has {m:2500} in Save. How far along is Kai?",
+      "options": [
+        {
+          "id": "quarter",
+          "text": "A quarter of the way",
+          "feedback": "Not quite. A quarter of {m:5000} is {m:1250}. Kai has more than that."
+        },
+        { "id": "half", "text": "Halfway", "feedback": "Yes. {m:2500} is half of {m:5000}." },
+        {
+          "id": "nearly",
+          "text": "Nearly there",
+          "feedback": "Not quite. Kai still needs another {m:2500}, the same again."
+        }
+      ],
+      "answer": "half",
+      "hints": [
+        "Compare {m:2500} with {m:5000}.",
+        "How many times does {m:2500} fit into {m:5000}?"
+      ],
+      "correct": "Nice. That's it. Halfway, with {m:2500} still to go.",
+      "replay": {
+        "type": "choice",
+        "skill": "goal.progress",
+        "prompt": "Remi's goal costs {m:4000}. Remi has {m:1000} in Save. How far along is Remi?",
+        "options": [
+          {
+            "id": "half",
+            "text": "Halfway",
+            "feedback": "Not quite. Half of {m:4000} is {m:2000}. Remi has less than that."
+          },
+          {
+            "id": "quarter",
+            "text": "A quarter of the way",
+            "feedback": "Yes. {m:1000} is a quarter of {m:4000}."
+          },
+          {
+            "id": "nearly",
+            "text": "Nearly there",
+            "feedback": "Not quite. Remi still needs another {m:3000}."
+          }
+        ],
+        "answer": "quarter",
+        "hints": [
+          "Compare {m:1000} with {m:4000}.",
+          "How many times does {m:1000} fit into {m:4000}?"
+        ],
+        "correct": "Nice. That's it. A quarter of the way, with {m:3000} still to go."
+      }
+    },
+    {
+      "type": "sort",
+      "key": "busy-week-need-want",
+      "skill": "tradeoff.need_want",
+      "prompt": "Kai has a busy week coming up. Sort each thing into need or want.",
+      "buckets": [{ "id": "need", "label": "Need" }, { "id": "want", "label": "Want" }],
+      "items": [
+        { "id": "calculator", "text": "A calculator Kai's teacher asked for", "bucket": "need" },
+        { "id": "cinema", "text": "A cinema trip with friends", "bucket": "want" },
+        { "id": "swim-cap", "text": "A swim cap Kai's club says to wear", "bucket": "need" },
+        { "id": "new-game", "text": "A new game for the weekend", "bucket": "want" },
+        {
+          "id": "school-shoes",
+          "text": "School shoes, as Kai's old ones are too tight",
+          "bucket": "need"
+        }
+      ],
+      "wrong": "Not quite. Ask: does Kai have to have it this week? If not, it's a want.",
+      "hints": [
+        "Which ones has someone said Kai must have, or can Kai not do without?",
+        "Fun extras are wants, even really good ones."
+      ],
+      "correct": "All sorted. The needs are what Kai has to have. The rest are wants Kai can choose."
+    },
+    {
+      "type": "predict",
+      "key": "gift-mid-plan",
+      "skill": "plan.adjust",
+      "prompt": "Kai saves {m:500} a week and needs 6 more weeks. Then a {m:500} gift goes into Save. When does Kai finish?",
+      "options": [
+        { "id": "week-sooner", "text": "One week sooner", "feedback": "That's it." },
+        {
+          "id": "same",
+          "text": "At the same time",
+          "feedback": "Not quite. The gift adds to Save, so Kai needs less."
+        },
+        {
+          "id": "two-sooner",
+          "text": "Two weeks sooner",
+          "feedback": "Not quite. {m:500} is one week of Kai's saving, not two."
+        }
+      ],
+      "answer": "week-sooner",
+      "outcome": "The gift is the same as one week of saving, so Kai needs 5 weeks instead of 6. A change can speed a plan up as well as slow it down.",
+      "hints": [
+        "Compare the gift with what Kai saves in a week.",
+        "The gift covers some of Kai's weeks. How many?"
+      ],
+      "correct": "Right. The gift covers one week, so Kai finishes a week early."
+    },
+    {
+      "type": "reason",
+      "key": "both-can-be-right",
+      "skill": "tradeoff.give_up",
+      "prompt": "Ari and Noor each get {m:1000}. Ari saves it for a goal. Noor spends it on a day out. Who chose well?",
+      "options": [
+        { "id": "both", "text": "Both, if it's what each wanted most", "feedback": "That's it." },
+        {
+          "id": "only-ari",
+          "text": "Only Ari, because saving is always right",
+          "feedback": "Not quite. Saving is useful, but spending on something you value is fine too."
+        },
+        {
+          "id": "only-noor",
+          "text": "Only Noor, because money is for spending",
+          "feedback": "Not quite. Spending is fine, but so is saving for later. Each gave up something different."
+        }
+      ],
+      "answer": "both",
+      "hints": [
+        "What did each of them give up?",
+        "Ari gave up a day out now. Noor gave up progress on a goal."
+      ],
+      "correct": "Right. Each choice gives something up. A good choice is one that fits what you care about."
+    }
+  ]
+}

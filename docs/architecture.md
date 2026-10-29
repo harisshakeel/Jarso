@@ -50,7 +50,7 @@ External dependencies and what happens when each is down:
 | pg_cron | due allowances, reminders, retention jobs | Occurrences generate late, never twice; next run catches up. |
 | Email provider | parent reminders, request notices | Inbox still has the item; delivery rows retry with backoff and dead-letter after 5 attempts. |
 | Browser push (later) | same events, opt-in | Inbox is the fallback by design (FR16). |
-| Claude API (later) | guide answers | Friendly fallback copy; topic material still available. |
+| Claude API | guide answers (ADR 0010) | Friendly fallback copy ("The guide is taking a break"); a circuit breaker after 5 failures a minute; topic material still available. |
 | Vercel | hosting | Status page; nothing to do in-app. |
 
 ## 3. Runtime view
@@ -111,10 +111,10 @@ src/
 │   ├── limits/          spending limits, post-purchase evaluation, limit notices
 │   ├── goals/           goal, plan, payments-remaining estimate, what-if simulation
 │   ├── diary/           diary UI over ledger entries (add, correct, undo)
-│   ├── learning/        missions, topics, hints, spaced review, skill progress
+│   ├── learning/     ✅ missions, topics, hints, spaced review, check-in, skill progress (ADR 0009)
 │   ├── reviews/         weekly review generation and next-step recommendation
 │   ├── notifications/   inbox, deliveries, channels (inbox, email, push), preferences
-│   └── guide/  (later)  Claude-backed money guide with FR09 boundaries
+│   └── guide/        ✅ Claude-backed money guide with FR09 boundaries (ADR 0010)
 ├── components/ui/      shadcn primitives + brand components (JarsoMark, JarIllustration, Money, StatusChip)
 ├── config/             routes, site, env (Zod-validated), feature flags
 ├── lib/                errors, logger, createAction, api helpers, supabase clients, money formatting
@@ -409,7 +409,7 @@ Sixty children at ten entries a day is about 220k rows a year; summing per child
 
 ### 5.3 Content
 
-Missions, topics and hints are authored as versioned JSON under `src/content/` (validated by Zod at build time) so they ship with the code, are reviewable in PRs, and need no admin UI. Only progress lives in the database, keyed by `mission_key` and `skill_key`. When content changes, keys stay stable; a mission is retired by flag, never deleted.
+Missions, topics and hints are authored as versioned JSON under `src/content/` (validated by Zod at build time) so they ship with the code, are reviewable in PRs, and need no admin UI. Only progress lives in the database, keyed by `mission_key` and `skill_key`. When content changes, keys stay stable; a mission is retired by flag, never deleted. Built in ADR 0009: `src/content/learning` holds seven missions, five topics, a review pool and the check-in; `features/learning/content.ts` parses them on the server and pages pass the one mission or set a child needs to the player, so content is never in a shared client bundle. Progress tables: `mission_attempts`, `step_results`, `skill_progress`, `review_items`, `practice_results`, `learning_checkins` (`docs/database.md`).
 
 ### 5.4 Practice money
 

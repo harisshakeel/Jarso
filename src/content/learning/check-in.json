@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "type": "amount",
+      "key": "checkin-spending",
+      "skill": "balance.afford",
+      "prompt": "You have {m:1400} in Spend. You buy a book for {m:550}. How much is left?",
+      "unit": "money",
+      "answer": 850,
+      "misconceptions": [
+        {
+          "value": 1950,
+          "feedback": "Not quite. That adds the two amounts. Buying takes money away."
+        },
+        {
+          "value": 550,
+          "feedback": "Not quite. That's the price of the book. What's left after paying it?"
+        }
+      ],
+      "wrong": "Not quite. Take the price away from what you have.",
+      "hints": [
+        "Start with {m:1400} and take away the price.",
+        "{m:1400} take away {m:500} is {m:900}. Now take away {m:50} more."
+      ],
+      "correct": "That's it. {m:850} is left in Spend."
+    },
+    {
+      "type": "amount",
+      "key": "checkin-splitting",
+      "skill": "split.amounts",
+      "prompt": "You get {m:1000} and put {m:400} in Save. How much goes to Spend?",
+      "unit": "money",
+      "answer": 600,
+      "misconceptions": [
+        {
+          "value": 1400,
+          "feedback": "Not quite. That adds the two. Save is part of the {m:1000}, so take it away."
+        },
+        { "value": 400, "feedback": "Not quite. That's the Save part. What's left for Spend?" }
+      ],
+      "wrong": "Not quite. Spend gets whatever doesn't go to Save.",
+      "hints": ["Save and Spend together make {m:1000}.", "{m:1000} take away {m:400}."],
+      "correct": "That's it. {m:600} goes to Spend."
+    },
+    {
+      "type": "amount",
+      "key": "checkin-saving-goal",
+      "skill": "goal.weeks_needed",
+      "prompt": "A goal costs {m:2200}. You start from zero and save {m:500} a week. How many weeks will it take?",
+      "unit": "count",
+      "suffix": "weeks",
+      "answer": 5,
+      "misconceptions": [
+        {
+          "value": 4,
+          "feedback": "Not quite. 4 weeks gives {m:2000}. That's {m:200} short, so round up to the next week."
+        }
+      ],
+      "wrong": "Not quite. See how many weeks of {m:500} it takes to reach {m:2200}.",
+      "hints": [
+        "Count up in steps of {m:500}.",
+        "4 weeks gives {m:2000}. Is that enough for {m:2200}?"
+      ],
+      "correct": "That's it. 5 weeks. After 4 weeks you're {m:200} short, so you round up."
+    },
+    {
+      "type": "choice",
+      "key": "checkin-tradeoffs",
+      "skill": "tradeoff.give_up",
+      "prompt": "You have {m:1200} and choose a game for {m:800}. What can you no longer get as well?",
+      "options": [
+        {
+          "id": "book",
+          "text": "A book for {m:600}",
+          "feedback": "Yes. After the game you have {m:400}, and the book costs {m:600}."
+        },
+        {
+          "id": "snack",
+          "text": "A snack for {m:300}",
+          "feedback": "Not quite. After the game you have {m:400}, so the snack still fits."
+        },
+        {
+          "id": "nothing",
+          "text": "Nothing changes",
+          "feedback": "Not quite. The game uses {m:800}, so some things no longer fit."
+        }
+      ],
+      "answer": "book",
+      "hints": [
+        "Work out what's left after the game.",
+        "{m:400} is left. Which of these costs more than that?"
+      ],
+      "correct": "Nice. That's it. Choosing the game means giving up the book, for now."
+    },
+    {
+      "type": "choice",
+      "key": "checkin-changing-plans",
+      "skill": "plan.adjust",
+      "prompt": "You save {m:300} a week for a goal. Your weekly saving drops to {m:200}. What happens to your plan?",
+      "options": [
+        {
+          "id": "longer",
+          "text": "It takes more weeks",
+          "feedback": "Yes. Less each week means more weeks to reach the same price."
+        },
+        {
+          "id": "same",
+          "text": "Nothing changes",
+          "feedback": "Not quite. Less going into Save each week means it takes longer."
+        },
+        {
+          "id": "sooner",
+          "text": "It takes fewer weeks",
+          "feedback": "Not quite. Saving less each week can't get you there sooner."
+        }
+      ],
+      "answer": "longer",
+      "hints": [
+        "Less goes in each week. What does that do?",
+        "Smaller weekly steps take more steps to reach the same price."
+      ],
+      "correct": "Right. Saving less each week means more weeks to reach the goal."
+    }
+  ]
+}
