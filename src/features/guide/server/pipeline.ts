@@ -4,14 +4,15 @@ import { logger } from "@/lib";
 import { guideCopy } from "../copy";
 import type { GuideCheck, GuideRoute, GuideUsage } from "../types";
 import { addUsage, zeroUsage } from "./cost";
-import type { GuideProvider, MainReply, Turn } from "./provider";
+import type { GuideProvider, MainReply, MainResult, Turn } from "./provider";
+import { looksUnsafe } from "./safety-net";
 import { scrub } from "./scrub";
 
 /**
  * One guide turn (spec §5.2 steps 3 to 7): scrub, then the input screen and the main call in
- * parallel, then the output screen on the reply. Anything but a clean on-topic reply that passes
- * the output screen becomes reviewed fixed copy. Pure apart from the provider, so the evals run
- * exactly this code.
+ * parallel, then the output screen on everything the child would see (the answer and any quick
+ * check). Anything but a clean on-topic reply that passes the output screen becomes reviewed
+ * fixed copy. Pure apart from the provider, so the evals run exactly this code.
  */
 
 export type PipelineResult = {
@@ -19,7 +20,10 @@ export type PipelineResult = {
   childText: string;
   route: GuideRoute;
   role: "guide" | "fixed_copy";
+  /** The answer the child sees. */
   text: string;
+  /** What is stored and screened: the answer plus the quick check, so a parent sees both. */
+  storedText: string;
   topics: TopicKey[];
   check: GuideCheck | null;
   /** Shown to the parent first; a safety route also gets a notice. */
@@ -39,16 +43,19 @@ const FLAGGED_ROUTES: ReadonlySet<GuideRoute> = new Set([
 ]);
 const REDIRECT_TOPICS: TopicKey[] = ["spending", "saving-goal", "tradeoffs"];
 
-function fixed(
-  route: Exclude<GuideRoute, "on_topic">,
-  base: Pick<PipelineResult, "childText" | "usage" | "model" | "latencyMs">,
-  failed = false,
-): PipelineResult {
+/** Longest answer shown (about 80 words is the target; this is the hard stop). */
+const MAX_REPLY_CHARS = 900;
+
+type Base = Pick<PipelineResult, "childText" | "usage" | "model" | "latencyMs">;
+
+function fixed(route: Exclude<GuideRoute, "on_topic">, base: Base, failed = false): PipelineResult {
+  const text = guideCopy.routes[route];
   return {
     ...base,
     route,
     role: "fixed_copy",
-    text: guideCopy.routes[route],
+    text,
+    storedText: text,
     topics: route === "off_topic" ? REDIRECT_TOPICS : [],
     check: null,
     flagged: FLAGGED_ROUTES.has(route),
@@ -56,19 +63,35 @@ function fixed(
   };
 }
 
-/** Keeps a model-proposed check only when it is well formed. */
+/**
+ * For when the screens can't run (budget, breaker, outage): the break copy, or the safety reply
+ * when the message trips the keyword net.
+ */
+export function fallbackResult(
+  text: string,
+  base: Omit<Base, "childText">,
+  failed = false,
+): PipelineResult {
+  const childText = scrub(text);
+  return fixed(looksUnsafe(childText) ? "safety" : "unavailable", { ...base, childText }, failed);
+}
+
+/** Keeps a model-proposed check only when it is well formed and short. */
 function cleanCheck(check: MainReply["check"]): GuideCheck | null {
   if (!check) return null;
+  const question = check.question.trim();
+  const explanation = check.explanation.trim();
   const options = check.options.map((o) => o.trim()).filter(Boolean);
-  if (options.length < 2 || options.length > 3) return null;
+  if (options.length < 2 || options.length > 3 || options.some((o) => o.length > 80)) return null;
+  if (new Set(options).size !== options.length) return null;
   if (check.answerIndex < 0 || check.answerIndex >= options.length) return null;
-  if (!check.question.trim() || check.question.length > 240) return null;
-  return {
-    question: check.question.trim(),
-    options,
-    answerIndex: check.answerIndex,
-    explanation: check.explanation.trim(),
-  };
+  if (!question || question.length > 200 || explanation.length > 240) return null;
+  return { question, options, answerIndex: check.answerIndex, explanation };
+}
+
+function visibleText(reply: string, check: GuideCheck | null): string {
+  if (!check) return reply;
+  return `${reply}\n\nQuick check: ${check.question} (${check.options.join(" / ")}) ${check.explanation}`;
 }
 
 export async function runGuidePipeline(
@@ -81,43 +104,58 @@ export async function runGuidePipeline(
   const history = input.history.map((turn) => ({ ...turn, text: scrub(turn.text) }));
   let usage = zeroUsage;
   let model: string | null = null;
-  const base = () => ({ childText, usage, model, latencyMs: now() - started });
+  const base = (): Base => ({ childText, usage, model, latencyMs: now() - started });
 
-  const [screen, main] = await Promise.allSettled([
-    provider.screenInput({ text: childText, history }),
-    provider.reply({ text: childText, history, context: input.context }),
-  ]);
+  // The answer starts at once (so an on-topic reply isn't slowed by the screen) and is cancelled
+  // when the screen routes the message elsewhere, so a safety reply never waits for it.
+  const controller = new AbortController();
+  const main: Promise<{ ok: true; value: MainResult } | { ok: false; error: unknown }> = provider
+    .reply({ text: childText, history, context: input.context, signal: controller.signal })
+    .then(
+      (value) => ({ ok: true as const, value }),
+      (error: unknown) => ({ ok: false as const, error }),
+    );
 
-  if (main.status === "fulfilled") {
-    usage = addUsage(usage, main.value.usage);
-    model = main.value.model;
+  let route: Awaited<ReturnType<GuideProvider["screenInput"]>>["route"];
+  try {
+    const screen = await provider.screenInput({ text: childText, history });
+    usage = addUsage(usage, screen.usage);
+    route = screen.route;
+  } catch (error) {
+    controller.abort();
+    logger.warn("Guide input screen failed", { error: errorName(error) });
+    return fallbackResult(input.text, { usage, model, latencyMs: now() - started }, true);
   }
-  if (screen.status === "rejected") {
-    logger.warn("Guide input screen failed", { error: errorName(screen.reason) });
-    return fixed("unavailable", base(), true);
-  }
-  usage = addUsage(usage, screen.value.usage);
 
   // Off-topic, personal, safety, unsafe and jailbreak messages never see the model's reply.
-  if (screen.value.route !== "on_topic") return fixed(screen.value.route, base());
+  if (route !== "on_topic") {
+    controller.abort();
+    return fixed(route, base());
+  }
 
-  if (main.status === "rejected") {
-    logger.warn("Guide main call failed", { error: errorName(main.reason) });
+  const answer = await main;
+  if (!answer.ok) {
+    logger.warn("Guide main call failed", { error: errorName(answer.error) });
     return fixed("unavailable", base(), true);
   }
-  if (main.value.kind === "refused") {
+  usage = addUsage(usage, answer.value.usage);
+  model = answer.value.model;
+  if (answer.value.kind === "refused") {
     logger.info("Guide main call refused");
     return fixed("unavailable", base());
   }
 
-  const reply = main.value.reply;
+  const reply = answer.value.reply.reply.trim();
+  if (!reply || reply.length > MAX_REPLY_CHARS) {
+    logger.info("Guide reply empty or too long", { chars: reply.length });
+    return fixed("blocked_output", base());
+  }
+  const check = cleanCheck(answer.value.reply.check);
+  const shown = visibleText(reply, check);
+
   let verdict: Awaited<ReturnType<GuideProvider["screenOutput"]>>;
   try {
-    verdict = await provider.screenOutput({
-      reply: reply.reply,
-      childText,
-      context: input.context,
-    });
+    verdict = await provider.screenOutput({ reply: shown, childText, context: input.context });
   } catch (error) {
     logger.warn("Guide output screen failed", { error: errorName(error) });
     return fixed("unavailable", base(), true);
@@ -132,9 +170,10 @@ export async function runGuidePipeline(
     ...base(),
     route: "on_topic",
     role: "guide",
-    text: reply.reply.trim(),
-    topics: [...new Set(reply.topics)].slice(0, 2),
-    check: cleanCheck(reply.check),
+    text: reply,
+    storedText: shown,
+    topics: [...new Set(answer.value.reply.topics)].slice(0, 2),
+    check,
     flagged: false,
     failed: false,
   };

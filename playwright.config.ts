@@ -27,6 +27,7 @@ const serverEnv: Record<string, string> = {
   // The money guide runs on its keyword-based fake provider: no Claude calls, no key needed.
   FEATURE_GUIDE: "true",
   GUIDE_PROVIDER: "fake",
+  GUIDE_ALLOW_FAKE: "true",
 };
 
 export default defineConfig({

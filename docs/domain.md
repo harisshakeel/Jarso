@@ -34,7 +34,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Mission | 2–3 minute daily learning activity in the 7-day journey: 6–8 steps (choices, amounts, a Spend/Save slider, sorting, matching, predictions, reasons) with fictional amounts, instant feedback, two free hints, and the steps missed first time replayed once at the end. The next mission unlocks when the previous one is done; there is no day gate. |
 | Topic | One of the five FR06 topics, with a page that explains, works an example and offers one practice question (FR08). Opening it never changes progress. |
 | Check-in | Five starting questions before mission 1 (FR10). Places, doesn't test: no score is shown and nothing is locked. |
-| Practice | One-minute spaced review: for each skill that is due, a question from the review pool in a new situation. Boxes of 1, 3, 7 and 14 days. |
+| Practice | One-minute spaced review: one question per due skill from the review pool, in a new situation, at most five per set. Boxes of 1, 3, 7 and 14 days. |
 | Skill level | Per skill: Started (seen in a mission), Practised (right in a mission), Got it (right without hints in a review). Learning progress, never shown next to money. |
 | Notification | Inbox item (+ optional web push) pointing at a record: due reminder, limit notice, request, decision. Never authoritative. |
 | Guide | AI money helper (Claude) with strict topic and safety boundaries (ADR 0010). Off for each child until a parent turns it on; parents can read every chat. |

@@ -82,6 +82,8 @@ test.afterAll(async () => {
 
 test("the guide is off until the parent turns it on", async () => {
   await expect(child.getByRole("heading", { name: /Five quick questions/ })).toBeVisible();
+  // Every streamed section has arrived before checking that the guide button is absent.
+  await child.waitForLoadState("networkidle");
   await expect(child.getByRole("button", { name: "Ask the money guide" })).toHaveCount(0);
 
   const toggle = parent.getByRole("switch", { name: "Money guide for Remi" });
@@ -89,6 +91,8 @@ test("the guide is off until the parent turns it on", async () => {
   await expect(parent.getByText(/made by Anthropic/)).toBeVisible();
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-checked", "true");
+  // The switch is disabled until the save finishes; only then is it safe to reload.
+  await expect(toggle).toBeEnabled();
   await parent.reload();
   await expect(parent.getByRole("switch", { name: "Money guide for Remi" })).toHaveAttribute(
     "aria-checked",
@@ -160,7 +164,7 @@ test("the parent reads chats flagged first, without the private safety message",
   await expect(chats.first()).toContainText("Needs a look");
   await chats.first().click();
   await expect(
-    parent.getByText("A safety response was shown. The message is private."),
+    parent.getByText("A safety response was shown. The message itself is not kept."),
   ).toBeVisible();
   await expect(parent.getByText("someone at school hurt me")).toHaveCount(0);
   await expect(parent.getByText("What is saving?")).toBeVisible();
@@ -169,12 +173,12 @@ test("the parent reads chats flagged first, without the private safety message",
 
 test("turning the guide off hides it from the child", async () => {
   await parent.goto(childBase);
-  await parent.getByRole("switch", { name: "Money guide for Remi" }).click();
-  await expect(parent.getByRole("switch", { name: "Money guide for Remi" })).toHaveAttribute(
-    "aria-checked",
-    "false",
-  );
+  const toggle = parent.getByRole("switch", { name: "Money guide for Remi" });
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await expect(toggle).toBeEnabled();
   await child.goto("/child");
   await expect(child.getByRole("heading", { name: /Five quick questions/ })).toBeVisible();
+  await child.waitForLoadState("networkidle");
   await expect(child.getByRole("button", { name: "Ask the money guide" })).toHaveCount(0);
 });

@@ -306,11 +306,11 @@ isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     },{
-      foreignKeyName: "guide_messages_conversation_id_fkey"
-      columns: ["conversation_id"]
+      foreignKeyName: "guide_messages_conversation_fkey"
+      columns: ["conversation_id","child_id"]
 isOneToOne: false
       referencedRelation: "guide_conversations"
-      referencedColumns: ["id"]
+      referencedColumns: ["id","child_id"]
     }
                   ]
                 },"invitations": {

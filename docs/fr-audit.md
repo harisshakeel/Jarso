@@ -1,6 +1,6 @@
-# Functional requirements audit — 2026-10-29 (slice 2 checkpoint)
+# Functional requirements audit — 2026-10-30 (learning and guide)
 
-State of `main` at `fa62b9f` (after PRs #18–#25: slice 2 allowance, gifts and handover, plus its review fixes) and of the hosted database, against `REQUIREMENTS.md` and the first-milestone spec (`docs/superpowers/specs/2026-10-28-first-milestone-design.md`). Verified from the source tree, migrations, tests, CI runs and the hosted catalog, not from PR descriptions.
+State of `main` after the slice 2 checkpoint (#18–#27) plus the learning track (#28) and the AI money guide (#29) and of the hosted database, against `REQUIREMENTS.md` and the first-milestone spec (`docs/superpowers/specs/2026-10-28-first-milestone-design.md`). Verified from the source tree, migrations, tests, CI runs and the hosted catalog, not from PR descriptions.
 
 Legend: **Built** = on `main`, usable end to end, tested, live on production · **Partial** = some pieces built, not usable for the whole requirement · **Not started** · **Later** = deferred by decision.
 
@@ -75,6 +75,7 @@ Six of thirteen are met and three are partly met. The rest need purchases and li
 
 - Design system from `docs/design.md`: Nunito, tokens, light and dark themes with a one-click toggle, primitives including alert dialog, sheet and tabs, brand components including light and dark wordmarks, app shell with Home and Allowance navigation.
 - Delivery: CI (lint, typecheck, unit, build, gitleaks, pgTAP, e2e on a fresh Supabase), Vercel on `main`, the Supabase GitHub integration for migrations, squash-merge workflow.
+- Learning: content as reviewed JSON, progress tables written only by checked functions, spaced review (ADR 0009). The guide: screened Claude pipeline, parent switch, transcripts, retention, evals and a public `/safety` page (ADR 0010).
 - Security for a public repo: secret scanners, redacted session logs, CSRF guard, owner-only personal data, internal SQL helpers not callable by `anon` or `authenticated` (`generate_for_schedule` stays callable by `service_role` for the e2e fast-forward and the demo clock).
 
 ## Cross-cutting, not built
@@ -88,10 +89,11 @@ Six of thirteen are met and three are partly met. The rest need purchases and li
 | Step | Scope | Depends on |
 | --- | --- | --- |
 | 1–2 | Onboarding and family (FR13); allowance, gifts and handover (FR01, FR03 jars) | Done |
+| L, G | Learning track (FR06, FR08, FR10, FR12 next step; ADR 0009) and the AI money guide behind a flag (FR07, FR09; ADR 0010) | Done; guide on for real families after the eval gate and legal review |
 | 3 | Purchases and money received in the diary (FR04), limits and the overspend rule (FR14, D2, D3) | — |
 | 4 | Savings deposits and withdrawals with reservations (FR14) | — |
 | 5 | Inbox, badge, reminders, email dispatcher, `/api/cron` fallback, next step on both homes (FR16, FR12) | 3, 4 for full coverage |
 | 6 | Demo clock, seed family, full milestone e2e on production | 3–5 |
-| 7+ | Goals, corrections, emergency funds, predict, learning track, push and PWA | 6 |
+| 7+ | Goals, corrections, emergency funds, predict, weekly review, push and PWA | 6 |
 
 Slices 3 and 4 can run in parallel. Every slice: one PR, CI green, squash merge; the integration applies its migrations. Before real families: custom SMTP and email confirmation back on.

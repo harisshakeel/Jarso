@@ -4,8 +4,10 @@
 --
 -- Transcripts are written only by the app server after its own checks, through functions granted
 -- to service_role: a child can't forge what the guide said, and a parent can trust what they read.
--- The child and the child's approved parents read through RLS. Message text is blanked after 30
--- days by a daily job; the metadata (route, flag, token counts) stays for cost and safety counts.
+-- The child and the child's approved parents read through RLS. A child message that got a safety
+-- or personal-details response is never stored (its text is blank), so no reader, the parent
+-- included, can see it: the parent sees only that a safety response was shown. Other message
+-- text is blanked after 30 days by a daily job; the metadata stays for cost and safety counts.
 
 -- ---------------------------------------------------------------------------
 -- Tables
@@ -29,22 +31,26 @@ create table public.guide_conversations (
   family_id uuid not null references public.families (id) on delete cascade,
   child_id uuid not null references public.profiles (id) on delete cascade,
   entry text not null check (entry in ('step', 'why', 'topic', 'home')),
-  context_key text not null check (char_length(context_key) between 1 and 120),
+  context_key text not null check (char_length(context_key) between 1 and 120 and context_key ~ '^[a-z0-9:-]+$'),
   turns smallint not null default 0 check (turns between 0 and 12),
   flagged boolean not null default false,
   created_at timestamptz not null default now(),
-  last_message_at timestamptz not null default now()
+  last_message_at timestamptz not null default now(),
+  -- Lets guide_messages tie its child_id (the column RLS reads) to the chat's child.
+  constraint guide_conversations_id_child_key unique (id, child_id)
 );
 
 comment on table public.guide_conversations is 'One guide chat, opened from a step, an answer ("Why?"), a topic page or Home. At most 12 child turns.';
-comment on column public.guide_conversations.context_key is 'What the chat is about, as content keys (e.g. mission/step), never free text.';
+comment on column public.guide_conversations.context_key is 'What the chat is about, as content keys (e.g. step:mission:<mission>:<step>:main), never free text.';
 
-create index guide_conversations_child_idx on public.guide_conversations (child_id, last_message_at desc);
+-- The parent's list: a child's chats, flagged first, newest first. Also covers the child_id FK.
+create index guide_conversations_child_list_idx
+  on public.guide_conversations (child_id, flagged desc, last_message_at desc);
 create index guide_conversations_family_id_idx on public.guide_conversations (family_id);
 
 create table public.guide_messages (
   id uuid primary key default gen_random_uuid(),
-  conversation_id uuid not null references public.guide_conversations (id) on delete cascade,
+  conversation_id uuid not null,
   child_id uuid not null references public.profiles (id) on delete cascade,
   role text not null check (role in ('child', 'guide', 'fixed_copy')),
   text text not null check (char_length(text) <= 2000),
@@ -60,16 +66,22 @@ create table public.guide_messages (
   latency_ms integer check (latency_ms >= 0),
   rating smallint check (rating in (-1, 1)),
   text_blanked_at timestamptz,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- A reply carries how it was routed; a child's message never does.
+  check ((role = 'child') = (route is null)),
+  constraint guide_messages_conversation_fkey foreign key (conversation_id, child_id)
+    references public.guide_conversations (id, child_id) on delete cascade
 );
 
-comment on table public.guide_messages is 'Guide transcript. Child text is scrubbed of contact details before it is stored or sent. Text is blanked after 30 days; metadata stays.';
+comment on table public.guide_messages is 'Guide transcript. Child text is scrubbed of contact details before it is stored or sent; a child message that got a safety or personal-details response is stored blank. Text is blanked after 30 days; metadata stays.';
 comment on column public.guide_messages.route is 'Set on replies: how the pipeline routed the child''s message.';
 comment on column public.guide_messages.rating is 'The child''s thumbs up (1) or down (-1) on a guide reply.';
 
 create index guide_messages_conversation_idx on public.guide_messages (conversation_id, created_at);
 create index guide_messages_child_id_idx on public.guide_messages (child_id);
 create index guide_messages_created_at_idx on public.guide_messages (created_at);
+-- The retention job's scan.
+create index guide_messages_unblanked_idx on public.guide_messages (created_at) where text_blanked_at is null;
 
 -- ---------------------------------------------------------------------------
 -- RLS: the child and the child's parents read; writes only through functions
@@ -109,33 +121,40 @@ as $$
 declare
   v_uid uuid := (select auth.uid());
   v_family_id uuid;
+  v_changed integer;
 begin
   if v_uid is null then
     raise exception using errcode = 'JA401', message = 'Not signed in';
-  end if;
-  if p_child_id is null or not public.is_parent_of(p_child_id) then
-    raise exception using errcode = 'JA403', message = 'Not allowed';
   end if;
   if p_enabled is null then
     raise exception using errcode = '22023', message = 'Choose on or off';
   end if;
 
+  -- Locked like remove_child locks it, so a removal can't slip in between.
   select fm.family_id into v_family_id
   from public.family_members fm
-  where fm.profile_id = p_child_id and fm.role = 'child' and fm.status = 'approved';
+  where fm.profile_id = p_child_id and fm.role = 'child' and fm.status = 'approved'
+  for share;
+  if v_family_id is null or not public.is_parent_of(p_child_id) then
+    raise exception using errcode = 'JA403', message = 'Not allowed';
+  end if;
 
   insert into public.guide_access as ga (child_id, family_id, enabled, changed_by, changed_at)
   values (p_child_id, v_family_id, p_enabled, v_uid, now())
   on conflict (child_id) do update
     set enabled = excluded.enabled, changed_by = excluded.changed_by, changed_at = excluded.changed_at
     where ga.enabled is distinct from excluded.enabled;
+  get diagnostics v_changed = row_count;
 
-  insert into public.audit_log (family_id, actor_id, action, subject_id, details)
-  values (v_family_id, v_uid, 'guide.access_changed', p_child_id, jsonb_build_object('enabled', p_enabled));
+  -- Audit real changes only, so a double tap doesn't record consent twice.
+  if v_changed > 0 then
+    insert into public.audit_log (family_id, actor_id, action, subject_id, details)
+    values (v_family_id, v_uid, 'guide.access_changed', p_child_id, jsonb_build_object('enabled', p_enabled));
+  end if;
 end;
 $$;
 
-comment on function public.set_guide_access(uuid, boolean) is 'Approved parent turns the AI guide on or off for their child; audited. JA401, JA403, 22023.';
+comment on function public.set_guide_access(uuid, boolean) is 'Approved parent turns the AI guide on or off for their child; audited when it changes. JA401, JA403, 22023.';
 
 -- ---------------------------------------------------------------------------
 -- Server writes (service_role only, after the app's own checks)
@@ -152,9 +171,11 @@ declare
   v_family_id uuid;
   v_id uuid;
 begin
+  -- Membership first, like remove_child, so the two can't deadlock and no chat outlives a removal.
   select fm.family_id into v_family_id
   from public.family_members fm
-  where fm.profile_id = p_child_id and fm.role = 'child' and fm.status = 'approved';
+  where fm.profile_id = p_child_id and fm.role = 'child' and fm.status = 'approved'
+  for share;
   if v_family_id is null then
     raise exception using errcode = 'JA403', message = 'Not an approved child';
   end if;
@@ -193,41 +214,64 @@ declare
   v_conversation public.guide_conversations;
   v_reply_id uuid;
   v_usage jsonb := coalesce(p_usage, '{}'::jsonb);
+  v_at timestamptz;
+  v_child_text text;
 begin
+  if p_reply_role is null or p_reply_role not in ('guide', 'fixed_copy')
+     or p_route is null
+     or p_child_text is null or char_length(p_child_text) > 2000
+     or p_reply_text is null or char_length(p_reply_text) > 2000
+     or jsonb_typeof(v_usage) <> 'object' then
+    raise exception using errcode = '22023', message = 'Invalid turn';
+  end if;
+
+  -- Membership first (as in remove_child), then the chat row.
+  perform 1
+  from public.family_members fm
+  where fm.profile_id = p_child_id and fm.role = 'child' and fm.status = 'approved'
+  for share;
+  if not found then
+    raise exception using errcode = 'JA403', message = 'Not allowed';
+  end if;
+
   select * into v_conversation from public.guide_conversations c where c.id = p_conversation_id for update;
-  if not found or v_conversation.child_id <> p_child_id then
+  if not found or v_conversation.child_id is distinct from p_child_id then
     raise exception using errcode = 'JA403', message = 'Not allowed';
   end if;
   if v_conversation.turns >= 12 then
     raise exception using errcode = 'JA409', message = 'This chat is full';
   end if;
-  if p_reply_role not in ('guide', 'fixed_copy') then
-    raise exception using errcode = '22023', message = 'Unknown reply role';
-  end if;
 
-  insert into public.guide_messages (conversation_id, child_id, role, text)
-  values (p_conversation_id, p_child_id, 'child', p_child_text);
+  -- A message that got a safety or personal-details response is never kept.
+  v_child_text := case when p_route in ('safety', 'personal_info') then '' else p_child_text end;
+  -- After the lock, so turns that waited on it still sort in commit order.
+  v_at := pg_catalog.clock_timestamp();
+
+  insert into public.guide_messages (conversation_id, child_id, role, text, created_at)
+  values (p_conversation_id, p_child_id, 'child', v_child_text, v_at);
 
   insert into public.guide_messages (
     conversation_id, child_id, role, text, route, flagged, model,
     main_input_tokens, main_output_tokens, main_cache_read_tokens, main_cache_write_tokens,
-    screen_input_tokens, screen_output_tokens, latency_ms
+    screen_input_tokens, screen_output_tokens, latency_ms, created_at
   ) values (
-    p_conversation_id, p_child_id, p_reply_role, p_reply_text, p_route, coalesce(p_flagged, false), p_model,
-    coalesce((v_usage ->> 'main_input')::integer, 0),
-    coalesce((v_usage ->> 'main_output')::integer, 0),
-    coalesce((v_usage ->> 'main_cache_read')::integer, 0),
-    coalesce((v_usage ->> 'main_cache_write')::integer, 0),
-    coalesce((v_usage ->> 'screen_input')::integer, 0),
-    coalesce((v_usage ->> 'screen_output')::integer, 0),
-    p_latency_ms
+    p_conversation_id, p_child_id, p_reply_role, p_reply_text, p_route, coalesce(p_flagged, false),
+    nullif(p_model, ''),
+    least(greatest(coalesce((v_usage ->> 'main_input')::numeric, 0), 0), 2147483647)::integer,
+    least(greatest(coalesce((v_usage ->> 'main_output')::numeric, 0), 0), 2147483647)::integer,
+    least(greatest(coalesce((v_usage ->> 'main_cache_read')::numeric, 0), 0), 2147483647)::integer,
+    least(greatest(coalesce((v_usage ->> 'main_cache_write')::numeric, 0), 0), 2147483647)::integer,
+    least(greatest(coalesce((v_usage ->> 'screen_input')::numeric, 0), 0), 2147483647)::integer,
+    least(greatest(coalesce((v_usage ->> 'screen_output')::numeric, 0), 0), 2147483647)::integer,
+    greatest(coalesce(p_latency_ms, 0), 0),
+    v_at
   )
   returning id into v_reply_id;
 
   update public.guide_conversations
     set turns = turns + 1,
         flagged = flagged or coalesce(p_flagged, false),
-        last_message_at = now()
+        last_message_at = v_at
     where id = p_conversation_id;
 
   return v_reply_id;
@@ -235,9 +279,9 @@ end;
 $$;
 
 comment on function public.guide_record_turn(uuid, uuid, text, text, text, text, boolean, text, jsonb, integer) is
-  'Server only. Stores the child''s (scrubbed) message and the reply in one transaction and counts the turn. JA403, JA409 (12 turns), 22023.';
+  'Server only. Stores the child''s (scrubbed; blank after a safety or personal-details response) message and the reply in one transaction and counts the turn. JA403, JA409 (12 turns), 22023.';
 
--- Token totals since an instant, per kind, for the daily budget breaker.
+-- Token totals since an instant, per model, for the daily budget breaker. Replies only.
 create or replace function public.guide_usage_since(p_since timestamptz)
 returns table (
   model text,
@@ -248,11 +292,17 @@ returns table (
   screen_input bigint,
   screen_output bigint
 )
-language sql
+language plpgsql
 stable
 security definer
 set search_path = ''
 as $$
+begin
+  -- A missing date would return nothing and leave the budget open: refuse it instead.
+  if p_since is null then
+    raise exception using errcode = '22023', message = 'A start time is required';
+  end if;
+  return query
   select m.model,
          sum(m.main_input_tokens)::bigint,
          sum(m.main_output_tokens)::bigint,
@@ -263,9 +313,10 @@ as $$
   from public.guide_messages m
   where m.created_at >= p_since and m.role <> 'child'
   group by m.model;
+end;
 $$;
 
-comment on function public.guide_usage_since(timestamptz) is 'Server only. Token totals per model since an instant, for the guide''s daily budget.';
+comment on function public.guide_usage_since(timestamptz) is 'Server only. Token totals per model since an instant, for the guide''s daily budget. 22023 on a null start.';
 
 -- ---------------------------------------------------------------------------
 -- Child write: thumbs up or down on a guide reply
@@ -296,7 +347,7 @@ begin
 end;
 $$;
 
-comment on function public.rate_guide_message(uuid, smallint) is 'The child rates one of the guide''s replies to them. JA401, JA403, 22023.';
+comment on function public.rate_guide_message(uuid, smallint) is 'The child rates one of the guide''s own replies to them. JA401, JA403, 22023.';
 
 -- ---------------------------------------------------------------------------
 -- Retention: blank message text after 30 days (published on /safety)
@@ -310,14 +361,17 @@ security definer
 set search_path = ''
 as $$
 declare
+  v_run_id uuid;
   v_count integer;
 begin
+  insert into public.job_runs (job) values ('blank-old-guide-text') returning id into v_run_id;
   update public.guide_messages
     set text = '', text_blanked_at = now()
     where created_at < now() - interval '30 days' and text_blanked_at is null;
   get diagnostics v_count = row_count;
-  insert into public.job_runs (job, status, details)
-  values ('blank-old-guide-text', 'ok', jsonb_build_object('blanked', v_count));
+  update public.job_runs
+    set finished_at = pg_catalog.clock_timestamp(), status = 'ok', details = jsonb_build_object('blanked', v_count)
+    where id = v_run_id;
   return v_count;
 end;
 $$;

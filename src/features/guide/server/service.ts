@@ -7,7 +7,7 @@ import {
   getFamily,
 } from "@/features/family/server";
 import { topicTitles } from "@/features/learning";
-import { AppError, logger } from "@/lib";
+import { AppError, isAppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { guideCopy } from "../copy";
@@ -18,10 +18,10 @@ import { guideBreaker } from "./breaker";
 import { getGuideProvider, guideDailyBudgetCents, guideProviderName } from "./config";
 import { buildContext } from "./context";
 import { usageCents, zeroUsage } from "./cost";
-import { type PipelineResult, runGuidePipeline } from "./pipeline";
+import { fallbackResult, type PipelineResult, runGuidePipeline } from "./pipeline";
+import { GUIDE_PROMPT_VERSION } from "./prompts";
 import type { Turn } from "./provider";
 import * as repo from "./repository";
-import { scrub } from "./scrub";
 
 /** Spec §5.2: 5 messages a minute and 30 a day per child. */
 const PER_MINUTE = 5;
@@ -60,6 +60,22 @@ async function spentTodayCents(): Promise<number> {
   return rows.reduce((sum, row) => sum + usageCents(row.usage, row.model), 0);
 }
 
+/**
+ * Earlier turns for the model: only exchanges that were answered on topic. A message that was
+ * routed elsewhere (off topic, personal, safety, unsafe, a jailbreak) is never sent back, so an
+ * instruction planted in one turn can't be picked up by a harmless-looking next one.
+ */
+function onTopicHistory(messages: repo.MessageRow[]): Turn[] {
+  const turns: Turn[] = [];
+  messages.forEach((message, index) => {
+    const reply = messages[index + 1];
+    if (message.role === "child" && reply && reply.role === "guide" && reply.route === "on_topic") {
+      turns.push({ role: "child", text: message.text }, { role: "guide", text: reply.text });
+    }
+  });
+  return turns;
+}
+
 /** One message to the guide from the signed-in child. */
 export async function askGuide(input: {
   conversationId: string | null;
@@ -70,8 +86,9 @@ export async function askGuide(input: {
   const provider = getGuideProvider();
   if (!provider) throw new AppError("FORBIDDEN", guideCopy.switchedOff);
   const db = await createClient();
-  if (!(await repo.findGuideAccess(db, user.id)))
+  if (!(await repo.findGuideAccess(db, user.id))) {
     throw new AppError("FORBIDDEN", guideCopy.switchedOff);
+  }
   const family = await getFamily();
   if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
 
@@ -83,14 +100,12 @@ export async function askGuide(input: {
   let turns = 0;
   if (conversationId) {
     const conversation = await repo.findConversation(db, conversationId);
-    if (!conversation || conversation.childId !== user.id)
+    if (!conversation || conversation.childId !== user.id) {
       throw new AppError("FORBIDDEN", "You can't do that.");
+    }
     if (conversation.turns >= MAX_TURNS) throw new AppError("CONFLICT", guideCopy.chatFull);
     turns = conversation.turns;
-    history = (await repo.listMessages(db, [conversationId])).map((m) => ({
-      role: m.role === "child" ? "child" : "guide",
-      text: m.text,
-    }));
+    history = onTopicHistory(await repo.listMessages(db, [conversationId]));
   }
 
   const admin = createAdminClient();
@@ -114,43 +129,41 @@ export async function askGuide(input: {
     guideBreaker.isOpen() ||
     (provider.name === "anthropic" && (await spentTodayCents()) >= guideDailyBudgetCents());
   if (paused) {
-    result = {
-      // Still scrubbed before it is stored.
-      childText: scrub(input.text),
-      route: "unavailable",
-      role: "fixed_copy",
-      text: guideCopy.routes.unavailable,
-      topics: [],
-      check: null,
-      flagged: false,
-      usage: zeroUsage,
-      model: null,
-      latencyMs: 0,
-      failed: false,
-    };
+    // No screens run: the keyword net still turns a worrying message into the safety reply.
+    result = fallbackResult(input.text, { usage: zeroUsage, model: null, latencyMs: 0 });
   } else {
     result = await runGuidePipeline({ text: input.text, history, context: context.text }, provider);
     if (result.failed) guideBreaker.recordFailure();
     else guideBreaker.recordSuccess();
   }
 
-  const messageId = await repo.recordTurn(admin, {
-    conversationId,
-    childId: user.id,
-    childText: result.childText,
-    replyRole: result.role,
-    replyText: result.text,
-    route: result.route,
-    flagged: result.flagged,
-    model: result.model,
-    usage: result.usage,
-    latencyMs: result.latencyMs,
-  });
+  let messageId: string;
+  try {
+    messageId = await repo.recordTurn(admin, {
+      conversationId,
+      childId: user.id,
+      childText: result.childText,
+      replyRole: result.role,
+      replyText: result.storedText,
+      route: result.route,
+      flagged: result.flagged,
+      model: result.model,
+      usage: result.usage,
+      latencyMs: result.latencyMs,
+    });
+  } catch (error) {
+    // Two messages raced for the last turn of a chat.
+    if (isAppError(error) && error.code === "CONFLICT") {
+      throw new AppError("CONFLICT", guideCopy.chatFull, { cause: error });
+    }
+    throw error;
+  }
 
   // Route, model, tokens and latency only: never message text (spec §9).
   logger.info("Guide turn", {
     route: result.route,
     model: result.model,
+    prompt: GUIDE_PROMPT_VERSION,
     latencyMs: result.latencyMs,
     mainInput: result.usage.mainInput,
     mainOutput: result.usage.mainOutput,
@@ -196,12 +209,44 @@ export async function setGuideAccess(childId: string, enabled: boolean): Promise
   await repo.setGuideAccess(await createClient(), childId, enabled);
 }
 
-const SAFETY_HIDDEN = "A safety response was shown. The message is private.";
+const SAFETY_HIDDEN = "A safety response was shown. The message itself is not kept.";
+const PERSONAL_HIDDEN = "Personal details were shared, so the message is not kept.";
+const EXPIRED = "Older than 30 days, so deleted.";
 
 /**
- * A child's chats for the parent: flagged first. A child message that got a safety response is
- * not shown to the parent (spec decision 3): only that a safety response was shown.
+ * A chat as the parent reads it. A child message that got a safety or personal-details response
+ * is stored blank (spec decision 3, ADR 0010); the parent sees a note in its place.
  */
+function forParent(messages: repo.MessageRow[]): TranscriptMessage[] {
+  return messages.map((message, index) => {
+    if (message.role !== "child")
+      return { ...message, hidden: false, text: message.text || EXPIRED };
+    const reply = messages[index + 1];
+    if (reply?.route === "safety") return { ...message, hidden: true, text: SAFETY_HIDDEN };
+    if (reply?.route === "personal_info")
+      return { ...message, hidden: true, text: PERSONAL_HIDDEN };
+    return { ...message, hidden: false, text: message.text || EXPIRED };
+  });
+}
+
+function summarize(
+  conversation: repo.ConversationRow,
+  messages: repo.MessageRow[],
+): ConversationSummary {
+  const first = forParent(messages).find((m) => m.role === "child");
+  return {
+    id: conversation.id,
+    entry: conversation.entry,
+    label: labelFor(conversation.entry, conversation.contextKey),
+    createdAt: conversation.createdAt,
+    lastMessageAt: conversation.lastMessageAt,
+    turns: conversation.turns,
+    flagged: conversation.flagged,
+    preview: first?.text ?? "",
+  };
+}
+
+/** A child's chats for the parent, flagged first. */
 export async function listGuideChats(childId: string): Promise<ConversationSummary[]> {
   await assertParentCanRead(childId);
   const db = await createClient();
@@ -210,51 +255,32 @@ export async function listGuideChats(childId: string): Promise<ConversationSumma
     db,
     conversations.map((c) => c.id),
   );
-  return conversations.map((conversation) => {
-    const own = messages.filter((m) => m.conversationId === conversation.id);
-    const transcript = hideSafety(own);
-    const first = transcript.find((m) => m.role === "child");
-    return {
-      id: conversation.id,
-      entry: conversation.entry,
-      label: labelFor(conversation.entry, conversation.contextKey),
-      createdAt: conversation.createdAt,
-      lastMessageAt: conversation.lastMessageAt,
-      turns: conversation.turns,
-      flagged: conversation.flagged,
-      preview: first
-        ? first.hidden
-          ? SAFETY_HIDDEN
-          : first.text || "Older than 30 days, so deleted."
-        : "",
-    };
-  });
+  return conversations.map((conversation) =>
+    summarize(
+      conversation,
+      messages.filter((m) => m.conversationId === conversation.id),
+    ),
+  );
 }
 
+/** One chat, read directly (any age, not only the latest 50). */
 export async function getGuideTranscript(
   childId: string,
   conversationId: string,
 ): Promise<{ summary: ConversationSummary; messages: TranscriptMessage[] } | null> {
-  const chats = await listGuideChats(childId);
-  const summary = chats.find((c) => c.id === conversationId);
-  if (!summary) return null;
-  const messages = await repo.listMessages(await createClient(), [conversationId]);
-  return { summary, messages: hideSafety(messages) };
+  await assertParentCanRead(childId);
+  const db = await createClient();
+  const conversation = await repo.findConversation(db, conversationId);
+  if (!conversation || conversation.childId !== childId || conversation.turns === 0) return null;
+  const messages = await repo.listMessages(db, [conversationId]);
+  return { summary: summarize(conversation, messages), messages: forParent(messages) };
 }
 
-/** Number of flagged chats in the last 30 days, for the badge on the child's card. */
+/** Flagged chats in the last 30 days, for the badge on the child's card. */
 export async function countFlaggedChats(childId: string): Promise<number> {
-  const chats = await listGuideChats(childId);
-  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  return chats.filter((c) => c.flagged && Date.parse(c.lastMessageAt) >= cutoff).length;
-}
-
-function hideSafety(messages: repo.MessageRow[]): TranscriptMessage[] {
-  return messages.map((message, index) => {
-    const reply = messages[index + 1];
-    const hidden = message.role === "child" && reply?.route === "safety";
-    return { ...message, text: hidden ? SAFETY_HIDDEN : message.text, hidden };
-  });
+  await assertParentCanRead(childId);
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  return repo.countFlaggedSince(await createClient(), childId, since);
 }
 
 function labelFor(entry: string, contextKey: string): string {

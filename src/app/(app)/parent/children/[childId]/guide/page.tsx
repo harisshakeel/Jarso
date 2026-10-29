@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Money guide" };
 
 async function GuideContent({ params }: { params: Promise<{ childId: string }> }) {
   const { childId } = await params;
-  const { child } = await loadChild(childId, routes.parentChildGuide(childId));
+  const { child, timezone } = await loadChild(childId, routes.parentChildGuide(childId));
   const [access, chats] = await Promise.all([getGuideAccess(childId), listGuideChats(childId)]);
   if (!access.configured && chats.length === 0) notFound();
   return (
@@ -29,7 +29,11 @@ async function GuideContent({ params }: { params: Promise<{ childId: string }> }
         <h2 id="chats-heading" className="text-h3">
           Chats
         </h2>
-        <ChatList chats={chats} hrefFor={(id) => routes.parentChildGuideChat(childId, id)} />
+        <ChatList
+          chats={chats}
+          timezone={timezone}
+          hrefFor={(id) => routes.parentChildGuideChat(childId, id)}
+        />
       </section>
     </PageShell>
   );

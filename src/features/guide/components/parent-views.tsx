@@ -6,12 +6,16 @@ import { cn } from "@/lib";
 import type { ConversationSummary, TranscriptMessage } from "../types";
 import { GuideSwitch } from "./guide-switch";
 
-const when = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+/** Times in the family's timezone, not the server's. */
+function formatWhen(iso: string, timezone: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: timezone,
+  }).format(new Date(iso));
+}
 
 /** The parent's guide card on a child's page: the switch, flagged chats, and a link to all chats. */
 export function GuideCard({
@@ -59,9 +63,11 @@ export function GuideCard({
 export function ChatList({
   chats,
   hrefFor,
+  timezone,
 }: {
   chats: ConversationSummary[];
   hrefFor: (id: string) => Route;
+  timezone: string;
 }) {
   if (chats.length === 0) return <p className="text-ink-2">No chats yet.</p>;
   return (
@@ -77,9 +83,7 @@ export function ChatList({
           >
             <span className="flex items-center justify-between gap-2">
               <span className="font-semibold">{chat.label}</span>
-              <span className="text-ink-2 text-sm">
-                {when.format(new Date(chat.lastMessageAt))}
-              </span>
+              <span className="text-ink-2 text-sm">{formatWhen(chat.lastMessageAt, timezone)}</span>
             </span>
             {chat.flagged ? (
               <span className="flex items-center gap-1 font-semibold text-destructive text-sm">
@@ -109,7 +113,13 @@ const ROUTE_NOTES: Partial<Record<NonNullable<TranscriptMessage["route"]>, strin
 };
 
 /** One chat as the parent reads it. Messages that got a safety response stay private. */
-export function Transcript({ messages }: { messages: TranscriptMessage[] }) {
+export function Transcript({
+  messages,
+  timezone,
+}: {
+  messages: TranscriptMessage[];
+  timezone: string;
+}) {
   return (
     <ol className="grid gap-3" aria-label="Chat">
       {messages.map((message) => (
@@ -129,10 +139,10 @@ export function Transcript({ messages }: { messages: TranscriptMessage[] }) {
                 ? "AI guide"
                 : "AI guide (set reply)"}
             {" · "}
-            {when.format(new Date(message.createdAt))}
+            {formatWhen(message.createdAt, timezone)}
           </span>
           <p className={cn("whitespace-pre-line", message.hidden && "text-ink-2 italic")}>
-            {message.text || "Older than 30 days, so deleted."}
+            {message.text}
           </p>
           {message.route && ROUTE_NOTES[message.route] ? (
             <span

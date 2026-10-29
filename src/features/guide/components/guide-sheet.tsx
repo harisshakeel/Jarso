@@ -43,6 +43,12 @@ type GuideSheetProps = {
 
 const OFFLINE = "We couldn't reach the guide. Check your connection and try again.";
 
+/**
+ * The intro card shows before a child's first-ever message. Once they've read it on this page,
+ * other guide buttons (a new step's "Help me") don't show it again.
+ */
+let introAcknowledged = false;
+
 async function call<T>(action: () => Promise<ActionResult<T>>): Promise<ActionResult<T>> {
   try {
     return await action();
@@ -64,7 +70,7 @@ export function GuideSheet({
   compact,
 }: GuideSheetProps) {
   const [open, setOpen] = useState(false);
-  const [introSeen, setIntroSeen] = useState(!introNeeded);
+  const [introSeen, setIntroSeen] = useState(!introNeeded || introAcknowledged);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [turnsLeft, setTurnsLeft] = useState<number | null>(null);
@@ -74,6 +80,14 @@ export function GuideSheet({
   const [pending, startTransition] = useTransition();
   const listEnd = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+  // Bumped on every reset, so a reply that lands after the chat was closed is dropped.
+  const generation = useRef(0);
+
+  // "Got it" and "Start a new chat" disappear when pressed: move focus to the question box.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the dependencies are the triggers
+  useEffect(() => {
+    if (open && introSeen && !full) input.current?.focus();
+  }, [introSeen, full]);
 
   // Keep the newest message in view: re-run when a message arrives or "Thinking…" shows.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the dependencies are the triggers
@@ -82,6 +96,7 @@ export function GuideSheet({
   }, [messages, pending]);
 
   function reset() {
+    generation.current += 1;
     setConversationId(null);
     setMessages([]);
     setTurnsLeft(null);
@@ -95,16 +110,20 @@ export function GuideSheet({
     const question = text.trim();
     if (!question || pending) return;
     setError(null);
+    const started = generation.current;
     startTransition(async () => {
       const result = await call<AskGuideResult>(() =>
         askGuideAction(null, { conversationId, context, text: question }),
       );
+      if (started !== generation.current) return;
       if (!result.ok) {
         if (result.error.code === "CONFLICT") setFull(true);
         setError(
-          result.error.code === "INTERNAL" && result.error.message !== OFFLINE
-            ? guideCopy.routes.unavailable
-            : result.error.message,
+          result.error.code === "VALIDATION"
+            ? (result.error.fieldErrors?.text?.[0] ?? result.error.message)
+            : result.error.code === "INTERNAL" && result.error.message !== OFFLINE
+              ? guideCopy.routes.unavailable
+              : result.error.message,
         );
         return;
       }
@@ -160,7 +179,10 @@ export function GuideSheet({
                 variant="keycap"
                 size="lg"
                 className="w-fit"
-                onClick={() => setIntroSeen(true)}
+                onClick={() => {
+                  introAcknowledged = true;
+                  setIntroSeen(true);
+                }}
               >
                 {guideCopy.introButton}
               </Button>
@@ -279,7 +301,7 @@ function GuideBubble({ reply }: { reply: GuideReply }) {
                 href={line.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 font-bold underline underline-offset-4"
+                className="flex min-h-11 items-center gap-2 font-bold underline underline-offset-4"
               >
                 <PhoneIcon aria-hidden className="size-4" />
                 {line.name}
@@ -339,11 +361,17 @@ function GuideBubble({ reply }: { reply: GuideReply }) {
 /** The guide's optional one-question check (FR07). Answered in the browser; nothing is saved. */
 function CheckQuestion({ check }: { check: GuideCheck }) {
   const [picked, setPicked] = useState<number | null>(null);
+  const result = useRef<HTMLParagraphElement>(null);
+  // The options lock once one is picked, so focus moves to the result.
+  useEffect(() => {
+    if (picked !== null) result.current?.focus();
+  }, [picked]);
   return (
     <fieldset className="grid gap-2 rounded-xl border border-hairline p-3">
       <legend className="px-1 font-semibold">Quick check: {check.question}</legend>
       {check.options.map((option, index) => (
         <Button
+          // Options are distinct (the pipeline drops a check with repeats).
           key={option}
           variant="outline"
           className={cn(
@@ -358,7 +386,7 @@ function CheckQuestion({ check }: { check: GuideCheck }) {
         </Button>
       ))}
       {picked !== null ? (
-        <p role="status" className="flex items-start gap-2">
+        <p ref={result} tabIndex={-1} role="status" className="flex items-start gap-2 outline-none">
           {picked === check.answerIndex ? (
             <CircleCheckIcon aria-hidden className="mt-0.5 size-5 shrink-0 text-primary" />
           ) : null}

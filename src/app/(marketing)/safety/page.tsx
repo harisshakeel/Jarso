@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { routes } from "@/config";
+import { helplineDirectory, pilotHelplines, routes } from "@/config";
 
 export const metadata: Metadata = {
   title: "Money guide safety",
@@ -48,8 +48,8 @@ const sections: { heading: string; body: string[] }[] = [
   {
     heading: "If a child seems unsafe",
     body: [
-      "If a message suggests a child may be hurt, scared or at risk, the guide does not answer with the AI. It shows a kind, fixed message that encourages the child to talk to an adult they trust, with free helplines: Childline (0800 1111) in the UK; the 988 Suicide & Crisis Lifeline (call or text 988) and Childhelp (1-800-422-4453) in the US; and findahelpline.com everywhere else. It also says to call the local emergency number if they are in danger right now.",
-      "The chat is flagged for the parent. The parent sees that a safety response was shown, but not the child's message itself, so a child can reach out safely.",
+      "If a message suggests a child may be hurt, scared or at risk, the guide does not answer with the AI. It shows a kind, fixed message that encourages the child to talk to an adult they trust, lists free helplines (below), and says to call the local emergency number if they are in danger right now.",
+      "The chat is flagged for the parent. The parent sees that a safety response was shown, but not the child's message: it is never stored, so a child can reach out safely. If the safety check can't run, a simple keyword check still shows the helplines.",
     ],
   },
   {
@@ -80,6 +80,39 @@ export default function SafetyPage() {
           ))}
         </section>
       ))}
+      <section aria-labelledby="helplines" className="grid gap-3">
+        <h2 id="helplines" className="text-h2">
+          Helplines the guide shows
+        </h2>
+        {pilotHelplines.map((group) => (
+          <div key={group.country} className="grid gap-1">
+            <h3 className="font-bold">{group.country}</h3>
+            <ul className="grid gap-1">
+              {group.lines.map((line) => (
+                <li key={line.name}>
+                  <a
+                    href={line.url}
+                    className="font-semibold text-primary underline underline-offset-4"
+                  >
+                    {line.name}
+                  </a>
+                  : {line.contact}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        <p>
+          Everywhere else:{" "}
+          <a
+            href={helplineDirectory.url}
+            className="font-semibold text-primary underline underline-offset-4"
+          >
+            {helplineDirectory.name}
+          </a>
+          , {helplineDirectory.contact.toLowerCase()}.
+        </p>
+      </section>
       <p>
         <Link
           href={routes.home}

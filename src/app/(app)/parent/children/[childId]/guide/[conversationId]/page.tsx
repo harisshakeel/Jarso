@@ -15,7 +15,10 @@ async function ChatContent({
   params: Promise<{ childId: string; conversationId: string }>;
 }) {
   const { childId, conversationId } = await params;
-  const { child } = await loadChild(childId, routes.parentChildGuideChat(childId, conversationId));
+  const { child, timezone } = await loadChild(
+    childId,
+    routes.parentChildGuideChat(childId, conversationId),
+  );
   const chat = await getGuideTranscript(childId, conversationId);
   if (!chat) notFound();
   return (
@@ -28,7 +31,7 @@ async function ChatContent({
       }
       back={{ href: routes.parentChildGuide(childId), label: `${child.nickname}'s chats` }}
     >
-      <Transcript messages={chat.messages} />
+      <Transcript messages={chat.messages} timezone={timezone} />
     </PageShell>
   );
 }

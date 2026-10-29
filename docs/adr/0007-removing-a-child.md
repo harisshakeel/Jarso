@@ -18,4 +18,4 @@ A parent must be able to unlink a child (wrong nickname, a child who leaves the 
 - The money slices must make `remove_child` return `false` when history exists and must never cascade-delete ledger rows from `profiles`.
 - A failed auth-user delete leaves a disabled account, never a usable one, because the database disables first.
 
-Amended 2026-10-30 (ADR 0009): `remove_child` also deletes the child's learning progress, whether or not the identity is kept.
+Amended 2026-10-30 (ADR 0009, ADR 0010): `remove_child` also deletes the child's learning progress, guide chats and guide switch, whether or not the identity is kept.

@@ -128,4 +128,78 @@ describe("runGuidePipeline", () => {
     expect(result.topics).toEqual(["saving-goal", "spending"]);
     expect(result.usage.mainInput).toBe(10);
   });
+
+  it("falls back on the keyword net when the input screen can't run", async () => {
+    const result = await runGuidePipeline(
+      { text: "my dad hits me", history: [], context },
+      provider({ screenInput: async () => Promise.reject(new Error("timeout")) }),
+    );
+    expect(result).toMatchObject({ route: "safety", flagged: true, failed: true });
+  });
+
+  it("screens the quick check too, and stores it with the answer", async () => {
+    const screenOutput = vi.fn(createFakeProvider().screenOutput);
+    const result = await runGuidePipeline(
+      { text: "What is saving?", history: [], context },
+      provider({ screenOutput }),
+    );
+    expect(screenOutput.mock.calls[0]?.[0].reply).toContain(
+      "Quick check: Which jar does a goal count?",
+    );
+    expect(result.storedText).toContain("Quick check:");
+    expect(result.text).not.toContain("Quick check:");
+  });
+
+  it("holds back a check that tells the child to buy something", async () => {
+    const result = await runGuidePipeline(
+      { text: "What is saving?", history: [], context },
+      provider({
+        reply: async () => ({
+          kind: "ok",
+          reply: {
+            reply: "Saving is keeping money for later.",
+            topics: [],
+            check: {
+              question: "What should you do?",
+              options: ["Buy the new phone", "Wait"],
+              answerIndex: 0,
+              explanation: "x",
+            },
+          },
+          usage: {},
+          model: "fake",
+        }),
+      }),
+    );
+    expect(result.route).toBe("blocked_output");
+  });
+
+  it("cancels the answer when the screen routes the message elsewhere", async () => {
+    let signal: AbortSignal | undefined;
+    await runGuidePipeline(
+      { text: "help with my homework", history: [], context },
+      provider({
+        reply: async (args) => {
+          signal = args.signal;
+          return createFakeProvider().reply(args);
+        },
+      }),
+    );
+    expect(signal?.aborted).toBe(true);
+  });
+
+  it("blocks an overlong reply", async () => {
+    const result = await runGuidePipeline(
+      { text: "What is saving?", history: [], context },
+      provider({
+        reply: async () => ({
+          kind: "ok",
+          reply: { reply: "word ".repeat(300), topics: [], check: null },
+          usage: {},
+          model: "fake",
+        }),
+      }),
+    );
+    expect(result.route).toBe("blocked_output");
+  });
 });

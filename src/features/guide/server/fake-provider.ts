@@ -28,6 +28,7 @@ export function createFakeProvider(): GuideProvider {
     },
 
     async reply({ context }) {
+      // The signal is ignored: the fake answers at once.
       const midExercise =
         context.includes("Tries so far: 0") || context.includes("Tries so far: 1");
       const reply = midExercise

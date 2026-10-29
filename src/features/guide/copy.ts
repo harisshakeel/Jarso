@@ -24,7 +24,8 @@ export const guideCopy = {
     jailbreak: "I'll stay as Jarso's money guide. What would you like to know about money?",
     blocked_output:
       "Let me try that a different way. Can you ask your question again in other words?",
-    unavailable: "The guide is taking a break. Topics are still here.",
+    unavailable:
+      "The guide is taking a break. Topics are still here. If something is worrying you, talk to an adult you trust.",
   },
   rateLimitedMinute:
     "That's a lot of questions at once. Take a short break and try again in a minute.",

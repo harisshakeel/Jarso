@@ -154,13 +154,30 @@ export async function listMessages(
 
 /** Whether the child has ever sent the guide a message (the intro card shows until then). */
 export async function hasAnyMessage(db: Client, childId: string): Promise<boolean> {
-  const { count, error } = await db
+  const { data, error } = await db
     .from("guide_messages")
+    .select("id")
+    .eq("child_id", childId)
+    .eq("role", "child")
+    .limit(1);
+  if (error) throw toAppError(error, "Failed to load the guide");
+  return data.length > 0;
+}
+
+/** Flagged chats with a message since an instant (the parent's badge). */
+export async function countFlaggedSince(
+  db: Client,
+  childId: string,
+  sinceIso: string,
+): Promise<number> {
+  const { count, error } = await db
+    .from("guide_conversations")
     .select("id", { count: "exact", head: true })
     .eq("child_id", childId)
-    .eq("role", "child");
-  if (error) throw toAppError(error, "Failed to load the guide");
-  return (count ?? 0) > 0;
+    .eq("flagged", true)
+    .gte("last_message_at", sinceIso);
+  if (error) throw toAppError(error, "Failed to load chats");
+  return count ?? 0;
 }
 
 export async function rateMessage(db: Client, messageId: string, rating: 1 | -1): Promise<void> {

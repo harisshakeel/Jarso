@@ -57,7 +57,6 @@ describe("buildContext", () => {
       "GBP",
     );
     expect(context.text).toContain("The child's answer:");
-    expect(context.label).toMatch(/^Why\?/);
   });
 
   it("covers topic, home and practice entries", () => {
@@ -66,7 +65,7 @@ describe("buildContext", () => {
     expect(buildContext({ entry: "topic", topicKey: topic.key }, "GBP").contextKey).toBe(
       `topic:${topic.key}`,
     );
-    expect(buildContext({ entry: "home" }, "GBP").label).toBe("Asked from Home");
+    expect(buildContext({ entry: "home" }, "GBP").contextKey).toBe("home");
     const practice = buildContext(
       {
         entry: "step",
@@ -78,7 +77,7 @@ describe("buildContext", () => {
       },
       "GBP",
     );
-    expect(practice.label).toContain(topic.title);
+    expect(practice.text).toContain(topic.title);
   });
 
   it("refuses unknown keys, so nothing invented reaches the guide", () => {

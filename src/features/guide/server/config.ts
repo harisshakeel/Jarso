@@ -6,13 +6,16 @@ import type { GuideProvider } from "./provider";
 
 /**
  * Whether the guide can run at all, and with which provider. Off unless FEATURE_GUIDE is "true".
- * The fake provider is refused on Vercel production, and the real one needs ANTHROPIC_API_KEY.
+ * The fake provider needs GUIDE_ALLOW_FAKE and is refused on Vercel production; the real one
+ * needs ANTHROPIC_API_KEY.
  * Each child still needs their parent's switch on (guide_access).
  */
 export function guideProviderName(): "anthropic" | "fake" | null {
   if (!serverEnv.FEATURE_GUIDE) return null;
   if (serverEnv.GUIDE_PROVIDER === "fake") {
-    return serverEnv.VERCEL_ENV === "production" ? null : "fake";
+    // Keyword routing is fine for tests, never for children: two opt-ins, and never on Vercel
+    // production.
+    return serverEnv.GUIDE_ALLOW_FAKE && serverEnv.VERCEL_ENV !== "production" ? "fake" : null;
   }
   return serverEnv.ANTHROPIC_API_KEY ? "anthropic" : null;
 }

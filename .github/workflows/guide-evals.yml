@@ -19,6 +19,9 @@ jobs:
   evals:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    # Put ANTHROPIC_API_KEY in this environment (Settings → Environments → guide-evals) with a
+    # required reviewer, so a run on an edited branch can't reach the key without approval.
+    environment: guide-evals
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -26,7 +29,8 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      # No install scripts run in the job that holds the key.
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Run the eval suite
         # Without the key the gate would skip and the run would look green, so fail instead.
         run: |

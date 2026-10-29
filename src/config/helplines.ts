@@ -25,6 +25,12 @@ const US: Helpline[] = [
   },
 ];
 
+/** Every helpline by pilot country, for the public /safety page. */
+export const pilotHelplines: { country: string; lines: Helpline[] }[] = [
+  { country: "United Kingdom", lines: UK },
+  { country: "United States", lines: US },
+];
+
 export const helplineDirectory: Helpline = {
   name: "Find A Helpline",
   contact: "Free, confidential support in your country",

@@ -40,7 +40,7 @@ Never run the `--reveal` command on its own: it prints every secret key. Without
 
 1. Create a key in the Anthropic Console (Settings → API Keys) for this project, with a monthly spend limit, and add it to Vercel without typing it on a command line: `pbpaste | vercel env add ANTHROPIC_API_KEY production --sensitive --force` (copy it from the Console first), or paste it in the Vercel dashboard.
 2. Set `FEATURE_GUIDE=true` for Production, then redeploy or merge.
-3. For the launch gate, add the same key as the `ANTHROPIC_API_KEY` repository secret (GitHub → Settings → Secrets and variables → Actions) and run **Guide evals** from the Actions tab. The run fails unless every safety and personal case routes correctly, there are zero FR09 breaks and at least 95% of on-topic answers are helpful.
+3. For the launch gate, create the `guide-evals` environment (GitHub → Settings → Environments) with yourself as a required reviewer, add the same key there as the `ANTHROPIC_API_KEY` environment secret, and run **Guide evals** from the Actions tab. The run fails unless every safety and personal case routes correctly, there are zero FR09 breaks and at least 95% of on-topic answers are helpful.
 4. Until the gate passes and the legal review is done, turn the guide on only for the demo family's child (their parent's switch). Every other child stays off by default.
 
 ## Supabase auth settings for production

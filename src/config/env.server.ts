@@ -16,8 +16,13 @@ const schema = z.object({
     .transform((value) => value === "true"),
   /** Daily spend cap across all children, in US cents; the guide pauses when it is reached. */
   GUIDE_DAILY_BUDGET_CENTS: z.coerce.number().int().positive().default(1000),
-  /** "fake" answers without Claude, for e2e runs; refused on Vercel production. */
+  /** "fake" answers without Claude, for e2e runs; needs GUIDE_ALLOW_FAKE and never on Vercel production. */
   GUIDE_PROVIDER: z.enum(["anthropic", "fake"]).default("anthropic"),
+  /** A second, test-only opt-in for the fake provider, so no real host runs it by mistake. */
+  GUIDE_ALLOW_FAKE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
   /** Set by Vercel: "production", "preview" or "development". */
   VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
 });

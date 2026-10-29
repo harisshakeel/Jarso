@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
+import { routes } from "@/config";
 import { cn } from "@/lib";
 import { setGuideAccessAction } from "../server/actions";
 
@@ -53,15 +55,15 @@ export function GuideSwitch({
           disabled={pending}
           onClick={toggle}
           className={cn(
-            "relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border-2 transition-colors disabled:opacity-60",
+            "relative inline-flex h-11 w-[4.75rem] shrink-0 items-center rounded-full border-2 transition-colors disabled:opacity-60",
             on ? "border-primary bg-primary" : "border-hairline-strong bg-muted",
           )}
         >
           <span
             aria-hidden
             className={cn(
-              "inline-block size-6 rounded-full bg-white shadow transition-transform",
-              on ? "translate-x-6" : "translate-x-0.5",
+              "inline-block size-9 rounded-full bg-white shadow transition-transform",
+              on ? "translate-x-[2.125rem]" : "translate-x-0.5",
             )}
           />
           <span className="sr-only">{on ? "On" : "Off"}</span>
@@ -71,8 +73,15 @@ export function GuideSwitch({
         An AI helper made by Anthropic (Claude) that answers {nickname}'s money questions and gives
         hints in missions. It never asks for personal details, never recommends products or tells
         them to buy anything, and points them to help if they seem unsafe. Messages are sent to
-        Anthropic to get answers, kept here for 30 days, and you can read every chat. Turning it on
-        is your consent to that.
+        Anthropic to get answers, kept here for 30 days, and you can read every chat, except a
+        message that needed a safety response, which isn't kept. Turning it on is your consent to
+        that.{" "}
+        <Link
+          href={routes.safety}
+          className="font-semibold text-primary underline underline-offset-4"
+        >
+          How the guide keeps children safe
+        </Link>
       </p>
       {error ? (
         <p role="alert" className="font-semibold text-destructive text-sm">

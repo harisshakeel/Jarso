@@ -6,7 +6,6 @@ import {
   renderText,
   type StepAnswer,
   type StepBody,
-  topicTitles,
 } from "@/features/learning";
 import { findMission, findReviewItem, findTopic, topics } from "@/features/learning/server";
 import { AppError, formatMoney } from "@/lib";
@@ -22,8 +21,6 @@ export type BuiltContext = {
   entry: GuideEntry;
   /** Stored on the conversation: keys only, never free text. */
   contextKey: string;
-  /** The parent's list shows this, e.g. 'Help on "What's in Spend?"'. */
-  label: string;
   /** The mid-conversation system message for the main call and the output screen. */
   text: string;
 };
@@ -106,7 +103,6 @@ export function buildContext(ref: GuideContextRef, currency: string): BuiltConte
       return {
         entry: "step",
         contextKey: `step:${ref.source}:${ref.missionKey ?? "-"}:${step.key}:${ref.phase}`,
-        label: `Help on ${where}`,
         text: [
           "Context from the app (not from the child):",
           money,
@@ -125,7 +121,6 @@ export function buildContext(ref: GuideContextRef, currency: string): BuiltConte
       return {
         entry: "why",
         contextKey: `why:${ref.source}:${ref.missionKey ?? "-"}:${step.key}:${ref.phase}`,
-        label: `Why? in ${where}`,
         text: [
           "Context from the app (not from the child):",
           money,
@@ -143,7 +138,6 @@ export function buildContext(ref: GuideContextRef, currency: string): BuiltConte
       return {
         entry: "topic",
         contextKey: `topic:${topic.key}`,
-        label: `Topic: ${topicTitles[topic.key]}`,
         text: [
           "Context from the app (not from the child):",
           money,
@@ -155,7 +149,6 @@ export function buildContext(ref: GuideContextRef, currency: string): BuiltConte
       return {
         entry: "home",
         contextKey: "home",
-        label: "Asked from Home",
         text: [
           "Context from the app (not from the child):",
           money,

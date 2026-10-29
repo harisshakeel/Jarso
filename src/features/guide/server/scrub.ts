@@ -13,7 +13,10 @@ const PATTERNS: RegExp[] = [
   // Links with a scheme or www.
   /\b(?:https?:\/\/|www\.)\S+/gi,
   // Bare domains such as example.com/path or name.co.uk.
-  /\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|uk|io|app|me|info|biz|us)\b(?:\/\S*)?/gi,
+  /\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|uk|io|app|me|info|biz|us|gg|tv|xyz|ly|be|ca|au|in|pk|ie|nz|co|de|fr|es|it|nl|online|site|live|link)\b(?:\/\S*)?/gi,
+  // Social handles ("@sam_123") and "snap: name" style usernames.
+  /(?<=^|\s)@[A-Za-z0-9._]{2,}/g,
+  /\b(?:snap(?:chat)?|insta(?:gram)?|ig|tiktok|discord|roblox|whatsapp|telegram|twitter)\s*[:=]\s*@?[A-Za-z0-9._#-]{2,}/gi,
   // Phone numbers: an optional +, then 7 or more digits with spaces, dots, dashes or brackets.
   /\+?\(?\d[\d\s().-]{6,}\d/g,
 ];

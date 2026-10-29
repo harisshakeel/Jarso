@@ -21,6 +21,16 @@ describe("scrub", () => {
     expect(scrub("code 123456")).toBe("code [removed]");
   });
 
+  it("removes social handles and usernames", () => {
+    expect(scrub("add me @sam_2014 ok")).toBe("add me [removed] ok");
+    expect(scrub("my snap: kai.r and insta=@kai")).toBe("my [removed] and [removed]");
+    expect(scrub("play with me on mygame.gg")).toBe("play with me on [removed]");
+  });
+
+  it("keeps maths and sums", () => {
+    expect(scrub("if x = 12 and y = 3")).toBe("if x = 12 and y = 3");
+  });
+
   it("keeps money and ordinary numbers", () => {
     expect(scrub("I have 12.50 and want a 30 pound game")).toBe(
       "I have 12.50 and want a 30 pound game",

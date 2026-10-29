@@ -46,7 +46,11 @@ export type MainResult =
 
 /**
  * What the pipeline needs from a model provider. The Anthropic provider calls Claude; the fake
- * one answers by keyword for e2e runs and tests, and is refused on Vercel production.
+ * one answers by keyword for e2e runs and tests, and is refused on production.
+ *
+ * Contract: a refused or unreadable response is a result (input screen: "safety"; main reply:
+ * "refused"; output screen: not passed), never a throw. A throw means an infrastructure failure
+ * (network, timeout, HTTP error) and feeds the circuit breaker.
  */
 export interface GuideProvider {
   readonly name: "anthropic" | "fake";
@@ -54,7 +58,13 @@ export interface GuideProvider {
     text: string;
     history: Turn[];
   }): Promise<{ route: ScreenRoute; usage: Partial<GuideUsage> }>;
-  reply(args: { text: string; history: Turn[]; context: string }): Promise<MainResult>;
+  reply(args: {
+    text: string;
+    history: Turn[];
+    context: string;
+    signal?: AbortSignal;
+  }): Promise<MainResult>;
+  /** `reply` is everything the child would see: the answer plus any quick check. */
   screenOutput(args: {
     reply: string;
     childText: string;
