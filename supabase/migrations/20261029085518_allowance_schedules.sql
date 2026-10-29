@@ -63,7 +63,13 @@ create table public.allowance_occurrences (
   confirmed_at timestamptz,
   created_at timestamptz not null default now(),
   unique (schedule_id, period_key),
-  constraint allowance_occurrences_amount_minor_max check (amount_minor <= 100000000000)
+  constraint allowance_occurrences_amount_minor_max check (amount_minor <= 100000000000),
+  -- A confirmed occurrence records the whole split: cash + saved + shortfall = amount.
+  constraint allowance_occurrences_confirmed_split check (
+    status <> 'confirmed'
+    or (cash_minor is not null and saved_minor is not null and confirmed_at is not null
+        and cash_minor + saved_minor + shortfall_minor = amount_minor)
+  )
 );
 
 comment on table public.allowance_occurrences is 'One row per generated allowance period. Written only by security definer functions.';
@@ -71,6 +77,10 @@ comment on column public.allowance_occurrences.period_key is 'to_char(due_on, ''
 comment on column public.allowance_occurrences.amount_minor is 'Snapshot of the schedule amount at generation (D6).';
 
 create index allowance_occurrences_child_due_on_idx on public.allowance_occurrences (child_id, due_on desc);
+-- Due lists and badges read only due rows.
+create index allowance_occurrences_child_due_idx
+  on public.allowance_occurrences (child_id, due_on)
+  where status = 'due';
 create index allowance_occurrences_family_id_idx on public.allowance_occurrences (family_id);
 create index allowance_occurrences_confirmed_by_idx on public.allowance_occurrences (confirmed_by);
 

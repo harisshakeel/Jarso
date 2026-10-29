@@ -46,7 +46,15 @@ create table public.ledger_entries (
   occurred_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   check (mode = 'recorded' or source_type not in ('occurrence', 'parent_gift', 'request')),
-  constraint ledger_entries_amount_minor_max check (amount_minor <= 100000000000)
+  constraint ledger_entries_amount_minor_max check (amount_minor <= 100000000000),
+  -- Every kind has one direction; only a reversal (which mirrors its entry) may be either.
+  constraint ledger_kind_direction check (
+    kind = 'reversal'
+    or (kind in ('allowance_in', 'gift_in', 'parent_gift_in', 'deposit_in', 'withdrawal_in', 'grant_in') and direction = 'in')
+    or (kind in ('purchase', 'deposit_out', 'withdrawal_out') and direction = 'out')
+  ),
+  -- A reversal always names the entry it reverses, and nothing else does.
+  constraint ledger_reversal_link check ((kind = 'reversal') = (reverses_entry_id is not null))
 );
 
 comment on table public.ledger_entries is 'Append-only record of all money movement; balances are derived. Written only by security definer functions.';
@@ -58,7 +66,10 @@ comment on column public.ledger_entries.source_id is 'Originating row (occurrenc
 create index ledger_entries_child_mode_jar_occurred_idx
   on public.ledger_entries (child_id, mode, jar, occurred_at desc);
 create index ledger_entries_family_id_idx on public.ledger_entries (family_id);
-create index ledger_entries_reverses_entry_id_idx on public.ledger_entries (reverses_entry_id);
+-- An entry is reversed at most once.
+create unique index ledger_entries_reverses_entry_id_key
+  on public.ledger_entries (reverses_entry_id)
+  where reverses_entry_id is not null;
 create index ledger_entries_created_by_idx on public.ledger_entries (created_by);
 
 alter table public.ledger_entries enable row level security;

@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(32);
+select plan(36);
 
 select tests.create_user('pa@example.com') as pa \gset
 select tests.create_user('pb@example.com') as pb \gset
@@ -92,6 +92,21 @@ select throws_ok(format($$select public.confirm_handover(%L, 100, 0, '  ')$$, :'
 select is(public.confirm_handover(:'o5'::uuid, 300, 0, 'shared'), 'confirmed', 'cash only confirms');
 select is((select count(*)::int from public.ledger_entries where source_id = :'o5'::uuid), 1, 'cash only creates one ledger row');
 select is(public.confirm_handover(:'o6'::uuid, 200, 100, 'shared'), 'confirmed', 'same key on another occurrence also confirms');
+
+-- Occurrence invariants (as postgres, so only constraints stop the row).
+select tests.clear_auth();
+select throws_like(
+  format($$update public.allowance_occurrences set status = 'confirmed' where id = %L$$, :'o3'),
+  '%allowance_occurrences_confirmed_split%', 'confirmed needs the split and a time');
+select throws_like(
+  format($$update public.allowance_occurrences set status = 'confirmed', cash_minor = 100, saved_minor = 100, confirmed_at = now() where id = %L$$, :'o3'),
+  '%allowance_occurrences_confirmed_split%', 'confirmed split must add up with the shortfall');
+select lives_ok(
+  format($$update public.allowance_occurrences set status = 'confirmed', cash_minor = 300, saved_minor = 100, shortfall_minor = 100, confirmed_at = now() where id = %L$$, :'o3'),
+  'a confirmed split that adds up is accepted');
+select is(
+  (select indexdef like '%WHERE (status = ''due''::text)%' from pg_indexes where indexname = 'allowance_occurrences_child_due_idx'),
+  true, 'due occurrences have a partial index');
 
 select * from finish();
 rollback;

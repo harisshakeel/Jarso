@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(16);
+select plan(25);
 
 -- Fixtures: PA owns family A with child C; PB owns family B.
 select tests.create_user('pa@example.com') as pa \gset
@@ -68,6 +68,36 @@ select throws_ok(
   format('insert into public.ledger_entries (family_id, child_id, mode, jar, kind, direction, amount_minor, source_type, idempotency_key) values (%L, %L, %L, %L, %L, %L, 1, %L, %L)',
          :'fa', :'c', 'practice', 'spend', 'allowance_in', 'in', 'occurrence', 'k7'),
   '23514', null, 'practice row cannot use a money source');
+
+-- Named invariants (as postgres, so only constraints stop the row).
+select id as e1 from public.ledger_entries where idempotency_key = 'k1' \gset
+select throws_like(
+  format($$insert into public.ledger_entries (family_id, child_id, jar, kind, direction, amount_minor, source_type, idempotency_key, reverses_entry_id) values (%L, %L, 'spend', %L, %L, %s, 'diary', %L, %L)$$, :'fa', :'c', 'allowance_in', 'out', '1', 'kd1', null),
+  '%ledger_kind_direction%', 'an income kind cannot go out');
+select throws_like(
+  format($$insert into public.ledger_entries (family_id, child_id, jar, kind, direction, amount_minor, source_type, idempotency_key, reverses_entry_id) values (%L, %L, 'spend', %L, %L, %s, 'diary', %L, %L)$$, :'fa', :'c', 'purchase', 'in', '1', 'kd2', null),
+  '%ledger_kind_direction%', 'a purchase cannot come in');
+select throws_like(
+  format($$insert into public.ledger_entries (family_id, child_id, jar, kind, direction, amount_minor, source_type, idempotency_key, reverses_entry_id) values (%L, %L, 'spend', %L, %L, %s, 'diary', %L, %L)$$, :'fa', :'c', 'deposit_out', 'in', '1', 'kd3', null),
+  '%ledger_kind_direction%', 'deposit_out must go out');
+select throws_like(
+  format($$insert into public.ledger_entries (family_id, child_id, jar, kind, direction, amount_minor, source_type, idempotency_key, reverses_entry_id) values (%L, %L, 'spend', %L, %L, %s, 'diary', %L, %L)$$, :'fa', :'c', 'reversal', 'out', '1', 'rl1', null),
+  '%ledger_reversal_link%', 'a reversal must name the entry it reverses');
+select throws_like(
+  format($$insert into public.ledger_entries (family_id, child_id, jar, kind, direction, amount_minor, source_type, idempotency_key, reverses_entry_id) values (%L, %L, 'spend', %L, %L, %s, 'diary', %L, %L)$$, :'fa', :'c', 'gift_in', 'in', '1', 'rl2', :'e1'),
+  '%ledger_reversal_link%', 'only a reversal may name a reversed entry');
+select throws_like(
+  format($$insert into public.ledger_entries (family_id, child_id, jar, kind, direction, amount_minor, source_type, idempotency_key, reverses_entry_id) values (%L, %L, 'spend', %L, %L, %s, 'diary', %L, %L)$$, :'fa', :'c', 'gift_in', 'in', '100000000001', 'mx1', null),
+  '%ledger_entries_amount_minor_max%', 'amount above the maximum rejected');
+select lives_ok(
+  format($$insert into public.ledger_entries (family_id, child_id, jar, kind, direction, amount_minor, source_type, idempotency_key, reverses_entry_id) values (%L, %L, 'spend', %L, %L, %s, 'diary', %L, %L)$$, :'fa', :'c', 'reversal', 'out', '1000', 'rv1', :'e1'),
+  'a reversal in either direction with its link is accepted');
+select throws_ok(
+  format($$insert into public.ledger_entries (family_id, child_id, jar, kind, direction, amount_minor, source_type, idempotency_key, reverses_entry_id) values (%L, %L, 'spend', %L, %L, %s, 'diary', %L, %L)$$, :'fa', :'c', 'reversal', 'out', '1000', 'rv2', :'e1'),
+  '23505', null, 'an entry can be reversed only once');
+select lives_ok(
+  format($$insert into public.ledger_entries (family_id, child_id, jar, kind, direction, amount_minor, source_type, idempotency_key, reverses_entry_id) values (%L, %L, 'spend', %L, %L, %s, 'diary', %L, %L)$$, :'fa', :'c', 'gift_in', 'in', '100000000000', 'mx2', null),
+  'amount at the maximum accepted');
 
 select * from finish();
 rollback;
