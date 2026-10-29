@@ -15,13 +15,17 @@ vi.mock("./repository", () => ({
   listChildMembers: vi.fn(),
   listInvitationsForCaller: vi.fn(),
   registerChild: vi.fn(),
+  removeChildMember: vi.fn(),
+  renameChildMember: vi.fn(),
   revokeUserSessions: vi.fn(),
   updateChildPin: vi.fn(),
+  updateFamilyTimezone: vi.fn(),
   verifyChildPin: vi.fn(),
 }));
 vi.mock("./child-auth", () => ({
   createChildAuthUser: vi.fn(),
   deleteChildAuthUser: vi.fn(),
+  deleteChildIdentity: vi.fn(),
   mintChildSession: vi.fn(),
   rotateChildPassword: vi.fn(),
 }));
@@ -477,5 +481,122 @@ describe("setChildPin", () => {
 
     await expect(service.setChildPin(input)).rejects.toMatchObject({ code: "VALIDATION" });
     expect(repo.revokeUserSessions).not.toHaveBeenCalled();
+  });
+});
+
+describe("removeChild", () => {
+  const input = { childId: crypto.randomUUID() };
+
+  it("disables in the database, signs every device out, then deletes the identity", async () => {
+    const order: string[] = [];
+    vi.mocked(repo.removeChildMember).mockImplementation(async () => {
+      order.push("remove");
+      return true;
+    });
+    vi.mocked(repo.revokeUserSessions).mockImplementation(async () => {
+      order.push("revoke");
+    });
+    vi.mocked(childAuth.deleteChildIdentity).mockImplementation(async () => {
+      order.push("delete");
+    });
+
+    await service.removeChild(input);
+
+    expect(repo.removeChildMember).toHaveBeenCalledWith({ kind: "user" }, input.childId);
+    expect(repo.revokeUserSessions).toHaveBeenCalledWith({ kind: "admin" }, input.childId);
+    expect(childAuth.deleteChildIdentity).toHaveBeenCalledWith(input.childId);
+    expect(order).toEqual(["remove", "revoke", "delete"]);
+  });
+
+  it("keeps the identity when the database says it must stay (money history)", async () => {
+    vi.mocked(repo.removeChildMember).mockResolvedValue(false);
+
+    await service.removeChild(input);
+
+    expect(repo.revokeUserSessions).toHaveBeenCalledWith({ kind: "admin" }, input.childId);
+    expect(childAuth.deleteChildIdentity).not.toHaveBeenCalled();
+  });
+
+  it("touches nothing when the caller is not a parent", async () => {
+    vi.mocked(dal.assertRole).mockRejectedValue(new AppError("FORBIDDEN", "No."));
+
+    await expect(service.removeChild(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repo.removeChildMember).not.toHaveBeenCalled();
+    expect(repo.revokeUserSessions).not.toHaveBeenCalled();
+    expect(childAuth.deleteChildIdentity).not.toHaveBeenCalled();
+  });
+
+  it("leaves authorisation to remove_child, so a retry after a partial removal can run", async () => {
+    vi.mocked(repo.removeChildMember).mockResolvedValue(true);
+
+    await service.removeChild(input);
+
+    expect(dal.assertParentOf).not.toHaveBeenCalled();
+    expect(repo.removeChildMember).toHaveBeenCalledWith({ kind: "user" }, input.childId);
+  });
+
+  it("does not sign out or delete when the database refuses", async () => {
+    vi.mocked(repo.removeChildMember).mockRejectedValue(new AppError("FORBIDDEN", "No."));
+
+    await expect(service.removeChild(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repo.revokeUserSessions).not.toHaveBeenCalled();
+    expect(childAuth.deleteChildIdentity).not.toHaveBeenCalled();
+  });
+
+  it("still deletes the identity when the session revoke fails (delete ends sessions too)", async () => {
+    vi.mocked(repo.removeChildMember).mockResolvedValue(true);
+    vi.mocked(repo.revokeUserSessions).mockRejectedValue(new AppError("INTERNAL", "Down."));
+
+    await service.removeChild(input);
+
+    expect(childAuth.deleteChildIdentity).toHaveBeenCalledWith(input.childId);
+  });
+
+  it("rethrows a failed revoke when the identity must be kept", async () => {
+    vi.mocked(repo.removeChildMember).mockResolvedValue(false);
+    vi.mocked(repo.revokeUserSessions).mockRejectedValue(new AppError("INTERNAL", "Down."));
+
+    await expect(service.removeChild(input)).rejects.toMatchObject({ code: "INTERNAL" });
+    expect(childAuth.deleteChildIdentity).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a failed identity delete so the parent can retry", async () => {
+    vi.mocked(repo.removeChildMember).mockResolvedValue(true);
+    vi.mocked(childAuth.deleteChildIdentity).mockRejectedValue(
+      new AppError("INTERNAL", "We couldn't finish removing the child. Please try again."),
+    );
+
+    await expect(service.removeChild(input)).rejects.toMatchObject({ code: "INTERNAL" });
+    expect(repo.revokeUserSessions).toHaveBeenCalledWith({ kind: "admin" }, input.childId);
+  });
+});
+
+describe("renameChild", () => {
+  const input = { childId: crypto.randomUUID(), nickname: "Sammy" };
+
+  it("renames through the parent's client after the parent check", async () => {
+    await service.renameChild(input);
+    expect(dal.assertParentOf).toHaveBeenCalledWith(input.childId);
+    expect(repo.renameChildMember).toHaveBeenCalledWith({ kind: "user" }, input.childId, "Sammy");
+  });
+
+  it("passes CONFLICT through for the form to show on the field", async () => {
+    vi.mocked(repo.renameChildMember).mockRejectedValue(new AppError("CONFLICT", "Taken."));
+    await expect(service.renameChild(input)).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+});
+
+describe("updateFamilySettings", () => {
+  it("updates the timezone for a parent with a family", async () => {
+    await service.updateFamilySettings({ timezone: "Asia/Karachi" });
+    expect(repo.updateFamilyTimezone).toHaveBeenCalledWith({ kind: "user" }, "Asia/Karachi");
+  });
+
+  it("refuses a parent who has no family yet", async () => {
+    vi.mocked(dal.assertRole).mockResolvedValue({ user: parent, membership: null });
+    await expect(service.updateFamilySettings({ timezone: "UTC" })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(repo.updateFamilyTimezone).not.toHaveBeenCalled();
   });
 });

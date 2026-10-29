@@ -47,6 +47,10 @@ Supabase Auth with cookie sessions via `@supabase/ssr`.
 
 **Redirects.** Signed out, `/child` goes to `/sign-in/child` (proxy and `requireRole("child")`), never to the parent login. A child opening a parent page lands on `/child`; a parent opening `/child` lands on `/parent`. The e2e suite (`tests/e2e/onboarding.spec.ts`) covers all of these.
 
+## Children: removal, rename, settings
+
+A parent manages children from Settings (gear in the header → `/parent/settings`): rename (same nickname rules as adding), reset PIN, and remove. Removing is irreversible and audited: the database disables the child first (`remove_child`: membership removed, nickname freed, PIN credentials deleted), then every session is revoked and, while the child has no money history, the auth identity is deleted (ADR 0007). Children get `/child/settings` with theme and sign-out only; a parent manages the rest.
+
 ## Children: deployment prerequisite
 
 Child accounts are created through the admin client, so every environment that creates children needs `SUPABASE_SECRET_KEY` (Vercel production and preview, local `.env.local`). Without it `createAdminClient()` throws before GoTrue is called and the parent sees the generic "couldn't create the child account" message; that was the hosted failure recorded in PR #10. GoTrue's Admin `createUser` only syntax-checks the email, so the synthetic `.invalid` domain is fine on hosted.

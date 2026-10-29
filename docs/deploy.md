@@ -22,7 +22,15 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `SUPABASE_SECRET_KEY` | set (sensitive) | set (sensitive) | Required: the admin client creates child auth users (`features/family`). Previews share the production project, so they need it too. Missing it fails add-child with the generic error, which was the hosted bug behind PR #10's known issue. |
 | `LOG_LEVEL` | `info` | `info` | Optional. |
 
-To change a value from a terminal: `printf '<value>' | vercel env add NAME production --force` (pipe it; never type a key into a command line). Then redeploy.
+To change a value from a terminal: `printf '<value>' | vercel env add NAME production --force` (pipe it; never type a key into a command line). To take a Supabase key straight from the CLI, pass `--reveal` and pipe the one key into Vercel so it never appears on screen or in a log:
+
+```bash
+supabase projects api-keys --project-ref <ref> --reveal -o json \
+  | python3 -c 'import json,sys; t=sys.stdin.read(); print(next(k["api_key"] for k in json.loads(t[t.index("["):]) if k["api_key"].startswith("sb_secret_")), end="")' \
+  | vercel env add SUPABASE_SECRET_KEY production --sensitive --force
+```
+
+Never run the `--reveal` command on its own: it prints every secret key. Without `--reveal` the secret key comes back masked, and a masked value stored on Vercel fails every admin call with the generic "Failed to …" message (this happened on 2026-10-29). Env changes apply to the next deployment only; redeploy or merge afterwards.
 
 ## Supabase auth settings for production
 
@@ -55,4 +63,14 @@ Vercel → Deployments → previous Ready deployment → "Promote to Production"
 - One concurrent build; a push during a build queues.
 - Preview deployments may be behind Vercel Authentication (Deployment Protection). Production is public.
 
-Migrations are not applied by Vercel. They run from CI or `pnpm db:push` against the linked project; see `docs/database.md`.
+## Database migrations
+
+Vercel does not touch the database. Supabase's GitHub integration applies new migrations to the hosted project when they are merged to `main`, in parallel with the Vercel build. Nothing is stored in GitHub secrets.
+
+One-time setup, in Supabase → Project Settings → Integrations → GitHub Integration:
+
+1. Authorize GitHub and choose `harisshakeel/Jarso`.
+2. Working directory `.`; production branch `main`.
+3. Turn **Deploy to production** on. Leave automatic (preview) branching off: only `main` deploys.
+
+After each merge that adds a migration, check the deploy in the Supabase dashboard, or run `supabase migration list --linked`. If the integration is off or a deploy fails, run `pnpm db:push` from `main` by hand. Details in `docs/database.md`.

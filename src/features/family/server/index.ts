@@ -2,7 +2,7 @@
 import "server-only";
 
 export { getClientIp } from "./client-ip";
-export { assertParentOf, assertRole, getMembership, requireRole } from "./dal";
+export { assertParentOf, assertRole, currentRole, getMembership, requireRole } from "./dal";
 export {
   acceptInvitation,
   acceptListedInvitation,
@@ -16,6 +16,9 @@ export {
   INVITATION_GONE,
   listChildren,
   listMyInvitations,
+  removeChild,
+  renameChild,
   setChildPin,
   startChildOnboarding,
+  updateFamilySettings,
 } from "./service";

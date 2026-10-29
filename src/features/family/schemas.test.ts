@@ -6,8 +6,11 @@ import {
   childSignInSchema,
   createFamilySchema,
   inviteParamsSchema,
+  removeChildSchema,
+  renameChildSchema,
   setChildPinSchema,
   startChildOnboardingSchema,
+  updateFamilySettingsSchema,
 } from "./schemas";
 
 const child = { nickname: " Sam ", pin: "1234", consent: "on" };
@@ -140,5 +143,27 @@ describe("family schemas", () => {
     expect(acceptListedInvitationSchema.safeParse({ ...valid, consent: undefined }).success).toBe(
       false,
     );
+  });
+});
+
+describe("family settings schemas", () => {
+  const childId = "6f0a7d1e-2b3c-4d5e-8f90-123456789abc";
+
+  it("renameChildSchema trims and applies the nickname rules", () => {
+    expect(renameChildSchema.parse({ childId, nickname: " Sammy " }).nickname).toBe("Sammy");
+    expect(renameChildSchema.safeParse({ childId, nickname: "a@b" }).success).toBe(false);
+    expect(renameChildSchema.safeParse({ childId, nickname: "x".repeat(21) }).success).toBe(false);
+    expect(renameChildSchema.safeParse({ childId: "nope", nickname: "Sam" }).success).toBe(false);
+  });
+
+  it("removeChildSchema needs a uuid", () => {
+    expect(removeChildSchema.safeParse({ childId }).success).toBe(true);
+    expect(removeChildSchema.safeParse({ childId: "1" }).success).toBe(false);
+  });
+
+  it("updateFamilySettingsSchema accepts real timezones only", () => {
+    expect(updateFamilySettingsSchema.safeParse({ timezone: "Asia/Karachi" }).success).toBe(true);
+    expect(updateFamilySettingsSchema.safeParse({ timezone: "Mars/Olympus" }).success).toBe(false);
+    expect(updateFamilySettingsSchema.safeParse({ timezone: "" }).success).toBe(false);
   });
 });

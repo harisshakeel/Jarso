@@ -220,6 +220,8 @@ erDiagram
     text status "invited | approved | removed"
     uuid approved_by
     timestamptz approved_at
+    timestamptz removed_at
+    uuid removed_by
     timestamptz consent_at "child rows, guardian consent"
     uuid consent_by "consenting parent"
   }
@@ -395,7 +397,7 @@ Child sign-in flow: the Server Action looks up the child by family code and nick
 
 ### 6.2 Roles and membership
 
-`profiles.role` and `family_members` are set only by `security definer` functions (`create_child_account`, `accept_invitation`, `approve_member`). The profile update policy grants `update` on `display_name`, `avatar_url` and preferences columns only; role and nickname are not in the column grant. `updateProfileSchema` never includes them.
+`profiles.role` and `family_members` are set only by `security definer` functions (`create_family`, `register_child`, `remove_child`, `rename_child`, `update_family_timezone`). The profile update policy grants `update` on `display_name`, `avatar_url` and preferences columns only; role and nickname are not in the column grant. `updateProfileSchema` never includes them.
 
 RLS helper predicates, all `stable` and `security definer`:
 
@@ -444,6 +446,10 @@ sequenceDiagram
   A->>A: mint session (generateLink + verifyOtp)
   Note over C,E: Parent-initiated: parent signs up, createChildAccount(nickname, pin) does steps 5–7 directly.
 ```
+
+### 7.1b Removing a child (ADR 0007)
+
+Parent settings → "Remove" → confirmation dialog → `removeChild` service: `remove_child()` disables the child in one transaction (membership `removed`, nickname freed, credentials and PIN attempts deleted, audit `child.removed`; idempotent for retries) and returns whether the identity may be deleted; then `revoke_user_sessions()` ends every device; then, while there is no money history, the auth user is deleted and its profile cascades. Rename (`rename_child`) and the family timezone (`update_family_timezone`) follow the same parent-only, audited pattern.
 
 ### 7.2 Allowance falls due and is handed over
 
@@ -556,7 +562,7 @@ All jobs run in `pg_cron` with `job_runs` rows for observability. If a job needs
 | Preview | Vercel preview per PR | **Production project** (pilot decision) | Test families are flagged `families.is_test = true` and excluded from metrics; previews never run cron (pg_cron is in the database, shared, by design). Revisit with a staging project or Supabase Branching if real families join before the pilot ends. |
 | Production | Vercel `hnd1`, https://jarso.vercel.app | Supabase `sbnakvwvaymzypwmpqzv`, `ap-northeast-1` | `docs/deploy.md` |
 
-Delivery pipeline: PR → CI (lint, typecheck, unit, build, e2e, gitleaks, migration reset) → review → merge to `main` → CI applies migrations to the hosted project (`supabase db push --linked`, to be added) → Vercel builds and promotes. Migrations are expand/contract so the previous build keeps working during the minute both run. Rollback is Vercel's promote-previous; schema never rolls back.
+Delivery pipeline: PR → CI (lint, typecheck, unit, build, e2e, gitleaks, migration reset + pgTAP) → review → squash merge to `main` → in parallel, Supabase's GitHub integration applies new migrations to the hosted project (production branch `main` only, no preview databases) and Vercel builds and promotes. Migrations are expand/contract so the previous build keeps working during the minute both run. Rollback is Vercel's promote-previous; schema never rolls back.
 
 ## 12. Observability and operations
 
