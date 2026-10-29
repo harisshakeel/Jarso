@@ -64,7 +64,7 @@ Calls I made (correct if wrong):
 - **Changing while paused** is allowed; D6 still applies (from the next occurrence).
 - **Change screen** reuses the setup screen, pre-filled, with the date labelled "Next one on". That date becomes the new anchor (stored on the schedule) for period stepping, so frequency and weekday/day-of-month can change without stop-and-recreate. It must be after the last generated period's due date. Generated occurrences are untouched (D6).
 - **No past dates.** First date, "Next one on" and "Give on" must be today or later (family timezone), so nothing is backfilled. Validated in Zod and in the DB function.
-- **Pause starts now.** No booking a pause ahead. Periods with `due_on` before family-today stay due even if the generator hasn't created them yet (a late run still creates them). Periods with `due_on` on or after the pause day are skipped, unless already generated, in which case they stay due.
+- **Pause starts now.** No booking a pause ahead. Pause, resume and stop first run generation for that schedule up to family-today, so everything due up to and including the pause day becomes (and stays) due, however late the hourly job is. Periods after the pause day are skipped while paused.
 - **Not given in history:** the parent sees "Not given". The child sees the same date with a neutral "Skipped" and no amount, so it reads as a fact, not a judgement.
 
 ## 4. Behaviour
