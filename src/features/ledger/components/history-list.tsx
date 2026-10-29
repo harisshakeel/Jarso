@@ -33,6 +33,14 @@ function Amount({
   showMinor: ShowMinor;
 }) {
   if (item.amountMinor === null) return null;
+  if (item.kind === "purchase") {
+    const spent = formatMoney(item.amountMinor, currency, { showMinor });
+    return (
+      <span className={item.undone ? "money font-bold text-ink-2 line-through" : "money font-bold"}>
+        −{spent}
+      </span>
+    );
+  }
   const given = formatMoney(item.amountMinor, currency, { showMinor });
   // A gentle shortfall: "<given> of <due>".
   const text =
@@ -42,7 +50,7 @@ function Amount({
   return <span className="money font-bold">{text}</span>;
 }
 
-/** Allowances, gifts and skipped ones, newest first. */
+/** Allowances, gifts, purchases and skipped ones, newest first. */
 export function HistoryList({
   items,
   currency,
@@ -79,7 +87,10 @@ export function HistoryList({
                         item.label
                       )}
                     </span>
-                    <span className="text-ink-2 text-sm">{day(item.occurredOn)}</span>
+                    <span className="text-ink-2 text-sm">
+                      {day(item.occurredOn)}
+                      {item.undone ? " · Undone" : ""}
+                    </span>
                   </div>
                   <Amount item={item} currency={currency} showMinor={showMinor} />
                 </li>

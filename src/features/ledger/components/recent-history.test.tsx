@@ -14,6 +14,9 @@ const items = (count: number): HistoryItem[] =>
     dueMinor: null,
     label: `Gift ${i + 1}`,
     occurredOn: "2026-11-01",
+    undone: false,
+    entryId: null,
+    canUndo: false,
   }));
 
 const href = "/parent/children/c1/history" as Route;
