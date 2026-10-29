@@ -1,6 +1,5 @@
 "use server";
 
-import { refresh } from "next/cache";
 import { createAction } from "@/lib";
 import {
   completeCheckInSchema,
@@ -18,9 +17,10 @@ import {
 } from "./service";
 
 /**
- * The mission player calls these with plain objects. Recording a step does not refresh the route:
- * the player holds its own state, and refreshing mid-mission would only cost a round trip.
- * Finishing a mission, practice or the check-in refreshes so Learn and Home show the change.
+ * The mission player calls these with plain objects and keeps its own state, so none of them
+ * refreshes the route: a refresh would re-render the page under the player (the check-in page
+ * swaps to "done" and hides the result). Learn and Home are request-time pages, so they show the
+ * change on the next visit.
  */
 
 export const startMissionAction = createAction(startMissionSchema, ({ missionKey }) =>
@@ -29,19 +29,12 @@ export const startMissionAction = createAction(startMissionSchema, ({ missionKey
 
 export const recordStepAction = createAction(recordStepSchema, (input) => recordStep(input));
 
-export const completeMissionAction = createAction(completeMissionSchema, async ({ attemptId }) => {
-  const summary = await completeMission(attemptId);
-  refresh();
-  return summary;
-});
+export const completeMissionAction = createAction(completeMissionSchema, ({ attemptId }) =>
+  completeMission(attemptId),
+);
 
-export const recordPracticeAction = createAction(recordPracticeSchema, async (input) => {
-  const result = await recordPractice(input);
-  return result;
-});
+export const recordPracticeAction = createAction(recordPracticeSchema, recordPractice);
 
-export const completeCheckInAction = createAction(completeCheckInSchema, async ({ answers }) => {
-  const result = await completeCheckIn(answers);
-  refresh();
-  return result;
-});
+export const completeCheckInAction = createAction(completeCheckInSchema, ({ answers }) =>
+  completeCheckIn(answers),
+);

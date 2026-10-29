@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { familyToday } from "@/lib";
 import {
   allowanceSchema,
   changeAllowanceSchema,
-  familyToday,
   giftSchema,
   handoverParamsSchema,
   handoverSchema,

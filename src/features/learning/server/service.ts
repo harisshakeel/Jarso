@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { assertRole, assertSelfOrParentOf, getFamily } from "@/features/family/server";
-import { AppError, addDays, familyToday, startOfWeek } from "@/lib";
+import { AppError, addDays, familyToday, localDateOf, startOfWeek } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import { checkIn, findMission, findReviewItem, missions, reviewPool } from "../content";
 import { gradeStep } from "../grade";
@@ -66,9 +66,11 @@ export const getLearningOverview = cache(async (childId: string): Promise<Learni
       const summary = attemptSummary(results.get(attempt.id) ?? []);
       return [
         {
+          attemptId: attempt.id,
           missionKey: mission.key,
           title: mission.title,
-          completedOn: journey.find((m) => m.key === mission.key)?.completedOn ?? today,
+          // Each attempt's own day: a replayed mission has a row per finish.
+          completedOn: localDateOf(attempt.completedAt, timezone),
           completedAt: attempt.completedAt,
           ...summary,
         },
@@ -97,16 +99,25 @@ export type MissionSession = {
   results: StepResult[];
 };
 
+/** The child's attempts, and whether a mission is open to them (done, or the current one). */
+async function missionAccess(childId: string, missionKey: string) {
+  const db = await createClient();
+  const [{ timezone }, attempts] = await Promise.all([
+    familyClock(),
+    repo.listAttempts(db, childId),
+  ]);
+  const canOpen = canOpenMission(buildJourney(missions, attempts, timezone), missionKey);
+  return { db, attempts, canOpen };
+}
+
 /** For the mission page: the open attempt and its results, or nothing yet. Locked → NOT_FOUND. */
 export async function getMissionSession(missionKey: string): Promise<MissionSession> {
   const user = await assertChild();
   const mission = findMission(missionKey);
   if (!mission) throw new AppError("NOT_FOUND", "We couldn't find that mission.");
-  const overview = await getLearningOverview(user.id);
-  if (!canOpenMission(overview.journey, missionKey))
-    throw new AppError("NOT_FOUND", "Finish the mission before this one first.");
-  const db = await createClient();
-  const open = (await repo.listAttempts(db, user.id)).find(
+  const { db, attempts, canOpen } = await missionAccess(user.id, missionKey);
+  if (!canOpen) throw new AppError("NOT_FOUND", "Finish the mission before this one first.");
+  const open = attempts.find(
     (a) =>
       a.missionKey === missionKey && a.status === "started" && a.contentVersion === mission.version,
   );
@@ -120,10 +131,8 @@ export async function startMission(missionKey: string): Promise<MissionSession> 
   const user = await assertChild();
   const mission = findMission(missionKey);
   if (!mission) throw new AppError("NOT_FOUND", "We couldn't find that mission.");
-  const overview = await getLearningOverview(user.id);
-  if (!canOpenMission(overview.journey, missionKey))
-    throw new AppError("FORBIDDEN", "Finish the mission before this one first.");
-  const db = await createClient();
+  const { db, canOpen } = await missionAccess(user.id, missionKey);
+  if (!canOpen) throw new AppError("FORBIDDEN", "Finish the mission before this one first.");
   const attemptId = await repo.startMission(db, mission.key, mission.version);
   const results = await repo.listStepResults(db, [attemptId]);
   return { attemptId, results: results.get(attemptId) ?? [] };
@@ -159,7 +168,6 @@ export async function recordStep(input: {
     phase: input.phase,
     stepType: body.type,
     skillKey: body.skill,
-    answer: input.answer,
     correct,
     hintsUsed: input.hintsUsed,
     tries: input.tries,
@@ -209,7 +217,6 @@ export async function recordPractice(input: {
   await repo.recordPracticeResult(await createClient(), {
     itemKey: item.key,
     skillKey: item.skill,
-    answer: input.answer,
     correct,
     hintsUsed: input.hintsUsed,
     tries: input.tries,
@@ -230,19 +237,14 @@ export async function completeCheckIn(
   if (given.size !== keys.length || keys.some((key) => !given.has(key))) {
     throw new AppError("VALIDATION", "Answer all five questions first.");
   }
-  const graded = checkIn.questions.map((question) => {
-    const answer = given.get(question.key) as StepAnswer;
-    return {
-      stepKey: question.key,
-      skill: question.skill,
-      answer,
-      correct: gradeStep(bodyFor(question, "main"), answer).correct,
-    };
-  });
-  const correctCount = graded.filter((g) => g.correct).length;
+  // Graded here; only the count is kept, never the answers themselves.
+  const correctCount = checkIn.questions.filter(
+    (question) =>
+      gradeStep(bodyFor(question, "main"), given.get(question.key) as StepAnswer).correct,
+  ).length;
   await repo.completeCheckIn(await createClient(), {
     version: checkIn.version,
-    answers: graded,
+    questionCount: checkIn.questions.length,
     correctCount,
   });
   return { correctCount };

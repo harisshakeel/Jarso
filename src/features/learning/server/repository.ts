@@ -1,16 +1,9 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
-import type { Database, Json } from "@/types";
+import type { Database } from "@/types";
 import { type SkillKey, type SkillLevel, skillKeys } from "../skills";
-import type {
-  CheckInResult,
-  Phase,
-  ReviewItem,
-  SkillProgress,
-  StepAnswer,
-  StepResult,
-} from "../types";
+import type { CheckInResult, Phase, ReviewItem, SkillProgress, StepResult } from "../types";
 
 type Client = SupabaseClient<Database>;
 
@@ -68,16 +61,17 @@ const ATTEMPT_COLUMNS =
 // Reads
 // ---------------------------------------------------------------------------
 
-/** Every started or completed attempt of a child, oldest first. */
+/** A child's started and completed attempts (the latest 200), oldest first. */
 export async function listAttempts(db: Client, childId: string): Promise<AttemptRow[]> {
   const { data, error } = await db
     .from("mission_attempts")
     .select(ATTEMPT_COLUMNS)
     .eq("child_id", childId)
     .neq("status", "abandoned")
-    .order("started_at", { ascending: true });
+    .order("started_at", { ascending: false })
+    .limit(200);
   if (error) throw toAppError(error, "Failed to load missions");
-  return data.map(toAttempt);
+  return data.map(toAttempt).reverse();
 }
 
 export async function findAttempt(db: Client, attemptId: string): Promise<AttemptRow | null> {
@@ -233,7 +227,6 @@ export async function recordStepResult(
     phase: Phase;
     stepType: string;
     skillKey: SkillKey;
-    answer: StepAnswer;
     correct: boolean;
     hintsUsed: number;
     tries: number;
@@ -245,7 +238,6 @@ export async function recordStepResult(
     p_phase: input.phase,
     p_step_type: input.stepType,
     p_skill_key: input.skillKey,
-    p_answer: input.answer as unknown as Json,
     p_correct: input.correct,
     p_hints_used: input.hintsUsed,
     p_tries: input.tries,
@@ -265,7 +257,6 @@ export async function recordPracticeResult(
   input: {
     itemKey: string;
     skillKey: SkillKey;
-    answer: StepAnswer;
     correct: boolean;
     hintsUsed: number;
     tries: number;
@@ -274,7 +265,6 @@ export async function recordPracticeResult(
   const { data, error } = await db.rpc("record_practice_result", {
     p_item_key: input.itemKey,
     p_skill_key: input.skillKey,
-    p_answer: input.answer as unknown as Json,
     p_correct: input.correct,
     p_hints_used: input.hintsUsed,
     p_tries: input.tries,
@@ -285,11 +275,11 @@ export async function recordPracticeResult(
 
 export async function completeCheckIn(
   db: Client,
-  input: { version: number; answers: unknown[]; correctCount: number },
+  input: { version: number; questionCount: number; correctCount: number },
 ): Promise<boolean> {
   const { data, error } = await db.rpc("complete_checkin", {
     p_content_version: input.version,
-    p_answers: input.answers as unknown as Json,
+    p_question_count: input.questionCount,
     p_correct_count: input.correctCount,
   });
   if (error) throw toAppError(error, "Failed to save the check-in");

@@ -277,14 +277,14 @@ isOneToOne: false
                   ]
                 },"learning_checkins": {
                   Row: {
-                    "answers": NonNullable<Json>,"child_id": string,"completed_at": string,"content_version": number,"correct_count": number
+                    "child_id": string,"completed_at": string,"content_version": number,"correct_count": number,"question_count": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "answers": NonNullable<Json>,"child_id": string,"completed_at"?: string,"content_version": number,"correct_count": number
+                    "child_id": string,"completed_at"?: string,"content_version": number,"correct_count": number,"question_count": number
                   }
                   Update: {
-                    "answers"?: NonNullable<Json>,"child_id"?: string,"completed_at"?: string,"content_version"?: number,"correct_count"?: number
+                    "child_id"?: string,"completed_at"?: string,"content_version"?: number,"correct_count"?: number,"question_count"?: number
                   }
                   Relationships: [
                     {
@@ -419,14 +419,14 @@ isOneToOne: false
                   ]
                 },"practice_results": {
                   Row: {
-                    "answer": NonNullable<Json>,"answered_at": string,"answered_on": string,"child_id": string,"correct": boolean,"hints_used": number,"id": string,"item_key": string,"skill_key": string,"tries": number
+                    "answered_at": string,"answered_on": string,"child_id": string,"correct": boolean,"hints_used": number,"id": string,"item_key": string,"skill_key": string,"tries": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "answer": NonNullable<Json>,"answered_at"?: string,"answered_on": string,"child_id": string,"correct": boolean,"hints_used": number,"id"?: string,"item_key": string,"skill_key": string,"tries": number
+                    "answered_at"?: string,"answered_on": string,"child_id": string,"correct": boolean,"hints_used": number,"id"?: string,"item_key": string,"skill_key": string,"tries": number
                   }
                   Update: {
-                    "answer"?: NonNullable<Json>,"answered_at"?: string,"answered_on"?: string,"child_id"?: string,"correct"?: boolean,"hints_used"?: number,"id"?: string,"item_key"?: string,"skill_key"?: string,"tries"?: number
+                    "answered_at"?: string,"answered_on"?: string,"child_id"?: string,"correct"?: boolean,"hints_used"?: number,"id"?: string,"item_key"?: string,"skill_key"?: string,"tries"?: number
                   }
                   Relationships: [
                     {
@@ -493,22 +493,22 @@ isOneToOne: false
                   ]
                 },"step_results": {
                   Row: {
-                    "answer": NonNullable<Json>,"answered_at": string,"attempt_id": string,"child_id": string,"correct": boolean,"hints_used": number,"phase": string,"skill_key": string,"step_key": string,"step_type": string,"tries": number
+                    "answered_at": string,"attempt_id": string,"child_id": string,"correct": boolean,"hints_used": number,"phase": string,"skill_key": string,"step_key": string,"step_type": string,"tries": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "answer": NonNullable<Json>,"answered_at"?: string,"attempt_id": string,"child_id": string,"correct": boolean,"hints_used": number,"phase": string,"skill_key": string,"step_key": string,"step_type": string,"tries": number
+                    "answered_at"?: string,"attempt_id": string,"child_id": string,"correct": boolean,"hints_used": number,"phase": string,"skill_key": string,"step_key": string,"step_type": string,"tries": number
                   }
                   Update: {
-                    "answer"?: NonNullable<Json>,"answered_at"?: string,"attempt_id"?: string,"child_id"?: string,"correct"?: boolean,"hints_used"?: number,"phase"?: string,"skill_key"?: string,"step_key"?: string,"step_type"?: string,"tries"?: number
+                    "answered_at"?: string,"attempt_id"?: string,"child_id"?: string,"correct"?: boolean,"hints_used"?: number,"phase"?: string,"skill_key"?: string,"step_key"?: string,"step_type"?: string,"tries"?: number
                   }
                   Relationships: [
                     {
-      foreignKeyName: "step_results_attempt_id_fkey"
-      columns: ["attempt_id"]
+      foreignKeyName: "step_results_attempt_fkey"
+      columns: ["attempt_id","child_id"]
 isOneToOne: false
       referencedRelation: "mission_attempts"
-      referencedColumns: ["id"]
+      referencedColumns: ["id","child_id"]
     },{
       foreignKeyName: "step_results_child_id_fkey"
       columns: ["child_id"]
@@ -553,7 +553,7 @@ isOneToOne: false
 { Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
                            },
 "complete_checkin":
-{ Args: { "p_answers": Json,"p_content_version": number,"p_correct_count": number }; Returns: boolean
+{ Args: { "p_content_version": number,"p_correct_count": number,"p_question_count": number }; Returns: boolean
                            },
 "complete_mission":
 { Args: { "p_attempt_id": string }; Returns: boolean
@@ -701,10 +701,10 @@ isOneToOne: false
 { Args: { "p_message": string,"p_schedule_id": string,"p_through": string }; Returns: string
                            },
 "record_practice_result":
-{ Args: { "p_answer": Json,"p_correct": boolean,"p_hints_used": number,"p_item_key": string,"p_skill_key": string,"p_tries": number }; Returns: boolean
+{ Args: { "p_correct": boolean,"p_hints_used": number,"p_item_key": string,"p_skill_key": string,"p_tries": number }; Returns: boolean
                            },
 "record_step_result":
-{ Args: { "p_answer": Json,"p_attempt_id": string,"p_correct": boolean,"p_hints_used": number,"p_phase": string,"p_skill_key": string,"p_step_key": string,"p_step_type": string,"p_tries": number }; Returns: boolean
+{ Args: { "p_attempt_id": string,"p_correct": boolean,"p_hints_used": number,"p_phase": string,"p_skill_key": string,"p_step_key": string,"p_step_type": string,"p_tries": number }; Returns: boolean
                            },
 "register_child":
 { Args: { "p_child_id": string,"p_consent": boolean,"p_family_id": string,"p_invitation_id"?: string,"p_nickname": string,"p_pin": string }; Returns: undefined

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { Phase } from "../types";
+import type { Phase, StepAnswer } from "../types";
 
 /**
  * The step the player is showing, for helpers rendered beside it (the guide's "Help me" and
@@ -17,6 +17,8 @@ export type CurrentStep = {
   wrongTries: number;
   /** The final outcome is showing: the child has answered and can ask "Why?". */
   answered: boolean;
+  /** The child's final answer once answered (for "Why?"); null before that. */
+  answer: StepAnswer | null;
 };
 
 export const CurrentStepContext = createContext<CurrentStep | null>(null);

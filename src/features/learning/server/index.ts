@@ -4,6 +4,7 @@ import "server-only";
 export {
   checkIn,
   findMission,
+  findReviewItem,
   findTopic,
   missions,
   missionTopicKey,

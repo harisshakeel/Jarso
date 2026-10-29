@@ -12,9 +12,6 @@ const MAX_TEXT = 140;
 /** Dates a parent picks are at most this far ahead (the database functions cap them too). */
 const MAX_DAYS_AHEAD = 366;
 
-// The date helpers moved to @/lib; re-exported so this module's callers keep working.
-export { addDays, familyToday } from "@/lib";
-
 function moneyMessage(currency: string): string {
   return minorDigits(currency) > 0
     ? "Enter an amount like 5 or 5.50."

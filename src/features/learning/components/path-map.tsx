@@ -19,7 +19,10 @@ export function PathMap({
   readOnly?: boolean;
 }) {
   return (
-    <ol aria-label="Your seven-day journey" className="relative grid gap-3">
+    <ol
+      aria-label={readOnly ? "The seven-day journey" : "Your seven-day journey"}
+      className="relative grid gap-3"
+    >
       {journey.map((mission, index) => {
         const done = mission.status === "done";
         const current = mission.status === "current";

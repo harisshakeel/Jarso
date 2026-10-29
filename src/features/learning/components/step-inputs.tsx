@@ -175,7 +175,7 @@ export function SortInput({
                 <label
                   key={bucket.id}
                   className={cn(
-                    "flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border border-hairline-strong px-4 font-semibold text-sm transition-colors has-checked:border-primary has-checked:bg-primary has-checked:text-primary-foreground sm:flex-none",
+                    "flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border border-hairline-strong px-4 font-semibold text-sm transition-colors has-checked:border-primary has-checked:bg-primary has-checked:text-primary-foreground sm:flex-none has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-offset-2",
                   )}
                 >
                   <input

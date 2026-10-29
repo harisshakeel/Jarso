@@ -111,7 +111,7 @@ Each answerable step carries two hints (gentle, then strong), feedback for a cor
 - **Completion**: the ring completes and the badge scales in once (`design.md` §8), with a summary such as "6 of 7 first try. 1 hint." No confetti, no points for money.
 - **Weekly rhythm instead of a streak**: "You learned on 3 days this week." A missed day never resets anything or triggers a loss message (open decision 6).
 - **Spaced review**: each skill has a review item in boxes of 1, 3, 7 and 14 days. A correct answer without hints moves it up a box; a wrong answer moves it back to box 1. Due reviews make a one-minute "Practice" set on home, drawn from a separate pool that uses new situations (FR06 "different situations", FR10 "unfamiliar examples").
-- **Starting check-in (FR10)**: five questions, one per topic, before mission 1. Copy: "Five quick questions. This helps pick where you start." It sets the starting skill levels and locks nothing.
+- **Starting check-in (FR10)**: five questions, one per topic, before mission 1. Copy: "Five quick questions. This helps pick where you start." It records how many the child already knew, as a starting point on the parent's learning page, and locks nothing. As built, it sets no skill level: levels stay tied to missions and reviews, so "Started" keeps meaning "seen in a mission".
 - **Coming back (FR12)**: the next-step card on child home offers, in order, the unfinished mission (resumed at its step), due practice, then today's mission. After missed days it offers one mission, not a backlog.
 
 ### 4.3 Skill progress (FR10)

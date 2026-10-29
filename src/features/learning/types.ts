@@ -87,6 +87,7 @@ export type LearningOverview = {
   nextStep: NextStep;
   /** Completed attempts, newest first, with their first-try and hint counts. */
   completed: {
+    attemptId: string;
     missionKey: string;
     title: string;
     completedOn: string;

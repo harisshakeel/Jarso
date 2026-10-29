@@ -103,7 +103,12 @@ export function resumePosition(
     const next = mission.steps.findIndex(
       (step, index) => index > lastAnswered && (step.type === "info" || !main.has(step.key)),
     );
-    return { phase: "main", index: next === -1 ? 0 : next };
+    if (next !== -1) return { phase: "main", index: next };
+    // An earlier step has no result (it can't normally happen): go back to the first one.
+    const firstUnanswered = mission.steps.findIndex(
+      (step) => step.type !== "info" && !main.has(step.key),
+    );
+    return { phase: "main", index: Math.max(0, firstUnanswered) };
   }
   const queue = answerable
     .filter((s) => {

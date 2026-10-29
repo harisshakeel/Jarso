@@ -1,3 +1,4 @@
+import "server-only";
 import { z } from "zod";
 import { rawCheckIn, rawMissions, rawReviews, rawTopics } from "@/content/learning";
 import { checkInSchema, missionSchema, reviewPoolSchema, topicSchema } from "./schemas";

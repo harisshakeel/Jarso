@@ -58,7 +58,7 @@ export function CompletedMissions({ completed }: { completed: LearningOverview["
         <ul className="grid gap-2">
           {completed.map((mission) => (
             <li
-              key={`${mission.missionKey}-${mission.completedOn}`}
+              key={mission.attemptId}
               className="grid gap-0.5 rounded-xl border border-hairline bg-card px-4 py-3"
             >
               <span className="font-semibold">{mission.title}</span>

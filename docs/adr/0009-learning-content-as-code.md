@@ -10,9 +10,12 @@ FR06, FR08 and FR10 need a seven-day journey of short missions, five topic pages
 ## Decision
 
 - **Content is versioned JSON in the repo** (`src/content/learning`): missions, topics, a review pool and the check-in. `features/learning/content.ts` parses it with Zod when the module loads, so a bad edit fails `next build`, the unit tests and CI. Keys are stable kebab-case strings; a mission carries a `version`, and attempts record the version they ran. Amounts are fictional minor units written as `{m:1250}` and shown in the family currency. No admin UI.
-- **Content never reaches a shared client bundle.** Pages read it on the server and pass the one mission, topic or practice set the child needs to the player as props. Answers ship with the active step: acceptable for a learning app and needed for instant feedback.
+- **Content never reaches a shared client bundle.** `content.ts` is `server-only`; pages pass the one mission (with its replays), topic or practice set the child needs to the player as props. Its answers ship with it: acceptable for a learning app (the content is public in this repo anyway) and needed for instant feedback.
 - **One pure `gradeStep`** grades on the device for instant feedback and again on the server before recording. The client's word is never taken for right or wrong.
 - **Progress lives in Postgres**: `mission_attempts`, `step_results`, `skill_progress`, `review_items`, `practice_results`, `learning_checkins`. The child and the child's approved parents read through RLS; writes go only through `security definer` functions that check the caller is an approved child. Results are idempotent per step and phase, and per practice item per day.
+- **Only outcomes are stored, never answers**: right or wrong, hints and tries per step, and the check-in's count. Nothing a child enters is kept, so there is no free text to protect.
+- **Every write function is capped** per child (40 mission starts in 24 hours, 20 results per attempt, 60 practice answers a day; `JA429`), so direct calls can't fill the tables.
+- **Removing a child deletes their learning progress** (`remove_child`), also when the account is kept for money history (ADR 0007).
 - **Missions never touch the ledger.** Their amounts are question content, not practice money.
 
 ## Consequences
