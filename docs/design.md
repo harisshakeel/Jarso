@@ -160,7 +160,7 @@ Design at 360 px first, then 768 and 1024. Single column on phones; parent scree
 
 Tab bar height 64 px plus the safe-area inset, icons 24 px, labels 12 px 600, active tab primary with a filled icon. The Inbox tab shows a count badge in gold with ink text. Family settings live under the parent's Home.
 
-**Header**: 56 px, page title H1 or the mark on Home, one optional action on the right. No hamburger. A theme switch (Light/Dark/System) sits beside the header's optional action; on pages without a header it sits top-right and scrolls with the page.
+**Header**: 56 px, page title H1 or the mark on Home, one optional action on the right. No hamburger. A one-click light/dark theme toggle sits beside the header's optional action; on pages without a header it sits top-right and scrolls with the page.
 
 **Page rhythm**: title, one primary card (balance, due allowance, next step), then lists. The first thing on every Home is the next step (FR12): a mission, a due handover, a pending request.
 
@@ -247,7 +247,7 @@ Same tokens and components; different hierarchy.
 
 ## 12. Dark theme
 
-Follow the system setting, toggled by `next-themes` (already installed). The Light/Dark/System switch is in the header, or top-right on pages without one (§5). The warm paper canvas is a light-mode idea only; dark is a tinted navy-teal, not black: background `#0B1F26`, cards `#12303A`, hairlines at 10 % light ink, input borders `#234853`. Primary becomes teal-400 with ink text; brand gold and cyan stay at their brand values and are allowed as text because they clear 9:1 on these surfaces. Shadows are dropped; borders carry elevation. Illustrations keep their colours; the jar outline uses teal-300.
+The first visit follows the device setting; after that a one-click light/dark toggle (`next-themes`) keeps the last choice. The toggle is in the header, or top-right on pages without one (§5). The warm paper canvas is a light-mode idea only; dark is a tinted navy-teal, not black: background `#0B1F26`, cards `#12303A`, hairlines at 10 % light ink, input borders `#234853`. Primary becomes teal-400 with ink text; brand gold and cyan stay at their brand values and are allowed as text because they clear 9:1 on these surfaces. Shadows are dropped; borders carry elevation. Illustrations keep their colours; the jar outline uses teal-300.
 
 ## 13. Tokens for `globals.css`
 
