@@ -50,6 +50,13 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0 # keep in sync with the `supabase` devDependency
+      # stdout carries the local keys, so it is discarded; errors still reach stderr. The
+      # Playwright config reads the keys itself via `supabase status -o json`, in memory.
+      - name: Start local Supabase
+        run: supabase start > /dev/null
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()
