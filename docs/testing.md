@@ -27,6 +27,7 @@ E2E never talks to the hosted project. Run `pnpm db:start`, then `pnpm test:e2e`
 | --- | --- | --- |
 | `smoke` | `tests/e2e/smoke.spec.ts` | Nothing (placeholder Supabase env) |
 | `onboarding` | `tests/e2e/onboarding.spec.ts` | Local Supabase. Parent- and child-started onboarding, family isolation, wrong-role and signed-out redirects, invite reuse, PIN lockout |
+| `auth` | `tests/e2e/email-confirm.spec.ts` | Local Supabase. Email confirmation link opened in a fresh browser signs in and keeps `next`; a used link lands on login with a message |
 
 **How the keys get in, without printing them.** `playwright.config.ts` calls `loadLocalSupabase()` (`tests/e2e/local-supabase.ts`), which runs `pnpm exec supabase status -o json` with stderr dropped, parses stdout in memory and refuses any host other than `127.0.0.1`/`localhost`. It has to run in the config, not `globalSetup`, because Playwright starts the webServer first. The values go to `webServer.env` for both `pnpm build` and `pnpm start`; workers reuse them through a process env var. Never `console.log` them and never run `supabase status` in a way that shows its output.
 

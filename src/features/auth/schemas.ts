@@ -37,3 +37,34 @@ export function withNext(path: Route, next: string | null | undefined): Route {
   if (!next || safeNextPath(next, path) !== next) return path;
   return `${path}?next=${encodeURIComponent(next)}` as Route;
 }
+
+/**
+ * Query of the email confirmation link (`/auth/confirm`). Only sign-up confirmation types:
+ * recovery and email change would need their own follow-up screens.
+ */
+export const emailConfirmSchema = z.object({
+  token_hash: z.string().min(1),
+  type: z.enum(["email", "signup"]),
+  next: z.string().optional(),
+});
+
+/**
+ * The post-confirmation path carried by an email link. The template sends `{{ .RedirectTo }}`,
+ * the absolute `emailRedirectTo` URL (`<app>/auth/callback?next=…`), so that wrapper is unwrapped
+ * to its inner `next`. Only URLs on `allowedOrigins` are trusted (blocks open redirects).
+ */
+export function nextFromEmailLink(
+  value: string | null | undefined,
+  allowedOrigins: readonly string[],
+  fallback: Route = routes.dashboard,
+): Route {
+  const [base] = allowedOrigins;
+  if (!value || !base || !URL.canParse(value, base)) return fallback;
+  const url = new URL(value, base);
+  if (!allowedOrigins.includes(url.origin)) return fallback;
+  const path =
+    url.pathname === routes.authCallback
+      ? url.searchParams.get("next")
+      : `${url.pathname}${url.search}`;
+  return safeNextPath(path, fallback);
+}

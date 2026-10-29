@@ -9,6 +9,7 @@ export const routes = {
   signup: "/signup",
   dashboard: "/dashboard",
   authCallback: "/auth/callback",
+  authConfirm: "/auth/confirm",
   parent: "/parent",
   parentSetup: "/parent/setup",
   parentNewChild: "/parent/children/new",

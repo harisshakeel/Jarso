@@ -19,7 +19,8 @@ export const signIn = createAction(signInSchema, async ({ email, password, next 
 export const signUp = createAction(signUpSchema, async ({ email, password, fullName, next }) => {
   const target = safeNextPath(next);
   const callback = new URL(routes.authCallback, clientEnv.NEXT_PUBLIC_APP_URL);
-  // Carries e.g. /invite?token=… through email confirmation; the callback re-checks it.
+  // Carries e.g. /invite?token=… through email confirmation. The confirmation email links to
+  // /auth/confirm with this URL as `next` (unwrapped there); /auth/callback reads it directly.
   callback.searchParams.set("next", target);
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({

@@ -1,0 +1,7 @@
+<h2>Confirm your email</h2>
+
+<p>Tap the link below to confirm your email and finish setting up Jarso. You can open it on any device.</p>
+<p>
+  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next={{ .RedirectTo | urlquery }}">Confirm my email</a>
+</p>
+<p>If you didn't sign up for Jarso, you can ignore this email.</p>

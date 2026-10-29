@@ -97,7 +97,9 @@ src/
 │   │   ├── cron/[job]/           # CRON_SECRET-guarded triggers (fallback to pg_cron)
 │   │   ├── hooks/notifications/  # database webhook receiver
 │   │   └── v1/…                  # versioned API for non-UI callers
-│   └── auth/callback/            # PKCE exchange
+│   └── auth/
+│       ├── callback/             # PKCE exchange (OAuth, same-browser links)
+│       └── confirm/              # email link token-hash verify (any device)
 ├── features/
 │   ├── auth/         ✅ sessions, DAL (requireUser/assertUser/requireRole), parent email auth
 │   ├── profiles/     ✅ profile read/update (role and family never writable here)

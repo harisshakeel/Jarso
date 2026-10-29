@@ -26,7 +26,8 @@ Supabase Auth with cookie sessions via `@supabase/ssr`.
 ## Flows
 
 - **Email + password:** `signIn` / `signUp` Server Actions in `src/features/auth/server/actions.ts`.
-- **Email confirmation / OAuth:** Supabase redirects to `/auth/callback?code=…`, which exchanges the code for a session. Allowed redirect URLs live in `supabase/config.toml` (`additional_redirect_urls`) and the hosted project's Auth settings.
+- **Email confirmation:** the email links to `/auth/confirm?token_hash=…&type=email&next=…`, which calls `verifyOtp` and redirects. No PKCE verifier cookie is needed, so the link works in any browser or device. `signUp` still sets `emailRedirectTo` to `<APP_URL>/auth/callback?next=<path>`; the template passes that URL as `next` and `nextFromEmailLink` unwraps it to `<path>` (same-origin only, then `safeNextPath`). A parent who signed up from `/invite?code=…` lands back there. Bad or used links go to `/login?error=auth_confirm`. Template: `supabase/templates/confirmation.html` (local, via `config.toml`); hosted, see below.
+- **OAuth (and the default Supabase email template):** Supabase redirects to `/auth/callback?code=…`, which exchanges the PKCE code for a session. Only works in the browser that started the flow. Failures go to `/login?error=auth_callback`. Allowed redirect URLs live in `supabase/config.toml` (`additional_redirect_urls`) and the hosted project's Auth settings.
 - **Sign-out:** `signOut` Server Action.
 - **Roles:** see the Roles DAL row above. `/dashboard` is the role router: parents go to `/parent` (or `/parent/setup` before their family exists), children to `/child`.
 
@@ -43,6 +44,25 @@ Supabase Auth with cookie sessions via `@supabase/ssr`.
 **Session minting.** On `ok`, `mintChildSession` calls admin `generateLink({ type: "magiclink", email })` and then `verifyOtp({ type: "magiclink", token_hash })` on the request's cookie client. The result is a normal Supabase cookie session for the child, so the proxy, DAL and RLS treat it like any other user. It needs writable cookies: Server Action or Route Handler only. No email is sent.
 
 **Redirects.** Signed out, `/child` goes to `/sign-in/child` (proxy and `requireRole("child")`), never to the parent login. A child opening a parent page lands on `/child`; a parent opening `/child` lands on `/parent`. The e2e suite (`tests/e2e/onboarding.spec.ts`) covers all of these.
+
+## Hosted setup
+
+Done by hand in the Supabase dashboard; the repo can't apply it.
+
+1. **Authentication → URL Configuration.** Site URL: `https://jarso.vercel.app`. Redirect URLs: `https://jarso.vercel.app/auth/callback**`, plus `http://localhost:3000/auth/callback**` for local dev against hosted. `/auth/confirm` needs no entry: the email builds it from the Site URL.
+2. **Authentication → Email Templates → Confirm signup.** Subject `Confirm your Jarso account`, body:
+
+```html
+<h2>Confirm your email</h2>
+
+<p>Tap the link below to confirm your email and finish setting up Jarso. You can open it on any device.</p>
+<p>
+  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next={{ .RedirectTo | urlquery }}">Confirm my email</a>
+</p>
+<p>If you didn't sign up for Jarso, you can ignore this email.</p>
+```
+
+Keep it identical to `supabase/templates/confirmation.html`. The link goes to the Site URL's host, so the Site URL must be the app's real origin.
 
 ## Adding OAuth providers
 
