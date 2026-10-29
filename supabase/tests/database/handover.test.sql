@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(20);
+select plan(28);
 
 select tests.create_user('pa@example.com') as pa \gset
 select tests.create_user('pb@example.com') as pb \gset
@@ -23,11 +23,15 @@ values
   (:'s1'::uuid, :'fa'::uuid, :'c1'::uuid, '2026-01-05', '2026-01-05', 500),
   (:'s1'::uuid, :'fa'::uuid, :'c1'::uuid, '2026-01-12', '2026-01-12', 500),
   (:'s1'::uuid, :'fa'::uuid, :'c1'::uuid, '2026-01-19', '2026-01-19', 500),
-  (:'s1'::uuid, :'fa'::uuid, :'c1'::uuid, '2026-01-26', '2026-01-26', 500);
+  (:'s1'::uuid, :'fa'::uuid, :'c1'::uuid, '2026-01-26', '2026-01-26', 500),
+  (:'s1'::uuid, :'fa'::uuid, :'c1'::uuid, '2026-02-02', '2026-02-02', 500),
+  (:'s1'::uuid, :'fa'::uuid, :'c1'::uuid, '2026-02-09', '2026-02-09', 500);
 select id as o1 from public.allowance_occurrences where period_key = '2026-01-05' \gset
 select id as o2 from public.allowance_occurrences where period_key = '2026-01-12' \gset
 select id as o3 from public.allowance_occurrences where period_key = '2026-01-19' \gset
 select id as o4 from public.allowance_occurrences where period_key = '2026-01-26' \gset
+select id as o5 from public.allowance_occurrences where period_key = '2026-02-02' \gset
+select id as o6 from public.allowance_occurrences where period_key = '2026-02-09' \gset
 
 -- Access
 select tests.authenticate_as(:'c1'::uuid);
@@ -69,6 +73,17 @@ select throws_ok(format($$select public.confirm_handover(%L, -1, 0, 'k3c')$$, :'
 select is(public.mark_not_given(:'o4'::uuid), 'closed', 'not given closes');
 select is((select count(*)::int from public.ledger_entries where source_id = :'o4'::uuid), 0, 'not given posts no ledger rows');
 select is(public.confirm_handover(:'o4'::uuid, 300, 200, 'k4'), 'already_confirmed', 'confirm after not given is already_confirmed');
+
+select is((select count(*)::int from public.audit_log where action = 'allowance.not_given' and subject_id = :'o4'::uuid), 1, 'not given writes an audit row');
+select is(public.mark_not_given(:'o1'::uuid), 'already_handled', 'not given on a confirmed row is already_handled');
+select is(public.mark_not_given(:'o4'::uuid), 'already_handled', 'not given twice is already_handled');
+
+select throws_ok(format($$select public.confirm_handover(%L, 100, 0, null)$$, :'o3'), '22023', null, 'null key rejected');
+select throws_ok(format($$select public.confirm_handover(%L, 100, 0, '  ')$$, :'o3'), '22023', null, 'blank key rejected');
+
+select is(public.confirm_handover(:'o5'::uuid, 300, 0, 'shared'), 'confirmed', 'cash only confirms');
+select is((select count(*)::int from public.ledger_entries where source_id = :'o5'::uuid), 1, 'cash only creates one ledger row');
+select is(public.confirm_handover(:'o6'::uuid, 200, 100, 'shared'), 'confirmed', 'same key on another occurrence also confirms');
 
 select * from finish();
 rollback;

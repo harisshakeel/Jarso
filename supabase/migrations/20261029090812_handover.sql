@@ -1,5 +1,5 @@
 -- Allowance handover: a parent confirms what was actually handed over, or marks
--- the occurrence not given. Slice 2 design §3 S11-S12 and §4.2.
+-- the occurrence not given. Slice 2 design §4.3 / S10.
 -- Both are exactly-once: only a 'due' occurrence changes, under a row lock.
 
 -- Locks the occurrence and checks the caller is a parent of its child. Internal.
@@ -60,7 +60,7 @@ begin
     )
     values (
       v_o.family_id, v_o.child_id, 'recorded', 'spend', 'allowance_in', 'in', p_cash_minor, 'Allowance',
-      'occurrence', v_o.id, p_idempotency_key || ':spend', v_uid, now()
+      'occurrence', v_o.id, 'occurrence:' || v_o.id || ':spend', v_uid, now()
     );
   end if;
   if p_saved_minor > 0 then
@@ -70,7 +70,7 @@ begin
     )
     values (
       v_o.family_id, v_o.child_id, 'recorded', 'save', 'allowance_in', 'in', p_saved_minor, 'Allowance',
-      'occurrence', v_o.id, p_idempotency_key || ':save', v_uid, now()
+      'occurrence', v_o.id, 'occurrence:' || v_o.id || ':save', v_uid, now()
     );
   end if;
 
@@ -89,7 +89,7 @@ begin
 end;
 $$;
 
-comment on function public.confirm_handover(uuid, bigint, bigint, text) is 'Parent records what was handed over: cash to Spend, saved to Save (sum 1..amount; the rest is shortfall). Exactly once: any non-due occurrence returns already_confirmed. JA403, 22023.';
+comment on function public.confirm_handover(uuid, bigint, bigint, text) is 'Ledger keys derive from the occurrence; p_idempotency_key must be non-blank but is not stored. Parent records what was handed over: cash to Spend, saved to Save (sum 1..amount; the rest is shortfall). Exactly once: any non-due occurrence returns already_confirmed. JA403, 22023.';
 
 create or replace function public.mark_not_given(p_occurrence_id uuid)
 returns text
