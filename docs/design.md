@@ -10,11 +10,14 @@ Visual references, and what we take from each, are in section 15. Code owners: t
 | --- | --- | --- |
 | `public/brand/jarso-mark.png` | Jar mark, 1254 × 1254, transparent | App icon, favicon source, header mark, empty states, jar illustrations |
 | `public/brand/jarso-wordmark.png` | "jarso" wordmark with mark, 2172 × 724, **opaque near-white background (#FDFDFD)** | Marketing page, emails, light surfaces only |
+| `public/brand/jarso-wordmark-dark.png` | Dark-mode wordmark, white "jars" and gold "o", 2172 × 724, **opaque near-black background (#10191C)** | Marketing page in dark mode, dark emails |
+
+The app serves 864 × 288 copies of both wordmarks (`jarso-wordmark-864.png`, `jarso-wordmark-dark-864.png`) through `JarsoWordmark`, which switches between them on the `.dark` class.
 
 Rules:
 
 - Minimum mark size 24 px; clear space around it equal to the lid height.
-- The wordmark is not transparent, so it only sits on white or `surface` backgrounds until a transparent SVG exists. Do not place it on teal, gold or dark surfaces.
+- Neither wordmark is transparent. The light one only sits on white or `surface` backgrounds. The dark one's background matches no dark token (it is darker than the dark `surface`, `#12303A`), so it is shown as a rounded tile on dark surfaces. Do not place either on teal or gold. Both rules go away once a transparent SVG exists.
 - Never recolour, stretch or add effects to either asset. Tints of the jar for illustration are drawn as new SVGs, not filters on the PNG.
 - Open item for the designer: the two files differ slightly in colour (mark teal `#027A98` and gold `#FDC301`; wordmark teal `#04717A` and orange-gold `#FBA81E`). The UI palette follows the **mark**, because it becomes the app icon the child sees daily. Ask for SVG exports of both in the mark's colours.
 
