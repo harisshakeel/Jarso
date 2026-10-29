@@ -185,6 +185,58 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"job_runs": {
+                  Row: {
+                    "details": Json | null,"finished_at": string | null,"id": string,"job": string,"started_at": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "details"?: Json | null,"finished_at"?: string | null,"id"?: string,"job": string,"started_at"?: string,"status"?: string
+                  }
+                  Update: {
+                    "details"?: Json | null,"finished_at"?: string | null,"id"?: string,"job"?: string,"started_at"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"ledger_entries": {
+                  Row: {
+                    "amount_minor": number,"child_id": string,"created_at": string,"created_by": string | null,"direction": string,"family_id": string,"id": string,"idempotency_key": string,"jar": string,"kind": string,"label": string | null,"mode": string,"occurred_at": string,"reverses_entry_id": string | null,"source_id": string | null,"source_type": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_minor": number,"child_id": string,"created_at"?: string,"created_by"?: string | null,"direction": string,"family_id": string,"id"?: string,"idempotency_key": string,"jar": string,"kind": string,"label"?: string | null,"mode"?: string,"occurred_at"?: string,"reverses_entry_id"?: string | null,"source_id"?: string | null,"source_type": string
+                  }
+                  Update: {
+                    "amount_minor"?: number,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"direction"?: string,"family_id"?: string,"id"?: string,"idempotency_key"?: string,"jar"?: string,"kind"?: string,"label"?: string | null,"mode"?: string,"occurred_at"?: string,"reverses_entry_id"?: string | null,"source_id"?: string | null,"source_type"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ledger_entries_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ledger_entries_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ledger_entries_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ledger_entries_reverses_entry_id_fkey"
+      columns: ["reverses_entry_id"]
+isOneToOne: false
+      referencedRelation: "ledger_entries"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "avatar_url": string | null,"created_at": string,"full_name": string | null,"id": string,"nickname": string | null,"role": string,"updated_at": string
@@ -219,7 +271,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "create_family":
+            "balance":
+{ Args: { "p_child_id": string,"p_jar": string,"p_mode"?: string }; Returns: number
+                           },
+"create_family":
 { Args: { "p_currency": string,"p_timezone": string }; Returns: string
                            },
 "create_invitation":
@@ -244,6 +299,11 @@ isOneToOne: false
                            },
 "is_self":
 { Args: { "p_child_id": string }; Returns: boolean
+                           },
+"list_ledger_history":
+{ Args: { "p_child_id": string,"p_limit"?: number }; Returns: {
+              "amount_minor": number,"direction": string,"id": string,"jar": string,"kind": string,"label": string,"occurred_at": string,"source_id": string,"source_type": string
+            }[]
                            },
 "list_my_invitations":
 { Args: Record<PropertyKey, never>; Returns: {
