@@ -5,16 +5,13 @@ import { type ReactNode, Suspense } from "react";
 import { Field } from "@/components/form";
 import { Button, buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
-import { AcceptInvitationForm } from "@/features/family";
+import { AcceptInvitationForm, inviteParamsSchema } from "@/features/family";
 import { findInvitation, INVITATION_GONE, requireRole } from "@/features/family/server";
 import { isAppError } from "@/lib";
 
 export const metadata: Metadata = { title: "Accept an invitation" };
 
 type SearchParams = PageProps<"/invite">["searchParams"];
-
-const first = (value: string | string[] | undefined) =>
-  (Array.isArray(value) ? value[0] : value)?.trim() || undefined;
 
 /** This page's own URL for the invite, so login and family setup can bring the parent back. */
 function invitePath(params: { token?: string; code?: string }): string {
@@ -25,9 +22,9 @@ function invitePath(params: { token?: string; code?: string }): string {
 }
 
 async function InviteContent({ searchParams }: { searchParams: SearchParams }) {
-  const params = await searchParams;
-  const token = first(params.token);
-  const code = token ? undefined : first(params.code);
+  const params = inviteParamsSchema.parse(await searchParams);
+  const token = params.token;
+  const code = token ? undefined : params.code;
   const here = invitePath({ token, code });
 
   const { membership } = await requireRole("parent", here);

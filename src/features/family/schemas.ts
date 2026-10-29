@@ -14,6 +14,13 @@ const nickname = z
   .max(20, "Nickname can be up to 20 letters")
   .regex(/^[\p{L}\p{Nd} _.'-]+$/u, "Use letters, numbers, spaces, dots, dashes or apostrophes");
 
+/** A pasted link token (64 hex) or short code; generous bound, still parsed and trimmed. */
+const inviteValue = z
+  .string()
+  .trim()
+  .min(1, "Enter your invite")
+  .max(128, "That invite is too long");
+
 const pin = z.string().regex(/^\d{4,6}$/, "PIN must be 4 to 6 numbers");
 
 /** Checkbox ("on") or JSON `true`; parsed to a boolean that is passed on to register_child. */
@@ -43,16 +50,24 @@ export const startChildOnboardingSchema = z.object({
 });
 
 export const acceptInvitationSchema = z.object({
-  invite: z.string().trim().min(1, "Enter your invite"),
+  invite: inviteValue,
   nickname: nickname.optional(),
   pin,
   consent,
 });
 
+/** `?token=` / `?code=` on /invite: first value, trimmed; missing or invalid → undefined. */
+const inviteParam = z
+  .preprocess((value) => (Array.isArray(value) ? value[0] : value), inviteValue.optional())
+  .catch(undefined);
+
+export const inviteParamsSchema = z.object({ token: inviteParam, code: inviteParam });
+
 export const childSignInSchema = z.object({
-  familyCode: z.string().trim().min(1, "Enter your family code"),
-  nickname: z.string().trim().min(1, "Enter your nickname"),
-  pin: z.string().min(1, "Enter your PIN"),
+  // Bounded before normalisation (spaces and dashes are stripped later).
+  familyCode: z.string().max(16, "Check your family code").trim().min(1, "Enter your family code"),
+  nickname: z.string().trim().min(1, "Enter your nickname").max(20, "Check your nickname"),
+  pin: z.string().regex(/^\d{4,6}$/, "Your PIN is 4 to 6 numbers"),
 });
 
 export const setChildPinSchema = z.object({ childId: z.uuid(), pin });
@@ -61,5 +76,6 @@ export type CreateFamilyInput = z.infer<typeof createFamilySchema>;
 export type AddChildInput = z.infer<typeof addChildSchema>;
 export type StartChildOnboardingInput = z.infer<typeof startChildOnboardingSchema>;
 export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
+export type InviteParams = z.infer<typeof inviteParamsSchema>;
 export type ChildSignInInput = z.infer<typeof childSignInSchema>;
 export type SetChildPinInput = z.infer<typeof setChildPinSchema>;
