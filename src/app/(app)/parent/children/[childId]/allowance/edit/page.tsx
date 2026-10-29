@@ -32,13 +32,7 @@ async function EditContent({ params }: { params: Promise<{ childId: string }> })
   }
   return (
     <PageShell title={title}>
-      <AllowanceForm
-        childId={childId}
-        nickname={child.nickname}
-        currency={currency}
-        today={today}
-        initial={schedule}
-      />
+      <AllowanceForm childId={childId} currency={currency} today={today} initial={schedule} />
     </PageShell>
   );
 }

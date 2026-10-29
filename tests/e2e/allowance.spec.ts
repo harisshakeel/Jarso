@@ -69,7 +69,7 @@ test("parent sets up a weekly allowance and sees the summary", async () => {
 
   await expect(page.getByText(`Every Sunday from ${sunday.label}`)).toBeVisible();
   await expect(page.getByText(`Next: ${sunday.label}`)).toBeVisible();
-  await expect(page.getByText("500", { exact: false }).first()).toBeVisible();
+  await expect(page.getByText(/^US\$500\.00$/)).toBeVisible();
 });
 
 test("parent changes the amount", async () => {
@@ -78,7 +78,7 @@ test("parent changes the amount", async () => {
   await page.getByLabel("Amount").fill("600");
   await page.getByRole("button", { name: "Save allowance" }).click();
   await expect(page).toHaveURL(at(childPath));
-  await expect(page.getByText("600", { exact: false }).first()).toBeVisible();
+  await expect(page.getByText(/^US\$600\.00$/)).toBeVisible();
 });
 
 test("parent pauses with a message, then resumes", async () => {

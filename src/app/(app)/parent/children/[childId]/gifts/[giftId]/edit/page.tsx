@@ -46,7 +46,7 @@ async function EditGiftContent({
         today={today}
         initial={gift}
       />
-      <CancelGiftForm childId={childId} giftId={gift.id} />
+      <CancelGiftForm childId={childId} giftId={gift.id} nickname={child.nickname} />
     </PageShell>
   );
 }

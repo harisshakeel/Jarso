@@ -21,12 +21,6 @@ async function ParentHome() {
   const [family, children] = await Promise.all([getFamily(), listChildren()]);
   if (!family) redirect(routes.parentSetup);
 
-  const dueCounts = new Map(
-    await Promise.all(
-      children.map(async (child) => [child.id, (await listDue(child.id)).length] as const),
-    ),
-  );
-
   if (children.length === 0) {
     return (
       <>
@@ -39,7 +33,7 @@ async function ParentHome() {
   return (
     <>
       <FamilyCodeCard code={family.code} raised className="rise-in" />
-      <ChildrenSection dueCounts={dueCounts}>{children}</ChildrenSection>
+      <ChildrenSection>{children}</ChildrenSection>
     </>
   );
 }
@@ -65,13 +59,7 @@ function FirstChildCard() {
   );
 }
 
-function ChildrenSection({
-  children,
-  dueCounts,
-}: {
-  children: ChildSummary[];
-  dueCounts: Map<string, number>;
-}) {
+function ChildrenSection({ children }: { children: ChildSummary[] }) {
   return (
     <section aria-labelledby="children-title" className="rise-in grid gap-4" style={rise(1)}>
       <h2 id="children-title" className="text-h2">
@@ -99,12 +87,9 @@ function ChildrenSection({
                 className={buttonVariants({ variant: "secondary", size: "sm" })}
               >
                 Allowance
-                {dueCounts.get(child.id) ? (
-                  <Badge variant="count">
-                    {dueCounts.get(child.id)}
-                    <span className="sr-only"> due</span>
-                  </Badge>
-                ) : null}
+                <Suspense fallback={null}>
+                  <DueBadge childId={child.id} />
+                </Suspense>
               </Link>
               <SetPinForm child={child} />
             </li>
@@ -124,6 +109,18 @@ function ChildrenSection({
         </Link>
       </div>
     </section>
+  );
+}
+
+/** Number of handovers waiting for this child. Streams in so the list isn't blocked by it. */
+async function DueBadge({ childId }: { childId: string }) {
+  const count = (await listDue(childId)).length;
+  if (count === 0) return null;
+  return (
+    <Badge variant="count">
+      {count}
+      <span className="sr-only"> due</span>
+    </Badge>
   );
 }
 

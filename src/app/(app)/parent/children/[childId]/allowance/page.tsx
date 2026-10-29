@@ -33,12 +33,7 @@ async function AllowanceContent({ params }: { params: Promise<{ childId: string 
           schedule={running}
         />
       ) : (
-        <AllowanceForm
-          childId={childId}
-          nickname={child.nickname}
-          currency={currency}
-          today={today}
-        />
+        <AllowanceForm childId={childId} currency={currency} today={today} />
       )}
       <GiftList childId={childId} gifts={upcoming} currency={currency} />
       {running ? (

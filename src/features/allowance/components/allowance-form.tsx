@@ -25,8 +25,6 @@ const frequencyLabels: Record<Frequency, string> = {
 
 type AllowanceFormProps = {
   childId: string;
-  /** For the page title; the form itself doesn't print it. */
-  nickname?: string;
   currency: string;
   /** Family-local date, `YYYY-MM-DD`. */
   today: string;

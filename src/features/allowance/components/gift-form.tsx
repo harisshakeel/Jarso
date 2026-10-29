@@ -2,10 +2,23 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type CSSProperties, useActionState, useState } from "react";
+import { type CSSProperties, useActionState, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Field, FormError } from "@/components/form";
-import { Button, buttonVariants, Card, CardContent } from "@/components/ui";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  Button,
+  buttonVariants,
+  Card,
+  CardContent,
+} from "@/components/ui";
 import { routes } from "@/config";
 import { type ActionState, idle } from "@/lib";
 import { toMajorString } from "../describe";
@@ -112,27 +125,52 @@ export function GiftForm({
   );
 }
 
-/** "Cancel this gift" for the edit screen. Goes back to the allowance page when done. */
-export function CancelGiftForm({ childId, giftId }: { childId: string; giftId: string }) {
+/** "Cancel this gift" for the edit screen, behind a confirmation. Goes back when done. */
+export function CancelGiftForm({
+  childId,
+  giftId,
+  nickname,
+}: {
+  childId: string;
+  giftId: string;
+  nickname: string;
+}) {
   const router = useRouter();
-  const [state, action, pending] = useActionState(
-    async (_prev: ActionState<unknown>, formData: FormData) => {
-      const result = await cancelGiftAction(null, formData);
+  const [open, setOpen] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string>();
+
+  function confirm() {
+    setError(undefined);
+    start(async () => {
+      const result = await cancelGiftAction(null, { id: giftId });
       if (result.ok) {
         toast.success("Gift cancelled");
         router.push(routes.parentAllowance(childId));
+      } else {
+        setError(result.error.message);
       }
-      return result;
-    },
-    idle,
-  );
+    });
+  }
+
   return (
-    <form action={action} className="grid gap-2">
-      <input type="hidden" name="id" value={giftId} />
-      <FormError message={state?.ok === false ? state.error.message : undefined} />
-      <Button type="submit" variant="outline" loading={pending}>
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger render={<Button variant="outline" size="lg" />}>
         Cancel this gift
-      </Button>
-    </form>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancel this gift?</AlertDialogTitle>
+          <AlertDialogDescription>{nickname} won't see it.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <FormError message={error} />
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep it</AlertDialogCancel>
+          <Button variant="destructive" loading={pending} onClick={confirm}>
+            Cancel gift
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
