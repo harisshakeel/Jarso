@@ -71,7 +71,9 @@ begin
     else
       v_start := public.rule_window_start(v_e.family_id, v_rule.period, v_e.occurred_at);
 
-      -- Live (not reversed) recorded purchases in the window up to this one, this one included.
+      -- Every live (not reversed) recorded purchase in the window, this one included. No upper
+      -- bound: occurred_at is the transaction start, so a writer that waited on the ledger lock
+      -- can carry an earlier time than a purchase already committed; the lock serialises this.
       select coalesce(pg_catalog.sum(le.amount_minor), 0)
       into v_after
       from public.ledger_entries le
@@ -80,7 +82,6 @@ begin
         and le.jar = 'spend'
         and le.kind = 'purchase'
         and le.occurred_at >= v_start
-        and le.occurred_at <= v_e.occurred_at
         and not exists (select 1 from public.ledger_entries r where r.reverses_entry_id = le.id);
 
       -- Notify only on the purchase that first takes the window total over the limit.
@@ -111,7 +112,7 @@ end;
 $$;
 
 comment on function public.evaluate_spend_limits(uuid) is
-  'Internal, no grants. For each spend_limit rule of the purchase''s child: item notifies when the amount is over the limit (window spend_limit:item:<entry>); week/month notify when live purchases in the window (this one included) first go over the limit (window spend_limit:<period>:<local window start date>). Returns the number of rules noticed for this entry. Call under the child''s ledger lock.';
+  'Internal, no grants. For each spend_limit rule of the purchase''s child: item notifies when the amount is over the limit (window spend_limit:item:<entry>); week/month notify when this purchase takes the window total (every live purchase in the window, this one included) over the limit (window spend_limit:<period>:<local window start date>). Returns the number of rules noticed for this entry. Call under the child''s ledger lock.';
 
 -- ---------------------------------------------------------------------------
 -- record_purchase

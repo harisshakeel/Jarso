@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(58);
+select plan(61);
 
 -- Fixtures: PA owns family A (UTC) with children C1 and C2; PB owns family B (Asia/Kolkata) with C3.
 select tests.create_user('pa@example.com') as pa \gset
@@ -200,6 +200,17 @@ select is(
 select is(
   (select count(*)::int from public.notifications where child_id = :'c3'::uuid and kind = 'limit_exceeded'),
   3, 'three week notices for C3');
+
+-- A purchase stamped earlier than one already recorded still counts it (occurred_at is the
+-- transaction start, so a writer that waited on the ledger lock can carry an earlier time).
+select is(
+  (public.record_purchase_at(:'c3'::uuid, 300, null, 'w6', '2026-03-11 12:00+05:30'))->>'notices',
+  '0', 'later-stamped purchase A stays under the limit');
+select public.record_purchase_at(:'c3'::uuid, 300, null, 'w7', '2026-03-10 12:00+05:30') as rw7 \gset
+select is((:'rw7'::jsonb)->>'notices', '1', 'earlier-stamped purchase B counts A and crosses');
+select is(
+  (select (payload->>'total_minor')::int from public.notifications where source_id = ((:'rw7'::jsonb)->>'entry_id')::uuid),
+  600, 'notice total includes both purchases');
 
 select * from finish();
 rollback;
