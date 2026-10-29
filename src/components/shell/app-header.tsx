@@ -8,7 +8,7 @@ import { siteConfig } from "@/config";
 type AppHeaderProps = {
   /** Where the mark links to (the signed-in user's home). */
   homeHref: Route;
-  /** One optional action on the right (design.md §5), e.g. sign out. */
+  /** Optional action on the right (design.md §5), e.g. sign out; the theme switch always sits beside it. */
   action?: ReactNode;
 };
 

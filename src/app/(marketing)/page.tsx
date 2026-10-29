@@ -12,8 +12,8 @@ const childStart = routes.childStart as Route;
 /** Sign-in landing (design.md §14.7): wordmark on white, one way in for kids, one for parents. */
 export default function HomePage() {
   return (
-    <main className="flex flex-1 flex-col bg-card px-4 py-12 sm:px-6 sm:py-16">
-      <div className="fixed top-[env(safe-area-inset-top)] right-2 z-40">
+    <main className="relative flex flex-1 flex-col bg-card px-4 py-12 sm:px-6 sm:py-16">
+      <div className="absolute top-[env(safe-area-inset-top)] right-[max(0.5rem,env(safe-area-inset-right))] z-40">
         <ThemeSwitch />
       </div>
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-10 text-center">
