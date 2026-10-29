@@ -47,8 +47,14 @@ export async function rotateChildPassword(childId: string): Promise<void> {
   const { error } = await createAdminClient().auth.admin.updateUserById(childId, {
     password: generateToken(),
   });
-  if (error)
+  if (error) {
+    logger.error("Child password rotation failed", {
+      code: error.code,
+      status: error.status,
+      message: error.message,
+    });
     throw new AppError("INTERNAL", "Something went wrong. Please try again.", { cause: error });
+  }
 }
 
 /** Signs the current request in as the child. Needs writable cookies (Server Action / Route Handler). */
