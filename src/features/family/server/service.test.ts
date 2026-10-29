@@ -160,18 +160,47 @@ describe("startChildOnboarding", () => {
       tokenHash: await hashSecret(token),
       codeHash: await hashSecret(result.code),
     });
+    expect(vi.mocked(repo.hitRateLimit).mock.calls.map((call) => call.slice(1))).toEqual([
+      [`invite:ip:${ipHash}`, "1 hour", 5],
+      [`invite:email:${await hashSecret("parent@example.com")}`, "1 day", 3],
+      ["invite:global", "1 day", 200],
+    ]);
+  });
+
+  it("never puts the raw IP or email in a limiter key", async () => {
+    vi.mocked(repo.insertInvitation).mockResolvedValue("inv-1");
+
+    await service.startChildOnboarding(input, "1.2.3.4");
+
+    const keys = vi
+      .mocked(repo.hitRateLimit)
+      .mock.calls.map((call) => call[1])
+      .join(" ");
+    expect(keys).not.toMatch(/1\.2\.3\.4|example\.com/i);
+  });
+
+  it("counts plus-addressed variants of one inbox together", async () => {
+    vi.mocked(repo.insertInvitation).mockResolvedValue("inv-1");
+
+    await service.startChildOnboarding({ ...input, parentEmail: "Parent+kid1@Example.com" }, "1");
+
     expect(repo.hitRateLimit).toHaveBeenCalledWith(
       expect.anything(),
-      "invite:ip:1.2.3.4",
-      "1 hour",
-      5,
-    );
-    expect(repo.hitRateLimit).toHaveBeenCalledWith(
-      expect.anything(),
-      "invite:email:parent@example.com",
+      `invite:email:${await hashSecret("parent@example.com")}`,
       "1 day",
       3,
     );
+  });
+
+  it("uses a fixed subject; the nickname appears only in the body", async () => {
+    vi.mocked(repo.insertInvitation).mockResolvedValue("inv-1");
+    vi.mocked(sendEmail).mockResolvedValue("sent");
+
+    await service.startChildOnboarding({ ...input, nickname: "Zed" }, "1.2.3.4");
+
+    const message = vi.mocked(sendEmail).mock.calls[0]?.[0];
+    expect(message?.subject).toBe("Your child wants to join Jarso");
+    expect(message?.text).toContain("Zed");
   });
 
   it("throws RATE_LIMITED and creates no invitation when the limit is hit", async () => {

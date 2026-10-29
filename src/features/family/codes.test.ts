@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { childEmail, generateCode, generateToken, hashSecret, normaliseFamilyCode } from "./codes";
+import {
+  childEmail,
+  generateCode,
+  generateToken,
+  hashSecret,
+  normaliseEmailForLimit,
+  normaliseFamilyCode,
+} from "./codes";
 
 describe("codes", () => {
   it("normalises family codes", () => {
@@ -28,5 +35,15 @@ describe("codes", () => {
 
   it("builds child emails", () => {
     expect(childEmail("abc")).toBe("abc@child.jarso.invalid");
+  });
+
+  it.each([
+    [" Parent@Example.com ", "parent@example.com"],
+    ["parent+kid1@example.com", "parent@example.com"],
+    ["Parent+a+b@Example.COM", "parent@example.com"],
+    ["+tag@example.com", "+tag@example.com"],
+    ["no-at-sign", "no-at-sign"],
+  ])("normalises %s for the limiter key", (input, expected) => {
+    expect(normaliseEmailForLimit(input)).toBe(expected);
   });
 });

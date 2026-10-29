@@ -1,11 +1,18 @@
 import { z } from "zod";
 import { supportedCurrencies } from "@/config";
 
+/**
+ * Letters (any script), digits, space and _ . ' - only, so a nickname can't carry an email
+ * address or a link into the invitation email. Mirrors register_child / create_invitation.
+ * NFC first, so an accent typed as a separate mark still counts as part of its letter.
+ */
 const nickname = z
   .string()
   .trim()
+  .normalize("NFC")
   .min(1, "Pick a nickname")
-  .max(20, "Nickname can be up to 20 letters");
+  .max(20, "Nickname can be up to 20 letters")
+  .regex(/^[\p{L}\p{Nd} _.'-]+$/u, "Use letters, numbers, spaces, dots, dashes or apostrophes");
 
 const pin = z.string().regex(/^\d{4,6}$/, "PIN must be 4 to 6 numbers");
 

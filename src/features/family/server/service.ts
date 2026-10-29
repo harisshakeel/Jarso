@@ -4,7 +4,13 @@ import { sendEmail } from "@/features/notifications/server";
 import { AppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { generateCode, generateToken, hashSecret, normaliseFamilyCode } from "../codes";
+import {
+  generateCode,
+  generateToken,
+  hashSecret,
+  normaliseEmailForLimit,
+  normaliseFamilyCode,
+} from "../codes";
 import type {
   AcceptInvitationInput,
   ChildSignInInput,
@@ -109,10 +115,16 @@ export async function startChildOnboarding(
   input: StartChildOnboardingInput,
   ip: string,
 ): Promise<{ link: string; code: string }> {
+  // Limiter keys hold hashes only: usage_counters never stores an IP or an email address.
+  const [ipHash, emailHash] = await Promise.all([
+    hashSecret(ip),
+    hashSecret(normaliseEmailForLimit(input.parentEmail)),
+  ]);
   await enforceLimits(
     [
-      { key: `invite:ip:${ip}`, window: "1 hour", max: 5 },
-      { key: `invite:email:${input.parentEmail.toLowerCase()}`, window: "1 day", max: 3 },
+      { key: `invite:ip:${ipHash}`, window: "1 hour", max: 5 },
+      { key: `invite:email:${emailHash}`, window: "1 day", max: 3 },
+      { key: "invite:global", window: "1 day", max: 200 },
     ],
     "Too many tries. Please wait a little and try again.",
   );
@@ -130,7 +142,8 @@ export async function startChildOnboarding(
   try {
     await sendEmail({
       to: input.parentEmail,
-      subject: `${input.nickname} wants to join Jarso`,
+      // Fixed subject: the nickname is child-chosen text and stays out of the inbox preview.
+      subject: "Your child wants to join Jarso",
       text: [
         `${input.nickname} asked to join your family on Jarso, a pocket-money learning app.`,
         `To approve, sign in or create a parent account, then open this link: ${link}`,

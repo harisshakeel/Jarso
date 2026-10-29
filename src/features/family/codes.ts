@@ -26,3 +26,15 @@ export async function hashSecret(value: string): Promise<string> {
 export function childEmail(profileId: string): string {
   return `${profileId}@child.jarso.invalid`;
 }
+
+/**
+ * One limiter key per inbox: lower-cased, with any `+tag` dropped from the local part, so
+ * `Parent+1@x.com` and `parent@x.com` share a count. Only ever hashed, never stored or sent.
+ */
+export function normaliseEmailForLimit(email: string): string {
+  const value = email.trim().toLowerCase();
+  const at = value.lastIndexOf("@");
+  if (at < 1) return value;
+  const local = value.slice(0, at).split("+")[0] || value.slice(0, at);
+  return `${local}${value.slice(at)}`;
+}
