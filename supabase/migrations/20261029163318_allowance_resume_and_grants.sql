@@ -6,6 +6,8 @@
 -- 2. change_allowance while paused through a date accepted a next date inside the pause,
 --    which auto-resume then skipped without a word.
 -- 3. Internal helpers kept EXECUTE for service_role through Supabase's default privileges.
+--    generate_for_schedule keeps it: the e2e suite fast-forwards with it through the admin
+--    client (trusted server code only, CLAUDE.md rule 8), as the slice 6 demo clock will.
 
 create or replace function public.change_allowance(
   p_schedule_id uuid,
@@ -137,7 +139,6 @@ comment on function public.resume_allowance(uuid) is 'Parent resumes a paused al
 
 -- Internal helpers: only other security definer functions (and pg_cron, as the owner) call them.
 revoke execute on function
-  public.generate_for_schedule(uuid, date),
   public.lock_allowance_for_parent(uuid),
   public.lock_occurrence_for_parent(uuid),
   public.lock_gift_for_parent(uuid),

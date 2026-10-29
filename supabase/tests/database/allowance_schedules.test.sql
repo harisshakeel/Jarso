@@ -322,10 +322,11 @@ select lives_ok(
 select tests.clear_auth();
 
 -- ---------------------------------------------------------------------------
--- Internal helpers are not executable by service_role (the admin client) either
+-- Internal helpers are not executable by service_role (the admin client) either, except
+-- generate_for_schedule, which the e2e suite (and later the demo clock) fast-forwards with
 -- ---------------------------------------------------------------------------
 
-select is(has_function_privilege('service_role', 'public.generate_for_schedule(uuid, date)', 'execute'), false, 'service_role cannot run generate_for_schedule');
+select is(has_function_privilege('service_role', 'public.generate_for_schedule(uuid, date)', 'execute'), true, 'service_role keeps generate_for_schedule for fast-forward');
 select is(has_function_privilege('service_role', 'public.lock_allowance_for_parent(uuid)', 'execute'), false, 'service_role cannot run lock_allowance_for_parent');
 select is(has_function_privilege('service_role', 'public.lock_occurrence_for_parent(uuid)', 'execute'), false, 'service_role cannot run lock_occurrence_for_parent');
 select is(has_function_privilege('service_role', 'public.lock_gift_for_parent(uuid)', 'execute'), false, 'service_role cannot run lock_gift_for_parent');
