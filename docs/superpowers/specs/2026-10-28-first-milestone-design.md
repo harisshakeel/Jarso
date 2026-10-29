@@ -125,7 +125,7 @@ Recommended order is as listed; slices 3 and 4 are independent after 2.
 ## 10. Risks
 
 - **Child session minting** (generateLink + verifyOtp) is the least-proven piece; spike it first in slice 1.
-- **pg_cron on hosted Supabase**: confirm the extension is enabled on the project before slice 2; app-side `/api/cron/[job]` fallback exists per architecture §9.
+- **pg_cron on hosted Supabase**: confirm the extension is enabled on the project before slice 2. pg_cron is available on hosted Supabase; the app-side `/api/cron/[job]` route (architecture §9) is deferred until a job needs app code (slice 5).
 - **Timeline**: if slice 5 runs late, ship the inbox and reminders without email; email is not a first-milestone acceptance criterion.
 - **Demo clock in production**: it is a time-travel control on a shared hosted project. Kept safe by the env flag, the per-family DB flag, forward-only offsets, and scoping to the caller's own family. Turn the flag off after the hackathon.
 - **Parent sign-up confirmation email** still goes through Supabase Auth's built-in mailer, which is heavily rate-limited. For the demo, pre-create the demo parents in the seed; configure custom SMTP before inviting real families.

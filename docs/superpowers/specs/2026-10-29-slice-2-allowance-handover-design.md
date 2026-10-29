@@ -172,3 +172,4 @@ E2E: parent sets weekly allowance → occurrence due (via `now` injection or gen
 
 - **Gift secrecy leaks through aggregates.** Any parent-facing view or function that counts or sums "due" items must not be callable by the child, or must filter gifts for them. Test via the child's session, not only by table.
 - **pg_cron availability** on hosted Supabase: confirm before merging (milestone spec §10). The `/api/cron/[job]` fallback stands.
+- pg_cron is available on hosted Supabase; the app-side fallback route is deferred until a job needs app code (slice 5).
