@@ -23,7 +23,77 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "audit_log": {
+            "allowance_occurrences": {
+                  Row: {
+                    "amount_minor": number,"cash_minor": number | null,"child_id": string,"confirmed_at": string | null,"confirmed_by": string | null,"created_at": string,"due_on": string,"family_id": string,"id": string,"period_key": string,"saved_minor": number | null,"schedule_id": string,"shortfall_minor": number,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_minor": number,"cash_minor"?: number | null,"child_id": string,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"due_on": string,"family_id": string,"id"?: string,"period_key": string,"saved_minor"?: number | null,"schedule_id": string,"shortfall_minor"?: number,"status"?: string
+                  }
+                  Update: {
+                    "amount_minor"?: number,"cash_minor"?: number | null,"child_id"?: string,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"due_on"?: string,"family_id"?: string,"id"?: string,"period_key"?: string,"saved_minor"?: number | null,"schedule_id"?: string,"shortfall_minor"?: number,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "allowance_occurrences_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "allowance_occurrences_confirmed_by_fkey"
+      columns: ["confirmed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "allowance_occurrences_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "allowance_occurrences_schedule_id_fkey"
+      columns: ["schedule_id"]
+isOneToOne: false
+      referencedRelation: "allowance_schedules"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"allowance_schedules": {
+                  Row: {
+                    "amount_minor": number,"anchor_on": string,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"frequency": string,"id": string,"next_index": number,"pause_message": string | null,"paused_through": string | null,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_minor": number,"anchor_on": string,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"frequency": string,"id"?: string,"next_index"?: number,"pause_message"?: string | null,"paused_through"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount_minor"?: number,"anchor_on"?: string,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"frequency"?: string,"id"?: string,"next_index"?: number,"pause_message"?: string | null,"paused_through"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "allowance_schedules_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "allowance_schedules_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "allowance_schedules_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"audit_log": {
                   Row: {
                     "action": string,"actor_id": string | null,"created_at": string,"details": NonNullable<Json>,"family_id": string,"id": string,"subject_id": string | null
                   }
@@ -271,8 +341,20 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "balance":
+            "allowance_due_on":
+{ Args: { "p_anchor": string,"p_frequency": string,"p_index": number }; Returns: string
+                           },
+"allowance_next_due_on":
+{ Args: { "p_schedule_id": string }; Returns: string
+                           },
+"balance":
 { Args: { "p_child_id": string,"p_jar": string,"p_mode"?: string }; Returns: number
+                           },
+"change_allowance":
+{ Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
+                           },
+"create_allowance":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_first_on": string,"p_frequency": string }; Returns: string
                            },
 "create_family":
 { Args: { "p_currency": string,"p_timezone": string }; Returns: string
@@ -283,10 +365,16 @@ isOneToOne: false
 "current_family_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"family_today":
+{ Args: { "p_family_id": string,"p_now"?: string }; Returns: string
+                           },
 "find_invitation":
 { Args: { "p_hash": string }; Returns: {
               "id": string,"nickname": string
             }[]
+                           },
+"generate_for_schedule":
+{ Args: { "p_schedule_id": string,"p_today": string }; Returns: number
                            },
 "hit_rate_limit":
 { Args: { "p_key": string,"p_max": number,"p_window": string }; Returns: boolean
@@ -310,14 +398,45 @@ isOneToOne: false
               "created_at": string,"expires_at": string,"id": string,"nickname": string
             }[]
                            },
+"lock_allowance_for_parent":
+{ Args: { "p_schedule_id": string }; Returns: {
+              "amount_minor": number,
+"anchor_on": string,
+"child_id": string,
+"created_at": string,
+"created_by": string | null,
+"family_id": string,
+"frequency": string,
+"id": string,
+"next_index": number,
+"pause_message": string | null,
+"paused_through": string | null,
+"status": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "allowance_schedules"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"pause_allowance":
+{ Args: { "p_message": string,"p_schedule_id": string,"p_through": string }; Returns: string
+                           },
 "register_child":
 { Args: { "p_child_id": string,"p_consent": boolean,"p_family_id": string,"p_invitation_id"?: string,"p_nickname": string,"p_pin": string }; Returns: undefined
+                           },
+"resume_allowance":
+{ Args: { "p_schedule_id": string }; Returns: string
                            },
 "revoke_user_sessions":
 { Args: { "p_user_id": string }; Returns: number
                            },
 "set_child_pin":
 { Args: { "p_child_id": string,"p_pin": string }; Returns: undefined
+                           },
+"stop_allowance":
+{ Args: { "p_schedule_id": string }; Returns: string
                            },
 "verify_child_pin":
 { Args: { "p_family_code": string,"p_nickname": string,"p_pin": string,"p_source_hash": string }; Returns: {
