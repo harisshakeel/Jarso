@@ -1,5 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Parent allowance and gift screens against the LOCAL Supabase stack (see playwright.config.ts). */
@@ -118,4 +119,61 @@ test("parent creates a gift for today and sees it in the due list", async () => 
   const due = page.getByRole("region", { name: "Due now" });
   await expect(due.getByText("Well done on the test")).toBeVisible();
   await expect(due.getByRole("link", { name: /Hand over/ })).toBeVisible();
+});
+
+test("parent hands over a due allowance with a split", async () => {
+  // The stopped allowance from above is replaced by one that starts today, so it is due at once.
+  await page.getByLabel("Amount").fill("500");
+  await page.getByRole("group").getByText("Weekly", { exact: true }).click();
+  await page.getByRole("button", { name: "Save allowance" }).click();
+  const due = page.getByRole("region", { name: "Due now" });
+  await due.getByRole("link", { name: /^Allowance/ }).click();
+
+  await expect(page.getByRole("heading", { name: "Hand over to Sam" })).toBeVisible();
+  const spend = page.getByLabel("Spend (cash to Sam)");
+  const save = page.getByLabel("Save (you keep)", { exact: true });
+  await expect(page.getByText("Same split as last time. Drag or type to change.")).toBeVisible();
+  await expect(spend).toHaveValue("500.00");
+  await expect(save).toHaveValue("0.00");
+
+  await save.fill("200");
+  await expect(spend).toHaveValue("300.00");
+  await page.getByRole("button", { name: "Confirm I handed it over" }).click();
+
+  await expect(page).toHaveURL(at(childPath));
+  await expect(due.getByRole("link", { name: /^Allowance/ })).toHaveCount(0);
+});
+
+test("the next handover starts from the last split", async () => {
+  const due = page.getByRole("region", { name: "Due now" });
+  await due.getByRole("link", { name: /^Gift/ }).click();
+  await expect(page.getByLabel("Spend (cash to Sam)")).toHaveValue("30.00");
+  await expect(page.getByLabel("Save (you keep)", { exact: true })).toHaveValue("20.00");
+  await page.getByRole("button", { name: "Confirm I handed it over" }).click();
+  await expect(page).toHaveURL(at(childPath));
+  await expect(page.getByRole("region", { name: "Due now" })).toHaveCount(0);
+});
+
+test("parent marks a due allowance as not given", async () => {
+  const local = loadLocalSupabase();
+  if (!local) throw new Error("Local Supabase is required.");
+  const admin = createClient(local.url, local.secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  // A week later the weekly allowance falls due again.
+  const later = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await admin.rpc("generate_due_occurrences", { p_now: later });
+  expect(error).toBeNull();
+
+  await page.reload();
+  const due = page.getByRole("region", { name: "Due now" });
+  await due.getByRole("link", { name: /^Allowance/ }).click();
+  await expect(
+    page.getByText("Gave less? Enter what you gave. The rest is noted as short."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Mark as not given" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Mark as not given" }).click();
+
+  await expect(page).toHaveURL(at(childPath));
+  await expect(page.getByRole("region", { name: "Due now" })).toHaveCount(0);
 });
