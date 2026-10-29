@@ -57,10 +57,18 @@ export async function currentRole(): Promise<Role | null> {
   return user ? getRole(user.id) : null;
 }
 
+/**
+ * Whether the signed-in user is an approved parent of this child. Per request and per child, so
+ * pages that read several services for each child run the check once per child.
+ */
+const parentOfChild = cache(
+  async (childId: string): Promise<boolean> => isParentOf(await createClient(), childId),
+);
+
 /** Throws FORBIDDEN unless the signed-in user is an approved parent of this child. */
 export async function assertParentOf(childId: string): Promise<SessionUser> {
   const { user } = await assertRole("parent");
-  if (!(await isParentOf(await createClient(), childId))) {
+  if (!(await parentOfChild(childId))) {
     throw new AppError("FORBIDDEN", "You can't do that.");
   }
   return user;
