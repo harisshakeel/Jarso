@@ -132,7 +132,7 @@ select is(
   1, 'cancel writes gift.cancelled');
 select throws_ok(format($$select public.cancel_gift(%L)$$, :'g4'), 'JA409', null, 'cancel twice is JA409');
 select throws_ok(format($$select public.update_gift(%L, 100, %L, null)$$, :'g4', :'today'), 'JA409', null, 'edit a cancelled gift is JA409');
-select is(public.confirm_gift_handover(:'g4'::uuid, 300, 0, 'k4'), 'already_confirmed', 'confirm on a cancelled gift is already_confirmed');
+select is(public.confirm_gift_handover(:'g4'::uuid, 300, 0, 'k4'), 'cancelled', 'confirm on a cancelled gift is cancelled, not success');
 select is((select count(*)::int from public.ledger_entries where source_id = :'g4'::uuid), 0, 'cancelled gift posts nothing');
 
 -- ---------------------------------------------------------------------------

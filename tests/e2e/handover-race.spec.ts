@@ -175,7 +175,7 @@ test("confirm_handover racing mark_not_given changes state once", async () => {
     rpcText(second, "mark_not_given", { p_occurrence_id: id }),
   ]);
   const confirmedWon = a === "confirmed";
-  expect(confirmedWon ? b : a).toBe(confirmedWon ? "already_handled" : "already_confirmed");
+  expect(confirmedWon ? b : a).toBe(confirmedWon ? "already_handled" : "not_given");
   if (!confirmedWon) expect(b).toBe("closed");
   expect(await ledgerCount(id)).toBe(confirmedWon ? 2 : 0);
   const { data } = await admin.from("allowance_occurrences").select("status").eq("id", id).single();

@@ -240,9 +240,14 @@ export async function cancelGift(giftId: string): Promise<void> {
 // Handover
 // ---------------------------------------------------------------------------
 
+const NOT_GIVEN = "This allowance was marked as not given, so nothing was recorded.";
+const GIFT_CANCELLED = "This gift was cancelled, so nothing was recorded.";
+
 /**
  * Records what the parent handed over: cash to Spend, the rest to Save. Exactly once in the
  * database; a repeat (any key) returns `already_confirmed`, which the UI shows as success.
+ * An occurrence marked not given, or a cancelled gift, is a CONFLICT: nothing was recorded,
+ * and a parent confirming from a stale screen must be told so.
  */
 export async function confirmHandover(input: {
   kind: "allowance" | "gift";
@@ -255,10 +260,14 @@ export async function confirmHandover(input: {
   const { kind, ...args } = input;
   if (kind === "allowance") {
     await assertParentOfChild(await findOccurrenceChildId(db, args.id));
-    return confirmOccurrenceHandover(db, args);
+    const result = await confirmOccurrenceHandover(db, args);
+    if (result === "not_given") throw new AppError("CONFLICT", NOT_GIVEN);
+    return result;
   }
   await assertParentOfChild((await findGift(db, args.id))?.childId);
-  return conflictAs(confirmGiftHandover(db, args), "This gift isn't due yet.");
+  const result = await conflictAs(confirmGiftHandover(db, args), "This gift isn't due yet.");
+  if (result === "cancelled") throw new AppError("CONFLICT", GIFT_CANCELLED);
+  return result;
 }
 
 /** Closes a due allowance without paying it. `already_handled` if it was already handled. */

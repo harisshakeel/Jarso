@@ -309,10 +309,11 @@ export async function cancelPendingGift(db: Client, giftId: string): Promise<voi
 
 type HandoverArgs = { id: string; cashMinor: number; savedMinor: number; idempotencyKey: string };
 
+/** `not_given`: the occurrence was marked not given, so nothing was recorded. */
 export async function confirmOccurrenceHandover(
   db: Client,
   args: HandoverArgs,
-): Promise<HandoverResult> {
+): Promise<HandoverResult | "not_given"> {
   const { data, error } = await db.rpc("confirm_handover", {
     p_occurrence_id: args.id,
     p_cash_minor: args.cashMinor,
@@ -320,10 +321,18 @@ export async function confirmOccurrenceHandover(
     p_idempotency_key: args.idempotencyKey,
   });
   if (error) throw toAppError(error, "Failed to record the handover");
-  return oneOf(data, ["confirmed", "already_confirmed"], "Failed to record the handover");
+  return oneOf(
+    data,
+    ["confirmed", "already_confirmed", "not_given"],
+    "Failed to record the handover",
+  );
 }
 
-export async function confirmGiftHandover(db: Client, args: HandoverArgs): Promise<HandoverResult> {
+/** `cancelled`: the gift was cancelled, so nothing was recorded. */
+export async function confirmGiftHandover(
+  db: Client,
+  args: HandoverArgs,
+): Promise<HandoverResult | "cancelled"> {
   const { data, error } = await db.rpc("confirm_gift_handover", {
     p_gift_id: args.id,
     p_cash_minor: args.cashMinor,
@@ -331,7 +340,11 @@ export async function confirmGiftHandover(db: Client, args: HandoverArgs): Promi
     p_idempotency_key: args.idempotencyKey,
   });
   if (error) throw toAppError(error, "Failed to record the handover");
-  return oneOf(data, ["confirmed", "already_confirmed"], "Failed to record the handover");
+  return oneOf(
+    data,
+    ["confirmed", "already_confirmed", "cancelled"],
+    "Failed to record the handover",
+  );
 }
 
 export async function closeOccurrence(db: Client, occurrenceId: string): Promise<NotGivenResult> {
