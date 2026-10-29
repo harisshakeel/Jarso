@@ -23,6 +23,7 @@ export const updateProfileAction = createAction(updateProfileSchema, async (inpu
 
 - `createAction(schema, handler)` accepts `FormData` or an object, validates with Zod, returns `ActionResult<T>`:
   `{ ok: true, data } | { ok: false, error: { code, message, fieldErrors? } }`.
+- `schema` may instead be an async factory, called per request, when the schema depends on server context (e.g. `allowanceSchema(currency, today)` from the family). An `AppError` thrown by the factory becomes a typed failure.
 - Use with `useActionState(action, idle)` in client components.
 - Server Actions are public HTTP endpoints — always authenticate and authorize inside them.
 

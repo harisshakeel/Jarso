@@ -1,37 +1,36 @@
 import type { Metadata } from "next";
-import type { CSSProperties } from "react";
 import { Suspense } from "react";
-import { JarsoMark } from "@/components/brand";
-import { Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
+import { ChildAllowanceCard } from "@/features/allowance";
+import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
 import { getChildNickname, requireRole } from "@/features/family/server";
+import { HistoryList, Jars } from "@/features/ledger";
+import { getHistory, getJars } from "@/features/ledger/server";
 
 export const metadata: Metadata = { title: "Home" };
 
-const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
-
 /** requireRole sends signed-out users to the PIN sign-in and parents to their own home. */
 async function ChildHome() {
-  await requireRole("child", routes.child);
-  const nickname = await getChildNickname();
+  const { user } = await requireRole("child", routes.child);
+  const [nickname, family, jars, history, schedule, due] = await Promise.all([
+    getChildNickname(),
+    getFamilyContext(),
+    getJars(user.id),
+    getHistory(user.id),
+    getSchedule(user.id),
+    listDueForChild(user.id),
+  ]);
   return (
     <>
       <h1 className="rise-in text-balance text-display">{nickname ? `Hi, ${nickname}!` : "Hi!"}</h1>
-      <JarsComingSoon />
+      <Jars jars={jars} currency={family.currency} />
+      <ChildAllowanceCard
+        schedule={schedule}
+        dueTotalMinor={due.totalMinor}
+        currency={family.currency}
+      />
+      <HistoryList items={history} currency={family.currency} />
     </>
-  );
-}
-
-/** design.md §6 Empty state: mark and one sentence. No action yet: jars arrive in a later slice. */
-function JarsComingSoon() {
-  return (
-    <Card className="rise-in shadow-raised" style={rise(1)}>
-      <CardContent className="flex flex-col items-center gap-4 text-center">
-        <JarsoMark size={64} />
-        <p className="text-h3">Your jars are on the way.</p>
-        <p className="text-ink-2">Soon you'll see your Spend and Save money here.</p>
-      </CardContent>
-    </Card>
   );
 }
 

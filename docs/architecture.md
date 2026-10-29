@@ -161,6 +161,7 @@ Writers of `ledger_entries`, enforced by which Postgres function may insert:
 | Writer | Function | Kinds written |
 | --- | --- | --- |
 | `allowance` | `confirm_handover` | `allowance_in` to Spend and Save |
+| `allowance` | `confirm_gift_handover` | `parent_gift_in` to Spend and Save |
 | `requests` | `complete_request` | `deposit_out/in`, `withdrawal_out/in`, `grant_in` |
 | `diary` | `record_entry`, `reverse_entry` | `purchase`, `gift_in`, `reversal` |
 
@@ -179,6 +180,7 @@ erDiagram
   profiles ||--o| parent_details : "parent only"
   profiles ||--o{ allowance_schedules : "child has"
   allowance_schedules ||--o{ allowance_occurrences : generates
+  profiles ||--o{ parent_gifts : "parent gives"
   profiles ||--o{ ledger_entries : "child owns"
   profiles ||--o{ requests : "child raises"
   profiles ||--o{ spending_limits : "child has"
@@ -190,6 +192,7 @@ erDiagram
   notifications ||--o{ notification_deliveries : "sent via"
   profiles ||--o{ push_subscriptions : registers
   allowance_occurrences ||--o{ ledger_entries : "posts as"
+  parent_gifts ||--o{ ledger_entries : "posts as"
   requests ||--o{ ledger_entries : "posts as"
   ledger_entries ||--o| ledger_entries : reverses
 
@@ -258,9 +261,25 @@ erDiagram
     bigint amount_minor
     text frequency "weekly | monthly | quarterly | annual"
     date starts_on
-    date next_due_on
-    bigint planned_save_minor "child's plan"
-    bool active
+    date anchor_on "period stepping starts here; reset when the parent changes the schedule"
+    int next_index "next period to generate, counted from anchor_on"
+    text status "active | paused | stopped; one active or paused schedule per child"
+    date paused_through "null = paused until the parent resumes"
+    text pause_message "optional, max 140 chars, shown to the child"
+  }
+  parent_gifts {
+    uuid id PK
+    uuid family_id FK
+    uuid child_id FK
+    bigint amount_minor "planned amount, > 0"
+    date give_on "today or later when created"
+    text note "optional, max 140 chars"
+    text status "pending | given | cancelled"
+    bigint cash_minor "set at handover"
+    bigint saved_minor "set at handover"
+    uuid given_by
+    timestamptz given_at
+    uuid created_by "parent"
   }
   allowance_occurrences {
     uuid id PK
@@ -269,7 +288,7 @@ erDiagram
     date due_on
     bigint amount_minor "schedule amount when generated"
     bigint shortfall_minor "due less cash and saved, default 0"
-    text status "due | confirmed | closed (closed unused in first milestone)"
+    text status "due | confirmed | closed = parent marked it not given; no ledger entry"
     bigint cash_minor
     bigint saved_minor
     uuid confirmed_by
@@ -281,11 +300,11 @@ erDiagram
     uuid child_id FK
     text mode "recorded | practice"
     text jar "spend | save"
-    text kind "allowance_in | gift_in | purchase | deposit_out | deposit_in | withdrawal_out | withdrawal_in | grant_in | reversal"
+    text kind "allowance_in | gift_in | parent_gift_in | purchase | deposit_out | deposit_in | withdrawal_out | withdrawal_in | grant_in | reversal"
     text direction "in | out"
     bigint amount_minor "> 0"
     text label
-    text source_type "occurrence | request | diary"
+    text source_type "occurrence | parent_gift | request | diary"
     uuid source_id
     uuid reverses_entry_id FK
     text idempotency_key "unique"
@@ -369,7 +388,11 @@ erDiagram
   }
 ```
 
-Also: `usage_counters` (rate limits, later the guide's token budget), `job_runs` (one row per cron run with counts and duration), `audit_log` (parent-controlled setting changes: schedule, limits, PIN resets).
+Also: `usage_counters` (rate limits, later the guide's token budget), `job_runs` (one row per cron run with counts and duration), `audit_log` (parent-controlled setting changes: schedule, pause, stop, not-given, limits, PIN resets).
+
+RLS on `parent_gifts`: only a parent of the child can select rows; a child never reads the table and sees a given gift through its ledger rows (label = note). Nobody writes the table directly; creating, editing, cancelling and handing over a gift are `security definer` functions. A pending gift is therefore invisible to a child session, including through counts and totals.
+
+The next due date of a schedule is computed from `anchor_on` and `next_index` (stepping by frequency, clamping day 29–31), not stored.
 
 ### 5.2 Derived values
 
@@ -379,8 +402,8 @@ Also: `usage_counters` (rate limits, later the guide's token budget), `job_runs`
 | Reserved Save | `sum(amount)` of `requests` where `type = withdrawal` and `status in (pending, approved)` | SQL function `reserved_save(child_id)` |
 | Available Save | balance(save) − reserved | SQL function; also the cap checked at request and completion |
 | Goal progress | available Save vs `goals.price_minor` | `goals` service |
-| Payments remaining | ceil((price − available Save) / `planned_save_minor`) | `goals` service, pure function with tests |
-| Due now | `allowance_occurrences` with `status = due` | query; drives badges |
+| Payments remaining | ceil((price − available Save) / the child's planned save per allowance) | `goals` service, pure function with tests. The child's plan is deferred (FR02), so the estimate lands with it |
+| Due now | For a parent: `allowance_occurrences` with `status = due`, plus `parent_gifts` with `status = pending` and `give_on <= family today`. For a child: due occurrences only; gifts never count until given | query; drives badges. No cron needed for gifts, since their due state is derived |
 
 Sixty children at ten entries a day is about 220k rows a year; summing per child stays in single-digit milliseconds with the index. A maintained balance column is a later optimisation, reconciled nightly by `job_runs` if ever added.
 
@@ -390,7 +413,7 @@ Missions, topics and hints are authored as versioned JSON under `src/content/` (
 
 ### 5.4 Practice money
 
-Practice entries live in the same `ledger_entries` table with `mode = practice`. Every balance function takes `mode` and defaults to `recorded`. A check constraint forbids `mode = practice` on entries with `source_type in (occurrence, request)`, so practice money can never originate from a handover. The UI shows the practice chip whenever `mode = practice` (design.md 2.5).
+Practice entries live in the same `ledger_entries` table with `mode = practice`. Every balance function takes `mode` and defaults to `recorded`. A check constraint forbids `mode = practice` on entries with `source_type in (occurrence, parent_gift, request)`, so practice money can never originate from a handover or a parent gift. Practice money is deferred to the learning section (FR05/FR06) and is not built in the first milestone. The UI shows the practice chip whenever `mode = practice` (design.md 2.5).
 
 ## 6. Authentication and authorization
 
@@ -485,6 +508,12 @@ sequenceDiagram
   A->>P: refresh(); jar fill animation
 ```
 
+Gifts use the same handover screen and flow. A parent gift has no occurrence or generator: it is due when `status = pending` and `give_on <= family today`. `confirm_gift_handover` locks the gift row, requires it to be due, takes `(cash, saved, idemKey)` with `cash, saved >= 0` and `cash + saved > 0`, and posts `parent_gift_in` entries with `source_type = parent_gift`. It records what the parent actually gave, more or less than planned, with no shortfall (a 100× sanity cap guards against typos). The row becomes `given`. Until then the child cannot see it. Edit and cancel are parent-only and refused once given.
+
+Not given: a parent-only function locks a due occurrence, sets it `closed` with who and when, posts nothing and writes `audit_log`. It is refused unless the occurrence is due, and it races safely with `confirm_handover`: exactly one wins. This refines the rule that missed occurrences stay due one by one: they stay due until the parent hands over or marks them not given.
+
+Pause, resume, change and stop are parent-only functions that write `audit_log`. Pause, resume and stop first catch the schedule up to family-today, so every period up to and including that day becomes due (and stays due) however late the hourly job ran. While a schedule is `paused`, `generate_due_occurrences` skips it, except for auto-resume once `paused_through` is in the past. Periods that fall inside a pause are never generated and are not paid later. Occurrences already due stay due after a pause or stop.
+
 Reminders: a second cron job (`send_handover_reminders`, hourly) creates a `reminder` notification when `today - due_on` is a positive multiple of 3 days (family timezone) for an occurrence still `due`, idempotent on `(occurrence_id, reminder_date)`. The `due` notice itself goes out the day it falls due. The interval is fixed at 3 for now. `due_on` and these day counts use the family timezone (`families.timezone`); monthly, quarterly and annual dates on day 29–31 clamp to the month's last day.
 
 Demo clock: `family_now(family_id)` returns `now() + families.clock_offset`, and every time-based function uses it. A parent-only action advances the offset (forward only) and runs generation and reminders for that family. It exists only when `FEATURE_DEMO_CLOCK` is on and the family's `demo_clock_enabled` flag is set.
@@ -541,7 +570,7 @@ flowchart LR
 
 | Job | Schedule | Function | Idempotency |
 | --- | --- | --- | --- |
-| `generate_due_occurrences` | hourly | creates occurrences whose `due_on <= today` | unique `(schedule_id, period_key)` |
+| `generate_due_occurrences` | hourly | creates occurrences whose `due_on <= today` for active schedules; skips paused ones and auto-resumes them after `paused_through` | unique `(schedule_id, period_key)` |
 | `send_handover_reminders` | hourly | reminder notifications for stale `due` occurrences | one per occurrence per day |
 | `dispatch_notifications` | every 10 min | sweeps `queued` and retryable deliveries (webhook does the fast path) | per delivery row |
 | `schedule_reviews` | nightly | spaced-repetition items due tomorrow | unique `(child_id, skill_key, due_on)` |

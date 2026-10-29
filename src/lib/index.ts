@@ -5,4 +5,5 @@ export * from "./action";
 export * from "./db-error";
 export * from "./errors";
 export * from "./logger";
+export * from "./money";
 export * from "./utils";

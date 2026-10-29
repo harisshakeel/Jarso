@@ -40,6 +40,10 @@ export default defineConfig({
     // Skips itself unless local Supabase is running and this config started the server.
     { name: "onboarding", testMatch: "onboarding.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "auth", testMatch: "email-confirm.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    { name: "allowance", testMatch: "allowance.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    { name: "child-home", testMatch: "child-home.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    // No browser: concurrent RPC calls against local Supabase.
+    { name: "handover-race", testMatch: "handover-race.spec.ts" },
     // A spec only runs if a project matches it; add a project here for every new spec file.
     {
       name: "settings",

@@ -39,27 +39,28 @@ function formDataToObject(formData: FormData): Record<string, unknown> {
  * logs unexpected errors, and lets Next.js control-flow errors (redirect, notFound) through.
  *
  * Accepts either FormData (from `<form action>` / `useActionState`) or a plain object.
+ * `schema` may be a factory, called per request, for schemas that depend on server context
+ * (e.g. the family's currency); an AppError it throws becomes a typed failure.
  */
 export function createAction<S extends z.ZodType, T>(
-  schema: S,
+  schema: S | (() => S | Promise<S>),
   handler: (input: z.infer<S>) => Promise<T>,
 ) {
   return async (
     _prev: ActionState<T>,
     payload: FormData | z.input<S>,
   ): Promise<ActionResult<T>> => {
-    const raw = payload instanceof FormData ? formDataToObject(payload) : payload;
-    const parsed = schema.safeParse(raw);
-
-    if (!parsed.success) {
-      return toFailure(
-        new AppError("VALIDATION", "Please fix the highlighted fields.", {
-          fieldErrors: z.flattenError(parsed.error).fieldErrors as FieldErrors,
-        }),
-      );
-    }
-
     try {
+      const resolved = typeof schema === "function" ? await schema() : schema;
+      const raw = payload instanceof FormData ? formDataToObject(payload) : payload;
+      const parsed = resolved.safeParse(raw);
+
+      if (!parsed.success) {
+        throw new AppError("VALIDATION", "Please fix the highlighted fields.", {
+          fieldErrors: z.flattenError(parsed.error).fieldErrors as FieldErrors,
+        });
+      }
+
       return { ok: true, data: await handler(parsed.data) };
     } catch (error) {
       unstable_rethrow(error);

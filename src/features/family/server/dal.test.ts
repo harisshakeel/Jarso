@@ -21,7 +21,7 @@ vi.mock("@/features/profiles/server", () => ({ isParentProfileComplete: vi.fn() 
 const auth = await import("@/features/auth/server");
 const repo = await import("./repository");
 const profiles = await import("@/features/profiles/server");
-const { assertRole, requireRole } = await import("./dal");
+const { assertRole, assertSelfOrParentOf, requireRole } = await import("./dal");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -59,6 +59,43 @@ describe("requireRole when signed in", () => {
     });
 
     await expect(requireRole("child", "/child")).resolves.toMatchObject({ user: child });
+  });
+});
+
+describe("assertSelfOrParentOf", () => {
+  it("lets the child read their own money without a parent check", async () => {
+    const child = { id: "child-1", email: null };
+    vi.mocked(auth.assertUser).mockResolvedValue(child);
+
+    await expect(assertSelfOrParentOf("child-1")).resolves.toBe(child);
+    expect(repo.isParentOf).not.toHaveBeenCalled();
+  });
+
+  it("rejects another child", async () => {
+    vi.mocked(auth.assertUser).mockResolvedValue({ id: "child-2", email: null });
+    vi.mocked(auth.getCurrentUser).mockResolvedValue({ id: "child-2", email: null });
+    vi.mocked(repo.findMembership).mockResolvedValue({
+      familyId: "fam-1",
+      role: "child",
+      status: "approved",
+    });
+
+    await expect(assertSelfOrParentOf("child-1")).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("lets a parent of the child through", async () => {
+    const parent = { id: "parent-1", email: "p@example.com" };
+    vi.mocked(auth.assertUser).mockResolvedValue(parent);
+    vi.mocked(auth.getCurrentUser).mockResolvedValue(parent);
+    vi.mocked(repo.findMembership).mockResolvedValue({
+      familyId: "fam-1",
+      role: "parent",
+      status: "approved",
+    });
+    vi.mocked(repo.isParentOf).mockResolvedValue(true);
+    vi.mocked(profiles.isParentProfileComplete).mockResolvedValue(true);
+
+    await expect(assertSelfOrParentOf("child-1")).resolves.toBe(parent);
   });
 });
 

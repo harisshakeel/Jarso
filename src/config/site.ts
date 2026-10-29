@@ -1,3 +1,5 @@
+import type { Route } from "next";
+
 export const siteConfig = {
   name: "Jarso",
   description: "Jarso",
@@ -13,6 +15,17 @@ export const routes = {
   parent: "/parent",
   parentSetup: "/parent/setup",
   parentNewChild: "/parent/children/new",
+  /** The Allowance tab: every child's allowance at a glance. */
+  parentAllowanceOverview: "/parent/allowance" as Route,
+  parentChild: (childId: string) => `/parent/children/${childId}` as Route,
+  parentChildHistory: (childId: string) => `/parent/children/${childId}/history` as Route,
+  parentAllowance: (childId: string) => `/parent/children/${childId}/allowance` as Route,
+  parentAllowanceEdit: (childId: string) => `/parent/children/${childId}/allowance/edit` as Route,
+  parentGiftNew: (childId: string) => `/parent/children/${childId}/gifts/new` as Route,
+  parentGiftEdit: (childId: string, giftId: string) =>
+    `/parent/children/${childId}/gifts/${giftId}/edit` as Route,
+  parentHandover: (childId: string, kind: "allowance" | "gift", id: string) =>
+    `/parent/children/${childId}/handover/${kind}/${id}` as Route,
   child: "/child",
   childStart: "/start",
   childSignIn: "/sign-in/child",

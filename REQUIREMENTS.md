@@ -30,6 +30,7 @@ FR02–FR06, FR08, FR10–FR12, emergency funds (FR15), web push and app install
 ### Later versions
 
 - AI money guide and its boundaries (FR07–FR09). FR08 topic material without the guide stays in the pilot.
+- Practice money with the learning section (FR05/FR06). Practice money stays separate from recorded money.
 - Native mobile apps.
 - Real payments, bank connections, live fund tracking, investments, and investment-return projections.
 
@@ -38,12 +39,15 @@ FR02–FR06, FR08, FR10–FR12, emergency funds (FR15), web push and app install
 - The parent sets the allowance amount and frequency: weekly, monthly, quarterly, or annual.
 - Each scheduled occurrence becomes **due** automatically, exactly once, including when the scheduler retries or runs late.
 - A due allowance does not change any balance.
-- The parent confirms the handover on one screen, entering how much went to the child as cash (Spend) and how much the parent keeps as savings (Save). The screen starts from the child's planned split (FR03).
+- The parent confirms the handover on one screen, entering how much went to the child as cash (Spend) and how much the parent keeps as savings (Save). The screen starts from the split of the previous handover (FR03).
 - Confirmation posts the occurrence exactly once, including after repeated taps or retries. Until then it stays due.
 - Both parent and child see a due badge on each unconfirmed allowance. The parent receives a reminder while an allowance stays unconfirmed.
 - The child sees the schedule, what is due, the next due date, and the confirmed allowance history.
 - The child cannot change the amount, frequency, or confirm a handover.
-- The child can also practise with fictional money. Practice money stays separate from recorded money.
+- The parent can give a **one-time gift**, now or on a future date, with an optional note. It uses the same handover screen, and the parent records what was actually given, more or less than planned, with no shortfall.
+- A gift is a surprise: until the parent hands it over, the child cannot see it anywhere, including in counts and totals. Once handed over it appears in the child's history with its note. The parent can edit or cancel a gift until it is handed over.
+- The parent can change, pause and stop the allowance. A pause runs through a date or until the parent resumes it, with an optional message for the child. Periods that fall in a pause never become due and are not paid later. Occurrences already due stay due. Stopping ends the schedule, and the parent can set up a new one afterwards. The child sees that the allowance is paused or stopped, with the parent's message.
+- The parent can mark a due allowance as **not given**. It closes with no balance change, its badge and reminders stop, and the action is recorded. It is final, like a confirmed handover. The child sees a neutral "Skipped" with no amount.
 
 ## FR02 — Personal savings goal
 
@@ -55,7 +59,7 @@ FR02–FR06, FR08, FR10–FR12, emergency funds (FR15), web push and app install
 ## FR03 — Spend and Save jars
 
 - **Spend** is cash the child holds. **Save** is money the parent keeps for the child.
-- The child can plan and preview how each allowance should be split. The plan prefills the parent's handover screen; the parent's confirmation records the actual split.
+- The child can plan and preview how each allowance should be split. *Deferred: the parent decides the split at handover in the pilot.* The handover screen starts from the previous handover's split, and the parent's confirmation records the actual split.
 - Each jar displays its confirmed balance. Due allowances are shown separately.
 - The child can see how a planned split or transfer affects their goal.
 - Moving money from Spend to Save is a savings deposit: the child hands cash to the parent. It is a request (FR14) that posts only when the parent confirms receiving the cash.
@@ -255,3 +259,16 @@ Agree on the evaluation period, definitions, and numerical targets before launch
 - **Savings deposits** are part of the first milestone, on the same request flow as withdrawals.
 - **Several children.** A parent can link more than one child. Parent screens are per child, with a child switcher.
 - **Invitations.** Always a copyable link plus a short code the child shows the parent. Email is sent additionally only when a sending domain is configured; nothing in the pilot depends on email delivery.
+
+### Decided for the pilot: slice 2 (2026-10-29)
+
+- **S1 Setup screen.** Amount, a "How often" choice (Weekly, Monthly, Every 3 months, Yearly, One time) and a first date, with a summary line such as "Every Sunday from 2 Nov". The weekly day is the weekday of the first date.
+- **S2 One-time gift.** A parent-initiated extra, set up on the same screen with the "One time" choice. The date becomes "Give on" and an optional note appears. A child can have any number of gifts.
+- **S3 Gift is a surprise.** Before handover the child sees no schedule entry, badge, count or total for it. This is enforced in the database, not only the UI. After handover it shows in history with the note, marked as a gift.
+- **S4 Gift handover.** Same screen as allowance. The parent records what was actually given, any positive amount. No shortfall for gifts.
+- **S5 Gift edit and cancel.** The parent can edit amount, date and note, or cancel, until it is handed over. Final afterwards.
+- **S6 Split at handover.** The parent decides. The screen starts from the save share of the child's most recent confirmed handover, applied to the current amount; the first handover is all Spend.
+- **S7 Pause.** Through a date (auto-resumes after it) or until the parent resumes. Optional message to the child. Periods due during the pause produce no occurrence and are not paid later. Occurrences already due stay due.
+- **S8 Stop.** Ends the schedule. No new occurrences; already-due ones stay due. The parent can set up a new allowance afterwards.
+- **S9 Child view when paused.** A "Paused" label, the date it runs until and the next one (or "until a parent resumes it"), and the parent's message if any.
+- **S10 Not given.** The parent can mark a due allowance as not given: it closes with no ledger entry, stops its badge and reminders, and is recorded. This refines the rule on missed occurrences above: each still stays due one by one, until the parent hands over or marks it not given.
