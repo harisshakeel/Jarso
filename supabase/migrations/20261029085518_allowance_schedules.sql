@@ -24,7 +24,7 @@ create table public.allowance_schedules (
 );
 
 comment on table public.allowance_schedules is 'Recurring allowance per child (at most one active or paused). Written only by security definer functions.';
-comment on column public.allowance_schedules.anchor_on is 'Period 0 due date. Period n = allowance_due_on(anchor_on, frequency, n); never chained from the previous date. Reset by change_allowance.';
+comment on column public.allowance_schedules.anchor_on is 'Period 0 due date. Period n = allowance_due_on(anchor_on, frequency, n); never chained from the previous date. Reset by change_allowance unless only the amount changes.';
 comment on column public.allowance_schedules.next_index is 'First period not yet generated (or skipped by a pause).';
 comment on column public.allowance_schedules.paused_through is 'Paused through this family date (auto-resumes after it); null = until a parent resumes.';
 comment on column public.allowance_schedules.pause_message is 'Optional trimmed message to the child, max 140 chars; shown as plain text.';
@@ -317,6 +317,7 @@ declare
   v_s public.allowance_schedules;
   v_today date;
   v_last_due date;
+  v_keep_anchor boolean;
 begin
   v_s := public.lock_allowance_for_parent(p_schedule_id);
   if v_s.status = 'stopped' then
@@ -330,6 +331,8 @@ begin
 
   v_today := public.family_today(v_s.family_id);
   perform public.generate_for_schedule(v_s.id, v_today);
+  -- Catch-up may have advanced next_index.
+  select s.next_index into v_s.next_index from public.allowance_schedules s where s.id = v_s.id;
 
   select pg_catalog.max(o.due_on) into v_last_due
   from public.allowance_occurrences o
@@ -339,11 +342,16 @@ begin
     raise exception using errcode = '22023', message = 'Next date must be today or later and after the last allowance';
   end if;
 
+  -- Same cadence and next date: keep the anchor, so a 31st stays the 31st after a short
+  -- month. Anything else starts a new cadence from p_next_on.
+  v_keep_anchor := p_frequency = v_s.frequency
+    and p_next_on = public.allowance_due_on(v_s.anchor_on, v_s.frequency, v_s.next_index);
+
   update public.allowance_schedules
   set amount_minor = p_amount_minor,
       frequency = p_frequency,
-      anchor_on = p_next_on,
-      next_index = 0
+      anchor_on = case when v_keep_anchor then v_s.anchor_on else p_next_on end,
+      next_index = case when v_keep_anchor then v_s.next_index else 0 end
   where id = v_s.id;
 
   insert into public.audit_log (family_id, actor_id, action, subject_id, details)
@@ -362,7 +370,7 @@ begin
 end;
 $$;
 
-comment on function public.change_allowance(uuid, bigint, text, date) is 'Parent changes amount/frequency from p_next_on (new anchor). Generated occurrences keep their amount (D6); a next date of today is due at once. JA403, JA409 (stopped), 22023 (bad values, or p_next_on before today or not after the last generated due date).';
+comment on function public.change_allowance(uuid, bigint, text, date) is 'Parent changes amount/frequency from p_next_on. Same frequency and p_next_on = the current next due date keeps the anchor; otherwise p_next_on is the new anchor. Generated occurrences keep their amount (D6); a next date of today is due at once. JA403, JA409 (stopped), 22023 (bad values, or p_next_on before today or not after the last generated due date).';
 
 create or replace function public.pause_allowance(p_schedule_id uuid, p_through date, p_message text)
 returns uuid

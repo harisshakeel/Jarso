@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(50);
+select plan(54);
 
 -- ---------------------------------------------------------------------------
 -- allowance_due_on: stepped from the anchor, month-end clamped
@@ -24,6 +24,7 @@ select tests.create_user('pb@example.com') as pb \gset
 select tests.create_user('c1@example.com', 'child') as c1 \gset
 select tests.create_user('c2@example.com', 'child') as c2 \gset
 select tests.create_user('c3@example.com', 'child') as c3 \gset
+select tests.create_user('c4@example.com', 'child') as c4 \gset
 
 select tests.authenticate_as(:'pb'::uuid);
 select public.create_family('INR', 'Asia/Kolkata') as fb \gset
@@ -33,6 +34,7 @@ select public.create_family('GBP', 'UTC') as fa \gset
 select public.register_child(:'c1'::uuid, :'fa'::uuid, 'Sam', '1234', true);
 select public.register_child(:'c2'::uuid, :'fa'::uuid, 'Alex', '1234', true);
 select public.register_child(:'c3'::uuid, :'fa'::uuid, 'Kim', '1234', true);
+select public.register_child(:'c4'::uuid, :'fa'::uuid, 'Jo', '1234', true);
 select tests.clear_auth();
 
 select public.family_today(:'fa'::uuid) as today \gset
@@ -197,6 +199,38 @@ select throws_ok(
   format('select public.pause_allowance(%L, null, null)', :'s4'),
   'JA409', null, 'pause refused unless active');
 select tests.clear_auth();
+
+-- ---------------------------------------------------------------------------
+-- change_allowance: changing only the amount keeps the anchor (no month-end drift)
+-- ---------------------------------------------------------------------------
+
+-- The next 31st whose following month is shorter (e.g. 31 Jan -> 28 Feb -> 31 Mar).
+select d::date as m31 from generate_series(:'today'::date + 1, :'today'::date + 120, interval '1 day') d
+  where extract(day from d) = 31 and extract(day from d + interval '1 month') < 31
+  order by d limit 1 \gset
+select public.allowance_due_on(:'m31'::date, 'monthly', 1) as m_short \gset
+select public.allowance_due_on(:'m31'::date, 'monthly', 2) as m_next31 \gset
+
+select tests.authenticate_as(:'pa'::uuid);
+select public.create_allowance(:'c4'::uuid, 500, 'monthly', :'m31'::date) as s5 \gset
+select tests.clear_auth();
+-- Catch up into the short month: the 31st is generated, the clamped date is next.
+select is(public.generate_for_schedule(:'s5'::uuid, :'m31'::date), 1, 'catch-up generates the 31st');
+
+select tests.authenticate_as(:'pa'::uuid);
+select lives_ok(
+  format('select public.change_allowance(%L, 900, %L, %L)', :'s5', 'monthly', :'m_short'),
+  'amount-only change with the current next date succeeds');
+select is(
+  (select row(amount_minor, anchor_on, next_index)::text from public.allowance_schedules where id = :'s5'::uuid),
+  row(900::bigint, :'m31'::date, 1)::text, 'amount-only change keeps the anchor and index');
+select tests.clear_auth();
+
+select public.generate_for_schedule(:'s5'::uuid, :'m_next31'::date);
+select is(
+  (select array_agg(row(due_on, amount_minor)::text order by due_on) from public.allowance_occurrences where schedule_id = :'s5'::uuid),
+  array[row(:'m31'::date, 500::bigint)::text, row(:'m_short'::date, 900::bigint)::text, row(:'m_next31'::date, 900::bigint)::text],
+  'later period returns to the 31st after the short month');
 
 select * from finish();
 rollback;
