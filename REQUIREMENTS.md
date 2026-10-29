@@ -156,6 +156,7 @@ The initial topics are:
 - A child can access only their own information and actions.
 - Every permission is enforced on the server. One family can never see or change another family's records.
 - Only the minimum data needed is collected about the child.
+- A parent records their date of birth, country and gender before using the app; a parent must be 18 or over. Until then a dialog covers every parent screen and family actions are refused. Only the parent can see these details.
 
 ## FR14 — Purchases, limits, savings deposits, and savings withdrawals
 

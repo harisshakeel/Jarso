@@ -1,6 +1,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { completeParentProfile } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Parent allowance and gift screens against the LOCAL Supabase stack (see playwright.config.ts). */
@@ -43,6 +44,7 @@ test.beforeAll(async ({ browser }) => {
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(at("/parent/setup"));
+  await completeParentProfile(page);
   await page.getByRole("button", { name: "Create family" }).click();
   await expect(page).toHaveURL(at("/parent"));
   await page.getByRole("link", { name: "Add a child" }).first().click();

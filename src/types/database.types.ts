@@ -313,6 +313,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"parent_details": {
+                  Row: {
+                    "completed_at": string,"country": string,"date_of_birth": string,"gender": string,"profile_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "completed_at"?: string,"country": string,"date_of_birth": string,"gender": string,"profile_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "completed_at"?: string,"country"?: string,"date_of_birth"?: string,"gender"?: string,"profile_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parent_details_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"parent_gifts": {
                   Row: {
                     "amount_minor": number,"cash_minor": number | null,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"give_on": string,"given_at": string | null,"given_by": string | null,"id": string,"note": string | null,"saved_minor": number | null,"status": string,"updated_at": string
@@ -399,6 +419,9 @@ isOneToOne: false
                            },
 "change_allowance":
 { Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
+                           },
+"complete_parent_profile":
+{ Args: { "p_country": string,"p_date_of_birth": string,"p_gender": string }; Returns: undefined
                            },
 "confirm_gift_handover":
 { Args: { "p_cash_minor": number,"p_gift_id": string,"p_idempotency_key": string,"p_saved_minor": number }; Returns: string
