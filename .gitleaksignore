@@ -1,5 +1,7 @@
 # Dead session keys of the local brainstorm mockup server (localhost only, servers stopped).
 # Redacted in current files; these entries cover the commits that still contain them.
+062b29630b810c19898eea13f0776a81e09d5457:.claude-logs/2026-10-29_13-42-09_3336f19b-eaaf-4cb6-a13d-6ae3f17c0076.md:generic-api-key:738
+062b29630b810c19898eea13f0776a81e09d5457:.claude-logs/2026-10-29_13-42-09_3336f19b-eaaf-4cb6-a13d-6ae3f17c0076.md:generic-api-key:769
 1006ac40b42161b0eaeaf6db59aa9dda00a57e91:.claude-logs/2026-10-29_13-42-09_3336f19b-eaaf-4cb6-a13d-6ae3f17c0076.md:generic-api-key:342
 1006ac40b42161b0eaeaf6db59aa9dda00a57e91:.claude-logs/2026-10-29_13-42-09_3336f19b-eaaf-4cb6-a13d-6ae3f17c0076.md:generic-api-key:397
 ecab39dfc63638f1df44b8640e7428ca4788f243:.claude-logs/2026-10-29_13-42-09_3336f19b-eaaf-4cb6-a13d-6ae3f17c0076.md:generic-api-key:738
