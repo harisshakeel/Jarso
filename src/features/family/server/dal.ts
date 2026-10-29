@@ -59,3 +59,10 @@ export async function assertParentOf(childId: string): Promise<SessionUser> {
   }
   return user;
 }
+
+/** For reads of a child's money: the child themselves, or an approved parent of the child. */
+export async function assertSelfOrParentOf(childId: string): Promise<SessionUser> {
+  const user = await assertUser();
+  if (user.id === childId) return user;
+  return assertParentOf(childId);
+}

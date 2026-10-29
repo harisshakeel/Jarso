@@ -2,7 +2,13 @@
 import "server-only";
 
 export { getClientIp } from "./client-ip";
-export { assertParentOf, assertRole, getMembership, requireRole } from "./dal";
+export {
+  assertParentOf,
+  assertRole,
+  assertSelfOrParentOf,
+  getMembership,
+  requireRole,
+} from "./dal";
 export {
   acceptInvitation,
   acceptListedInvitation,
