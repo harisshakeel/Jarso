@@ -84,6 +84,15 @@ test("settings: gear opens the parent settings; rename and timezone persist", as
   await expect(parent).toHaveURL(at("/parent/settings"));
   await expect(parent.getByRole("heading", { name: "Settings" })).toBeVisible();
 
+  // Tabs split the page; the open one is kept in the URL so a reload reopens it.
+  await parent.getByRole("tab", { name: "Children" }).click();
+  await expect(parent).toHaveURL(/[?&]tab=children/);
+  await parent.reload();
+  await expect(parent.getByRole("tab", { name: "Children" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+
   // Rename Sam → Sammy.
   await parent.getByRole("button", { name: "Rename Sam" }).click();
   await parent.getByRole("textbox", { name: "Nickname", exact: true }).fill("Sammy");
@@ -100,6 +109,7 @@ test("settings: gear opens the parent settings; rename and timezone persist", as
   await expect(child.getByRole("heading", { name: "Hi, Sammy!" })).toBeVisible();
 
   // Timezone.
+  await parent.getByRole("tab", { name: "Family" }).click();
   await parent.getByRole("combobox", { name: "Timezone" }).click();
   await parent.getByRole("option", { name: "Asia/Karachi" }).click();
   await parent.getByRole("button", { name: "Save", exact: true }).click();
@@ -119,7 +129,7 @@ test("remove: Sammy is signed out everywhere, the nickname is free again", async
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Sign in" }).click();
   await expect(parent).toHaveURL(at("/parent"));
-  await parent.goto("/parent/settings");
+  await parent.goto("/parent/settings?tab=children");
 
   await parent.getByRole("button", { name: "Remove Sammy" }).click();
   const dialog = parent.getByRole("alertdialog");

@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
 import { Suspense } from "react";
+import { z } from "zod";
+import { PageTabs } from "@/components/shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { routes } from "@/config";
-import { SignOutButton } from "@/features/auth";
 import {
   ChildrenSettingsList,
   currencyLabels,
@@ -20,7 +21,12 @@ export const metadata: Metadata = { title: "Settings" };
 
 const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
 
-async function ParentSettings() {
+const tabValues = ["family", "children", "you"] as const;
+const paramsSchema = z.object({ tab: z.enum(tabValues).catch("family") });
+
+type Props = { searchParams: PageProps<"/parent/settings">["searchParams"] };
+
+async function ParentSettings({ searchParams }: Props) {
   const { user, membership } = await requireRole("parent", routes.parentSettings);
   if (!membership) redirect(routes.parentSetup);
   const [family, children, profile, details] = await Promise.all([
@@ -30,11 +36,11 @@ async function ParentSettings() {
     getParentDetails(user.id),
   ]);
   if (!family) redirect(routes.parentSetup);
+  const { tab } = paramsSchema.parse(await searchParams);
 
-  return (
+  const familyTab = (
     <>
       <FamilyCodeCard code={family.code} raised className="rise-in" />
-
       <Section index={1} title="Family" description="Money is kept in the family's currency.">
         <dl>
           <dt className="text-muted-foreground text-sm">Currency</dt>
@@ -44,24 +50,29 @@ async function ParentSettings() {
         </dl>
         <FamilySettingsForm timezone={family.timezone} />
       </Section>
+    </>
+  );
 
-      <Section
-        index={2}
-        title="Children"
-        description="Rename, reset a PIN, or remove a child from your family."
-      >
-        <ChildrenSettingsList items={children} />
-      </Section>
+  const childrenTab = (
+    <Section
+      index={0}
+      title="Children"
+      description="Rename, reset a PIN, or remove a child from your family."
+    >
+      <ChildrenSettingsList items={children} />
+    </Section>
+  );
 
-      <Section index={3} title="Your account" description={user.email ?? undefined}>
+  const youTab = (
+    <>
+      <Section index={0} title="Your account" description={user.email ?? undefined}>
         <DisplayNameForm fullName={profile.fullName} />
-        <SignOutButton />
       </Section>
 
       {/* Before first completion the layout's dialog collects these; rendering the form here
           too would duplicate its field ids. */}
       {details ? (
-        <Section index={3} title="Your details" description="Only you can see these.">
+        <Section index={1} title="Your details" description="Only you can see these.">
           <ParentDetailsForm
             defaults={details}
             submitLabel="Save details"
@@ -70,6 +81,18 @@ async function ParentSettings() {
         </Section>
       ) : null}
     </>
+  );
+
+  return (
+    <PageTabs
+      label="Settings sections"
+      defaultValue={tab}
+      tabs={[
+        { value: "family", label: "Family", content: familyTab },
+        { value: "children", label: "Children", content: childrenTab },
+        { value: "you", label: "You", content: youTab },
+      ]}
+    />
   );
 }
 
@@ -98,19 +121,19 @@ function Section({
 function SettingsSkeleton() {
   return (
     <div aria-hidden className="grid gap-6">
+      <div className="shimmer h-11 rounded-full bg-muted" />
       <div className="shimmer h-48 rounded-xl bg-muted" />
-      <div className="shimmer h-40 rounded-xl bg-muted" />
       <div className="shimmer h-40 rounded-xl bg-muted" />
     </div>
   );
 }
 
-export default function ParentSettingsPage() {
+export default function ParentSettingsPage({ searchParams }: Props) {
   return (
     <div className="mx-auto grid w-full max-w-2xl gap-6">
       <h1 className="text-h1">Settings</h1>
       <Suspense fallback={<SettingsSkeleton />}>
-        <ParentSettings />
+        <ParentSettings searchParams={searchParams} />
       </Suspense>
     </div>
   );
