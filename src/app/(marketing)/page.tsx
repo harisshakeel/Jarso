@@ -1,6 +1,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { JarsoMark, JarsoWordmark } from "@/components/brand";
+import { ThemeSwitch } from "@/components/theme";
 import { buttonVariants } from "@/components/ui";
 import { routes, siteConfig } from "@/config";
 
@@ -12,6 +13,9 @@ const childStart = routes.childStart as Route;
 export default function HomePage() {
   return (
     <main className="flex flex-1 flex-col bg-card px-4 py-12 sm:px-6 sm:py-16">
+      <div className="fixed top-[env(safe-area-inset-top)] right-2 z-40">
+        <ThemeSwitch />
+      </div>
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-10 text-center">
         {/* The wordmark artwork is opaque white, so dark mode shows the mark and name instead (design.md §1). */}
         <JarsoWordmark width={288} priority className="w-60 sm:w-72 dark:hidden" />

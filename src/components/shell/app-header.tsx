@@ -2,6 +2,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { JarsoMark } from "@/components/brand";
+import { ThemeSwitch } from "@/components/theme";
 import { siteConfig } from "@/config";
 
 type AppHeaderProps = {
@@ -23,7 +24,10 @@ export function AppHeader({ homeHref, action }: AppHeaderProps) {
           <JarsoMark size={32} priority />
           {siteConfig.name}
         </Link>
-        {action}
+        <div className="flex items-center gap-1">
+          <ThemeSwitch />
+          {action}
+        </div>
       </div>
     </header>
   );
