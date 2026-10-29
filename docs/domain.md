@@ -31,7 +31,11 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Emergency grant | Extra money requested by the child; same approve → handover flow. Its own ledger kind. |
 | Goal | Item + price the child saves toward; progress = confirmed Save balance vs price. |
 | Diary entry | Received money or purchase: amount, label, jar. Correctable/undoable via reversing entries. |
-| Mission | 2–3 minute daily learning activity in the 7-day journey. |
+| Mission | 2–3 minute daily learning activity in the 7-day journey: 6–8 steps (choices, amounts, a Spend/Save slider, sorting, matching, predictions, reasons) with fictional amounts, instant feedback, two free hints, and the steps missed first time replayed once at the end. The next mission unlocks when the previous one is done; there is no day gate. |
+| Topic | One of the five FR06 topics, with a page that explains, works an example and offers one practice question (FR08). Opening it never changes progress. |
+| Check-in | Five starting questions before mission 1 (FR10). Places, doesn't test: no score is shown and nothing is locked. |
+| Practice | One-minute spaced review: for each skill that is due, a question from the review pool in a new situation. Boxes of 1, 3, 7 and 14 days. |
+| Skill level | Per skill: Started (seen in a mission), Practised (right in a mission), Got it (right without hints in a review). Learning progress, never shown next to money. |
 | Notification | Inbox item (+ optional web push) pointing at a record: due reminder, limit notice, request, decision. Never authoritative. |
 | Guide | *Later version.* AI money helper with strict topic and safety boundaries. |
 
@@ -48,7 +52,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | `limits` | FR14 | Spending limits; evaluates purchases after recording and raises limit notices. |
 | `goals` | FR02, FR05 | Goal, plan, payments-remaining estimate, what-if simulation (no writes). |
 | `diary` | FR04 | UI over `ledger` entries: add, correct, undo. |
-| `learning` | FR06, FR08, FR10 | Missions, topics, spaced review, progress (separate from money). |
+| `learning` ✅ | FR06, FR08, FR10 | Missions, topics, spaced review, check-in, progress (separate from money). Content as JSON (ADR 0009). |
 | `reviews` | FR11, FR12 | Weekly summary, next-step recommendation, resume state. |
 | `notifications` | FR16 | In-app inbox in the first milestone: due badge, handover reminders, limit, new-request and decision notices, no push needed; web push + PWA later in pilot. Sent after commit; failure never affects records. |
 | `guide` *(later)* | FR07, FR09 | AI chat via Claude API; server-only; guarded prompts, rate limits, safety handling. |

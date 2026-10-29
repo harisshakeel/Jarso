@@ -4,6 +4,8 @@ import { routes } from "@/config";
 import { ChildAllowanceCard } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
 import { getChildNickname, requireRole } from "@/features/family/server";
+import { NextStepCard } from "@/features/learning";
+import { getLearningOverview } from "@/features/learning/server";
 import { HistoryList, Jars } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
 
@@ -12,17 +14,19 @@ export const metadata: Metadata = { title: "Home" };
 /** requireRole sends signed-out users to the PIN sign-in and parents to their own home. */
 async function ChildHome() {
   const { user } = await requireRole("child", routes.child);
-  const [nickname, family, jars, history, schedule, due] = await Promise.all([
+  const [nickname, family, jars, history, schedule, due, learning] = await Promise.all([
     getChildNickname(),
     getFamilyContext(),
     getJars(user.id),
     getHistory(user.id),
     getSchedule(user.id),
     listDueForChild(user.id),
+    getLearningOverview(user.id),
   ]);
   return (
     <>
       <h1 className="rise-in text-balance text-display">{nickname ? `Hi, ${nickname}!` : "Hi!"}</h1>
+      <NextStepCard step={learning.nextStep} />
       <Jars jars={jars} currency={family.currency} />
       <ChildAllowanceCard
         schedule={schedule}

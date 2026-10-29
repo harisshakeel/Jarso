@@ -1,0 +1,230 @@
+{
+  "key": "this-or-that",
+  "version": 1,
+  "day": 5,
+  "title": "This or that?",
+  "topic": "tradeoffs",
+  "summary": "See what you give up when you choose, and tell needs from wants.",
+  "steps": [
+    {
+      "type": "info",
+      "key": "choosing-means-giving-up",
+      "title": "Every choice has a cost",
+      "body": "Money can only be spent once. When you choose one thing, you give up what else that money could do. Some things are needs: you must have them. Others are wants: nice to have. Wants are fine. Needs come first.",
+      "example": "Remi has {m:1200}. A game costs {m:1000} and a day out costs {m:900}. There isn't enough for both, so choosing the game means giving up the day out."
+    },
+    {
+      "type": "choice",
+      "key": "what-you-give-up",
+      "skill": "tradeoff.give_up",
+      "prompt": "You have {m:1000}. You choose a {m:700} jacket. What can you no longer do?",
+      "options": [
+        {
+          "id": "book-too",
+          "text": "Also buy a book for {m:600}",
+          "feedback": "Yes. After the jacket you have {m:300}, and the book costs {m:600}."
+        },
+        {
+          "id": "snack-too",
+          "text": "Also buy a snack for {m:250}",
+          "feedback": "Not quite. After the jacket you have {m:300}, so the snack still fits."
+        },
+        {
+          "id": "nothing",
+          "text": "Nothing changes",
+          "feedback": "Not quite. The jacket uses {m:700}, so some things no longer fit."
+        }
+      ],
+      "answer": "book-too",
+      "hints": [
+        "Work out what's left after the jacket.",
+        "{m:300} is left. Which of these costs more than that?"
+      ],
+      "correct": "Nice. That's it. Choosing the jacket means giving up the book, for now.",
+      "replay": {
+        "type": "choice",
+        "skill": "tradeoff.give_up",
+        "prompt": "You have {m:1500}. You choose a {m:900} ticket. What can you no longer do?",
+        "options": [
+          {
+            "id": "tshirt-too",
+            "text": "Also buy a T-shirt for {m:450}",
+            "feedback": "Not quite. After the ticket you have {m:600}, so the T-shirt still fits."
+          },
+          {
+            "id": "game-too",
+            "text": "Also buy a game for {m:800}",
+            "feedback": "Yes. After the ticket you have {m:600}, and the game costs {m:800}."
+          },
+          {
+            "id": "nothing",
+            "text": "Nothing changes",
+            "feedback": "Not quite. The ticket uses {m:900}, so some things no longer fit."
+          }
+        ],
+        "answer": "game-too",
+        "hints": [
+          "Work out what's left after the ticket.",
+          "{m:600} is left. Which of these costs more than that?"
+        ],
+        "correct": "Nice. That's it. Choosing the ticket means giving up the game, for now."
+      }
+    },
+    {
+      "type": "sort",
+      "key": "need-or-want",
+      "skill": "tradeoff.need_want",
+      "prompt": "Sort each one into need or want.",
+      "buckets": [{ "id": "need", "label": "Need" }, { "id": "want", "label": "Want" }],
+      "items": [
+        { "id": "bus-fare", "text": "Bus fare to get home from school", "bucket": "need" },
+        {
+          "id": "second-hoodie",
+          "text": "A second hoodie, just like your first",
+          "bucket": "want"
+        },
+        { "id": "trip-lunch", "text": "Lunch on a school trip", "bucket": "need" },
+        { "id": "poster", "text": "A poster for your room", "bucket": "want" },
+        {
+          "id": "pencil-case",
+          "text": "A pencil case to replace your broken one",
+          "bucket": "need"
+        }
+      ],
+      "wrong": "Not quite. Ask: could you manage without it? If yes, it's a want.",
+      "hints": [
+        "A need is something you must have. A want is nice to have.",
+        "Could you get by without it? Then it's a want."
+      ],
+      "correct": "All sorted. Needs keep your day running. Wants are extras you choose."
+    },
+    {
+      "type": "amount",
+      "key": "left-for-wants",
+      "skill": "tradeoff.need_want",
+      "prompt": "Lee has {m:1000}. A school trip needs {m:400}. After that, how much is left for wants?",
+      "unit": "money",
+      "answer": 600,
+      "misconceptions": [
+        {
+          "value": 1400,
+          "feedback": "Not quite. That adds the two. The trip money comes out of the {m:1000}."
+        },
+        { "value": 400, "feedback": "Not quite. That's the trip. What's left after it?" }
+      ],
+      "wrong": "Not quite. Take the need away first, then see what's left.",
+      "hints": ["Needs come out first.", "{m:1000} take away {m:400}."],
+      "correct": "That's it. With the trip covered, {m:600} is left for wants.",
+      "replay": {
+        "type": "amount",
+        "skill": "tradeoff.need_want",
+        "prompt": "Kai has {m:1500}. Bus fares for the week need {m:350}. After that, how much is left for wants?",
+        "unit": "money",
+        "answer": 1150,
+        "misconceptions": [
+          {
+            "value": 1850,
+            "feedback": "Not quite. That adds the two. The bus fares come out of the {m:1500}."
+          },
+          { "value": 350, "feedback": "Not quite. That's the bus fares. What's left after them?" }
+        ],
+        "wrong": "Not quite. Take the need away first, then see what's left.",
+        "hints": ["Needs come out first.", "{m:1500} take away {m:350}."],
+        "correct": "That's it. With bus fares covered, {m:1150} is left for wants."
+      }
+    },
+    {
+      "type": "amount",
+      "key": "weeks-of-swaps",
+      "skill": "tradeoff.give_up",
+      "prompt": "Ari could save {m:300} a week, but spends it on snacks instead. Over 6 weeks, how much saving does Ari give up?",
+      "unit": "money",
+      "answer": 1800,
+      "misconceptions": [
+        {
+          "value": 300,
+          "feedback": "Not quite. That's one week. The same choice happens every week for 6 weeks."
+        },
+        { "value": 1500, "feedback": "Not quite. That's 5 weeks. Count all 6." }
+      ],
+      "wrong": "Not quite. Add {m:300} once for each week.",
+      "hints": [
+        "The same choice happens every week.",
+        "{m:300} six times. Try {m:300}, {m:600}, {m:900} and keep going."
+      ],
+      "correct": "That's it. {m:1800} over 6 weeks. Snacks are fine. It just helps to see what a choice adds up to.",
+      "replay": {
+        "type": "amount",
+        "skill": "tradeoff.give_up",
+        "prompt": "Noor could save {m:250} a week, but spends it on drinks instead. Over 4 weeks, how much saving does Noor give up?",
+        "unit": "money",
+        "answer": 1000,
+        "misconceptions": [
+          {
+            "value": 250,
+            "feedback": "Not quite. That's one week. The same choice happens every week for 4 weeks."
+          },
+          { "value": 750, "feedback": "Not quite. That's 3 weeks. Count all 4." }
+        ],
+        "wrong": "Not quite. Add {m:250} once for each week.",
+        "hints": [
+          "The same choice happens every week.",
+          "{m:250} four times. Try {m:250}, {m:500} and keep going."
+        ],
+        "correct": "That's it. {m:1000} over 4 weeks. Drinks are fine. It just helps to see what a choice adds up to."
+      }
+    },
+    {
+      "type": "predict",
+      "key": "take-from-save",
+      "skill": "tradeoff.give_up",
+      "prompt": "Sam saves {m:500} a week for a goal. Sam takes {m:1000} out of Save for a day out. What happens to the goal?",
+      "options": [
+        { "id": "two-weeks", "text": "It takes 2 more weeks", "feedback": "That's it." },
+        {
+          "id": "no-change",
+          "text": "Nothing changes",
+          "feedback": "Not quite. The money came out of Save, and Save is what the goal counts."
+        },
+        {
+          "id": "ten-weeks",
+          "text": "It takes 10 more weeks",
+          "feedback": "Not quite. Each week adds {m:500}. How many weeks make {m:1000}?"
+        }
+      ],
+      "answer": "two-weeks",
+      "outcome": "Save is now {m:1000} lower. At {m:500} a week, that's 2 more weeks to build it back. The day out was a fair choice. It's a trade: a day out now, the goal 2 weeks later.",
+      "hints": [
+        "Taking money from Save is different from spending from Spend.",
+        "How many weeks of {m:500} does it take to replace {m:1000}?"
+      ],
+      "correct": "Right. {m:1000} out of Save is 2 weeks of saving at {m:500}."
+    },
+    {
+      "type": "reason",
+      "key": "why-needs-first",
+      "skill": "tradeoff.need_want",
+      "prompt": "Why is it worth covering needs before wants?",
+      "options": [
+        {
+          "id": "must-haves",
+          "text": "So the things you must have are paid for",
+          "feedback": "That's it."
+        },
+        {
+          "id": "wants-bad",
+          "text": "Because wants are bad",
+          "feedback": "Not quite. Wants are fine. They just come after the must-haves."
+        },
+        {
+          "id": "needs-cost-less",
+          "text": "Because needs always cost less",
+          "feedback": "Not quite. A need can cost more or less than a want. It's about what you can't do without."
+        }
+      ],
+      "answer": "must-haves",
+      "hints": ["What happens if a need isn't covered?", "A want can wait. A need usually can't."],
+      "correct": "Right. Cover the must-haves first, then enjoy the wants with what's left."
+    }
+  ]
+}

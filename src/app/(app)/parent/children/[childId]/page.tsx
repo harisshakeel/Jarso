@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { routes } from "@/config";
 import { DueList, GiftList, ParentAllowanceCard, upcomingGifts } from "@/features/allowance";
 import { getSchedule, listDue, listGifts } from "@/features/allowance/server";
+import { LearningSummaryCard } from "@/features/learning";
+import { getLearningOverview } from "@/features/learning/server";
 import { Jars, RecentHistory } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
 import { loadChild } from "./load-child";
@@ -17,11 +19,12 @@ const back = { href: routes.parent, label: "Your family" };
 async function ChildContent({ params }: { params: Promise<{ childId: string }> }) {
   const { childId } = await params;
   const { child, currency, today } = await loadChild(childId, routes.parentChild(childId));
-  const [jars, due, schedule, gifts] = await Promise.all([
+  const [jars, due, schedule, gifts, learning] = await Promise.all([
     getJars(childId),
     listDue(childId),
     getSchedule(childId),
     listGifts(childId),
+    getLearningOverview(childId),
   ]);
   const upcoming = upcomingGifts(gifts, today);
 
@@ -42,6 +45,11 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
               Give a gift
             </Link>
           </div>
+          <LearningSummaryCard
+            overview={learning}
+            nickname={child.nickname}
+            href={routes.parentChildLearning(childId)}
+          />
         </div>
         <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
           <ChildHistory childId={childId} currency={currency} />

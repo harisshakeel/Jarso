@@ -1,0 +1,240 @@
+{
+  "key": "plans-change",
+  "version": 1,
+  "day": 6,
+  "title": "Plans change",
+  "topic": "changing-plans",
+  "summary": "When something changes, work out the new numbers and adjust your plan calmly.",
+  "steps": [
+    {
+      "type": "info",
+      "key": "change-the-plan",
+      "title": "Plans can change",
+      "body": "Plans change, and that's normal. A price goes up, you save less one week, or a gift arrives. Work out the new numbers first. Then pick a calm fix: wait a little longer, save a bit more, or change the goal.",
+      "example": "Sam plans to save {m:500} a week for a {m:3000} goal. That's 6 weeks. Then the price goes up to {m:3500}. Now it takes 7 weeks."
+    },
+    {
+      "type": "amount",
+      "key": "price-goes-up",
+      "skill": "plan.adjust",
+      "prompt": "You're about to save for a {m:2000} goal. The price goes up by {m:500}. At {m:500} a week, how many weeks now?",
+      "unit": "count",
+      "suffix": "weeks",
+      "answer": 5,
+      "misconceptions": [
+        {
+          "value": 4,
+          "feedback": "Not quite. That's the old price. Work it out with the new price."
+        },
+        {
+          "value": 1,
+          "feedback": "Not quite. That's just the extra {m:500}. Count the weeks for the whole new price."
+        }
+      ],
+      "wrong": "Not quite. Find the new price first, then count the weeks.",
+      "hints": [
+        "The new price is {m:2000} plus {m:500}.",
+        "Count up to {m:2500} in steps of {m:500}."
+      ],
+      "correct": "That's it. The new price is {m:2500}, which takes 5 weeks. One week more than before.",
+      "replay": {
+        "type": "amount",
+        "skill": "plan.adjust",
+        "prompt": "You're about to save for a {m:2400} goal. The price goes up by {m:300}. At {m:300} a week, how many weeks now?",
+        "unit": "count",
+        "suffix": "weeks",
+        "answer": 9,
+        "misconceptions": [
+          {
+            "value": 8,
+            "feedback": "Not quite. That's the old price. Work it out with the new price."
+          },
+          {
+            "value": 1,
+            "feedback": "Not quite. That's just the extra {m:300}. Count the weeks for the whole new price."
+          }
+        ],
+        "wrong": "Not quite. Find the new price first, then count the weeks.",
+        "hints": [
+          "The new price is {m:2400} plus {m:300}.",
+          "Count up to {m:2700} in steps of {m:300}."
+        ],
+        "correct": "That's it. The new price is {m:2700}, which takes 9 weeks. One week more than before."
+      }
+    },
+    {
+      "type": "predict",
+      "key": "saving-drops",
+      "skill": "plan.adjust",
+      "prompt": "Ari planned to save {m:400} a week for a {m:2400} goal. Now Ari saves {m:300} a week instead. What happens to the plan?",
+      "options": [
+        { "id": "longer", "text": "It takes more weeks", "feedback": "That's it." },
+        {
+          "id": "same",
+          "text": "It takes the same time",
+          "feedback": "Not quite. Less each week means it takes longer to reach the same price."
+        },
+        {
+          "id": "off",
+          "text": "The goal is off",
+          "feedback": "Not quite. The goal is still there. It just takes a bit longer."
+        }
+      ],
+      "answer": "longer",
+      "outcome": "At {m:400} a week it would take 6 weeks. At {m:300} a week it takes 8 weeks. The goal is still there. It just moves 2 weeks later.",
+      "hints": [
+        "Less goes in each week. What does that do to the number of weeks?",
+        "Work out the weeks at {m:400}, then at {m:300}."
+      ],
+      "correct": "Right. Saving less each week means more weeks to reach the goal."
+    },
+    {
+      "type": "amount",
+      "key": "gift-arrives",
+      "skill": "plan.adjust",
+      "prompt": "You need {m:1800} more for your goal. A gift adds {m:600} to Save. How much more do you need now?",
+      "unit": "money",
+      "answer": 1200,
+      "misconceptions": [
+        {
+          "value": 2400,
+          "feedback": "Not quite. That adds the gift to what you need. A gift brings the amount down."
+        },
+        {
+          "value": 600,
+          "feedback": "Not quite. That's the gift. How much do you still need after it?"
+        }
+      ],
+      "wrong": "Not quite. Take the gift away from what you still need.",
+      "hints": ["A gift in Save means you need less.", "{m:1800} take away {m:600}."],
+      "correct": "That's it. The gift cuts what you need to {m:1200}.",
+      "replay": {
+        "type": "amount",
+        "skill": "plan.adjust",
+        "prompt": "You need {m:2500} more for your goal. A gift adds {m:1000} to Save. How much more do you need now?",
+        "unit": "money",
+        "answer": 1500,
+        "misconceptions": [
+          {
+            "value": 3500,
+            "feedback": "Not quite. That adds the gift to what you need. A gift brings the amount down."
+          },
+          {
+            "value": 1000,
+            "feedback": "Not quite. That's the gift. How much do you still need after it?"
+          }
+        ],
+        "wrong": "Not quite. Take the gift away from what you still need.",
+        "hints": ["A gift in Save means you need less.", "{m:2500} take away {m:1000}."],
+        "correct": "That's it. The gift cuts what you need to {m:1500}."
+      }
+    },
+    {
+      "type": "choice",
+      "key": "skipped-week",
+      "skill": "plan.adjust",
+      "prompt": "Kai needs 5 more weeks of saving. Next week's allowance is skipped. How many weeks until Kai reaches the goal?",
+      "options": [
+        {
+          "id": "four",
+          "text": "4 weeks",
+          "feedback": "Not quite. A skipped week adds no saving, so it can't make the goal sooner."
+        },
+        {
+          "id": "five",
+          "text": "5 weeks",
+          "feedback": "Not quite. The skipped week adds nothing, so Kai still needs 5 weeks of saving after it."
+        },
+        {
+          "id": "six",
+          "text": "6 weeks",
+          "feedback": "Yes. One week with no saving, then 5 weeks of saving."
+        }
+      ],
+      "answer": "six",
+      "hints": [
+        "Does the skipped week add anything to Save?",
+        "Kai still needs 5 weeks of saving, plus the week with none."
+      ],
+      "correct": "Nice. That's it. The goal moves back one week. Nothing already saved is lost.",
+      "replay": {
+        "type": "choice",
+        "skill": "plan.adjust",
+        "prompt": "Noor needs 7 more weeks of saving. The next 2 weeks' allowances are skipped. How many weeks until Noor reaches the goal?",
+        "options": [
+          {
+            "id": "seven",
+            "text": "7 weeks",
+            "feedback": "Not quite. The skipped weeks add nothing, so Noor still needs 7 weeks of saving after them."
+          },
+          {
+            "id": "nine",
+            "text": "9 weeks",
+            "feedback": "Yes. Two weeks with no saving, then 7 weeks of saving."
+          },
+          {
+            "id": "five",
+            "text": "5 weeks",
+            "feedback": "Not quite. Skipped weeks add no saving, so they can't make the goal sooner."
+          }
+        ],
+        "answer": "nine",
+        "hints": [
+          "Do the skipped weeks add anything to Save?",
+          "Noor still needs 7 weeks of saving, plus the 2 weeks with none."
+        ],
+        "correct": "Nice. That's it. The goal moves back two weeks. Nothing already saved is lost."
+      }
+    },
+    {
+      "type": "sort",
+      "key": "sooner-or-later",
+      "skill": "plan.adjust",
+      "prompt": "Remi is saving for a goal. Does each change get Remi there sooner or later?",
+      "buckets": [{ "id": "sooner", "label": "Sooner" }, { "id": "later", "label": "Later" }],
+      "items": [
+        { "id": "save-more", "text": "Saving {m:100} more each week", "bucket": "sooner" },
+        { "id": "price-up", "text": "The price goes up", "bucket": "later" },
+        { "id": "gift", "text": "A gift goes into Save", "bucket": "sooner" },
+        { "id": "skipped", "text": "A week's allowance is skipped", "bucket": "later" },
+        { "id": "price-down", "text": "The price goes down", "bucket": "sooner" },
+        { "id": "save-less", "text": "Saving less each week", "bucket": "later" }
+      ],
+      "wrong": "Not quite. For each one, ask: does it change what goes into Save, or the price? Which way?",
+      "hints": [
+        "Think about two things: what goes into Save, and the price.",
+        "More into Save or a lower price gets you there sooner. The opposite makes it later."
+      ],
+      "correct": "All sorted. Every change moves the date one way or the other. Knowing which way helps you plan."
+    },
+    {
+      "type": "reason",
+      "key": "why-new-numbers",
+      "skill": "plan.adjust",
+      "prompt": "Jo's goal price goes up. Why work out the new numbers before deciding what to do?",
+      "options": [
+        {
+          "id": "see-change",
+          "text": "So you know how big the change really is",
+          "feedback": "That's it."
+        },
+        {
+          "id": "give-up",
+          "text": "So you can give up on the goal",
+          "feedback": "Not quite. A change doesn't end a plan. The numbers help you pick a fix."
+        },
+        {
+          "id": "price-back",
+          "text": "Because the price will go back down",
+          "feedback": "Not quite. It might not. Plan with the price as it is now."
+        }
+      ],
+      "answer": "see-change",
+      "hints": [
+        "What do the new numbers tell you?",
+        "A price rise might add one week or ten. You need to know which."
+      ],
+      "correct": "Right. Once you know the new numbers, you can pick a calm fix: wait longer, save more, or change the goal."
+    }
+  ]
+}

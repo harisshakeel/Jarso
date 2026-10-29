@@ -1,0 +1,261 @@
+[
+  {
+    "type": "choice",
+    "key": "giveup-r1",
+    "skill": "tradeoff.give_up",
+    "prompt": "Noor has {m:1600} and picks an art set for {m:1000}. Which other plan now has to wait?",
+    "options": [
+      {
+        "id": "concert",
+        "text": "A concert ticket for {m:800}",
+        "feedback": "Yes. After the art set Noor has {m:600}, and the ticket costs {m:800}."
+      },
+      {
+        "id": "book",
+        "text": "A book for {m:500}",
+        "feedback": "Not quite. After the art set Noor has {m:600}, so the book still fits."
+      },
+      {
+        "id": "lunch",
+        "text": "Lunch out for {m:300}",
+        "feedback": "Not quite. After the art set Noor has {m:600}, so lunch still fits."
+      }
+    ],
+    "answer": "concert",
+    "hints": [
+      "Work out what's left after the art set.",
+      "{m:600} is left. Which of these costs more than that?"
+    ],
+    "correct": "Nice. That's it. The concert waits. That's part of what the art set really cost."
+  },
+  {
+    "type": "amount",
+    "key": "giveup-r2",
+    "skill": "tradeoff.give_up",
+    "prompt": "Remi buys a {m:400} magazine every week instead of saving that money. How much saving is that over 5 weeks?",
+    "unit": "money",
+    "answer": 2000,
+    "misconceptions": [
+      {
+        "value": 400,
+        "feedback": "Not quite. That's one week. The same choice happens every week for 5 weeks."
+      },
+      { "value": 1600, "feedback": "Not quite. That's 4 weeks. Count all 5." }
+    ],
+    "wrong": "Not quite. Add {m:400} once for each week.",
+    "hints": [
+      "The same choice repeats every week.",
+      "{m:400} five times. Try {m:400}, {m:800}, {m:1200} and keep going."
+    ],
+    "correct": "That's it. {m:2000} over 5 weeks. It's Remi's choice, and now it's one Remi can see clearly."
+  },
+  {
+    "type": "predict",
+    "key": "giveup-r3",
+    "skill": "tradeoff.give_up",
+    "prompt": "Lee saves {m:400} a week. Lee spends a {m:1200} gift on a day out instead of saving it. How much later is the goal?",
+    "options": [
+      { "id": "three", "text": "3 weeks later", "feedback": "That's it." },
+      {
+        "id": "none",
+        "text": "No later",
+        "feedback": "Not quite. That gift could have gone into Save. Not saving it means the goal comes later."
+      },
+      {
+        "id": "twelve",
+        "text": "12 weeks later",
+        "feedback": "Not quite. Each week adds {m:400}. How many weeks make {m:1200}?"
+      }
+    ],
+    "answer": "three",
+    "outcome": "{m:1200} is 3 weeks of saving at {m:400}. Choosing the day out means the goal comes 3 weeks later. Both are fair choices, and now Lee knows the trade.",
+    "hints": [
+      "How many weeks of {m:400} make {m:1200}?",
+      "{m:400}, {m:800}, {m:1200}. Count the weeks."
+    ],
+    "correct": "Right. The day out costs 3 weeks of goal progress."
+  },
+  {
+    "type": "reason",
+    "key": "giveup-r4",
+    "skill": "tradeoff.give_up",
+    "prompt": "Why is the real cost of a choice more than just its price?",
+    "options": [
+      {
+        "id": "next-best",
+        "text": "You also give up the next best thing you could have had",
+        "feedback": "That's it."
+      },
+      {
+        "id": "prices-rise",
+        "text": "Prices go up after you buy",
+        "feedback": "Not quite. The price stays the same. Think about what else the money could have done."
+      },
+      {
+        "id": "fees",
+        "text": "Every choice comes with extra fees",
+        "feedback": "Not quite. There's no fee. The extra cost is the thing you didn't pick."
+      }
+    ],
+    "answer": "next-best",
+    "hints": [
+      "Think about what else the money could have done.",
+      "If you pick the game, you can't also have the day out."
+    ],
+    "correct": "Right. The real cost includes what you didn't pick."
+  },
+  {
+    "type": "sort",
+    "key": "giveup-r5",
+    "skill": "tradeoff.give_up",
+    "prompt": "Ari has {m:1000} and picks a hoodie for {m:650}. Could Ari still get each one on its own?",
+    "buckets": [
+      { "id": "still-fits", "label": "Still fits" },
+      { "id": "given-up", "label": "Given up for now" }
+    ],
+    "items": [
+      { "id": "cinema", "text": "Cinema ticket, {m:300}", "bucket": "still-fits" },
+      { "id": "book", "text": "Book, {m:400}", "bucket": "given-up" },
+      { "id": "snack-drink", "text": "Snack and drink, {m:200}", "bucket": "still-fits" },
+      { "id": "game", "text": "Game, {m:500}", "bucket": "given-up" },
+      { "id": "poster", "text": "Poster, {m:350}", "bucket": "still-fits" }
+    ],
+    "wrong": "Not quite. Work out what's left after the hoodie, then compare each price.",
+    "hints": [
+      "Start with what's left after the hoodie.",
+      "{m:350} is left. A price of exactly {m:350} still fits."
+    ],
+    "correct": "All sorted. Anything up to {m:350} still fits. The rest is what the hoodie cost Ari."
+  },
+  {
+    "type": "sort",
+    "key": "needwant-r1",
+    "skill": "tradeoff.need_want",
+    "prompt": "Noor is sorting this month's list. Is each one a need or a want?",
+    "buckets": [{ "id": "need", "label": "Need" }, { "id": "want", "label": "Want" }],
+    "items": [
+      { "id": "gloves", "text": "Gloves for a freezing walk to school", "bucket": "need" },
+      { "id": "headphones", "text": "A second pair of headphones", "bucket": "want" },
+      { "id": "ruler", "text": "A ruler the teacher said to bring", "bucket": "need" },
+      { "id": "keyring", "text": "A glow-in-the-dark keyring", "bucket": "want" }
+    ],
+    "wrong": "Not quite. Ask: what happens without it? If Noor would be fine, it's a want.",
+    "hints": [
+      "Needs are things you have to have. Wants are nice extras.",
+      "Would Noor be cold, or stuck in class, without it? Then it's a need."
+    ],
+    "correct": "All sorted. Needs first, then the wants Noor chooses."
+  },
+  {
+    "type": "choice",
+    "key": "needwant-r2",
+    "skill": "tradeoff.need_want",
+    "prompt": "Kai has {m:900}. Kai needs {m:500} for a club trip and wants a game for {m:600}. What can Kai cover?",
+    "options": [
+      {
+        "id": "trip",
+        "text": "The trip, with {m:400} left over",
+        "feedback": "Yes. The need is covered first, and {m:400} is left."
+      },
+      {
+        "id": "both",
+        "text": "Both the trip and the game",
+        "feedback": "Not quite. Together they cost {m:1100}, which is more than {m:900}."
+      },
+      {
+        "id": "game",
+        "text": "Only the game",
+        "feedback": "Not quite. The game fits, but then the trip doesn't. Needs come first."
+      }
+    ],
+    "answer": "trip",
+    "hints": ["Cover the need first.", "{m:900} take away the trip. Is the game still possible?"],
+    "correct": "Nice. That's it. The trip is covered and {m:400} is left. The game can wait."
+  },
+  {
+    "type": "amount",
+    "key": "needwant-r3",
+    "skill": "tradeoff.need_want",
+    "prompt": "Sam has {m:2500}. This week's needs are lunch money of {m:750} and a bus pass for {m:450}. How much is left for wants?",
+    "unit": "money",
+    "answer": 1300,
+    "misconceptions": [
+      {
+        "value": 1750,
+        "feedback": "Not quite. That only takes off the lunch money. The bus pass is a need too."
+      },
+      {
+        "value": 2050,
+        "feedback": "Not quite. That only takes off the bus pass. The lunch money is a need too."
+      },
+      {
+        "value": 1200,
+        "feedback": "Not quite. That's what the needs cost. Take it away from {m:2500}."
+      }
+    ],
+    "wrong": "Not quite. Add up the needs, then take them away from {m:2500}.",
+    "hints": [
+      "Add up the needs first.",
+      "The needs come to {m:1200}. Take that away from {m:2500}."
+    ],
+    "correct": "That's it. With both needs covered, {m:1300} is left for wants."
+  },
+  {
+    "type": "reason",
+    "key": "needwant-r4",
+    "skill": "tradeoff.need_want",
+    "prompt": "Ari's friend says headphones are a need. Ari says they're a want. How can both be right?",
+    "options": [
+      {
+        "id": "depends",
+        "text": "It depends on what each person uses them for",
+        "feedback": "That's it."
+      },
+      {
+        "id": "same-thing",
+        "text": "Needs and wants are the same thing",
+        "feedback": "Not quite. They're different. But the same thing can be a need for one person and a want for another."
+      },
+      {
+        "id": "price",
+        "text": "Whoever paid more is right",
+        "feedback": "Not quite. The price doesn't decide it. What the thing is for does."
+      }
+    ],
+    "answer": "depends",
+    "hints": [
+      "Think about how each of them might use headphones.",
+      "For a music class they might be a need. Just for fun, a want."
+    ],
+    "correct": "Right. The same thing can be a need for one person and a want for another."
+  },
+  {
+    "type": "choice",
+    "key": "needwant-r5",
+    "skill": "tradeoff.need_want",
+    "prompt": "Which of these is a want?",
+    "options": [
+      {
+        "id": "sports-shoes",
+        "text": "Sports shoes for school, as yours don't fit",
+        "feedback": "Not quite. You need shoes that fit for sport at school. That makes them a need."
+      },
+      {
+        "id": "concert",
+        "text": "A concert with friends",
+        "feedback": "Yes. It would be fun, but you could manage without it."
+      },
+      {
+        "id": "lunch",
+        "text": "Lunch money for school",
+        "feedback": "Not quite. You need to eat at school. That makes it a need."
+      }
+    ],
+    "answer": "concert",
+    "hints": [
+      "A want is nice to have, but you'd manage without it.",
+      "Which one could you skip and still be fine?"
+    ],
+    "correct": "Nice. That's it. The concert would be fun, but you'd manage without it."
+  }
+]
