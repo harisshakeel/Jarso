@@ -135,7 +135,7 @@ test("parent pauses with a message, then resumes", async () => {
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   const sheet = page.getByRole("dialog");
   await sheet.getByLabel("Message for Sam (optional)").fill("Paused while we're on holiday");
-  await expect(sheet.getByText(/Missed weeks aren't paid later/)).toBeVisible();
+  await expect(sheet.getByText(/Missed allowances aren't paid later/)).toBeVisible();
   await sheet.getByText("I resume it").click();
   await sheet.getByRole("button", { name: "Pause", exact: true }).click();
 
@@ -260,7 +260,7 @@ test("Home lists what needs the parent; handing over lands on the child page", a
   const row = needsYou.getByRole("row").filter({ hasText: "Sam" });
   await expect(row).toContainText("Allowance");
   await expect(row).toContainText("US$500.00");
-  await row.getByRole("link", { name: "Hand over allowance to Sam" }).click();
+  await row.getByRole("link", { name: /^Hand over allowance to Sam, due / }).click();
 
   await expect(page.getByRole("heading", { name: "Hand over to Sam" })).toBeVisible();
   await page.getByRole("button", { name: "Confirm I handed it over" }).click();

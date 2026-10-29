@@ -1,3 +1,4 @@
+import { GiftIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui";
 import { formatMoney } from "@/lib";
 import type { HistoryItem } from "../types";
@@ -66,7 +67,11 @@ export function HistoryList({
                     <span>
                       {item.kind === "gift" ? (
                         <>
-                          <span aria-hidden>🎁</span> {item.label}
+                          <GiftIcon aria-hidden className="mr-1 inline size-4 align-[-0.125em]" />
+                          Gift
+                          {item.label !== "Gift" ? (
+                            <span className="text-ink-2"> · {item.label}</span>
+                          ) : null}
                         </>
                       ) : item.kind === "skipped" ? (
                         skippedLabel

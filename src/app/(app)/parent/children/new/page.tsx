@@ -21,7 +21,8 @@ export default function AddChildPage() {
         <p className="eyebrow">Your family</p>
         <h1 className="text-balance text-h1">Add a child.</h1>
         <p className="text-ink-2">
-          Choose a nickname and a PIN. Your child signs in with these and your family code.
+          Choose a nickname and a PIN. Your child signs in with these and your family code, which is
+          in Settings.
         </p>
       </header>
       <Card className="rise-in shadow-raised">

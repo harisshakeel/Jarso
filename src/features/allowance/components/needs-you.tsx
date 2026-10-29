@@ -1,3 +1,4 @@
+import { GiftIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge, buttonVariants, Card } from "@/components/ui";
 import { routes } from "@/config";
@@ -16,7 +17,8 @@ function What({ item }: { item: ChildDueItem }) {
     <>
       {item.kind === "gift" ? (
         <>
-          <span aria-hidden>🎁</span> Gift
+          <GiftIcon aria-hidden className="mr-1 inline size-4 align-[-0.125em]" />
+          Gift
         </>
       ) : (
         "Allowance"
@@ -31,7 +33,7 @@ function HandOverLink({ item, size }: { item: ChildDueItem; size: "sm" | "lg" })
   return (
     <Link
       href={routes.parentHandover(item.childId, item.kind, item.id)}
-      aria-label={`Hand over ${item.kind} to ${item.nickname}`}
+      aria-label={`Hand over ${item.kind} to ${item.nickname}, due ${formatDay(item.dueOn)}`}
       className={buttonVariants({ size })}
     >
       Hand over

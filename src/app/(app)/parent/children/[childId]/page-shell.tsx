@@ -1,8 +1,8 @@
-import { cn } from "cn";
 import { ChevronLeftIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { cn } from "@/lib";
 
 type PageShellProps = {
   title: string;

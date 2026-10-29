@@ -257,7 +257,7 @@ Agree on the evaluation period, definitions, and numerical targets before launch
 - **Schedule changes.** The parent picks the start date. Amount or frequency changes apply from the next occurrence; occurrences already due keep their amount.
 - **Parent verification.** Email confirmation plus a guardian-consent checkbox ("I am this child's parent or guardian"), stored with a timestamp and the consenting parent.
 - **Savings deposits** are part of the first milestone, on the same request flow as withdrawals.
-- **Several children.** A parent can link more than one child. Parent screens are per child, with a child switcher.
+- **Several children.** A parent can link more than one child. Parent Home shows every child, and each child has their own page.
 - **Invitations.** Always a copyable link plus a short code the child shows the parent. Email is sent additionally only when a sending domain is configured; nothing in the pilot depends on email delivery.
 
 ### Decided for the pilot: slice 2 (2026-10-29)
