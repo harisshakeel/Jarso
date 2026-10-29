@@ -22,10 +22,11 @@ async function EditGiftContent({
   );
   const gift = (await listGifts(childId)).find((g) => g.id === giftId);
   const title = `Allowance for ${child.nickname}`;
+  const back = { href: routes.parentChild(childId), label: child.nickname };
 
   if (gift?.status !== "pending") {
     return (
-      <PageShell title={title}>
+      <PageShell title={title} back={back}>
         <Card className="rise-in">
           <CardContent className="grid gap-4">
             <p>This gift was already handed over or cancelled.</p>
@@ -38,7 +39,7 @@ async function EditGiftContent({
     );
   }
   return (
-    <PageShell title={title} intro="Change this gift.">
+    <PageShell title={title} intro="Change this gift." back={back}>
       <GiftForm
         childId={childId}
         nickname={child.nickname}

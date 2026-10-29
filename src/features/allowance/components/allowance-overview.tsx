@@ -23,7 +23,7 @@ const runningOf = (schedule: Schedule | null) =>
 
 function amountLine(schedule: Schedule | null, currency: string): string {
   const running = runningOf(schedule);
-  if (!running) return schedule ? "No allowance running" : "No allowance yet";
+  if (!running) return "No allowance yet";
   return `${formatMoney(running.amountMinor, currency)} ${cadenceAfterAmount(running.frequency, running.anchorOn)}`;
 }
 

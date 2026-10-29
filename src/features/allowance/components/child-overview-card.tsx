@@ -19,7 +19,8 @@ type ChildOverviewCardProps = {
 
 /**
  * One child on the parent's Home: jars, where the allowance stands, what's due. The whole card
- * opens the child's page; the link is the nickname, so its accessible name stays short.
+ * opens the child's page; the link is the nickname, so its accessible name stays short, and its
+ * focus ring is drawn on the overlay so it outlines the whole card.
  */
 export function ChildOverviewCard({
   childId,
@@ -44,7 +45,7 @@ export function ChildOverviewCard({
           <h3 className="min-w-0 flex-1 truncate font-bold text-h3">
             <Link
               href={routes.parentChild(childId)}
-              className="rounded-md after:absolute after:inset-0 after:rounded-xl"
+              className="after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:outline-ring focus-visible:after:-outline-offset-3"
             >
               {nickname}
             </Link>

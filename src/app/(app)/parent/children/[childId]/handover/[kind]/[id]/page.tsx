@@ -20,12 +20,13 @@ async function HandoverContent({
     childId,
     `/parent/children/${childId}/handover/${kind}/${id}`,
   );
+  const back = { href: routes.parentChild(childId), label: child.nickname };
   const [due, last] = await Promise.all([listDue(childId), getLastSplit(childId)]);
   const item = due.find((d) => d.kind === kind && d.id === id);
 
   if (!item) {
     return (
-      <PageShell title={`Hand over to ${child.nickname}`}>
+      <PageShell title={`Hand over to ${child.nickname}`} back={back}>
         <Card className="rise-in">
           <CardContent className="grid gap-4">
             <p className="font-bold">Already handled</p>
@@ -38,7 +39,7 @@ async function HandoverContent({
     );
   }
   return (
-    <PageShell title={`Hand over to ${child.nickname}`}>
+    <PageShell title={`Hand over to ${child.nickname}`} back={back}>
       <HandoverForm
         kind={item.kind}
         id={item.id}

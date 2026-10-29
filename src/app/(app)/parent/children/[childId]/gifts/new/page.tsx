@@ -18,7 +18,11 @@ async function NewGiftContent({
   const { amount } = await searchParams;
   const { child, currency, today } = await loadChild(childId, routes.parentGiftNew(childId));
   return (
-    <PageShell title={`Allowance for ${child.nickname}`} intro="A one-time gift.">
+    <PageShell
+      title={`Allowance for ${child.nickname}`}
+      intro="A one-time gift."
+      back={{ href: routes.parentChild(childId), label: child.nickname }}
+    >
       <GiftForm
         childId={childId}
         nickname={child.nickname}

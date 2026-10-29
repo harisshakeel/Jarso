@@ -50,7 +50,12 @@ export function NeedsYou({ items, currency }: NeedsYouProps) {
     <section aria-labelledby="needs-you-title" className="grid gap-3">
       <h2 id="needs-you-title" className="eyebrow flex items-center gap-2">
         Needs you
-        {items.length > 0 ? <Badge variant="count">{items.length}</Badge> : null}
+        {items.length > 0 ? (
+          <Badge variant="count">
+            {items.length}
+            <span className="sr-only"> waiting</span>
+          </Badge>
+        ) : null}
       </h2>
       {items.length === 0 ? (
         <Card size="sm">
