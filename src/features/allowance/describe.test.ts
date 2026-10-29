@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeSchedule, prefillSplit } from "./describe";
+import { describeSchedule, formatDay, prefillSplit, toMajorString } from "./describe";
 
 describe("describeSchedule", () => {
   it("names the weekday for a weekly allowance", () => {
@@ -32,5 +32,17 @@ describe("prefillSplit", () => {
 
   it("rounds the saved part down and gives Spend the rest", () => {
     expect(prefillSplit(333, { cash: 1, saved: 1 })).toEqual({ cash: 167, saved: 166 });
+  });
+});
+
+describe("formatDay and toMajorString", () => {
+  it("formats a day without shifting it", () => {
+    expect(formatDay("2026-11-02")).toBe("2 Nov");
+  });
+
+  it("turns minor units into an input value", () => {
+    expect(toMajorString(50000, "INR")).toBe("500.00");
+    expect(toMajorString(550, "GBP")).toBe("5.50");
+    expect(toMajorString(500, "JPY")).toBe("500");
   });
 });

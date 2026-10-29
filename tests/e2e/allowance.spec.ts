@@ -1,0 +1,121 @@
+import { randomInt, randomUUID } from "node:crypto";
+import { expect, type Page, test } from "@playwright/test";
+import { loadLocalSupabase } from "./local-supabase";
+
+/** Parent allowance and gift screens against the LOCAL Supabase stack (see playwright.config.ts). */
+
+test.skip(!loadLocalSupabase(), "Local Supabase is not running: start it with `pnpm db:start`.");
+test.skip(!!process.env.E2E_BASE_URL, "Allowance e2e needs the server playwright.config starts.");
+test.describe.configure({ mode: "serial" });
+
+const run = randomUUID().slice(0, 8);
+const password = `pw-${randomUUID()}`;
+const ip = `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
+const at = (path: string) => (url: URL) => url.pathname === path;
+
+let page: Page;
+let childPath = "";
+
+/** `YYYY-MM-DD` of the next Sunday, 1 to 7 days ahead (UTC, so safe for any family timezone). */
+function nextSunday(): { iso: string; label: string } {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + ((7 - date.getUTCDay()) % 7 || 7));
+  return {
+    iso: date.toISOString().slice(0, 10),
+    label: new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    }).format(date),
+  };
+}
+
+test.beforeAll(async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: test.info().project.use.baseURL,
+    extraHTTPHeaders: { "x-forwarded-for": ip },
+  });
+  page = await context.newPage();
+  await page.goto("/signup");
+  await page.getByLabel("Name", { exact: true }).fill("Alex Parent");
+  await page.getByLabel("Email", { exact: true }).fill(`e2e-allowance-${run}@example.com`);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page).toHaveURL(at("/parent/setup"));
+  await page.getByRole("button", { name: "Create family" }).click();
+  await expect(page).toHaveURL(at("/parent"));
+  await page.getByRole("link", { name: "Add a child" }).first().click();
+  await page.getByLabel("Nickname").fill("Sam");
+  await page.getByLabel("PIN", { exact: true }).fill("1234");
+  await page.getByRole("checkbox", { name: "I am this child's parent or guardian" }).click();
+  await page.getByRole("button", { name: "Add child" }).click();
+  await expect(page).toHaveURL(at("/parent"));
+  await page.getByRole("link", { name: "Allowance for Sam" }).click();
+  await expect(page.getByRole("heading", { name: "Allowance for Sam" })).toBeVisible();
+  childPath = new URL(page.url()).pathname;
+});
+
+test.afterAll(async () => {
+  await page.context().close();
+});
+
+test("parent sets up a weekly allowance and sees the summary", async () => {
+  const sunday = nextSunday();
+  await page.getByLabel("Amount").fill("500");
+  await page.getByText("Weekly", { exact: true }).click();
+  await page.getByLabel("First one on").fill(sunday.iso);
+  await expect(page.getByText(`Every Sunday from ${sunday.label}`)).toBeVisible();
+  await page.getByRole("button", { name: "Save allowance" }).click();
+
+  await expect(page.getByText(`Every Sunday from ${sunday.label}`)).toBeVisible();
+  await expect(page.getByText(`Next: ${sunday.label}`)).toBeVisible();
+  await expect(page.getByText("500", { exact: false }).first()).toBeVisible();
+});
+
+test("parent changes the amount", async () => {
+  await page.getByRole("link", { name: "Change amount or how often" }).click();
+  await expect(page).toHaveURL(at(`${childPath}/edit`));
+  await page.getByLabel("Amount").fill("600");
+  await page.getByRole("button", { name: "Save allowance" }).click();
+  await expect(page).toHaveURL(at(childPath));
+  await expect(page.getByText("600", { exact: false }).first()).toBeVisible();
+});
+
+test("parent pauses with a message, then resumes", async () => {
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  const sheet = page.getByRole("dialog");
+  await sheet.getByLabel("Message for Sam (optional)").fill("Paused while we're on holiday");
+  await expect(sheet.getByText(/Missed weeks aren't paid later/)).toBeVisible();
+  await sheet.getByText("I resume it").click();
+  await sheet.getByRole("button", { name: "Pause", exact: true }).click();
+
+  await expect(page.getByText("Paused", { exact: true })).toBeVisible();
+  await expect(page.getByText("Paused until a parent resumes it.")).toBeVisible();
+  await expect(page.getByText("Paused while we're on holiday")).toBeVisible();
+
+  await page.getByRole("button", { name: "Resume" }).click();
+  await expect(page.getByText("Paused", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+});
+
+test("parent stops the allowance and sees the set-up form again", async () => {
+  await page.getByRole("button", { name: "Stop allowance" }).click();
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog.getByText("Stop Sam's allowance?")).toBeVisible();
+  await expect(dialog.getByText("Anything already due stays due.")).toBeVisible();
+  await dialog.getByRole("button", { name: "Stop allowance" }).click();
+  await expect(page.getByRole("button", { name: "Save allowance" })).toBeVisible();
+});
+
+test("parent creates a gift for today and sees it in the due list", async () => {
+  await page.getByLabel("Amount").fill("50");
+  await page.getByText("One time", { exact: true }).click();
+  await expect(page).toHaveURL(at(`${childPath.replace("/allowance", "")}/gifts/new`));
+  await expect(page.getByLabel("Amount")).toHaveValue("50");
+  await page.getByLabel("Note for Sam (optional)").fill("Well done on the test");
+  await page.getByRole("button", { name: "Save gift" }).click();
+  await expect(page).toHaveURL(at(childPath));
+  const due = page.getByRole("region", { name: "Due now" });
+  await expect(due.getByText("Well done on the test")).toBeVisible();
+  await expect(due.getByRole("link", { name: /Hand over/ })).toBeVisible();
+});

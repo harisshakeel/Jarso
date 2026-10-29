@@ -1,3 +1,4 @@
+import { minorDigits } from "@/lib";
 import type { Frequency, Split } from "./types";
 
 const DEFAULT_LOCALE = "en-GB";
@@ -15,6 +16,17 @@ function format(date: Date, locale: string, options: Intl.DateTimeFormatOptions)
 
 function ordinal(n: number): string {
   return `${n}${ordinalSuffix[ordinalRules.select(n)] ?? "th"}`;
+}
+
+/** `YYYY-MM-DD` as "2 Nov". */
+export function formatDay(isoDate: string, locale: string = DEFAULT_LOCALE): string {
+  return format(utcDate(isoDate), locale, { day: "numeric", month: "short" });
+}
+
+/** Minor units as a plain major-unit string for an input ("500", "5.50"). */
+export function toMajorString(minor: number, currency: string): string {
+  const digits = minorDigits(currency);
+  return digits === 0 ? String(minor) : (minor / 10 ** digits).toFixed(digits);
 }
 
 /** Summary line under the date field: "Every Sunday from 2 Nov". */

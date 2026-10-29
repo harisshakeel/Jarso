@@ -5,8 +5,9 @@ import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
 import { JarsoMark } from "@/components/brand";
-import { buttonVariants, Card, CardContent } from "@/components/ui";
+import { Badge, buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
+import { listDue } from "@/features/allowance/server";
 import { type ChildSummary, ChildSwitcher, FamilyCodeCard, SetPinForm } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 
@@ -20,6 +21,12 @@ async function ParentHome() {
   const [family, children] = await Promise.all([getFamily(), listChildren()]);
   if (!family) redirect(routes.parentSetup);
 
+  const dueCounts = new Map(
+    await Promise.all(
+      children.map(async (child) => [child.id, (await listDue(child.id)).length] as const),
+    ),
+  );
+
   if (children.length === 0) {
     return (
       <>
@@ -32,7 +39,7 @@ async function ParentHome() {
   return (
     <>
       <FamilyCodeCard code={family.code} raised className="rise-in" />
-      <ChildrenSection>{children}</ChildrenSection>
+      <ChildrenSection dueCounts={dueCounts}>{children}</ChildrenSection>
     </>
   );
 }
@@ -58,7 +65,13 @@ function FirstChildCard() {
   );
 }
 
-function ChildrenSection({ children }: { children: ChildSummary[] }) {
+function ChildrenSection({
+  children,
+  dueCounts,
+}: {
+  children: ChildSummary[];
+  dueCounts: Map<string, number>;
+}) {
   return (
     <section aria-labelledby="children-title" className="rise-in grid gap-4" style={rise(1)}>
       <h2 id="children-title" className="text-h2">
@@ -80,6 +93,19 @@ function ChildrenSection({ children }: { children: ChildSummary[] }) {
                 {child.nickname.charAt(0).toUpperCase()}
               </span>
               <span className="min-w-0 flex-1 truncate font-bold">{child.nickname}</span>
+              <Link
+                href={routes.parentAllowance(child.id)}
+                aria-label={`Allowance for ${child.nickname}`}
+                className={buttonVariants({ variant: "secondary", size: "sm" })}
+              >
+                Allowance
+                {dueCounts.get(child.id) ? (
+                  <Badge variant="count">
+                    {dueCounts.get(child.id)}
+                    <span className="sr-only"> due</span>
+                  </Badge>
+                ) : null}
+              </Link>
               <SetPinForm child={child} />
             </li>
           ))}

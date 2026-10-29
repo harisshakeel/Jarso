@@ -40,6 +40,7 @@ export default defineConfig({
     // Skips itself unless local Supabase is running and this config started the server.
     { name: "onboarding", testMatch: "onboarding.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "auth", testMatch: "email-confirm.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    { name: "allowance", testMatch: "allowance.spec.ts", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
