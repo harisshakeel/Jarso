@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { StatusChip } from "@/components/brand";
 import { Field, FieldError, FormError } from "@/components/form";
 import {
   AlertDialog,
@@ -14,7 +15,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-  Badge,
   Button,
   buttonVariants,
   Card,
@@ -68,6 +68,7 @@ export function HandoverForm({
   const router = useRouter();
   const isAllowance = kind === "allowance";
   // Made on the client after mount so server and client markup agree; one key per form mount.
+  // The database only requires it to be non-blank: exactly once comes from the row lock.
   const [idempotencyKey, setIdempotencyKey] = useState("");
   useEffect(() => setIdempotencyKey(crypto.randomUUID()), []);
   // Server field errors describe the last submit, so they go once the parent edits anything.
@@ -144,7 +145,7 @@ export function HandoverForm({
             <p className="flex-1 font-bold">
               {isAllowance ? "Allowance" : "Gift"} · Due {formatDay(dueOn)}
             </p>
-            <Badge variant="count">Due</Badge>
+            <StatusChip status="due" />
           </div>
           {note ? <p className="text-ink-2">{note}</p> : null}
           <p className="money font-extrabold text-3xl">{formatMoney(amountMinor, currency)}</p>

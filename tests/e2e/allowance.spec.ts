@@ -260,7 +260,7 @@ test("Home lists what needs the parent; handing over lands on the child page", a
   const row = needsYou.getByRole("row").filter({ hasText: "Sam" });
   await expect(row).toContainText("Allowance");
   await expect(row).toContainText("US$500.00");
-  await row.getByRole("link", { name: "Hand over allowance to Sam" }).click();
+  await row.getByRole("link", { name: /^Hand over allowance to Sam, due / }).click();
 
   await expect(page.getByRole("heading", { name: "Hand over to Sam" })).toBeVisible();
   await page.getByRole("button", { name: "Confirm I handed it over" }).click();

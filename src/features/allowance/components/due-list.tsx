@@ -1,6 +1,7 @@
 import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
-import { Badge, Card } from "@/components/ui";
+import { StatusChip } from "@/components/brand";
+import { Card } from "@/components/ui";
 import { routes } from "@/config";
 import { formatMoney } from "@/lib";
 import { formatDay } from "../describe";
@@ -33,7 +34,7 @@ export function DueList({ childId, items, currency }: DueListProps) {
                   </span>
                   <span className="block text-ink-2 text-sm">Due {formatDay(item.dueOn)}</span>
                 </span>
-                <Badge variant="count">Due</Badge>
+                <StatusChip status="due" />
                 <span className="money font-bold">{formatMoney(item.amountMinor, currency)}</span>
                 <span className="sr-only">Hand over</span>
                 <ChevronRightIcon aria-hidden className="size-5 text-ink-2" />
