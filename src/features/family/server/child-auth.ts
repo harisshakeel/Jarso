@@ -37,6 +37,19 @@ export async function deleteChildAuthUser(id: string): Promise<void> {
   if (error) logger.error("Failed to delete orphan child auth user", { childId: id, cause: error });
 }
 
+/**
+ * Replaces the child's password with a fresh random one nobody knows. A child session could set
+ * its own password and then sign in without the PIN; rotating on every PIN sign-in and PIN reset
+ * ends that. GoTrue may also end the user's other sessions here.
+ */
+export async function rotateChildPassword(childId: string): Promise<void> {
+  const { error } = await createAdminClient().auth.admin.updateUserById(childId, {
+    password: generateToken(),
+  });
+  if (error)
+    throw new AppError("INTERNAL", "Something went wrong. Please try again.", { cause: error });
+}
+
 /** Signs the current request in as the child. Needs writable cookies (Server Action / Route Handler). */
 export async function mintChildSession(childId: string): Promise<void> {
   const { data, error } = await createAdminClient().auth.admin.generateLink({

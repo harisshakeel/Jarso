@@ -2,19 +2,24 @@ import type { Route } from "next";
 import { z } from "zod";
 import { routes } from "@/config";
 
+/**
+ * Child accounts use this synthetic domain (family `childEmail`). Parents can't sign up with it,
+ * and nobody can sign in with it by password: children sign in with their PIN only.
+ */
+const CHILD_EMAIL_DOMAIN = "@child.jarso.invalid";
+
+const parentEmail = z
+  .email("Enter a valid email")
+  .refine((email) => !email.toLowerCase().endsWith(CHILD_EMAIL_DOMAIN), "Enter a valid email");
+
 export const signInSchema = z.object({
-  email: z.email("Enter a valid email"),
+  email: parentEmail,
   password: z.string().min(1, "Password is required"),
   next: z.string().optional(),
 });
 
-/** Child accounts use this synthetic domain (family `childEmail`); parents can't sign up with it. */
-const CHILD_EMAIL_DOMAIN = "@child.jarso.invalid";
-
 export const signUpSchema = z.object({
-  email: z
-    .email("Enter a valid email")
-    .refine((email) => !email.toLowerCase().endsWith(CHILD_EMAIL_DOMAIN), "Enter a valid email"),
+  email: parentEmail,
   password: z.string().min(8, "Password must be at least 8 characters").max(72),
   fullName: z.string().trim().min(1, "Name is required").max(100),
   next: z.string().optional(),

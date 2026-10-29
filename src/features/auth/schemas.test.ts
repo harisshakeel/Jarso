@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeNextPath, signUpSchema, withNext } from "./schemas";
+import { safeNextPath, signInSchema, signUpSchema, withNext } from "./schemas";
 
 describe("safeNextPath", () => {
   it.each([
@@ -67,5 +67,20 @@ describe("signUpSchema", () => {
       fullName: "A",
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("signInSchema", () => {
+  it.each(["x@child.jarso.invalid", "X@CHILD.Jarso.Invalid"])(
+    "rejects child account %s",
+    (email) => {
+      expect(signInSchema.safeParse({ email, password: "anything" }).success).toBe(false);
+    },
+  );
+
+  it("accepts a parent email", () => {
+    expect(signInSchema.safeParse({ email: "parent@example.com", password: "x" }).success).toBe(
+      true,
+    );
   });
 });

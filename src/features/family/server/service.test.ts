@@ -14,6 +14,7 @@ vi.mock("./repository", () => ({
   insertInvitation: vi.fn(),
   listChildMembers: vi.fn(),
   registerChild: vi.fn(),
+  revokeUserSessions: vi.fn(),
   updateChildPin: vi.fn(),
   verifyChildPin: vi.fn(),
 }));
@@ -21,6 +22,7 @@ vi.mock("./child-auth", () => ({
   createChildAuthUser: vi.fn(),
   deleteChildAuthUser: vi.fn(),
   mintChildSession: vi.fn(),
+  rotateChildPassword: vi.fn(),
 }));
 vi.mock("./dal", () => ({
   assertParentOf: vi.fn(),
@@ -42,6 +44,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(dal.assertRole).mockResolvedValue({ user: parent, membership });
   vi.mocked(repo.hitRateLimit).mockResolvedValue(true);
+  vi.mocked(dal.assertParentOf).mockResolvedValue(parent);
+  vi.mocked(repo.updateChildPin).mockResolvedValue();
 });
 
 describe("addChild", () => {
@@ -281,6 +285,38 @@ describe("childSignIn", () => {
 
     await service.childSignIn(input, "1.2.3.4");
 
+    expect(childAuth.rotateChildPassword).toHaveBeenCalledWith("child-1");
     expect(childAuth.mintChildSession).toHaveBeenCalledWith("child-1");
+    expect(
+      vi.mocked(childAuth.rotateChildPassword).mock.invocationCallOrder[0] ?? Infinity,
+    ).toBeLessThan(vi.mocked(childAuth.mintChildSession).mock.invocationCallOrder[0] ?? 0);
+  });
+});
+
+describe("setChildPin", () => {
+  const input = { childId: crypto.randomUUID(), pin: "4321" };
+
+  it("sets the PIN, rotates the password and revokes every session", async () => {
+    await service.setChildPin(input);
+
+    expect(repo.updateChildPin).toHaveBeenCalledWith({ kind: "user" }, input.childId, "4321");
+    expect(childAuth.rotateChildPassword).toHaveBeenCalledWith(input.childId);
+    expect(repo.revokeUserSessions).toHaveBeenCalledWith({ kind: "admin" }, input.childId);
+  });
+
+  it("touches nothing when the caller is not the child's parent", async () => {
+    vi.mocked(dal.assertParentOf).mockRejectedValue(new AppError("FORBIDDEN", "No."));
+
+    await expect(service.setChildPin(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repo.updateChildPin).not.toHaveBeenCalled();
+    expect(childAuth.rotateChildPassword).not.toHaveBeenCalled();
+    expect(repo.revokeUserSessions).not.toHaveBeenCalled();
+  });
+
+  it("does not revoke sessions when the PIN update fails", async () => {
+    vi.mocked(repo.updateChildPin).mockRejectedValue(new AppError("VALIDATION", "Bad PIN"));
+
+    await expect(service.setChildPin(input)).rejects.toMatchObject({ code: "VALIDATION" });
+    expect(repo.revokeUserSessions).not.toHaveBeenCalled();
   });
 });

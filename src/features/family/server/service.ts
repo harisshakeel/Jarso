@@ -13,7 +13,12 @@ import type {
   StartChildOnboardingInput,
 } from "../schemas";
 import type { ChildSummary, Family } from "../types";
-import { createChildAuthUser, deleteChildAuthUser, mintChildSession } from "./child-auth";
+import {
+  createChildAuthUser,
+  deleteChildAuthUser,
+  mintChildSession,
+  rotateChildPassword,
+} from "./child-auth";
 import { assertParentOf, assertRole, getMembership } from "./dal";
 import {
   findFamilyById,
@@ -24,6 +29,7 @@ import {
   insertInvitation,
   listChildMembers,
   registerChild,
+  revokeUserSessions,
   updateChildPin,
   verifyChildPin,
 } from "./repository";
@@ -205,10 +211,16 @@ export async function childSignIn(input: ChildSignInInput, ip: string): Promise<
     throw new AppError("UNAUTHORIZED", "Hmm, that didn't match. Check with your parent.");
   }
 
+  // Kills any password the child set for themselves (which would skip the PIN and lockout).
+  // Before minting: GoTrue may end the user's existing sessions on a password change.
+  await rotateChildPassword(result.childId);
   await mintChildSession(result.childId);
 }
 
+/** Parent resets a PIN. The old PIN, any self-set password and every signed-in device stop working. */
 export async function setChildPin(input: SetChildPinInput): Promise<void> {
   await assertParentOf(input.childId);
   await updateChildPin(await createClient(), input.childId, input.pin);
+  await rotateChildPassword(input.childId);
+  await revokeUserSessions(createAdminClient(), input.childId);
 }

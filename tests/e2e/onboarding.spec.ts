@@ -19,7 +19,8 @@ const INVITATION_GONE =
   "This invitation has expired or was already used. Ask your child to start again.";
 
 const run = randomUUID().slice(0, 8);
-const clientIp = `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
+const randomIp = () => `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
+const clientIp = randomIp();
 const password = `pw-${randomUUID()}`;
 const parentEmail = (who: string) => `e2e-${who}-${run}@example.com`;
 
@@ -29,11 +30,11 @@ const at = (path: string) => (url: URL) => url.pathname === path;
 /** Shared across the serial tests below. */
 const state = { samFamilyCode: "", miaInviteCode: "" };
 
-/** Each actor gets its own browser context (own cookies), all from this run's client IP. */
-async function newActor(browser: Browser): Promise<Page> {
+/** Each actor gets its own browser context (own cookies), by default from this run's client IP. */
+async function newActor(browser: Browser, ip = clientIp): Promise<Page> {
   const context = await browser.newContext({
     baseURL: test.info().project.use.baseURL,
-    extraHTTPHeaders: { "x-forwarded-for": clientIp },
+    extraHTTPHeaders: { "x-forwarded-for": ip },
   });
   return context.newPage();
 }
@@ -83,6 +84,44 @@ async function submitPin(page: Page, pin: string): Promise<void> {
   const field = page.getByLabel("Your PIN");
   await field.fill(pin);
   await page.getByRole("button", { name: "Sign in" }).click();
+}
+
+/**
+ * Marks the page's Supabase session cookie as expired so the next request must use the refresh
+ * token. The app verifies access tokens locally, so a revoked session only shows on refresh.
+ * Decodes and re-encodes the @supabase/ssr cookie ("base64-" + base64url JSON, maybe chunked).
+ */
+async function expireAccessToken(page: Page): Promise<void> {
+  const context = page.context();
+  const pattern = /^(sb-.+-auth-token)(?:\.(\d+))?$/;
+  const parts = (await context.cookies())
+    .flatMap((cookie) => {
+      const match = pattern.exec(cookie.name);
+      return match ? [{ cookie, base: match[1] ?? "", index: Number(match[2] ?? 0) }] : [];
+    })
+    .sort((a, b) => a.index - b.index);
+  const first = parts[0];
+  if (!first) throw new Error("No Supabase session cookie");
+
+  const raw = parts.map((part) => part.cookie.value).join("");
+  const session = JSON.parse(Buffer.from(raw.replace(/^base64-/, ""), "base64url").toString());
+  session.expires_at = 1;
+  const encoded = `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`;
+
+  await context.clearCookies({ name: pattern });
+  const chunks = encoded.match(/.{1,3180}/g) ?? [];
+  const { domain, path, sameSite, secure, httpOnly } = first.cookie;
+  await context.addCookies(
+    chunks.map((value, i) => ({
+      name: chunks.length === 1 ? first.base : `${first.base}.${i}`,
+      value,
+      domain,
+      path,
+      sameSite,
+      secure,
+      httpOnly,
+    })),
+  );
 }
 
 /** Typed the way a child might: lower case, with a separator, and trailing spaces. */
@@ -176,7 +215,7 @@ test("isolation and roles: other families stay hidden, each role lands on its ow
   await expect(signedOut).toHaveURL(at("/sign-in/child"));
 });
 
-test("lockout: five wrong PINs lock the child out, even the right PIN is refused", async ({
+test("lockout: five wrong PINs lock this device out, even the right PIN is refused", async ({
   browser,
 }) => {
   const child = await newActor(browser);
@@ -197,4 +236,44 @@ test("lockout: five wrong PINs lock the child out, even the right PIN is refused
   await expect(pin).toHaveValue("");
   await expect(child.getByText(LOCKED)).toBeVisible();
   await expect(child).toHaveURL(at("/sign-in/child"));
+});
+
+test("lockout is per device; a PIN reset unlocks it and signs other devices out", async ({
+  browser,
+}) => {
+  // Another network still works while the first device is locked.
+  const tablet = await newActor(browser, randomIp());
+  await fillChildSignIn(tablet, state.samFamilyCode, "Sam");
+  await submitPin(tablet, "1234");
+  await expect(tablet).toHaveURL(at("/child"));
+
+  // Control: before the reset, an expired access token refreshes and the tablet stays in.
+  await expireAccessToken(tablet);
+  await tablet.reload();
+  await expect(tablet.getByRole("heading", { name: "Hi, Sam!" })).toBeVisible();
+
+  const parent = await newActor(browser, randomIp());
+  await parent.goto("/login");
+  await parent.getByLabel("Email", { exact: true }).fill(parentEmail("alex"));
+  await parent.getByLabel("Password", { exact: true }).fill(password);
+  await parent.getByRole("button", { name: "Sign in" }).click();
+  await expect(parent).toHaveURL(at("/parent"));
+  await parent.getByRole("button", { name: "Reset PIN for Sam" }).click();
+  await parent.getByLabel("New PIN", { exact: true }).fill("4321");
+  await parent.getByRole("button", { name: "Save PIN" }).click();
+  await expect(parent.getByText("PIN updated for Sam")).toBeVisible();
+
+  // The reset revoked the tablet's session: once its access token expires, the refresh fails
+  // and it is signed out.
+  await expireAccessToken(tablet);
+  await tablet.reload();
+  await expect(tablet).toHaveURL(at("/sign-in/child"));
+
+  // The locked device is unlocked by the reset; the old PIN is gone, the new one works.
+  const child = await newActor(browser);
+  await fillChildSignIn(child, state.samFamilyCode, "Sam");
+  await submitPin(child, "1234");
+  await expect(child.getByText(NO_MATCH)).toBeVisible();
+  await submitPin(child, "4321");
+  await expect(child).toHaveURL(at("/child"));
 });
