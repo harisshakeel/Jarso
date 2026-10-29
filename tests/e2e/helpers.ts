@@ -44,9 +44,8 @@ export async function expireAccessToken(page: Page): Promise<void> {
  */
 export async function readFamilyCode(page: Page): Promise<string> {
   await page.goto("/parent/settings");
-  const value = page
-    .locator("dt", { hasText: "Family code" })
-    .locator("xpath=following-sibling::dd[1]");
+  const card = page.locator("[data-slot=card]", { hasText: "Give this code to your child" });
+  const value = card.getByText(/^[A-Z2-9]{6}$/);
   const code = ((await value.textContent()) ?? "").trim();
   if (!/^[A-Z2-9]{6}$/.test(code)) throw new Error(`Unexpected family code "${code}"`);
   await page.goto("/parent");

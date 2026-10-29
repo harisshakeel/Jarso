@@ -3,7 +3,6 @@ export * from "./codes";
 export * from "./components/accept-invitation-form";
 export * from "./components/add-child-form";
 export * from "./components/child-sign-in-form";
-export * from "./components/child-switcher";
 export * from "./components/children-settings-list";
 export * from "./components/create-family-form";
 export * from "./components/family-code-card";
