@@ -208,20 +208,29 @@ set search_path = ''
 as $$
 declare
   v_s public.allowance_schedules;
+  v_index int;
 begin
   select * into v_s from public.allowance_schedules s where s.id = p_schedule_id;
   if not found or not (public.is_self(v_s.child_id) or public.is_parent_of(v_s.child_id)) then
     raise exception using errcode = 'JA403', message = 'Not allowed';
   end if;
 
-  if v_s.status = 'stopped' then
+  if v_s.status = 'stopped' or (v_s.status = 'paused' and v_s.paused_through is null) then
     return null;
   end if;
-  return public.allowance_due_on(v_s.anchor_on, v_s.frequency, v_s.next_index);
+
+  v_index := v_s.next_index;
+  if v_s.status = 'paused' then
+    -- Periods inside the pause are skipped: first period after paused_through.
+    while public.allowance_due_on(v_s.anchor_on, v_s.frequency, v_index) <= v_s.paused_through loop
+      v_index := v_index + 1;
+    end loop;
+  end if;
+  return public.allowance_due_on(v_s.anchor_on, v_s.frequency, v_index);
 end;
 $$;
 
-comment on function public.allowance_next_due_on(uuid) is 'Due date of the next ungenerated period; null when stopped. Caller must be the child or their parent. JA403.';
+comment on function public.allowance_next_due_on(uuid) is 'Due date of the next period to be generated: when paused through a date, the first period after it; null when stopped or paused until resumed. Caller must be the child or their parent. JA403.';
 
 -- ---------------------------------------------------------------------------
 -- Parent writes
@@ -282,11 +291,14 @@ begin
     )
   );
 
+  -- A first date of today is due now, not at the next job run.
+  perform public.generate_for_schedule(v_id, public.family_today(v_family_id));
+
   return v_id;
 end;
 $$;
 
-comment on function public.create_allowance(uuid, bigint, text, date) is 'Parent sets up the child''s recurring allowance. JA403, JA409 (one already active or paused), 22023 (bad amount/frequency or first date before family today).';
+comment on function public.create_allowance(uuid, bigint, text, date) is 'Parent sets up the child''s recurring allowance; a first date of today is due at once. JA403, JA409 (one already active or paused), 22023 (bad amount/frequency or first date before family today).';
 
 create or replace function public.change_allowance(
   p_schedule_id uuid,
@@ -343,11 +355,14 @@ begin
     )
   );
 
+  -- A next date of today is due now (no-op while paused).
+  perform public.generate_for_schedule(v_s.id, v_today);
+
   return v_s.id;
 end;
 $$;
 
-comment on function public.change_allowance(uuid, bigint, text, date) is 'Parent changes amount/frequency from p_next_on (new anchor). Generated occurrences keep their amount (D6). JA403, JA409 (stopped), 22023 (bad values, or p_next_on before today or not after the last generated due date).';
+comment on function public.change_allowance(uuid, bigint, text, date) is 'Parent changes amount/frequency from p_next_on (new anchor). Generated occurrences keep their amount (D6); a next date of today is due at once. JA403, JA409 (stopped), 22023 (bad values, or p_next_on before today or not after the last generated due date).';
 
 create or replace function public.pause_allowance(p_schedule_id uuid, p_through date, p_message text)
 returns uuid
@@ -363,8 +378,8 @@ declare
   v_message text := nullif(pg_catalog.btrim(p_message), '');
 begin
   v_s := public.lock_allowance_for_parent(p_schedule_id);
-  if v_s.status = 'stopped' then
-    raise exception using errcode = 'JA409', message = 'Allowance has stopped';
+  if v_s.status <> 'active' then
+    raise exception using errcode = 'JA409', message = 'Allowance is not active';
   end if;
 
   v_today := public.family_today(v_s.family_id);
@@ -394,7 +409,7 @@ begin
 end;
 $$;
 
-comment on function public.pause_allowance(uuid, date, text) is 'Parent pauses from today, through p_through (null = until resumed), with an optional message. Catches up first. JA403, JA409 (stopped), 22023 (past date, message over 140).';
+comment on function public.pause_allowance(uuid, date, text) is 'Parent pauses from today, through p_through (null = until resumed), with an optional message. Catches up first. JA403, JA409 (not active), 22023 (past date, message over 140).';
 
 create or replace function public.resume_allowance(p_schedule_id uuid)
 returns uuid

@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(44);
+select plan(50);
 
 -- ---------------------------------------------------------------------------
 -- allowance_due_on: stepped from the anchor, month-end clamped
@@ -26,7 +26,7 @@ select tests.create_user('c2@example.com', 'child') as c2 \gset
 select tests.create_user('c3@example.com', 'child') as c3 \gset
 
 select tests.authenticate_as(:'pb'::uuid);
-select public.create_family('EUR', 'UTC') as fb \gset
+select public.create_family('INR', 'Asia/Kolkata') as fb \gset
 
 select tests.authenticate_as(:'pa'::uuid);
 select public.create_family('GBP', 'UTC') as fa \gset
@@ -37,6 +37,8 @@ select tests.clear_auth();
 
 select public.family_today(:'fa'::uuid) as today \gset
 select is(:'today'::date, (now() at time zone 'UTC')::date, 'family_today uses the family timezone');
+select is(public.family_today(:'fb'::uuid, '2026-11-01 18:31+00'), '2026-11-02'::date, 'Kolkata is already the next day at 18:31 UTC');
+select is(public.family_today(:'fb'::uuid, '2026-11-01 18:29+00'), '2026-11-01'::date, 'Kolkata is still the same day at 18:29 UTC');
 
 -- ---------------------------------------------------------------------------
 -- create_allowance
@@ -46,6 +48,9 @@ select tests.authenticate_as(:'pa'::uuid);
 select public.create_allowance(:'c1'::uuid, 500, 'weekly', :'today'::date) as s1 \gset
 select is((select status from public.allowance_schedules where id = :'s1'::uuid), 'active', 'parent creates an active schedule');
 select is((select family_id from public.allowance_schedules where id = :'s1'::uuid), :'fa'::uuid, 'family derived from the child membership');
+select is(
+  (select array_agg(status) from public.allowance_occurrences where schedule_id = :'s1'::uuid and due_on = :'today'::date),
+  array['due'], 'first date of today is due immediately');
 select throws_ok(
   format('select public.create_allowance(%L, 500, %L, %L)', :'c1', 'weekly', :'today'),
   'JA409', null, 'second schedule for the same child refused');
@@ -83,9 +88,9 @@ select tests.clear_auth();
 -- change_allowance (D6): generated occurrences keep their amount
 -- ---------------------------------------------------------------------------
 
--- Seed: anchor a week back so index 0 and 1 are both due by today.
-update public.allowance_schedules set anchor_on = :'today'::date - 7 where id = :'s1'::uuid;
-select is(public.generate_for_schedule(:'s1'::uuid, :'today'::date), 2, 'generator inserts both due periods');
+-- Seed: anchor a week back so index 0 (today - 7) is due too; today's already exists.
+update public.allowance_schedules set anchor_on = :'today'::date - 7, next_index = 0 where id = :'s1'::uuid;
+select is(public.generate_for_schedule(:'s1'::uuid, :'today'::date), 1, 'generator inserts the missing period only');
 select is(public.generate_for_schedule(:'s1'::uuid, :'today'::date), 0, 'generator is idempotent');
 
 select tests.authenticate_as(:'pa'::uuid);
@@ -131,7 +136,8 @@ select is(
   row('paused'::text, null::date, 'Back soon'::text)::text, 'pause sets status and trimmed message');
 select is(
   (select count(*)::int from public.allowance_occurrences where schedule_id = :'s2'::uuid),
-  1, 'pause catches up today''s period first');
+  1, 'today''s period is due before the pause');
+select is(public.allowance_next_due_on(:'s2'::uuid), null::date, 'paused until resumed has no next due');
 
 -- Simulate four weeks passing while paused: shift the schedule and its occurrence back.
 update public.allowance_schedules set anchor_on = anchor_on - 28 where id = :'s2'::uuid;
@@ -170,7 +176,7 @@ select tests.clear_auth();
 select tests.authenticate_as(:'pa'::uuid);
 select public.create_allowance(:'c3'::uuid, 200, 'weekly', :'today'::date) as s3 \gset
 select tests.clear_auth();
-update public.allowance_schedules set anchor_on = :'today'::date - 7 where id = :'s3'::uuid;
+update public.allowance_schedules set anchor_on = :'today'::date - 7, next_index = 0 where id = :'s3'::uuid;
 
 select tests.authenticate_as(:'pa'::uuid);
 select public.stop_allowance(:'s3'::uuid);
@@ -181,9 +187,15 @@ select is(public.allowance_next_due_on(:'s3'::uuid), null::date, 'stopped schedu
 select throws_ok(
   format('select public.change_allowance(%L, 100, %L, %L)', :'s3', 'weekly', (:'today'::date + 1)),
   'JA409', null, 'change refused once stopped');
-select lives_ok(
-  format('select public.create_allowance(%L, 200, %L, %L)', :'c3', 'weekly', :'today'),
-  'new schedule allowed after stop');
+select public.create_allowance(:'c3'::uuid, 200, 'weekly', :'today'::date) as s4 \gset
+select is((select status from public.allowance_schedules where id = :'s4'::uuid), 'active', 'new schedule allowed after stop');
+
+-- Pause through a date: next due is the first period after it.
+select public.pause_allowance(:'s4'::uuid, :'today'::date + 10, null);
+select is(public.allowance_next_due_on(:'s4'::uuid), :'today'::date + 14, 'next due is the first period after the pause');
+select throws_ok(
+  format('select public.pause_allowance(%L, null, null)', :'s4'),
+  'JA409', null, 'pause refused unless active');
 select tests.clear_auth();
 
 select * from finish();
