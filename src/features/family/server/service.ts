@@ -16,13 +16,17 @@ import type {
   AcceptListedInvitationInput,
   ChildSignInInput,
   CreateFamilyInput,
+  RemoveChildInput,
+  RenameChildInput,
   SetChildPinInput,
   StartChildOnboardingInput,
+  UpdateFamilySettingsInput,
 } from "../schemas";
 import type { ChildSummary, Family, PendingInvitation } from "../types";
 import {
   createChildAuthUser,
   deleteChildAuthUser,
+  deleteChildIdentity,
   mintChildSession,
   rotateChildPassword,
 } from "./child-auth";
@@ -37,8 +41,11 @@ import {
   listChildMembers,
   listInvitationsForCaller,
   registerChild,
+  removeChildMember,
+  renameChildMember,
   revokeUserSessions,
   updateChildPin,
+  updateFamilyTimezone,
   verifyChildPin,
 } from "./repository";
 
@@ -289,4 +296,37 @@ export async function setChildPin(input: SetChildPinInput): Promise<void> {
   await updateChildPin(await createClient(), input.childId, input.pin);
   await rotateChildPassword(input.childId);
   await revokeUserSessions(createAdminClient(), input.childId);
+}
+
+/**
+ * Parent removes a child (ADR 0007). The database disables the child first (membership
+ * removed, nickname freed, PIN gone); then every device is signed out and, while the child has
+ * no money history, the auth identity is deleted. If a later step fails the parent sees an
+ * error and can run it again: the database step is idempotent, and a half-removed child is
+ * disabled, never usable.
+ */
+export async function removeChild(input: RemoveChildInput): Promise<void> {
+  await assertParentOf(input.childId);
+  const deletable = await removeChildMember(await createClient(), input.childId);
+  try {
+    await revokeUserSessions(createAdminClient(), input.childId);
+  } catch (error) {
+    // Deleting the identity ends its sessions too, so only a kept identity needs the revoke.
+    if (!deletable) throw error;
+    logger.warn("Session revoke failed before identity delete", { childId: input.childId });
+  }
+  if (deletable) await deleteChildIdentity(input.childId);
+}
+
+/** Parent renames a child. Same nickname rules as adding one; CONFLICT when taken. */
+export async function renameChild(input: RenameChildInput): Promise<void> {
+  await assertParentOf(input.childId);
+  await renameChildMember(await createClient(), input.childId, input.nickname);
+}
+
+/** Parent changes family-level settings. Currency is fixed at creation (money is stored in it). */
+export async function updateFamilySettings(input: UpdateFamilySettingsInput): Promise<void> {
+  const { membership } = await assertRole("parent");
+  if (!membership) throw new AppError("FORBIDDEN", "Set up your family first.");
+  await updateFamilyTimezone(await createClient(), input.timezone);
 }

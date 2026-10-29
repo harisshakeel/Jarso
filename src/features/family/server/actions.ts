@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { routes } from "@/config";
@@ -11,8 +12,11 @@ import {
   addChildSchema,
   childSignInSchema,
   createFamilySchema,
+  removeChildSchema,
+  renameChildSchema,
   setChildPinSchema,
   startChildOnboardingSchema,
+  updateFamilySettingsSchema,
 } from "../schemas";
 import { getClientIp } from "./client-ip";
 import { assertParentOf, assertRole } from "./dal";
@@ -22,8 +26,11 @@ import {
   addChild,
   childSignIn,
   createFamily,
+  removeChild,
+  renameChild,
   setChildPin,
   startChildOnboarding,
+  updateFamilySettings,
 } from "./service";
 
 /** `next` lets the invite flow send the parent back to /invite?token=… after setup. */
@@ -96,3 +103,28 @@ export const setChildPinAction = createAction(setChildPinSchema, async (input) =
   await assertParentOf(input.childId);
   await setChildPin(input);
 });
+
+export const renameChildAction = createAction(renameChildSchema, async (input) => {
+  await assertParentOf(input.childId);
+  try {
+    await renameChild(input);
+  } catch (error) {
+    nicknameConflict(error);
+  }
+  refresh();
+});
+
+export const removeChildAction = createAction(removeChildSchema, async (input) => {
+  await assertParentOf(input.childId);
+  await removeChild(input);
+  refresh();
+});
+
+export const updateFamilySettingsAction = createAction(
+  updateFamilySettingsSchema,
+  async (input) => {
+    await assertRole("parent");
+    await updateFamilySettings(input);
+    refresh();
+  },
+);

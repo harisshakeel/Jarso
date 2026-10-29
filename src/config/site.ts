@@ -17,6 +17,9 @@ export const routes = {
   childStart: "/start",
   childSignIn: "/sign-in/child",
   invite: "/invite",
+  settings: "/settings",
+  parentSettings: "/parent/settings",
+  childSettings: "/child/settings",
 } as const;
 
 /** Route prefixes that require an authenticated user. Enforced optimistically in proxy, authoritatively in the DAL. */
@@ -25,6 +28,7 @@ export const protectedRoutePrefixes = [
   routes.parent,
   routes.child,
   routes.invite,
+  routes.settings,
 ] as const;
 
 /** Auth pages that signed-in users should be bounced away from. */

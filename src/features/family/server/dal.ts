@@ -51,6 +51,12 @@ export async function assertRole(role: Role): Promise<RoleContext> {
   return { user, membership: await getMembership() };
 }
 
+/** The signed-in user's role, or null when signed out. For pages that serve both roles. */
+export async function currentRole(): Promise<Role | null> {
+  const user = await getCurrentUser();
+  return user ? getRole(user.id) : null;
+}
+
 /** Throws FORBIDDEN unless the signed-in user is an approved parent of this child. */
 export async function assertParentOf(childId: string): Promise<SessionUser> {
   const { user } = await assertRole("parent");
