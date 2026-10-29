@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(10);
+select plan(14);
 
 -- Fixtures: PA and PB are confirmed parents, PU an unconfirmed parent, K a confirmed child.
 select tests.create_user('Pa@Example.com') as pa \gset
@@ -23,6 +23,18 @@ select pg_temp.invite('Done', 'pa@example.com', '1 day', 'accepted') as accepted
 select pg_temp.invite('Ben', 'pb@example.com', '1 hour') as ben \gset
 select pg_temp.invite('Unc', 'pu@example.com', '1 hour') as unc \gset
 select pg_temp.invite('Kid', 'kid@example.com', '1 hour') as kid \gset
+
+-- Definer with an empty search_path; executable by authenticated, not anon.
+select ok(
+  (select prosecdef from pg_proc where oid = 'public.list_my_invitations()'::regprocedure),
+  'list_my_invitations is security definer');
+select is(
+  (select proconfig from pg_proc where oid = 'public.list_my_invitations()'::regprocedure),
+  array['search_path=""'], 'list_my_invitations sets search_path to empty');
+select ok(has_function_privilege('authenticated', 'public.list_my_invitations()', 'execute'),
+  'authenticated has execute');
+select ok(not has_function_privilege('anon', 'public.list_my_invitations()', 'execute'),
+  'anon has no execute');
 
 -- anon cannot call it at all.
 set local role anon;
