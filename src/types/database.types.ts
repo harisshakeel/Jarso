@@ -165,6 +165,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"child_settings": {
+                  Row: {
+                    "allow_negative_spend": boolean,"child_id": string,"family_id": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "allow_negative_spend"?: boolean,"child_id": string,"family_id": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "allow_negative_spend"?: boolean,"child_id"?: string,"family_id"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_settings_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "child_settings_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "child_settings_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"families": {
                   Row: {
                     "code": string,"created_at": string,"created_by": string,"currency": string,"id": string,"timezone": string,"updated_at": string
@@ -310,6 +342,44 @@ isOneToOne: false
       columns: ["reverses_entry_id"]
 isOneToOne: false
       referencedRelation: "ledger_entries"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"money_rules": {
+                  Row: {
+                    "amount_minor": number,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"id": string,"kind": string,"period": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_minor": number,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"id"?: string,"kind": string,"period": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "amount_minor"?: number,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"id"?: string,"kind"?: string,"period"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "money_rules_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "money_rules_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "money_rules_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "money_rules_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
                   ]
@@ -612,8 +682,17 @@ isOneToOne: false
 "revoke_user_sessions":
 { Args: { "p_user_id": string }; Returns: number
                            },
+"rule_window_start":
+{ Args: { "p_at": string,"p_family_id": string,"p_period": string }; Returns: string
+                           },
+"set_allow_negative_spend":
+{ Args: { "p_allowed": boolean,"p_child_id": string }; Returns: undefined
+                           },
 "set_child_pin":
 { Args: { "p_child_id": string,"p_pin": string }; Returns: undefined
+                           },
+"set_money_rule":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_kind": string,"p_period": string }; Returns: undefined
                            },
 "stop_allowance":
 { Args: { "p_schedule_id": string }; Returns: string
