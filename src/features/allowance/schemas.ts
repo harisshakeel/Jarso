@@ -81,6 +81,12 @@ const frequency = z.enum(frequencies, { error: "Choose how often." });
 
 export const idSchema = z.object({ id: z.uuid("We couldn't find that.") });
 
+/** Route params of the handover page: `/handover/[kind]/[id]`. */
+export const handoverParamsSchema = z.object({
+  kind: z.enum(["allowance", "gift"]),
+  id: z.uuid(),
+});
+
 export const allowanceSchema = (currency: string, today: string) =>
   z
     .object({

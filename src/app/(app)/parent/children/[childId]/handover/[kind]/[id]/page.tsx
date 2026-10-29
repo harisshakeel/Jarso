@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
-import { HandoverForm, prefillSplit } from "@/features/allowance";
+import { HandoverForm, handoverParamsSchema, prefillSplit } from "@/features/allowance";
 import { getLastSplit, listDue } from "@/features/allowance/server";
 import { loadChild } from "../../../load-child";
 import { FormSkeleton, PageShell } from "../../../page-shell";
@@ -15,11 +16,11 @@ async function HandoverContent({
 }: {
   params: Promise<{ childId: string; kind: string; id: string }>;
 }) {
-  const { childId, kind, id } = await params;
-  const { child, currency } = await loadChild(
-    childId,
-    `/parent/children/${childId}/handover/${kind}/${id}`,
-  );
+  const { childId, ...rest } = await params;
+  const parsed = handoverParamsSchema.safeParse(rest);
+  if (!parsed.success) notFound();
+  const { kind, id } = parsed.data;
+  const { child, currency } = await loadChild(childId, routes.parentHandover(childId, kind, id));
   const back = { href: routes.parentChild(childId), label: child.nickname };
   const [due, last] = await Promise.all([listDue(childId), getLastSplit(childId)]);
   const item = due.find((d) => d.kind === kind && d.id === id);

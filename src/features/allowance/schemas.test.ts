@@ -4,6 +4,7 @@ import {
   changeAllowanceSchema,
   familyToday,
   giftSchema,
+  handoverParamsSchema,
   handoverSchema,
   idSchema,
   pauseSchema,
@@ -174,5 +175,17 @@ describe("idSchema", () => {
   it("requires a uuid", () => {
     expect(idSchema.safeParse({ id }).success).toBe(true);
     expect(idSchema.safeParse({ id: "nope" }).success).toBe(false);
+  });
+});
+
+describe("handoverParamsSchema", () => {
+  it("accepts an allowance or gift kind with a uuid", () => {
+    expect(handoverParamsSchema.safeParse({ kind: "allowance", id }).success).toBe(true);
+    expect(handoverParamsSchema.safeParse({ kind: "gift", id }).success).toBe(true);
+  });
+
+  it("rejects an unknown kind or a non-uuid id", () => {
+    expect(handoverParamsSchema.safeParse({ kind: "foo", id }).success).toBe(false);
+    expect(handoverParamsSchema.safeParse({ kind: "gift", id: "123" }).success).toBe(false);
   });
 });
