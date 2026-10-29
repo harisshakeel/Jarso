@@ -41,7 +41,7 @@ export default function NewGiftPage({
   return (
     <Suspense
       fallback={
-        <PageShell title="Allowance">
+        <PageShell title="Gift">
           <FormSkeleton />
         </PageShell>
       }
