@@ -176,6 +176,7 @@ erDiagram
   families ||--o{ family_members : has
   families ||--o{ invitations : issues
   profiles ||--o| child_credentials : "child only"
+  profiles ||--o| parent_details : "parent only"
   profiles ||--o{ allowance_schedules : "child has"
   allowance_schedules ||--o{ allowance_occurrences : generates
   profiles ||--o{ ledger_entries : "child owns"
@@ -235,6 +236,13 @@ erDiagram
     text short_code "shown by the child to the parent"
     text status "pending | accepted | expired"
     timestamptz expires_at
+  }
+  parent_details {
+    uuid profile_id PK "parent, owner-only"
+    date date_of_birth "18+"
+    text country "ISO 3166-1 alpha-2"
+    text gender
+    timestamptz completed_at
   }
   child_credentials {
     uuid profile_id PK
@@ -446,6 +454,10 @@ sequenceDiagram
   A->>A: mint session (generateLink + verifyOtp)
   Note over C,E: Parent-initiated: parent signs up, createChildAccount(nickname, pin) does steps 5–7 directly.
 ```
+
+### 7.1a Parent profile completion (ADR 0008)
+
+After sign-up, the `(app)` layout's profile gate shows a non-dismissible dialog to any parent without a `parent_details` row; `complete_parent_profile()` saves date of birth, country and gender, and `refresh()` removes the dialog. Until then the app server refuses parent actions through `assertRole("parent")` (exceptions: completing the profile, sign-out, own display name). Database-level enforcement arrives with the money functions (ADR 0008).
 
 ### 7.1b Removing a child (ADR 0007)
 

@@ -1,5 +1,7 @@
 # Plan: parent profile completion (feature 2)
 
+> Implemented in `feat/parent-profile-completion` (ADR 0008). Changed during build, following review: the details live in a separate owner-only `parent_details` table instead of new `profiles` columns, the function is the only write path, and the server-side block covers every parent action through `assertRole("parent")`, not only money actions.
+
 Decided with the product owner on 2026-10-29, to be built on its own branch after `feat/family-settings-unlink` merges.
 
 ## Decisions
