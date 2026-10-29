@@ -37,3 +37,18 @@ export async function expireAccessToken(page: Page): Promise<void> {
     })),
   );
 }
+
+/**
+ * Reads the family code from the parent's Settings (where it lives), then goes back to Home.
+ * Six characters from the unambiguous alphabet.
+ */
+export async function readFamilyCode(page: Page): Promise<string> {
+  await page.goto("/parent/settings");
+  const value = page
+    .locator("dt", { hasText: "Family code" })
+    .locator("xpath=following-sibling::dd[1]");
+  const code = ((await value.textContent()) ?? "").trim();
+  if (!/^[A-Z2-9]{6}$/.test(code)) throw new Error(`Unexpected family code "${code}"`);
+  await page.goto("/parent");
+  return code;
+}

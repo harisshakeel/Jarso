@@ -15,7 +15,10 @@ const ip = `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
 const at = (path: string) => (url: URL) => url.pathname === path;
 
 let page: Page;
+/** The child's page, `/parent/children/<id>`. */
 let childPath = "";
+/** The manage allowance page under it. */
+let managePath = "";
 
 /** `YYYY-MM-DD` of the next Sunday, 1 to 7 days ahead (UTC, so safe for any family timezone). */
 function nextSunday(): { iso: string; label: string } {
@@ -51,9 +54,17 @@ test.beforeAll(async ({ browser }) => {
   await page.getByRole("checkbox", { name: "I am this child's parent or guardian" }).click();
   await page.getByRole("button", { name: "Add child" }).click();
   await expect(page).toHaveURL(at("/parent"));
-  await page.getByRole("link", { name: "Allowance for Sam" }).click();
-  await expect(page.getByRole("heading", { name: "Allowance for Sam" })).toBeVisible();
+  await expect(page.getByRole("region", { name: /Needs you/ })).toContainText("All caught up.");
+  await page.getByRole("link", { name: "Sam", exact: true }).click();
+  await expect(page).toHaveURL(/\/parent\/children\/[0-9a-f-]+$/);
   childPath = new URL(page.url()).pathname;
+  managePath = `${childPath}/allowance`;
+  await expect(
+    page.getByRole("region", { name: "Allowance", exact: true }).getByText("No allowance yet"),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Set up allowance" }).click();
+  await expect(page).toHaveURL(at(managePath));
+  await expect(page.getByRole("heading", { level: 1, name: "Allowance" })).toBeVisible();
 });
 
 test.afterAll(async () => {
@@ -68,16 +79,21 @@ test("parent sets up a weekly allowance and sees the summary", async () => {
   await expect(page.getByText(`Every Sunday from ${sunday.label}`)).toBeVisible();
   await page.getByRole("button", { name: "Save allowance" }).click();
 
-  await expect(page.getByText("US$500.00 every Sunday", { exact: true })).toBeVisible();
-  await expect(page.getByText(`Next: ${sunday.label}`)).toBeVisible();
+  // A new allowance lands on the child's page.
+  await expect(page).toHaveURL(at(childPath));
+  const card = page.getByRole("region", { name: "Allowance", exact: true });
+  await expect(card.getByText("US$500.00 every Sunday", { exact: true })).toBeVisible();
+  await expect(card.getByText(`Next: ${sunday.label}`)).toBeVisible();
 });
 
 test("parent changes the amount", async () => {
+  await page.getByRole("link", { name: "Manage", exact: true }).click();
+  await expect(page).toHaveURL(at(managePath));
   await page.getByRole("link", { name: "Change amount or how often" }).click();
-  await expect(page).toHaveURL(at(`${childPath}/edit`));
+  await expect(page).toHaveURL(at(`${managePath}/edit`));
   await page.getByLabel("Amount").fill("600");
   await page.getByRole("button", { name: "Save allowance" }).click();
-  await expect(page).toHaveURL(at(childPath));
+  await expect(page).toHaveURL(at(managePath));
   await expect(page.getByText(/^US\$600\.00$/)).toBeVisible();
 });
 
@@ -110,7 +126,7 @@ test("parent stops the allowance and sees the set-up form again", async () => {
 test("parent creates a gift for today and sees it in the due list", async () => {
   await page.getByLabel("Amount").fill("50");
   await page.getByText("One time", { exact: true }).click();
-  await expect(page).toHaveURL(at(`${childPath.replace("/allowance", "")}/gifts/new`));
+  await expect(page).toHaveURL(at(`${childPath}/gifts/new`));
   await expect(page.getByLabel("Amount")).toHaveValue("50");
   await page.getByLabel("Note for Sam (optional)").fill("Well done on the test");
   await page.getByRole("button", { name: "Save gift" }).click();
@@ -122,9 +138,12 @@ test("parent creates a gift for today and sees it in the due list", async () => 
 
 test("parent hands over a due allowance with a split", async () => {
   // The stopped allowance from above is replaced by one that starts today, so it is due at once.
+  await page.getByRole("link", { name: "Set up allowance" }).click();
+  await expect(page).toHaveURL(at(managePath));
   await page.getByLabel("Amount").fill("500");
   await page.getByRole("group").getByText("Weekly", { exact: true }).click();
   await page.getByRole("button", { name: "Save allowance" }).click();
+  await expect(page).toHaveURL(at(childPath));
   const due = page.getByRole("region", { name: "Due now" });
   await due.getByRole("link", { name: /^Allowance/ }).click();
 
@@ -158,7 +177,7 @@ test("the next handover starts from the last split", async () => {
 });
 
 test("parent cancels a due gift from the handover screen", async () => {
-  await page.goto(`${childPath.replace("/allowance", "")}/gifts/new`);
+  await page.goto(`${childPath}/gifts/new`);
   await page.getByLabel("Amount").fill("15");
   await page.getByLabel("Note for Sam (optional)").fill("Cinema money");
   await page.getByRole("button", { name: "Save gift" }).click();
@@ -203,4 +222,52 @@ test("parent marks a due allowance as not given", async () => {
   await expect(
     page.getByRole("region", { name: "History" }).getByText("Not given", { exact: true }),
   ).toBeVisible();
+});
+
+test("Home lists what needs the parent; handing over lands on the child page", async () => {
+  const local = loadLocalSupabase();
+  if (!local) throw new Error("Local Supabase is required.");
+  const admin = createClient(local.url, local.secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  // Two weeks on, the weekly allowance falls due once more.
+  const later = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await admin.rpc("generate_due_occurrences", { p_now: later });
+  expect(error).toBeNull();
+
+  await page.goto("/parent");
+  const needsYou = page.getByRole("region", { name: /Needs you/ });
+  const row = needsYou.getByRole("row").filter({ hasText: "Sam" });
+  await expect(row).toContainText("Allowance");
+  await expect(row).toContainText("US$500.00");
+  await row.getByRole("link", { name: "Hand over allowance to Sam" }).click();
+
+  await expect(page.getByRole("heading", { name: "Hand over to Sam" })).toBeVisible();
+  await page.getByRole("button", { name: "Confirm I handed it over" }).click();
+  await expect(page).toHaveURL(at(childPath));
+
+  await page
+    .getByRole("navigation", { name: "Parent" })
+    .getByRole("link", { name: "Home" })
+    .click();
+  await expect(page).toHaveURL(at("/parent"));
+  await expect(needsYou).toContainText("All caught up.");
+  await expect(page.getByRole("link", { name: "Sam", exact: true })).toBeVisible();
+});
+
+test("Allowance tab lists each child and Manage opens the manage page", async () => {
+  const nav = page.getByRole("navigation", { name: "Parent" });
+  await nav.getByRole("link", { name: "Allowance" }).click();
+  await expect(page).toHaveURL(at("/parent/allowance"));
+  await expect(nav.getByRole("link", { name: "Allowance" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+
+  const row = page.getByRole("row").filter({ hasText: "Sam" });
+  await expect(row.getByText(/^US\$500\.00 every \w+day$/)).toBeVisible();
+  await expect(row.getByText("Active", { exact: true })).toBeVisible();
+  await row.getByRole("link", { name: "Manage Sam's allowance" }).click();
+  await expect(page).toHaveURL(at(managePath));
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
 });
