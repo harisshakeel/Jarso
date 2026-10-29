@@ -24,6 +24,9 @@ const serverEnv: Record<string, string> = {
   // Without local Supabase only the smoke project runs; it needs a non-empty value to build.
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: local?.publishableKey ?? "e2e-placeholder",
   ...(local ? { SUPABASE_SECRET_KEY: local.secretKey } : {}),
+  // The money guide runs on its keyword-based fake provider: no Claude calls, no key needed.
+  FEATURE_GUIDE: "true",
+  GUIDE_PROVIDER: "fake",
 };
 
 export default defineConfig({
@@ -45,6 +48,7 @@ export default defineConfig({
     // No browser: concurrent RPC calls against local Supabase.
     { name: "handover-race", testMatch: "handover-race.spec.ts" },
     { name: "learning", testMatch: "learning.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    { name: "guide", testMatch: "guide.spec.ts", use: { ...devices["Desktop Chrome"] } },
     // A spec only runs if a project matches it; add a project here for every new spec file.
     {
       name: "settings",

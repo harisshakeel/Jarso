@@ -37,7 +37,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Practice | One-minute spaced review: for each skill that is due, a question from the review pool in a new situation. Boxes of 1, 3, 7 and 14 days. |
 | Skill level | Per skill: Started (seen in a mission), Practised (right in a mission), Got it (right without hints in a review). Learning progress, never shown next to money. |
 | Notification | Inbox item (+ optional web push) pointing at a record: due reminder, limit notice, request, decision. Never authoritative. |
-| Guide | *Later version.* AI money helper with strict topic and safety boundaries. |
+| Guide | AI money helper (Claude) with strict topic and safety boundaries (ADR 0010). Off for each child until a parent turns it on; parents can read every chat. |
 
 ## Planned feature modules
 
@@ -55,7 +55,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | `learning` ✅ | FR06, FR08, FR10 | Missions, topics, spaced review, check-in, progress (separate from money). Content as JSON (ADR 0009). |
 | `reviews` | FR11, FR12 | Weekly summary, next-step recommendation, resume state. |
 | `notifications` | FR16 | In-app inbox in the first milestone: due badge, handover reminders, limit, new-request and decision notices, no push needed; web push + PWA later in pilot. Sent after commit; failure never affects records. |
-| `guide` *(later)* | FR07, FR09 | AI chat via Claude API; server-only; guarded prompts, rate limits, safety handling. |
+| `guide` ✅ | FR07, FR09 | AI chat via the Claude API; server-only; screened pipeline, rate limits, budget, safety handling, parent switch and transcripts (ADR 0010). |
 
 ## Invariants (enforce in DB + services, test them)
 
@@ -76,4 +76,4 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 15. Role and parent–child links are assigned server-side. No user-writable input (profile update, sign-up metadata, API body) can set or change them.
 16. Child-initiated onboarding stores only a nickname and the parent's email until the parent approves.
 17. A pending parent gift is invisible to the child: no row, count, total or date reaches a child session. Enforced by RLS (`parent_gifts` is readable by parents only) and by keeping parent-only aggregates out of child reach. A given gift reaches the child only as its ledger rows, labelled with the note.
-18. *(When the guide ships)* Guide never asks for personal/account info, recommends investments, or tells the child to buy something (FR09).
+18. The guide never asks for personal or account information, recommends investments, products or shops, or tells the child to buy something (FR09). Enforced by its prompt, an input screen, an output screen and fixed copy, and tested by the eval gate (ADR 0010).

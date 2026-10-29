@@ -1,0 +1,47 @@
+name: Guide evals
+
+# The AI money guide's launch gate (docs/superpowers/specs/2026-10-29-learning-and-guide-design.md
+# §5.7, ADR 0010). Calls Claude and costs about US$3 to $4 a run, so it runs only when started by
+# hand from the Actions tab, on a branch of this repository; never on pull requests or forks.
+# Needs the ANTHROPIC_API_KEY repository secret.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guide-evals
+  cancel-in-progress: false
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the eval suite
+        # Without the key the gate would skip and the run would look green, so fail instead.
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::Add the ANTHROPIC_API_KEY repository secret first."
+            exit 1
+          fi
+          pnpm eval:guide
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: guide-eval-report
+          path: evals/guide/results/report.json
+          if-no-files-found: ignore
+          retention-days: 30

@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
+import { GuideSheet, StepGuide } from "@/features/guide";
+import { getGuideState } from "@/features/guide/server";
 import { MissionPlayer, TopicView } from "@/features/learning";
 import { findMission, findTopic } from "@/features/learning/server";
 
@@ -17,9 +19,9 @@ type Props = {
 
 async function TopicContent({ params, searchParams }: Props) {
   const [{ topicKey }, query] = await Promise.all([params, searchParams]);
-  await requireRole("child", routes.childTopic(topicKey));
+  const { user } = await requireRole("child", routes.childTopic(topicKey));
   const topic = findTopic(topicKey);
-  const family = await getFamily();
+  const [family, guide] = await Promise.all([getFamily(), getGuideState(user.id)]);
   if (!topic || !family) notFound();
   // FR08: the child can explore a topic and return to their unfinished mission.
   const from = typeof query.from === "string" ? findMission(query.from) : undefined;
@@ -40,6 +42,15 @@ async function TopicContent({ params, searchParams }: Props) {
         <h1 className="text-balance text-h1">{topic.title}</h1>
       </header>
       <TopicView topic={topic} currency={family.currency} />
+      {guide.available ? (
+        <div>
+          <GuideSheet
+            context={{ entry: "topic", topicKey: topic.key }}
+            introNeeded={guide.introNeeded}
+            triggerLabel="Ask about this"
+          />
+        </div>
+      ) : null}
       <section aria-labelledby="topic-practice" className="grid gap-3">
         <h2 id="topic-practice" className="text-h3">
           Try one
@@ -50,6 +61,7 @@ async function TopicContent({ params, searchParams }: Props) {
           currency={family.currency}
           doneHref={back.href}
           doneLabel={from ? "Back to your mission" : "Back to Learn"}
+          stepAside={guide.available ? <StepGuide introNeeded={guide.introNeeded} /> : undefined}
         />
       </section>
     </>

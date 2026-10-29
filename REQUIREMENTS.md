@@ -29,7 +29,7 @@ FR02–FR06, FR08, FR10–FR12, emergency funds (FR15), web push and app install
 
 ### Later versions
 
-- AI money guide and its boundaries (FR07–FR09). FR08 topic material without the guide stays in the pilot.
+- AI money guide and its boundaries (FR07, FR09): **moved into the pilot** behind the `FEATURE_GUIDE` flag and a per-child parent switch, off by default (ADR 0010). It is switched on for real families only after the eval gate and a legal review.
 - Practice money with the learning section (FR05/FR06). Practice money stays separate from recorded money.
 - Native mobile apps.
 - Real payments, bank connections, live fund tracking, investments, and investment-return projections.
@@ -99,7 +99,7 @@ The initial topics are:
 4. Understanding purchase tradeoffs.
 5. Changing a plan when circumstances change.
 
-## FR07 — AI money guide *(later version)*
+## FR07 — AI money guide *(pilot, behind a flag and a parent switch)*
 
 - The child can ask money-related questions at any point.
 - The guide provides short, age-appropriate explanations and concrete examples.
@@ -115,7 +115,7 @@ The initial topics are:
 - The child can explore a topic and return to their unfinished activity.
 - Opening material does not automatically mark a skill as learned.
 
-## FR09 — Guide boundaries *(later version, binding when FR07 ships)*
+## FR09 — Guide boundaries *(binding: enforced by the guide's screens, ADR 0010)*
 
 - Answers stay focused on Jarso's money-learning topics and reviewed material.
 - Unrelated requests receive a brief redirection toward relevant learning.

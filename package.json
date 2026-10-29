@@ -22,9 +22,11 @@
     "db:push": "supabase db push --linked",
     "db:types": "supabase gen types typescript --local > src/types/database.types.ts",
     "prepare": "husky",
-    "db:types:linked": "supabase gen types typescript --linked > src/types/database.types.ts"
+    "db:types:linked": "supabase gen types typescript --linked > src/types/database.types.ts",
+    "eval:guide": "vitest run --config vitest.eval.config.mts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@base-ui/react": "^1.9.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
