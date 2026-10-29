@@ -65,8 +65,13 @@ function stepCard(page: Page): Locator {
 
 test.beforeAll(async ({ browser }) => {
   const baseURL = test.info().project.use.baseURL;
+  // en-GB so the family currency (picked from the browser locale) is GBP: amounts read "£6.50".
   parent = await (
-    await browser.newContext({ baseURL, extraHTTPHeaders: { "x-forwarded-for": ip } })
+    await browser.newContext({
+      baseURL,
+      locale: "en-GB",
+      extraHTTPHeaders: { "x-forwarded-for": ip },
+    })
   ).newPage();
   child = await (
     await browser.newContext({ baseURL, extraHTTPHeaders: { "x-forwarded-for": ip } })
