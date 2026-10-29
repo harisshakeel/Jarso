@@ -313,6 +313,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"notifications": {
+                  Row: {
+                    "child_id": string,"created_at": string,"family_id": string,"id": string,"kind": string,"payload": NonNullable<Json>,"read_at": string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"created_at"?: string,"family_id": string,"id"?: string,"kind": string,"payload"?: NonNullable<Json>,"read_at"?: string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key"?: string | null
+                  }
+                  Update: {
+                    "child_id"?: string,"created_at"?: string,"family_id"?: string,"id"?: string,"kind"?: string,"payload"?: NonNullable<Json>,"read_at"?: string | null,"recipient_id"?: string,"source_id"?: string,"source_type"?: string,"window_key"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notifications_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notifications_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notifications_recipient_id_fkey"
+      columns: ["recipient_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"parent_details": {
                   Row: {
                     "completed_at": string,"country": string,"date_of_birth": string,"gender": string,"profile_id": string,"updated_at": string
@@ -555,6 +587,12 @@ isOneToOne: false
       } },
 "mark_not_given":
 { Args: { "p_occurrence_id": string }; Returns: string
+                           },
+"notify_child":
+{ Args: { "p_child_id": string,"p_kind": string,"p_payload": Json,"p_source_id": string,"p_source_type": string,"p_window_key": string }; Returns: undefined
+                           },
+"notify_parents":
+{ Args: { "p_child_id": string,"p_kind": string,"p_payload": Json,"p_source_id": string,"p_source_type": string,"p_window_key": string }; Returns: undefined
                            },
 "pause_allowance":
 { Args: { "p_message": string,"p_schedule_id": string,"p_through": string }; Returns: string
