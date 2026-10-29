@@ -1,5 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 import { completeParentProfile } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
@@ -64,7 +65,7 @@ test("a new parent is blocked until the profile is complete", async ({ browser }
   await expect(dialog).toHaveCount(0);
 
   // Settings shows the saved details and lets the parent change them.
-  await page.goto("/parent/settings");
+  await page.goto("/parent/settings?tab=you");
   await expect(page.getByLabel("Date of birth", { exact: true })).toHaveValue("1985-06-15");
   await expect(page.getByRole("combobox", { name: "Country" })).toContainText("Pakistan");
   await page.getByRole("combobox", { name: "Gender" }).click();
@@ -88,4 +89,47 @@ test("a parent can sign out from the dialog without completing it", async ({ bro
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(dialog).toBeVisible();
+});
+
+test("a parent with children who never completed the profile sees the dialog, not an error", async ({
+  browser,
+}) => {
+  const page = await newActor(browser);
+  const email = `e2e-profile-kids-${run}@example.com`;
+  await signUp(page, email);
+  await completeParentProfile(page);
+  await page.getByRole("button", { name: "Create family" }).click();
+  await expect(page).toHaveURL(at("/parent"));
+  await page.getByRole("link", { name: "Add a child" }).first().click();
+  await page.getByLabel("Nickname").fill("Kit");
+  await page.getByLabel("PIN", { exact: true }).fill("1234");
+  await page.getByRole("checkbox", { name: "I am this child's parent or guardian" }).click();
+  await page.getByRole("button", { name: "Add child" }).click();
+  await expect(page).toHaveURL(at("/parent"));
+  await page.getByRole("link", { name: "Kit", exact: true }).click();
+  await expect(page).toHaveURL(/\/parent\/children\/[0-9a-f-]+$/);
+  const childPath = new URL(page.url()).pathname;
+
+  // An account from before profile completion shipped: a family and a child, but no details.
+  const local = loadLocalSupabase();
+  if (!local) throw new Error("Local Supabase is required.");
+  const admin = createClient(local.url, local.secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: users, error: listError } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  expect(listError).toBeNull();
+  const userId = users.users.find((u) => u.email === email)?.id;
+  if (!userId) throw new Error("Parent not found.");
+  const { error } = await admin.from("parent_details").delete().eq("profile_id", userId);
+  expect(error).toBeNull();
+
+  const dialog = page.getByRole("alertdialog", { name: "Finish your profile" });
+  for (const path of ["/parent", childPath]) {
+    await page.goto(path);
+    await expect(dialog).toBeVisible();
+    await expect(page.getByText("Something went wrong")).toHaveCount(0);
+  }
+
+  await completeParentProfile(page);
+  await expect(dialog).toHaveCount(0);
 });

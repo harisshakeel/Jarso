@@ -3,6 +3,7 @@ import "server-only";
 
 export { getClientIp } from "./client-ip";
 export {
+  assertParentCanRead,
   assertParentOf,
   assertRole,
   assertSelfOrParentOf,

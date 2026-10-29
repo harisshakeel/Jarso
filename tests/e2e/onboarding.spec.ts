@@ -275,7 +275,7 @@ test("lockout is per device; a PIN reset unlocks it and signs other devices out"
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Sign in" }).click();
   await expect(parent).toHaveURL(at("/parent"));
-  await parent.goto("/parent/settings");
+  await parent.goto("/parent/settings?tab=children");
   await parent.getByRole("button", { name: "Reset PIN for Sam" }).click();
   await parent.getByLabel("New PIN", { exact: true }).fill("4321");
   await parent.getByRole("button", { name: "Save PIN" }).click();
