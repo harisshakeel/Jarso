@@ -9,7 +9,8 @@ import { ChoiceChips, FieldError, FormError } from "@/components/form";
 import { Button, buttonVariants, Card, CardContent, Input, Label } from "@/components/ui";
 import { routes } from "@/config";
 import { type ActionState, idle } from "@/lib";
-import { describeSchedule, toMajorString } from "../describe";
+import { describeSchedule, formatDay, toMajorString } from "../describe";
+import { addDays } from "../schemas";
 import { changeAllowanceAction, createAllowanceAction } from "../server/actions";
 import { type Frequency, frequencies, type Schedule } from "../types";
 import { AmountField } from "./amount-field";
@@ -75,6 +76,12 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
       ? describeSchedule(frequency as Frequency, date)
       : null;
   const dateName = changing ? "nextOn" : "firstOn";
+  // Paused through a date: the next one has to come after the pause (the database refuses it).
+  const pausedThrough =
+    initial?.status === "paused" && initial.pausedThrough && initial.pausedThrough >= today
+      ? initial.pausedThrough
+      : null;
+  const minDate = pausedThrough ? addDays(pausedThrough, 1) : today;
 
   return (
     <form action={action} className="grid gap-4" noValidate>
@@ -112,13 +119,18 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
             id={dateName}
             name={dateName}
             type="date"
-            min={today}
+            min={minDate}
             required
             value={date}
             onChange={(event) => setDate(event.target.value)}
             aria-invalid={fieldErrors?.[dateName]?.length ? true : undefined}
           />
           {summary ? <p className="text-ink-2 text-sm">{summary}</p> : null}
+          {pausedThrough ? (
+            <p className="text-ink-2 text-sm">
+              Paused until {formatDay(pausedThrough)}, so pick a date after that.
+            </p>
+          ) : null}
           <FieldError errors={fieldErrors?.[dateName]} />
         </CardContent>
       </Card>

@@ -23,7 +23,8 @@ export function familyToday(timezone: string, now: Date = new Date()): string {
   }).format(now);
 }
 
-function addDays(isoDate: string, days: number): string {
+/** ISO `YYYY-MM-DD` plus whole days, in UTC so no timezone shifts the day. */
+export function addDays(isoDate: string, days: number): string {
   const date = new Date(`${isoDate}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
