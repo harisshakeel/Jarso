@@ -5,6 +5,8 @@ import { buttonVariants } from "@/components/ui";
 import { routes } from "@/config";
 import { AllowanceForm, AllowanceSummary, DueList, GiftList } from "@/features/allowance";
 import { getSchedule, listDue, listGifts } from "@/features/allowance/server";
+import { HistoryList, Jars } from "@/features/ledger";
+import { getHistory, getJars } from "@/features/ledger/server";
 import { loadChild } from "../load-child";
 import { FormSkeleton, PageShell } from "../page-shell";
 
@@ -44,7 +46,26 @@ async function AllowanceContent({ params }: { params: Promise<{ childId: string 
           Give a one-time gift
         </Link>
       ) : null}
+      <Suspense fallback={<FormSkeleton />}>
+        <ChildMoney childId={childId} currency={currency} />
+      </Suspense>
     </PageShell>
+  );
+}
+
+/** The child's jars and history as the parent sees them (exact amounts). */
+async function ChildMoney({ childId, currency }: { childId: string; currency: string }) {
+  const [jars, history] = await Promise.all([getJars(childId), getHistory(childId)]);
+  return (
+    <>
+      <Jars jars={jars} currency={currency} showMinor="always" />
+      <HistoryList
+        items={history}
+        currency={currency}
+        skippedLabel="Not given"
+        showMinor="always"
+      />
+    </>
   );
 }
 
