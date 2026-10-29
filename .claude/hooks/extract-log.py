@@ -339,6 +339,93 @@ def calculate_session_stats(entries: List[Tuple[str, str, str]]) -> Dict[str, An
     return stats
 
 
+def extract_subagent_log(jsonl_path: Path) -> List[Tuple[str, str, str]]:
+    """Prompts sent to a subagent and its replies.
+
+    Prompts are the plain-text user turns (the dispatch, then any follow-up messages); harness
+    reminders are skipped. Replies are the final reports a subagent hands back through the
+    SubagentHandback tool, or plain assistant text for agents that answer directly.
+    """
+    entries = []
+    for line in jsonl_path.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        timestamp = entry.get('timestamp', '')
+        content = entry.get('message', {}).get('content')
+
+        if entry.get('type') == 'user' and isinstance(content, str):
+            text = content.strip()
+            if text and not text.startswith('<system-reminder>'):
+                entries.append((timestamp, 'user', redact(text)))
+        elif entry.get('type') == 'assistant' and isinstance(content, list):
+            for block in content:
+                if block.get('type') == 'tool_use' and block.get('name') == 'SubagentHandback':
+                    message = str(block.get('input', {}).get('message', '')).strip()
+                    if message:
+                        entries.append((timestamp, 'assistant', redact(message)))
+                elif block.get('type') == 'text' and block.get('text', '').strip():
+                    entries.append((timestamp, 'assistant', redact(block['text'].strip())))
+    return entries
+
+
+def write_subagent_logs(cwd: Path, session_dir: Path, session_id: str) -> None:
+    """One redacted log per subagent: .claude-logs/subagents/<session>/agent-<id>.md."""
+    subagent_dir = session_dir / session_id / 'subagents'
+    if not subagent_dir.is_dir():
+        return
+
+    output_dir = cwd / '.claude-logs' / 'subagents' / session_id
+    for jsonl_path in sorted(subagent_dir.glob('agent-*.jsonl')):
+        output_path = output_dir / f"{jsonl_path.stem}.md"
+        if output_path.exists() and output_path.stat().st_mtime >= jsonl_path.stat().st_mtime:
+            continue
+
+        entries = dedupe_entries(extract_subagent_log(jsonl_path))
+        if not entries:
+            continue
+
+        meta_path = jsonl_path.with_name(f"{jsonl_path.stem}.meta.json")
+        try:
+            meta = json.loads(meta_path.read_text())
+        except (OSError, json.JSONDecodeError):
+            meta = {}
+
+        agent_id = jsonl_path.stem.removeprefix('agent-')
+        description = redact(str(meta.get('description', '')))
+        lines = ["---"]
+        lines.append(f"session_id: {session_id}")
+        lines.append(f"agent_id: {agent_id}")
+        lines.append(f"agent_type: {meta.get('agentType', 'unknown')}")
+        lines.append(f"model: {meta.get('model', 'default')}")
+        lines.append(f"description: {description}")
+        lines.append(f"finished: {meta.get('finished', False)}")
+        lines.append(f"total_exchanges: {len([e for e in entries if e[1] == 'user'])}")
+        lines.append(f"generated_at: {datetime.now().isoformat()}")
+        lines.append("---\n")
+        lines.append(f"# Subagent: {description or agent_id}\n")
+        lines.append(f"Session: `{session_id}` | Agent: `{agent_id}` | Type: `{meta.get('agentType', 'unknown')}`\n")
+
+        exchange_num = 0
+        for timestamp, role, content in entries:
+            if role == 'user':
+                exchange_num += 1
+                kind = 'PROMPT'
+            else:
+                kind = 'RESPONSE'
+            lines.append(f"\n[CLAUDE_LOG_ENTRY type={kind} num={exchange_num} session={session_id} agent={agent_id}]")
+            lines.append(f"timestamp: {timestamp}")
+            lines.append(f"time: {format_timestamp(timestamp)}")
+            lines.append(f"chars: {len(content)}")
+            lines.append(f"\n{content}\n")
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(redact('\n'.join(lines)))
+
+
 def main():
     cwd = Path(os.environ.get('CLAUDE_CWD', os.getcwd()))
     session_dir = get_project_session_dir(cwd)
@@ -356,6 +443,8 @@ def main():
 
     latest = max(session_files, key=lambda p: p.stat().st_mtime)
     session_id = latest.stem
+
+    write_subagent_logs(cwd, session_dir, session_id)
 
     entries = extract_clean_log(latest)
     entries = dedupe_entries(entries)
