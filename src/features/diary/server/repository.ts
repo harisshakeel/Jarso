@@ -1,12 +1,11 @@
 import "server-only";
+// Only place that knows the purchase functions.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database } from "@/types";
 import type { PurchaseResult, UndoResult } from "../types";
 
 type Client = SupabaseClient<Database>;
-
-/** Only place that knows the purchase functions. */
 
 export async function callRecordPurchase(
   db: Client,

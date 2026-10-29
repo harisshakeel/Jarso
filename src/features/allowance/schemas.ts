@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { formatMoney, MAX_AMOUNT_MINOR, minorDigits, parseMoney } from "@/lib";
+import { moneySchema } from "@/lib";
 import { frequencies } from "./types";
 
 /**
@@ -28,35 +28,6 @@ export function addDays(isoDate: string, days: number): string {
   const date = new Date(`${isoDate}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
-}
-
-function moneyMessage(currency: string): string {
-  return minorDigits(currency) > 0
-    ? "Enter an amount like 5 or 5.50."
-    : "Enter an amount like 500.";
-}
-
-/** Major-unit string → minor units. `allowZero` for one jar of a handover split. */
-function money(currency: string, { allowZero = false } = {}) {
-  const message = moneyMessage(currency);
-  return z.string({ error: message }).transform((value, ctx) => {
-    const minor = parseMoney(value, currency);
-    if (minor === null) {
-      ctx.addIssue({ code: "custom", message });
-      return z.NEVER;
-    }
-    if (minor === 0 && !allowZero) {
-      ctx.addIssue({ code: "custom", message: "Enter an amount more than 0." });
-      return z.NEVER;
-    }
-    // Above the database cap the function would refuse it with no field to point at.
-    if (minor > MAX_AMOUNT_MINOR) {
-      const max = formatMoney(MAX_AMOUNT_MINOR, currency, { showMinor: "nonzero" });
-      ctx.addIssue({ code: "custom", message: `Enter an amount up to ${max}.` });
-      return z.NEVER;
-    }
-    return minor;
-  });
 }
 
 const isoDate = z
@@ -98,7 +69,7 @@ export const allowanceSchema = (currency: string, today: string) =>
   z
     .object({
       childId: z.uuid(),
-      amount: money(currency),
+      amount: moneySchema(currency),
       frequency,
       firstOn: dateFrom(today),
     })
@@ -109,7 +80,7 @@ export const changeAllowanceSchema = (currency: string, today: string) =>
   z
     .object({
       scheduleId: z.uuid(),
-      amount: money(currency),
+      amount: moneySchema(currency),
       frequency,
       nextOn: dateFrom(today),
     })
@@ -129,7 +100,7 @@ export const giftSchema = (currency: string, today: string) =>
   z
     .object({
       childId: z.uuid(),
-      amount: money(currency),
+      amount: moneySchema(currency),
       giveOn: dateFrom(today),
       note: childText,
     })
@@ -143,7 +114,7 @@ export const updateGiftSchema = (currency: string, today: string) =>
   z
     .object({
       giftId: z.uuid(),
-      amount: money(currency),
+      amount: moneySchema(currency),
       giveOn: isoDate.refine(withinYear(today), "Pick a date within a year."),
       note: childText,
     })
@@ -155,8 +126,8 @@ export const handoverSchema = (currency: string) =>
     .object({
       kind: z.enum(["allowance", "gift"]),
       id: z.uuid("We couldn't find that."),
-      cash: money(currency, { allowZero: true }),
-      saved: money(currency, { allowZero: true }),
+      cash: moneySchema(currency, { allowZero: true }),
+      saved: moneySchema(currency, { allowZero: true }),
       idempotencyKey: z.uuid("Please reload the page and try again."),
     })
     .refine((value) => value.cash + value.saved > 0, {

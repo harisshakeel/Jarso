@@ -1,4 +1,5 @@
 import "server-only";
+// Only place that knows the money-rule and child-settings tables and functions.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database } from "@/types";
@@ -12,8 +13,6 @@ import {
 } from "../types";
 
 type Client = SupabaseClient<Database>;
-
-/** Only place that knows the money-rule and child-settings tables and functions. */
 
 function oneOf<const T extends string>(value: string, allowed: readonly T[]): T {
   if ((allowed as readonly string[]).includes(value)) return value as T;

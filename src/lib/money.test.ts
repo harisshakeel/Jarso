@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, minorDigits, parseMoney } from "./money";
+import { formatMoney, minorDigits, moneySchema, parseMoney } from "./money";
 
 describe("minorDigits", () => {
   it("returns currency fraction digits", () => {
@@ -71,5 +71,21 @@ describe("formatMoney", () => {
   });
   it("formats zero-decimal currencies", () => {
     expect(formatMoney(500, "JPY")).toContain("500");
+  });
+});
+
+describe("moneySchema", () => {
+  it("parses to minor units and rejects bad, zero and too-large input", () => {
+    const schema = moneySchema("GBP");
+    expect(schema.parse("5.50")).toBe(550);
+    expect(schema.safeParse("5.555").success).toBe(false);
+    expect(schema.safeParse("0").success).toBe(false);
+    expect(schema.safeParse("1000000000.01").success).toBe(false);
+  });
+
+  it("allows zero and empty when asked", () => {
+    expect(moneySchema("GBP", { allowZero: true }).parse("0")).toBe(0);
+    expect(moneySchema("GBP", { allowEmpty: true }).parse(" ")).toBeNull();
+    expect(moneySchema("GBP").safeParse("").success).toBe(false);
   });
 });
