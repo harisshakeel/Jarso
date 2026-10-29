@@ -245,9 +245,13 @@ otp_expiry = 3600
 # sender_name = "Admin"
 
 # Sign-up confirmation links to /auth/confirm (token hash), so they work in any browser.
-[auth.email.template.confirmation]
-subject = "Confirm your Jarso account"
-content_path = "./supabase/templates/confirmation.html"
+# Off until the hosted project has custom SMTP: on the free tier with the default email
+# provider, Supabase rejects any template change, and that failure stops the GitHub
+# integration before it applies migrations. Local confirmations are off, so nothing local
+# needs it. Re-enable together with SMTP (docs/auth.md → Hosted setup).
+# [auth.email.template.confirmation]
+# subject = "Confirm your Jarso account"
+# content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
