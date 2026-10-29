@@ -1,79 +1,97 @@
-# Functional requirements audit — 2026-10-29
+# Functional requirements audit — 2026-10-29 (slice 2 checkpoint)
 
-State of main at `2f9238b` (after PRs #9, #10, #12, #13) against `REQUIREMENTS.md` and the first-milestone spec (`docs/superpowers/specs/2026-10-28-first-milestone-design.md`). Verified from the source tree, migrations, generated functions and tests, not from PR descriptions.
+State of `main` at `fa62b9f` (after PRs #18–#25: slice 2 allowance, gifts and handover, plus its review fixes) and of the hosted database, against `REQUIREMENTS.md` and the first-milestone spec (`docs/superpowers/specs/2026-10-28-first-milestone-design.md`). Verified from the source tree, migrations, tests, CI runs and the hosted catalog, not from PR descriptions.
 
-Legend: **Built** = usable end to end with tests · **Partial** = some code, not usable for the requirement · **Not started** · **Later** = deferred by decision.
+Legend: **Built** = on `main`, usable end to end, tested, live on production · **Partial** = some pieces built, not usable for the whole requirement · **Not started** · **Later** = deferred by decision.
 
 ## Per requirement
 
 | FR | Requirement | Status | What exists | What is missing | Slice |
 | --- | --- | --- | --- | --- | --- |
-| FR01 | Allowance schedule and handover | Not started | Nothing. Child home shows a "jars coming soon" placeholder. | `allowance_schedules`, `allowance_occurrences`, `generate_due_occurrences` (pg_cron), `confirm_handover` with shortfall (D1), parent schedule screen per child, due list, handover sheet, child schedule and history views, due badge | 2 |
-| FR02 | Personal savings goal | Not started | Nothing. | `goals` table, planned split on schedule, progress and payments-remaining estimate, goal screen | after 2 |
-| FR03 | Spend and Save jars | Not started | Placeholder only. | Balances from ledger, jar cards, planned split preview, deposits (slice 4) | 2, 4 |
-| FR04 | Money diary | Not started | Nothing. | `record_entry` for purchases and gifts, `reverse_entry` for corrections, diary screen, parent read view | 3 (purchases), later (gifts, corrections) |
-| FR05 | Predict before deciding | Not started | Nothing. | What-if simulation in `goals` service, prompt UI | rest of pilot |
-| FR06 | Interactive daily learning | Not started | Nothing. | Mission content, `mission_progress`, mission player, hints, spaced return | rest of pilot |
-| FR07 | AI money guide | Later | Nothing by decision. | — | later version |
-| FR08 | Related learning material | Not started | Nothing. | Topic content, topic screens, links from missions | rest of pilot |
-| FR09 | Guide boundaries | Later | Rules in CLAUDE.md and agents. | — | later version |
-| FR10 | Learning progress | Not started | Nothing. | Starting questions, `skill_progress`, separate display | rest of pilot |
-| FR11 | Weekly review | Not started | Nothing. | `weekly_reviews`, generator job, review screen | rest of pilot |
-| FR12 | Return experience | Not started | Child home greets by nickname; no next step. | Next-step logic (mission, due, pending request), resume state | with 2 and 5 |
-| FR13 | Family accounts and onboarding (incl. parent profile completion, ADR 0008) | **Built** | Tables `families`, `family_members`, `invitations`, `child_credentials`, `child_pin_attempts`, `usage_counters`, `audit_log`; functions `create_family`, `register_child` (consent, atomic, invitation once), `create_invitation`, `find_invitation`, `list_my_invitations`, `set_child_pin`, `verify_child_pin` (escalating lockout, equalised timing), `hit_rate_limit`, `revoke_user_sessions`; role from `app_metadata`; RLS on every table. Screens: parent sign-up with email confirm, setup, home with family code and children, add child, invite with link + code, child start, child PIN sign-in, invitation list, child switcher; parent settings (family timezone, rename, reset PIN, remove child, display name, sign out) and child settings (theme, sign out). Tests: pgTAP 219, e2e 16, unit on schemas, DAL, service. | Hosted add-child failure resolved 2026-10-29: the Vercel deployment lacked `SUPABASE_SECRET_KEY`; verified end to end against the hosted project. Should fix: password rotation on every PIN sign-in logs the child out elsewhere; global invite cap exhaustible by one IP. Minor: child sign-out landing, nickname charset, invitation retention job. | 1 |
-| FR14 | Purchases, limits, deposits, withdrawals | Not started | Nothing. | `ledger_entries` writes with D2 overspend rule, `spending_limits` (D3), `evaluate_limits`, `requests` with `reserved_save` and `available_save`, `create_request`, `decide_request`, `complete_request`; child record-purchase and request screens; parent limits, decision and handover screens | 3, 4 |
-| FR15 | Emergency funds | Not started | Nothing. | Request type `emergency` on the slice 4 machinery, jar decision | rest of pilot |
-| FR16 | Notifications | Partial | `sendEmail` Resend adapter (invitation email, optional). Bottom nav has one item per role. | `notifications`, `notification_deliveries`, inbox screen and unread badge, due and reminder jobs (D4, every 3 days), dispatcher route with batching, deep links; web push and PWA later | 5 |
+| FR01 | Allowance schedule and handover | **Built** | Weekly, monthly, every 3 months and yearly schedules; due exactly once from the hourly `generate-due-occurrences` job; change, pause (through a date or until resumed), resume, stop; handover with the Spend/Save split starting from the last split; not given (S10); one-time gifts that stay hidden from the child until handover (S2–S5); due badges on both sides; child allowance card and history. | The parent **reminder** while an allowance stays unconfirmed (needs the FR16 inbox). | 2, 5 |
+| FR02 | Personal savings goal | Not started | Nothing. | `goals`, planned split, progress and payments-remaining estimate, goal screen | rest of pilot |
+| FR03 | Spend and Save jars | Partial | `ledger_entries`, `balance()`, `list_ledger_history`; confirmed balances per jar with due shown separately; the handover records the actual split; child and parent history. | Savings deposits and withdrawals (FR14, slice 4); effect on a goal (FR02). Child split planning is deferred by decision. | 4 |
+| FR04 | Money diary | Not started | Only the ledger history view, which the diary will extend. | Child-recorded purchases and money from other sources that counts immediately, corrections with traceable history, the parent's view of the diary | 3, later |
+| FR05 | Predict before deciding | Not started | Nothing. | What-if simulation, prompt UI | rest of pilot |
+| FR06 | Interactive daily learning | Not started | Nothing. | Mission content, progress, mission player, hints, spaced return | rest of pilot |
+| FR07 | AI money guide | Later | Nothing, by decision. | — | later version |
+| FR08 | Related learning material | Not started | Nothing. | Topic content and screens, links from missions | rest of pilot |
+| FR09 | Guide boundaries | Later | Rules in `CLAUDE.md` and the agents. | — | later version |
+| FR10 | Learning progress | Not started | Nothing. | Starting questions, skill progress, separate display | rest of pilot |
+| FR11 | Weekly review | Not started | Nothing. | Review generation and screen | rest of pilot |
+| FR12 | Return experience | Not started | Homes show balances and what is due. | Next-step logic, resume state | 5, later |
+| FR13 | Family accounts and onboarding | **Built** | Families, members, invitations (link and short code), child PIN sign-in with lockout, rate limits, audit log, both onboarding paths. Parent settings in tabs: family, children (rename, reset PIN, remove per ADR 0007), and the parent's own details. Parent profile completion behind a blocking dialog (ADR 0008); reads stay open, actions are gated in the app. A child with money history keeps their account when removed. | Minor: child sign-out landing, nickname charset for combining marks, invitation retention job. | 1 |
+| FR14 | Purchases, limits, deposits, withdrawals | Not started | Nothing. | Purchases with the overspend rule (D2), limits (D3), `requests` with reservations, deposits and withdrawals, screens | 3, 4 |
+| FR15 | Emergency funds | Not started | Nothing. | `emergency` request type on the slice-4 machinery | rest of pilot |
+| FR16 | Notifications | Partial | Optional Resend email adapter (invitation email). Due badges and the parent's "Needs you" list are on screen but are not notifications. | Notifications and deliveries, inbox and badge, due and handover reminders, dispatcher, deep links, the `/api/cron` fallback; push and PWA later | 5 |
 
-## Cross-cutting, built
+## Production state (hosted database)
 
-- Design system foundation from `docs/design.md`: Nunito, tokens, light and dark with theme switch, primitives (button with loading and keycap, checkbox, select, sheet, badge, dropdown, separator), brand components (mark, wordmark, status chip), app header and bottom nav, landing page.
-- Auth hardening: `/auth/confirm` with `token_hash`, session read after `connection()`, `next` carried through sign-up, open-redirect guard.
-- Rate limiting primitive (`hit_rate_limit`, `usage_counters`) and `audit_log`.
-- CI runs local Supabase for e2e and pgTAP for migrations; Playwright refuses non-local Supabase.
-- Security: scanners cover Resend keys; session logs capture VS Code prompts and subagent reports.
-
-## Cross-cutting, not built
-
-- `ledger_entries` and every money function. No money moves anywhere yet.
-- `pg_cron`, `job_runs`, any scheduled job.
-- Demo clock (D11) and the demo seed family (slice 6).
-- `/api/health?deep=1`, error tracking, uptime monitor.
-- Hosted setup from PR #10: confirm-signup email template, redirect URLs including `http://localhost:3000/auth/callback`, "Secure password change", deletion of leftover test users.
+| Item | State |
+| --- | --- |
+| Migration history | Matches `supabase/migrations` on `main`: 19 migrations, same versions. New migrations reach production only by merging to `main`, through the Supabase GitHub integration. |
+| `generate-due-occurrences` | pg_cron, hourly at minute 5, succeeding. |
+| Child money history | `ledger_entries.child_id` is `on delete restrict`, and `remove_child` keeps the account once ledger rows exist (ADR 0007). |
+| Email confirmation | **Off.** Needs custom SMTP first; the confirmation template is commented out in `supabase/config.toml` until then, because the free tier rejects template changes and that stops the integration. Turn both back on before real families. |
 
 ## Milestone-one acceptance criteria, today
 
 | Criterion | Met |
 | --- | --- |
-| Both onboarding paths reach parent-approved state | Yes locally; hosted blocked by the add-child bug |
-| Parent sets allowance schedule and limits | No |
-| Allowance becomes due exactly once, no balance change | No |
-| Due badge and parent reminder | No |
-| Handover posts cash and savings exactly once | No |
+| Both onboarding paths reach parent-approved state | Yes |
+| Parent sets allowance schedule and limits | Partly: schedule yes, limits not started |
+| Allowance becomes due exactly once, no balance change | Yes (pgTAP `allowance_generation`, live job) |
+| Due badge on both accounts and parent reminder | Partly: badges yes, reminder needs FR16 |
+| Handover posts cash and savings exactly once | Yes (pgTAP `handover`, `handover-race` e2e) |
 | Over-limit purchase recorded and parent notified | No |
 | Withdrawal posts only after approval and handover; reservation | No |
 | Deposit posts only after receipt confirmation | No |
 | Parent gets in-app notices for request and limit breach | No |
 | Child-initiated onboarding collects only nickname and parent email | Yes |
-| Repeated or concurrent confirmations cannot duplicate | No (nothing to duplicate yet) |
-| Works with push disabled | Yes, trivially |
+| Repeated or concurrent confirmations cannot duplicate | Partly: handovers yes; requests not built |
+| Works with push disabled | Yes |
 | Unlinked account cannot act for the family | Yes (pgTAP and e2e) |
 
-Three of thirteen criteria are met. Everything else waits on the ledger.
+Six of thirteen are met and three are partly met. The rest need purchases and limits (slice 3), deposits and withdrawals (slice 4) and the inbox (slice 5).
+
+## Known follow-ups from slice 2 (non-blocking)
+
+- **Injectable clock (D11)** in the remaining time-based functions; do it right before the slice 6 demo clock.
+- **Generator timeout** leaves no `job_runs` row, because the cancelled statement rolls back the run.
+- **`allowance_next_due_on`** can show a past date between an ended pause and the next hourly run. Display only; it fixes itself on the next run.
+- **Module boundary:** the ledger repository reads `allowance_occurrences`; move history composition into `allowance`.
+- **Date helpers** are copied in four places; move them to `@/lib`.
+- **Parent home** makes about six queries per child; fine at family size.
+- **ADR 0008, amended:** money functions check parenthood but not profile completion; the app gate is the enforcement.
+
+## Tests on `main`
+
+| Suite | Count |
+| --- | --- |
+| pgTAP assertions | 456 |
+| Playwright e2e tests | 32, in 9 spec files |
+
+## Cross-cutting, built
+
+- Design system from `docs/design.md`: Nunito, tokens, light and dark themes with a one-click toggle, primitives including alert dialog, sheet and tabs, brand components including light and dark wordmarks, app shell with Home and Allowance navigation.
+- Delivery: CI (lint, typecheck, unit, build, gitleaks, pgTAP, e2e on a fresh Supabase), Vercel on `main`, the Supabase GitHub integration for migrations, squash-merge workflow.
+- Security for a public repo: secret scanners, redacted session logs, CSRF guard, owner-only personal data, internal SQL helpers not callable by API roles.
+
+## Cross-cutting, not built
+
+- Demo clock (D11) and the demo seed family (slice 6).
+- `/api/health?deep=1`, error tracking, uptime monitor.
+- Custom SMTP, the confirmation email, and the privacy notice (ADR 0008).
 
 ## Plan
 
-Order follows the spec: slice 2 unblocks everything, slices 3 and 4 are independent after it, slice 5 needs 2 to have something to notify about, slice 6 closes the milestone.
+| Step | Scope | Depends on |
+| --- | --- | --- |
+| 1–2 | Onboarding and family (FR13); allowance, gifts and handover (FR01, FR03 jars) | Done |
+| 3 | Purchases and money received in the diary (FR04), limits and the overspend rule (FR14, D2, D3) | — |
+| 4 | Savings deposits and withdrawals with reservations (FR14) | — |
+| 5 | Inbox, badge, reminders, email dispatcher, `/api/cron` fallback, next step on both homes (FR16, FR12) | 3, 4 for full coverage |
+| 6 | Demo clock, seed family, full milestone e2e on production | 3–5 |
+| 7+ | Goals, corrections, emergency funds, predict, learning track, push and PWA | 6 |
 
-| Step | Scope | Depends on | Size |
-| --- | --- | --- | --- |
-| 0a | Done 2026-10-29. Add-child on hosted failed because the Vercel deployment lacked `SUPABASE_SECRET_KEY`, not because of the `.invalid` domain or password policy (GoTrue's Admin `createUser` only syntax-checks the email). Key set on Vercel; flow verified. | — | done |
-| 0b | Done 2026-10-29 via `supabase config push` from `[remotes.production]` (PR #14). Email confirmation OFF for development; custom SMTP and the template remain open (docs/auth.md). | — | done |
-| 2 | Ledger, allowance, handover: migrations (`ledger_entries`, `allowance_schedules`, `allowance_occurrences`, `job_runs`, pg_cron), functions (`balance`, `generate_due_occurrences`, `confirm_handover` with D1 and D5), parent allowance screen per child, due list and handover sheet, child jars and schedule, due badge; pgTAP for exactly-once; e2e due → handover. `now` injectable from here on (D11). | 0a for hosted demo | 2–3 days |
-| 3 | Purchases and limits: `record_entry` with D2, `spending_limits` (D3), `evaluate_limits`, overspend toggle, child record-purchase, parent limits screen, limit notice row. | 2 | 1–2 days |
-| 4 | Withdrawals and deposits: `requests`, `reserved_save`, `available_save`, `create_request`, `decide_request`, `complete_request`; child request screens; parent decisions and handover. | 2 | 1–2 days |
-| 5 | Inbox and reminders: `notifications`, `notification_deliveries`, inbox and badge both roles, due and 3-day reminder jobs, dispatcher with Resend batching, deep links. FR12 next-step on both homes. | 2 (3, 4 for full coverage) | 1–2 days |
-| 6 | Demo hardening: clock offset UI behind `FEATURE_DEMO_CLOCK`, seed family, full milestone e2e, acceptance checklist run on hosted. | 2–5 | 1 day |
-| 7+ | Rest of pilot: goals (FR02, small after 2), gifts and corrections (FR04), emergency (FR15, small after 4), predict (FR05), learning track (FR06, FR08, FR10, FR11), push and PWA. | 6 | separate track |
-
-Suggested split: slices 3 and 4 run in parallel on two people once slice 2 merges. Each slice is one PR with a Conventional Commits title, squash-merged after review.
+Slices 3 and 4 can run in parallel. Every slice: one PR, CI green, squash merge; the integration applies its migrations. Before real families: custom SMTP and email confirmation back on.
