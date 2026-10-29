@@ -5,14 +5,20 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
+import { StepGuide } from "@/features/guide";
+import { getGuideState } from "@/features/guide/server";
 import { MissionPlayer } from "@/features/learning";
 import { getPracticeSet } from "@/features/learning/server";
 
 export const metadata: Metadata = { title: "Practice" };
 
 async function PracticeContent() {
-  await requireRole("child", routes.childPractice);
-  const [family, items] = await Promise.all([getFamily(), getPracticeSet()]);
+  const { user } = await requireRole("child", routes.childPractice);
+  const [family, items, guide] = await Promise.all([
+    getFamily(),
+    getPracticeSet(),
+    getGuideState(user.id),
+  ]);
   if (!family) notFound();
   if (items.length === 0) {
     return (
@@ -42,6 +48,7 @@ async function PracticeContent() {
         currency={family.currency}
         doneHref={routes.childLearn}
         doneLabel="Back to Learn"
+        stepAside={guide.available ? <StepGuide introNeeded={guide.introNeeded} /> : undefined}
       />
     </>
   );

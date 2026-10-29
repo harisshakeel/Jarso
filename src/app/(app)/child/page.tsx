@@ -5,6 +5,8 @@ import { routes } from "@/config";
 import { ChildAllowanceCard } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
 import { getChildNickname, requireRole } from "@/features/family/server";
+import { GuideSheet } from "@/features/guide";
+import { getGuideState } from "@/features/guide/server";
 import { NextStepCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { HistoryList, Jars } from "@/features/ledger";
@@ -30,6 +32,9 @@ async function ChildHome() {
       <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
         <NextStep childId={user.id} />
       </Suspense>
+      <Suspense fallback={null}>
+        <HomeGuide childId={user.id} />
+      </Suspense>
       <Jars jars={jars} currency={family.currency} />
       <ChildAllowanceCard
         schedule={schedule}
@@ -54,6 +59,21 @@ async function NextStep({ childId }: { childId: string }) {
     logger.warn("Next step unavailable on child home", { error: errorName(error) });
     return null;
   }
+}
+
+/** "Ask the money guide", when the parent has turned it on (FR07). */
+async function HomeGuide({ childId }: { childId: string }) {
+  const guide = await getGuideState(childId);
+  if (!guide.available) return null;
+  return (
+    <div>
+      <GuideSheet
+        context={{ entry: "home" }}
+        introNeeded={guide.introNeeded}
+        triggerLabel="Ask the money guide"
+      />
+    </div>
+  );
 }
 
 function errorName(error: unknown): string {

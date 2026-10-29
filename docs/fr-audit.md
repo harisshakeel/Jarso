@@ -1,6 +1,6 @@
-# Functional requirements audit — 2026-10-29 (slice 2 checkpoint)
+# Functional requirements audit — 2026-10-30 (learning and guide)
 
-State of `main` at `fa62b9f` (after PRs #18–#25: slice 2 allowance, gifts and handover, plus its review fixes) and of the hosted database, against `REQUIREMENTS.md` and the first-milestone spec (`docs/superpowers/specs/2026-10-28-first-milestone-design.md`). Verified from the source tree, migrations, tests, CI runs and the hosted catalog, not from PR descriptions.
+State of `main` after the slice 2 checkpoint (#18–#27) plus the learning track (#28) and the AI money guide (#29) and of the hosted database, against `REQUIREMENTS.md` and the first-milestone spec (`docs/superpowers/specs/2026-10-28-first-milestone-design.md`). Verified from the source tree, migrations, tests, CI runs and the hosted catalog, not from PR descriptions.
 
 Legend: **Built** = on `main`, usable end to end, tested, live on production · **Partial** = some pieces built, not usable for the whole requirement · **Not started** · **Later** = deferred by decision.
 
@@ -14,9 +14,9 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 | FR04 | Money diary | Not started | Only the ledger history view, which the diary will extend. | Child-recorded purchases and money from other sources that counts immediately, corrections with traceable history, the parent's view of the diary | 3, later |
 | FR05 | Predict before deciding | Not started | Nothing. | What-if simulation, prompt UI | rest of pilot |
 | FR06 | Interactive daily learning | **Built** | Seven-day journey of missions (6–8 steps: choices, amounts, a Spend/Save slider, sorting, matching, predictions, reasons) with instant feedback, two free hints, two tries, missed steps replayed at the end, progress kept between visits, and spaced practice from a review pool in new situations (boxes of 1, 3, 7, 14 days). ADR 0009. | — | learning |
-| FR07 | AI money guide | Later | Nothing, by decision. | — | later version |
-| FR08 | Related learning material | **Built** | Five topic pages with an explanation, a worked example and a practice question; missions link to them after a wrong answer and back again. Opening a topic never changes progress. | Guide answers linking to topics (with the guide). | learning |
-| FR09 | Guide boundaries | Later | Rules in `CLAUDE.md` and the agents. | — | later version |
+| FR07 | AI money guide | **Built, behind a flag** | Claude Opus 5.5 answers with Claude Haiku 5.5 input and output screens, context built from reviewed content by key; Home, topic, "Help me" and "Why?" entries; hint ladder that keeps the answer back until two tries; topic links and an optional check; thumbs up or down; rate limits, a daily budget and a circuit breaker (ADR 0010). | Switch on for real families after the eval gate passes and a UK/US legal review. | guide |
+| FR08 | Related learning material | **Built** | Five topic pages with an explanation, a worked example and a practice question; missions link to them after a wrong answer and back again; guide answers link to them. Opening a topic never changes progress. | — | learning, guide |
+| FR09 | Guide boundaries | **Built, behind a flag** | Frozen prompt with the FR09 rules; input screen (off topic, personal details, safety, unsafe, jailbreak) and output screen; reviewed fixed copy; helplines and an emergency line for safety; contact details scrubbed; parents read every chat, flagged first; 30-day text retention; public `/safety` page; 158 eval cases with a gate. | The eval run itself (needs the key), and legal review. | guide |
 | FR10 | Learning progress | **Built** | Five-question check-in before mission 1 (places, no score); skill levels Started, Practised, Got it from first-try answers, reasons and hint use; shown apart from money for the child and on the parent's learning page. | — | learning |
 | FR11 | Weekly review | Not started | Nothing. | Review generation and screen | rest of pilot |
 | FR12 | Return experience | Partial | Child Home opens on one next step: an unfinished mission, due practice, the check-in, then the next mission; missions resume at the step the child left; a weekly count of learning days with no loss message. | Goal review and pending requests in the next step (need FR02 and FR14). | learning, later |
@@ -75,6 +75,7 @@ Six of thirteen are met and three are partly met. The rest need purchases and li
 
 - Design system from `docs/design.md`: Nunito, tokens, light and dark themes with a one-click toggle, primitives including alert dialog, sheet and tabs, brand components including light and dark wordmarks, app shell with Home and Allowance navigation.
 - Delivery: CI (lint, typecheck, unit, build, gitleaks, pgTAP, e2e on a fresh Supabase), Vercel on `main`, the Supabase GitHub integration for migrations, squash-merge workflow.
+- Learning: content as reviewed JSON, progress tables written only by checked functions, spaced review (ADR 0009). The guide: screened Claude pipeline, parent switch, transcripts, retention, evals and a public `/safety` page (ADR 0010).
 - Security for a public repo: secret scanners, redacted session logs, CSRF guard, owner-only personal data, internal SQL helpers not callable by `anon` or `authenticated` (`generate_for_schedule` stays callable by `service_role` for the e2e fast-forward and the demo clock).
 
 ## Cross-cutting, not built
@@ -88,10 +89,11 @@ Six of thirteen are met and three are partly met. The rest need purchases and li
 | Step | Scope | Depends on |
 | --- | --- | --- |
 | 1–2 | Onboarding and family (FR13); allowance, gifts and handover (FR01, FR03 jars) | Done |
+| L, G | Learning track (FR06, FR08, FR10, FR12 next step; ADR 0009) and the AI money guide behind a flag (FR07, FR09; ADR 0010) | Done; guide on for real families after the eval gate and legal review |
 | 3 | Purchases and money received in the diary (FR04), limits and the overspend rule (FR14, D2, D3) | — |
 | 4 | Savings deposits and withdrawals with reservations (FR14) | — |
 | 5 | Inbox, badge, reminders, email dispatcher, `/api/cron` fallback, next step on both homes (FR16, FR12) | 3, 4 for full coverage |
 | 6 | Demo clock, seed family, full milestone e2e on production | 3–5 |
-| 7+ | Goals, corrections, emergency funds, predict, learning track, push and PWA | 6 |
+| 7+ | Goals, corrections, emergency funds, predict, weekly review, push and PWA | 6 |
 
 Slices 3 and 4 can run in parallel. Every slice: one PR, CI green, squash merge; the integration applies its migrations. Before real families: custom SMTP and email confirmation back on.

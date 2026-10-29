@@ -50,7 +50,7 @@ External dependencies and what happens when each is down:
 | pg_cron | due allowances, reminders, retention jobs | Occurrences generate late, never twice; next run catches up. |
 | Email provider | parent reminders, request notices | Inbox still has the item; delivery rows retry with backoff and dead-letter after 5 attempts. |
 | Browser push (later) | same events, opt-in | Inbox is the fallback by design (FR16). |
-| Claude API (later) | guide answers | Friendly fallback copy; topic material still available. |
+| Claude API | guide answers (ADR 0010) | Friendly fallback copy ("The guide is taking a break"); a circuit breaker after 5 failures a minute; topic material still available. |
 | Vercel | hosting | Status page; nothing to do in-app. |
 
 ## 3. Runtime view
@@ -114,7 +114,7 @@ src/
 │   ├── learning/     ✅ missions, topics, hints, spaced review, check-in, skill progress (ADR 0009)
 │   ├── reviews/         weekly review generation and next-step recommendation
 │   ├── notifications/   inbox, deliveries, channels (inbox, email, push), preferences
-│   └── guide/  (later)  Claude-backed money guide with FR09 boundaries
+│   └── guide/        ✅ Claude-backed money guide with FR09 boundaries (ADR 0010)
 ├── components/ui/      shadcn primitives + brand components (JarsoMark, JarIllustration, Money, StatusChip)
 ├── config/             routes, site, env (Zod-validated), feature flags
 ├── lib/                errors, logger, createAction, api helpers, supabase clients, money formatting

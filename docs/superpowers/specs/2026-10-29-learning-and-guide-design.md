@@ -135,13 +135,14 @@ Authoring rules: reading age about 10, at most 25 words per prompt, two-digit ar
 
 | Table | Columns (builder's call on details) | Notes |
 | --- | --- | --- |
-| `mission_attempts` | id, child_id, mission_key, content_version, status (`started`, `completed`, `abandoned`), current_step, started_at, completed_at | At most one `started` attempt per child and mission (partial unique index). |
-| `step_results` | attempt_id, step_key, phase (`main`, `replay`), answer jsonb, correct, hints_used, tries, answered_at | Unique on (attempt_id, step_key, phase), so retries are idempotent. Append-only. |
+| `mission_attempts` | id, family_id, child_id, mission_key, content_version, status (`started`, `completed`, `abandoned`), started_at, completed_at | At most one `started` attempt per child and mission (partial unique index). The resume point is derived from `step_results`, not stored. |
+| `step_results` | attempt_id, child_id, step_key, phase (`main`, `replay`), step_type, skill_key, correct, hints_used, tries, answered_at | Unique on (attempt_id, step_key, phase), so retries are idempotent. Append-only. As built, the answer itself is not stored (ADR 0009). |
 | `skill_progress` | child_id, skill_key, level, evidence counters, updated_at | Primary key (child_id, skill_key). |
-| `review_items` | child_id, skill_key, box, due_on, last_result | Primary key (child_id, skill_key). |
-| `learning_checkins` | child_id, completed_at, answers jsonb | One per child. |
+| `review_items` | child_id, skill_key, box, due_on, last_result, last_reviewed_on | Primary key (child_id, skill_key). |
+| `practice_results` | child_id, item_key, skill_key, answered_on, correct, hints_used, tries | One per item per family day. |
+| `learning_checkins` | child_id, content_version, question_count, correct_count, completed_at | One per child; the answers are not stored. |
 
-RLS: the child and the child's parents can read. Writes go only through `security definer` functions (`start_mission`, `record_step_result`, `complete_mission`, `record_review_result`, `complete_checkin`), which check that the caller is that child in an approved family. Accepted risk: grading runs in app code, so a determined child could forge their own progress by calling the functions directly. It changes nothing but their own learning stats.
+RLS: the child and the child's parents can read. Writes go only through `security definer` functions (`start_mission`, `record_step_result`, `complete_mission`, `record_practice_result`, `complete_checkin`, each capped per child), which check that the caller is that child in an approved family. Accepted risk: grading runs in app code, so a determined child could forge their own progress by calling the functions directly. It changes nothing but their own learning stats.
 
 The parent sees progress at `/parent/children/[childId]/learning`.
 

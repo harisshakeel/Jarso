@@ -6,6 +6,8 @@ import { Suspense } from "react";
 import { routes } from "@/config";
 import { DueList, GiftList, ParentAllowanceCard, upcomingGifts } from "@/features/allowance";
 import { getSchedule, listDue, listGifts } from "@/features/allowance/server";
+import { GuideCard } from "@/features/guide";
+import { countFlaggedChats, getGuideAccess } from "@/features/guide/server";
 import { LearningSummaryCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { Jars, RecentHistory } from "@/features/ledger";
@@ -49,6 +51,9 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
           <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
             <ChildLearning childId={childId} nickname={child.nickname} />
           </Suspense>
+          <Suspense fallback={null}>
+            <ChildGuide childId={childId} nickname={child.nickname} />
+          </Suspense>
         </div>
         <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
           <ChildHistory childId={childId} currency={currency} />
@@ -72,6 +77,30 @@ async function ChildLearning({ childId, nickname }: { childId: string; nickname:
   } catch (error) {
     unstable_rethrow(error);
     logger.warn("Learning card unavailable", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    return null;
+  }
+}
+
+/** The money guide switch and flagged chats, when the guide runs on this deployment. */
+async function ChildGuide({ childId, nickname }: { childId: string; nickname: string }) {
+  try {
+    const access = await getGuideAccess(childId);
+    if (!access.configured) return null;
+    const flagged = await countFlaggedChats(childId);
+    return (
+      <GuideCard
+        childId={childId}
+        nickname={nickname}
+        enabled={access.enabled}
+        flagged={flagged}
+        href={routes.parentChildGuide(childId)}
+      />
+    );
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Guide card unavailable", {
       error: error instanceof Error ? error.name : typeof error,
     });
     return null;

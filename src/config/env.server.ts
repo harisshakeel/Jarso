@@ -8,6 +8,23 @@ const schema = z.object({
   RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  // AI money guide (ADR 0010). Off unless FEATURE_GUIDE is "true" and a provider is ready.
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  FEATURE_GUIDE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  /** Daily spend cap across all children, in US cents; the guide pauses when it is reached. */
+  GUIDE_DAILY_BUDGET_CENTS: z.coerce.number().int().positive().default(1000),
+  /** "fake" answers without Claude, for e2e runs; needs GUIDE_ALLOW_FAKE and never on Vercel production. */
+  GUIDE_PROVIDER: z.enum(["anthropic", "fake"]).default("anthropic"),
+  /** A second, test-only opt-in for the fake provider, so no real host runs it by mistake. */
+  GUIDE_ALLOW_FAKE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  /** Set by Vercel: "production", "preview" or "development". */
+  VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
 });
 
 const parsed = schema.safeParse(process.env);

@@ -17,7 +17,7 @@ The Supabase **project URL** and its project ref are not secrets; they ship to e
 | --- | --- | --- |
 | `SUPABASE_SECRET_KEY` | Host env vars (server only) | `src/lib/supabase/admin.ts` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Host env vars (public) | browser + server clients |
-| Anthropic API key (future) | Host env vars (server only) | guide service only |
+| `ANTHROPIC_API_KEY` | Vercel env vars (Production, sensitive); GitHub repository secret for the eval workflow | `features/guide/server/claude.ts` only (ADR 0010) |
 | `CRON_SECRET` (future) | Host env vars | cron Route Handlers |
 | Supabase access token, project DB password | CI repository secrets | migration job |
 | Local copies | `.env.local` (gitignored) | `pnpm dev` |
@@ -45,6 +45,7 @@ All three pattern lists (`extract-log.py`, `check-secrets.sh`, `.gitleaks.toml`)
 - **Headers:** `next.config.ts` sets `nosniff`, `X-Frame-Options: DENY`, referrer policy, permissions policy and HSTS. Add a Content-Security-Policy when the first third-party script arrives.
 - **Open redirects:** `safeNextPath()` for every post-login target.
 - **Children's data:** collect the minimum (FR09, `CLAUDE.md` rule 15); never log emails, names or message bodies; the guide never asks for personal or account information. Rate-limit keys and lockout rows store SHA-256 hex of IPs and (normalised) emails, never the raw values; an invitation's `parent_email` is cleared when it is accepted.
+- **The AI guide (ADR 0010):** off per child until a parent turns it on; contact details scrubbed before a message is stored or sent; input and output screens; transcripts written only by the server; message text blanked after 30 days; logs carry route, model, tokens and latency, never message text. The key never reaches the browser and is never in a `NEXT_PUBLIC_` variable.
 - **Parents' details:** date of birth, country and gender live in `parent_details`, readable only by their owner (ADR 0008). Never log them or put them in audit details.
 - **Client IP:** `getClientIp` (`src/features/family/server/client-ip.ts`) trusts the first `x-forwarded-for` hop. That is safe only because Vercel overwrites the header with the real client address. Self-hosting or putting another proxy or CDN in front means changing it to read that platform's trusted header (or the socket address); otherwise a client can pick its own IP and dodge the per-IP limits and per-source PIN lockout.
 - **Child passwords:** children sign in with a PIN only. `/login` refuses the child email domain, and the child's random password is rotated on every PIN sign-in and PIN reset (`docs/auth.md`).

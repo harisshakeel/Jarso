@@ -7,6 +7,8 @@ export const siteConfig = {
 
 export const routes = {
   home: "/",
+  /** Public: how the AI guide keeps children safe (spec §5, G3). */
+  safety: "/safety" as Route,
   login: "/login",
   signup: "/signup",
   dashboard: "/dashboard",
@@ -27,6 +29,10 @@ export const routes = {
   parentHandover: (childId: string, kind: "allowance" | "gift", id: string) =>
     `/parent/children/${childId}/handover/${kind}/${id}` as Route,
   parentChildLearning: (childId: string) => `/parent/children/${childId}/learning` as Route,
+  /** The parent's view of a child's guide chats (ADR 0010). */
+  parentChildGuide: (childId: string) => `/parent/children/${childId}/guide` as Route,
+  parentChildGuideChat: (childId: string, conversationId: string) =>
+    `/parent/children/${childId}/guide/${conversationId}` as Route,
   child: "/child",
   /** Learn: the seven-day journey (FR06). */
   childLearn: "/child/learn" as Route,

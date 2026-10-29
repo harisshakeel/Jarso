@@ -5,6 +5,8 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
+import { StepGuide } from "@/features/guide";
+import { getGuideState } from "@/features/guide/server";
 import { MissionPlayer, topicTitles } from "@/features/learning";
 import { findMission, getMissionSession, missionTopicKey } from "@/features/learning/server";
 import { isAppError } from "@/lib";
@@ -13,11 +15,12 @@ export const metadata: Metadata = { title: "Mission" };
 
 async function MissionContent({ params }: { params: Promise<{ missionKey: string }> }) {
   const { missionKey } = await params;
-  await requireRole("child", routes.childMission(missionKey));
+  const { user } = await requireRole("child", routes.childMission(missionKey));
   const mission = findMission(missionKey);
   if (!mission) notFound();
-  const [family, session] = await Promise.all([
+  const [family, guide, session] = await Promise.all([
     getFamily(),
+    getGuideState(user.id),
     getMissionSession(mission.key).catch((error: unknown) => {
       // A locked mission sends the child back to the path rather than showing an error.
       if (isAppError(error) && error.code === "NOT_FOUND") return null;
@@ -45,6 +48,7 @@ async function MissionContent({ params }: { params: Promise<{ missionKey: string
       doneHref={routes.childLearn}
       doneLabel="Back to Learn"
       topicHref={routes.childTopic(topicKey, mission.key)}
+      stepAside={guide.available ? <StepGuide introNeeded={guide.introNeeded} /> : undefined}
     />
   );
 }
