@@ -35,7 +35,9 @@ async function ChildHome() {
         items={history}
         currency={family.currency}
         renderAction={(item) =>
-          item.canUndo && item.entryId ? <UndoButton entryId={item.entryId} /> : null
+          item.canUndo && item.entryId ? (
+            <UndoButton entryId={item.entryId} label={item.label} />
+          ) : null
         }
       />
     </>

@@ -162,7 +162,7 @@ test("with overspend on, a purchase can take Spend below zero", async () => {
 
 test("child undoes the last purchase and Spend is restored", async () => {
   const line = history().getByRole("listitem").filter({ hasText: "Game" });
-  await line.getByRole("button", { name: "Undo" }).click();
+  await line.getByRole("button", { name: "Undo Game" }).click();
   await expect(line.getByText(/Undone/)).toBeVisible();
   await expect(spendJar()).toContainText("US$400");
 });
