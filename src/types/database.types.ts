@@ -245,6 +245,11 @@ isOneToOne: false
 "is_self":
 { Args: { "p_child_id": string }; Returns: boolean
                            },
+"list_my_invitations":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "created_at": string,"expires_at": string,"id": string,"nickname": string
+            }[]
+                           },
 "register_child":
 { Args: { "p_child_id": string,"p_consent": boolean,"p_family_id": string,"p_invitation_id"?: string,"p_nickname": string,"p_pin": string }; Returns: undefined
                            },
