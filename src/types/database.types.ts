@@ -307,6 +307,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"parent_gifts": {
+                  Row: {
+                    "amount_minor": number,"cash_minor": number | null,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"give_on": string,"given_at": string | null,"given_by": string | null,"id": string,"note": string | null,"saved_minor": number | null,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_minor": number,"cash_minor"?: number | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"give_on": string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount_minor"?: number,"cash_minor"?: number | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"give_on"?: string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "parent_gifts_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parent_gifts_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parent_gifts_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "parent_gifts_given_by_fkey"
+      columns: ["given_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "avatar_url": string | null,"created_at": string,"full_name": string | null,"id": string,"nickname": string | null,"role": string,"updated_at": string
@@ -350,8 +388,14 @@ isOneToOne: false
 "balance":
 { Args: { "p_child_id": string,"p_jar": string,"p_mode"?: string }; Returns: number
                            },
+"cancel_gift":
+{ Args: { "p_gift_id": string }; Returns: string
+                           },
 "change_allowance":
 { Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
+                           },
+"confirm_gift_handover":
+{ Args: { "p_cash_minor": number,"p_gift_id": string,"p_idempotency_key": string,"p_saved_minor": number }; Returns: string
                            },
 "confirm_handover":
 { Args: { "p_cash_minor": number,"p_idempotency_key": string,"p_occurrence_id": string,"p_saved_minor": number }; Returns: string
@@ -361,6 +405,9 @@ isOneToOne: false
                            },
 "create_family":
 { Args: { "p_currency": string,"p_timezone": string }; Returns: string
+                           },
+"create_gift":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_give_on": string,"p_note": string }; Returns: string
                            },
 "create_invitation":
 { Args: { "p_code_hash": string,"p_nickname": string,"p_parent_email": string,"p_token_hash": string }; Returns: string
@@ -394,6 +441,11 @@ isOneToOne: false
 "is_self":
 { Args: { "p_child_id": string }; Returns: boolean
                            },
+"list_due_for_parent":
+{ Args: { "p_child_id": string }; Returns: {
+              "amount_minor": number,"due_on": string,"id": string,"kind": string,"note": string
+            }[]
+                           },
 "list_ledger_history":
 { Args: { "p_child_id": string,"p_limit"?: number }; Returns: {
               "amount_minor": number,"direction": string,"id": string,"jar": string,"kind": string,"label": string,"occurred_at": string,"source_id": string,"source_type": string
@@ -423,6 +475,29 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "allowance_schedules"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"lock_gift_for_parent":
+{ Args: { "p_gift_id": string }; Returns: {
+              "amount_minor": number,
+"cash_minor": number | null,
+"child_id": string,
+"created_at": string,
+"created_by": string | null,
+"family_id": string,
+"give_on": string,
+"given_at": string | null,
+"given_by": string | null,
+"id": string,
+"note": string | null,
+"saved_minor": number | null,
+"status": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "parent_gifts"
         isOneToOne: true
         isSetofReturn: false
       } },
@@ -469,6 +544,9 @@ isOneToOne: false
                            },
 "stop_allowance":
 { Args: { "p_schedule_id": string }; Returns: string
+                           },
+"update_gift":
+{ Args: { "p_amount_minor": number,"p_gift_id": string,"p_give_on": string,"p_note": string }; Returns: string
                            },
 "verify_child_pin":
 { Args: { "p_family_code": string,"p_nickname": string,"p_pin": string,"p_source_hash": string }; Returns: {
