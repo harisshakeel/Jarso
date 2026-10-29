@@ -16,7 +16,10 @@ async function HandoverContent({
   params: Promise<{ childId: string; kind: string; id: string }>;
 }) {
   const { childId, kind, id } = await params;
-  const { child, currency } = await loadChild(childId, `/parent/children/${childId}/allowance`);
+  const { child, currency } = await loadChild(
+    childId,
+    `/parent/children/${childId}/handover/${kind}/${id}`,
+  );
   const [due, last] = await Promise.all([listDue(childId), getLastSplit(childId)]);
   const item = due.find((d) => d.kind === kind && d.id === id);
 
