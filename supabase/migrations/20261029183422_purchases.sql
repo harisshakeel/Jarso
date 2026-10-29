@@ -42,7 +42,7 @@ declare
   v_rule record;
   v_start timestamptz;
   v_after numeric;
-  v_notices int;
+  v_notices int := 0;
 begin
   select * into v_e from public.ledger_entries le where le.id = p_entry_id;
   if not found or v_e.kind <> 'purchase' or v_e.mode <> 'recorded' then
@@ -58,15 +58,16 @@ begin
       and r.kind = 'spend_limit'
   loop
     if v_rule.period = 'item' then
-      if v_e.amount_minor > v_rule.amount_minor then
-        perform public.notify_parents(
+      if v_e.amount_minor > v_rule.amount_minor
+         and public.notify_parents(
           v_e.child_id, 'limit_exceeded', 'ledger_entry', v_e.id,
           'spend_limit:item:' || v_e.id::text,
           pg_catalog.jsonb_build_object(
             'amount_minor', v_e.amount_minor, 'limit_minor', v_rule.amount_minor,
             'period', v_rule.period, 'total_minor', v_e.amount_minor
           )
-        );
+        ) > 0 then
+        v_notices := v_notices + 1;
       end if;
     else
       v_start := public.rule_window_start(v_e.family_id, v_rule.period, v_e.occurred_at);
@@ -85,8 +86,8 @@ begin
         and not exists (select 1 from public.ledger_entries r where r.reverses_entry_id = le.id);
 
       -- Notify only on the purchase that first takes the window total over the limit.
-      if v_after - v_e.amount_minor <= v_rule.amount_minor and v_after > v_rule.amount_minor then
-        perform public.notify_parents(
+      if v_after - v_e.amount_minor <= v_rule.amount_minor and v_after > v_rule.amount_minor
+         and public.notify_parents(
           v_e.child_id, 'limit_exceeded', 'ledger_entry', v_e.id,
           -- Local date of the window start, so the key never depends on the session timezone.
           'spend_limit:' || v_rule.period || ':' || (v_start at time zone v_tz)::date::text,
@@ -94,25 +95,19 @@ begin
             'amount_minor', v_e.amount_minor, 'limit_minor', v_rule.amount_minor,
             'period', v_rule.period, 'total_minor', v_after::bigint
           )
-        );
+        ) > 0 then
+        v_notices := v_notices + 1;
       end if;
     end if;
   end loop;
 
   -- Rules whose notice this purchase actually wrote (a repeat window is deduplicated).
-  select pg_catalog.count(distinct n.window_key)::int
-  into v_notices
-  from public.notifications n
-  where n.kind = 'limit_exceeded'
-    and n.source_type = 'ledger_entry'
-    and n.source_id = v_e.id;
-
   return v_notices;
 end;
 $$;
 
 comment on function public.evaluate_spend_limits(uuid) is
-  'Internal, no grants. For each spend_limit rule of the purchase''s child: item notifies when the amount is over the limit (window spend_limit:item:<entry>); week/month notify when this purchase takes the window total (every live purchase in the window, this one included) over the limit (window spend_limit:<period>:<local window start date>). Returns the number of rules noticed for this entry. Call under the child''s ledger lock.';
+  'Internal, no grants. For each spend_limit rule of the purchase''s child: item notifies when the amount is over the limit (window spend_limit:item:<entry>); week/month notify when this purchase takes the window total (every live purchase in the window, this one included) over the limit (window spend_limit:<period>:<local window start date>). Returns the number of rules whose notice this purchase wrote (from notify_parents row counts). Call under the child''s ledger lock.';
 
 -- ---------------------------------------------------------------------------
 -- record_purchase

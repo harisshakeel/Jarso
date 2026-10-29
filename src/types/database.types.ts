@@ -665,10 +665,10 @@ isOneToOne: false
 { Args: { "p_occurrence_id": string }; Returns: string
                            },
 "notify_child":
-{ Args: { "p_child_id": string,"p_kind": string,"p_payload": Json,"p_source_id": string,"p_source_type": string,"p_window_key": string }; Returns: undefined
+{ Args: { "p_child_id": string,"p_kind": string,"p_payload": Json,"p_source_id": string,"p_source_type": string,"p_window_key": string }; Returns: number
                            },
 "notify_parents":
-{ Args: { "p_child_id": string,"p_kind": string,"p_payload": Json,"p_source_id": string,"p_source_type": string,"p_window_key": string }; Returns: undefined
+{ Args: { "p_child_id": string,"p_kind": string,"p_payload": Json,"p_source_id": string,"p_source_type": string,"p_window_key": string }; Returns: number
                            },
 "pause_allowance":
 { Args: { "p_message": string,"p_schedule_id": string,"p_through": string }; Returns: string

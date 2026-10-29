@@ -52,11 +52,15 @@ create or replace function public.notify_parents(
   p_window_key text,
   p_payload jsonb
 )
-returns void
-language sql
+returns int
+language plpgsql
+volatile
 security definer
 set search_path = ''
 as $$
+declare
+  v_inserted int;
+begin
   insert into public.notifications (family_id, recipient_id, child_id, kind, source_type, source_id, window_key, payload)
   select p.family_id, p.profile_id, p_child_id, p_kind, p_source_type, p_source_id, p_window_key,
          coalesce(p_payload, '{}'::jsonb)
@@ -68,10 +72,13 @@ as $$
     and p.role = 'parent'
     and p.status = 'approved'
   on conflict do nothing;
+  get diagnostics v_inserted = row_count;
+  return v_inserted;
+end;
 $$;
 
 comment on function public.notify_parents(uuid, text, text, uuid, text, jsonb) is
-  'Internal, no grants. One notification per approved parent of the child''s family; a repeat of the same window_key is a no-op.';
+  'Internal, no grants. One notification per approved parent of the child''s family; a repeat of the same window_key is a no-op. Returns the number of rows inserted.';
 
 create or replace function public.notify_child(
   p_child_id uuid,
@@ -81,11 +88,15 @@ create or replace function public.notify_child(
   p_window_key text,
   p_payload jsonb
 )
-returns void
-language sql
+returns int
+language plpgsql
+volatile
 security definer
 set search_path = ''
 as $$
+declare
+  v_inserted int;
+begin
   insert into public.notifications (family_id, recipient_id, child_id, kind, source_type, source_id, window_key, payload)
   select c.family_id, c.profile_id, c.profile_id, p_kind, p_source_type, p_source_id, p_window_key,
          coalesce(p_payload, '{}'::jsonb)
@@ -94,10 +105,13 @@ as $$
     and c.role = 'child'
     and c.status = 'approved'
   on conflict do nothing;
+  get diagnostics v_inserted = row_count;
+  return v_inserted;
+end;
 $$;
 
 comment on function public.notify_child(uuid, text, text, uuid, text, jsonb) is
-  'Internal, no grants. One notification to the approved child; a repeat of the same window_key is a no-op.';
+  'Internal, no grants. One notification to the approved child; a repeat of the same window_key is a no-op. Returns the number of rows inserted.';
 
 revoke execute on function public.notify_parents(uuid, text, text, uuid, text, jsonb) from public, anon, authenticated;
 revoke execute on function public.notify_child(uuid, text, text, uuid, text, jsonb) from public, anon, authenticated;
