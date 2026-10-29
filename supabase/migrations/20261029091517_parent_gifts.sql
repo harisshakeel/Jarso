@@ -271,6 +271,9 @@ begin
     raise exception using errcode = '22023', message = 'Invalid handover amounts';
   end if;
 
+  -- Lock order: the gift row first (above), then the child's ledger advisory lock.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('ledger:' || v_g.child_id::text, 0));
+
   v_label := coalesce(v_g.note, 'Gift');
 
   if p_cash_minor > 0 then

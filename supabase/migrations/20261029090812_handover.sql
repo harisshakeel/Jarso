@@ -55,6 +55,11 @@ begin
     raise exception using errcode = '22023', message = 'Invalid handover amounts';
   end if;
 
+  -- Lock order for every ledger writer: the source row first (above), then the child's
+  -- ledger advisory lock, never the reverse. Later balance checks (purchases, savings
+  -- requests) rely on it to serialise writes per child.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('ledger:' || v_o.child_id::text, 0));
+
   if p_cash_minor > 0 then
     insert into public.ledger_entries (
       family_id, child_id, mode, jar, kind, direction, amount_minor, label,

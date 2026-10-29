@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(73);
+select plan(74);
 
 select tests.create_user('pa@example.com') as pa \gset
 select tests.create_user('pb@example.com') as pb \gset
@@ -153,6 +153,7 @@ select throws_ok(
   '22023', null, 'gift saved above the maximum rejected');
 select is(public.cancel_gift(:'g6'::uuid), :'g6'::uuid, 'the oversize test gift is cancelled');
 select is(public.confirm_gift_handover(:'g5'::uuid, 60000, 40000, 'k5'), 'confirmed', 'exactly 100x planned accepted');
+select is(tests.holds_ledger_lock(:'c1'::uuid), true, 'gift confirm takes the child''s ledger advisory lock');
 select is(
   (select string_agg(jar || ':' || amount_minor || ':' || label, ',' order by jar)
    from public.ledger_entries where source_id = :'g5'::uuid),

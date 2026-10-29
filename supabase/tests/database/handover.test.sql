@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(30);
+select plan(32);
 
 select tests.create_user('pa@example.com') as pa \gset
 select tests.create_user('pb@example.com') as pb \gset
@@ -50,7 +50,9 @@ select tests.authenticate_as(:'pa'::uuid);
 select is(public.balance(:'c1'::uuid, 'spend'), 0::bigint, 'due money is not in balance before confirmation');
 
 -- Confirm 300 + 200
+select is(tests.holds_ledger_lock(:'c1'::uuid), false, 'no ledger lock before a handover');
 select is(public.confirm_handover(:'o1'::uuid, 300, 200, 'k1'), 'confirmed', 'confirm returns confirmed');
+select is(tests.holds_ledger_lock(:'c1'::uuid), true, 'confirm takes the child''s ledger advisory lock');
 select is(public.balance(:'c1'::uuid, 'spend'), 300::bigint, 'spend balance 300');
 select is(public.balance(:'c1'::uuid, 'save'), 200::bigint, 'save balance 200');
 select is(

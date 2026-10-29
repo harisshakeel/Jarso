@@ -45,4 +45,19 @@ begin
 end;
 $$;
 
+-- True when this session holds the per-child ledger advisory lock (bigint key form).
+create or replace function tests.holds_ledger_lock(child_id uuid)
+returns boolean
+language sql
+as $$
+  select exists (
+    select 1 from pg_locks l
+    where l.locktype = 'advisory'
+      and l.pid = pg_backend_pid()
+      and l.objsubid = 1
+      and l.classid::bigint = (hashtextextended('ledger:' || child_id::text, 0) >> 32) & 4294967295
+      and l.objid::bigint = hashtextextended('ledger:' || child_id::text, 0) & 4294967295
+  );
+$$;
+
 grant usage on schema tests to authenticated, anon;
