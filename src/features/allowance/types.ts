@@ -26,6 +26,9 @@ export type DueItem = {
   note: string | null;
 };
 
+/** A due item with the child it is for, for lists across the whole family. */
+export type ChildDueItem = DueItem & { childId: string; nickname: string };
+
 export type GiftStatus = "pending" | "given" | "cancelled";
 
 export type Gift = {
