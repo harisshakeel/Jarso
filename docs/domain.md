@@ -15,7 +15,10 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Allowance | Parent-set amount + frequency (weekly/monthly/quarterly/annual). |
 | Due allowance | One scheduled occurrence, created automatically, awaiting handover. Shows a due badge. Not balance. |
 | Handover confirmation | Parent's one-screen record of cash given to the child (→ Spend) and amount kept as savings (→ Save). The only way allowance reaches a balance. |
-| Planned split | Child's intended Spend/Save split per allowance. Prefills the handover screen and drives goal estimates. |
+| Gift (from a parent) | One-time extra money the parent initiates, optionally dated in the future, with a note. Hidden from the child until handed over, then shown in history. Posts as `parent_gift_in` on handover confirmation. No shortfall. |
+| Gift (from others) | Money the child records receiving from other sources (FR04). Child-recorded, counts immediately, kind `gift_in`. Not the same as a parent gift. |
+| Paused / stopped allowance | Paused: no period falling in the pause becomes due, and skipped periods are not paid later; resumes after a set date or when the parent resumes it. Stopped: schedule ended for good. Occurrences already due stay due in both cases. The child sees the state and the parent's optional message. |
+| Planned split | *Deferred.* Child's intended Spend/Save split per allowance. In the pilot the parent decides the split at handover, prefilled from the previous handover. |
 | Practice money | Fictional money for learning. Never mixed with recorded money. |
 | Recorded money | Money tracked in Jarso's ledger (confirmed handovers, gifts, purchases, grants). |
 | Jar | `spend` (cash the child holds) or `save` (money the parent keeps). Balance derived from ledger entries. |
@@ -54,7 +57,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 
 1. Money is integer **minor units**. No floats anywhere in money math.
 2. Practice and recorded money never combine in a balance, total, or goal.
-3. Allowance, savings-deposit, savings-withdrawal and emergency money reach the ledger only through a parent's handover or receipt confirmation. Due and pending amounts never count as balance. Gifts the child records post immediately.
+3. Allowance, parent-gift, savings-deposit, savings-withdrawal and emergency money reach the ledger only through a parent's handover or receipt confirmation. Due and pending amounts never count as balance. Gifts the child records post immediately.
 4. Each scheduled occurrence is created once and confirmed at most once. Each request posts at most once. Every balance-changing write carries an idempotency key.
 5. Pending, approved-not-handed-over, cancelled and rejected requests never touch the ledger. Handover and its ledger entry commit together.
 6. Limits never block a purchase. A limit breach produces a notice, not a rejection. Separately, a purchase that would take Spend below zero is refused unless the parent allows overspending (D2).
@@ -68,4 +71,5 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 14. Notifications are derived from records; delivery failure never loses or reverses an action.
 15. Role and parent–child links are assigned server-side. No user-writable input (profile update, sign-up metadata, API body) can set or change them.
 16. Child-initiated onboarding stores only a nickname and the parent's email until the parent approves.
-17. *(When the guide ships)* Guide never asks for personal/account info, recommends investments, or tells the child to buy something (FR09).
+17. A pending parent gift is invisible to the child: no row, count, total or date reaches a child session. Enforced by RLS and by keeping parent-only aggregates out of child reach.
+18. *(When the guide ships)* Guide never asks for personal/account info, recommends investments, or tells the child to buy something (FR09).
