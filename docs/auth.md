@@ -8,7 +8,7 @@ Supabase Auth with cookie sessions via `@supabase/ssr`.
 | --- | --- | --- |
 | Proxy | `src/proxy.ts`, `src/lib/supabase/proxy.ts` | Refreshes the session cookie on every request. **Optimistic** redirects: signed-out → `/sign-in/child` for `/child`, `/login?next=…` (query kept) for other `protectedRoutePrefixes`; signed-in → `/dashboard` for auth pages. |
 | DAL | `src/features/auth/server/session.ts` | `getCurrentUser()` verifies the JWT (`getClaims`) and returns a narrow `SessionUser`. `requireUser(path)` for pages (redirects to `/login?next=<path>`), `assertUser()` for actions/APIs (throws 401). Memoised per request. It calls `connection()` first: partial prefetching would otherwise prerender it, and auth-js reads `Date.now()` in `getClaims()`. |
-| Roles DAL | `src/features/family/server/dal.ts` | `requireRole(role, path)` for pages, `assertRole(role)` / `assertParentOf(childId)` for actions. Role comes from the approved membership, else the server-set `profiles.role`. Memoised per request. |
+| Roles DAL | `src/features/family/server/dal.ts` | `requireRole(role, path)` for pages, `assertRole(role)` / `assertParentOf(childId)` for actions. Role comes from the approved membership, else the server-set `profiles.role`. Memoised per request. `assertRole("parent")` also refuses a parent without a completed profile (ADR 0008); use it for every new parent action. |
 | RLS | `supabase/migrations/*` | Final authority. Even a bug in app code cannot read another user's rows. |
 
 **Proxy is not security.** Every page, action and route handler that touches user data must call `requireUser()` / `assertUser()`.

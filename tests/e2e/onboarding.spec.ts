@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
-import { expireAccessToken } from "./helpers";
+import { completeParentProfile, expireAccessToken } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -48,6 +48,7 @@ async function signUpParent(page: Page, name: string, email: string): Promise<vo
   await page.getByRole("button", { name: "Create account" }).click();
   // Local stack has email confirmation off, so sign-up returns a session straight away.
   await expect(page).toHaveURL(at("/parent/setup"));
+  await completeParentProfile(page);
 }
 
 async function createFamily(page: Page): Promise<string> {
