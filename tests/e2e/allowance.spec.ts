@@ -135,7 +135,7 @@ test("parent pauses with a message, then resumes", async () => {
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   const sheet = page.getByRole("dialog");
   await sheet.getByLabel("Message for Sam (optional)").fill("Paused while we're on holiday");
-  await expect(sheet.getByText(/Missed weeks aren't paid later/)).toBeVisible();
+  await expect(sheet.getByText(/Missed allowances aren't paid later/)).toBeVisible();
   await sheet.getByText("I resume it").click();
   await sheet.getByRole("button", { name: "Pause", exact: true }).click();
 
