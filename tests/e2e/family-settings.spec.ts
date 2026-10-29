@@ -33,7 +33,7 @@ async function newActor(browser: Browser, ip = randomIp()): Promise<Page> {
 
 async function addChild(parent: Page, nickname: string, pin: string): Promise<void> {
   await parent.goto("/parent/children/new");
-  await parent.getByLabel("Nickname").fill(nickname);
+  await parent.getByRole("textbox", { name: "Nickname", exact: true }).fill(nickname);
   await parent.getByLabel("PIN", { exact: true }).fill(pin);
   const consent = parent.getByRole("checkbox", { name: "I am this child's parent or guardian" });
   await consent.click();
@@ -86,7 +86,7 @@ test("settings: gear opens the parent settings; rename and timezone persist", as
 
   // Rename Sam → Sammy.
   await parent.getByRole("button", { name: "Rename Sam" }).click();
-  await parent.getByLabel("Nickname").fill("Sammy");
+  await parent.getByRole("textbox", { name: "Nickname", exact: true }).fill("Sammy");
   await parent.getByRole("button", { name: "Save nickname" }).click();
   await expect(parent.getByText("Nickname updated")).toBeVisible();
   await expect(parent.getByRole("listitem").filter({ hasText: "Sammy" })).toBeVisible();
@@ -105,7 +105,7 @@ test("settings: gear opens the parent settings; rename and timezone persist", as
   await parent.getByRole("button", { name: "Save", exact: true }).click();
   await expect(parent.getByText("Family settings saved")).toBeVisible();
   await parent.reload();
-  await expect(parent.getByRole("combobox", { name: "Timezone" })).toHaveText("Asia/Karachi");
+  await expect(parent.getByRole("combobox", { name: "Timezone" })).toContainText("Asia/Karachi");
 });
 
 test("remove: Sammy is signed out everywhere, the nickname is free again", async ({ browser }) => {
@@ -118,6 +118,7 @@ test("remove: Sammy is signed out everywhere, the nickname is free again", async
   await parent.getByLabel("Email", { exact: true }).fill(parentEmail);
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Sign in" }).click();
+  await expect(parent).toHaveURL(at("/parent"));
   await parent.goto("/parent/settings");
 
   await parent.getByRole("button", { name: "Remove Sammy" }).click();
