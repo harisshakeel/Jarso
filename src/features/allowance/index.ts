@@ -5,6 +5,7 @@ export * from "./components/child-allowance-card";
 export * from "./components/due-list";
 export * from "./components/gift-form";
 export * from "./components/handover-form";
+export * from "./components/parent-allowance-card";
 export * from "./components/pause-sheet";
 export * from "./describe";
 export * from "./schemas";

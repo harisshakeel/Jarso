@@ -1,5 +1,5 @@
 import { minorDigits } from "@/lib";
-import type { Frequency, Split } from "./types";
+import type { Frequency, Schedule, Split } from "./types";
 
 const DEFAULT_LOCALE = "en-GB";
 const ordinalRules = new Intl.PluralRules("en", { type: "ordinal" });
@@ -91,4 +91,25 @@ export function prefillSplit(amountMinor: number, last: Split | null): Split {
   // BigInt keeps the product exact for any safe-integer amounts.
   const saved = Number((BigInt(amountMinor) * BigInt(last.saved)) / BigInt(total));
   return { cash: amountMinor - saved, saved };
+}
+
+/**
+ * Where an allowance stands, in one short line for parent lists: "Next: 2 Nov",
+ * "Paused until 9 Nov", "Paused", "Stopped" or "No allowance yet".
+ */
+export function describeAllowanceState(
+  schedule: Schedule | null,
+  locale: string = DEFAULT_LOCALE,
+): string {
+  if (!schedule) return "No allowance yet";
+  switch (schedule.status) {
+    case "stopped":
+      return "Stopped";
+    case "paused":
+      return schedule.pausedThrough
+        ? `Paused until ${formatDay(schedule.pausedThrough, locale)}`
+        : "Paused";
+    case "active":
+      return schedule.nextDueOn ? `Next: ${formatDay(schedule.nextDueOn, locale)}` : "Active";
+  }
 }

@@ -29,8 +29,8 @@ async function HandoverContent({
         <Card className="rise-in">
           <CardContent className="grid gap-4">
             <p className="font-bold">Already handled</p>
-            <Link href={routes.parentAllowance(childId)} className={buttonVariants({ size: "lg" })}>
-              Back to {child.nickname}'s allowance
+            <Link href={routes.parentChild(childId)} className={buttonVariants({ size: "lg" })}>
+              Back to {child.nickname}
             </Link>
           </CardContent>
         </Card>

@@ -29,8 +29,8 @@ async function EditGiftContent({
         <Card className="rise-in">
           <CardContent className="grid gap-4">
             <p>This gift was already handed over or cancelled.</p>
-            <Link href={routes.parentAllowance(childId)} className={buttonVariants({ size: "lg" })}>
-              Back to {child.nickname}'s allowance
+            <Link href={routes.parentChild(childId)} className={buttonVariants({ size: "lg" })}>
+              Back to {child.nickname}
             </Link>
           </CardContent>
         </Card>
