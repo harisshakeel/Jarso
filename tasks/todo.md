@@ -28,3 +28,23 @@ Tailwind v4 + shadcn/ui, Supabase (`@supabase/ssr`), Zod, Biome, Husky, Vitest, 
 
 - `pnpm lint` ✅ · `pnpm typecheck` ✅ · `pnpm test` 12/12 ✅ · `pnpm build` ✅ · Playwright smoke 3/3 ✅ (against prod server, placeholder Supabase env)
 - Not verified: migrations against a live local Supabase (Docker not started); CI workflows not yet run on GitHub.
+
+# Slice 1 follow-ups (after PRs #9, #10)
+
+## Blocking
+- [ ] Add child fails on hosted: GoTrue admin `createUser` errors (local OK). Get the logged code (`Child auth user creation failed`): `email_address_invalid` → change synthetic child email domain (ADR 0004, `childEmail`, sign-in/up domain checks); `weak_password` → reset hosted password rules or mixed-class token.
+
+## Should fix
+- [ ] Password rotation on every PIN sign-in signs the child out of other devices (GoTrue logs out all sessions on password change). Rotate only on PIN reset; rely on hosted "Secure password change".
+- [ ] `invite:global` exhaustible by one IP: denied requests still increment. Check global cap only after per-IP/per-email limits pass.
+
+## Hosted setup (user)
+- [ ] `pnpm db:push` (6 migrations); confirm `revoke_user_sessions` can delete `auth.sessions`.
+- [ ] Confirm-signup email template from docs/auth.md → Hosted setup.
+- [ ] Redirect URLs `<app>/auth/callback**`.
+- [ ] Enable "Secure password change"; keep default password strength.
+- [ ] Delete leftover test users (`smoke…@gmail.com`, `child.jarso`).
+
+## Later
+- [ ] Retention cron for expired invitations + old `usage_counters` (slice 2, pg_cron).
+- [ ] Deferred minors: orphan auth user on ambiguous create; child sign-out landing; nickname charset rejects combining marks; `nicknameConflict` maps every CONFLICT; 5th wrong PIN copy; `findProfileRole` default; FK `on delete`; DAL unit tests.

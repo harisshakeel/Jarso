@@ -5,19 +5,36 @@ import { useActionState, useState } from "react";
 import { Field, FieldError, FormError } from "@/components/form";
 import { Button, buttonVariants, Checkbox, Label } from "@/components/ui";
 import { routes } from "@/config";
-import { idle } from "@/lib";
-import { acceptInvitationAction } from "../server/actions";
+import { type ActionResult, type ActionState, idle } from "@/lib";
+import { acceptInvitationAction, acceptListedInvitationAction } from "../server/actions";
+
+/** Both accept actions, as this form calls them: always with FormData. */
+type SubmitAction = (state: ActionState<never>, payload: FormData) => Promise<ActionResult<never>>;
 
 type AcceptInvitationFormProps = {
-  /** The link token or code the page already resolved; re-checked by the action. */
-  invite: string;
   /** Nickname the child chose; the parent can change it. */
   nickname: string;
-};
+} & (
+  | {
+      /** The link token or code the page already resolved; re-checked by the action. */
+      invite: string;
+      invitationId?: never;
+    }
+  | {
+      /** An invitation from the parent's own list; the action re-checks it is still theirs. */
+      invitationId: string;
+      invite?: never;
+    }
+);
 
 /** Parent approves a child-started invitation: nickname, PIN and consent, like Add a child. */
-export function AcceptInvitationForm({ invite, nickname: suggested }: AcceptInvitationFormProps) {
-  const [state, action, pending] = useActionState(acceptInvitationAction, idle);
+export function AcceptInvitationForm({
+  invite,
+  invitationId,
+  nickname: suggested,
+}: AcceptInvitationFormProps) {
+  const submit: SubmitAction = invitationId ? acceptListedInvitationAction : acceptInvitationAction;
+  const [state, action, pending] = useActionState(submit, idle);
   // Controlled so they survive a failed submit (React resets uncontrolled fields); the PIN clears.
   const [nickname, setNickname] = useState(suggested);
   const [consent, setConsent] = useState(false);
@@ -26,7 +43,11 @@ export function AcceptInvitationForm({ invite, nickname: suggested }: AcceptInvi
 
   return (
     <form action={action} className="grid gap-6" noValidate>
-      <input type="hidden" name="invite" value={invite} />
+      {invitationId ? (
+        <input type="hidden" name="invitationId" value={invitationId} />
+      ) : (
+        <input type="hidden" name="invite" value={invite} />
+      )}
       <Field
         name="nickname"
         label="Nickname"

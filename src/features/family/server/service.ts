@@ -13,12 +13,13 @@ import {
 } from "../codes";
 import type {
   AcceptInvitationInput,
+  AcceptListedInvitationInput,
   ChildSignInInput,
   CreateFamilyInput,
   SetChildPinInput,
   StartChildOnboardingInput,
 } from "../schemas";
-import type { ChildSummary, Family } from "../types";
+import type { ChildSummary, Family, PendingInvitation } from "../types";
 import {
   createChildAuthUser,
   deleteChildAuthUser,
@@ -34,6 +35,7 @@ import {
   insertFamily,
   insertInvitation,
   listChildMembers,
+  listInvitationsForCaller,
   registerChild,
   revokeUserSessions,
   updateChildPin,
@@ -185,18 +187,55 @@ export async function findInvitation(
   );
 }
 
+/**
+ * Pending invitations sent to the signed-in parent's own confirmed email, newest first.
+ * list_my_invitations runs as the parent and filters by their auth email in the database.
+ */
+export async function listMyInvitations(): Promise<PendingInvitation[]> {
+  await assertRole("parent");
+  return listInvitationsForCaller(await createClient());
+}
+
+/**
+ * One invitation from the parent's own list, or null. This is what lets an invitation id be used
+ * at all: an id that isn't addressed to this parent never resolves, wherever it came from.
+ */
+export async function findMyInvitation(
+  id: string,
+): Promise<{ id: string; nickname: string } | null> {
+  const match = (await listMyInvitations()).find((invitation) => invitation.id === id);
+  return match ? { id: match.id, nickname: match.nickname } : null;
+}
+
+/** Accept via a pasted link token or short code. */
 export async function acceptInvitation(input: AcceptInvitationInput): Promise<ChildSummary> {
+  const familyId = await requireFamilyId();
+  return registerFromInvitation(familyId, await findInvitation(input.invite), input);
+}
+
+/** Accept from the parent's own invitations list (by id, re-checked against that list). */
+export async function acceptListedInvitation(
+  input: AcceptListedInvitationInput,
+): Promise<ChildSummary> {
+  const familyId = await requireFamilyId();
+  return registerFromInvitation(familyId, await findMyInvitation(input.invitationId), input);
+}
+
+async function requireFamilyId(): Promise<string> {
   const { membership } = await assertRole("parent");
   if (!membership) throw new AppError("FORBIDDEN", "Set up your family first.");
+  return membership.familyId;
+}
 
-  const invitation = await findInvitation(input.invite);
-  if (!invitation) {
-    throw new AppError("NOT_FOUND", INVITATION_GONE);
-  }
-
+async function registerFromInvitation(
+  familyId: string,
+  invitation: { id: string; nickname: string } | null,
+  input: { nickname?: string; pin: string; consent: boolean },
+): Promise<ChildSummary> {
+  if (!invitation) throw new AppError("NOT_FOUND", INVITATION_GONE);
   try {
     return await addChild({
-      familyId: membership.familyId,
+      familyId,
       nickname: input.nickname ?? invitation.nickname,
       pin: input.pin,
       consent: input.consent,

@@ -145,32 +145,40 @@ def get_project_session_dir(cwd: Path) -> Path:
     return claude_dir / project_hash
 
 
-def is_user_prompt(entry: dict) -> bool:
-    """Check if entry is a real user prompt (not meta/command/tool result)."""
+# Context the IDE and harness attach to a prompt; not typed by the user.
+_INJECTED_BLOCKS = re.compile(
+    r'<(ide_opened_file|ide_selection|system-reminder)>[\s\S]*?</\1>\s*'
+)
+# Harness events delivered as user turns (background-task and agent notifications).
+_HARNESS_PREFIXES = ('<command-name>', '<local-command', 'Caveat:', '<task-notification>',
+                     'Another Claude session sent a message')
+
+
+def user_prompt_text(entry: dict) -> Optional[str]:
+    """The text a person typed, or None for meta turns, tool results and harness events.
+
+    The VS Code extension sends prompts as a list of text blocks (prompt plus IDE context),
+    the CLI as a plain string; both are handled.
+    """
     if entry.get('type') != 'user':
-        return False
+        return None
     if entry.get('isMeta') or entry.get('isSidechain'):
-        return False
+        return None
 
     content = entry.get('message', {}).get('content', '')
-
     if isinstance(content, list):
-        if any(c.get('type') == 'tool_result' for c in content):
-            return False
-        return False
+        if any(block.get('type') == 'tool_result' for block in content):
+            return None
+        content = '\n\n'.join(
+            block.get('text', '') for block in content if block.get('type') == 'text'
+        )
+    if not isinstance(content, str):
+        return None
 
-    if isinstance(content, str):
-        if content.startswith('<command-name>'):
-            return False
-        if content.startswith('<local-command'):
-            return False
-        if content.startswith('Caveat:'):
-            return False
-        if not content.strip():
-            return False
-        return True
-
-    return False
+    text = _INJECTED_BLOCKS.sub('', content).strip()
+    if not text or text.startswith(_HARNESS_PREFIXES):
+        return None
+    return text
 
 
 def extract_assistant_text(entry: dict) -> Optional[str]:
@@ -211,10 +219,9 @@ def extract_clean_log(jsonl_path: Path) -> List[Tuple[str, str, str]]:
 
         timestamp = entry.get('timestamp', '')
 
-        if is_user_prompt(entry):
-            content = entry.get('message', {}).get('content', '')
-            if isinstance(content, str) and content.strip():
-                entries.append((timestamp, 'user', redact(content.strip())))
+        prompt = user_prompt_text(entry)
+        if prompt:
+            entries.append((timestamp, 'user', redact(prompt)))
 
         elif entry.get('type') == 'assistant':
             text = extract_assistant_text(entry)
@@ -339,6 +346,78 @@ def calculate_session_stats(entries: List[Tuple[str, str, str]]) -> Dict[str, An
     return stats
 
 
+def extract_subagent_log(jsonl_path: Path) -> List[Tuple[str, str, str]]:
+    """Prompts sent to a subagent and its replies.
+
+    Prompts are the plain-text user turns (the dispatch, then any follow-up messages); harness
+    reminders are skipped. Replies are the final reports a subagent hands back through the
+    SubagentHandback tool, or plain assistant text for agents that answer directly.
+    """
+    entries = []
+    for line in jsonl_path.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        timestamp = entry.get('timestamp', '')
+        content = entry.get('message', {}).get('content')
+
+        if entry.get('type') == 'user' and isinstance(content, str):
+            text = content.strip()
+            if text and not text.startswith('<system-reminder>'):
+                entries.append((timestamp, 'user', redact(text)))
+        elif entry.get('type') == 'assistant' and isinstance(content, list):
+            for block in content:
+                if block.get('type') == 'tool_use' and block.get('name') == 'SubagentHandback':
+                    message = str(block.get('input', {}).get('message', '')).strip()
+                    if message:
+                        entries.append((timestamp, 'assistant', redact(message)))
+                elif block.get('type') == 'text' and block.get('text', '').strip():
+                    entries.append((timestamp, 'assistant', redact(block['text'].strip())))
+    return entries
+
+
+def subagent_sections(session_dir: Path, session_id: str) -> List[str]:
+    """Markdown sections, one per subagent of this session, oldest first."""
+    subagent_dir = session_dir / session_id / 'subagents'
+    if not subagent_dir.is_dir():
+        return []
+
+    agents = []
+    for jsonl_path in subagent_dir.glob('agent-*.jsonl'):
+        entries = dedupe_entries(extract_subagent_log(jsonl_path))
+        if entries:
+            agents.append((entries[0][0], jsonl_path, entries))
+    agents.sort(key=lambda agent: agent[0])
+
+    lines = []
+    for _, jsonl_path, entries in agents:
+        meta_path = jsonl_path.with_name(f"{jsonl_path.stem}.meta.json")
+        try:
+            meta = json.loads(meta_path.read_text())
+        except (OSError, json.JSONDecodeError):
+            meta = {}
+        agent_id = jsonl_path.stem.removeprefix('agent-')
+        description = redact(str(meta.get('description', ''))) or agent_id
+
+        lines.append(f"\n## Subagent: {description}\n")
+        lines.append(f"agent_id: {agent_id} | type: {meta.get('agentType', 'unknown')} | "
+                     f"model: {meta.get('model', 'default')} | finished: {meta.get('finished', False)}")
+        exchange_num = 0
+        for timestamp, role, content in entries:
+            if role == 'user':
+                exchange_num += 1
+            kind = 'SUBAGENT_PROMPT' if role == 'user' else 'SUBAGENT_RESPONSE'
+            lines.append(f"\n[CLAUDE_LOG_ENTRY type={kind} num={exchange_num} session={session_id} agent={agent_id}]")
+            lines.append(f"timestamp: {timestamp}")
+            lines.append(f"time: {format_timestamp(timestamp)}")
+            lines.append(f"chars: {len(content)}")
+            lines.append(f"\n{content}\n")
+    return lines
+
+
 def main():
     cwd = Path(os.environ.get('CLAUDE_CWD', os.getcwd()))
     session_dir = get_project_session_dir(cwd)
@@ -444,6 +523,13 @@ def main():
             lines.append(f"time: {time_str}")
             lines.append(f"chars: {len(content)}")
             lines.append(f"\n{content}\n")
+
+    subagents = subagent_sections(session_dir, session_id)
+    if subagents:
+        lines.append("\n---\n")
+        lines.append("# Subagents\n")
+        lines.append("Dispatch prompts sent to each subagent and the reports it handed back, oldest first.")
+        lines.extend(subagents)
 
     output_path.write_text(redact('\n'.join(lines)))
 

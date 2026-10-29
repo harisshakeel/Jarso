@@ -57,6 +57,6 @@ All Claude configuration lives in this repo — `.claude/settings.json`, `.claud
 
 ## Session Logs
 
-`.claude/settings.json` runs `.claude/hooks/extract-log.py` on `UserPromptSubmit` and `Stop`, writing prompt + final-response transcripts to `.claude-logs/`. Always commit `.claude-logs/` with your changes.
+`.claude/settings.json` runs `.claude/hooks/extract-log.py` on `UserPromptSubmit`, `Stop` and `SubagentStop`, writing prompt + final-response transcripts to `.claude-logs/`. Each session file ends with a "Subagents" section: every subagent's dispatch prompts and handed-back reports. Always commit `.claude-logs/` with your changes.
 
 The logs are public (hackathon evaluation). The hook redacts credential-shaped strings and non-GitHub email addresses before writing, `scripts/check-secrets.sh` blocks commits that still contain any, and CI runs gitleaks. Redaction is a safety net, not permission: still never put a secret in a prompt or response.

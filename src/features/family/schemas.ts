@@ -56,12 +56,27 @@ export const acceptInvitationSchema = z.object({
   consent,
 });
 
-/** `?token=` / `?code=` on /invite: first value, trimmed; missing or invalid → undefined. */
-const inviteParam = z
-  .preprocess((value) => (Array.isArray(value) ? value[0] : value), inviteValue.optional())
-  .catch(undefined);
+/** Accepting from the parent's own invitations list: the id is re-checked against that list. */
+export const acceptListedInvitationSchema = z.object({
+  invitationId: z.uuid("This invitation has expired or was already used."),
+  nickname: nickname.optional(),
+  pin,
+  consent,
+});
 
-export const inviteParamsSchema = z.object({ token: inviteParam, code: inviteParam });
+const firstValue = (value: unknown) => (Array.isArray(value) ? value[0] : value);
+
+/** `?token=` / `?code=` on /invite: first value, trimmed; missing or invalid → undefined. */
+const inviteParam = z.preprocess(firstValue, inviteValue.optional()).catch(undefined);
+
+/** `?id=` on /invite: an invitation from the parent's own list; not a UUID → undefined. */
+const invitationIdParam = z.preprocess(firstValue, z.uuid().optional()).catch(undefined);
+
+export const inviteParamsSchema = z.object({
+  token: inviteParam,
+  code: inviteParam,
+  id: invitationIdParam,
+});
 
 export const childSignInSchema = z.object({
   // Bounded before normalisation (spaces and dashes are stripped later).
@@ -76,6 +91,7 @@ export type CreateFamilyInput = z.infer<typeof createFamilySchema>;
 export type AddChildInput = z.infer<typeof addChildSchema>;
 export type StartChildOnboardingInput = z.infer<typeof startChildOnboardingSchema>;
 export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
+export type AcceptListedInvitationInput = z.infer<typeof acceptListedInvitationSchema>;
 export type InviteParams = z.infer<typeof inviteParamsSchema>;
 export type ChildSignInInput = z.infer<typeof childSignInSchema>;
 export type SetChildPinInput = z.infer<typeof setChildPinSchema>;

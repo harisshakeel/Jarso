@@ -68,6 +68,8 @@ Keep it identical to `supabase/templates/confirmation.html`. The link goes to th
 
 3. **Authentication → Providers → Email → Secure password change: on** (matches `secure_password_change = true` in `supabase/config.toml`). It makes a password change need a recent sign-in, which narrows the child-password bypass described under *Children*. It doesn't close it on its own: a freshly minted child session counts as recent. The full fix, if the plan allows auth hooks, is a **Password Verification Attempt** hook that rejects users whose `app_metadata.jarso_role` is `child`; until then the password rotation on every PIN sign-in and reset is what ends a self-set password.
 
+4. **Authentication → Providers → Email → Confirm email: ON** and **Secure email change: ON**. REQUIRED: `list_my_invitations` shows a parent the invitations addressed to their `auth.users.email` and trusts `email_confirmed_at`. With confirmation off, sign-up auto-confirms any address (as the local stack does, `enable_confirmations = false`), so anyone could sign up with a parent's email and see, then accept, invitations meant for them. Secure email change keeps a changed email unconfirmed until both addresses approve it.
+
 ## Adding OAuth providers
 
 Enable in `supabase/config.toml` (`[auth.external.<provider>]`) and the dashboard, then call `supabase.auth.signInWithOAuth({ provider, options: { redirectTo: <APP_URL>/auth/callback } })` from a client component.

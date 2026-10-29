@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database } from "@/types";
-import type { ChildSummary, Family, Membership } from "../types";
+import type { ChildSummary, Family, Membership, PendingInvitation } from "../types";
 
 type Client = SupabaseClient<Database>;
 
@@ -123,6 +123,18 @@ export async function findInvitationByHash(
   if (error) throw toAppError(error, "Failed to look up invite");
   const row = data?.[0];
   return row ? { id: row.id, nickname: row.nickname } : null;
+}
+
+/** Pending invitations to the caller's own confirmed email (parents only; the function checks). */
+export async function listInvitationsForCaller(db: Client): Promise<PendingInvitation[]> {
+  const { data, error } = await db.rpc("list_my_invitations");
+  if (error) throw toAppError(error, "Failed to load invitations");
+  return data.map((row) => ({
+    id: row.id,
+    nickname: row.nickname,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+  }));
 }
 
 /** `window` is a Postgres interval string, e.g. "1 hour". Returns true when the hit is allowed. */

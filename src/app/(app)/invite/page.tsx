@@ -1,31 +1,47 @@
 import { CircleAlertIcon } from "lucide-react";
 import type { Metadata, Route } from "next";
 import Link from "next/link";
-import { type ReactNode, Suspense } from "react";
+import { type CSSProperties, type ReactNode, Suspense } from "react";
 import { Field } from "@/components/form";
 import { Button, buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
-import { AcceptInvitationForm, inviteParamsSchema } from "@/features/family";
-import { findInvitation, INVITATION_GONE, requireRole } from "@/features/family/server";
+import { AcceptInvitationForm, InvitationList, inviteParamsSchema } from "@/features/family";
+import {
+  findInvitation,
+  findMyInvitation,
+  INVITATION_GONE,
+  listMyInvitations,
+  requireRole,
+} from "@/features/family/server";
 import { isAppError } from "@/lib";
 
 export const metadata: Metadata = { title: "Accept an invitation" };
 
 type SearchParams = PageProps<"/invite">["searchParams"];
 
+const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
+
 /** This page's own URL for the invite, so login and family setup can bring the parent back. */
-function invitePath(params: { token?: string; code?: string }): string {
+function invitePath(params: { token?: string; code?: string; id?: string }): string {
   const query = new URLSearchParams(
-    params.token ? { token: params.token } : params.code ? { code: params.code } : {},
+    params.token
+      ? { token: params.token }
+      : params.code
+        ? { code: params.code }
+        : params.id
+          ? { id: params.id }
+          : {},
   ).toString();
   return query ? `${routes.invite}?${query}` : routes.invite;
 }
 
 async function InviteContent({ searchParams }: { searchParams: SearchParams }) {
   const params = inviteParamsSchema.parse(await searchParams);
+  // One way in per URL: link token, then code, then an id from the parent's own list.
   const token = params.token;
   const code = token ? undefined : params.code;
-  const here = invitePath({ token, code });
+  const id = token || code ? undefined : params.id;
+  const here = invitePath({ token, code, id });
 
   const { membership } = await requireRole("parent", here);
   if (!membership) {
@@ -39,8 +55,19 @@ async function InviteContent({ searchParams }: { searchParams: SearchParams }) {
     );
   }
 
+  if (id) return <ListedInvitation id={id} />;
+
   const invite = token ?? code;
-  if (!invite) return <CodeForm />;
+  if (!invite) {
+    // Request-time and per user: rendered inside Suspense, never cached.
+    const invitations = await listMyInvitations();
+    return (
+      <>
+        <InvitationList invitations={invitations} now={Date.now()} className="rise-in" />
+        <CodeForm style={rise(1)} />
+      </>
+    );
+  }
 
   // One lookup per render: it is rate-limited, and the action looks it up again on submit.
   let invitation: Awaited<ReturnType<typeof findInvitation>>;
@@ -53,15 +80,7 @@ async function InviteContent({ searchParams }: { searchParams: SearchParams }) {
     throw error;
   }
 
-  if (!invitation) {
-    return (
-      <Notice message={INVITATION_GONE} alert>
-        <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
-          Back to your family
-        </Link>
-      </Notice>
-    );
-  }
+  if (!invitation) return <Gone />;
 
   return (
     <Card className="rise-in shadow-raised">
@@ -72,10 +91,33 @@ async function InviteContent({ searchParams }: { searchParams: SearchParams }) {
   );
 }
 
-/** No link token: ask for the code the child was shown. Plain GET back to this page. */
-function CodeForm() {
+/** An invitation picked from the list. Only resolves if it is still addressed to this parent. */
+async function ListedInvitation({ id }: { id: string }) {
+  const invitation = await findMyInvitation(id);
+  if (!invitation) return <Gone />;
   return (
     <Card className="rise-in shadow-raised">
+      <CardContent>
+        <AcceptInvitationForm invitationId={invitation.id} nickname={invitation.nickname} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function Gone() {
+  return (
+    <Notice message={INVITATION_GONE} alert>
+      <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
+        Back to your family
+      </Link>
+    </Notice>
+  );
+}
+
+/** No link token: ask for the code the child was shown. Plain GET back to this page. */
+function CodeForm({ style }: { style?: CSSProperties }) {
+  return (
+    <Card className="rise-in" style={style}>
       <CardContent>
         <form action={routes.invite} className="grid gap-6">
           <Field

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   acceptInvitationSchema,
+  acceptListedInvitationSchema,
   addChildSchema,
   childSignInSchema,
   createFamilySchema,
@@ -105,11 +106,39 @@ describe("family schemas", () => {
     expect(inviteParamsSchema.parse({ token: [" abc ", "def"], code: "x" })).toEqual({
       token: "abc",
       code: "x",
+      id: undefined,
     });
     expect(inviteParamsSchema.parse({ token: "x".repeat(129), code: "  " })).toEqual({
       token: undefined,
       code: undefined,
+      id: undefined,
     });
-    expect(inviteParamsSchema.parse({})).toEqual({ token: undefined, code: undefined });
+    expect(inviteParamsSchema.parse({})).toEqual({
+      token: undefined,
+      code: undefined,
+      id: undefined,
+    });
+  });
+
+  it("parses ?id= as a UUID only; anything else is dropped", () => {
+    const id = "6f1c2b8e-4d3a-4e5f-9a7b-1c2d3e4f5a6b";
+    expect(inviteParamsSchema.parse({ id: [id, "x"] }).id).toBe(id);
+    expect(inviteParamsSchema.parse({ id: "not-a-uuid" }).id).toBeUndefined();
+    expect(inviteParamsSchema.parse({ id: "" }).id).toBeUndefined();
+  });
+
+  it("accepts a listed invitation by UUID only", () => {
+    const valid = {
+      invitationId: "6f1c2b8e-4d3a-4e5f-9a7b-1c2d3e4f5a6b",
+      pin: "1234",
+      consent: "on",
+    };
+    expect(acceptListedInvitationSchema.safeParse(valid).success).toBe(true);
+    expect(
+      acceptListedInvitationSchema.safeParse({ ...valid, invitationId: "1; drop" }).success,
+    ).toBe(false);
+    expect(acceptListedInvitationSchema.safeParse({ ...valid, consent: undefined }).success).toBe(
+      false,
+    );
   });
 });

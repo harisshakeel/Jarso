@@ -2,12 +2,13 @@ import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { JarsoMark } from "@/components/brand";
+import { ThemeSwitch } from "@/components/theme";
 import { siteConfig } from "@/config";
 
 type AppHeaderProps = {
   /** Where the mark links to (the signed-in user's home). */
   homeHref: Route;
-  /** One optional action on the right (design.md §5), e.g. sign out. */
+  /** Optional action on the right (design.md §5), e.g. sign out; the theme switch always sits beside it. */
   action?: ReactNode;
 };
 
@@ -23,7 +24,10 @@ export function AppHeader({ homeHref, action }: AppHeaderProps) {
           <JarsoMark size={32} priority />
           {siteConfig.name}
         </Link>
-        {action}
+        <div className="flex items-center gap-1">
+          <ThemeSwitch />
+          {action}
+        </div>
       </div>
     </header>
   );

@@ -5,14 +5,17 @@ export { getClientIp } from "./client-ip";
 export { assertParentOf, assertRole, getMembership, requireRole } from "./dal";
 export {
   acceptInvitation,
+  acceptListedInvitation,
   addChild,
   childSignIn,
   createFamily,
   findInvitation,
+  findMyInvitation,
   getChildNickname,
   getFamily,
   INVITATION_GONE,
   listChildren,
+  listMyInvitations,
   setChildPin,
   startChildOnboarding,
 } from "./service";

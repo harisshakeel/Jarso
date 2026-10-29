@@ -36,6 +36,7 @@ export default defineConfig({
   use: { baseURL, trace: "on-first-retry" },
   projects: [
     { name: "smoke", testMatch: "smoke.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    { name: "theme", testMatch: "theme.spec.ts", use: { ...devices["Desktop Chrome"] } },
     // Skips itself unless local Supabase is running and this config started the server.
     { name: "onboarding", testMatch: "onboarding.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "auth", testMatch: "email-confirm.spec.ts", use: { ...devices["Desktop Chrome"] } },
