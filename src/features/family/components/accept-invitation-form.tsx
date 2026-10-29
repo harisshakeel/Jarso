@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Field, FieldError, FormError } from "@/components/form";
 import { Button, buttonVariants, Checkbox, Label } from "@/components/ui";
 import { routes } from "@/config";
@@ -16,8 +16,11 @@ type AcceptInvitationFormProps = {
 };
 
 /** Parent approves a child-started invitation: nickname, PIN and consent, like Add a child. */
-export function AcceptInvitationForm({ invite, nickname }: AcceptInvitationFormProps) {
+export function AcceptInvitationForm({ invite, nickname: suggested }: AcceptInvitationFormProps) {
   const [state, action, pending] = useActionState(acceptInvitationAction, idle);
+  // Controlled so they survive a failed submit (React resets uncontrolled fields); the PIN clears.
+  const [nickname, setNickname] = useState(suggested);
+  const [consent, setConsent] = useState(false);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
   const consentErrors = fieldErrors?.consent;
 
@@ -30,7 +33,8 @@ export function AcceptInvitationForm({ invite, nickname }: AcceptInvitationFormP
         autoComplete="off"
         maxLength={20}
         required
-        defaultValue={nickname}
+        value={nickname}
+        onChange={(event) => setNickname(event.target.value)}
         description="Your child picked this. You can change it. They type it to sign in."
         errors={fieldErrors?.nickname}
       />
@@ -40,7 +44,7 @@ export function AcceptInvitationForm({ invite, nickname }: AcceptInvitationFormP
         type="password"
         inputMode="numeric"
         pattern="[0-9]*"
-        autoComplete="new-password"
+        autoComplete="off"
         maxLength={6}
         required
         description="4 to 6 numbers. Your child uses it with the family code to sign in."
@@ -52,6 +56,8 @@ export function AcceptInvitationForm({ invite, nickname }: AcceptInvitationFormP
           <Checkbox
             name="consent"
             required
+            checked={consent}
+            onCheckedChange={setConsent}
             className="mt-0.5"
             aria-invalid={consentErrors?.length ? true : undefined}
             aria-describedby={consentErrors?.length ? "consent-error" : undefined}

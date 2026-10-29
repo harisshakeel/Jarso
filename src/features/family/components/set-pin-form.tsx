@@ -58,7 +58,7 @@ function NewPinForm({ child, onDone }: { child: ChildSummary; onDone: () => void
         type="password"
         inputMode="numeric"
         pattern="[0-9]*"
-        autoComplete="new-password"
+        autoComplete="off"
         maxLength={6}
         required
         autoFocus

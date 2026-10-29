@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Field, FieldError, FormError } from "@/components/form";
 import { Button, buttonVariants, Checkbox, Label } from "@/components/ui";
 import { routes } from "@/config";
@@ -10,6 +10,9 @@ import { addChildAction } from "../server/actions";
 
 export function AddChildForm() {
   const [state, action, pending] = useActionState(addChildAction, idle);
+  // Controlled so they survive a failed submit (React resets uncontrolled fields); the PIN clears.
+  const [nickname, setNickname] = useState("");
+  const [consent, setConsent] = useState(false);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
   const consentErrors = fieldErrors?.consent;
 
@@ -21,6 +24,8 @@ export function AddChildForm() {
         autoComplete="off"
         maxLength={20}
         required
+        value={nickname}
+        onChange={(event) => setNickname(event.target.value)}
         description="What your child likes to be called. They type it to sign in."
         errors={fieldErrors?.nickname}
       />
@@ -30,7 +35,7 @@ export function AddChildForm() {
         type="password"
         inputMode="numeric"
         pattern="[0-9]*"
-        autoComplete="new-password"
+        autoComplete="off"
         maxLength={6}
         required
         description="4 to 6 numbers. Your child uses it with the family code to sign in."
@@ -42,6 +47,8 @@ export function AddChildForm() {
           <Checkbox
             name="consent"
             required
+            checked={consent}
+            onCheckedChange={setConsent}
             className="mt-0.5"
             aria-invalid={consentErrors?.length ? true : undefined}
             aria-describedby={consentErrors?.length ? "consent-error" : undefined}
