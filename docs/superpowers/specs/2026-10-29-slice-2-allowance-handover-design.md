@@ -83,7 +83,7 @@ Calls I made (correct if wrong):
 - `parent_gifts` (*builder may rename*): `id, family_id, child_id, amount_minor > 0, give_on date, note text null, status (pending | given | cancelled), cash_minor, saved_minor, given_by, given_at, created_by`.
 - Due = `status = pending and give_on <= family today`. The parent's badge counts due gifts together with due allowances.
 - Create, edit and cancel are parent-only functions. Edit and cancel are refused once `given`.
-- **RLS:** a child can select a gift row only when `status = given`. A parent of the child can select all. No direct insert, update or delete for anyone; all writes go through functions.
+- **RLS:** only a parent of the child can select gift rows. The child never reads `parent_gifts`; a given gift reaches the child only as its ledger rows (label = note). No direct insert, update or delete for anyone; all writes go through functions.
 
 ### 4.3 Handover
 

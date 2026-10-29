@@ -245,7 +245,7 @@ REQUIREMENTS.md, docs/domain.md, docs/architecture.md, docs/database.md
 **Interfaces:**
 - Produces:
   - `parent_gifts(id, family_id, child_id, amount_minor bigint > 0, give_on date not null, note text check (char_length <= 140), status text check in ('pending','given','cancelled') default 'pending', cash_minor, saved_minor, given_by, given_at, created_by, created_at, updated_at)`.
-  - RLS select: `is_parent_of(child_id) or (is_self(child_id) and status = 'given')`. No write policies.
+  - RLS select: `is_parent_of(child_id)` only; the child never reads the table and sees a given gift through its ledger rows. No write policies.
   - `create_gift(p_child_id uuid, p_amount_minor bigint, p_give_on date, p_note text) returns uuid` — `22023` when `give_on < family today`. Writes `audit_log('gift.created')`.
   - `update_gift(p_gift_id uuid, p_amount_minor bigint, p_give_on date, p_note text) returns uuid` and `cancel_gift(p_gift_id uuid) returns uuid` — `JA409` unless pending. Both are audited.
   - `confirm_gift_handover(p_gift_id uuid, p_cash_minor bigint, p_saved_minor bigint, p_idempotency_key text) returns text` (`'confirmed' | 'already_confirmed'`). Requirements: pending, `give_on <= family today` (else `JA409`), cash and saved ≥ 0, sum > 0 and sum ≤ 100 × amount (`22023`). It inserts `parent_gift_in` entries with `source_type 'parent_gift'` and `label` = the note, or `'Gift'` when there is none, and sets `given`. Leaves a `-- slice 5: notify(gift_given)` comment.
@@ -254,7 +254,7 @@ REQUIREMENTS.md, docs/domain.md, docs/architecture.md, docs/database.md
 - [ ] **Step 1:** Write `parent_gifts.test.sql`:
   - The parent creates a gift for today with the note "Great report card!".
   - As the child: `select count(*) from parent_gifts` = 0, `list_due_for_parent` gives `JA403`, `balance` is unchanged, and `list_ledger_history` has 0 rows.
-  - The parent confirms 1500 against a planned 1000 → `confirmed`. Now the child sees 1 gift row and one history row with `kind = 'parent_gift_in'` and label "Great report card!".
+  - The parent confirms 1500 against a planned 1000 → `confirmed`. The child still sees 0 gift rows, and one history row with `kind = 'parent_gift_in'` and label "Great report card!".
   - Confirming a future-dated gift gives `JA409`.
   - Editing or cancelling a given gift gives `JA409`.
   - A cancelled gift never appears to the child, and `confirm` on it returns `already_confirmed`.
