@@ -80,6 +80,8 @@ test.afterAll(async () => {
 });
 
 test("child sees jars, due badge and a revealed gift", async () => {
+  await expect(child.getByText(/^US\$500 every \w+day$/)).toBeVisible();
+  await expect(child.getByText(/^Next: \d{1,2} \w{3}$/)).toBeVisible();
   // Due allowance: waiting, not in the jars.
   await expect(child.getByText("US$500 waiting for a parent")).toBeVisible();
   await expect(child.getByText("Waiting money isn't in your jars yet.")).toBeVisible();

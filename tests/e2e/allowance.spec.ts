@@ -68,9 +68,8 @@ test("parent sets up a weekly allowance and sees the summary", async () => {
   await expect(page.getByText(`Every Sunday from ${sunday.label}`)).toBeVisible();
   await page.getByRole("button", { name: "Save allowance" }).click();
 
-  await expect(page.getByText(`Every Sunday from ${sunday.label}`)).toBeVisible();
+  await expect(page.getByText("US$500.00 every Sunday", { exact: true })).toBeVisible();
   await expect(page.getByText(`Next: ${sunday.label}`)).toBeVisible();
-  await expect(page.getByText(/^US\$500\.00$/)).toBeVisible();
 });
 
 test("parent changes the amount", async () => {

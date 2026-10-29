@@ -9,6 +9,8 @@ export type Schedule = {
   amountMinor: number;
   frequency: Frequency;
   status: ScheduleStatus;
+  /** First date of the current cadence; every due date is counted from it. */
+  anchorOn: string;
   /** Next period to fall due; null when stopped or paused until a parent resumes. */
   nextDueOn: string | null;
   pausedThrough: string | null;

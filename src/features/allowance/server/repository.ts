@@ -26,6 +26,7 @@ export type ScheduleRow = {
   amountMinor: number;
   frequency: Frequency;
   status: ScheduleStatus;
+  anchorOn: string;
   pausedThrough: string | null;
   pauseMessage: string | null;
 };
@@ -59,7 +60,7 @@ function oneOf<const T extends string>(value: string, allowed: readonly T[], fal
 export async function findLatestSchedule(db: Client, childId: string): Promise<ScheduleRow | null> {
   const { data, error } = await db
     .from("allowance_schedules")
-    .select("id, amount_minor, frequency, status, paused_through, pause_message")
+    .select("id, amount_minor, frequency, status, anchor_on, paused_through, pause_message")
     .eq("child_id", childId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -71,6 +72,7 @@ export async function findLatestSchedule(db: Client, childId: string): Promise<S
     amountMinor: Number(data.amount_minor),
     frequency: asFrequency(data.frequency),
     status: asScheduleStatus(data.status),
+    anchorOn: data.anchor_on,
     pausedThrough: data.paused_through,
     pauseMessage: data.pause_message,
   };

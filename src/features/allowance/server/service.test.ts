@@ -292,6 +292,7 @@ describe("getSchedule", () => {
       amountMinor: 500,
       frequency: "weekly",
       status: "stopped",
+      anchorOn: "2026-11-01",
       pausedThrough: null,
       pauseMessage: null,
     });

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui";
 import { routes } from "@/config";
 import { formatMoney } from "@/lib";
-import { describeSchedule, formatDay } from "../describe";
+import { cadenceAfterAmount, formatDay } from "../describe";
 import { resumeAllowanceAction, stopAllowanceAction } from "../server/actions";
 import type { Schedule } from "../types";
 import { PauseSheet } from "./pause-sheet";
@@ -45,24 +45,26 @@ export function AllowanceSummary({
   schedule,
 }: AllowanceSummaryProps) {
   const paused = schedule.status === "paused";
-  const anchor = schedule.nextDueOn;
+  const next = schedule.nextDueOn;
   return (
     <Card className="rise-in shadow-raised">
       <CardContent className="grid gap-6">
         <div className="grid gap-1">
           <div className="flex flex-wrap items-center gap-3">
-            <p className="money font-extrabold text-3xl">
-              {formatMoney(schedule.amountMinor, currency)}
+            <p className="flex flex-wrap items-baseline gap-x-2">
+              <span className="money font-extrabold text-3xl">
+                {formatMoney(schedule.amountMinor, currency)}
+              </span>{" "}
+              <span className="font-semibold text-ink-2 text-lg">
+                {cadenceAfterAmount(schedule.frequency, schedule.anchorOn)}
+              </span>
             </p>
             {paused ? <Badge variant="secondary">Paused</Badge> : null}
           </div>
-          {anchor ? (
-            <p className="text-ink-2">{describeSchedule(schedule.frequency, anchor)}</p>
-          ) : null}
           {paused ? (
             <PausedNote schedule={schedule} />
-          ) : anchor ? (
-            <p className="font-semibold">Next: {formatDay(anchor)}</p>
+          ) : next ? (
+            <p className="font-semibold">Next: {formatDay(next)}</p>
           ) : null}
         </div>
 

@@ -1,5 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { describeSchedule, formatDay, prefillSplit, toMajorString } from "./describe";
+import {
+  cadenceAfterAmount,
+  describeCadence,
+  describeSchedule,
+  formatDay,
+  prefillSplit,
+  toMajorString,
+} from "./describe";
+
+describe("describeCadence", () => {
+  it("describes each frequency from the anchor, with no start date", () => {
+    expect(describeCadence("weekly", "2025-11-02", "en-GB")).toBe("Every Sunday");
+    expect(describeCadence("monthly", "2026-01-31", "en-GB")).toBe("Every month on the 31st");
+    expect(describeCadence("quarterly", "2026-11-30", "en-GB")).toBe("Every 3 months on the 30th");
+    expect(describeCadence("annual", "2026-11-02", "en-GB")).toBe("Every year on 2 Nov");
+  });
+
+  it("reads after an amount without lower-casing names", () => {
+    expect(cadenceAfterAmount("weekly", "2025-11-02")).toBe("every Sunday");
+    expect(cadenceAfterAmount("annual", "2026-11-02")).toBe("every year on 2 Nov");
+  });
+});
 
 describe("describeSchedule", () => {
   it("names the weekday for a weekly allowance", () => {

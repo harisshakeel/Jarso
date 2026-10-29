@@ -50,6 +50,38 @@ export function describeSchedule(
 }
 
 /**
+ * How often an allowance comes, read from its anchor date: "Every Sunday",
+ * "Every month on the 31st", "Every year on 2 Nov". No start date, so it stays true later on.
+ */
+export function describeCadence(
+  frequency: Frequency,
+  anchorOn: string,
+  locale: string = DEFAULT_LOCALE,
+): string {
+  const date = utcDate(anchorOn);
+  switch (frequency) {
+    case "weekly":
+      return `Every ${format(date, locale, { weekday: "long" })}`;
+    case "monthly":
+      return `Every month on the ${ordinal(date.getUTCDate())}`;
+    case "quarterly":
+      return `Every 3 months on the ${ordinal(date.getUTCDate())}`;
+    case "annual":
+      return `Every year on ${format(date, locale, { day: "numeric", month: "short" })}`;
+  }
+}
+
+/** The cadence as it reads after an amount: "₹500 every Sunday". */
+export function cadenceAfterAmount(
+  frequency: Frequency,
+  anchorOn: string,
+  locale: string = DEFAULT_LOCALE,
+): string {
+  const cadence = describeCadence(frequency, anchorOn, locale);
+  return cadence.charAt(0).toLowerCase() + cadence.slice(1);
+}
+
+/**
  * Handover prefill: the save share of the last handover applied to this amount, saved rounded
  * down to a whole minor unit and Spend getting the rest. The first handover is all Spend.
  */

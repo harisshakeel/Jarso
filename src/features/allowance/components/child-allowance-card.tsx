@@ -1,6 +1,6 @@
 import { Badge, Card, CardContent } from "@/components/ui";
 import { formatMoney } from "@/lib";
-import { describeSchedule, formatDay } from "../describe";
+import { cadenceAfterAmount, formatDay } from "../describe";
 import type { Schedule } from "../types";
 
 type ChildAllowanceCardProps = {
@@ -27,14 +27,16 @@ export function ChildAllowanceCard({ schedule, dueTotalMinor, currency }: ChildA
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-3">
-                <p className="money font-extrabold text-2xl">{money(schedule.amountMinor)}</p>
+                <p className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="money font-extrabold text-2xl">
+                    {money(schedule.amountMinor)}
+                  </span>{" "}
+                  <span className="font-semibold text-ink-2">
+                    {cadenceAfterAmount(schedule.frequency, schedule.anchorOn)}
+                  </span>
+                </p>
                 {paused ? <Badge variant="secondary">Paused</Badge> : null}
               </div>
-              {schedule.nextDueOn ? (
-                <p className="text-ink-2">
-                  {describeSchedule(schedule.frequency, schedule.nextDueOn)}
-                </p>
-              ) : null}
               {paused ? (
                 <>
                   <p>
