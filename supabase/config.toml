@@ -419,3 +419,42 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# ---------------------------------------------------------------------------------------------
+# Hosted project overrides. Applied by `supabase config push` / `config diff` when the linked
+# project ref matches `project_id`; the base values above stay for local development.
+# Keep the hosted-only values here (email confirmation on, MFA on, hosted pooler sizes) so a
+# push never downgrades production to the local settings.
+# ---------------------------------------------------------------------------------------------
+[remotes.production]
+project_id = "sbnakvwvaymzypwmpqzv"
+
+[remotes.production.auth]
+site_url = "https://jarso.vercel.app"
+additional_redirect_urls = [
+  "https://jarso.vercel.app/auth/callback",
+  "https://jarso.vercel.app/auth/callback**",
+  "http://localhost:3000/auth/callback",
+  "http://localhost:3000/auth/callback**",
+]
+
+[remotes.production.auth.email]
+# Temporarily OFF for development (2026-10-29) so sign-up needs no email. Turn back on before
+# any real family joins: with it off, anyone can sign up as a parent's address and read the
+# invitations meant for them (see docs/auth.md → Hosted setup).
+enable_confirmations = false
+double_confirm_changes = true
+secure_password_change = true
+max_frequency = "1m0s"
+otp_length = 8
+
+[remotes.production.auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[remotes.production.db.pooler]
+default_pool_size = 15
+max_client_conn = 200
+
+[remotes.production.storage.vector]
+enabled = false
