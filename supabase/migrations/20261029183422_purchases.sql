@@ -237,7 +237,8 @@ declare
   v_e public.ledger_entries;
 begin
   -- Lock order: the entry (source row) first, then the child's ledger advisory lock.
-  select * into v_e from public.ledger_entries le where le.id = p_entry_id for update;
+  -- No key update is enough to serialise undos and does not block foreign-key (key share) checks.
+  select * into v_e from public.ledger_entries le where le.id = p_entry_id for no key update;
   -- A missing and a foreign entry both raise JA403 so existence does not leak.
   if not found or not public.is_self(v_e.child_id) then
     raise exception using errcode = 'JA403', message = 'Not allowed';
