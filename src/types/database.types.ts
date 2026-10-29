@@ -546,6 +546,9 @@ isOneToOne: false
 "current_family_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"evaluate_spend_limits":
+{ Args: { "p_entry_id": string }; Returns: number
+                           },
 "family_today":
 { Args: { "p_family_id": string,"p_now"?: string }; Returns: string
                            },
@@ -559,6 +562,9 @@ isOneToOne: false
                            },
 "generate_for_schedule":
 { Args: { "p_schedule_id": string,"p_today": string }; Returns: number
+                           },
+"held_spend":
+{ Args: { "p_child_id": string }; Returns: number
                            },
 "hit_rate_limit":
 { Args: { "p_key": string,"p_max": number,"p_window": string }; Returns: boolean
@@ -579,7 +585,7 @@ isOneToOne: false
                            },
 "list_ledger_history":
 { Args: { "p_before"?: string,"p_child_id": string,"p_limit"?: number }; Returns: {
-              "amount_minor": number,"direction": string,"id": string,"jar": string,"kind": string,"label": string,"occurred_at": string,"source_id": string,"source_type": string
+              "amount_minor": number,"direction": string,"id": string,"jar": string,"kind": string,"label": string,"occurred_at": string,"reversed": boolean,"reverses_entry_id": string,"source_id": string,"source_type": string
             }[]
                            },
 "list_my_invitations":
@@ -667,6 +673,12 @@ isOneToOne: false
 "pause_allowance":
 { Args: { "p_message": string,"p_schedule_id": string,"p_through": string }; Returns: string
                            },
+"record_purchase":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_label": string }; Returns: Json
+                           },
+"record_purchase_at":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_label": string,"p_now": string }; Returns: Json
+                           },
 "register_child":
 { Args: { "p_child_id": string,"p_consent": boolean,"p_family_id": string,"p_invitation_id"?: string,"p_nickname": string,"p_pin": string }; Returns: undefined
                            },
@@ -696,6 +708,12 @@ isOneToOne: false
                            },
 "stop_allowance":
 { Args: { "p_schedule_id": string }; Returns: string
+                           },
+"undo_purchase":
+{ Args: { "p_entry_id": string }; Returns: string
+                           },
+"undo_purchase_at":
+{ Args: { "p_entry_id": string,"p_now": string }; Returns: string
                            },
 "update_family_timezone":
 { Args: { "p_timezone": string }; Returns: undefined
