@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(24);
+select plan(29);
 
 -- Fixtures: PA owns family A with child S ('Sam'); C, C2 are child-role users awaiting registration.
 select tests.create_user('pa@example.com') as pa \gset
@@ -40,6 +40,15 @@ select throws_ok(
 select throws_ok(
   $$ select public.create_invitation('Mia', 'pa@example.com', 'tok-1', 'code-3') $$,
   '23505', null, 'token_hash is unique');
+select throws_ok(
+  $$ select public.create_invitation('Mia@evil.example', 'pa@example.com', 'tok-4', 'code-4') $$,
+  '22023', null, 'create_invitation rejects @ in the nickname');
+select throws_ok(
+  $$ select public.create_invitation('see http://x', 'pa@example.com', 'tok-5', 'code-5') $$,
+  '22023', null, 'create_invitation rejects / and : in the nickname');
+select lives_ok(
+  $$ select public.create_invitation('Zoë O''Neil-2', 'pa@example.com', 'tok-6', 'code-6') $$,
+  'create_invitation accepts letters, digits, space, apostrophe and hyphen');
 
 select public.create_invitation('Leo', 'pa@example.com', 'tok-old', 'code-old') as inv_old \gset
 
@@ -47,7 +56,7 @@ reset role;
 select tests.clear_auth();
 update public.invitations set expires_at = now() - interval '1 second' where id = :'inv_old'::uuid;
 
--- find_invitation: authenticated only, pending and unexpired.
+-- find_invitation: service_role only, pending and unexpired.
 set local role anon;
 select throws_ok(
   $$ select * from public.find_invitation('tok-1') $$,
@@ -55,6 +64,12 @@ select throws_ok(
 reset role;
 
 select tests.authenticate_as(:'pa'::uuid);
+select throws_ok(
+  $$ select * from public.find_invitation('tok-1') $$,
+  '42501', null, 'authenticated cannot execute find_invitation');
+reset role;
+select tests.clear_auth();
+set local role service_role;
 select results_eq(
   $$ select id, nickname from public.find_invitation('tok-1') $$,
   format('values (%L::uuid, %L::text)', :'inv', 'Mia'),
@@ -66,17 +81,28 @@ select results_eq(
 select is_empty($$ select * from public.find_invitation('nope') $$, 'unknown hash → no rows');
 select is_empty($$ select * from public.find_invitation(null) $$, 'null hash → no rows');
 select is_empty($$ select * from public.find_invitation('tok-old') $$, 'expired invitation → no rows');
+reset role;
+
+select tests.authenticate_as(:'pa'::uuid);
+select throws_ok(
+  format('select public.register_child(%L, %L, %L, %L, true)', :'c2', :'fa', 'Sam<b>', '1234'),
+  '22023', null, 'register_child rejects < and > in the nickname');
 
 -- A failed registration leaves the invitation pending.
 select throws_ok(
   format('select public.register_child(%L, %L, %L, %L, true, %L)', :'c', :'fa', 'sam', '1234', :'inv'),
   'JA409', null, 'nickname clash with an invitation');
+reset role;
+select tests.clear_auth();
+set local role service_role;
 select results_eq(
   $$ select id, nickname from public.find_invitation('tok-1') $$,
   format('values (%L::uuid, %L::text)', :'inv', 'Mia'),
   'invitation still pending after the failed registration');
+reset role;
 
 -- Accept.
+select tests.authenticate_as(:'pa'::uuid);
 select lives_ok(
   format('select public.register_child(%L, %L, %L, %L, true, %L)', :'c', :'fa', 'Mia', '1234', :'inv'),
   'parent registers a child from an invitation');
@@ -84,9 +110,10 @@ reset role;
 select tests.clear_auth();
 select is(
   (select status || '/' || child_id::text || '/' || accepted_by::text || '/' || family_id::text
+          || '/' || coalesce(parent_email, 'none')
    from public.invitations where id = :'inv'::uuid),
-  'accepted/' || :'c' || '/' || :'pa' || '/' || :'fa',
-  'invitation accepted with child, parent and family');
+  'accepted/' || :'c' || '/' || :'pa' || '/' || :'fa' || '/none',
+  'invitation accepted with child, parent and family; parent email cleared');
 select is(
   (select count(*)::int from public.audit_log
    where family_id = :'fa'::uuid and action = 'invitation.accepted' and subject_id = :'inv'::uuid and actor_id = :'pa'::uuid),
@@ -100,7 +127,12 @@ select throws_ok(
 select is(
   (select count(*)::int from public.family_members where profile_id = :'c2'::uuid),
   0, 'reuse attempt adds no membership');
+reset role;
+select tests.clear_auth();
+set local role service_role;
 select is_empty($$ select * from public.find_invitation('tok-1') $$, 'accepted invitation no longer found');
+reset role;
+select tests.authenticate_as(:'pa'::uuid);
 
 -- Expired and unknown invitations.
 select throws_ok(

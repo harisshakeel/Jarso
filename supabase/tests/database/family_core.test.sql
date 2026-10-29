@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(35);
+select plan(36);
 
 -- Fixtures: parents PA and PB each create a family; PX has none; CH is a child-role user.
 select tests.create_user('pa@example.com') as pa \gset
@@ -76,6 +76,13 @@ select is((select count(*)::int from public.profiles where id = :'ch'::uuid), 1,
 
 select tests.authenticate_as(:'ch'::uuid);
 select is((select count(*)::int from public.profiles where id = :'pa'::uuid), 1, 'child sees own family parent');
+update public.profiles set full_name = 'Kid', avatar_url = 'x' where id = :'ch'::uuid;
+update public.profiles set full_name = 'Kid' where id = :'pa'::uuid;
+select tests.clear_auth();
+select is(
+  (select count(*)::int from public.profiles where full_name = 'Kid' or avatar_url = 'x'),
+  0, 'a child cannot update its own or a parent''s full_name or avatar_url');
+select tests.authenticate_as(:'ch'::uuid);
 select is((select count(*)::int from public.audit_log), 0, 'child cannot read audit log');
 select ok(not public.is_parent_of(:'pa'::uuid), 'child is not parent of anyone');
 

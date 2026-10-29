@@ -9,7 +9,8 @@ type Client = SupabaseClient<Database>;
 /**
  * Only place that knows family table, column and function names. Pure data access, no auth
  * decisions. `db` is the user's server client unless the parameter is named `admin`; the admin
- * client is used only for the service_role functions (rate limits, invitations, PIN check).
+ * client is used only for the service_role functions (rate limits, invitations, PIN check,
+ * session revocation), after the service's own authz.
  */
 
 export type PinCheck = { status: "ok"; childId: string } | { status: "invalid" | "locked" };
@@ -115,10 +116,10 @@ export async function updateChildPin(db: Client, childId: string, pin: string): 
 }
 
 export async function findInvitationByHash(
-  db: Client,
+  admin: Client,
   hash: string,
 ): Promise<{ id: string; nickname: string } | null> {
-  const { data, error } = await db.rpc("find_invitation", { p_hash: hash });
+  const { data, error } = await admin.rpc("find_invitation", { p_hash: hash });
   if (error) throw toAppError(error, "Failed to look up invite");
   const row = data?.[0];
   return row ? { id: row.id, nickname: row.nickname } : null;
@@ -154,16 +155,19 @@ export async function insertInvitation(
   return data;
 }
 
+/** `sourceHash` (hashed client IP) scopes the lockout: a lock from one source never blocks another. */
 export async function verifyChildPin(
   admin: Client,
   familyCode: string,
   nickname: string,
   pin: string,
+  sourceHash: string,
 ): Promise<PinCheck> {
   const { data, error } = await admin.rpc("verify_child_pin", {
     p_family_code: familyCode,
     p_nickname: nickname,
     p_pin: pin,
+    p_source_hash: sourceHash,
   });
   if (error) throw toAppError(error, "Failed to check PIN");
   const row = data?.[0];
@@ -171,4 +175,10 @@ export async function verifyChildPin(
   if (row?.status === "locked") return { status: "locked" };
   if (row?.status === "invalid") return { status: "invalid" };
   throw new AppError("INTERNAL", "Failed to check PIN", { cause: { status: row?.status } });
+}
+
+/** Deletes every auth session (and refresh token) of the user. */
+export async function revokeUserSessions(admin: Client, userId: string): Promise<void> {
+  const { error } = await admin.rpc("revoke_user_sessions", { p_user_id: userId });
+  if (error) throw toAppError(error, "Failed to sign out the child's devices");
 }

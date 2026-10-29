@@ -139,7 +139,10 @@ export async function startChildOnboarding(
   return { link, code };
 }
 
-/** Resolves a pasted link token or short code to a pending invitation. Parent only, rate-limited. */
+/**
+ * Resolves a pasted link token or short code to a pending invitation. Parent only, rate-limited.
+ * find_invitation is service_role only, so the parent check here is what authorises the lookup.
+ */
 export async function findInvitation(
   invite: string,
 ): Promise<{ id: string; nickname: string } | null> {
@@ -149,11 +152,11 @@ export async function findInvitation(
     "Too many tries. Please wait a little and try again.",
   );
 
-  const db = await createClient();
+  const admin = createAdminClient();
   const value = invite.trim();
   return (
-    (await findInvitationByHash(db, await hashSecret(value))) ??
-    findInvitationByHash(db, await hashSecret(normaliseFamilyCode(value)))
+    (await findInvitationByHash(admin, await hashSecret(value))) ??
+    findInvitationByHash(admin, await hashSecret(normaliseFamilyCode(value)))
   );
 }
 
@@ -178,15 +181,23 @@ export async function acceptInvitation(input: AcceptInvitationInput): Promise<Ch
 /** Child PIN sign-in (ADR 0004). Must run where cookies are writable. */
 export async function childSignIn(input: ChildSignInInput, ip: string): Promise<void> {
   const familyCode = normaliseFamilyCode(input.familyCode);
+  // The family limit is per source too, so guessing from one network can't lock a family out.
+  const ipHash = await hashSecret(ip);
   await enforceLimits(
     [
-      { key: `pin:ip:${ip}`, window: "15 minutes", max: 20 },
-      { key: `pin:family:${familyCode}`, window: "1 hour", max: 30 },
+      { key: `pin:ip:${ipHash}`, window: "15 minutes", max: 20 },
+      { key: `pin:family:${familyCode}:${ipHash}`, window: "1 hour", max: 30 },
     ],
     "Too many tries. Ask your parent or wait a little while.",
   );
 
-  const result = await verifyChildPin(createAdminClient(), familyCode, input.nickname, input.pin);
+  const result = await verifyChildPin(
+    createAdminClient(),
+    familyCode,
+    input.nickname,
+    input.pin,
+    ipHash,
+  );
   if (result.status === "locked") {
     throw new AppError("RATE_LIMITED", "Too many tries. Ask your parent or wait a little while.");
   }

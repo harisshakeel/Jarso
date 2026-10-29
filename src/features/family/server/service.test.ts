@@ -35,6 +35,7 @@ const dal = await import("./dal");
 const service = await import("./service");
 
 const parent = { id: "parent-1", email: "p@example.com" };
+const ipHash = await hashSecret("1.2.3.4");
 const membership = { familyId: "fam-1", role: "parent" as const, status: "approved" as const };
 
 beforeEach(() => {
@@ -191,7 +192,7 @@ describe("findInvitation", () => {
       nickname: "Sam",
     });
     expect(repo.findInvitationByHash).toHaveBeenLastCalledWith(
-      expect.anything(),
+      { kind: "admin" },
       await hashSecret("ABCDEFGH"),
     );
     expect(repo.hitRateLimit).toHaveBeenCalledWith(
@@ -208,6 +209,14 @@ describe("findInvitation", () => {
     await expect(service.findInvitation("abcdefgh")).rejects.toMatchObject({
       code: "RATE_LIMITED",
     });
+    expect(repo.findInvitationByHash).not.toHaveBeenCalled();
+  });
+
+  it("refuses non-parents before any lookup", async () => {
+    vi.mocked(dal.assertRole).mockRejectedValue(new AppError("FORBIDDEN", "You can't do that."));
+
+    await expect(service.findInvitation("abcdefgh")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repo.hitRateLimit).not.toHaveBeenCalled();
     expect(repo.findInvitationByHash).not.toHaveBeenCalled();
   });
 });
@@ -241,20 +250,33 @@ describe("childSignIn", () => {
     });
     expect(repo.hitRateLimit).toHaveBeenCalledWith(
       expect.anything(),
-      "pin:ip:1.2.3.4",
+      `pin:ip:${ipHash}`,
       "15 minutes",
       20,
     );
     expect(repo.hitRateLimit).toHaveBeenCalledWith(
       expect.anything(),
-      "pin:family:ABC23X",
+      `pin:family:ABC23X:${ipHash}`,
       "1 hour",
       30,
     );
     expect(repo.verifyChildPin).not.toHaveBeenCalled();
   });
 
-  it("mints a session for the verified child", async () => {
+  it("checks the PIN against this source's lockout (hashed IP)", async () => {
+    vi.mocked(repo.verifyChildPin).mockResolvedValue({ status: "invalid" });
+
+    await expect(service.childSignIn(input, "1.2.3.4")).rejects.toThrow();
+    expect(repo.verifyChildPin).toHaveBeenCalledWith(
+      expect.anything(),
+      "ABC23X",
+      "Sam",
+      "1234",
+      ipHash,
+    );
+  });
+
+  it("rotates the child's password, then mints a session", async () => {
     vi.mocked(repo.verifyChildPin).mockResolvedValue({ status: "ok", childId: "child-1" });
 
     await service.childSignIn(input, "1.2.3.4");

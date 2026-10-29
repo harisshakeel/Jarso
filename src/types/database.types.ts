@@ -51,14 +51,14 @@ isOneToOne: false
                   ]
                 },"child_credentials": {
                   Row: {
-                    "failed_attempts": number,"lock_count": number,"locked_until": string | null,"pin_hash": string,"profile_id": string,"set_by": string,"updated_at": string
+                    "frozen_at": string | null,"pin_hash": string,"profile_id": string,"recent_failures": number,"recent_failures_since": string | null,"set_by": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "failed_attempts"?: number,"lock_count"?: number,"locked_until"?: string | null,"pin_hash": string,"profile_id": string,"set_by": string,"updated_at"?: string
+                    "frozen_at"?: string | null,"pin_hash": string,"profile_id": string,"recent_failures"?: number,"recent_failures_since"?: string | null,"set_by": string,"updated_at"?: string
                   }
                   Update: {
-                    "failed_attempts"?: number,"lock_count"?: number,"locked_until"?: string | null,"pin_hash"?: string,"profile_id"?: string,"set_by"?: string,"updated_at"?: string
+                    "frozen_at"?: string | null,"pin_hash"?: string,"profile_id"?: string,"recent_failures"?: number,"recent_failures_since"?: string | null,"set_by"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -70,6 +70,26 @@ isOneToOne: true
     },{
       foreignKeyName: "child_credentials_set_by_fkey"
       columns: ["set_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"child_pin_attempts": {
+                  Row: {
+                    "child_id": string,"failed_attempts": number,"lock_count": number,"locked_until": string | null,"source_hash": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"failed_attempts"?: number,"lock_count"?: number,"locked_until"?: string | null,"source_hash": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "child_id"?: string,"failed_attempts"?: number,"lock_count"?: number,"locked_until"?: string | null,"source_hash"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_pin_attempts_child_id_fkey"
+      columns: ["child_id"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
@@ -135,14 +155,14 @@ isOneToOne: true
                   ]
                 },"invitations": {
                   Row: {
-                    "accepted_by": string | null,"child_id": string | null,"code_hash": string,"created_at": string,"expires_at": string,"family_id": string | null,"id": string,"kind": string,"nickname": string,"parent_email": string,"status": string,"token_hash": string
+                    "accepted_by": string | null,"child_id": string | null,"code_hash": string,"created_at": string,"expires_at": string,"family_id": string | null,"id": string,"kind": string,"nickname": string,"parent_email": string | null,"status": string,"token_hash": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "accepted_by"?: string | null,"child_id"?: string | null,"code_hash": string,"created_at"?: string,"expires_at": string,"family_id"?: string | null,"id"?: string,"kind"?: string,"nickname": string,"parent_email": string,"status"?: string,"token_hash": string
+                    "accepted_by"?: string | null,"child_id"?: string | null,"code_hash": string,"created_at"?: string,"expires_at": string,"family_id"?: string | null,"id"?: string,"kind"?: string,"nickname": string,"parent_email"?: string | null,"status"?: string,"token_hash": string
                   }
                   Update: {
-                    "accepted_by"?: string | null,"child_id"?: string | null,"code_hash"?: string,"created_at"?: string,"expires_at"?: string,"family_id"?: string | null,"id"?: string,"kind"?: string,"nickname"?: string,"parent_email"?: string,"status"?: string,"token_hash"?: string
+                    "accepted_by"?: string | null,"child_id"?: string | null,"code_hash"?: string,"created_at"?: string,"expires_at"?: string,"family_id"?: string | null,"id"?: string,"kind"?: string,"nickname"?: string,"parent_email"?: string | null,"status"?: string,"token_hash"?: string
                   }
                   Relationships: [
                     {
@@ -228,11 +248,14 @@ isOneToOne: false
 "register_child":
 { Args: { "p_child_id": string,"p_consent": boolean,"p_family_id": string,"p_invitation_id"?: string,"p_nickname": string,"p_pin": string }; Returns: undefined
                            },
+"revoke_user_sessions":
+{ Args: { "p_user_id": string }; Returns: number
+                           },
 "set_child_pin":
 { Args: { "p_child_id": string,"p_pin": string }; Returns: undefined
                            },
 "verify_child_pin":
-{ Args: { "p_family_code": string,"p_nickname": string,"p_pin": string }; Returns: {
+{ Args: { "p_family_code": string,"p_nickname": string,"p_pin": string,"p_source_hash": string }; Returns: {
               "child_id": string,"status": string
             }[]
                            }
