@@ -1,9 +1,9 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { JarsoMark, JarsoWordmark } from "@/components/brand";
+import { JarsoWordmark } from "@/components/brand";
 import { ThemeSwitch } from "@/components/theme";
 import { buttonVariants } from "@/components/ui";
-import { routes, siteConfig } from "@/config";
+import { routes } from "@/config";
 
 // Child routes land in later slice-1 tasks; cast until their pages exist (typedRoutes).
 const childSignIn = routes.childSignIn as Route;
@@ -17,12 +17,7 @@ export default function HomePage() {
         <ThemeSwitch />
       </div>
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-10 text-center">
-        {/* The wordmark artwork is opaque white, so dark mode shows the mark and name instead (design.md §1). */}
-        <JarsoWordmark width={288} priority className="w-60 sm:w-72 dark:hidden" />
-        <p className="hidden items-center gap-3 font-extrabold text-display text-primary dark:flex">
-          <JarsoMark size={56} />
-          {siteConfig.name}
-        </p>
+        <JarsoWordmark width={288} priority className="w-60 sm:w-72" />
 
         <div className="flex flex-col gap-3">
           <h1 className="text-balance font-extrabold text-display">Spend some. Save some.</h1>
