@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   cadenceAfterAmount,
+  describeAllowanceState,
   describeCadence,
   describeSchedule,
   formatDay,
   prefillSplit,
   toMajorString,
 } from "./describe";
+import type { Schedule } from "./types";
 
 describe("describeCadence", () => {
   it("describes each frequency from the anchor, with no start date", () => {
@@ -65,5 +67,28 @@ describe("formatDay and toMajorString", () => {
     expect(toMajorString(50000, "INR")).toBe("500.00");
     expect(toMajorString(550, "GBP")).toBe("5.50");
     expect(toMajorString(500, "JPY")).toBe("500");
+  });
+});
+
+describe("describeAllowanceState", () => {
+  const base: Schedule = {
+    id: "s1",
+    amountMinor: 500,
+    frequency: "weekly",
+    status: "active",
+    anchorOn: "2026-11-01",
+    nextDueOn: "2026-11-08",
+    pausedThrough: null,
+    pauseMessage: null,
+  };
+
+  it("reads the next date, pause, stop and none", () => {
+    expect(describeAllowanceState(null)).toBe("No allowance yet");
+    expect(describeAllowanceState(base)).toBe("Next: 8 Nov");
+    expect(describeAllowanceState({ ...base, status: "stopped", nextDueOn: null })).toBe("Stopped");
+    expect(describeAllowanceState({ ...base, status: "paused", pausedThrough: "2026-11-20" })).toBe(
+      "Paused until 20 Nov",
+    );
+    expect(describeAllowanceState({ ...base, status: "paused", nextDueOn: null })).toBe("Paused");
   });
 });

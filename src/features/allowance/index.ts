@@ -1,12 +1,17 @@
 // Public, client-safe API of the allowance feature. Server-only API: "@/features/allowance/server".
 export * from "./components/allowance-form";
+export * from "./components/allowance-overview";
 export * from "./components/allowance-summary";
 export * from "./components/child-allowance-card";
+export * from "./components/child-overview-card";
 export * from "./components/due-list";
 export * from "./components/gift-form";
 export * from "./components/handover-form";
+export * from "./components/needs-you";
+export * from "./components/parent-allowance-card";
 export * from "./components/pause-sheet";
 export * from "./describe";
+export * from "./due";
 export * from "./schemas";
 export {
   cancelGiftAction,

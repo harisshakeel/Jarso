@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile } from "./helpers";
+import { completeParentProfile, readFamilyCode } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Child home (jars, allowance card, history) against the LOCAL Supabase stack. */
@@ -21,10 +21,10 @@ let allowancePath = "";
 let childBase = "";
 
 async function handOver(link: RegExp): Promise<void> {
-  await parent.goto(allowancePath);
+  await parent.goto(childBase);
   await parent.getByRole("region", { name: "Due now" }).getByRole("link", { name: link }).click();
   await parent.getByRole("button", { name: "Confirm I handed it over" }).click();
-  await expect(parent).toHaveURL(at(allowancePath));
+  await expect(parent).toHaveURL(at(childBase));
 }
 
 test.beforeAll(async ({ browser }) => {
@@ -45,18 +45,19 @@ test.beforeAll(async ({ browser }) => {
   await completeParentProfile(parent);
   await parent.getByRole("button", { name: "Create family" }).click();
   await expect(parent).toHaveURL(at("/parent"));
-  const card = parent.locator("[data-slot=card]", { hasText: "Give this code to your child" });
-  const code = ((await card.getByText(/^[A-Z2-9]{6}$/).textContent()) ?? "").trim();
+  const code = await readFamilyCode(parent);
   await parent.getByRole("link", { name: "Add a child" }).first().click();
   await parent.getByLabel("Nickname").fill("Sam");
   await parent.getByLabel("PIN", { exact: true }).fill("1234");
   await parent.getByRole("checkbox", { name: "I am this child's parent or guardian" }).click();
   await parent.getByRole("button", { name: "Add child" }).click();
   await expect(parent).toHaveURL(at("/parent"));
-  await parent.getByRole("link", { name: "Allowance for Sam" }).click();
-  await expect(parent.getByRole("heading", { name: "Allowance for Sam" })).toBeVisible();
-  allowancePath = new URL(parent.url()).pathname;
-  childBase = allowancePath.replace("/allowance", "");
+  await parent.getByRole("link", { name: "Sam", exact: true }).click();
+  await expect(parent).toHaveURL(/\/parent\/children\/[0-9a-f-]+$/);
+  childBase = new URL(parent.url()).pathname;
+  await parent.getByRole("link", { name: "Set up allowance" }).click();
+  allowancePath = `${childBase}/allowance`;
+  await expect(parent).toHaveURL(at(allowancePath));
 
   // Starts today, so the first allowance is due at once.
   await parent.getByLabel("Amount").fill("500");

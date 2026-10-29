@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, expireAccessToken } from "./helpers";
+import { completeParentProfile, expireAccessToken, readFamilyCode } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -56,13 +56,6 @@ async function createFamily(page: Page): Promise<string> {
   await page.getByRole("button", { name: "Create family" }).click();
   await expect(page).toHaveURL(at("/parent"));
   return readFamilyCode(page);
-}
-
-async function readFamilyCode(page: Page): Promise<string> {
-  const card = page.locator("[data-slot=card]", { hasText: "Give this code to your child" });
-  const code = ((await card.getByText(/^[A-Z2-9]{6}$/).textContent()) ?? "").trim();
-  expect(code).toMatch(/^[A-Z2-9]{6}$/);
-  return code;
 }
 
 async function giveConsent(page: Page): Promise<void> {
@@ -282,6 +275,7 @@ test("lockout is per device; a PIN reset unlocks it and signs other devices out"
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Sign in" }).click();
   await expect(parent).toHaveURL(at("/parent"));
+  await parent.goto("/parent/settings");
   await parent.getByRole("button", { name: "Reset PIN for Sam" }).click();
   await parent.getByLabel("New PIN", { exact: true }).fill("4321");
   await parent.getByRole("button", { name: "Save PIN" }).click();

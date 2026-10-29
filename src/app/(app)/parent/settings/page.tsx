@@ -8,6 +8,7 @@ import { SignOutButton } from "@/features/auth";
 import {
   ChildrenSettingsList,
   currencyLabels,
+  FamilyCodeCard,
   FamilySettingsForm,
   isCurrency,
 } from "@/features/family";
@@ -32,35 +33,27 @@ async function ParentSettings() {
 
   return (
     <>
-      <Section
-        index={0}
-        title="Family"
-        description="The family code is how your children sign in. Money is kept in the family's currency."
-      >
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <dt className="text-muted-foreground text-sm">Family code</dt>
-            <dd className="font-extrabold text-h3 tabular-nums tracking-[0.2em]">{family.code}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground text-sm">Currency</dt>
-            <dd className="font-bold">
-              {isCurrency(family.currency) ? currencyLabels[family.currency] : family.currency}
-            </dd>
-          </div>
+      <FamilyCodeCard code={family.code} raised className="rise-in" />
+
+      <Section index={1} title="Family" description="Money is kept in the family's currency.">
+        <dl>
+          <dt className="text-muted-foreground text-sm">Currency</dt>
+          <dd className="font-bold">
+            {isCurrency(family.currency) ? currencyLabels[family.currency] : family.currency}
+          </dd>
         </dl>
         <FamilySettingsForm timezone={family.timezone} />
       </Section>
 
       <Section
-        index={1}
+        index={2}
         title="Children"
         description="Rename, reset a PIN, or remove a child from your family."
       >
         <ChildrenSettingsList items={children} />
       </Section>
 
-      <Section index={2} title="Your account" description={user.email ?? undefined}>
+      <Section index={3} title="Your account" description={user.email ?? undefined}>
         <DisplayNameForm fullName={profile.fullName} />
         <SignOutButton />
       </Section>

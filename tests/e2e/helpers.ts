@@ -39,6 +39,20 @@ export async function expireAccessToken(page: Page): Promise<void> {
 }
 
 /**
+ * Reads the family code from the parent's Settings (where it lives), then goes back to Home.
+ * Six characters from the unambiguous alphabet.
+ */
+export async function readFamilyCode(page: Page): Promise<string> {
+  await page.goto("/parent/settings");
+  const card = page.locator("[data-slot=card]", { hasText: "Give this code to your child" });
+  const value = card.getByText(/^[A-Z2-9]{6}$/);
+  const code = ((await value.textContent()) ?? "").trim();
+  if (!/^[A-Z2-9]{6}$/.test(code)) throw new Error(`Unexpected family code "${code}"`);
+  await page.goto("/parent");
+  return code;
+}
+
+/**
  * Fills the profile-completion dialog every new parent sees (ADR 0008) and waits for it to
  * close. Selects render their options in a portal, so options are found on the page.
  */

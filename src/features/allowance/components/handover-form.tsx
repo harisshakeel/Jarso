@@ -75,7 +75,7 @@ export function HandoverForm({
         toast.success(
           result.data === "confirmed" ? `Handed over to ${nickname}.` : "Already handled.",
         );
-        router.push(routes.parentAllowance(childId));
+        router.push(routes.parentChild(childId));
       }
       return result;
     },
@@ -228,7 +228,7 @@ export function HandoverForm({
           />
         ) : null}
         <Link
-          href={routes.parentAllowance(childId)}
+          href={routes.parentChild(childId)}
           className={buttonVariants({ variant: "ghost", size: "lg" })}
         >
           Back
@@ -264,7 +264,7 @@ function NotGivenButton({
       const result = await markNotGivenAction(null, { id });
       if (result.ok) {
         toast.success(result.data === "closed" ? "Marked as not given." : "Already handled.");
-        router.push(routes.parentAllowance(childId));
+        router.push(routes.parentChild(childId));
       } else {
         setError(result.error.message);
       }
