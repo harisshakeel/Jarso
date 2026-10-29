@@ -1,0 +1,36 @@
+import { describe, expect, it } from "vitest";
+import { describeSchedule, prefillSplit } from "./describe";
+
+describe("describeSchedule", () => {
+  it("names the weekday for a weekly allowance", () => {
+    expect(describeSchedule("weekly", "2025-11-02", "en-GB")).toBe("Every Sunday from 2 Nov");
+  });
+
+  it("names the day of the month for a monthly allowance", () => {
+    expect(describeSchedule("monthly", "2026-01-31", "en-GB")).toBe(
+      "Every month on the 31st from 31 Jan",
+    );
+    expect(describeSchedule("monthly", "2026-01-02")).toBe("Every month on the 2nd from 2 Jan");
+    expect(describeSchedule("monthly", "2026-01-13")).toBe("Every month on the 13th from 13 Jan");
+  });
+
+  it("describes quarterly and annual allowances", () => {
+    expect(describeSchedule("quarterly", "2026-11-30", "en-GB")).toBe("Every 3 months from 30 Nov");
+    expect(describeSchedule("annual", "2026-11-02", "en-GB")).toBe("Every year from 2 Nov");
+  });
+});
+
+describe("prefillSplit", () => {
+  it("puts everything in Spend the first time", () => {
+    expect(prefillSplit(500, null)).toEqual({ cash: 500, saved: 0 });
+  });
+
+  it("applies the last save share to the current amount", () => {
+    expect(prefillSplit(500, { cash: 300, saved: 200 })).toEqual({ cash: 300, saved: 200 });
+    expect(prefillSplit(1000, { cash: 300, saved: 200 })).toEqual({ cash: 600, saved: 400 });
+  });
+
+  it("rounds the saved part down and gives Spend the rest", () => {
+    expect(prefillSplit(333, { cash: 1, saved: 1 })).toEqual({ cash: 167, saved: 166 });
+  });
+});

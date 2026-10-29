@@ -13,6 +13,13 @@ export const routes = {
   parent: "/parent",
   parentSetup: "/parent/setup",
   parentNewChild: "/parent/children/new",
+  parentAllowance: (childId: string) => `/parent/children/${childId}/allowance`,
+  parentAllowanceEdit: (childId: string) => `/parent/children/${childId}/allowance/edit`,
+  parentGiftNew: (childId: string) => `/parent/children/${childId}/gifts/new`,
+  parentGiftEdit: (childId: string, giftId: string) =>
+    `/parent/children/${childId}/gifts/${giftId}/edit`,
+  parentHandover: (childId: string, kind: "allowance" | "gift", id: string) =>
+    `/parent/children/${childId}/handover/${kind}/${id}`,
   child: "/child",
   childStart: "/start",
   childSignIn: "/sign-in/child",
