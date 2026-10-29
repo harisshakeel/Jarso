@@ -51,6 +51,14 @@ async function HandoverContent({
         prefill={prefillSplit(item.amountMinor, last)}
         hasPrevious={last !== null}
       />
+      {item.kind === "gift" ? (
+        <Link
+          href={routes.parentGiftEdit(childId, item.id)}
+          className="justify-self-center font-semibold text-ink-2 text-sm underline underline-offset-4 hover:text-foreground"
+        >
+          Change or cancel this gift
+        </Link>
+      ) : null}
     </PageShell>
   );
 }

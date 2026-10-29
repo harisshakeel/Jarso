@@ -141,6 +141,9 @@ test("parent hands over a due allowance with a split", async () => {
 
   await expect(page).toHaveURL(at(childPath));
   await expect(due.getByRole("link", { name: /^Allowance/ })).toHaveCount(0);
+  // The parent sees the child's jars with exact amounts.
+  await expect(page.getByRole("region", { name: "Spend jar" })).toContainText("US$300.00");
+  await expect(page.getByRole("region", { name: "Save jar" })).toContainText("US$200.00");
 });
 
 test("the next handover starts from the last split", async () => {
@@ -150,6 +153,27 @@ test("the next handover starts from the last split", async () => {
   await expect(page.getByLabel("Spend (cash to Sam)")).toHaveValue("30.00");
   await expect(page.getByLabel("Save (you keep)", { exact: true })).toHaveValue("20.00");
   await page.getByRole("button", { name: "Confirm I handed it over" }).click();
+  await expect(page).toHaveURL(at(childPath));
+  await expect(page.getByRole("region", { name: "Due now" })).toHaveCount(0);
+});
+
+test("parent cancels a due gift from the handover screen", async () => {
+  await page.goto(`${childPath.replace("/allowance", "")}/gifts/new`);
+  await page.getByLabel("Amount").fill("15");
+  await page.getByLabel("Note for Sam (optional)").fill("Cinema money");
+  await page.getByRole("button", { name: "Save gift" }).click();
+  await expect(page).toHaveURL(at(childPath));
+
+  const due = page.getByRole("region", { name: "Due now" });
+  await due.getByRole("link", { name: /^Gift/ }).click();
+  await page.getByRole("link", { name: "Change or cancel this gift" }).click();
+  await expect(page.getByText("Change this gift.")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel this gift" }).click();
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog.getByText("Cancel this gift?")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Keep it" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel gift" }).click();
+
   await expect(page).toHaveURL(at(childPath));
   await expect(page.getByRole("region", { name: "Due now" })).toHaveCount(0);
 });
@@ -176,4 +200,7 @@ test("parent marks a due allowance as not given", async () => {
 
   await expect(page).toHaveURL(at(childPath));
   await expect(page.getByRole("region", { name: "Due now" })).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "History" }).getByText("Not given", { exact: true }),
+  ).toBeVisible();
 });
