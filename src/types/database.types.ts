@@ -1068,6 +1068,9 @@ isOneToOne: false
 { Args: { "p_family_code": string,"p_nickname": string,"p_pin": string,"p_source_hash": string }; Returns: {
               "child_id": string,"status": string
             }[]
+                           },
+"withdrawal_cap_remaining":
+{ Args: { "p_child_id": string }; Returns: number
                            }
           }
           Enums: {

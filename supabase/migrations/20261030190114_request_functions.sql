@@ -502,6 +502,58 @@ comment on function public.cancel_request(uuid) is
   'Child cancels their own pending request; a parent cancels a pending or approved withdrawal (deposits go through decide_deposit). Locks the row, posts nothing, frees the reservation or hold. Returns cancelled or already_closed. JA403 (not the child or a parent, or missing), 22023 (a parent on a deposit).';
 
 -- ---------------------------------------------------------------------------
+-- withdrawal_cap_remaining: how much more a child may ask for under their caps
+-- ---------------------------------------------------------------------------
+
+create or replace function public.withdrawal_cap_remaining(p_child_id uuid)
+returns bigint
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_family_id uuid;
+  v_rule record;
+  v_used bigint;
+  v_remaining bigint;
+  v_min bigint;
+begin
+  if not (public.is_self(p_child_id) or public.is_parent_of(p_child_id)) then
+    raise exception using errcode = 'JA403', message = 'Not allowed';
+  end if;
+
+  select fm.family_id into v_family_id
+  from public.family_members fm
+  where fm.profile_id = p_child_id
+  limit 1;
+
+  for v_rule in
+    select r.period, r.amount_minor
+    from public.money_rules r
+    where r.child_id = p_child_id and r.kind = 'withdrawal_cap'
+  loop
+    if v_rule.period = 'item' then
+      v_used := 0;
+    else
+      v_used := public.request_window_total(
+        p_child_id, 'withdrawal', array['pending', 'approved', 'handed_over'],
+        public.rule_window_start(v_family_id, v_rule.period, pg_catalog.now()));
+    end if;
+    v_remaining := case when v_rule.amount_minor > v_used then v_rule.amount_minor - v_used else 0 end;
+    if v_min is null or v_remaining < v_min then
+      v_min := v_remaining;
+    end if;
+  end loop;
+
+  return v_min;
+end;
+$$;
+
+comment on function public.withdrawal_cap_remaining(uuid) is
+  'Smallest remaining withdrawal cap in minor units (cap minus pending, approved and handed-over withdrawals in its window, an item cap counts as unused, floored at 0), or null when the child has no withdrawal_cap rule. Caller must be the child or their parent. JA403.';
+
+-- ---------------------------------------------------------------------------
 -- Grants
 -- ---------------------------------------------------------------------------
 
@@ -513,7 +565,8 @@ revoke execute on function
   public.decide_deposit(uuid, text),
   public.decide_withdrawal(uuid, boolean, text),
   public.complete_request(uuid, text),
-  public.cancel_request(uuid)
+  public.cancel_request(uuid),
+  public.withdrawal_cap_remaining(uuid)
 from public, anon;
 
 grant execute on function
@@ -522,5 +575,6 @@ grant execute on function
   public.decide_deposit(uuid, text),
   public.decide_withdrawal(uuid, boolean, text),
   public.complete_request(uuid, text),
-  public.cancel_request(uuid)
+  public.cancel_request(uuid),
+  public.withdrawal_cap_remaining(uuid)
 to authenticated;

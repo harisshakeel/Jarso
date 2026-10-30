@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(23);
+select plan(29);
 
 -- Fixtures: PA owns family A with C1 and C2; PB owns family B with C3.
 select tests.create_user('pa@example.com') as pa \gset
@@ -93,6 +93,29 @@ select is(public.request_window_total(:'c1'::uuid, 'withdrawal', array['pending'
   1500::bigint, 'window total excludes the older row');
 select is(public.request_window_total(:'c1'::uuid, 'withdrawal', array['pending','approved'], null),
   2400::bigint, 'null window start counts all time');
+
+-- withdrawal_cap_remaining
+select tests.clear_auth();
+select tests.authenticate_as(:'c1'::uuid);
+select is(public.withdrawal_cap_remaining(:'c1'::uuid), null::bigint, 'no cap rules gives null');
+select tests.clear_auth();
+insert into public.money_rules (family_id, child_id, kind, period, amount_minor)
+values (:'fa'::uuid, :'c1'::uuid, 'withdrawal_cap', 'week', 3000);
+select tests.authenticate_as(:'c1'::uuid);
+select is(public.withdrawal_cap_remaining(:'c1'::uuid), 800::bigint, 'week cap minus pending, approved and handed-over this week');
+select tests.clear_auth();
+insert into public.money_rules (family_id, child_id, kind, period, amount_minor)
+values (:'fa'::uuid, :'c1'::uuid, 'withdrawal_cap', 'item', 400);
+select tests.authenticate_as(:'pa'::uuid);
+select is(public.withdrawal_cap_remaining(:'c1'::uuid), 400::bigint, 'parent reads it; an item cap counts as unused and the smallest wins');
+select tests.clear_auth();
+update public.money_rules set amount_minor = 2000 where child_id = :'c1'::uuid and period = 'week';
+select tests.authenticate_as(:'c1'::uuid);
+select is(public.withdrawal_cap_remaining(:'c1'::uuid), 0::bigint, 'floored at zero when the window is over the cap');
+select tests.authenticate_as(:'c2'::uuid);
+select throws_ok(format($$select public.withdrawal_cap_remaining(%L)$$, :'c1'), 'JA403', null, 'sibling denied withdrawal_cap_remaining');
+select tests.authenticate_as(:'pb'::uuid);
+select throws_ok(format($$select public.withdrawal_cap_remaining(%L)$$, :'c1'), 'JA403', null, 'other family denied withdrawal_cap_remaining');
 
 select * from finish();
 rollback;
