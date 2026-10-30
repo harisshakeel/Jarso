@@ -16,6 +16,8 @@ const schema = z.object({
     .transform((value) => value === "true"),
   /** Daily spend cap across all children, in US cents; the guide pauses when it is reached. */
   GUIDE_DAILY_BUDGET_CENTS: z.coerce.number().int().positive().default(1000),
+  /** Monthly spend cap across all children, in US cents (calendar month, UTC). */
+  GUIDE_MONTHLY_BUDGET_CENTS: z.coerce.number().int().positive().default(10000),
   /** "fake" answers without Claude, for e2e runs; needs GUIDE_ALLOW_FAKE and never on Vercel production. */
   GUIDE_PROVIDER: z.enum(["anthropic", "fake"]).default("anthropic"),
   /** A second, test-only opt-in for the fake provider, so no real host runs it by mistake. */

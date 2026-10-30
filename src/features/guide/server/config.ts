@@ -38,3 +38,7 @@ export function getGuideProvider(): GuideProvider | null {
 export function guideDailyBudgetCents(): number {
   return serverEnv.GUIDE_DAILY_BUDGET_CENTS;
 }
+
+export function guideMonthlyBudgetCents(): number {
+  return serverEnv.GUIDE_MONTHLY_BUDGET_CENTS;
+}

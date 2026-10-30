@@ -3,7 +3,7 @@ import type { GuideUsage } from "../types";
 
 /**
  * US dollars per million tokens (Anthropic list prices, checked 2026-10-30). Cache writes cost
- * 1.25× input. Used only for the daily budget breaker; the billing alert is the backstop.
+ * 1.25× input. Used only for the daily and monthly budgets; the Console spend limit is the backstop.
  */
 const PRICES = {
   "claude-opus-5-5": { input: 4, output: 20, cacheRead: 0.2 },
