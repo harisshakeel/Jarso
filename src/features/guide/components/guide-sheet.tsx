@@ -42,8 +42,11 @@ type GuideSheetProps = {
   compact?: boolean;
 };
 
-/** A whole guide turn may take this long before the child is asked to try again. */
-const TURN_TIMEOUT_MS = 45_000;
+/**
+ * Client wait for one guide turn: the server's own turn deadline is 45 s, plus headroom so its
+ * reply (or its slow notice) arrives first. Stays under the pages' maxDuration of 60 s.
+ */
+const TURN_TIMEOUT_MS = 52_000;
 
 /**
  * The intro card shows before a child's first-ever message. Once they've read it on this page,
