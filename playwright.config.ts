@@ -50,6 +50,7 @@ export default defineConfig({
     { name: "purchases", testMatch: "purchases.spec.ts", use: { ...devices["Desktop Chrome"] } },
     // No browser: concurrent RPC calls against local Supabase.
     { name: "handover-race", testMatch: "handover-race.spec.ts" },
+    { name: "inbox", testMatch: "inbox.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "learning", testMatch: "learning.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "guide", testMatch: "guide.spec.ts", use: { ...devices["Desktop Chrome"] } },
     // A spec only runs if a project matches it; add a project here for every new spec file.
