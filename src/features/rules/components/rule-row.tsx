@@ -43,12 +43,14 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
       const result = await runOnline(() =>
         setRuleAction(null, { childId, kind, period, amount: value }),
       );
-      if (result.ok) return onOk();
-      const first = result.error.fieldErrors?.amount?.[0];
-      if (first) setFieldError(first);
-      else {
-        setError(result.error);
-      }
+      // Updates after an await leave the transition unless wrapped again. Wrapped, they commit
+      // with `pending` turning false, so the new sentence never shows beside a disabled switch.
+      start(() => {
+        if (result.ok) return onOk();
+        const first = result.error.fieldErrors?.amount?.[0];
+        if (first) setFieldError(first);
+        else setError(result.error);
+      });
     });
   }
 
