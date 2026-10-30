@@ -32,7 +32,8 @@ create function public.guide_record_turn(
   p_model text,
   p_usage jsonb,
   p_latency_ms integer,
-  p_client_message_id uuid
+  -- Default null keeps the old 10-argument call working while a deploy or rollback runs.
+  p_client_message_id uuid default null
 )
 returns uuid
 language plpgsql
@@ -110,7 +111,7 @@ end;
 $$;
 
 comment on function public.guide_record_turn(uuid, uuid, text, text, text, text, boolean, text, jsonb, integer, uuid) is
-  'Server only. Stores the child''s (scrubbed; blank after a safety or personal-details response) message with its client message id and the reply in one transaction and counts the turn. JA403, JA409 (12 turns), 22023, 23505 (client message id already recorded for this child).';
+  'Server only. Stores the child''s (scrubbed; blank after a safety or personal-details response) message with its client message id (null for older callers: no retry lookup) and the reply in one transaction and counts the turn. JA403, JA409 (12 turns), 22023, 23505 (client message id already recorded for this child).';
 
 -- The reply shares the child message's created_at (one clock read per turn).
 create function public.guide_find_turn(p_child_id uuid, p_client_message_id uuid)

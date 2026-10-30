@@ -763,7 +763,7 @@ isOneToOne: false
 { Args: { "p_currency": string,"p_timezone": string }; Returns: string
                            },
 "create_gift":
-{ Args: { "p_amount_minor": number,"p_child_id": string,"p_give_on": string,"p_idempotency_key": string,"p_note": string }; Returns: string
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_give_on": string,"p_idempotency_key"?: string,"p_note": string }; Returns: string
                            },
 "create_invitation":
 { Args: { "p_code_hash": string,"p_nickname": string,"p_parent_email": string,"p_token_hash": string }; Returns: string
@@ -794,7 +794,7 @@ isOneToOne: false
             }[]
                            },
 "guide_record_turn":
-{ Args: { "p_child_id": string,"p_child_text": string,"p_client_message_id": string,"p_conversation_id": string,"p_flagged": boolean,"p_latency_ms": number,"p_model": string,"p_reply_role": string,"p_reply_text": string,"p_route": string,"p_usage": Json }; Returns: string
+{ Args: { "p_child_id": string,"p_child_text": string,"p_client_message_id"?: string,"p_conversation_id": string,"p_flagged": boolean,"p_latency_ms": number,"p_model": string,"p_reply_role": string,"p_reply_text": string,"p_route": string,"p_usage": Json }; Returns: string
                            },
 "guide_start_conversation":
 { Args: { "p_child_id": string,"p_context_key": string,"p_entry": string }; Returns: string

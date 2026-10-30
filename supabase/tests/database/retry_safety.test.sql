@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(15);
+select plan(18);
 
 -- Family A: parents PA and PB, child C (guide on).
 select tests.create_user('pa@example.com') as pa \gset
@@ -28,7 +28,7 @@ select gen_random_uuid()::text as gift_key \gset
 select has_column('public', 'parent_gifts', 'idempotency_key', 'gifts carry an idempotency key');
 select col_not_null('public', 'parent_gifts', 'idempotency_key', 'and it is required');
 select hasnt_function('public', 'create_gift', array['uuid', 'bigint', 'date', 'text'],
-  'the keyless create_gift is gone');
+  'no separate keyless create_gift: the key defaults to null');
 select function_privs_are('public', 'create_gift', array['uuid', 'bigint', 'date', 'text', 'text'],
   'anon', array[]::text[], 'anon cannot create gifts');
 
@@ -48,6 +48,12 @@ select throws_ok(
 select throws_ok(
   format($$ select public.create_gift(%L, 1000, %L, null, %L) $$, :'c2', :'today', :'gift_key'),
   'JA409', null, 'same key for a different child does not return the first child''s gift');
+select public.create_gift(:'c'::uuid, 500, :'today'::date, null) as g_old \gset
+select public.create_gift(:'c'::uuid, 500, :'today'::date, null) as g_old_again \gset
+select is(
+  (select count(distinct idempotency_key)::int from public.parent_gifts
+   where id in (:'g_old'::uuid, :'g_old_again'::uuid)),
+  2, 'create_gift with the old 4 arguments still works, each call with a fresh key');
 
 select tests.authenticate_as(:'pb'::uuid);
 select public.create_gift(:'c'::uuid, 1000, :'today'::date, 'Well done', :'gift_key') as g2 \gset
@@ -73,6 +79,14 @@ select throws_ok(
   format($$ select public.guide_record_turn(%L, %L, 'What is saving?', 'guide', 'Again.',
     'on_topic', false, 'm', '{}'::jsonb, 10, %L) $$, :'convo', :'c', :'mid'),
   '23505', null, 'guide_record_turn rejects a second child row with the same client_message_id');
+
+select public.guide_record_turn(:'convo'::uuid, :'c'::uuid, 'What is a jar?', 'guide', 'A jar holds money.',
+  'on_topic', false, 'm', '{}'::jsonb, 10) as old_reply \gset
+select isnt(:'old_reply'::uuid, null, 'guide_record_turn with the old 10 arguments still works');
+select is(
+  (select count(*)::int from public.guide_messages
+   where conversation_id = :'convo'::uuid and role = 'child' and client_message_id is null),
+  1, 'and stores the child message without a client message id');
 
 select results_eq(
   format($$ select conversation_id, reply_id from public.guide_find_turn(%L, %L) $$, :'c', :'mid'),

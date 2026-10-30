@@ -24,7 +24,8 @@ create function public.create_gift(
   p_amount_minor bigint,
   p_give_on date,
   p_note text,
-  p_idempotency_key text
+  -- Default null keeps the old 4-argument call working while a deploy or rollback runs.
+  p_idempotency_key text default null
 )
 returns uuid
 language plpgsql
@@ -36,6 +37,8 @@ declare
   v_uid uuid := (select auth.uid());
   v_family_id uuid;
   v_note text := nullif(pg_catalog.btrim(p_note), '');
+  -- No key (an older app build): a fresh one, so the gift is made once, without retry safety.
+  v_key text := coalesce(p_idempotency_key, pg_catalog.gen_random_uuid()::text);
   v_id uuid;
 begin
   if not public.is_parent_of(p_child_id) then
@@ -51,15 +54,14 @@ begin
     raise exception using errcode = 'JA403', message = 'Not allowed';
   end if;
 
-  if p_idempotency_key is null or pg_catalog.btrim(p_idempotency_key) = ''
-     or pg_catalog.char_length(p_idempotency_key) > 200 then
+  if pg_catalog.btrim(v_key) = '' or pg_catalog.char_length(v_key) > 200 then
     raise exception using errcode = '22023', message = 'Invalid gift';
   end if;
 
   -- A retry returns the original gift without re-checking the date (it may be a day later).
   select g.id into v_id
   from public.parent_gifts g
-  where g.created_by = v_uid and g.idempotency_key = p_idempotency_key and g.child_id = p_child_id;
+  where g.created_by = v_uid and g.idempotency_key = v_key and g.child_id = p_child_id;
   if found then
     return v_id;
   end if;
@@ -78,14 +80,14 @@ begin
   -- Two sends racing past the lookup: the loser waits on the unique key, inserts nothing and
   -- reads the winner's row. A key this parent already used for another child is refused.
   insert into public.parent_gifts (family_id, child_id, amount_minor, give_on, note, created_by, idempotency_key)
-  values (v_family_id, p_child_id, p_amount_minor, p_give_on, v_note, v_uid, p_idempotency_key)
+  values (v_family_id, p_child_id, p_amount_minor, p_give_on, v_note, v_uid, v_key)
   on conflict (created_by, idempotency_key) do nothing
   returning id into v_id;
 
   if v_id is null then
     select g.id into v_id
     from public.parent_gifts g
-    where g.created_by = v_uid and g.idempotency_key = p_idempotency_key and g.child_id = p_child_id;
+    where g.created_by = v_uid and g.idempotency_key = v_key and g.child_id = p_child_id;
     if v_id is null then
       raise exception using errcode = 'JA409', message = 'Key already used for another gift';
     end if;
@@ -105,7 +107,7 @@ begin
 end;
 $$;
 
-comment on function public.create_gift(uuid, bigint, date, text, text) is 'Parent plans a one-time gift for the child (hidden from the child until given). Note trimmed, empty = null. A repeated key from the same parent for the same child returns the existing gift id without inserting or auditing. JA403, JA409 (key already used by this parent for another child), 22023 (blank key or key over 200, amount outside 1..100000000000, give_on outside family today..today + 366, note over 140).';
+comment on function public.create_gift(uuid, bigint, date, text, text) is 'Parent plans a one-time gift for the child (hidden from the child until given). Note trimmed, empty = null. A repeated key from the same parent for the same child returns the existing gift id without inserting or auditing; a null key (older callers) gets a fresh random one. JA403, JA409 (key already used by this parent for another child), 22023 (blank key or key over 200, amount outside 1..100000000000, give_on outside family today..today + 366, note over 140).';
 
 revoke execute on function public.create_gift(uuid, bigint, date, text, text) from public, anon;
 grant execute on function public.create_gift(uuid, bigint, date, text, text) to authenticated;
