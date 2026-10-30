@@ -17,6 +17,9 @@ function unavailableResponse(): Response {
   });
 }
 
+/** Statuses a Response may not carry a body with. */
+const NULL_BODY = new Set([101, 204, 205, 304]);
+
 function pathnameOf(input: Parameters<typeof fetch>[0]): string {
   const raw = typeof input === "string" || input instanceof URL ? input : input.url;
   try {
@@ -30,8 +33,9 @@ function pathnameOf(input: Parameters<typeof fetch>[0]): string {
  * `fetch` with a hard deadline and slow-call logging. A caller abort is passed through
  * untouched (rejects); a timeout or network failure resolves a 503 JA503 response and is
  * logged. Logs carry the call name, path (no query), status/reason and duration only.
- * The deadline covers the time to response headers, not the body read (Supabase bodies are
- * small). Isomorphic.
+ * The deadline covers the body too: it is read (Supabase bodies are small) and handed back as a
+ * new Response with the same status and headers, so a body that stalls also times out.
+ * Isomorphic.
  */
 export function createTimedFetch(options: {
   timeoutMs: number;
@@ -50,6 +54,7 @@ export function createTimedFetch(options: {
 
     try {
       const response = await fetch(input, { ...init, signal });
+      const body = NULL_BODY.has(response.status) ? null : await response.arrayBuffer();
       const durationMs = Date.now() - startedAt;
       if (durationMs > slowMs) {
         logger.warn("Slow upstream call", {
@@ -59,7 +64,11 @@ export function createTimedFetch(options: {
           durationMs,
         });
       }
-      return response;
+      return new Response(body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
     } catch (error) {
       if (init?.signal?.aborted) throw error;
       logger.warn("Upstream call failed", {

@@ -52,6 +52,56 @@ describe("createTimedFetch", () => {
     });
   });
 
+  it("resolves a 503 when the body stalls after the headers", async () => {
+    globalThis.fetch = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      // Headers arrive, then the body sends one chunk and stops, like a stalled stream.
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('[{"id":'));
+          init?.signal?.addEventListener("abort", () => controller.error(init.signal?.reason));
+        },
+      });
+      return new Response(body, { status: 200 });
+    }) as unknown as typeof fetch;
+    const timed = createTimedFetch({ timeoutMs: 8000, name: "supabase" });
+
+    const p = timed("https://x.supabase.co/rest/v1/jars");
+    await vi.advanceTimersByTimeAsync(8000);
+    const res = await p;
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ code: "JA503" });
+    expect(warn).toHaveBeenCalledWith(
+      "Upstream call failed",
+      expect.objectContaining({ reason: "timeout" }),
+    );
+  });
+
+  it("hands back the whole body with the same status and headers", async () => {
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response('{"ok":true}', {
+          status: 201,
+          statusText: "Created",
+          headers: { "content-type": "application/json", "content-range": "0-0/1" },
+        }),
+    ) as unknown as typeof fetch;
+    const res = await createTimedFetch({ timeoutMs: 8000, name: "supabase" })("https://x.co/a");
+    expect(res.status).toBe(201);
+    expect(res.statusText).toBe("Created");
+    expect(res.headers.get("content-range")).toBe("0-0/1");
+    expect(await res.json()).toEqual({ ok: true });
+  });
+
+  it("keeps a 204 without a body", async () => {
+    globalThis.fetch = vi.fn(
+      async () => new Response(null, { status: 204 }),
+    ) as unknown as typeof fetch;
+    const res = await createTimedFetch({ timeoutMs: 8000, name: "supabase" })("https://x.co/a");
+    expect(res.status).toBe(204);
+    expect(await res.text()).toBe("");
+  });
+
   it("caller abort still rejects", async () => {
     globalThis.fetch = hangingFetch() as unknown as typeof fetch;
     const timed = createTimedFetch({ timeoutMs: 8000, name: "supabase" });
