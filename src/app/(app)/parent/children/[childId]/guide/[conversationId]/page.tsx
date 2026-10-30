@@ -7,7 +7,7 @@ import { getGuideTranscript } from "@/features/guide/server";
 import { loadChild } from "../../load-child";
 import { FormSkeleton, PageShell } from "../../page-shell";
 
-export const metadata: Metadata = { title: "Guide chat" };
+export const metadata: Metadata = { title: "Jarso chat" };
 
 async function ChatContent({
   params,
@@ -42,7 +42,7 @@ export default function GuideChatPage({
   return (
     <Suspense
       fallback={
-        <PageShell title="Guide chat">
+        <PageShell title="Jarso chat">
           <FormSkeleton />
         </PageShell>
       }

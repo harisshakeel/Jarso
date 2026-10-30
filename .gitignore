@@ -58,3 +58,6 @@ next-env.d.ts
 junk/
 # guide eval reports (may hold model replies)
 /evals/guide/results/
+
+# Session-log hook: private words to redact (never committed)
+.claude/hooks/private-words.local

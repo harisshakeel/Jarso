@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
       },
+      // Jarso's voice (src/features/guide/server/instructions.md) is imported as plain text.
+      "*.md": { type: "raw" },
     },
   },
   async headers() {

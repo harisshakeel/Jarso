@@ -7,7 +7,7 @@ import { getGuideAccess, listGuideChats } from "@/features/guide/server";
 import { loadChild } from "../load-child";
 import { FormSkeleton, PageShell } from "../page-shell";
 
-export const metadata: Metadata = { title: "Money guide" };
+export const metadata: Metadata = { title: "Jarso chats" };
 
 async function GuideContent({ params }: { params: Promise<{ childId: string }> }) {
   const { childId } = await params;
@@ -16,7 +16,7 @@ async function GuideContent({ params }: { params: Promise<{ childId: string }> }
   if (!access.configured && chats.length === 0) notFound();
   return (
     <PageShell
-      title={`${child.nickname}'s money guide`}
+      title={`${child.nickname}'s chats with Jarso`}
       intro="Every chat, newest first, with any that need a look at the top. Text is kept for 30 days."
       back={{ href: routes.parentChild(childId), label: child.nickname }}
     >
@@ -43,7 +43,7 @@ export default function GuideChatsPage({ params }: PageProps<"/parent/children/[
   return (
     <Suspense
       fallback={
-        <PageShell title="Money guide">
+        <PageShell title="Jarso chats">
           <FormSkeleton />
         </PageShell>
       }

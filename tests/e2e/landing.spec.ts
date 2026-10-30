@@ -61,8 +61,8 @@ test("no sideways scroll on a 360 px phone", async ({ page }) => {
   expect(overflow).toBe(0);
 });
 
-test("the safety link opens the guide's safety page", async ({ page }) => {
+test("the safety link opens the AI safety page", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "How the guide stays safe" }).click();
+  await page.getByRole("link", { name: "How Jarso's AI stays safe" }).click();
   await expect(page).toHaveURL(/\/safety$/);
 });

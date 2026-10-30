@@ -1,4 +1,11 @@
-import { BotIcon, ChevronRightIcon, FlagIcon, ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
+import {
+  BotIcon,
+  ChevronRightIcon,
+  FlagIcon,
+  ScanSearchIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
+} from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
@@ -17,7 +24,7 @@ function formatWhen(iso: string, timezone: string): string {
   }).format(new Date(iso));
 }
 
-/** The parent's guide card on a child's page: the switch, flagged chats, and a link to all chats. */
+/** The parent's Jarso card on a child's page: the switch, flagged chats, and a link to all chats. */
 export function GuideCard({
   childId,
   nickname,
@@ -37,7 +44,7 @@ export function GuideCard({
         <section aria-labelledby="guide-card" className="grid gap-3">
           <h2 id="guide-card" className="flex items-center gap-2 text-h3">
             <BotIcon aria-hidden className="size-5" />
-            Money guide
+            Jarso, the AI helper
           </h2>
           <GuideSwitch childId={childId} nickname={nickname} enabled={enabled} />
           {flagged > 0 ? (
@@ -109,7 +116,7 @@ const ROUTE_NOTES: Partial<Record<NonNullable<TranscriptMessage["route"]>, strin
   unsafe: "Refused: unsafe request",
   jailbreak: "Refused: tried to change the rules",
   blocked_output: "Reply held back by the safety check",
-  unavailable: "Guide unavailable",
+  unavailable: "Jarso unavailable",
 };
 
 /** One chat as the parent reads it. Messages that got a safety response stay private. */
@@ -136,14 +143,20 @@ export function Transcript({
             {message.role === "child"
               ? "Your child"
               : message.role === "guide"
-                ? "AI guide"
-                : "AI guide (set reply)"}
+                ? "Jarso (AI)"
+                : "Jarso (set reply)"}
             {" · "}
             {formatWhen(message.createdAt, timezone)}
           </span>
           <p className={cn("whitespace-pre-line", message.hidden && "text-ink-2 italic")}>
             {message.text}
           </p>
+          {message.lookedAt.length > 0 ? (
+            <span className="flex items-center gap-1 text-ink-2 text-sm">
+              <ScanSearchIcon aria-hidden className="size-4" />
+              Looked at: {message.lookedAt.join(", ")}
+            </span>
+          ) : null}
           {message.route && ROUTE_NOTES[message.route] ? (
             <span
               className={cn(

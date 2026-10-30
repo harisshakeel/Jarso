@@ -8,4 +8,6 @@ export {
   getGuideTranscript,
   isGuideConfigured,
   listGuideChats,
+  prepareGuideTurn,
 } from "./service";
+export { streamGuideTurn } from "./stream";
