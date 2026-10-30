@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppError } from "@/lib";
+import { guideCopy } from "../copy";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn(() => ({ kind: "admin" })) }));
@@ -374,6 +375,20 @@ describe("askGuide retries", () => {
     expect(provider.screenOutput).not.toHaveBeenCalled();
     expect(repo.startConversation).not.toHaveBeenCalled();
     expect(repo.recordTurn).not.toHaveBeenCalled();
+  });
+
+  it("a repeated clientMessageId is refused when the parent has switched the guide off", async () => {
+    const provider = spiedProvider();
+    vi.mocked(repo.findTurn).mockResolvedValue({ conversationId: "convo-1", replyId: "reply-1" });
+    vi.mocked(repo.findGuideAccess).mockResolvedValueOnce(false);
+
+    await expect(
+      service.askGuide({ clientMessageId, conversationId: null, context: home, text: "hi" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", message: guideCopy.switchedOff });
+    expect(repo.findTurn).not.toHaveBeenCalled();
+    expect(repo.listMessages).not.toHaveBeenCalled();
+    expect(provider.screenInput).not.toHaveBeenCalled();
+    expect(provider.reply).not.toHaveBeenCalled();
   });
 
   it("answers with the stored turn when the same question raced in and was saved first", async () => {

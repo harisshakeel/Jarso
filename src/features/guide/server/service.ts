@@ -113,7 +113,8 @@ async function storedTurn(
 
 /**
  * One message to the guide from the signed-in child. A question already answered (same
- * `clientMessageId`) gets its stored reply before anything is counted or sent to the model.
+ * `clientMessageId`) gets its stored reply once the guide is confirmed on, before anything is
+ * counted or sent to the model.
  */
 export async function askGuide(input: {
   clientMessageId: string;
@@ -122,16 +123,16 @@ export async function askGuide(input: {
   text: string;
 }): Promise<AskGuideResult> {
   const { user } = await assertRole("child");
-  const admin = createAdminClient();
-  const replay = await storedTurn(admin, user.id, input.clientMessageId);
-  if (replay) return replay;
-
   const provider = getGuideProvider();
   if (!provider) throw new AppError("FORBIDDEN", guideCopy.switchedOff);
   const db = await createClient();
   if (!(await repo.findGuideAccess(db, user.id))) {
     throw new AppError("FORBIDDEN", guideCopy.switchedOff);
   }
+  // After the switch (a child-safety boundary), before anything is counted or sent.
+  const admin = createAdminClient();
+  const replay = await storedTurn(admin, user.id, input.clientMessageId);
+  if (replay) return replay;
   const family = await getFamily();
   if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
 
