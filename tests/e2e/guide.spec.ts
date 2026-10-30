@@ -96,9 +96,11 @@ test.afterAll(async () => {
 test("Jarso is on by default, and the parent sees how to turn it off", async () => {
   const toggle = parent.getByRole("switch", { name: "Jarso for Remi" });
   await expect(toggle).toHaveAttribute("aria-checked", "true");
-  await expect(parent.getByText(/made with Anthropic's Claude/)).toBeVisible();
-  await expect(parent.getByText(/looks at their own jars, allowance/)).toBeVisible();
-  await expect(parent.getByText(/on unless you turn it off/)).toBeVisible();
+  // The child's page only: Next keeps the add-child page (with its notice) hidden in the DOM.
+  const card = parent.getByRole("region", { name: "Jarso, the AI helper", exact: true });
+  await expect(card.getByText(/made with Anthropic's Claude/)).toBeVisible();
+  await expect(card.getByText(/looks at their own jars, allowance/)).toBeVisible();
+  await expect(card.getByText(/on unless you turn it off/)).toBeVisible();
   await expect(child.getByRole("heading", { name: /Five quick questions/ })).toBeVisible();
   await expect(jarso(child)).toBeVisible();
 });
