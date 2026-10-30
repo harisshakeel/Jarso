@@ -1,4 +1,4 @@
--- Savings requests (slice 4): withdrawal functions. Task 10 appends the deposit functions.
+-- Savings requests (slice 4): withdrawal and deposit functions.
 -- Lock order (database.md): the request row first (if one exists), then the child's ledger
 -- advisory lock, then balance checks and inserts.
 
@@ -237,6 +237,28 @@ begin
     update public.requests
     set status = 'handed_over', completed_by = p_actor, completed_at = pg_catalog.now()
     where id = v_r.id;
+  elsif v_r.kind = 'deposit' then
+    -- Spend must cover the amount beyond every other pending hold (this request's own hold is released first).
+    if v_r.amount_minor >
+       public.balance(v_r.child_id, 'spend', 'recorded') - (public.held_spend(v_r.child_id) - v_r.amount_minor) then
+      return 'over_available';
+    end if;
+
+    insert into public.ledger_entries (
+      family_id, child_id, mode, jar, kind, direction, amount_minor, label,
+      source_type, source_id, idempotency_key, created_by
+    )
+    values
+      (v_r.family_id, v_r.child_id, 'recorded', 'spend', 'deposit_out', 'out', v_r.amount_minor, 'Put into Save',
+       'request', v_r.id, 'request:' || v_r.id::text || ':out', p_actor),
+      (v_r.family_id, v_r.child_id, 'recorded', 'save', 'deposit_in', 'in', v_r.amount_minor, 'Put into Save',
+       'request', v_r.id, 'request:' || v_r.id::text || ':in', p_actor);
+
+    update public.requests
+    set status = 'confirmed', completed_by = p_actor, completed_at = pg_catalog.now()
+    where id = v_r.id;
+  else
+    raise exception using errcode = '22023', message = 'Unknown request kind';
   end if;
 
   return 'completed';
@@ -244,7 +266,7 @@ end;
 $$;
 
 comment on function public.post_request(uuid, uuid) is
-  'Internal, no grants: the one place a request reaches the ledger. Call under the request row lock and the child''s ledger lock. Withdrawal: re-checks Save only (over_available), posts withdrawal_out (save) and withdrawal_in (spend) with keys request:<id>:out|in, sets handed_over. Returns completed or over_available.';
+  'Internal, no grants: the one place a request reaches the ledger. Call under the request row lock and the child''s ledger lock. Withdrawal: re-checks Save only (over_available), posts withdrawal_out (save) and withdrawal_in (spend) with keys request:<id>:out|in, sets handed_over. Deposit: re-checks Spend only (amount <= balance(spend) - (held_spend - amount), else over_available), posts deposit_out (spend) and deposit_in (save), label Put into Save, same keys, sets confirmed. Unknown kind: 22023. Returns completed or over_available.';
 
 -- ---------------------------------------------------------------------------
 -- complete_request
@@ -276,7 +298,12 @@ begin
   if v_r.status = 'handed_over' then
     return 'already_completed';
   end if;
-  if v_r.kind <> 'withdrawal' or v_r.status <> 'approved' then
+  if v_r.status = 'confirmed' then
+    return 'already_completed';
+  end if;
+  -- A withdrawal is handed over once approved; a deposit is confirmed straight from pending.
+  if not ((v_r.kind = 'withdrawal' and v_r.status = 'approved')
+          or (v_r.kind = 'deposit' and v_r.status = 'pending')) then
     return 'not_approved';
   end if;
 
@@ -285,7 +312,155 @@ end;
 $$;
 
 comment on function public.complete_request(uuid, text) is
-  'Parent hands over an approved withdrawal. Locks the request, then the ledger lock. Returns completed, already_completed, not_approved or over_available (Save no longer covers it; stays approved). Posting is public.post_request. JA403, 22023 (blank key or over 200).';
+  'Parent hands over an approved withdrawal or confirms a pending deposit. Locks the request, then the ledger lock. Returns completed, already_completed (handed_over or confirmed), not_approved (any other status) or over_available (Save, or for a deposit Spend, no longer covers it; the status is unchanged). Posting is public.post_request. JA403, 22023 (blank key or over 200).';
+
+-- ---------------------------------------------------------------------------
+-- create_deposit
+-- ---------------------------------------------------------------------------
+
+create or replace function public.create_deposit(
+  p_child_id uuid,
+  p_amount_minor bigint,
+  p_idempotency_key text
+)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_family_id uuid;
+  v_existing public.requests;
+  v_available bigint;
+  v_rule record;
+  v_start timestamptz;
+  v_used bigint;
+  v_has_auto boolean := false;
+  v_auto_ok boolean := true;
+  v_id uuid;
+  v_status text := 'pending';
+begin
+  if not public.is_self(p_child_id) then
+    raise exception using errcode = 'JA403', message = 'Not allowed';
+  end if;
+
+  select fm.family_id into v_family_id
+  from public.family_members fm
+  where fm.profile_id = p_child_id
+    and fm.role = 'child'
+    and fm.status = 'approved';
+  if v_family_id is null then
+    raise exception using errcode = 'JA403', message = 'Not allowed';
+  end if;
+
+  if p_amount_minor is null or p_amount_minor < 1 or p_amount_minor > 100000000000
+     or p_idempotency_key is null or pg_catalog.btrim(p_idempotency_key) = ''
+     or pg_catalog.char_length(p_idempotency_key) > 200 then
+    raise exception using errcode = '22023', message = 'Invalid deposit';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('ledger:' || p_child_id::text, 0));
+
+  select * into v_existing
+  from public.requests r
+  where r.child_id = p_child_id and r.idempotency_key = p_idempotency_key;
+  if found then
+    if v_existing.kind <> 'deposit' then
+      raise exception using errcode = 'JA409', message = 'Key already used';
+    end if;
+    return pg_catalog.jsonb_build_object('status', v_existing.status, 'request_id', v_existing.id);
+  end if;
+
+  v_available := public.available_spend(p_child_id);
+  if p_amount_minor > v_available then
+    return pg_catalog.jsonb_build_object('status', 'over_available', 'available_minor', v_available);
+  end if;
+
+  -- Auto-confirm: needs at least one rule, and every rule must pass.
+  for v_rule in
+    select r.period, r.amount_minor
+    from public.money_rules r
+    where r.child_id = p_child_id and r.kind = 'deposit_auto_confirm'
+  loop
+    v_has_auto := true;
+    if v_rule.period = 'item' then
+      v_used := 0;
+    else
+      v_start := public.rule_window_start(v_family_id, v_rule.period, pg_catalog.now());
+      v_used := public.request_window_total(p_child_id, 'deposit', array['confirmed'], v_start);
+    end if;
+    if v_used + p_amount_minor > v_rule.amount_minor then
+      v_auto_ok := false;
+    end if;
+  end loop;
+
+  insert into public.requests (family_id, child_id, kind, status, amount_minor, auto, idempotency_key)
+  values (v_family_id, p_child_id, 'deposit', 'pending', p_amount_minor, false, p_idempotency_key)
+  returning id into v_id;
+
+  if v_has_auto and v_auto_ok then
+    -- Spend was checked above under the same lock, so posting cannot be refused.
+    perform public.post_request(v_id, p_child_id);
+    update public.requests set auto = true where id = v_id;
+    v_status := 'confirmed';
+  else
+    perform public.notify_parents(
+      p_child_id, 'deposit_requested', 'request', v_id, null,
+      pg_catalog.jsonb_build_object('amount_minor', p_amount_minor));
+  end if;
+
+  return pg_catalog.jsonb_build_object('status', v_status, 'request_id', v_id);
+end;
+$$;
+
+comment on function public.create_deposit(uuid, bigint, text) is
+  'Child records money put into Save. Returns {status: pending|confirmed, request_id} or {status: over_available, available_minor} (amount > available_spend); a repeated (child, key) returns that request''s current status and id. Pending deposits hold Spend. Auto-confirm needs every deposit_auto_confirm rule to pass over confirmed deposits in the window (item: amount <= limit); it posts through post_request (actor = the child), sets auto, and notifies nobody; otherwise notifies parents. JA403 (not the child), JA409 (key used by a withdrawal), 22023 (amount outside 1..100000000000, blank key or over 200).';
+
+-- ---------------------------------------------------------------------------
+-- decide_deposit
+-- ---------------------------------------------------------------------------
+
+create or replace function public.decide_deposit(p_request_id uuid, p_note text)
+returns text
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_r public.requests;
+  v_note text := nullif(pg_catalog.btrim(p_note), '');
+begin
+  select * into v_r from public.requests r where r.id = p_request_id for update;
+  if not found or not public.is_parent_of(v_r.child_id) then
+    raise exception using errcode = 'JA403', message = 'Not allowed';
+  end if;
+  if v_r.kind <> 'deposit' or pg_catalog.char_length(v_note) > 140 then
+    raise exception using errcode = '22023', message = 'Invalid decision';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('ledger:' || v_r.child_id::text, 0));
+
+  if v_r.status <> 'pending' then
+    return 'already_decided';
+  end if;
+
+  update public.requests
+  set status = 'rejected', decided_by = v_uid, decided_at = pg_catalog.now(), decision_note = v_note
+  where id = v_r.id;
+
+  perform public.notify_child(
+    v_r.child_id, 'deposit_decided', 'request', v_r.id, null,
+    pg_catalog.jsonb_build_object('amount_minor', v_r.amount_minor, 'approved', false));
+
+  return 'rejected';
+end;
+$$;
+
+comment on function public.decide_deposit(uuid, text) is
+  'Parent rejects a pending deposit ("Didn''t get it"); confirming goes through complete_request. Locks the request, then the ledger lock. Posts nothing and releases the hold. Returns rejected or already_decided (not pending). Notifies the child (deposit_decided, approved false). JA403 (not a parent of the child, or missing), 22023 (not a deposit, note over 140).';
 
 -- ---------------------------------------------------------------------------
 -- cancel_request
@@ -334,6 +509,8 @@ revoke execute on function public.post_request(uuid, uuid) from public, anon, au
 
 revoke execute on function
   public.create_withdrawal(uuid, bigint, text, text),
+  public.create_deposit(uuid, bigint, text),
+  public.decide_deposit(uuid, text),
   public.decide_withdrawal(uuid, boolean, text),
   public.complete_request(uuid, text),
   public.cancel_request(uuid)
@@ -341,6 +518,8 @@ from public, anon;
 
 grant execute on function
   public.create_withdrawal(uuid, bigint, text, text),
+  public.create_deposit(uuid, bigint, text),
+  public.decide_deposit(uuid, text),
   public.decide_withdrawal(uuid, boolean, text),
   public.complete_request(uuid, text),
   public.cancel_request(uuid)

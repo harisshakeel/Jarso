@@ -809,6 +809,9 @@ isOneToOne: false
 "create_allowance":
 { Args: { "p_amount_minor": number,"p_child_id": string,"p_first_on": string,"p_frequency": string }; Returns: string
                            },
+"create_deposit":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string }; Returns: Json
+                           },
 "create_family":
 { Args: { "p_currency": string,"p_timezone": string }; Returns: string
                            },
@@ -823,6 +826,9 @@ isOneToOne: false
                            },
 "current_family_id":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"decide_deposit":
+{ Args: { "p_note": string,"p_request_id": string }; Returns: string
                            },
 "decide_withdrawal":
 { Args: { "p_approve": boolean,"p_note": string,"p_request_id": string }; Returns: string
