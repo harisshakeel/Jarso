@@ -51,7 +51,13 @@ describe("noticeText", () => {
     };
     expect(noticeText(n, "parent", "GBP")).toEqual({
       title: "Still due: Maya's £5 allowance",
-      detail: "6 days",
+      detail: "Due 6 days ago",
+    });
+  });
+  it("falls back to Your child when the child profile is gone", () => {
+    expect(noticeText({ ...base, childName: "" }, "parent", "GBP")).toEqual({
+      title: "Your child's £5 allowance is due",
+      detail: "Ready to hand over.",
     });
   });
   it("limit exceeded names both amounts", () => {

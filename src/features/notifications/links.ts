@@ -37,7 +37,7 @@ export function noticeText(
     return value === null ? null : formatMoney(value, currency, { showMinor: "nonzero" });
   };
   const amount = money("amount_minor");
-  const name = notice.childName;
+  const name = notice.childName || "Your child";
 
   switch (notice.kind) {
     case "allowance_due":
@@ -54,7 +54,7 @@ export function noticeText(
       const days = minor(notice.payload, "days_overdue");
       return {
         title: `Still due: ${name}'s ${amount ?? ""} allowance`.replace("  ", " "),
-        detail: days === null ? "Not handed over yet." : plural(days, "day"),
+        detail: days === null ? "Not handed over yet." : `Due ${plural(days, "day")} ago`,
       };
     }
     case "limit_exceeded": {
