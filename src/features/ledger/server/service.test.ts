@@ -120,7 +120,6 @@ describe("getHistory requests", () => {
     row({
       sourceType: "request",
       sourceId: "req-1",
-      label: null,
       occurredAt: "2026-10-28T10:00:00Z",
       ...over,
     });
@@ -133,6 +132,7 @@ describe("getHistory requests", () => {
         jar: "spend",
         direction: "in",
         amountMinor: 500,
+        label: "New bike",
       }),
       requestRow({
         id: "r1",
@@ -140,6 +140,7 @@ describe("getHistory requests", () => {
         jar: "save",
         direction: "out",
         amountMinor: 500,
+        label: "New bike",
       }),
     ]);
     const items = await getHistory(childId);
@@ -148,7 +149,7 @@ describe("getHistory requests", () => {
       id: "req-1",
       kind: "withdrawal",
       amountMinor: 500,
-      label: "Take out",
+      label: "New bike",
       occurredOn: "2026-10-28",
       canUndo: false,
     });
@@ -156,7 +157,14 @@ describe("getHistory requests", () => {
 
   it("shows a deposit as one line", async () => {
     vi.mocked(repo.listLedgerRows).mockResolvedValue([
-      requestRow({ id: "r2", kind: "deposit_in", jar: "save", direction: "in", amountMinor: 700 }),
+      requestRow({
+        id: "r2",
+        kind: "deposit_in",
+        jar: "save",
+        direction: "in",
+        amountMinor: 700,
+        label: "Put into Save",
+      }),
       requestRow({
         id: "r1",
         kind: "deposit_out",
@@ -167,7 +175,7 @@ describe("getHistory requests", () => {
     ]);
     const items = await getHistory(childId);
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ kind: "deposit", amountMinor: 700, label: "Put in" });
+    expect(items[0]).toMatchObject({ kind: "deposit", amountMinor: 700, label: "Put into Save" });
   });
 });
 

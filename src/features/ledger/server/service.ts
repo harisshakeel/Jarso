@@ -112,7 +112,8 @@ function requestItems(rows: LedgerRow[], timezone: string): (HistoryItem & { at:
       kind,
       amountMinor: row.amountMinor,
       dueMinor: null,
-      label: row.label ?? (kind === "withdrawal" ? "Take out" : "Put in"),
+      // The database always labels a request pair (the reason, "Taken out of Save", "Put into Save").
+      label: row.label ?? "",
       occurredOn: localDate(row.occurredAt, timezone),
       undone: false,
       entryId: null,
