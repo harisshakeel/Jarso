@@ -54,4 +54,67 @@ describe("SlowFallback", () => {
     unmount();
     expect(vi.getTimerCount()).toBe(0);
   });
+
+  describe("after Try again", () => {
+    const reload = vi.fn();
+    beforeEach(() => {
+      reload.mockClear();
+      vi.stubGlobal("location", { ...window.location, reload });
+    });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function showSlow() {
+      const view = render(
+        <SlowFallback>
+          <p>skeleton</p>
+        </SlowFallback>,
+      );
+      act(() => {
+        vi.advanceTimersByTime(10_000);
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+      return view;
+    }
+
+    it("Try again refreshes and shows Trying…", () => {
+      showSlow();
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("button", { name: "Trying…" })).toBeDisabled();
+    });
+
+    it("reloads if still showing 5 s after Try again", () => {
+      showSlow();
+      act(() => {
+        vi.advanceTimersByTime(4_999);
+      });
+      expect(reload).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(reload).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not reload when it unmounts before 5 s", () => {
+      const { unmount } = showSlow();
+      act(() => {
+        vi.advanceTimersByTime(2_000);
+      });
+      unmount();
+      act(() => {
+        vi.advanceTimersByTime(10_000);
+      });
+      expect(reload).not.toHaveBeenCalled();
+    });
+  });
+
+  it("keeps a status region mounted from the start", () => {
+    render(
+      <SlowFallback>
+        <p>skeleton</p>
+      </SlowFallback>,
+    );
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
 });
