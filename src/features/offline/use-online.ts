@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 type Listener = () => void;
 
 const listeners = new Set<Listener>();
+const successListeners = new Set<Listener>();
 let online = typeof navigator === "undefined" ? true : navigator.onLine;
 
 function set(next: boolean) {
@@ -31,6 +32,15 @@ export function reportNetworkFailure(): void {
 /** Marks the connection as working after a request got through. */
 export function reportNetworkSuccess(): void {
   set(true);
+  for (const listener of successListeners) listener();
+}
+
+/** Runs `listener` after every request that got through, changed state or not. */
+export function onNetworkSuccess(listener: Listener): () => void {
+  successListeners.add(listener);
+  return () => {
+    successListeners.delete(listener);
+  };
 }
 
 function subscribe(listener: Listener) {
