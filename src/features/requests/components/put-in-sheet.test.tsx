@@ -34,4 +34,9 @@ describe("PutInSheet", () => {
     putIn({ status: "confirmed", requestId: "r1" });
     expect(await screen.findByText("Added to Save")).toBeInTheDocument();
   });
+
+  it("says what Spend has when asking for too much", async () => {
+    putIn({ status: "over_available", availableMinor: 250 });
+    expect(await screen.findByRole("status")).toHaveTextContent("Spend has £2.50");
+  });
 });

@@ -61,4 +61,18 @@ describe("TakeOutSheet", () => {
     );
     expect(screen.getByRole("status")).toHaveTextContent("You can take out up to £2.50");
   });
+
+  it("uses a new key when the sheet is opened again after a request", async () => {
+    ask({ status: "pending", requestId: "r1" });
+    fireEvent.click(await screen.findByRole("button", { name: "Done" }));
+    await waitFor(() => expect(screen.queryByLabelText("Amount")).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Take out" }));
+    fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => expect(createWithdrawalAction).toHaveBeenCalledTimes(2));
+    const [first, second] = vi
+      .mocked(createWithdrawalAction)
+      .mock.calls.map((c) => (c[1] as { idempotencyKey: string }).idempotencyKey);
+    expect(first).not.toBe(second);
+  });
 });
