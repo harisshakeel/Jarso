@@ -1,5 +1,6 @@
 "use client";
 
+import { unstable_rethrow } from "next/navigation";
 import { useActionState } from "react";
 import type { ActionResult, ActionState } from "@/lib";
 import { offlineCopy } from "./copy";
@@ -38,6 +39,9 @@ export async function runOnline<T>(
     reportNetworkSuccess();
     return result;
   } catch (error) {
+    // A Server Action redirect reaches the client as a rejection the router turns into a
+    // navigation. It is not a network failure: pass it on untouched.
+    unstable_rethrow(error);
     if (error instanceof Error && error.message.includes("Failed to find Server Action")) {
       return unavailable(offlineCopy.updated);
     }

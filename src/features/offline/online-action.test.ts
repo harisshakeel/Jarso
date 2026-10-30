@@ -36,6 +36,14 @@ describe("runOnline", () => {
     expect(isOnline()).toBe(false);
   });
 
+  it("rethrows a Server Action redirect instead of showing the offline copy", async () => {
+    const redirect = Object.assign(new Error("NEXT_REDIRECT"), {
+      digest: "NEXT_REDIRECT;push;/login;307;",
+    });
+    await expect(runOnline(() => Promise.reject(redirect))).rejects.toBe(redirect);
+    expect(isOnline()).toBe(true);
+  });
+
   it("resolves the slow copy after 15 s", async () => {
     vi.useFakeTimers();
     const pending = runOnline(() => new Promise(() => {}));
