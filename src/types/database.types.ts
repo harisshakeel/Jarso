@@ -637,6 +637,44 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"requests": {
+                  Row: {
+                    "amount_minor": number,"auto": boolean,"child_id": string,"completed_at": string | null,"completed_by": string | null,"created_at": string,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"family_id": string,"id": string,"idempotency_key": string,"kind": string,"occurred_at": string,"reason": string | null,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_minor": number,"auto"?: boolean,"child_id": string,"completed_at"?: string | null,"completed_by"?: string | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"family_id": string,"id"?: string,"idempotency_key": string,"kind": string,"occurred_at"?: string,"reason"?: string | null,"status": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount_minor"?: number,"auto"?: boolean,"child_id"?: string,"completed_at"?: string | null,"completed_by"?: string | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"family_id"?: string,"id"?: string,"idempotency_key"?: string,"kind"?: string,"occurred_at"?: string,"reason"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "requests_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "requests_completed_by_fkey"
+      columns: ["completed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "requests_decided_by_fkey"
+      columns: ["decided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "requests_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"review_items": {
                   Row: {
                     "box": number,"child_id": string,"due_on": string,"last_result": string | null,"last_reviewed_on": string | null,"skill_key": string
@@ -728,6 +766,12 @@ isOneToOne: false
                            },
 "allowance_next_due_on":
 { Args: { "p_schedule_id": string }; Returns: string
+                           },
+"available_save":
+{ Args: { "p_child_id": string }; Returns: number
+                           },
+"available_spend":
+{ Args: { "p_child_id": string }; Returns: number
                            },
 "balance":
 { Args: { "p_child_id": string,"p_jar": string,"p_mode"?: string }; Returns: number
@@ -944,6 +988,12 @@ isOneToOne: false
                            },
 "rename_child":
 { Args: { "p_child_id": string,"p_nickname": string }; Returns: undefined
+                           },
+"request_window_total":
+{ Args: { "p_child_id": string,"p_kind": string,"p_statuses": (string)[],"p_window_start": string }; Returns: number
+                           },
+"reserved_save":
+{ Args: { "p_child_id": string }; Returns: number
                            },
 "resolve_occurred_at":
 { Args: { "p": string }; Returns: string
