@@ -1,16 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 import { Field, FormError } from "@/components/form";
 import { Button } from "@/components/ui";
 import { routes } from "@/config";
-import { idle } from "@/lib";
+import { useOnlineActionState } from "@/features/offline";
 import { withNext } from "../schemas";
 import { signUp } from "../server/actions";
 
 export function SignUpForm({ next }: { next?: string }) {
-  const [state, action, pending] = useActionState(signUp, idle);
+  const [state, action, pending] = useOnlineActionState(signUp);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
   if (state?.ok && state.data?.needsConfirmation) {
@@ -43,7 +42,10 @@ export function SignUpForm({ next }: { next?: string }) {
         required
         errors={fieldErrors?.password}
       />
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError
+        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
+        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
+      />
       <Button type="submit" disabled={pending}>
         {pending ? "Creating account…" : "Create account"}
       </Button>
