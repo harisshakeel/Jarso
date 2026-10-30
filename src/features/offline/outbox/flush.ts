@@ -30,10 +30,19 @@ async function exclusive<T>(userId: string, fn: () => Promise<T>): Promise<T | t
   }
 }
 
-/** Sends due waiting items oldest first, one at a time, stopping at the first retry/sign-out. */
+/** The browser knows it has no network: a send would only fail and use up an attempt. */
+function offline(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+/**
+ * Sends due waiting items oldest first, one at a time, stopping at the first retry/sign-out.
+ * Offline it sends nothing, so no attempt is counted towards an item's 20.
+ */
 async function drain(store: Store, userId: string, send: Send) {
   const outcomes = new Map<string, SendOutcome>();
   for (const item of await store.listForUser(userId)) {
+    if (offline()) break;
     if (item.status !== "waiting") continue;
     // The oldest waiting item holds the queue while it backs off, so order is kept.
     if (Date.parse(item.nextAttemptAt) > Date.now()) break;

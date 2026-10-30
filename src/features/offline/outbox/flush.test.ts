@@ -17,7 +17,10 @@ beforeEach(async () => {
   userId = crypto.randomUUID();
   uninstallLocks = installLocks();
 });
-afterEach(() => uninstallLocks());
+afterEach(() => {
+  uninstallLocks();
+  vi.restoreAllMocks();
+});
 
 type Three = [OutboxItem, OutboxItem, OutboxItem];
 
@@ -33,6 +36,31 @@ async function seed(count: number): Promise<Three> {
 }
 
 describe("flush", () => {
+  it("sends nothing and counts no attempt while the browser is offline", async () => {
+    const [item] = await seed(1);
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    const send = vi.fn(async (): Promise<SendOutcome> => ({ kind: "retry" }));
+
+    await flushOutbox(userId, send);
+
+    expect(send).not.toHaveBeenCalled();
+    expect(await store.listForUser(userId)).toEqual([item]);
+  });
+
+  it("stops before the next item when the browser goes offline mid-drain", async () => {
+    const [first, second] = await seed(2);
+    const onLine = vi.spyOn(navigator, "onLine", "get").mockReturnValue(true);
+    const send = vi.fn(async (_item: OutboxItem): Promise<SendOutcome> => {
+      onLine.mockReturnValue(false);
+      return { kind: "done", data: null };
+    });
+
+    await flushOutbox(userId, send);
+
+    expect(send.mock.calls.map(([sent]) => sent.id)).toEqual([first.id]);
+    expect(await store.listForUser(userId)).toEqual([second]);
+  });
+
   it("two flushers never send the same item concurrently", async () => {
     const items = await seed(3);
     let release: () => void = () => {};
