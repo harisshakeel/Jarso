@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(63);
+select plan(65);
 
 -- Fixtures: PA owns family A (UTC) with children C1 and C2; PB owns family B (Asia/Kolkata) with C3.
 select tests.create_user('pa@example.com') as pa \gset
@@ -221,6 +221,14 @@ select is((:'rw7'::jsonb)->>'notices', '1', 'earlier-stamped purchase B counts A
 select is(
   (select (payload->>'total_minor')::int from public.notifications where source_id = ((:'rw7'::jsonb)->>'entry_id')::uuid),
   600, 'notice total includes both purchases');
+
+-- A purchase already committed in the next local week does not count toward this one.
+select is(
+  (public.record_purchase_at(:'c3'::uuid, 400, null, 'w8', '2026-04-13 00:30+05:30'))->>'notices',
+  '0', 'next-week purchase stays under the limit');
+select is(
+  (public.record_purchase_at(:'c3'::uuid, 300, null, 'w9', '2026-04-12 23:30+05:30'))->>'notices',
+  '0', 'earlier-stamped purchase does not count one from the next week');
 
 select * from finish();
 rollback;

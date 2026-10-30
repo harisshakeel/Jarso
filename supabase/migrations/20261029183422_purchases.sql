@@ -41,6 +41,7 @@ declare
   v_tz text;
   v_rule record;
   v_start timestamptz;
+  v_end timestamptz;
   v_after numeric;
   v_notices int := 0;
 begin
@@ -71,10 +72,14 @@ begin
       end if;
     else
       v_start := public.rule_window_start(v_e.family_id, v_rule.period, v_e.occurred_at);
+      -- Next local window start, so a purchase already committed in the next window (a writer that
+      -- waited on the ledger lock carries an earlier occurred_at) is not counted here.
+      v_end := ((v_start at time zone v_tz)
+        + case v_rule.period when 'week' then interval '1 week' else interval '1 month' end)
+        at time zone v_tz;
 
-      -- Every live (not reversed) recorded purchase in the window, this one included. No upper
-      -- bound: occurred_at is the transaction start, so a writer that waited on the ledger lock
-      -- can carry an earlier time than a purchase already committed; the lock serialises this.
+      -- Every live (not reversed) recorded purchase in the window, this one included. The ledger
+      -- lock serialises writers, so a purchase stamped earlier still counts one committed before it.
       select coalesce(pg_catalog.sum(le.amount_minor), 0)
       into v_after
       from public.ledger_entries le
@@ -83,6 +88,7 @@ begin
         and le.jar = 'spend'
         and le.kind = 'purchase'
         and le.occurred_at >= v_start
+        and le.occurred_at < v_end
         and not exists (select 1 from public.ledger_entries r where r.reverses_entry_id = le.id);
 
       -- Notify only on the purchase that first takes the window total over the limit.
