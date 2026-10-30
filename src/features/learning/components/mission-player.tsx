@@ -82,6 +82,22 @@ const PROGRESS_LABEL: Record<PlayerMode["kind"], string> = {
   topic: "Practice progress",
 };
 
+type Summary = ReturnType<typeof attemptSummary>;
+
+function isSummary(data: unknown): data is Summary {
+  if (!data || typeof data !== "object") return false;
+  const { answerable, firstTry, hints } = data as Record<string, unknown>;
+  return [answerable, firstTry, hints].every((n) => Number.isInteger(n));
+}
+
+function isCheckInResult(data: unknown): data is { correctCount: number } {
+  return (
+    !!data &&
+    typeof data === "object" &&
+    Number.isInteger((data as Record<string, unknown>).correctCount)
+  );
+}
+
 function failureText(result: { error: { code: string; message: string } }): string {
   return result.error.code === "INTERNAL" ? SAVE_FAILED : result.error.message;
 }
@@ -217,10 +233,10 @@ export function MissionPlayer(props: MissionPlayerProps) {
           setError(saved.problem);
           return;
         }
-        // Waiting to send: the device graded the same answers, so it can count them itself.
-        const known =
-          (saved.data as { correctCount: number } | null)?.correctCount ??
-          allResults.filter((r) => r.correct).length;
+        // Waiting to send (or an odd reply): the device graded the same answers, so it counts.
+        const known = isCheckInResult(saved.data)
+          ? saved.data.correctCount
+          : allResults.filter((r) => r.correct).length;
         setFinishText({
           heading: "Thanks. That helps pick where you start.",
           body:
@@ -241,8 +257,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
         setError(saved.problem);
         return;
       }
-      const summary =
-        (saved.data as ReturnType<typeof attemptSummary> | null) ?? attemptSummary(allResults);
+      const summary = isSummary(saved.data) ? saved.data : attemptSummary(allResults);
       setFinishText({ heading: "Mission done. Nice work.", body: summaryLine(summary) });
       setStage("finished");
     });

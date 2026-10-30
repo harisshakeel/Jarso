@@ -212,6 +212,51 @@ describe("MissionPlayer", () => {
     expect(submitted().map((s) => s.kind)).toEqual(["step", "step", "completeMission"]);
   });
 
+  it("falls back to the device's own summary when a reply has an unexpected shape", async () => {
+    submitToOutbox.mockImplementation(async (input: { kind: string }) =>
+      input.kind === "completeMission"
+        ? { status: "sent", data: { answerable: "2" } }
+        : sendAll(input),
+    );
+    await startMission();
+    await continueOn();
+    await answer("Option A");
+    await continueOn();
+    await answer("Option A");
+    await continueOn();
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { name: "Mission done. Nice work." })).toBeInTheDocument(),
+    );
+    expect(screen.getByText("2 of 2 first try. No hints.")).toBeInTheDocument();
+  });
+
+  it("falls back to the device's own count when a check-in reply has an unexpected shape", async () => {
+    submitToOutbox.mockResolvedValue({ status: "sent", data: null });
+    render(
+      <MissionPlayer
+        mode={{ kind: "check-in" }}
+        steps={[choice("q1"), choice("q2")]}
+        currency="GBP"
+        userId={USER_ID}
+        intro={{ eyebrow: "Before mission 1", heading: "Five quick questions.", body: "No score." }}
+        doneHref={"/child/learn" as never}
+        doneLabel="Go to your missions"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start the questions" }));
+    for (const option of ["Option A", "Option B"]) {
+      fireEvent.click(screen.getByLabelText(option));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      });
+    }
+    await waitFor(() =>
+      expect(
+        screen.getByText("You already knew 1 of 5. Mission 1 is a quick warm-up."),
+      ).toBeInTheDocument(),
+    );
+  });
+
   it("shows Saved on this device while items wait", async () => {
     useOutbox.mockReturnValue([waitingItem("waiting")]);
     await startMission();
