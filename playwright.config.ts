@@ -51,6 +51,7 @@ export default defineConfig({
     { name: "requests", testMatch: "requests.spec.ts", use: { ...devices["Desktop Chrome"] } },
     // No browser: concurrent RPC calls against local Supabase.
     { name: "handover-race", testMatch: "handover-race.spec.ts" },
+    { name: "requests-race", testMatch: "requests-race.spec.ts" },
     { name: "inbox", testMatch: "inbox.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "learning", testMatch: "learning.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "guide", testMatch: "guide.spec.ts", use: { ...devices["Desktop Chrome"] } },
