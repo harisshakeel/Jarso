@@ -18,7 +18,7 @@ export function GuideSection() {
   return (
     <section
       aria-labelledby="guide-title"
-      className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-24 sm:px-6 lg:grid-cols-[5fr_6fr] lg:items-center lg:gap-16 lg:pl-[9.5rem]"
+      className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-24 sm:px-6 lg:grid-cols-[5fr_6fr] lg:items-center lg:gap-16 lg:pl-[11.5rem]"
     >
       <div className="grid content-start gap-4">
         <h2

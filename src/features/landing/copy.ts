@@ -4,14 +4,25 @@
 export const landingCopy = {
   // The description is `siteConfig.description` (@/config), shared with the root layout.
   meta: { title: "Jarso · Spend some. Save some." },
-  nav: { how: "How it works", safety: "Safety", logIn: "Log in", signUp: "Sign up" },
+  nav: {
+    safety: "Safety",
+    start: "Get started",
+    parents: "Parents",
+    logIn: "Log in",
+    setUp: "Set up your family",
+    kids: "Kids",
+    kidSignIn: "Sign in",
+    kidStart: "Start here",
+  },
   hero: {
-    title: "Spend some. Save some.",
-    line: "Your child plans their pocket money. You stay in the loop.",
+    /** The H1: the kid's question on the opening frame; the animation answers it. */
+    title: "Got money, but not sure how to manage it?",
     parentCta: "Set up your family",
     kidCta: "I'm a kid",
+    /** Act 1, as the coins fly and land: left, right, then centred over the jar. */
+    taglines: ["Spend some.", "Save some.", "Learn as you go."],
+    /** Act 2: the savings loop, one at a time under the jars. */
     captions: [
-      "Allowance day.",
       "Split it. Spend and Save.",
       "Save for something real.",
       "Again next week. A bit wiser.",

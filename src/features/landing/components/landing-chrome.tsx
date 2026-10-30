@@ -3,12 +3,13 @@ import { JarsoMark } from "@/components/brand";
 import { ThemeSwitch } from "@/components/theme";
 import { buttonVariants } from "@/components/ui";
 import { routes, siteConfig } from "@/config";
+import { cn } from "@/lib";
 import { landingCopy } from "../copy";
+import { GetStartedMenu } from "./get-started-menu";
 
 /**
- * Spec §3.0. Sticky, blurred paper header: the mark, two section links from 768 px, then Log in,
- * Sign up and the theme switch. Kids reach their own sign-in from the hero and from Log in's
- * "Are you a kid?" link.
+ * Spec §3.0. Sticky, blurred paper header: the mark, Safety from 640 px, the one Get started
+ * button (its menu holds every way in, for parents and kids) and the theme switch.
  */
 export function LandingHeader() {
   const { nav } = landingCopy;
@@ -22,23 +23,13 @@ export function LandingHeader() {
           <JarsoMark size={32} priority />
           <span className="max-[379px]:sr-only">{siteConfig.name}</span>
         </Link>
-        <nav aria-label="Sections" className="hidden items-center md:flex">
-          <a href="#how" className={buttonVariants({ variant: "ghost" })}>
-            {nav.how}
-          </a>
-          <Link href={routes.safety} className={buttonVariants({ variant: "ghost" })}>
-            {nav.safety}
-          </Link>
-        </nav>
         <Link
-          href={routes.login}
-          className={buttonVariants({ variant: "ghost", className: "px-4" })}
+          href={routes.safety}
+          className={cn(buttonVariants({ variant: "ghost" }), "hidden px-4 sm:inline-flex")}
         >
-          {nav.logIn}
+          {nav.safety}
         </Link>
-        <Link href={routes.signup} className={buttonVariants({ className: "px-4" })}>
-          {nav.signUp}
-        </Link>
+        <GetStartedMenu />
         <ThemeSwitch />
       </div>
     </header>
@@ -72,7 +63,7 @@ export function LandingFooter() {
             href={routes.signup}
             className={buttonVariants({ variant: "ghost", className: "px-4" })}
           >
-            {nav.signUp}
+            {nav.setUp}
           </Link>
         </nav>
       </div>

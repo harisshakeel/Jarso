@@ -29,11 +29,11 @@ function Step({ index, onActive }: { index: number; onActive: (index: number) =>
   return (
     <li
       ref={step}
-      className="relative grid gap-8 py-14 pl-8 sm:pl-10 lg:min-h-[80svh] lg:grid-cols-[5fr_6fr] lg:items-center lg:gap-16 lg:py-16 lg:pl-0"
+      className="relative grid gap-8 py-14 pl-5 sm:pl-6 lg:min-h-[80svh] lg:grid-cols-[5fr_6fr] lg:items-center lg:gap-16 lg:py-16 lg:pl-0"
     >
       <span
         aria-hidden
-        className="absolute top-[4.25rem] -left-px size-4 -translate-x-1/2 rounded-full bg-primary ring-4 ring-background lg:hidden"
+        className="absolute top-[4.25rem] left-[calc(var(--thread-width,0.625rem)/2-1rem)] h-[calc(var(--thread-width,0.625rem)*0.36)] w-[calc(var(--thread-width,0.625rem)*0.84)] -translate-x-1/2 rounded-full bg-gold shadow-[0_calc(var(--thread-width,0.625rem)*0.08)_0_var(--color-teal-800)] sm:left-[calc(var(--thread-width,0.625rem)/2-1.5rem)] lg:hidden"
       />
       <div className="grid content-start gap-3">
         <p
@@ -57,7 +57,8 @@ function Step({ index, onActive }: { index: number; onActive: (index: number) =>
 
 /**
  * Spec §3.2. Four steps, each most of a screen on desktop beside a sticky rail of outlined numerals
- * (the active one fills in); on phones they stack along a route line. Each demo plays when it is
+ * (the active one fills in, a coin marks it on the line); on phones they stack along a route line.
+ * Either line is where the hero jar's unwound outline arrives. Each demo plays when it is
  * half in view and replays on the way back.
  */
 export function HowItWorks() {
@@ -68,17 +69,22 @@ export function HowItWorks() {
     <section
       id="how"
       aria-labelledby="how-title"
-      className="mx-auto w-full max-w-6xl scroll-mt-14 px-4 pt-20 sm:px-6 lg:grid lg:grid-cols-[7rem_1fr] lg:gap-10 lg:pt-10"
+      className="mx-auto w-full max-w-6xl scroll-mt-14 px-4 pt-20 sm:px-6 lg:grid lg:grid-cols-[9rem_1fr] lg:gap-10 lg:pt-10"
     >
       <h2 id="how-title" className="eyebrow lg:col-span-2">
         {how.eyebrow}
       </h2>
       <div aria-hidden className="hidden lg:block">
         <div className="sticky top-[calc(50svh-9rem)] flex gap-4">
-          <div className="relative w-0.5 rounded-full bg-hairline-strong">
-            <div
-              className="absolute inset-x-0 top-0 rounded-full bg-primary transition-[height] duration-500"
-              style={{ height: `${((active + 1) / how.steps.length) * 100}%` }}
+          {/* The jar's outline arrives here as the thread (jar-thread.tsx); a coin, drawn like the
+              mark's coins (gold, teal rim), marks the step. */}
+          <div
+            data-thread-target="desktop"
+            className="relative w-[var(--thread-width,0.875rem)] shrink-0 rounded-full bg-teal-600 data-[thread=travelling]:opacity-0 dark:bg-teal-300"
+          >
+            <span
+              className="absolute left-1/2 h-[calc(var(--thread-width,0.875rem)*0.36)] w-[calc(var(--thread-width,0.875rem)*0.84)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold shadow-[0_calc(var(--thread-width,0.875rem)*0.08)_0_var(--color-teal-800)] transition-[top] duration-500"
+              style={{ top: `${((active + 0.5) / how.steps.length) * 100}%` }}
             />
           </div>
           <ol className="grid gap-2">
@@ -98,7 +104,12 @@ export function HowItWorks() {
           </ol>
         </div>
       </div>
-      <ol className="mt-4 border-hairline-strong border-l-2 lg:mt-0 lg:border-0">
+      <ol className="relative mt-4 lg:mt-0">
+        <span
+          aria-hidden
+          data-thread-target="mobile"
+          className="absolute inset-y-0 -left-4 w-[var(--thread-width,0.625rem)] rounded-full bg-teal-600 data-[thread=travelling]:opacity-0 sm:-left-6 lg:hidden dark:bg-teal-300"
+        />
         {how.steps.map((step, index) => (
           <Step key={step.line} index={index} onActive={setActive} />
         ))}

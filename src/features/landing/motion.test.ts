@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { captionWindows } from "./components/hero-scene";
+import { CHECKPOINT, captionWindows, taglineStarts, taglinesLeave } from "./components/hero-scene";
+import { kidHands, kidPose } from "./components/kid-art";
 import { landingCopy } from "./copy";
 import { drop, easeInOut, easeOut, easeOutBack, lerp, segment, typed } from "./motion";
 
@@ -39,11 +40,38 @@ describe("typed", () => {
   });
 });
 
+describe("hero taglines", () => {
+  it("pop in one after another during the toss and leave before the checkpoint", () => {
+    expect(taglineStarts).toHaveLength(landingCopy.hero.taglines.length);
+    expect([...taglineStarts]).toEqual([...taglineStarts].sort((a, b) => a - b));
+    expect(Math.max(...taglineStarts)).toBeLessThan(taglinesLeave[0]);
+    expect(taglinesLeave[1]).toBeLessThanOrEqual(CHECKPOINT);
+  });
+});
+
+describe("kid pose", () => {
+  it("starts unsure, looking at the coins, then throws them straight up", () => {
+    const opening = kidPose(0);
+    expect(opening.mood).toBe("unsure");
+    expect(opening.lookY).toBeGreaterThan(0.5);
+    const throwing = kidPose(0.13);
+    expect(throwing.mood).toBe("cheer");
+    expect(throwing.lookY).toBeLessThan(0);
+    // A V over the head, not hands on the head: both hands clear of the head (radius 38) and
+    // above the shoulders.
+    const { left, right } = kidHands(throwing);
+    expect(right.x).toBeGreaterThan(38);
+    expect(left.x).toBeLessThan(-38);
+    expect(Math.max(left.y, right.y)).toBeLessThan(-200);
+  });
+});
+
 describe("hero captions", () => {
-  it("has one window per caption, in order, without overlaps", () => {
+  it("has one window per caption, in order, after the checkpoint, without overlaps", () => {
     expect(captionWindows).toHaveLength(landingCopy.hero.captions.length);
     captionWindows.forEach(([start, end], index) => {
       expect(end).toBeGreaterThan(start);
+      expect(start).toBeGreaterThanOrEqual(CHECKPOINT);
       const next = captionWindows[index + 1];
       if (next) expect(next[0]).toBeGreaterThanOrEqual(end);
     });

@@ -1,6 +1,6 @@
 # Landing page — design
 
-Date: 2026-10-30. Status: first build on `feat/landing-page`, awaiting the product owner's feedback; the hero runs on a coded jar scene until the generated video arrives. Roadmap: Demo 2, slice 4 (`docs/roadmap.md`). Builds on `docs/design.md` (tokens, type, voice, motion) and replaces today's sign-in page at `/`.
+Date: 2026-10-30. Status: live at https://jarso.vercel.app (#34). The hero is a coded animation, not a generated video (product owner, 2026-10-30): a kid throws coins into the jar, then the savings loop. Roadmap: Demo 2, slice 4 (`docs/roadmap.md`). Builds on `docs/design.md` (tokens, type, voice, motion) and replaces today's sign-in page at `/`.
 
 ## 1. Intent
 
@@ -9,7 +9,7 @@ One page that shows what Jarso does, mostly by moving rather than telling. A par
 **Goals**
 
 - Show the product working: real Jarso components, rendered live with demo data, animate through each step. No screenshots, no stock illustration.
-- A scroll-driven hero video that tells the money loop without words.
+- A scroll-driven hero animation that tells the money loop without words: a kid throws coins into the jar, then the jar splits into Spend and Save.
 - Under 200 words above the footer, buttons and labels included. Every headline is a two-beat line from the voice rules (`design.md` §9).
 - Both ways in stay one tap away: parents set up a family, kids sign in or start.
 - Light and dark, AA contrast, reduced motion, 360 px phones first, no horizontal scroll.
@@ -42,23 +42,20 @@ Order top to bottom. Copy is final unless marked. Amounts in the demos use £ (t
 
 ### 3.0 Header
 
-Sticky, canvas at 85 % with a 16 px blur and a hairline once scrolled (`design.md` §4). Left: the mark and "Jarso" (the opaque wordmark can't sit on paper, `design.md` §1). Right: "How it works" (anchor) and "Safety" (`/safety`) from 768 px, then "Log in" (ghost, `/login`) and "Sign up" (primary pill, `/signup`), then the theme toggle. Kids reach their PIN sign-in from the hero's "I'm a kid" and from the login page's "Are you a kid?" link.
+Sticky, canvas at 85 % with a 16 px blur and a hairline (`design.md` §4). Left: the mark and "Jarso" (the opaque wordmark can't sit on paper, `design.md` §1). Right: "Safety" (`/safety`) from 640 px, then **one** button, "Get started", and the theme toggle. Get started opens a menu (not a modal) with every way in: Parents, "Log in" (`/login`) and "Set up your family" (`/signup`); Kids, "Sign in" (`/sign-in/child`) and "Start here" (`/start`). Rows are 44 px tall.
 
-### 3.1 Hero, scroll-scrubbed video
+### 3.1 Hero, scroll-driven animation
 
 | | |
 | --- | --- |
-| Copy | H1 **"Spend some. Save some."** Line: "Your child plans their pocket money. You stay in the loop." Buttons: "Set up your family" (primary pill, keycap), "I'm a kid" (outline pill). |
-| Layout | Section 450 vh desktop, 320 vh phones; a sticky `h-svh` stage. The H1, line and buttons sit above the jar; the captions take the strip below it. The video's edges fade into the canvas with a radial `mask-image`, so a slight colour mismatch never shows a box. |
-| Motion | H1 words rise 16 px and unblur from 8 px, 60 ms apart, 700 ms, `cubic-bezier(0.16, 1, 0.3, 1)`. At scroll 0 the clip's first second loops slowly. The H1, line and buttons fade out over the first 8 % of the scroll; the video then scrubs with the scroll (AFK's mapping). Four HTML captions fade in and out at the video's beats, eyebrow style, bottom centre: "Allowance day." · "Split it. Spend and Save." · "Save for something real." · "Again next week. A bit wiser." |
-| Reduced motion | No pinning and no scrubbing. The section is one screen: poster image, H1, line, buttons, the four captions as a short list, and a "Play" button that plays the clip once at normal speed. |
-| Slow or save-data connections | `navigator.connection.saveData` or 2G: poster only, captions as a list. |
+| Copy | H1, the kid's question: **"Got money, but not sure how to manage it?"** Buttons: "Set up your family" (primary pill, keycap), "I'm a kid" (outline pill). Pop-ups in act 1: "Spend some." (left) · "Save some." (right) · "Learn as you go." (centred over the jar). Captions under the jars in act 2: "Split it. Spend and Save." · "Save for something real." · "Again next week. A bit wiser." |
+| Layout | Section 600 vh desktop, 420 vh phones; a sticky `h-svh` stage whose content is centred: the H1, the buttons and the scene (sized by its 640 × 390 frame) form one block. The opening frame is only the kid, the H1 and the buttons. The pop-ups sit beside the coins on desktop and above them on phones; act 2's captions take the H1's place. |
+| Motion | H1 words rise 16 px and unblur from 8 px, 60 ms apart, 700 ms, `cubic-bezier(0.16, 1, 0.3, 1)`, then fade over the first 5 % of the scroll with the buttons. The scene is drawn from scroll progress (§5). Pop-ups slide in from their side, unblur and settle, and leave together at the checkpoint. |
+| Reduced motion | No pinning and no scrubbing. One screen: the H1 and buttons, a still of the answer (both jars, Save three quarters full of coins), and every pop-up and caption as a list. |
 
-The clip and its prompts are in §5 and Appendix A.
+### 3.2 How it works, stepper on the thread (`id="how"`)
 
-### 3.2 How it works, pinned stepper (`id="how"`)
-
-Four steps, each 80 % of a screen tall on desktop, beside a sticky rail of big outlined numerals "01" to "04" whose active one fills in, with a progress line (8x's ruler, the portfolio's numerals, Karma's step-by-step story without pinning). Each step is a two-beat H2, one line, and a **live demo** on the right built from Jarso's own components with demo data. A demo plays once when its step becomes active (about 2.5 s), then holds its final state. On phones the steps stack and the rail becomes AFK's vertical route line that draws as you scroll; each demo plays when it is 40 % in view.
+Four steps, each 80 % of a screen tall on desktop, beside a sticky rail of big outlined numerals "01" to "04" whose active one fills in (8x's ruler, the portfolio's numerals, Karma's step-by-step story without pinning). Beside the numerals runs one rounded line in the jar's teal, as thick as the hero jar's stroke, with a coin drawn like the mark's coins (a wide gold oval with a teal rim) that slides to the active step; on phones the same line is the route the steps hang from, with a gold dot per step. This line is the hero jar's outline, unwound (§5): the thread arrives here and hands over to it. Each step is a two-beat H2, one line, and a **live demo** on the right built from Jarso's own components with demo data. A demo plays once when its step becomes active (about 2.5 s), then holds its final state. On phones the steps stack and the rail becomes AFK's vertical route line that draws as you scroll; each demo plays when it is 40 % in view.
 
 | # | Eyebrow | H2 (two beats) | Line | Live demo |
 | --- | --- | --- | --- | --- |
@@ -84,7 +81,7 @@ One sentence at H1 size, words going from 25 % to full ink as the line crosses t
 
 ### 3.6 Your turn
 
-H2 **"Your turn."** muted second beat: "Start with this week's pocket money." Primary keycap "Set up your family", link "Kids, start here". Beside it, the jar mark drawn as SVG: on entering view, three coins drop in with one `rotateY` flip each (`design.md` §8), once.
+H2 **"Your turn."** muted second beat: "Start with this week's pocket money." Primary keycap "Set up your family", link "Kids, start here". Beside it, the jar drawn as SVG at the hero jar's size, the end of the page thread: the thread arrives at its curl and draws its outline, then four coins drop in, the lid lands and the lid coin pops. The hero's jar, wound back up at the end of the page. With reduced motion the jar is simply there.
 
 ### 3.7 Footer
 
@@ -98,8 +95,9 @@ Wordmark, "A pocket-money pilot for families with children aged 11 to 14.", link
 | --- | --- | --- |
 | Headline word rise | Per word: `translateY(16px)` and `blur(8px)` to none, 700 ms, 60 ms stagger, expo-out `cubic-bezier(0.16, 1, 0.3, 1)` | Shown at rest |
 | Section entrance | `rise-in` from `design.md` §8 (12 px, 250 ms, 40 ms stagger), triggered at 30 % in view | None |
-| Scroll scrub (hero video) | rAF loop, passive scroll listener, `currentTime` lerps 10 % toward the target each frame; paused when off screen | Poster and Play button |
-| Pinned stepper | `position: sticky` frame; the active step is `floor(progress × 4)`; steps crossfade 300 ms; rail fills with progress | Steps stacked, all final states |
+| Scroll-driven hero scene | rAF loop, passive scroll listener; the drawn progress moves 18 % of the way toward the scroll position each frame, so wheel jumps stay smooth | A still frame |
+| Stepper | Full-height steps beside a sticky rail; the active step is the one crossing the middle of the screen; the coin on the line moves to it in 500 ms | Steps stacked, all final states |
+| Thread | A fixed overlay draws one path from the hero jar to the closing jar: the hero jar's outline backwards, a curve out of the curl, the How it works line, the left margin, a curve into the closing jar's curl, the closing jar's outline. Only a stretch of it shows, never a trail, always as thick as the hero jar's stroke (published as `--thread-width`, which also sizes the How it works line and the closing jar). The scroll slides the stretch along the path, the same stroke-drawing motion that builds the jar in act 1. The How it works line hides whenever the stretch is anywhere but on it | None: the line and the closing jar show as they are |
 | Live demos | Scripted keyframes in CSS and small state machines; play once per entry, about 2.5 s, then hold | Final state rendered |
 | Money roll | Tabular digits count to the new value, 400 ms | Final value |
 | Path draw and travelling coin | SVG `stroke-dashoffset` 900 ms, then the coin on `offset-path`, 700 ms | Path drawn, coin at the end |
@@ -107,133 +105,48 @@ Wordmark, "A pocket-money pilot for families with children aged 11 to 14.", link
 
 Nothing loops except the hero's idle second. No library: CSS scroll-driven animations where supported, plus two small hooks (`useScrollProgress`, `useInViewOnce`) built on `IntersectionObserver` and rAF. No Lenis, Framer Motion or GSAP, so no new dependencies.
 
-## 5. Hero video
+## 5. Hero animation
 
-**Story, 12 s, one continuous shot, no words.** The Jarso jar is the only character. The coded scene on the live page (`hero-scene.tsx`) plays the same beats at the same times, so the video can replace it without moving the captions: scroll progress maps to video time as `progress × 12 s`.
+Coded in SVG (`hero-scene.tsx`, `kid-art.tsx`, `jar-art.tsx`) and drawn as a pure function of scroll progress, so scrolling back plays it backwards. The kid is drawn like the jar mark: thick round-ended strokes and flat fills, a cyan hoodie like the lid, teal trousers like the jar, dot eyes and a small smile. Gold is money only: the coins.
 
-| Time | Beat | Caption shown in HTML |
+| Progress | Beat | Words |
 | --- | --- | --- |
-| 0.0–1.0 s | Idle: one Spend jar, centred, three coins inside; the lid coin bobs. Loops before the first scroll. | — |
-| 1.0–3.6 s | Allowance: the lid hinges open (1.0–1.3 s), five coins fall in one after another (1.2–3.6 s), the lid closes (3.2–3.6 s). | Allowance day. |
-| 3.8–6.5 s | Split: a second jar, the Save jar in deep teal, slides out from behind to the right while the Spend jar slides left (3.8–5.0 s); three coins hop across in arcs (5.2–6.5 s). | Split it. Spend and Save. |
-| 6.5–7.7 s | Spend: a coin rises out of the Spend jar, flips once, becomes a small white card with a tick, and floats up and away. | (same caption) |
-| 7.9–10.3 s | Save: a pale track circles the Save jar, a thick gold ring fills it from a third to three quarters (8.2–9.8 s), a star pops at the top (9.8–10.3 s). | Save for something real. |
-| 10.6–12.0 s | Reset: the ring fades, the Save jar slides back behind the Spend jar and disappears, three coins remain. The last frame is the first frame. | Again next week. A bit wiser. |
-
-**Exact colours** (the tokens the page renders; `design.md` §2):
+| 0–0.05 | Only the kid: a handful of coins cupped over the tummy, eyes on them, a wavy unsure mouth. Until the first scroll, "?" bubbles keep rising around the head, drifting, swelling and popping, each on its own loop. | H1 and buttons |
+| 0.05–0.10 | The bubbles fade; the kid crouches. | |
+| 0.10–0.20 | A hop, arms up in a V, and eight coins fly up from both hands, spinning. | "Spend some." from 0.15 |
+| 0.11–0.25 | The view follows the coins up: the kid drops out of the bottom of the frame and fades. The coins hang near the top, drifting and spinning. | |
+| 0.20–0.31 | The jar draws itself below them: the outline runs from the top-left curl, down, along the bottom and up the right. | "Save some." from 0.27 |
+| 0.30–0.44 | The coins fall into the jar one after another, eight in all. | |
+| 0.44–0.49 | The lid drops on and the lid coin pops in. | "Learn as you go." from 0.42 |
+| 0.50 | **Checkpoint.** One jar, eight coins, centred. Pop-ups have left. | |
+| 0.50–0.64 | The jar splits: the deep-teal Save jar slides out to the right, three coins hop across. | "Split it. Spend and Save." |
+| 0.64–0.75 | A coin rises from Spend, flips into a ticked card and floats away. | |
+| 0.76–0.88 | A stream of twelve coins pours into Save and its pile rises to about three quarters of the jar. The height of the coins is the progress: no bar, no ring, no star. | "Save for something real." |
+| 0.89–0.93 | The labels fade and the Save jar slides back into Spend; its coins come too, so the one jar ends full (eighteen coins). | "Again next week. A bit wiser." from 0.895 |
+| 0.93–1.00 | **The unwind.** The lid lifts away and the coins fade; the outline un-draws from its right end while its head crawls out of the curl on the left, at the jar's full thickness. | |
+| after the hero | As How it works scrolls in, the stroke crawls down-left onto the 01–04 line, at the same thickness, and becomes it. Scrolling back winds it into the jar. | |
+| the rest of the page | When How it works ends, the line leaves it: the same stretch slides down the left margin (on phones, along the screen's edge), its head held at one height on screen, leaving nothing behind. It weaves: in the gap above the parent and child phones it crosses to the right margin in one S-curve, runs down beside them, and crosses back in the gap below. Each piece takes its own share of the scroll: straight runs as much as they drop, each crossing about half its length (so it is not rushed), the last run into the jar half its length; the shares shrink if the page would end first. Above the Your turn card it turns in one curve into the closing jar's curl and grows back into a whole outline as it draws that jar, which is the hero jar's size; once whole, the closing jar's coins drop and the lid lands. It is always home by the end of the page. | |
 
 | Element | Light | Dark |
 | --- | --- | --- |
-| Background, edge to edge | `#F7F5F0` | `#0B1F26` |
-| Spend jar body | `#057B99` | `#8AC8DF` |
-| Save jar body | `#004B62` | `#3D92AE` |
-| Lids (both jars) | `#00D6EB` | `#00D6EB` |
-| Coin face, lid coin, star, ring | `#FDC301` | `#FDC301` |
-| Coin rim | `#004B62` | `#004B62` |
-| Star outline | `#705300` | `#705300` |
-| Ring track | `#C4F4FF` | `#003548` |
-| Receipt card | `#FFFFFF` | `#12303A` |
-| Tick on the card | `#00627D` | `#65ADC6` |
-| Contact shadow under each jar | `#141C1F` at 7 % | `#E6F1F4` at 7 % |
-
-Gold is money only: coins, the ring and the star. Never a gold jar.
-
-**Files and encoding**
-
-- One 16:9 clip serves every screen: phones crop the sides, so all the action stays inside the middle 62 % of the width. A light version first, then the dark version from the same prompt.
-- Re-encode for scrubbing: H.264 MP4 and AV1 or VP9 WebM, a keyframe every 6 frames, no audio, 1920 and 1280 px wide, each under 2.5 MB; the first frame as an AVIF and JPEG poster. This needs `ffmpeg`, which is not installed on this Mac.
-- `public/landing/hero-{light,dark}.{mp4,webm}`, `hero-{light,dark}-poster.{avif,jpg}`, `hero.vtt` with the four beats; add `mp4|webm|vtt|avif` to the proxy matcher's static list in the same change.
-- The `<video>` is `muted playsinline preload="auto"` with `aria-hidden`, because the HTML captions carry the meaning.
+| Spend jar | `#057B99` | `#8AC8DF` |
+| Save jar | `#004B62` | `#3D92AE` |
+| Lids, hoodie | `#00D6EB` | `#00D6EB` |
+| "?" bubbles (outline and mark) | `#00627D` | `#65ADC6` |
+| Coins | `#FDC301` (rims `#004B62`) | same |
+| Kid's trousers | `#00627D` | `#65ADC6` |
+| Kid's shoes | `#003548` | `#C4F4FF` |
+| Skin, hair | `#D9A07A`, `#2B1D14` | same |
 
 ## 6. Build
 
 - `src/app/(marketing)/page.tsx` composes sections from `@/features/landing`. The page is fully static: no Supabase reads, no cookies, so it prerenders.
-- `src/features/landing/components/`: `hero.tsx` and `hero-video.tsx` (client), `how-it-works.tsx`, `demos/{handover,purchase,goal,mission,guide}-demo.tsx`, `family-view.tsx`, `lit-statement.tsx`, `your-turn.tsx`, `landing-header.tsx`; `index.ts` barrel. Demos reuse `StatusChip`, the keycap and shimmer utilities and the tokens; where an app component is tied to a server action, the demo uses a presentational copy with fixed data.
-- Budgets: LCP under 2.5 s on a mid-range phone on 4G (the poster is the LCP element), JavaScript for the landing under 40 kB gzipped beyond the framework, CLS 0.
+- `src/features/landing/components/`: `hero.tsx` (client), `hero-scene.tsx`, `kid-art.tsx`, `jar-art.tsx`, `jar-thread.tsx`, `get-started-menu.tsx`, `how-it-works.tsx`, `demos/{handover,purchase,goal,mission,guide}-demo.tsx`, `family-view.tsx`, `lit-statement.tsx`, `your-turn.tsx`, `landing-chrome.tsx` (header and footer), `structured-data.tsx`; `jar-outline.ts` (the outline geometry the jar and the thread share); `index.ts` barrel. Demos reuse `StatusChip`, the keycap and shimmer utilities and the tokens; where an app component is tied to a server action, the demo uses a presentational copy with fixed data.
+- Budgets: LCP under 2.5 s on a mid-range phone on 4G (the H1 is the LCP element), JavaScript for the landing under 40 kB gzipped beyond the framework, CLS 0.
 - Accessibility: one H1; every demo has an accessible name and a text equivalent; the pinned stepper is a plain ordered list to screen readers; focus never lands inside a pinned frame you can't see; 44 px targets; no horizontal scroll at 360 px.
-- Tests: Playwright for both sign-in paths and the parent CTA from the hero and the header popover, a reduced-motion run that asserts every headline and caption is visible, and a 360 px no-overflow check.
+- Tests: Playwright for every Get started menu link and both hero buttons, a reduced-motion run that asserts every headline and caption is visible, and a 360 px no-overflow check.
 
 ## 7. Open questions
 
-1. Is "Spend some. Save some." still the line? It is today's sign-in headline, and it says the product in four words.
-2. £ or $ in the demos?
-3. Does step 03 wait for the savings goal, or ship first with step 03 hidden?
-4. Dark hero video: generate a dark version, or keep the hero light in both themes?
-
-## Appendix A. Prompts for ChatGPT
-
-Attach `public/brand/jarso-mark.png` (the transparent mark) and `public/brand/jarso-wordmark.png`, then paste A.1. Generate the still (A.2), approve it, then animate it (A.3). The live page at https://jarso.vercel.app plays the same animation in code: scroll the first screen to watch it.
-
-### A.1 Brand brief (paste first)
-
-```text
-You are making the hero animation for Jarso. Use this brief for everything in this chat.
-
-WHAT JARSO IS
-A pocket-money app for children aged 11 to 14 and their parents. The parent hands over an allowance in cash; the child splits it into two jars, Spend and Save, records purchases, saves toward a goal and does short daily money lessons. Warm, calm, encouraging. Never flashy, never babyish.
-
-THE LIVE SITE
-https://jarso.vercel.app. Open it and scroll the first screen slowly: the page already plays this exact animation as a flat drawing. Your video replaces that drawing, so match its shapes, colours, positions and timing.
-
-THE LOGO (attached)
-A jar drawn as one thick, round-ended stroke: up the right side, round the bottom, up the left side, and at the top left the stroke curls in an S toward the lid like a hinge. The lid is a separate rounded bar on top. A round gold coin sits just right of the lid, like the dot of a letter j. Inside, flat gold coins lie at the bottom: two stacked on the left with a thin dark rim between them, one on the right. The wordmark is "jarso" in heavy rounded lowercase. Never redraw, distort or recolour the logo itself.
-
-EXACT COLOURS (hex, no substitutes)
-Light version:
-- Background, edge to edge: #F7F5F0
-- Spend jar body: #057B99
-- Save jar body: #004B62
-- Lids: #00D6EB
-- Coins, the lid coin, the ring and the star: #FDC301
-- Coin rims: #004B62
-- Star outline: #705300
-- Ring track: #C4F4FF
-- Receipt card: #FFFFFF with a tick in #00627D
-- Soft contact shadow under each jar: #141C1F at 7% opacity
-Dark version (only when asked): background #0B1F26, Spend jar #8AC8DF, Save jar #3D92AE, ring track #003548, receipt card #12303A with a tick in #65ADC6, shadow #E6F1F4 at 7%. Lids, coins, rims, ring and star keep their light-version colours.
-Gold means money: it is only ever coins, the ring and the star. Never draw a gold jar.
-
-STYLE
-Flat 2D vector motion graphics. Thick strokes with fully round ends, flat fills, no outlines in other colours, no gradients, no textures. Depth only from the soft contact shadow. Calm, precise easing: every motion settles before the next begins. One locked camera.
-
-NEVER INCLUDE
-Any text, letters, numbers or currency symbols; people, hands, faces or characters with eyes; any logo other than the jar; gradient, textured or vignetted backgrounds; floor lines or horizons; glitter, sparkles, confetti, lens flares, light rays; glossy or 3D plastic rendering; motion-blur trails; camera moves, zooms or shake; cuts, fades to black or transitions.
-```
-
-### A.2 Still frame (image, 16:9)
-
-```text
-Make a 16:9 image, 1920 x 1080: the first frame of the animation.
-
-A single Jarso jar exactly like the attached mark, centred horizontally, its centre slightly below the middle of the frame, and about 30% of the frame's height tall. Jar body #057B99, lid #00D6EB, the lid coin #FDC301 just right of the lid, and inside three flat coins #FDC301 with #004B62 rims (two stacked on the left, one on the right). A very soft contact shadow under the jar, #141C1F at 7% opacity. Background #F7F5F0, perfectly flat from edge to edge: no vignette, texture, floor line or horizon. Nothing else in the frame. Flat vector style, crisp edges, no text.
-```
-
-### A.3 Animation (video, from the still)
-
-```text
-Animate the attached still into a 12-second, 16:9 clip, 24 or 30 frames per second, no audio. One continuous shot; the camera is locked off, front view, with no zoom, pan or shake. The background stays exactly #F7F5F0 for the whole clip. No text, numbers or symbols at any time. Keep every element inside the middle 62% of the frame's width. Smooth, calm easing; each motion settles before the next starts.
-
-0.0-1.0 s IDLE: almost still. The lid coin bobs up and down slightly. This first second must loop seamlessly on its own.
-
-1.0-3.6 s ALLOWANCE: at 1.0 s the lid (#00D6EB) hinges open, pivoting up and to the left from its left end, about 28 degrees. From 1.2 s, five coins (#FDC301 with #004B62 rims) fall in from the top of the frame one after another, about half a second apart, and land in the jar with one small bounce each, stacking on the three already there (eight in total). At 3.2-3.6 s the lid swings shut.
-
-3.8-5.0 s SPLIT: a second jar of exactly the same shape, the Save jar, body #004B62, lid #00D6EB, no lid coin, slides out from behind the first to the right, while the first jar (the Spend jar, #057B99) slides left. They end side by side with a small gap, the Spend jar centred at 39% of the frame's width and the Save jar at 61%.
-
-5.2-6.5 s three coins, one after another, hop in neat arcs from the top of the Spend jar into the Save jar. The Spend jar now holds five coins, the Save jar three.
-
-6.5-7.7 s SPEND: one coin rises straight up out of the Spend jar, flips once around its vertical axis and, as it turns edge-on, becomes a small rounded white card (#FFFFFF) with a tick (#00627D), which floats up and fades out. Four coins remain in the Spend jar.
-
-7.9-10.3 s SAVE: a thin pale ring track (#C4F4FF) fades in around the Save jar, a circle about half the frame's height across. From 8.2 s a thick gold ring (#FDC301, round ends) draws clockwise along the track from the top, from one third to three quarters full, finishing at 9.8 s. At 9.8 s a small five-point star (#FDC301, outlined #705300) pops at the top of the ring with a slight overshoot.
-
-10.6-12.0 s RESET: the ring and star fade out; the Save jar slides back behind the Spend jar and disappears; the Spend jar slides back to the centre with three coins, the lid coin back beside its lid. The final frame is identical to the first frame, so the clip loops.
-
-Style: flat 2D vector motion graphics in the Jarso brand, thick round-ended strokes and flat colours from the brief, soft contact shadows only. No people, hands, faces, eyes, extra logos, gradients, sparkles, confetti, motion-blur trails, cuts or transitions. Gold is only ever coins, the ring and the star.
-```
-
-### A.4 Dark version (after A.3 is approved)
-
-```text
-Same clip, same timing, positions and motion. Change only these colours: background #0B1F26 for the whole clip, Spend jar body #8AC8DF, Save jar body #3D92AE, ring track #003548, receipt card #12303A with a tick in #65ADC6, contact shadow #E6F1F4 at 7%. Lids #00D6EB, coins #FDC301 with #004B62 rims, the ring and the star stay as they were. The last frame still matches the first.
-```
-
-If the 12-second clip comes out messy, generate it as three 4-second clips (0-4, 4-8, 8-12 s), each starting from the last frame of the one before; they can be joined when the clip is re-encoded.
+1. £ or $ in the demos? £ for now.
+2. Step 03 shows the savings goal, which is built later in Demo 2 (slice 3).
