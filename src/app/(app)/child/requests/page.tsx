@@ -22,7 +22,7 @@ async function RequestsContent() {
     <>
       <h1 className="text-balance text-display">Save requests</h1>
       <RequestActions availability={availability} currency={family.currency} rules={rules.rules} />
-      <RequestList requests={requests} currency={family.currency} />
+      <RequestList requests={requests} currency={family.currency} timeZone={family.timezone} />
     </>
   );
 }

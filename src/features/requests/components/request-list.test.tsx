@@ -30,6 +30,7 @@ describe("RequestList", () => {
   it("shows a chip per status and Cancel only on Waiting", () => {
     render(
       <RequestList
+        timeZone="UTC"
         currency="GBP"
         requests={[
           request({ id: "1", status: "pending" }),
@@ -50,7 +51,7 @@ describe("RequestList", () => {
 
   it("cancels a waiting request and refreshes", async () => {
     vi.mocked(cancelRequestAction).mockResolvedValue({ ok: true, data: "cancelled" });
-    render(<RequestList currency="GBP" requests={[request({})]} />);
+    render(<RequestList currency="GBP" timeZone="UTC" requests={[request({})]} />);
     fireEvent.click(screen.getByRole("button", { name: /^Cancel/ }));
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(cancelRequestAction).toHaveBeenCalledWith(null, { requestId: "r1" });
@@ -58,9 +59,19 @@ describe("RequestList", () => {
 
   it("is calm when the request already moved on", async () => {
     vi.mocked(cancelRequestAction).mockResolvedValue({ ok: true, data: "already_closed" });
-    render(<RequestList currency="GBP" requests={[request({})]} />);
+    render(<RequestList currency="GBP" timeZone="UTC" requests={[request({})]} />);
     fireEvent.click(screen.getByRole("button", { name: /^Cancel/ }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith("This one already moved on."));
     expect(refresh).toHaveBeenCalled();
+  });
+
+  it("shows the day in the family's timezone, not the device's", () => {
+    // 19:00 UTC on Sunday is already Monday in Kolkata.
+    const late = request({ occurredAt: "2026-11-01T19:00:00Z" });
+    render(<RequestList currency="GBP" timeZone="Asia/Kolkata" requests={[late]} />);
+    expect(screen.getByText(/2 Nov/)).toBeInTheDocument();
+    cleanup();
+    render(<RequestList currency="GBP" timeZone="UTC" requests={[late]} />);
+    expect(screen.getByText(/1 Nov/)).toBeInTheDocument();
   });
 });

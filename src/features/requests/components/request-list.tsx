@@ -21,12 +21,17 @@ const CHIP = {
   cancelled: "closed",
 } as const satisfies Record<RequestStatus, string>;
 
-const dayFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+/** The day in the family's timezone, so the server and the device always agree. */
+function day(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone }).format(
+    new Date(iso),
+  );
+}
 
-type RequestListProps = { requests: SavingsRequest[]; currency: string };
+type RequestListProps = { requests: SavingsRequest[]; currency: string; timeZone: string };
 
 /** The child's take-outs and put-ins, newest first. A Waiting one can be cancelled. */
-export function RequestList({ requests, currency }: RequestListProps) {
+export function RequestList({ requests, currency, timeZone }: RequestListProps) {
   return (
     <Card className="shadow-raised">
       <CardContent>
@@ -37,7 +42,12 @@ export function RequestList({ requests, currency }: RequestListProps) {
           ) : (
             <ul className="grid gap-3">
               {requests.map((request) => (
-                <RequestRow key={request.id} request={request} currency={currency} />
+                <RequestRow
+                  key={request.id}
+                  request={request}
+                  currency={currency}
+                  timeZone={timeZone}
+                />
               ))}
             </ul>
           )}
@@ -47,7 +57,15 @@ export function RequestList({ requests, currency }: RequestListProps) {
   );
 }
 
-function RequestRow({ request, currency }: { request: SavingsRequest; currency: string }) {
+function RequestRow({
+  request,
+  currency,
+  timeZone,
+}: {
+  request: SavingsRequest;
+  currency: string;
+  timeZone: string;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<{ code: string; message: string }>();
@@ -81,14 +99,14 @@ function RequestRow({ request, currency }: { request: SavingsRequest; currency: 
       </div>
       <div className="flex items-center justify-between gap-3">
         <span className="text-ink-2 text-sm">
-          {dayFormat.format(new Date(request.occurredAt))}
+          {day(request.occurredAt, timeZone)}
           {request.reason ? ` · ${request.reason}` : ""}
         </span>
         {request.status === "pending" ? (
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="lg"
             aria-label={`Cancel ${what.toLowerCase()} of ${amount}`}
             loading={pending}
             onClick={cancel}
