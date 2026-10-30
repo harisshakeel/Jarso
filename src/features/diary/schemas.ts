@@ -15,6 +15,8 @@ export const purchaseSchema = (currency: string) =>
         .optional()
         .transform((value) => (value ? value : undefined)),
       idempotencyKey: z.uuid(),
+      /** When the child did it, from the device; sent only by the offline outbox. */
+      occurredAt: z.iso.datetime({ offset: true }).optional(),
     })
     .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));
 

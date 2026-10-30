@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(65);
+select plan(73);
 
 -- Fixtures: PA owns family A (UTC) with children C1 and C2; PB owns family B (Asia/Kolkata) with C3.
 select tests.create_user('pa@example.com') as pa \gset
@@ -177,6 +177,36 @@ select is(
 select is(
   (select count(*)::int from public.notifications where child_id = :'c2'::uuid and kind = 'limit_exceeded'),
   2, 'week notice plus one item notice');
+
+-- ---------------------------------------------------------------------------
+-- Device action time (p_occurred_at): queued purchases keep the time they happened (C2)
+-- ---------------------------------------------------------------------------
+
+select tests.authenticate_as(:'c2'::uuid);
+select (public.record_purchase(:'c2'::uuid, 100, null, 'd1', now() - interval '2 days'))->>'entry_id' as ed1 \gset
+select is((select occurred_at from public.ledger_entries where id = :'ed1'::uuid), now() - interval '2 days',
+  'record_purchase with p_occurred_at 2 days ago stores that occurred_at');
+select (public.record_purchase(:'c2'::uuid, 100, null, 'd2', now() + interval '30 seconds'))->>'entry_id' as ed2 \gset
+select is((select occurred_at from public.ledger_entries where id = :'ed2'::uuid), now(),
+  'record_purchase 30 s in the future stores now()');
+select throws_ok(
+  format($$select public.record_purchase(%L, 100, null, 'd3', now() + interval '2 minutes')$$, :'c2'),
+  '22023', null, 'record_purchase 2 minutes in the future raises 22023');
+select throws_ok(
+  format($$select public.record_purchase(%L, 100, null, 'd4', now() - interval '8 days')$$, :'c2'),
+  '22023', null, 'record_purchase 8 days ago raises 22023');
+select is((public.record_purchase(:'c2'::uuid, 100, null, 'd1', now() - interval '1 day'))->>'entry_id', :'ed1',
+  'record_purchase replays with same key and backdated time');
+select is(
+  (select count(*)::int || '|' || (min(occurred_at) = now() - interval '2 days')
+   from public.ledger_entries where idempotency_key = 'purchase:' || :'c2' || ':d1'),
+  '1|true', 'the replay writes no second ledger row and keeps the original time');
+select is(
+  (select count(*)::int from public.ledger_entries
+   where idempotency_key in ('purchase:' || :'c2' || ':d3', 'purchase:' || :'c2' || ':d4')),
+  0, 'a refused device time writes nothing');
+select throws_ok($$select public.resolve_occurred_at(now())$$, '42501', null, 'resolve_occurred_at is not granted');
+select tests.clear_auth();
 
 -- ---------------------------------------------------------------------------
 -- Week windows in Asia/Kolkata (C3), via the internal clock seam

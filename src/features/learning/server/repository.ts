@@ -246,8 +246,15 @@ export async function recordStepResult(
   return data === true;
 }
 
-export async function completeMission(db: Client, attemptId: string): Promise<boolean> {
-  const { data, error } = await db.rpc("complete_mission", { p_attempt_id: attemptId });
+export async function completeMission(
+  db: Client,
+  attemptId: string,
+  occurredAt?: string,
+): Promise<boolean> {
+  const { data, error } = await db.rpc("complete_mission", {
+    p_attempt_id: attemptId,
+    p_occurred_at: occurredAt,
+  });
   if (error) throw toAppError(error, "Failed to finish the mission");
   return data === true;
 }
@@ -260,6 +267,7 @@ export async function recordPracticeResult(
     correct: boolean;
     hintsUsed: number;
     tries: number;
+    occurredAt?: string;
   },
 ): Promise<boolean> {
   const { data, error } = await db.rpc("record_practice_result", {
@@ -268,6 +276,7 @@ export async function recordPracticeResult(
     p_correct: input.correct,
     p_hints_used: input.hintsUsed,
     p_tries: input.tries,
+    p_occurred_at: input.occurredAt,
   });
   if (error) throw toAppError(error, "Failed to save your answer");
   return data === true;

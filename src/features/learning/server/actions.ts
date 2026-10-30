@@ -29,8 +29,9 @@ export const startMissionAction = createAction(startMissionSchema, ({ missionKey
 
 export const recordStepAction = createAction(recordStepSchema, (input) => recordStep(input));
 
-export const completeMissionAction = createAction(completeMissionSchema, ({ attemptId }) =>
-  completeMission(attemptId),
+export const completeMissionAction = createAction(
+  completeMissionSchema,
+  ({ attemptId, occurredAt }) => completeMission(attemptId, occurredAt),
 );
 
 export const recordPracticeAction = createAction(recordPracticeSchema, recordPractice);
