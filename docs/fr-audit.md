@@ -29,7 +29,7 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 
 | Item | State |
 | --- | --- |
-| Migration history | Matches `supabase/migrations` on `main`. `20261030164347_inbox_reminders.sql` (this branch) is applied by the Supabase GitHub integration when it merges; `pnpm db:push` is only the fallback (`docs/deploy.md`). |
+| Migration history | Matches `supabase/migrations` on `main`. `20261030185541_requests.sql` and `20261030190114_request_functions.sql` (this branch) are applied by the Supabase GitHub integration when it merges; `pnpm db:push` is only the fallback (`docs/deploy.md`). |
 | `generate-due-occurrences` | pg_cron, hourly at minute 5, succeeding. |
 | `send-handover-reminders` | pg_cron, hourly at minute 7. The inbox migration creates the job and its function, so both appear when that migration is applied on merge. |
 | Child money history | `ledger_entries.child_id` is `on delete restrict`, and `remove_child` keeps the account once ledger rows exist (ADR 0007). |
