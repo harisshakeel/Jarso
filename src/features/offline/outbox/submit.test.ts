@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { open } from "./store";
-import { submit } from "./submit";
+import { submitToOutbox } from "./submit";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -30,7 +30,7 @@ describe("submit", () => {
     const userId = crypto.randomUUID();
     const data = input(userId);
 
-    void submit(data);
+    void submitToOutbox(data);
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
 
     const store = await open();
@@ -49,14 +49,17 @@ describe("submit", () => {
   it("returns sent and clears the item when the server takes it", async () => {
     respond(200, { data: { id: "entry-1" } });
     const userId = crypto.randomUUID();
-    expect(await submit(input(userId))).toEqual({ status: "sent", data: { id: "entry-1" } });
+    expect(await submitToOutbox(input(userId))).toEqual({
+      status: "sent",
+      data: { id: "entry-1" },
+    });
     expect(await (await open())?.listForUser(userId)).toEqual([]);
   });
 
   it("returns queued and keeps the item when the network fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
     const userId = crypto.randomUUID();
-    expect(await submit(input(userId))).toEqual({ status: "queued" });
+    expect(await submitToOutbox(input(userId))).toEqual({ status: "queued" });
     const items = (await (await open())?.listForUser(userId)) ?? [];
     expect(items[0]).toMatchObject({ status: "waiting", attempts: 1 });
   });
@@ -66,7 +69,7 @@ describe("submit", () => {
     vi.stubGlobal("fetch", fetchMock);
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     const userId = crypto.randomUUID();
-    expect(await submit(input(userId))).toEqual({ status: "queued" });
+    expect(await submitToOutbox(input(userId))).toEqual({ status: "queued" });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(await (await open())?.listForUser(userId)).toHaveLength(1);
   });
@@ -74,7 +77,7 @@ describe("submit", () => {
   it("returns refused with the server message", async () => {
     respond(409, { error: { code: "CONFLICT", message: "Not enough in Spend." } });
     const userId = crypto.randomUUID();
-    expect(await submit(input(userId))).toEqual({
+    expect(await submitToOutbox(input(userId))).toEqual({
       status: "refused",
       message: "Not enough in Spend.",
     });
@@ -86,7 +89,7 @@ describe("submit", () => {
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     const userId = crypto.randomUUID();
     const idempotencyKey = crypto.randomUUID();
-    await submit({ userId, kind: "step", payload: { attemptId: "a" }, idempotencyKey });
+    await submitToOutbox({ userId, kind: "step", payload: { attemptId: "a" }, idempotencyKey });
     const [item] = (await (await open())?.listForUser(userId)) ?? [];
     expect(item?.idempotencyKey).toBe(idempotencyKey);
     expect(item?.id).not.toBe(idempotencyKey);
@@ -98,18 +101,27 @@ describe("submit", () => {
     const store = await open();
     const older = { ...input(userId), kind: "step" as const, payload: { attemptId: "x" } };
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
-    await submit(older);
+    await submitToOutbox(older);
     vi.restoreAllMocks();
     const fetchMock = vi.fn(
       async () => new Response(JSON.stringify({ data: null }), { status: 200 }),
     );
     vi.stubGlobal("fetch", fetchMock);
-    expect(await submit(input(userId))).toEqual({ status: "sent", data: null });
+    expect(await submitToOutbox(input(userId))).toEqual({ status: "sent", data: null });
     const kinds = fetchMock.mock.calls.map(
       (call) => JSON.parse((call as unknown as [string, { body: string }])[1].body).kind,
     );
     expect(kinds).toEqual(["step", "purchase"]);
     expect(await store?.listForUser(userId)).toEqual([]);
+  });
+
+  it("returns queued when the drain throws after storing", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const flushModule = await import("./flush");
+    vi.spyOn(flushModule, "drainOutbox").mockRejectedValue(new Error("boom"));
+    const userId = crypto.randomUUID();
+    expect(await submitToOutbox(input(userId))).toEqual({ status: "queued" });
+    expect(await (await open())?.listForUser(userId)).toHaveLength(1);
   });
 
   it("returns unsaved when storage cannot open", async () => {
@@ -118,7 +130,7 @@ describe("submit", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const fresh = await import("./submit");
-    expect(await fresh.submit(input(crypto.randomUUID()))).toEqual({ status: "unsaved" });
+    expect(await fresh.submitToOutbox(input(crypto.randomUUID()))).toEqual({ status: "unsaved" });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -130,6 +142,6 @@ describe("submit", () => {
       },
     });
     const fresh = await import("./submit");
-    expect(await fresh.submit(input(crypto.randomUUID()))).toEqual({ status: "unsaved" });
+    expect(await fresh.submitToOutbox(input(crypto.randomUUID()))).toEqual({ status: "unsaved" });
   });
 });

@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { flush } from "./flush";
+import { logger } from "@/lib";
+import { flushOutbox } from "./flush";
 import { open, type Store } from "./store";
 import { installLocks, makeItem, minutesAgo } from "./test-utils";
 import type { OutboxItem, SendOutcome } from "./types";
@@ -48,10 +49,10 @@ describe("flush", () => {
     vi.resetModules();
     const otherTab = await import("./flush");
 
-    const first = flush(userId, send);
+    const first = flushOutbox(userId, send);
     await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
-    await otherTab.flush(userId, send);
-    await flush(userId, send);
+    await otherTab.flushOutbox(userId, send);
+    await flushOutbox(userId, send);
     release();
     await first;
 
@@ -65,7 +66,7 @@ describe("flush", () => {
       async (item: OutboxItem): Promise<SendOutcome> =>
         item.id === second.id ? { kind: "retry" } : { kind: "done", data: null },
     );
-    await flush(userId, send);
+    await flushOutbox(userId, send);
 
     expect(send.mock.calls.map(([item]) => item.id)).toEqual([first.id, second.id]);
     const left = await store.listForUser(userId);
@@ -75,14 +76,14 @@ describe("flush", () => {
 
     // The backed-off oldest item holds the queue: nothing jumps ahead of it.
     send.mockClear();
-    await flush(userId, send);
+    await flushOutbox(userId, send);
     expect(send).not.toHaveBeenCalled();
   });
 
   it("unauthorized pauses without changing items", async () => {
     const items = await seed(2);
     const send = vi.fn(async (): Promise<SendOutcome> => ({ kind: "unauthorized" }));
-    await flush(userId, send);
+    await flushOutbox(userId, send);
     expect(send).toHaveBeenCalledOnce();
     expect(await store.listForUser(userId)).toEqual(items);
   });
@@ -93,11 +94,11 @@ describe("flush", () => {
     const send = vi.fn(
       async (_item: OutboxItem): Promise<SendOutcome> => ({ kind: "done", data: null }),
     );
-    await flush(userId, send);
+    await flushOutbox(userId, send);
     expect(send.mock.calls.map(([item]) => item.id)).toEqual([next.id]);
   });
 
-  it("a flush asked for mid-flush in this tab runs once more afterwards", async () => {
+  it("a flushOutbox asked for mid-flushOutbox in this tab runs once more afterwards", async () => {
     const [first] = await seed(1);
     const late = makeItem({ userId, createdAt: minutesAgo(1) });
     const sent: string[] = [];
@@ -105,19 +106,33 @@ describe("flush", () => {
       sent.push(item.id);
       if (item.id === first.id) {
         await store.put(late);
-        await flush(userId, send);
+        await flushOutbox(userId, send);
       }
       return { kind: "done", data: null };
     });
-    await flush(userId, send);
+    await flushOutbox(userId, send);
     expect(sent).toEqual([first.id, late.id]);
+  });
+
+  it("swallows a store error and logs", async () => {
+    await seed(1);
+    vi.spyOn(store, "remove").mockRejectedValue(new DOMException("gone", "InvalidStateError"));
+    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const send = vi.fn(async (): Promise<SendOutcome> => ({ kind: "done", data: null }));
+    await expect(flushOutbox(userId, send)).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledWith("Outbox flush stopped", {
+      userId,
+      reason: "InvalidStateError",
+    });
+    warn.mockRestore();
+    vi.mocked(store.remove).mockRestore();
   });
 
   it("runs unlocked when Web Locks are missing", async () => {
     uninstallLocks();
     await seed(1);
     const send = vi.fn(async (): Promise<SendOutcome> => ({ kind: "done", data: null }));
-    await flush(userId, send);
+    await flushOutbox(userId, send);
     expect(send).toHaveBeenCalledOnce();
   });
 });

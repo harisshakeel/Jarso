@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { offlineCopy } from "../copy";
 import { isOnline, reportNetworkSuccess } from "../use-online";
 import { sendToServer } from "./send";
 import { nextState } from "./state";
@@ -45,6 +46,7 @@ describe("outcome", () => {
     expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(JSON.parse(init.body)).toEqual({
       kind: "purchase",
+      userId: item.userId,
       payload: {
         amount: "1.50",
         label: "Snack",
@@ -64,6 +66,24 @@ describe("outcome", () => {
   it("a 503 is a retry", async () => {
     respond(503, { error: { code: "UNAVAILABLE", message: "Jarso is taking a while." } });
     expect(await sendToServer(makeItem())).toEqual({ kind: "retry" });
+  });
+
+  it("a 408 is a retry", async () => {
+    respond(408, { error: { code: "TIMEOUT", message: "Request timed out" } });
+    expect(await sendToServer(makeItem())).toEqual({ kind: "retry" });
+  });
+
+  it("a 429 is a retry, not a refusal", async () => {
+    respond(429, { error: { code: "RATE_LIMITED", message: "Too many tries." } });
+    expect(await sendToServer(makeItem())).toEqual({ kind: "retry" });
+  });
+
+  it("a refusal without a message uses the fallback copy", async () => {
+    respond(403, {});
+    expect(await sendToServer(makeItem())).toEqual({
+      kind: "refused",
+      message: offlineCopy.refused,
+    });
   });
 
   it("a 401 is unauthorized", async () => {

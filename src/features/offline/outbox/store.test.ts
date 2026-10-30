@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it, vi } from "vitest";
-import { flush } from "./flush";
+import { flushOutbox } from "./flush";
 import { open } from "./store";
 import { makeItem, minutesAgo } from "./test-utils";
 import type { OutboxItem, SendOutcome } from "./types";
@@ -26,7 +26,7 @@ describe("store", () => {
     const send = vi.fn(
       async (_item: OutboxItem): Promise<SendOutcome> => ({ kind: "done", data: null }),
     );
-    await flush(userA, send);
+    await flushOutbox(userA, send);
     expect(send.mock.calls.map(([item]) => item.id)).toEqual([a1.id, a2.id]);
     expect(await store.listForUser(userA)).toEqual([]);
     expect((await store.listForUser(userB)).map((i) => i.id)).toEqual([b1.id]);

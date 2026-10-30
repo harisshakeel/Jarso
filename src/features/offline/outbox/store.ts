@@ -96,7 +96,7 @@ export function open(): Promise<Store | null> {
 }
 
 /** Deletes one item (for "Remove" on an item that needs a look). */
-export async function remove(id: string): Promise<void> {
+export async function removeOutboxItem(id: string): Promise<void> {
   const store = await open();
   await store?.remove(id);
 }

@@ -1,3 +1,4 @@
+import { logger } from "@/lib";
 import { nextState } from "./state";
 import { open, type Store } from "./store";
 import type { OutboxItem, SendOutcome } from "./types";
@@ -61,6 +62,21 @@ export async function drainOutbox(
   userId: string,
   send: Send,
 ): Promise<Map<string, SendOutcome> | null> {
+  try {
+    return await drainOnce(userId, send);
+  } catch (error) {
+    // Storage went away mid-drain. Items stay where they are; the next trigger tries again.
+    logger.warn("Outbox flush stopped", {
+      userId,
+      // Name only (a DOMException is not always an Error here); never the message.
+      reason:
+        typeof (error as { name?: unknown })?.name === "string" ? (error as Error).name : "unknown",
+    });
+    return null;
+  }
+}
+
+async function drainOnce(userId: string, send: Send): Promise<Map<string, SendOutcome> | null> {
   const store = await open();
   if (!store) return null;
 
@@ -77,7 +93,7 @@ export async function drainOutbox(
   return result;
 }
 
-/** Sends this user's due items. A no-op while another tab is already flushing. */
-export async function flush(userId: string, send: Send): Promise<void> {
+/** Sends this user's due items. A no-op while another tab is already flushing. Never throws. */
+export async function flushOutbox(userId: string, send: Send): Promise<void> {
   await drainOutbox(userId, send);
 }

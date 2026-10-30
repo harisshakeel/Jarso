@@ -1,14 +1,18 @@
 import { logger } from "@/lib";
+import { offlineCopy } from "../copy";
 import { reportNetworkFailure, reportNetworkSuccess } from "../use-online";
 import type { OutboxItem, SendOutcome } from "./types";
 
 const SEND_TIMEOUT_MS = 15_000;
-/** Used only when a refusal carries no message of its own. */
-const FALLBACK_REFUSAL = "Please check what you entered and try again.";
 
 function body(item: OutboxItem): string {
   const payload = (item.payload ?? {}) as Record<string, unknown>;
-  return JSON.stringify({ kind: item.kind, payload: { ...payload, occurredAt: item.occurredAt } });
+  // `userId` lets the route refuse (401) an item queued by a child who is no longer signed in.
+  return JSON.stringify({
+    kind: item.kind,
+    userId: item.userId,
+    payload: { ...payload, occurredAt: item.occurredAt },
+  });
 }
 
 /** Sends one item to `POST /api/v1/outbox`. Never throws. */
@@ -36,6 +40,11 @@ export async function sendToServer(item: OutboxItem): Promise<SendOutcome> {
     reportNetworkSuccess();
     return { kind: "done", data: (json as { data?: unknown }).data };
   }
+  // Too many requests or a request timeout: not a refusal, try again later.
+  if (response.status === 408 || response.status === 429) {
+    logger.warn("Outbox send deferred", { kind: item.kind, status: response.status });
+    return { kind: "retry" };
+  }
   if (response.status >= 500) {
     logger.warn("Outbox send failed", { kind: item.kind, status: response.status });
     reportNetworkFailure();
@@ -47,6 +56,6 @@ export async function sendToServer(item: OutboxItem): Promise<SendOutcome> {
   const message = (json as { error?: { message?: unknown } } | undefined)?.error?.message;
   return {
     kind: "refused",
-    message: typeof message === "string" && message ? message : FALLBACK_REFUSAL,
+    message: typeof message === "string" && message ? message : offlineCopy.refused,
   };
 }

@@ -6,7 +6,11 @@ export type OutboxItem = {
   id: string;
   userId: string;
   kind: OutboxKind;
-  /** Exactly the feature schema's input, as the online form would post it. */
+  /**
+   * Exactly the feature schema's input, as the online form would post it. Any idempotency
+   * material a kind needs (a purchase's `idempotencyKey`, a step's `attemptId`) must be inside
+   * the payload: only `kind`, `userId` and `payload` go over the wire.
+   */
   payload: unknown;
   /** Created once by the caller and never regenerated, so a resend is a replay. */
   idempotencyKey: string;
