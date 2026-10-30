@@ -1,9 +1,17 @@
+import { AuthRetryableFetchError } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const signUpMock = vi.fn();
+const signOutMock = vi.fn();
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({ auth: { signUp: signUpMock } })),
+  createClient: vi.fn(async () => ({ auth: { signUp: signUpMock, signOut: signOutMock } })),
 }));
+
+const warnMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/logger", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("@/lib/logger")>();
+  return { ...mod, logger: { ...mod.logger, warn: warnMock } };
+});
 
 class Redirect extends Error {
   constructor(readonly url: string) {
@@ -19,7 +27,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const { signUp } = await import("./actions");
+const { signOut, signUp } = await import("./actions");
 
 const input = { email: "parent@example.com", password: "long enough", fullName: "Pat" };
 
@@ -63,5 +71,30 @@ describe("signUp", () => {
     signUpMock.mockResolvedValue({ data: { session: {} }, error: null });
 
     await expect(signUp(null, input)).rejects.toMatchObject({ url: "/dashboard" });
+  });
+});
+
+describe("signOut", () => {
+  beforeEach(() => {
+    signOutMock.mockReset();
+    warnMock.mockReset();
+  });
+
+  it("logs and still redirects when the revoke call errors", async () => {
+    signOutMock.mockResolvedValue({ error: new AuthRetryableFetchError("x", 0) });
+
+    await expect(signOut(null, {})).rejects.toMatchObject({ url: "/login" });
+
+    expect(warnMock).toHaveBeenCalledWith("Sign-out revoke failed", {
+      code: undefined,
+    });
+  });
+
+  it("redirects without logging when the revoke call succeeds", async () => {
+    signOutMock.mockResolvedValue({ error: null });
+
+    await expect(signOut(null, {})).rejects.toMatchObject({ url: "/login" });
+
+    expect(warnMock).not.toHaveBeenCalled();
   });
 });

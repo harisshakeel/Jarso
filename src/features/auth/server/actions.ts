@@ -54,6 +54,9 @@ export const signUp = createAction(signUpSchema, async ({ email, password, fullN
 
 export const signOut = createAction(z.object({}), async () => {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  // auth-js clears the local session even when the revoke request fails, so the device is
+  // signed out either way. Log it and carry on.
+  if (error) logger.warn("Sign-out revoke failed", { code: error.code });
   redirect(routes.login);
 });
