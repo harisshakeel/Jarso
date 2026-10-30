@@ -30,7 +30,8 @@ function Phone({ who, children }: { who: string; children: ReactNode }) {
 /**
  * Spec §3.4. The parent's Home and the child's Home side by side (stacked on phones). The parent
  * taps "Hand over", a line draws across to the child's Save jar, a coin travels along it and Save
- * goes up. The line is measured from the two elements, so it follows any layout.
+ * goes up. The line is measured from the two elements, so it follows any layout. The page thread
+ * (jar-thread.tsx) swings to the right margin while this section passes (`data-thread-swing`).
  */
 export function FamilyView() {
   const stage = useRef<HTMLDivElement>(null);
@@ -79,7 +80,11 @@ export function FamilyView() {
   const plus = easeOutBack(segment(t, 2000, 2300));
 
   return (
-    <section aria-labelledby="family-title" className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6">
+    <section
+      aria-labelledby="family-title"
+      data-thread-swing
+      className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6"
+    >
       <h2
         id="family-title"
         className="mx-auto max-w-3xl text-balance text-center font-extrabold text-4xl leading-[1.05] tracking-[-0.03em] sm:text-5xl"

@@ -314,6 +314,34 @@
   }
 }
 
+/* A floating question mark: appears, rises and drifts by (--qx, --qy), swells and pops like a bubble. */
+@keyframes qm-bubble {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 0.4;
+  }
+  14% {
+    opacity: 1;
+    scale: 1;
+  }
+  78% {
+    opacity: 1;
+    translate: var(--qx) var(--qy);
+    scale: 1;
+  }
+  88% {
+    opacity: 0.9;
+    translate: var(--qx) var(--qy);
+    scale: 1.25;
+  }
+  100% {
+    opacity: 0;
+    translate: var(--qx) var(--qy);
+    scale: 1.45;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring;

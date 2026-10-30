@@ -32,7 +32,7 @@ export const sharedOpenGraph = {
       url: "/opengraph-image.png",
       width: 1200,
       height: 630,
-      alt: "Jarso: Spend some. Save some. Pocket money your child plans, you stay in the loop. A Spend jar and a Save jar inside a gold savings ring.",
+      alt: "Jarso: Spend some. Save some. Pocket money your child plans, you stay in the loop. A Spend jar with a few coins and a Save jar filled three quarters with coins.",
     },
   ],
 };

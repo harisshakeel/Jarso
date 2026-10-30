@@ -5,20 +5,17 @@ import { useReducedMotion } from "./use-reduced-motion";
 
 /**
  * Milliseconds since `play` turned true, up to `duration`, one update per frame. Back to 0 when
- * `play` turns false, so the next entry replays. With reduced motion it jumps straight to the end:
- * every demo then shows its final state.
+ * `play` turns false, so the next entry replays. With reduced motion it is always the end, in view
+ * or not: every demo shows its final state and never its starting one.
  */
 export function useTimeline(play: boolean, duration: number): number {
   const reduced = useReducedMotion();
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
+    if (reduced) return;
     if (!play) {
       setElapsed(0);
-      return;
-    }
-    if (reduced) {
-      setElapsed(duration);
       return;
     }
     let frame = 0;
@@ -32,5 +29,5 @@ export function useTimeline(play: boolean, duration: number): number {
     return () => cancelAnimationFrame(frame);
   }, [play, reduced, duration]);
 
-  return elapsed;
+  return reduced ? duration : elapsed;
 }

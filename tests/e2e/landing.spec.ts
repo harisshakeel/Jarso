@@ -2,21 +2,24 @@ import { expect, test } from "@playwright/test";
 
 // The landing page (spec 2026-10-30-landing-page-design). Static: no Supabase needed.
 
-test("navbar: Log in and Sign up", async ({ page }) => {
-  await page.goto("/");
-  const header = page.getByRole("banner");
-  await header.getByRole("link", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/login$/);
-
-  await page.goto("/");
-  await header.getByRole("link", { name: "Sign up" }).click();
-  await expect(page).toHaveURL(/\/signup$/);
+test("navbar: one Get started button holds every way in", async ({ page }) => {
+  for (const [item, url] of [
+    ["Log in", /\/login$/],
+    ["Set up your family", /\/signup$/],
+    ["Sign in", /\/sign-in\/child$/],
+    ["Start here", /\/start$/],
+  ] as const) {
+    await page.goto("/");
+    await page.getByRole("banner").getByRole("button", { name: "Get started" }).click();
+    await page.getByRole("menu").getByRole("menuitem", { name: item, exact: true }).click();
+    await expect(page).toHaveURL(url);
+  }
 });
 
 test("hero: the headline and both ways in", async ({ page }) => {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Spend some. Save some." }),
+    page.getByRole("heading", { level: 1, name: "Got money, but not sure how to manage it?" }),
   ).toBeVisible();
   const main = page.getByRole("main");
   await expect(main.getByRole("link", { name: "Set up your family" }).first()).toHaveAttribute(
@@ -27,17 +30,19 @@ test("hero: the headline and both ways in", async ({ page }) => {
   await expect(page).toHaveURL(/\/sign-in\/child$/);
 });
 
-test("reduced motion: one still screen with every caption", async ({ page }) => {
+test("reduced motion: one still screen with every tagline and caption", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  for (const caption of [
-    "Allowance day.",
+  const lines = page.getByRole("list", { name: "What the animation shows" }).getByRole("listitem");
+  await expect(lines).toHaveText([
+    "Spend some.",
+    "Save some.",
+    "Learn as you go.",
     "Split it. Spend and Save.",
     "Save for something real.",
     "Again next week. A bit wiser.",
-  ]) {
-    await expect(page.getByRole("listitem").filter({ hasText: caption })).toBeVisible();
-  }
+  ]);
+  for (const line of await lines.all()) await expect(line).toBeVisible();
   // No tall pinned section: the next section starts within the first two screens.
   const howTop = await page.locator("#how").evaluate((el) => el.getBoundingClientRect().top);
   expect(howTop).toBeLessThan(2 * (page.viewportSize()?.height ?? 720));
