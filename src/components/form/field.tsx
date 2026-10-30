@@ -49,9 +49,19 @@ export function FieldError({ id, errors }: { id?: string; errors?: string[] }) {
   );
 }
 
-/** Form-level error (not tied to one field), announced to screen readers. */
-export function FormError({ message }: { message?: string }) {
+/**
+ * Form-level error (not tied to one field), announced to screen readers. `calm` is for
+ * connection notices ("You're offline"): muted text, no alert icon, a polite announcement.
+ */
+export function FormError({ message, calm }: { message?: string; calm?: boolean }) {
   if (!message) return null;
+  if (calm) {
+    return (
+      <p role="status" className="text-ink-2 text-sm">
+        {message}
+      </p>
+    );
+  }
   return (
     <p role="alert" className="flex items-start gap-1.5 text-destructive text-sm">
       <CircleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
