@@ -594,6 +594,17 @@ All jobs run in `pg_cron` with `job_runs` rows for observability. If a job needs
 | Feature flags | `FEATURE_*` env vars validated in `env.server.ts`; `feature_flags` table when per-family rollout is needed | production-readiness skill |
 | Money formatting | `Money` component and `formatMinor()`; integers end to end | `docs/design.md` |
 | Accessibility | AA, 44 px targets, reduced motion | `docs/design.md` |
+| Network resilience | time limits on every call, device outbox for child self-recording | section 10.1 |
+
+### 10.1 Network resilience
+
+Children use school or home Wi-Fi and parents use mobile data, so slow and dropped connections are normal. Two rules: nothing waits forever, and a child's own record survives a dropped connection. Design and decisions: `docs/superpowers/specs/2026-10-30-network-resilience-design.md`.
+
+- **Time limits.** Every Supabase client uses `createTimedFetch` (`src/lib/timed-fetch.ts`): 8 s per call, and a timeout or network failure becomes a 503 `JA503` response mapped to `AppError("UNAVAILABLE")`. Postgrest retries are off. Calls over 1 s, timeouts and network failures log a `warn` with name, path, status and duration only. A guide turn has a 45 s deadline shared by every Claude call, under `maxDuration = 60` on the pages that can ask the guide.
+- **Online-only actions.** `runOnline` / `useOnlineActionState` (`@/features/offline`) race a Server Action against 15 s. Offline, a dropped connection or a slow reply returns a calm `UNAVAILABLE` result ("You're offline, try again when connected" or "This is taking a while. Try again?"), and the form keeps what was typed. This covers everything that moves or controls money (handover, gifts, allowance, rules, undo purchase), account and family settings, sign-in/out and the money guide.
+- **Device outbox.** Purchases, mission steps, mission completion, practice results and check-ins go through an IndexedDB outbox scoped to the signed-in user id. Each item keeps its idempotency key and device time (`occurredAt`) and is sent one at a time to `POST /api/v1/outbox` under a Web Lock, with 15 s per send and backoff 2 s, 5 s, 15 s, 30 s, then 60 s. It flushes on app start, `online`, tab focus and after any successful request. The server clamps `occurredAt` (up to 60 s ahead becomes `now()`, further ahead or over 7 days back is refused with `22023`) and replays a known key without moving money twice. A refused purchase stays in the diary as "Needs a look"; items expire after 7 days or 20 attempts. The outbox never sends another user's items.
+- **Slow pages.** Page fallbacks switch to "This is taking a while. Try again?" after 10 s; Try again refreshes the route, then reloads if it is still stuck. A stale Server Action after a deploy shows "Jarso was updated. Refresh to continue."
+- **Out of scope.** No Service Worker, web manifest or `experimental.useOffline`: opening Jarso cold with no network shows the browser's offline page, and nothing sends in the background while the app is closed.
 
 ## 11. Environments and delivery
 
