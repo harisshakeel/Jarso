@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClockIcon, HomeIcon } from "lucide-react";
+import { CalendarClockIcon, HomeIcon, InboxIcon } from "lucide-react";
 import { routes } from "@/config";
 import { BottomNav, type BottomNavItem } from "./bottom-nav";
 
@@ -10,9 +10,17 @@ import { BottomNav, type BottomNavItem } from "./bottom-nav";
 const items: BottomNavItem[] = [
   { href: routes.parent, label: "Home", icon: HomeIcon },
   { href: routes.parentAllowanceOverview, label: "Allowance", icon: CalendarClockIcon },
+  { href: routes.parentInbox, label: "Inbox", icon: InboxIcon },
 ];
 
-/** The parent's tab bar. */
-export function ParentNav() {
-  return <BottomNav items={items} label="Parent" />;
+/** The parent's tab bar. `unread` badges the Inbox tab. */
+export function ParentNav({ unread }: { unread?: number }) {
+  return (
+    <BottomNav
+      items={items.map((item) =>
+        item.href === routes.parentInbox ? { ...item, count: unread } : item,
+      )}
+      label="Parent"
+    />
+  );
 }

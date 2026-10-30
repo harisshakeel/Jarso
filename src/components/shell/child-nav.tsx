@@ -1,6 +1,6 @@
 "use client";
 
-import { GraduationCapIcon, HomeIcon } from "lucide-react";
+import { GraduationCapIcon, HomeIcon, InboxIcon } from "lucide-react";
 import { routes } from "@/config";
 import { BottomNav, type BottomNavItem } from "./bottom-nav";
 
@@ -9,9 +9,17 @@ import { BottomNav, type BottomNavItem } from "./bottom-nav";
 const items: BottomNavItem[] = [
   { href: routes.child, label: "Home", icon: HomeIcon },
   { href: routes.childLearn, label: "Learn", icon: GraduationCapIcon },
+  { href: routes.childInbox, label: "Inbox", icon: InboxIcon },
 ];
 
-/** The child's tab bar. */
-export function ChildNav() {
-  return <BottomNav items={items} label="Child" />;
+/** The child's tab bar. `unread` badges the Inbox tab. */
+export function ChildNav({ unread }: { unread?: number }) {
+  return (
+    <BottomNav
+      items={items.map((item) =>
+        item.href === routes.childInbox ? { ...item, count: unread } : item,
+      )}
+      label="Child"
+    />
+  );
 }

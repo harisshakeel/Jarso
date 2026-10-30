@@ -24,19 +24,19 @@ select gen_random_uuid() as src \gset
 
 -- Fan-out
 select is(public.notify_parents(:'c1'::uuid, 'limit_exceeded', 'ledger_entry', :'src'::uuid, 'w1', '{"x":1}'::jsonb), 2, 'notify_parents returns rows inserted');
-select is((select count(*)::int from public.notifications), 2, 'one row per approved parent; removed parent skipped');
+select is((select count(*)::int from public.notifications where family_id = :'fa'::uuid), 2, 'one row per approved parent; removed parent skipped');
 select is(public.notify_parents(:'c1'::uuid, 'limit_exceeded', 'ledger_entry', :'src'::uuid, 'w1', '{"x":2}'::jsonb), 0, 'a deduplicated repeat returns 0');
-select is((select count(*)::int from public.notifications), 2, 'same window_key does not duplicate');
+select is((select count(*)::int from public.notifications where family_id = :'fa'::uuid), 2, 'same window_key does not duplicate');
 select public.notify_parents(:'c1'::uuid, 'limit_exceeded', 'ledger_entry', :'src'::uuid, 'w2', '{}'::jsonb);
-select is((select count(*)::int from public.notifications), 4, 'a new window_key notifies again');
+select is((select count(*)::int from public.notifications where family_id = :'fa'::uuid), 4, 'a new window_key notifies again');
 select public.notify_parents(:'c1'::uuid, 'withdrawal_requested', 'request', :'src'::uuid, null, '{}'::jsonb);
 select public.notify_parents(:'c1'::uuid, 'withdrawal_requested', 'request', :'src'::uuid, null, '{}'::jsonb);
-select is((select count(*)::int from public.notifications where kind = 'withdrawal_requested'), 4, 'null window_key is never deduplicated');
+select is((select count(*)::int from public.notifications where family_id = :'fa'::uuid and kind = 'withdrawal_requested'), 4, 'null window_key is never deduplicated');
 select is((select count(*)::int from public.notifications where family_id = :'fa'::uuid and child_id = :'c1'::uuid), 8, 'rows carry family and child');
 
 -- notify_child
 select is(public.notify_child(:'c1'::uuid, 'withdrawal_decided', 'request', :'src'::uuid, null, '{}'::jsonb), 1, 'notify_child returns rows inserted');
-select is((select recipient_id from public.notifications where kind = 'withdrawal_decided'), :'c1'::uuid, 'notify_child targets the child');
+select is((select recipient_id from public.notifications where family_id = :'fa'::uuid and kind = 'withdrawal_decided'), :'c1'::uuid, 'notify_child targets the child');
 
 -- Validation
 select throws_ok(

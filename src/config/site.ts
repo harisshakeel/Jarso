@@ -87,6 +87,9 @@ export const routes = {
   settings: "/settings",
   parentSettings: "/parent/settings",
   childSettings: "/child/settings",
+  /** The in-app inbox (FR16). The pages arrive after the server module. */
+  childInbox: "/child/inbox" as Route,
+  parentInbox: "/parent/inbox" as Route,
 } as const;
 
 /** Route prefixes that require an authenticated user. Enforced optimistically in proxy, authoritatively in the DAL. */

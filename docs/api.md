@@ -9,6 +9,8 @@
 
 Both must stay thin and call the feature **service**.
 
+There is no `/api/cron` route yet. Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. A cron route arrives with email delivery in the final demo.
+
 ## Server Actions
 
 ```ts

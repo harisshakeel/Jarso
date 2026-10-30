@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ChildNav } from "@/components/shell";
 import { getCurrentUser } from "@/features/auth/server";
 import { currentRole } from "@/features/family/server";
+import { getUnreadCount } from "@/features/notifications/server";
 import { OutboxSync } from "@/features/offline";
 import { logger } from "@/lib";
 
@@ -16,13 +17,25 @@ export default function ChildLayout({ children }: LayoutProps<"/child">) {
     <>
       {children}
       <Suspense fallback={null}>
-        <ChildNav />
+        <Suspense fallback={<ChildNav />}>
+          <ChildNavWithCount />
+        </Suspense>
       </Suspense>
       <Suspense fallback={null}>
         <ChildOutboxSync />
       </Suspense>
     </>
   );
+}
+
+/** The tab bar with the Inbox count. Without a session or on a read error it shows no count. */
+async function ChildNavWithCount() {
+  try {
+    return <ChildNav unread={await getUnreadCount()} />;
+  } catch (error) {
+    unstable_rethrow(error);
+    return <ChildNav />;
+  }
 }
 
 /** Sends the signed-in child's saved actions from any child page. Nothing for anyone else. */
