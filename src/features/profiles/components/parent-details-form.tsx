@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui";
 import { countryCodes, type Gender, genderLabels, genderOptions } from "@/config";
+import { runOnline } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { EARLIEST_BIRTH_DATE, latestAdultBirthDate } from "../age";
 import { completeParentProfileAction } from "../server/actions";
@@ -49,7 +50,7 @@ export function ParentDetailsForm({
   const [country, setCountry] = useState<string | null>(defaults?.country ?? null);
   const [gender, setGender] = useState<string | null>(defaults?.gender ?? null);
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
-    const result = await completeParentProfileAction(prev, formData);
+    const result = await runOnline(() => completeParentProfileAction(prev, formData));
     if (result.ok) toast.success(successMessage);
     return result;
   }, idle);
@@ -125,7 +126,10 @@ export function ParentDetailsForm({
         <FieldError id="gender-error" errors={fieldErrors?.gender} />
       </div>
 
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError
+        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
+        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
+      />
       <Button type="submit" size="lg" loading={pending}>
         {submitLabel}
       </Button>
