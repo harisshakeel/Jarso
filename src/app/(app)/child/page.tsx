@@ -14,6 +14,9 @@ import { HistoryList, Jars } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
 import { logger } from "@/lib";
 
+// The guide action runs on this page: allow a full guide turn (45 s) plus saving it.
+export const maxDuration = 60;
+
 export const metadata: Metadata = { title: "Home" };
 
 /** requireRole sends signed-out users to the PIN sign-in and parents to their own home. */

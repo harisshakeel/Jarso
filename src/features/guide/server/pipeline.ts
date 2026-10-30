@@ -94,11 +94,15 @@ function visibleText(reply: string, check: GuideCheck | null): string {
   return `${reply}\n\nQuick check: ${check.question} (${check.options.join(" / ")}) ${check.explanation}`;
 }
 
+/** One guide turn, every provider call included, ends here (the pages allow 60 s). */
+const TURN_DEADLINE_MS = 45_000;
+
 export async function runGuidePipeline(
   input: { text: string; history: Turn[]; context: string },
   provider: GuideProvider,
-  now: () => number = Date.now,
+  { deadlineMs = TURN_DEADLINE_MS }: { deadlineMs?: number } = {},
 ): Promise<PipelineResult> {
+  const now = Date.now;
   const started = now();
   const childText = scrub(input.text);
   const history = input.history.map((turn) => ({ ...turn, text: scrub(turn.text) }));
@@ -108,9 +112,11 @@ export async function runGuidePipeline(
 
   // The answer starts at once (so an on-topic reply isn't slowed by the screen) and is cancelled
   // when the screen routes the message elsewhere, so a safety reply never waits for it.
+  // Every provider call shares one signal: the turn deadline, or the cancel below.
   const controller = new AbortController();
+  const signal = AbortSignal.any([AbortSignal.timeout(deadlineMs), controller.signal]);
   const main: Promise<{ ok: true; value: MainResult } | { ok: false; error: unknown }> = provider
-    .reply({ text: childText, history, context: input.context, signal: controller.signal })
+    .reply({ text: childText, history, context: input.context, signal })
     .then(
       (value) => ({ ok: true as const, value }),
       (error: unknown) => ({ ok: false as const, error }),
@@ -118,7 +124,7 @@ export async function runGuidePipeline(
 
   let route: Awaited<ReturnType<GuideProvider["screenInput"]>>["route"];
   try {
-    const screen = await provider.screenInput({ text: childText, history });
+    const screen = await provider.screenInput({ text: childText, history, signal });
     usage = addUsage(usage, screen.usage);
     route = screen.route;
   } catch (error) {
@@ -155,7 +161,12 @@ export async function runGuidePipeline(
 
   let verdict: Awaited<ReturnType<GuideProvider["screenOutput"]>>;
   try {
-    verdict = await provider.screenOutput({ reply: shown, childText, context: input.context });
+    verdict = await provider.screenOutput({
+      reply: shown,
+      childText,
+      context: input.context,
+      signal,
+    });
   } catch (error) {
     logger.warn("Guide output screen failed", { error: errorName(error) });
     return fixed("unavailable", base(), true);

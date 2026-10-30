@@ -57,6 +57,7 @@ export interface GuideProvider {
   screenInput(args: {
     text: string;
     history: Turn[];
+    signal?: AbortSignal;
   }): Promise<{ route: ScreenRoute; usage: Partial<GuideUsage> }>;
   reply(args: {
     text: string;
@@ -69,5 +70,6 @@ export interface GuideProvider {
     reply: string;
     childText: string;
     context: string;
+    signal?: AbortSignal;
   }): Promise<{ pass: boolean; problem: string; usage: Partial<GuideUsage> }>;
 }

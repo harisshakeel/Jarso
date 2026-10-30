@@ -188,6 +188,52 @@ describe("runGuidePipeline", () => {
     expect(signal?.aborted).toBe(true);
   });
 
+  it("ends the turn at the deadline", async () => {
+    const signals: (AbortSignal | undefined)[] = [];
+    const hang = (signal?: AbortSignal) => {
+      signals.push(signal);
+      return new Promise<never>((_, reject) => {
+        signal?.addEventListener("abort", () => reject(new Error("aborted")));
+      });
+    };
+    const started = Date.now();
+    const result = await runGuidePipeline(
+      { text: "What is saving?", history: [], context },
+      provider({
+        screenInput: ({ signal }) => hang(signal),
+        reply: ({ signal }) => hang(signal),
+        screenOutput: ({ signal }) => hang(signal),
+      }),
+      { deadlineMs: 50 },
+    );
+    expect(Date.now() - started).toBeLessThan(500);
+    expect(result).toMatchObject({ route: "unavailable", failed: true });
+    expect(signals.length).toBeGreaterThan(0);
+    expect(signals.every((signal) => signal?.aborted)).toBe(true);
+  });
+
+  it("passes one deadline signal to the output screen too", async () => {
+    let screenSignal: AbortSignal | undefined;
+    let replySignal: AbortSignal | undefined;
+    const base = createFakeProvider();
+    await runGuidePipeline(
+      { text: "What is saving?", history: [], context },
+      provider({
+        reply: async (args) => {
+          replySignal = args.signal;
+          return base.reply(args);
+        },
+        screenOutput: async (args) => {
+          screenSignal = args.signal;
+          expect(args.signal?.aborted).toBe(false);
+          return base.screenOutput(args);
+        },
+      }),
+    );
+    expect(screenSignal).toBeDefined();
+    expect(replySignal).toBeDefined();
+  });
+
   it("blocks an overlong reply", async () => {
     const result = await runGuidePipeline(
       { text: "What is saving?", history: [], context },
