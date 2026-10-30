@@ -2,6 +2,8 @@
 
 | Doc | Read when |
 | --- | --- |
+| [roadmap.md](./roadmap.md) | What Demo 1, Demo 2 and the final demo ship, by FR |
+| [fr-audit.md](./fr-audit.md) | The verified status of every FR on `main` |
 | [domain.md](./domain.md) | Understanding the product, glossary, planned modules, money invariants |
 | [architecture.md](./architecture.md) | System context, modules, data model, flows, auth, notifications, scheduling, environments, roadmap |
 | [conventions.md](./conventions.md) | Writing any code — naming, imports, barrels, errors |

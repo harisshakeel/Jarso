@@ -637,11 +637,13 @@ Delivery pipeline: PR → CI (lint, typecheck, unit, build, e2e, gitleaks, migra
 
 ## 14. Roadmap mapping
 
+Modules per milestone. The delivery order, demo by demo, is in `roadmap.md`.
+
 | Milestone | Modules | Tables and functions | Screens |
 | --- | --- | --- | --- |
 | **First milestone** (FR13, FR01, FR03, FR14 purchases + deposits + withdrawals, FR16 inbox) | `family`, `allowance`, `ledger`, `jars` (read), `diary` (purchases), `requests` (withdrawal, deposit), `limits`, `notifications` (inbox + email), demo clock | families, family_members, invitations, child_credentials, child_settings, allowance_schedules/occurrences, ledger_entries, requests, spending_limits, notifications, notification_deliveries, job_runs; functions `create_child_account`, `accept_invitation`, `verify_child_pin`, `generate_due_occurrences`, `confirm_handover`, `record_entry`, `evaluate_limits`, `complete_request`, `family_now`, `send_handover_reminders` | parent: onboarding with child switcher, family, allowance setup, home with due + requests, handover sheet, limits and overspend toggle, demo clock, inbox; child: sign-in, home, jars, record purchase, request withdrawal or deposit, inbox |
 | **Rest of pilot** (FR02, FR04–FR06, FR08, FR10–FR12, FR15, push, PWA) | `goals`, `diary` full, `learning`, `reviews`, `requests` (emergency), `notifications` (push), PWA shell | goals, mission_progress, review_items, weekly_reviews, push_subscriptions, `reverse_entry`, review jobs | goal, diary, missions, topics, weekly review, emergency request, settings |
-| **Later** (FR07, FR09) | `guide` | usage_counters (token budgets), guide_messages | guide chat with streaming |
+| **Pilot, behind a flag** (FR07, FR09; ADR 0010) | `guide` | guide_access, guide_conversations, guide_messages, usage_counters (rate limits) | guide sheet (replies screened, not streamed), parent transcripts and switch, `/safety` |
 
 ## 15. Decisions and assumptions
 

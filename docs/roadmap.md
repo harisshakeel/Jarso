@@ -1,0 +1,136 @@
+# Roadmap
+
+Three demos, each a working slice of the pilot in `REQUIREMENTS.md`. This page says what each demo ships, by FR, and in what order. The status of each FR is verified in `docs/fr-audit.md`. Updated 2026-10-30, after the landing page (#34, #35).
+
+## Timeline
+
+Dates to be set. Tracks run in parallel; an arrow means "after".
+
+| | Money | Learning and design | Platform and ops |
+| --- | --- | --- | --- |
+| **Demo 1** (now) | Built | Built | Key in Vercel, guide on for the demo child, Console spend limit |
+| **Demo 2** | Deposits and withdrawals → inbox and reminders, savings goal | Landing page (built, #34 and #35) → gamified child dashboard (after the goal) | Guide eval gate; demo hardening last |
+| **Final demo** | Emergency funds, diary complete, predict before deciding | Weekly review and comeback task, inside the dashboard | Web push and app install, pilot readiness |
+
+## At a glance
+
+| FR | Requirement | Demo 1 (now) | Demo 2 | Final demo |
+| --- | --- | --- | --- | --- |
+| FR13 | Family accounts and onboarding | Built | — | Email confirmation back on, slice 1 fixes |
+| FR01 | Allowance schedule and handover | Built, except the reminder | Handover reminder | — |
+| FR03 | Spend and Save jars | Balances, split at handover, history | Deposits and withdrawals between jars; effect on the goal | — |
+| FR04 | Money diary | Purchases and undo | — | Money received, corrections, diary screen |
+| FR14 | Purchases, limits, deposits, withdrawals | Purchases, overspend rule, money rules, limit notice rows | Deposits, withdrawals, reservations, cap, auto-approve, auto-confirm | — |
+| FR06 | Interactive daily learning | Built | — | — |
+| FR08 | Related learning material | Built | — | — |
+| FR10 | Learning progress | Built | Skill badges on the dashboard | — |
+| FR12 | Return experience | Next learning step on child Home | Requests and goal in the next step; recognition on the dashboard | Comeback task after missed days |
+| FR07, FR09 | AI money guide and its boundaries | Behind a flag, demo child only | Eval gate passed | On for pilot families after legal review |
+| FR16 | Notifications | Notice rows only | Inbox, badge, reminders, email | Web push and app install |
+| FR02 | Personal savings goal | — | Goal, plan, progress, payments left | — |
+| FR15 | Emergency funds | — | — | Request, decision, handover |
+| FR05 | Predict before deciding | — | — | Predict, reveal, try other choices |
+| FR11 | Weekly review | — | — | Weekly summary with a fresh question |
+| Design | Landing page | Built: scroll-driven landing page with the coded hero and the jar thread (#34, #35) | — | — |
+| Design | Child dashboard | Next step, jars, learning summary | Gamified dashboard | Weekly review card |
+
+First-milestone acceptance criteria (`REQUIREMENTS.md`): 7 of 13 met and 3 partly met today. Demo 2 closes all 13.
+
+Sizes below are relative effort (S < M < L), not dates.
+
+## Demo 1: real pocket money, and learning about it
+
+**Story.** A parent sets up the family and a child joins. An allowance falls due, and the parent hands it over split into Spend and Save. The child records purchases inside the parent's rules. Then the child learns: a check-in, a mission with hints and a topic page, and the money guide explaining "Why?" on a step.
+
+**Demo script**
+
+1. Parent signs up and adds a child; the child signs in with their PIN.
+2. Parent shows the weekly allowance and a one-time gift. The due badge is on both accounts.
+3. Parent hands the allowance over, splitting it into Spend and Save; the child's jars update.
+4. Child records a purchase. One larger than Spend is refused kindly; the parent turns on overspending. The child undoes a purchase.
+5. Parent sets a spending limit on the money rules page.
+6. Child does the check-in and a mission: a hint, a wrong answer that links to the topic, the replay at the end.
+7. Child asks the guide "Why?" on a step, then an off-topic question that gets redirected. Parent reads the chat and shows the switch.
+8. Parent opens the child's learning page: skill levels, kept apart from money.
+
+**Before the demo**
+
+- In Vercel Production add `ANTHROPIC_API_KEY` (sensitive) and `FEATURE_GUIDE=true`, redeploy, and switch the guide on for the demo child only.
+- Put the key in a dedicated Anthropic Console workspace with a US$100 monthly spend limit (the Default workspace can't have one).
+- Create the demo family a day early with today as the allowance's first date, so one allowance is already due. There is no demo clock until Demo 2.
+
+**Gaps to name, not show:** no inbox or reminders yet (limit notices are stored, not shown), no savings deposits or withdrawals, no savings goal. The guide is a pilot feature, on for this family only until the eval gate and the legal review.
+
+## Demo 2: the whole family money loop, and a product that looks the part
+
+**Goal.** Every first-milestone acceptance criterion met, the Save jar working toward a goal, a landing page and a gamified child dashboard, and a demo clock so the audience can watch an allowance fall due and a reminder fire.
+
+| # | Slice | FRs | Size | Design | Depends on |
+| --- | --- | --- | --- | --- | --- |
+| 1 | **Deposits and withdrawals.** `requests` with reservations; withdrawal cap, auto-approve and auto-confirm in use; child request sheets and list; parent "Needs you" items and decisions; request notices. | FR14, FR03 | L | Written: slices 3–4 design §4.4–4.6 and plan | #30 |
+| 2 | **Inbox and reminders.** Inbox and unread badge for both roles; handover reminders (the due day, then every 3 days); email for parent notices; `/api/cron` fallback; notices open the record's current state. | FR16, FR01 | L | Written: first-milestone design, slice 5 | 1, for request notices |
+| 3 | **Savings goal.** One goal per child; a plan per allowance; progress net of reserved withdrawals; payments-left estimate; the goal's effect shown on the jars and the handover screen; goal and pending requests in the next step on both homes. | FR02, FR03, FR12 | M | To write | 1 |
+| 4 | **Landing page.** Replaces the sign-in page at `/`: the coded hero (the kid's question, the toss, the savings loop), How it works with live demos, the money guide, parent and child side by side, the safety statement and both ways in, joined by the jar's outline as one thread; light and dark, reduced motion, SEO and a sitemap. | — | M | Built: `superpowers/specs/2026-10-30-landing-page-design.md` (#34, #35) | Done |
+| 5 | **Gamified child dashboard.** Child Home rebuilt as the child's hub: the next step as today's mission; Spend and Save as jars that fill; the goal as a journey with milestones; the learning path with skill badges (Started, Practised, Got it); learning days this week; recognition for understanding and thoughtful decisions (FR12). Parent Home stays calm, adding each child's progress at a glance. Designed in Figma first. | FR12, FR02, FR10 | L | To design | 3; 2 for the inbox badge |
+| 6 | **Demo hardening.** Demo clock (D11) with the injectable clock in the remaining time functions; a seed family with two children; a full-milestone e2e; each acceptance criterion mapped to a test; a design polish pass. | All | M | Written: first-milestone design, slice 6 | 1–5 |
+
+Two tracks run side by side: money (1, then 2 and 3 in parallel) and design (4 now, 5 once the goal exists). Alongside: run the guide eval gate and fix what it finds.
+
+**Gamification rules** (FR12, `docs/design.md` §8–10, child safety):
+
+- Rewards follow understanding and thoughtful decisions, never the amount of money a child has or saves.
+- No losing streaks, no "you missed a day" messages, no countdowns or pressure to return.
+- No random rewards, loot boxes, or anything bought with money.
+- No leaderboards or comparisons between children.
+- Celebration only on child screens, once per moment, no confetti; reduced motion turns it into a plain state change.
+
+**Demo script.** Open the new landing page and sign in as the child: the dashboard shows today's mission, the jars and the goal journey. Move the clock forward a week: the allowance falls due and the reminder lands in the parent's inbox. The parent hands it over and the goal moves on. The child asks to withdraw from Save; the money shows as reserved, the parent approves and hands it over, and it posts. The child deposits leftover cash and the parent confirms receiving it. The child finishes a mission and earns a skill badge. The parent's inbox shows the limit notice from an earlier purchase.
+
+**Done when**
+
+- Every first-milestone acceptance criterion maps to a passing test.
+- The guide eval gate has passed: every safety and personal case routed correctly, zero FR09 breaks, at least 95% helpful.
+- The landing page and the child dashboard are live in light and dark, at AA contrast, with reduced motion respected.
+- The seed family runs the whole script on production.
+
+## Final demo: the full pilot
+
+**Goal.** Every FR in `REQUIREMENTS.md` built, apart from the deferrals already decided, and the app ready for real pilot families.
+
+| Track | Slice | FRs | Size |
+| --- | --- | --- | --- |
+| Money | **Emergency funds** on the request machinery from Demo 2. Needs the jar decision. | FR15 | S |
+| Money | **Diary complete.** Money received from other sources, traceable corrections, a diary screen. | FR04 | M |
+| Money | **Predict before deciding.** Before a purchase, withdrawal or plan change, the child predicts the effect on their goal, sees the result explained, and can try other choices without changing recorded money. | FR05 | M |
+| Learning | **Weekly review**, as a card on the dashboard. Received, spent, saved, still due and goal progress; how one decision changed the plan; a skill shown and one worth practising; a fresh question from the review pool. | FR11 | M |
+| Learning | **Comeback task.** After missed days, a short, manageable task that eases the child back in. | FR12 | S |
+| Platform | **Web push and app install** for the inbox events, with everything still working when push is off. | FR16 | M |
+| Platform | **Pilot readiness**, below. | FR13, FR07 | M |
+
+The three tracks can run in parallel.
+
+**Pilot readiness**
+
+- Custom SMTP and email confirmation back on; the privacy notice (ADR 0008), linked from the landing page.
+- The guide on for pilot families after the eval gate and a UK/US legal review.
+- `/api/health?deep=1`, error tracking and an uptime monitor.
+- The pilot evaluation measures from `REQUIREMENTS.md`, on an internal page or saved queries: families completing the first flow, weekly return, time from due to handover, journey completion, understanding apart from completion, unanswered requests, balance errors.
+- Slice 1 fixes (PIN rotation signing children out elsewhere, the global invite cap); leftover test users deleted.
+- An accessibility and performance pass on a low-end phone.
+
+**Decisions needed first** (`REQUIREMENTS.md`, open decisions)
+
+- Which jar receives an emergency grant. Blocks FR15.
+- Pilot countries and stronger parental verification.
+- Pilot duration and success thresholds. Blocks the evaluation measures.
+
+**Done when** every FR is Built in `docs/fr-audit.md`, the readiness list is done, and a new family can sign up on production and use Jarso for a week with nothing seeded.
+
+## Not in the pilot
+
+- Child split planning (FR03): the parent decides the split at handover, by decision.
+- Native apps, real payments, bank connections, live fund tracking and investments (`REQUIREMENTS.md`, later versions).
+
+## How we work
+
+Each slice gets a design if it lacks one (UI slices start in Figma), then one PR with CI green and a squash merge; the Supabase integration applies its migrations. After each demo, update `docs/fr-audit.md` and this page.
