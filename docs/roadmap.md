@@ -34,7 +34,7 @@ Dates to be set. Tracks run in parallel; an arrow means "after".
 | Design | Landing page | Built: scroll-driven landing page with the coded hero and the jar thread (#34, #35) | — | — |
 | Design | Child dashboard | Next step, jars, learning summary | Gamified dashboard | Weekly review card |
 
-First-milestone acceptance criteria (`REQUIREMENTS.md`): 9 of 13 met and 2 partly met today. Demo 2 closes all 13.
+First-milestone acceptance criteria (`REQUIREMENTS.md`): all 13 met once the requests slice (PR B) merges.
 
 Sizes below are relative effort (S < M < L), not dates.
 

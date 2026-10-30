@@ -55,4 +55,4 @@ Tailwind v4 + shadcn/ui, Supabase (`@supabase/ssr`), Zod, Biome, Husky, Vitest, 
 - [x] Server modules: `rules`, `diary` (record, undo), ledger history with purchases and Undone lines
 - [x] Screens: child purchase sheet and undo; parent money rules page with overspend switch
 - [x] E2E: `tests/e2e/purchases.spec.ts`
-- [ ] Slice 4: savings deposits and withdrawals as requests (`requests` table, `create_request`, `decide_request`, `complete_request`), withdrawal cap and auto-approve / auto-confirm rules in use, request screens, notices for requests
+- [x] Slice 4: savings deposits and withdrawals as requests (`requests` table, `create_request`, `decide_request`, `complete_request`), withdrawal cap and auto-approve / auto-confirm rules in use, request screens, notices for requests
