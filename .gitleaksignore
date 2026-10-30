@@ -9,3 +9,8 @@ ecab39dfc63638f1df44b8640e7428ca4788f243:.claude-logs/2026-10-29_13-42-09_3336f1
 
 # Test fixture UUID (idempotency key in the diary schemas test), not a secret.
 26f033f44268e4592a18644e24524fdce8a4fa04:src/features/diary/schemas.test.ts:generic-api-key:4
+
+# Test fixture UUIDs (outbox idempotency keys in the pending-purchases and outbox route tests), not secrets.
+# Renamed in current files; these entries cover the commits that still contain them.
+1e915018bc8a8177fca96bfa74fd6819e5a16676:src/features/diary/components/pending-purchases.test.tsx:generic-api-key:23
+af83decee73b18692375f6bf755018fbfae06028:src/app/api/v1/outbox/route.test.ts:generic-api-key:7

@@ -27,18 +27,18 @@ vi.mock("@/features/offline", async () => ({
   sendToServer,
 }));
 
-const KEY = "5b7d8f1e-2c3a-4b5c-8d9e-0f1a2b3c4d5e";
+const uuid = "5b7d8f1e-2c3a-4b5c-8d9e-0f1a2b3c4d5e";
 const REFUSED =
   "That's more than you have in Spend (£7). Record money you got first, or ask a parent.";
 
 function purchase(overrides: Partial<OutboxItem> = {}): OutboxItem {
   const at = "2026-10-30T09:00:00.000Z";
   return {
-    id: KEY,
+    id: uuid,
     userId: "child-1",
     kind: "purchase",
-    payload: { amount: "20", label: "Comic", idempotencyKey: KEY },
-    idempotencyKey: KEY,
+    payload: { amount: "20", label: "Comic", idempotencyKey: uuid },
+    idempotencyKey: uuid,
     createdAt: at,
     attempts: 0,
     nextAttemptAt: at,
@@ -99,7 +99,7 @@ describe("PendingPurchases", () => {
   it("Remove deletes the item", async () => {
     show([needsLook()]);
     fireEvent.click(screen.getByRole("button", { name: "Remove: Comic" }));
-    await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(KEY));
+    await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(uuid));
   });
 
   it("Ask a parent shows the advice and keeps the item", () => {
@@ -124,9 +124,9 @@ describe("PendingPurchases", () => {
     const sheet = screen.getByRole("dialog");
     fireEvent.change(within(sheet).getByLabelText("Amount"), { target: { value: "5" } });
     fireEvent.click(within(sheet).getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(KEY));
+    await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(uuid));
     const input = submitToOutbox.mock.calls[0]?.[0] as { idempotencyKey: string };
-    expect(input.idempotencyKey).not.toBe(KEY);
+    expect(input.idempotencyKey).not.toBe(uuid);
   });
 
   it("Change it keeps the old item when the new one is refused", async () => {
@@ -138,7 +138,7 @@ describe("PendingPurchases", () => {
     await screen.findByRole("alert");
     const input = submitToOutbox.mock.calls[0]?.[0] as { idempotencyKey: string };
     expect(removeOutboxItem).toHaveBeenCalledWith(input.idempotencyKey);
-    expect(removeOutboxItem).not.toHaveBeenCalledWith(KEY);
+    expect(removeOutboxItem).not.toHaveBeenCalledWith(uuid);
   });
 
   it("Change it on a refused item opens the sheet without sending the old one", () => {
@@ -153,9 +153,9 @@ describe("PendingPurchases", () => {
       sendToServer.mockResolvedValue({ kind: "done", data: { status: "recorded" } });
       show([expired()]);
       fireEvent.click(screen.getByRole("button", { name: "Change it: Comic" }));
-      await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(KEY));
+      await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(uuid));
       expect(sendToServer).toHaveBeenCalledOnce();
-      expect(sendToServer.mock.calls[0]?.[0]).toMatchObject({ id: KEY, idempotencyKey: KEY });
+      expect(sendToServer.mock.calls[0]?.[0]).toMatchObject({ id: uuid, idempotencyKey: uuid });
       expect(toast.success).toHaveBeenCalledWith("Saved. Nice one.");
       expect(refresh).toHaveBeenCalled();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -170,9 +170,9 @@ describe("PendingPurchases", () => {
       expect(within(sheet).getByLabelText("Amount")).toHaveValue("20");
       expect(removeOutboxItem).not.toHaveBeenCalled();
       fireEvent.click(within(sheet).getByRole("button", { name: "Save" }));
-      await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(KEY));
+      await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(uuid));
       const input = submitToOutbox.mock.calls[0]?.[0] as { idempotencyKey: string };
-      expect(input.idempotencyKey).not.toBe(KEY);
+      expect(input.idempotencyKey).not.toBe(uuid);
     });
 
     it.each([{ kind: "retry" }, { kind: "unauthorized" }])(
@@ -207,7 +207,7 @@ describe("PendingPurchases", () => {
       purchase({
         status: "needs_look",
         message: REFUSED,
-        payload: { amount: "20", idempotencyKey: KEY },
+        payload: { amount: "20", idempotencyKey: uuid },
       }),
     ]);
     expect(screen.getByRole("button", { name: "Change it: Purchase" })).toBeVisible();

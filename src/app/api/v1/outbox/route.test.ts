@@ -4,7 +4,7 @@ import { AppError } from "@/lib";
 
 const USER_ID = "8b0c2a4e-5f1d-4c3b-9a7e-2d6f8e1b3c5a";
 const OTHER_ID = "1f2e3d4c-5b6a-4987-8a6b-5c4d3e2f1a0b";
-const KEY = "3c9e7a1b-2d4f-4e6a-8b0c-9d1e2f3a4b5c";
+const uuid = "3c9e7a1b-2d4f-4e6a-8b0c-9d1e2f3a4b5c";
 const NOW = Date.parse("2026-10-30T12:00:00.000Z");
 const MINUTE = 60_000;
 const DAY = 24 * 60 * MINUTE;
@@ -44,7 +44,7 @@ const purchase = (overrides: Record<string, unknown> = {}) => ({
   kind: "purchase",
   userId: USER_ID,
   ageMs: 5 * MINUTE,
-  payload: { amount: "2.50", label: "Snack", idempotencyKey: KEY },
+  payload: { amount: "2.50", label: "Snack", idempotencyKey: uuid },
   ...overrides,
 });
 
@@ -57,7 +57,7 @@ describe("POST /api/v1/outbox", () => {
     vi.clearAllMocks();
     assertUser.mockResolvedValue({ id: USER_ID });
     getFamilyContext.mockResolvedValue({ currency: "GBP" });
-    recordPurchase.mockResolvedValue({ status: "recorded", entryId: KEY });
+    recordPurchase.mockResolvedValue({ status: "recorded", entryId: uuid });
     vi.spyOn(Date, "now").mockReturnValue(NOW);
   });
   afterEach(() => vi.restoreAllMocks());
@@ -65,11 +65,11 @@ describe("POST /api/v1/outbox", () => {
   it("routes a purchase to recordPurchase with a time from its age", async () => {
     const res = await post(purchase());
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ data: { status: "recorded", entryId: KEY } });
+    expect(await res.json()).toEqual({ data: { status: "recorded", entryId: uuid } });
     expect(recordPurchase).toHaveBeenCalledWith({
       amountMinor: 250,
       label: "Snack",
-      idempotencyKey: KEY,
+      idempotencyKey: uuid,
       occurredAt: ago(5 * MINUTE),
     });
   });
@@ -77,7 +77,7 @@ describe("POST /api/v1/outbox", () => {
   it("ignores a client occurredAt, so a clock 1 h fast records at the server's now", async () => {
     const fast = new Date(NOW + 60 * MINUTE).toISOString();
     const res = await post(
-      purchase({ ageMs: 0, payload: { amount: "2.50", idempotencyKey: KEY, occurredAt: fast } }),
+      purchase({ ageMs: 0, payload: { amount: "2.50", idempotencyKey: uuid, occurredAt: fast } }),
     );
     expect(res.status).toBe(200);
     expect(recordPurchase).toHaveBeenCalledWith(
@@ -163,7 +163,7 @@ describe("POST /api/v1/outbox", () => {
   });
 
   it("returns a child-safe message for an invalid payload", async () => {
-    const res = await post(purchase({ payload: { amount: "lots", idempotencyKey: KEY } }));
+    const res = await post(purchase({ payload: { amount: "lots", idempotencyKey: uuid } }));
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body).toEqual({
