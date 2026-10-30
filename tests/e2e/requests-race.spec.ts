@@ -160,7 +160,7 @@ test.beforeAll(async () => {
 
   const parent = await parentClient();
   familyId = await rpc<string>(parent, "create_family", { p_currency: "GBP", p_timezone: "UTC" });
-  for (const name of ["ReqA", "ReqB", "ReqC", "ReqD", "ReqE"]) await addChild(parent, name);
+  for (const name of ["ReqA", "ReqB", "ReqC", "ReqD", "ReqE", "ReqF"]) await addChild(parent, name);
 });
 
 test.afterAll(async () => {
@@ -184,9 +184,9 @@ test("five concurrent complete_request calls hand over a withdrawal once", async
   expect(await ledgerCount(id)).toBe(2);
 });
 
-test("two parents approving in parallel never approve beyond Save", async () => {
-  // Pending requests are reserved, so create_withdrawal never lets 600 + 600 sit against 1000.
-  // Forced in through the admin client, neither fits: both stay pending, none over-approved.
+test("decide_withdrawal refuses when reserved exceeds Save (forced state)", async () => {
+  // create_withdrawal never lets 600 + 600 sit against 1000; forced in with the admin client,
+  // neither fits. This is a single-call check, not a race.
   const child = childAt(1);
   await fund(child, 0, 1000);
   const first = await insertRequest(child, "withdrawal", "pending", 600);
@@ -201,11 +201,24 @@ test("two parents approving in parallel never approve beyond Save", async () => 
   expect([await statusOf(first), await statusOf(second)]).toEqual(["pending", "pending"]);
 });
 
-test("parallel approvals and hand-overs of two covered withdrawals post each once", async () => {
-  const child = childAt(4);
-  await fund(child, 0, 1200);
-  const first = await insertRequest(child, "withdrawal", "pending", 600);
-  const second = await insertRequest(child, "withdrawal", "pending", 600);
+/** Save 1000, two 500 take-outs asked and approved in parallel through the real functions. */
+async function twoApprovedWithdrawals(childIndex: number): Promise<[string, string]> {
+  const child = childAt(childIndex);
+  await fund(child, 0, 1000);
+  const kid = await childClient(childIndex);
+  const ids: string[] = [];
+  for (const reason of ["One", "Two"]) {
+    const made = await rpc<{ status: string; request_id: string }>(kid, "create_withdrawal", {
+      p_child_id: child,
+      p_amount_minor: 500,
+      p_reason: reason,
+      p_idempotency_key: randomUUID(),
+    });
+    expect(made.status).toBe("pending");
+    ids.push(made.request_id);
+  }
+  const [first, second] = ids;
+  if (!first || !second) throw new Error("unreachable");
   const [a, b] = await many(2, parentClient);
   if (!a || !b) throw new Error("unreachable");
   const approved = await Promise.all([
@@ -213,13 +226,66 @@ test("parallel approvals and hand-overs of two covered withdrawals post each onc
     rpc<string>(b, "decide_withdrawal", { p_request_id: second, p_approve: true, p_note: "" }),
   ]);
   expect(tally(approved)).toEqual({ approved: 2 });
-  const done = await Promise.all([
+  return [first, second];
+}
+
+async function completeBoth(first: string, second: string): Promise<string[]> {
+  const [a, b] = await many(2, parentClient);
+  if (!a || !b) throw new Error("unreachable");
+  return Promise.all([
     rpc<string>(a, "complete_request", { p_request_id: first, p_idempotency_key: randomUUID() }),
     rpc<string>(b, "complete_request", { p_request_id: second, p_idempotency_key: randomUUID() }),
   ]);
-  expect(tally(done)).toEqual({ completed: 2 });
+}
+
+async function saveBalance(childId: string): Promise<number> {
+  const { data, error } = await admin
+    .from("ledger_entries")
+    .select("direction, amount_minor")
+    .eq("child_id", childId)
+    .eq("jar", "save")
+    .eq("mode", "recorded");
+  if (error) throw new Error(`Balance lookup failed: ${error.message}`);
+  return (data ?? []).reduce(
+    (sum, row) => sum + (row.direction === "in" ? row.amount_minor : -row.amount_minor),
+    0,
+  );
+}
+
+test("control: two approved 500 take-outs against 1000 Save both hand over", async () => {
+  const [first, second] = await twoApprovedWithdrawals(4);
+  expect(tally(await completeBoth(first, second))).toEqual({ completed: 2 });
   expect(await ledgerCount(first)).toBe(2);
   expect(await ledgerCount(second)).toBe(2);
+  expect(await saveBalance(childAt(4))).toBe(0);
+});
+
+test("Save dropping to 700 after approval stops both parallel hand-overs, none posts", async () => {
+  const [first, second] = await twoApprovedWithdrawals(5);
+  const child = childAt(5);
+  // A 300 Save-out the requests never saw (a reversal-style correction): Save is now 700.
+  const { error } = await admin.from("ledger_entries").insert({
+    family_id: familyId,
+    child_id: child,
+    mode: "recorded",
+    jar: "save",
+    kind: "withdrawal_out",
+    direction: "out",
+    amount_minor: 300,
+    label: "Correction",
+    source_type: "request",
+    source_id: randomUUID(),
+    idempotency_key: `race-drop-${randomUUID()}`,
+  });
+  if (error) throw new Error(`Drop failed: ${error.message}`);
+
+  // post_request keeps every other reservation covered, so with 700 against 1000 promised
+  // neither posts: no partial hand-over, and Save is untouched.
+  expect(tally(await completeBoth(first, second))).toEqual({ over_available: 2 });
+  expect(await ledgerCount(first)).toBe(0);
+  expect(await ledgerCount(second)).toBe(0);
+  expect([await statusOf(first), await statusOf(second)]).toEqual(["approved", "approved"]);
+  expect(await saveBalance(child)).toBe(700);
 });
 
 test("five concurrent create_withdrawal calls with one key make one request", async () => {
