@@ -26,7 +26,8 @@ describe("outcome", () => {
   it("VALIDATION becomes needs_look", async () => {
     const message = "Please check what you entered and try again.";
     respond(400, { error: { code: "VALIDATION", message } });
-    const item = makeItem();
+    // Purchases park as needs_look; a refused learning result is dropped (state.test.ts).
+    const item = makeItem({ kind: "purchase" });
     const outcome = await sendToServer(item);
     expect(outcome).toEqual({ kind: "refused", message });
     expect(nextState(item, outcome, new Date())).toMatchObject({ status: "needs_look", message });

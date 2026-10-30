@@ -1,3 +1,4 @@
+import { logger } from "@/lib";
 import { offlineCopy } from "../copy";
 import type { OutboxItem, SendOutcome } from "./types";
 
@@ -7,12 +8,18 @@ const BACKOFF_CAP_MS = 60_000;
 export const MAX_ATTEMPTS = 20;
 export const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** What a stored item becomes after one send. `null` means delete it. Pure. */
+/** What a stored item becomes after one send. `null` means delete it. Pure apart from a log. */
 export function nextState(item: OutboxItem, outcome: SendOutcome, now: Date): OutboxItem | null {
   switch (outcome.kind) {
     case "done":
       return null;
     case "refused":
+      // Only purchases have a "needs a look" screen. A refused learning result is dropped, or
+      // it would sit on the device forever; the player shows the refusal if the child is there.
+      if (item.kind !== "purchase") {
+        logger.warn("Refused outbox item dropped", { kind: item.kind });
+        return null;
+      }
       return { ...item, status: "needs_look", message: outcome.message };
     case "unauthorized":
       // Signed out, not rejected: keep the item exactly as it is until the user is back.

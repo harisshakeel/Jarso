@@ -11,9 +11,20 @@ describe("state", () => {
     expect(nextState(makeItem(), { kind: "done", data: { id: 1 } }, now)).toBeNull();
   });
 
-  it("refused becomes needs_look with the message", () => {
-    const next = nextState(makeItem(), { kind: "refused", message: "Nope." }, now);
+  it("a refused purchase becomes needs_look", () => {
+    const next = nextState(
+      makeItem({ kind: "purchase" }),
+      { kind: "refused", message: "Nope." },
+      now,
+    );
     expect(next).toMatchObject({ status: "needs_look", message: "Nope." });
+  });
+
+  it("a refused learning item is deleted", () => {
+    // Learning has no "needs a look" screen: a parked result would stay on the device forever.
+    for (const kind of ["step", "practice", "completeMission", "checkIn"] as const) {
+      expect(nextState(makeItem({ kind }), { kind: "refused", message: "Nope." }, now)).toBeNull();
+    }
   });
 
   it("retry backs off 2s, 5s, 15s, 30s, 60s, 60s", () => {
