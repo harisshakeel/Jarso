@@ -11,6 +11,7 @@ const mapped: Record<string, { code: ErrorCode; message: string }> = {
     message: "Too many tries. Ask your parent or wait a little while.",
   },
   JA429: { code: "RATE_LIMITED", message: "Too many tries. Please wait a little and try again." },
+  JA503: { code: "UNAVAILABLE", message: "Jarso is taking a while. Please try again." },
   "22023": { code: "VALIDATION", message: "Please check what you entered and try again." },
 };
 

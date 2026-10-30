@@ -17,6 +17,12 @@ describe("toAppError", () => {
     expect(result.cause).toBe(error);
   });
 
+  it("maps JA503 to UNAVAILABLE", () => {
+    const result = toAppError({ code: "JA503" }, "f");
+    expect(result.code).toBe("UNAVAILABLE");
+    expect(result.message).toBe("Jarso is taking a while. Please try again.");
+  });
+
   it("uses a friendly lockout message for JA423 without a fixed wait (locks escalate)", () => {
     expect(toAppError({ code: "JA423" }, "f").message).toBe(
       "Too many tries. Ask your parent or wait a little while.",

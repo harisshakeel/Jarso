@@ -2,6 +2,7 @@ import "server-only";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { clientEnv } from "@/config/env.client";
 import { serverEnv } from "@/config/env.server";
+import { supabaseFetch } from "@/lib/timed-fetch";
 import type { Database } from "@/types";
 
 /**
@@ -18,6 +19,7 @@ export function createAdminClient() {
     clientEnv.NEXT_PUBLIC_SUPABASE_URL,
     serverEnv.SUPABASE_SECRET_KEY,
     {
+      global: { fetch: supabaseFetch },
       auth: { autoRefreshToken: false, persistSession: false },
     },
   );

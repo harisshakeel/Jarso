@@ -6,6 +6,7 @@ export const errorCodes = {
   CONFLICT: 409,
   RATE_LIMITED: 429,
   INTERNAL: 500,
+  UNAVAILABLE: 503,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;
