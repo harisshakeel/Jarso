@@ -80,6 +80,12 @@ export function noticeText(
     case "withdrawal_decided":
     case "deposit_decided": {
       const { approved, decision } = notice.payload;
+      if (notice.kind === "deposit_decided" && approved === false) {
+        return {
+          title: amount ? `Your ${amount} wasn't added to Save` : "Your money wasn't added to Save",
+          detail: "It's still in Spend. Talk to your parent.",
+        };
+      }
       if (approved === true || decision === "approved") {
         return { title: "Your parent said yes", detail: amount ?? "Take a look." };
       }
