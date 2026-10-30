@@ -10,7 +10,7 @@ Jarso's AI is the app's headline feature: a prompt window at the top of the chil
 
 ## 2. One turn
 
-1. `POST /api/v1/guide/turns` → `prepareGuideTurn`: child role, the flag, the parent's switch under consent version 2, a re-sent question (stored reply), the context key, the chat, the rate limits. Any failure is a JSON error before streaming starts.
+1. `POST /api/v1/guide/turns` → `prepareGuideTurn`: child role, the flag, the parent's switch (on by default; off only when a parent turned it off), a re-sent question (stored reply), the context key, the chat, the rate limits. Any failure is a JSON error before streaming starts.
 2. `streamGuideTurn` → `runGuideTurn`: budget and breaker, then `runGuidePipeline` with a toolbox for the signed-in child (`createTurnTools`, the child's id from the session).
 3. The pipeline scrubs the message and starts the Haiku input screen and Jarso's answer together. Look-ups wait for the screen: a message routed elsewhere reads nothing.
 4. Jarso's loop (Sonnet 5.5, low effort, tools strict, at most 3 rounds and 6 look-ups). Each look-up streams a fixed status line ("Looking at your jars…"). The final answer is structured JSON: reply, topics, optional check.
@@ -43,7 +43,7 @@ Specs live in `server/tool-specs.ts` (pure data, shared by the provider, the fak
 
 ## 6. Safety and privacy
 
-Consent version 2 (`guide_access.consent_version`); look-ups only after the input screen; only the child's own data, through their RLS; planned gifts unreachable; no writes; figures from the app; look-ups stored as names and arguments only; logs carry look-up names, never results or text; 30-day text retention unchanged.
+On by default (product owner, 2026-10-31): a parent is told on the add-child form and can turn Jarso off at any time; `guide_access.consent_version` records which explanation they had when they turned it on; look-ups only after the input screen; only the child's own data, through their RLS; planned gifts unreachable; no writes; figures from the app; look-ups stored as names and arguments only; logs carry look-up names, never results or text; 30-day text retention unchanged.
 
 ## 7. Evals
 

@@ -5,13 +5,21 @@ import { Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { AddChildForm } from "@/features/family";
 import { requireRole } from "@/features/family/server";
+import { JarsoNotice } from "@/features/guide";
+import { isGuideConfigured } from "@/features/guide/server";
 
 export const metadata: Metadata = { title: "Add a child" };
 
 async function GuardedAddChildForm() {
   const { membership } = await requireRole("parent", routes.parentNewChild);
   if (!membership) redirect(routes.parentSetup);
-  return <AddChildForm />;
+  return (
+    <div className="grid gap-6">
+      {/* Jarso is on by default (ADR 0011): the parent is told before the child exists. */}
+      {isGuideConfigured() ? <JarsoNotice /> : null}
+      <AddChildForm />
+    </div>
+  );
 }
 
 export default function AddChildPage() {

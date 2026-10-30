@@ -5,10 +5,11 @@ import { loadLocalSupabase } from "./local-supabase";
 
 /**
  * Jarso (FR07, FR09, ADR 0011) against the LOCAL Supabase stack with the keyword-based fake
- * provider (FEATURE_GUIDE=true, GUIDE_PROVIDER=fake in playwright.config): off by default, the
- * parent's switch, the intro card in the Ask Jarso window on Home, a look-up of the child's own
- * jars, an answer with topic links and a check, a safety response with helplines, "Help me" in
- * a mission, and the parent's flagged-first transcript with what Jarso looked at.
+ * provider (FEATURE_GUIDE=true, GUIDE_PROVIDER=fake in playwright.config): on by default (the
+ * add-child notice and the parent's switch), the intro card in the Ask Jarso window on Home, a
+ * look-up of the child's own jars, an answer with topic links and a check, a safety response with
+ * helplines, "Help me" in a mission, the parent's flagged-first transcript with what Jarso looked
+ * at, and turning it off.
  */
 
 test.skip(!loadLocalSupabase(), "Local Supabase is not running: start it with `pnpm db:start`.");
@@ -64,6 +65,8 @@ test.beforeAll(async ({ browser }) => {
   await expect(parent).toHaveURL(at("/parent"));
   const code = await readFamilyCode(parent);
   await parent.getByRole("link", { name: "Add a child" }).first().click();
+  // On by default (ADR 0011): the parent is told before the child exists.
+  await expect(parent.getByRole("heading", { name: "Jarso, the AI helper, is on" })).toBeVisible();
   await parent.getByLabel("Nickname").fill("Remi");
   await parent.getByLabel("PIN", { exact: true }).fill("1357");
   await parent.getByRole("checkbox", { name: "I am this child's parent or guardian" }).click();
@@ -90,29 +93,17 @@ test.afterAll(async () => {
   await child?.context().close();
 });
 
-test("Jarso is off until the parent turns it on", async () => {
-  await expect(child.getByRole("heading", { name: /Five quick questions/ })).toBeVisible();
-  // Every streamed section has arrived before checking that the window is absent.
-  await child.waitForLoadState("networkidle");
-  await expect(jarso(child)).toHaveCount(0);
-
+test("Jarso is on by default, and the parent sees how to turn it off", async () => {
   const toggle = parent.getByRole("switch", { name: "Jarso for Remi" });
-  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
   await expect(parent.getByText(/made with Anthropic's Claude/)).toBeVisible();
   await expect(parent.getByText(/looks at their own jars, allowance/)).toBeVisible();
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-checked", "true");
-  // The switch is disabled until the save finishes; only then is it safe to reload.
-  await expect(toggle).toBeEnabled();
-  await parent.reload();
-  await expect(parent.getByRole("switch", { name: "Jarso for Remi" })).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
+  await expect(parent.getByText(/on unless you turn it off/)).toBeVisible();
+  await expect(child.getByRole("heading", { name: /Five quick questions/ })).toBeVisible();
+  await expect(jarso(child)).toBeVisible();
 });
 
 test("a first chat starts with the intro, then looks up the child's own jars", async () => {
-  await child.reload();
   const panel = jarso(child);
   await expect(panel.getByText("Jarso is an AI. Your parent can see these chats.")).toBeVisible();
   await expect(panel.getByText("Before we start")).toBeVisible();
