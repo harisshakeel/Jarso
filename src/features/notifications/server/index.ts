@@ -2,3 +2,4 @@
 import "server-only";
 
 export { sendEmail } from "./email";
+export { getUnreadCount, listNotices, markRead } from "./service";

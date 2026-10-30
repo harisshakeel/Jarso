@@ -6,4 +6,22 @@ export type NoticeKind =
   | "withdrawal_requested"
   | "withdrawal_decided"
   | "deposit_requested"
-  | "deposit_decided";
+  | "deposit_decided"
+  | "allowance_due"
+  | "handover_reminder";
+
+export type NoticeSource = "ledger_entry" | "request" | "allowance_occurrence";
+
+export type Notice = {
+  id: string;
+  kind: NoticeKind;
+  childId: string;
+  childName: string;
+  sourceType: NoticeSource;
+  sourceId: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+  read: boolean;
+};
+
+export type NoticePage = { items: Notice[]; nextBefore: string | null };
