@@ -9,7 +9,7 @@ import { withNext } from "../schemas";
 import { signUp } from "../server/actions";
 
 export function SignUpForm({ next }: { next?: string }) {
-  const [state, , pending, submit] = useOnlineActionState(signUp);
+  const [state, formAction, pending, submit] = useOnlineActionState(signUp);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
   if (state?.ok && state.data?.needsConfirmation) {
@@ -17,7 +17,7 @@ export function SignUpForm({ next }: { next?: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-4" noValidate>
+    <form action={formAction} onSubmit={submit} className="grid gap-4" noValidate>
       {next ? <input type="hidden" name="next" value={next} /> : null}
       <Field
         name="fullName"

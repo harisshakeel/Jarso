@@ -38,7 +38,7 @@ export function FamilySettingsForm({ timezone }: { timezone: string }) {
   const timezoneErrors = fieldErrors?.timezone;
 
   return (
-    <form onSubmit={submit} className="grid gap-4" noValidate>
+    <form action={action} onSubmit={submit} className="grid gap-4" noValidate>
       <div className="grid gap-2">
         <Label htmlFor="timezone">Timezone</Label>
         <Select

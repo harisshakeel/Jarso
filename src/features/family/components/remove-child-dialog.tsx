@@ -52,7 +52,7 @@ export function RemoveChildDialog({ child }: { child: ChildSummary }) {
             can't be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <form onSubmit={submit} className="contents" noValidate>
+        <form action={action} onSubmit={submit} className="contents" noValidate>
           <input type="hidden" name="childId" value={child.id} />
           <FormError error={state?.ok === false ? state.error : undefined} />
           <AlertDialogFooter>

@@ -52,7 +52,12 @@ function NewPinForm({ child, onDone }: { child: ChildSummary; onDone: () => void
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
   return (
-    <form onSubmit={submit} className="grid gap-6 px-4 pb-4 sm:px-6 sm:pb-6" noValidate>
+    <form
+      action={action}
+      onSubmit={submit}
+      className="grid gap-6 px-4 pb-4 sm:px-6 sm:pb-6"
+      noValidate
+    >
       <input type="hidden" name="childId" value={child.id} />
       <Field
         name="pin"

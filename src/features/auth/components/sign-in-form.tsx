@@ -9,11 +9,11 @@ import { withNext } from "../schemas";
 import { signIn } from "../server/actions";
 
 export function SignInForm({ next }: { next?: string }) {
-  const [state, , pending, submit] = useOnlineActionState(signIn);
+  const [state, formAction, pending, submit] = useOnlineActionState(signIn);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
   return (
-    <form onSubmit={submit} className="grid gap-4" noValidate>
+    <form action={formAction} onSubmit={submit} className="grid gap-4" noValidate>
       {next ? <input type="hidden" name="next" value={next} /> : null}
       <Field
         name="email"

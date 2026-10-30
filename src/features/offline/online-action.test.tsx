@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { offlineCopy } from "./copy";
 import { runOnline, useOnlineActionState } from "./online-action";
@@ -123,9 +124,9 @@ describe("runOnline", () => {
 });
 
 function NameForm({ action }: { action: Parameters<typeof useOnlineActionState>[0] }) {
-  const [state, , pending, submit] = useOnlineActionState(action);
+  const [state, formAction, pending, submit] = useOnlineActionState(action);
   return (
-    <form onSubmit={submit}>
+    <form action={formAction} onSubmit={submit}>
       <label htmlFor="name">Name</label>
       <input id="name" name="name" />
       <input aria-label="PIN" name="pin" type="password" />
@@ -148,6 +149,16 @@ describe("useOnlineActionState", () => {
     expect(await screen.findByText(offlineCopy.offline)).toBeInTheDocument();
     expect(action).not.toHaveBeenCalled();
     expect(input).toHaveValue("Sam");
+  });
+
+  it("never lets a submit before hydration fall back to a native GET", () => {
+    const html = renderToString(<NameForm action={vi.fn()} />);
+    // React renders a placeholder action and replays the submit after hydration, so credentials
+    // can't end up in the URL.
+    expect(html).toContain(
+      "javascript:throw new Error(&#x27;React form unexpectedly submitted.&#x27;)",
+    );
+    expect(html).not.toMatch(/method="get"/i);
   });
 
   it("submit sends the form values to the action", async () => {

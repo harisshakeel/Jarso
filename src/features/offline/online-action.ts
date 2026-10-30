@@ -69,6 +69,10 @@ export async function runOnline<T>(
  * uncontrolled fields once a `<form action>` finishes, which would wipe what was typed after a
  * refused (offline) or slow submit. Submitting through here runs the same action without the reset.
  *
+ * Keep `action={formAction}` on the form as well: React then renders a `javascript:` placeholder and
+ * replays a submit made before hydration, so credentials never fall back to a native GET in the URL.
+ * After hydration this handler calls `preventDefault()`, and React skips the action.
+ *
  * Pass the action's `state` so secrets still clear as before: once the server has answered (anything
  * but `UNAVAILABLE`), password and PIN inputs are emptied.
  */
@@ -98,7 +102,7 @@ export function useFormSubmit(
 
 /**
  * `useActionState` with `runOnline` applied inside. The fourth element is the form's `onSubmit`
- * (see `useFormSubmit`): use it instead of `action={formAction}` so typed values are kept.
+ * (see `useFormSubmit`): use it together with `action={formAction}` so typed values are kept.
  */
 export function useOnlineActionState<T>(
   action: (prev: ActionState<T>, payload: FormData) => Promise<ActionResult<T>>,

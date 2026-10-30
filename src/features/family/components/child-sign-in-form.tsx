@@ -11,7 +11,7 @@ import { childSignInAction } from "../server/actions";
  * survive a wrong PIN (React resets uncontrolled fields after an action); the PIN clears.
  */
 export function ChildSignInForm() {
-  const [state, , pending, submit] = useOnlineActionState(childSignInAction);
+  const [state, formAction, pending, submit] = useOnlineActionState(childSignInAction);
   const [familyCode, setFamilyCode] = useState("");
   const [nickname, setNickname] = useState("");
 
@@ -19,7 +19,7 @@ export function ChildSignInForm() {
   return (
     <Card className="rise-in shadow-raised">
       <CardContent>
-        <form onSubmit={submit} className="grid gap-6" noValidate>
+        <form action={formAction} onSubmit={submit} className="grid gap-6" noValidate>
           <Field
             name="familyCode"
             label="Family code"

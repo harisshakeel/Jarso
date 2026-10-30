@@ -9,7 +9,7 @@ import { useOnlineActionState } from "@/features/offline";
 import { addChildAction } from "../server/actions";
 
 export function AddChildForm() {
-  const [state, , pending, submit] = useOnlineActionState(addChildAction);
+  const [state, formAction, pending, submit] = useOnlineActionState(addChildAction);
   // Controlled so they survive a failed submit (React resets uncontrolled fields); the PIN clears.
   const [nickname, setNickname] = useState("");
   const [consent, setConsent] = useState(false);
@@ -17,7 +17,7 @@ export function AddChildForm() {
   const consentErrors = fieldErrors?.consent;
 
   return (
-    <form onSubmit={submit} className="grid gap-6" noValidate>
+    <form action={formAction} onSubmit={submit} className="grid gap-6" noValidate>
       <Field
         name="nickname"
         label="Nickname"
