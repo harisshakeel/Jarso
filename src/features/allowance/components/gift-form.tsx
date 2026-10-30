@@ -20,6 +20,7 @@ import {
   CardContent,
 } from "@/components/ui";
 import { routes } from "@/config";
+import { runOnline } from "@/features/offline";
 import { type ActionState, idle, toMajorString } from "@/lib";
 
 import { cancelGiftAction, createGiftAction, updateGiftAction } from "../server/actions";
@@ -52,8 +53,8 @@ export function GiftForm({
   const [state, action, pending] = useActionState(
     async (_prev: ActionState<unknown>, formData: FormData) => {
       const result = initial
-        ? await updateGiftAction(null, formData)
-        : await createGiftAction(null, formData);
+        ? await runOnline(() => updateGiftAction(null, formData))
+        : await runOnline(() => createGiftAction(null, formData));
       if (result.ok) {
         toast.success("Gift saved");
         router.push(routes.parentChild(childId));
@@ -113,7 +114,10 @@ export function GiftForm({
         </CardContent>
       </Card>
 
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError
+        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
+        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
+      />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link
           href={routes.parentChild(childId)}
@@ -143,16 +147,18 @@ export function CancelGiftForm({
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
+  const [calm, setCalm] = useState(false);
 
   function confirm() {
     setError(undefined);
     start(async () => {
-      const result = await cancelGiftAction(null, { id: giftId });
+      const result = await runOnline(() => cancelGiftAction(null, { id: giftId }));
       if (result.ok) {
         toast.success("Gift cancelled");
         router.push(routes.parentChild(childId));
       } else {
         setError(result.error.message);
+        setCalm(result.error.code === "UNAVAILABLE");
       }
     });
   }
@@ -167,7 +173,7 @@ export function CancelGiftForm({
           <AlertDialogTitle>Cancel this gift?</AlertDialogTitle>
           <AlertDialogDescription>{nickname} won't see it.</AlertDialogDescription>
         </AlertDialogHeader>
-        <FormError message={error} />
+        <FormError message={error} calm={calm} />
         <AlertDialogFooter>
           <AlertDialogCancel>Keep it</AlertDialogCancel>
           <Button variant="destructive" loading={pending} onClick={confirm}>
