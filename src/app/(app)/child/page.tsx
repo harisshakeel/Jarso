@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { routes } from "@/config";
 import { ChildAllowanceCard } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
-import { PurchaseSheet, UndoButton } from "@/features/diary";
+import { PendingPurchases, PurchaseSheet, UndoButton } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
 import { GuideSheet } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
@@ -45,7 +45,8 @@ async function ChildHome() {
         dueTotalMinor={due.totalMinor}
         currency={family.currency}
       />
-      <PurchaseSheet currency={family.currency} />
+      <PurchaseSheet currency={family.currency} userId={user.id} />
+      <PendingPurchases userId={user.id} currency={family.currency} />
       <HistoryList
         items={history}
         currency={family.currency}

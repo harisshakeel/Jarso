@@ -3,10 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { UndoButton } from "./undo-button";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
-vi.mock("../server/actions", () => ({
-  recordPurchaseAction: vi.fn(),
-  undoPurchaseAction: vi.fn(),
-}));
+vi.mock("../server/actions", () => ({ undoPurchaseAction: vi.fn() }));
 
 afterEach(cleanup);
 
