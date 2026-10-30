@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { cache } from "react";
 import { routes } from "@/config";
-import { AppError, isTimedFetchError } from "@/lib";
+import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import type { SessionUser } from "../types";
 
@@ -20,7 +20,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const { data, error } = await supabase.auth.getClaims();
 
   // A timeout is not "signed out": signing the user out on a slow network loses their place.
-  if (error && (isAuthRetryableFetchError(error) || isTimedFetchError(error.cause))) {
+  if (error && isAuthRetryableFetchError(error)) {
     throw new AppError("UNAVAILABLE", "Jarso is taking a while. Please try again.", {
       cause: error,
     });

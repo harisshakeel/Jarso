@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
 import { clientEnv } from "@/config/env.client";
-import { isTimedFetchError, supabaseFetch } from "@/lib/timed-fetch";
+import { supabaseFetch } from "@/lib/timed-fetch";
 import type { Database } from "@/types";
 
 const CACHE_HEADERS = ["cache-control", "expires", "pragma"] as const;
@@ -18,6 +18,7 @@ export async function updateSession(request: NextRequest) {
     clientEnv.NEXT_PUBLIC_SUPABASE_URL,
     clientEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
+      db: { retry: false },
       global: { fetch: supabaseFetch },
       cookies: {
         getAll() {
@@ -40,8 +41,7 @@ export async function updateSession(request: NextRequest) {
   const { data, error } = await supabase.auth.getClaims();
 
   // Supabase did not answer: the session is unknown, not signed out.
-  const unavailable =
-    !!error && (isAuthRetryableFetchError(error) || isTimedFetchError(error.cause));
+  const unavailable = !!error && isAuthRetryableFetchError(error);
 
   return { response, claims: data?.claims ?? null, unavailable };
 }

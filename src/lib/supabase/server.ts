@@ -16,6 +16,7 @@ export async function createClient() {
     clientEnv.NEXT_PUBLIC_SUPABASE_URL,
     clientEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
+      db: { retry: false },
       global: { fetch: supabaseFetch },
       cookies: {
         getAll() {

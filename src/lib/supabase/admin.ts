@@ -19,6 +19,7 @@ export function createAdminClient() {
     clientEnv.NEXT_PUBLIC_SUPABASE_URL,
     serverEnv.SUPABASE_SECRET_KEY,
     {
+      db: { retry: false },
       global: { fetch: supabaseFetch },
       auth: { autoRefreshToken: false, persistSession: false },
     },

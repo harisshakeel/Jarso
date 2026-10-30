@@ -1,17 +1,20 @@
 import { logger } from "./logger";
 
-/** Upstream did not answer in time, or the network failed. Maps to UNAVAILABLE via `JA503`. */
-export class TimedFetchError extends Error {
-  readonly code = "JA503";
+const UNAVAILABLE_BODY = JSON.stringify({
+  code: "JA503",
+  message: "Jarso is taking a while. Please try again.",
+});
 
-  constructor(message: string, options?: { cause?: unknown }) {
-    super(message, options);
-    this.name = "TimedFetchError";
-  }
-}
-
-export function isTimedFetchError(error: unknown): error is TimedFetchError {
-  return error instanceof TimedFetchError;
+/**
+ * Stand-in for a timed-out or unreachable upstream. A resolved 503 (not a rejection) is used
+ * because postgrest-js drops the error code of a rejected fetch, and auth-js already treats
+ * a 503 as a retryable fetch error. The body is what `toAppError` maps to UNAVAILABLE.
+ */
+function unavailableResponse(): Response {
+  return new Response(UNAVAILABLE_BODY, {
+    status: 503,
+    headers: { "content-type": "application/json" },
+  });
 }
 
 function pathnameOf(input: Parameters<typeof fetch>[0]): string {
@@ -25,8 +28,10 @@ function pathnameOf(input: Parameters<typeof fetch>[0]): string {
 
 /**
  * `fetch` with a hard deadline and slow-call logging. A caller abort is passed through
- * untouched; a timeout or network failure becomes a TimedFetchError. Logs carry the call
- * name, path (no query), status and duration only. Isomorphic.
+ * untouched (rejects); a timeout or network failure resolves a 503 JA503 response and is
+ * logged. Logs carry the call name, path (no query), status/reason and duration only.
+ * The deadline covers the time to response headers, not the body read (Supabase bodies are
+ * small). Isomorphic.
  */
 export function createTimedFetch(options: {
   timeoutMs: number;
@@ -57,8 +62,13 @@ export function createTimedFetch(options: {
       return response;
     } catch (error) {
       if (init?.signal?.aborted) throw error;
-      const reason = deadline.signal.aborted ? "timed out" : "network failure";
-      throw new TimedFetchError(`${name} call ${reason}`, { cause: error });
+      logger.warn("Upstream call failed", {
+        name,
+        path: pathnameOf(input),
+        durationMs: Date.now() - startedAt,
+        reason: deadline.signal.aborted ? "timeout" : "network",
+      });
+      return unavailableResponse();
     } finally {
       clearTimeout(timer);
     }

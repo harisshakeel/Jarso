@@ -15,15 +15,12 @@ import { logger } from "@/lib";
  * which fails closed.
  */
 export async function ProfileGate() {
-  const user = await getCurrentUser();
-  if (!user || (await currentRole()) !== "parent") return null;
   try {
+    const user = await getCurrentUser();
+    if (!user || (await currentRole()) !== "parent") return null;
     if (await isParentProfileComplete(user.id)) return null;
   } catch (error) {
-    logger.warn("Profile gate check failed; showing the page without the dialog", {
-      userId: user.id,
-      error,
-    });
+    logger.warn("Profile gate check failed; showing the page without the dialog", { error });
     return null;
   }
   return <ProfileCompletionDialog />;
