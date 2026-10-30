@@ -37,7 +37,7 @@ flowchart LR
   db -. database webhook .-> app
   app -->|send| email[Email provider<br/>Resend]
   app -->|later| push[Browser push services<br/>VAPID]
-  app -->|later| claude[Claude API<br/>money guide]
+  app -->|pilot, behind a flag| claude[Claude API<br/>money guide]
   github[GitHub · CI · Dependabot] -->|push to main| vercel
   github -->|migrations| db
 ```

@@ -124,7 +124,7 @@ The three tracks can run in parallel.
 - Pilot countries and stronger parental verification.
 - Pilot duration and success thresholds. Blocks the evaluation measures.
 
-**Done when** every FR is Built in `docs/fr-audit.md`, the readiness list is done, and a new family can sign up on production and use Jarso for a week with nothing seeded.
+**Done when** every FR is Built in `docs/fr-audit.md` apart from the deferrals decided under "Not in the pilot", the readiness list is done, and a new family can sign up on production and use Jarso for a week with nothing seeded.
 
 ## Not in the pilot
 
