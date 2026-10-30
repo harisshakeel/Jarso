@@ -8,7 +8,7 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 
 | FR | Requirement | Status | What exists | What is missing | Slice |
 | --- | --- | --- | --- | --- | --- |
-| FR01 | Allowance schedule and handover | **Built** | Weekly, monthly, every 3 months and yearly schedules; due exactly once from the hourly `generate-due-occurrences` job; change, pause (through a date or until resumed), resume, stop; handover with the Spend/Save split starting from the last split; not given (S10); one-time gifts that stay hidden from the child until handover (S2–S5); due badges on both sides; child allowance card and history. The hourly `send-handover-reminders` job (minute 7) gives the parent an `allowance_due` notice on the due day and a `handover_reminder` every 3 days while the allowance is still due; the child gets only the `allowance_due` notice. Gifts get no notices. | — | 2, 5 |
+| FR01 | Allowance schedule and handover | **Built** | Weekly, monthly, every 3 months and yearly schedules; due exactly once from the hourly `generate-due-occurrences` job; change, pause (through a date or until resumed), resume, stop; handover with the Spend/Save split starting from the last split; not given (S10); one-time gifts that stay hidden from the child until handover (S2–S5); due badges on both sides; child allowance card and history. The hourly `send-handover-reminders` job (minute 7) gives the parent an `allowance_due` notice on the due day and a `handover_reminder` every 3 days while the allowance is still due; the child gets only the `allowance_due` notice. Gifts get no notices. An occurrence first seen late waits for its next 3-day mark. | — | 2, 5 |
 | FR02 | Personal savings goal | Not started | Nothing. | `goals`, planned split, progress and payments-remaining estimate, goal screen | rest of pilot |
 | FR03 | Spend and Save jars | Partial | `ledger_entries`, `balance()`, `list_ledger_history`; confirmed balances per jar with due shown separately; the handover records the actual split; child and parent history. | Savings deposits and withdrawals (FR14, slice 4); effect on a goal (FR02). Child split planning is deferred by decision. | 4 |
 | FR04 | Money diary | Partial | Child records purchases (amount, optional label); undo within 24 hours as a reversing entry, shown as Undone to child and parent; purchases in both histories. | Money from other sources recorded by the child, corrections beyond undo, a dedicated diary screen | 3, later |
@@ -29,8 +29,9 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 
 | Item | State |
 | --- | --- |
-| Migration history | Matches `supabase/migrations` on `main`: 19 migrations, same versions. New migrations reach production only by merging to `main`, through the Supabase GitHub integration. |
+| Migration history | Matches `supabase/migrations` on `main` except `20261030164347_inbox_reminders.sql` (20 migrations in the repo, 19 applied): pending until `pnpm db:push` after merge. New migrations reach production only by merging to `main`, through the Supabase GitHub integration. |
 | `generate-due-occurrences` | pg_cron, hourly at minute 5, succeeding. |
+| `send-handover-reminders` | pg_cron, hourly at minute 7. Pending: created by the inbox migration, so it runs only after `pnpm db:push`. |
 | Child money history | `ledger_entries.child_id` is `on delete restrict`, and `remove_child` keeps the account once ledger rows exist (ADR 0007). |
 | Email confirmation | **Off.** Needs custom SMTP first; the confirmation template is commented out in `supabase/config.toml` until then, because the free tier rejects template changes and that stops the integration. Turn both back on before real families. |
 
