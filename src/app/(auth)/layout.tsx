@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
 import { ThemeSwitch } from "@/components/theme";
+
+/** Sign-in and sign-up forms carry no content worth a search result; links stay followable. */
+export const metadata: Metadata = { robots: { index: false, follow: true } };
 
 /**
  * No header on these pages, so the theme switch sits top-right and scrolls with the page

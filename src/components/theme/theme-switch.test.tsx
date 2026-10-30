@@ -20,6 +20,13 @@ describe("ThemeSwitch", () => {
     expect(html).not.toContain("Switch to");
   });
 
+  it("renders the same icon before mount whatever the theme, so hydration matches", () => {
+    resolvedTheme = "dark";
+    const dark = renderToString(<ThemeSwitch />);
+    resolvedTheme = "light";
+    expect(renderToString(<ThemeSwitch />)).toBe(dark);
+  });
+
   it("offers the other theme in its name", () => {
     render(<ThemeSwitch />);
     expect(screen.getByRole("button", { name: "Switch to light theme" })).toBeInTheDocument();
