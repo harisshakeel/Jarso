@@ -171,12 +171,14 @@ revoke execute on function public.request_window_total(uuid, text, text[], times
 
 revoke execute on function
   public.reserved_save(uuid),
+  public.held_spend(uuid),
   public.available_save(uuid),
   public.available_spend(uuid)
 from public, anon;
 
 grant execute on function
   public.reserved_save(uuid),
+  public.held_spend(uuid),
   public.available_save(uuid),
   public.available_spend(uuid)
 to authenticated;
