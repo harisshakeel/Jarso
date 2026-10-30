@@ -81,6 +81,10 @@ test("finish a started mission offline, results arrive in order after reconnect"
     if (request.method() !== "POST" || !request.url().endsWith("/api/v1/outbox")) return;
     sent.push((request.postDataJSON() as { kind: string }).kind);
   });
+  let finished = 0;
+  child.on("requestfinished", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/api/v1/outbox")) finished += 1;
+  });
 
   await child.goto("/child/learn/whats-in-spend");
   await child.getByRole("button", { name: "Start mission" }).click();
@@ -134,9 +138,13 @@ test("finish a started mission offline, results arrive in order after reconnect"
   await expect(child.getByText("Saved on this device.")).toBeVisible();
   expect(sent).toEqual([]);
 
+  // Back online the note goes (nothing has failed to send), and the outbox sends in order.
   await childContext.setOffline(false);
-  await expect(child.getByText("Saved on this device.")).toHaveCount(0, { timeout: 15_000 });
-  expect(sent).toEqual([...Array(6).fill("step"), "completeMission"]);
+  await expect(child.getByText("Saved on this device.")).toHaveCount(0);
+  await expect
+    .poll(() => sent, { timeout: 15_000 })
+    .toEqual([...Array(6).fill("step"), "completeMission"]);
+  await expect.poll(() => finished, { timeout: 15_000 }).toBe(7);
 
   await child.getByRole("link", { name: "Back to Learn" }).click();
   await expect(child).toHaveURL(at("/child/learn"));
