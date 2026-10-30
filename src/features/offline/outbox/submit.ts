@@ -12,9 +12,26 @@ function createdNow(): string {
   return new Date(lastCreatedAt).toISOString();
 }
 
+function offline(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+/**
+ * No storage on this device (private mode, storage blocked): online, send the one item as it
+ * is, with the same key; offline there is nowhere to keep it.
+ */
+async function sendWithoutStore(item: OutboxItem): Promise<SubmitResult> {
+  if (offline()) return { status: "unsaved" };
+  const outcome = await sendToServer(item);
+  if (outcome.kind === "done") return { status: "sent", data: outcome.data };
+  if (outcome.kind === "refused") return { status: "refused", message: outcome.message };
+  return { status: "unsent" };
+}
+
 /**
  * Stores a child's action on the device first, then tries to send it straight away (after any
- * older waiting items, so order is kept). `unsaved` means nothing was stored.
+ * older waiting items, so order is kept). Without storage it sends directly; `unsaved` (offline)
+ * and `unsent` (the direct send didn't go through) mean nothing was kept.
  */
 export async function submitToOutbox(input: {
   userId: string;
@@ -22,9 +39,6 @@ export async function submitToOutbox(input: {
   payload: unknown;
   idempotencyKey: string;
 }): Promise<SubmitResult> {
-  const store = await open();
-  if (!store) return { status: "unsaved" };
-
   const now = createdNow();
   const item: OutboxItem = {
     id: input.kind === "purchase" ? input.idempotencyKey : uuid(),
@@ -37,13 +51,15 @@ export async function submitToOutbox(input: {
     nextAttemptAt: now,
     status: "waiting",
   };
+  const store = await open();
+  if (!store) return sendWithoutStore(item);
   try {
     await store.put(item);
   } catch {
-    return { status: "unsaved" };
+    return sendWithoutStore(item);
   }
 
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return { status: "queued" };
+  if (offline()) return { status: "queued" };
 
   let outcome: SendOutcome | undefined;
   try {

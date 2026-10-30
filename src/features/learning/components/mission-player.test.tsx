@@ -342,6 +342,16 @@ describe("MissionPlayer", () => {
     expect(screen.getByRole("heading", { name: "Question two?" })).toBeInTheDocument();
   });
 
+  it("keeps the step with the slow copy when a direct send without storage fails", async () => {
+    submitToOutbox.mockResolvedValueOnce({ status: "unsent" });
+    await startMission();
+    await continueOn();
+    await answer("Option A");
+    await continueOn();
+    expect(screen.getByText("This is taking a while. Try again?")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Question one?" })).toBeInTheDocument();
+  });
+
   it("keeps the step and shows the server's message when a result is refused", async () => {
     submitToOutbox.mockResolvedValueOnce({
       status: "refused",

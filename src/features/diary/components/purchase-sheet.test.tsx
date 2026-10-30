@@ -122,6 +122,15 @@ describe("PurchaseSheet", () => {
     expect(screen.getByLabelText("What for? (optional)")).toHaveValue("Chips");
   });
 
+  it("shows the slow copy and keeps the fields when a direct send didn't go through", async () => {
+    submitToOutbox.mockResolvedValue({ status: "unsent" });
+    openSheet();
+    await save("3", "Chips");
+    expect(await screen.findByText("This is taking a while. Try again?")).toBeVisible();
+    expect(screen.getByLabelText("Amount")).toHaveValue("3");
+    expect(screen.getByLabelText("What for? (optional)")).toHaveValue("Chips");
+  });
+
   it("asks for an amount before saving anything", async () => {
     openSheet();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));

@@ -117,6 +117,8 @@ async function save(userId: string, kind: OutboxKind, payload: unknown): Promise
       return { ok: false, problem: { text: result.message, calm: false } };
     case "unsaved":
       return { ok: false, problem: { text: offlineCopy.offline, calm: true } };
+    case "unsent":
+      return { ok: false, problem: { text: offlineCopy.slow, calm: true } };
   }
 }
 

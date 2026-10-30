@@ -58,7 +58,8 @@ export function PurchaseSheetContent({ onDone, ...form }: PurchaseSheetContentPr
   );
 }
 
-type FormState = { fieldErrors?: FieldErrors; refused?: string; unsaved?: boolean } | null;
+/** `notice` is calm connection copy: nothing was kept, the fields stay for another try. */
+type FormState = { fieldErrors?: FieldErrors; refused?: string; notice?: string } | null;
 
 function PurchaseForm({
   currency,
@@ -104,7 +105,9 @@ function PurchaseForm({
           await removeOutboxItem(idempotencyKey).catch(() => undefined);
           return { refused: result.message };
         case "unsaved":
-          return { unsaved: true };
+          return { notice: offlineCopy.offline };
+        case "unsent":
+          return { notice: offlineCopy.slow };
       }
     },
     null,
@@ -128,9 +131,9 @@ function PurchaseForm({
         errors={state?.fieldErrors?.label}
       />
       <FormError message={state?.refused} />
-      {state?.unsaved ? (
+      {state?.notice ? (
         <p role="status" className="rounded-lg bg-muted px-3.5 py-2.5 text-ink-2 text-sm">
-          {offlineCopy.offline}
+          {state.notice}
         </p>
       ) : null}
       <Button type="submit" size="lg" className="w-full" loading={pending}>

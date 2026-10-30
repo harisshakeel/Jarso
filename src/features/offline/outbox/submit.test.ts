@@ -121,9 +121,10 @@ describe("submit", () => {
     expect(await (await open())?.listForUser(userId)).toHaveLength(1);
   });
 
-  it("returns unsaved when storage cannot open", async () => {
+  it("returns unsaved when storage cannot open and the browser is offline", async () => {
     vi.resetModules();
     vi.stubGlobal("indexedDB", undefined);
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const fresh = await import("./submit");
@@ -131,14 +132,56 @@ describe("submit", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns unsaved when opening the database throws", async () => {
+  it("returns unsaved when opening the database throws and the browser is offline", async () => {
     vi.resetModules();
     vi.stubGlobal("indexedDB", {
       open() {
         throw new DOMException("blocked", "SecurityError");
       },
     });
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     const fresh = await import("./submit");
     expect(await fresh.submitToOutbox(input(crypto.randomUUID()))).toEqual({ status: "unsaved" });
+  });
+
+  describe("without storage, online", () => {
+    async function freshSubmit() {
+      vi.resetModules();
+      vi.stubGlobal("indexedDB", undefined);
+      return (await import("./submit")).submitToOutbox;
+    }
+
+    it("sends the item directly with the same key and returns sent", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ data: { id: "entry-1" } }), { status: 200 }),
+        );
+      vi.stubGlobal("fetch", fetchMock);
+      const data = input(crypto.randomUUID());
+      expect(await (await freshSubmit())(data)).toEqual({
+        status: "sent",
+        data: { id: "entry-1" },
+      });
+      expect(fetchMock).toHaveBeenCalledOnce();
+      const sent = JSON.parse(fetchMock.mock.calls[0]?.[1].body);
+      expect(sent).toMatchObject({ kind: "purchase", userId: data.userId, payload: data.payload });
+      expect(sent.payload.idempotencyKey).toBe(data.idempotencyKey);
+    });
+
+    it("returns refused with the server message", async () => {
+      respond(409, { error: { code: "CONFLICT", message: "Not enough in Spend." } });
+      expect(await (await freshSubmit())(input(crypto.randomUUID()))).toEqual({
+        status: "refused",
+        message: "Not enough in Spend.",
+      });
+    });
+
+    it("returns unsent when the direct send doesn't go through", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+      expect(await (await freshSubmit())(input(crypto.randomUUID()))).toEqual({
+        status: "unsent",
+      });
+    });
   });
 });

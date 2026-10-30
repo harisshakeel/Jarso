@@ -32,4 +32,7 @@ export type SubmitResult =
   | { status: "sent"; data: unknown }
   | { status: "queued" }
   | { status: "refused"; message: string }
-  | { status: "unsaved" };
+  /** No storage and offline: nothing was kept. */
+  | { status: "unsaved" }
+  /** No storage, online, and the direct send didn't go through: nothing was kept. */
+  | { status: "unsent" };
