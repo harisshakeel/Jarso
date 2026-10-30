@@ -33,7 +33,9 @@ export function InboxList({ items, currency, viewer, moreHref }: InboxListProps)
     event.preventDefault();
     // Saving "read" is best effort: offline or slow, the child still gets to the record.
     markNoticesReadAction(null, { ids: [id] }).then(
-      () => router.refresh(),
+      (result) => {
+        if (result.ok) router.refresh();
+      },
       (error: unknown) => {
         logger.warn("Could not save notice as read", {
           error: error instanceof Error ? error.name : "unknown",

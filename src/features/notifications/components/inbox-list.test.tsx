@@ -51,4 +51,13 @@ describe("InboxList", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(refresh).not.toHaveBeenCalled();
   });
+
+  it("skips the refresh when the server says no, and still navigates", async () => {
+    mark.mockResolvedValue({ ok: false, error: { code: "INTERNAL", message: "Nope" } });
+    render(<InboxList items={[notice]} currency="USD" viewer="child" />);
+    fireEvent.click(screen.getByRole("link"));
+    expect(push).toHaveBeenCalledWith("/child");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(refresh).not.toHaveBeenCalled();
+  });
 });
