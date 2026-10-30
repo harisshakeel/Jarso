@@ -30,7 +30,7 @@ select table_privs_are('public', 'guide_messages', 'authenticated', array['SELEC
 select table_privs_are('public', 'guide_conversations', 'authenticated', array['SELECT'], 'and chats');
 select table_privs_are('public', 'guide_access', 'anon', array[]::text[], 'anon has no access');
 select function_privs_are('public', 'guide_record_turn',
-  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'boolean', 'text', 'jsonb', 'integer'],
+  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'boolean', 'text', 'jsonb', 'integer', 'uuid'],
   'authenticated', array[]::text[], 'only the server records turns');
 select function_privs_are('public', 'guide_start_conversation', array['uuid', 'text', 'text'],
   'authenticated', array[]::text[], 'only the server opens chats');
@@ -87,7 +87,7 @@ select throws_ok(format($$ select public.guide_start_conversation(%L, 'home', 'F
   'a context key is content keys, never free text');
 
 select public.guide_record_turn(:'convo'::uuid, :'c'::uuid, 'What is saving?', 'guide', 'Saving is keeping money for later.',
-  'on_topic', false, 'claude-opus-5-5', '{"main_input": 800, "main_output": 120, "screen_input": 400}'::jsonb, 3200) as reply \gset
+  'on_topic', false, 'claude-opus-5-5', '{"main_input": 800, "main_output": 120, "screen_input": 400}'::jsonb, 3200, null) as reply \gset
 select is(
   (select count(*)::int from public.guide_messages where conversation_id = :'convo'::uuid),
   2, 'a turn stores the child''s message and the reply');
@@ -100,39 +100,39 @@ select is(
   'child,guide', 'the child''s message sorts before the reply');
 
 select public.guide_record_turn(:'convo'::uuid, :'c'::uuid, 'someone hurt me', 'fixed_copy', 'Thank you for telling me.',
-  'safety', true, '', '{}'::jsonb, 1500);
+  'safety', true, '', '{}'::jsonb, 1500, null);
 select ok((select flagged from public.guide_conversations where id = :'convo'::uuid), 'a flagged reply flags the chat');
 select is(
   (select text from public.guide_messages where conversation_id = :'convo'::uuid and role = 'child' order by created_at desc limit 1),
   '', 'a message that got a safety response is never stored');
 select public.guide_record_turn(:'convo'::uuid, :'c'::uuid, 'my address is 1 Oak Road', 'fixed_copy', 'Let''s keep personal stuff private.',
-  'personal_info', false, '', '{}'::jsonb, 900);
+  'personal_info', false, '', '{}'::jsonb, 900, null);
 select is(
   (select text from public.guide_messages where conversation_id = :'convo'::uuid and role = 'child' order by created_at desc limit 1),
   '', 'or one that got a personal-details response');
 
 select throws_ok(
-  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1) $$, :'convo', :'c2'),
+  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1, null) $$, :'convo', :'c2'),
   'JA403', null, 'a turn cannot be written to another child''s chat');
 select throws_ok(
-  format($$ select public.guide_record_turn(%L, %L, 'hi', 'child', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1) $$, :'convo', :'c'),
+  format($$ select public.guide_record_turn(%L, %L, 'hi', 'child', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1, null) $$, :'convo', :'c'),
   '22023', null, 'the reply must come from the guide');
 select throws_ok(
-  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', repeat('x', 2001), 'on_topic', false, 'm', '{}'::jsonb, 1) $$, :'convo', :'c'),
+  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', repeat('x', 2001), 'on_topic', false, 'm', '{}'::jsonb, 1, null) $$, :'convo', :'c'),
   '22023', null, 'an over-long reply is refused before anything is written');
 select throws_ok(
-  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '[1]'::jsonb, 1) $$, :'convo', :'c'),
+  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '[1]'::jsonb, 1, null) $$, :'convo', :'c'),
   '22023', null, 'usage must be an object');
 select lives_ok(
-  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{"main_input": 800.0, "main_output": -5}'::jsonb, 1) $$, :'convo', :'c'),
+  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{"main_input": 800.0, "main_output": -5}'::jsonb, 1, null) $$, :'convo', :'c'),
   'odd usage numbers are clamped, not fatal');
 
 update public.guide_conversations set turns = 11 where id = :'convo'::uuid;
 select lives_ok(
-  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1) $$, :'convo', :'c'),
+  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1, null) $$, :'convo', :'c'),
   'the twelfth turn fits');
 select throws_ok(
-  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1) $$, :'convo', :'c'),
+  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1, null) $$, :'convo', :'c'),
   'JA409', null, 'a chat stops at 12 turns');
 
 select is(

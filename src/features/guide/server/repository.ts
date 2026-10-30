@@ -219,6 +219,7 @@ export async function recordTurn(
     model: string | null;
     usage: GuideUsage;
     latencyMs: number;
+    clientMessageId: string;
   },
 ): Promise<string> {
   const { data, error } = await admin.rpc("guide_record_turn", {
@@ -239,10 +240,26 @@ export async function recordTurn(
       screen_output: input.usage.screenOutput,
     } as Json,
     p_latency_ms: input.latencyMs,
+    p_client_message_id: input.clientMessageId,
   });
   if (error) throw toAppError(error, "Failed to save the chat");
   if (!data) throw new AppError("INTERNAL", "Failed to save the chat");
   return data;
+}
+
+/** The chat and reply already stored for a child's client message id, if any. */
+export async function findTurn(
+  admin: Client,
+  childId: string,
+  clientMessageId: string,
+): Promise<{ conversationId: string; replyId: string } | null> {
+  const { data, error } = await admin.rpc("guide_find_turn", {
+    p_child_id: childId,
+    p_client_message_id: clientMessageId,
+  });
+  if (error) throw toAppError(error, "Failed to load the chat");
+  const row = data?.[0];
+  return row ? { conversationId: row.conversation_id, replyId: row.reply_id } : null;
 }
 
 /** Token totals since an instant, per main model, for the daily budget. */

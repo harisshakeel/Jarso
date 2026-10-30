@@ -82,6 +82,9 @@ export function GuideSheet({
   const input = useRef<HTMLTextAreaElement>(null);
   // Bumped on every reset, so a reply that lands after the chat was closed is dropped.
   const generation = useRef(0);
+  // The question being sent and its id. Sending the same text again after a failure reuses the
+  // id, so a reply that was saved but lost on the way back is shown, not asked again.
+  const unanswered = useRef<{ text: string; id: string } | null>(null);
 
   // "Got it" and "Start a new chat" disappear when pressed: move focus to the question box.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the dependencies are the triggers
@@ -103,6 +106,7 @@ export function GuideSheet({
     setText("");
     setError(null);
     setFull(false);
+    unanswered.current = null;
   }
 
   function send(event: FormEvent) {
@@ -110,10 +114,14 @@ export function GuideSheet({
     const question = text.trim();
     if (!question || pending) return;
     setError(null);
+    if (unanswered.current?.text !== question) {
+      unanswered.current = { text: question, id: crypto.randomUUID() };
+    }
+    const clientMessageId = unanswered.current.id;
     const started = generation.current;
     startTransition(async () => {
       const result = await call<AskGuideResult>(() =>
-        askGuideAction(null, { conversationId, context, text: question }),
+        askGuideAction(null, { clientMessageId, conversationId, context, text: question }),
       );
       if (started !== generation.current) return;
       if (!result.ok) {
@@ -127,6 +135,7 @@ export function GuideSheet({
         );
         return;
       }
+      unanswered.current = null;
       const { reply } = result.data;
       setConversationId(result.data.conversationId);
       setTurnsLeft(result.data.turnsLeft);

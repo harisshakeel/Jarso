@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(9);
+select plan(14);
 
 -- Family A: parents PA and PB, child C (guide on).
 select tests.create_user('pa@example.com') as pa \gset
@@ -48,6 +48,35 @@ select tests.authenticate_as(:'pb'::uuid);
 select public.create_gift(:'c'::uuid, 1000, :'today'::date, 'Well done', :'gift_key') as g2 \gset
 select isnt(:'g2'::uuid, :'g1'::uuid, 'same key from a different parent creates a separate gift');
 select tests.clear_auth();
+
+-- ---------------------------------------------------------------------------
+-- Guide turns: one stored turn per client message id
+-- ---------------------------------------------------------------------------
+
+select function_privs_are('public', 'guide_find_turn', array['uuid', 'uuid'],
+  'authenticated', array[]::text[], 'only the server looks up a turn');
+select function_privs_are('public', 'guide_find_turn', array['uuid', 'uuid'],
+  'service_role', array['EXECUTE'], 'the server looks up turns');
+
+set local role service_role;
+select gen_random_uuid() as mid \gset
+select public.guide_start_conversation(:'c'::uuid, 'home', 'home') as convo \gset
+select public.guide_record_turn(:'convo'::uuid, :'c'::uuid, 'What is saving?', 'guide', 'Saving is keeping money.',
+  'on_topic', false, 'm', '{}'::jsonb, 10, :'mid'::uuid) as reply \gset
+
+select throws_ok(
+  format($$ select public.guide_record_turn(%L, %L, 'What is saving?', 'guide', 'Again.',
+    'on_topic', false, 'm', '{}'::jsonb, 10, %L) $$, :'convo', :'c', :'mid'),
+  '23505', null, 'guide_record_turn rejects a second child row with the same client_message_id');
+
+select results_eq(
+  format($$ select conversation_id, reply_id from public.guide_find_turn(%L, %L) $$, :'c', :'mid'),
+  format($$ values (%L::uuid, %L::uuid) $$, :'convo', :'reply'),
+  'guide_find_turn returns the recorded turn');
+select is_empty(
+  format($$ select * from public.guide_find_turn(%L, %L) $$, :'c', gen_random_uuid()),
+  'an unknown client message id finds nothing');
+reset role;
 
 select * from finish();
 rollback;

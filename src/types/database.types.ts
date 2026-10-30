@@ -321,14 +321,14 @@ isOneToOne: false
                   ]
                 },"guide_messages": {
                   Row: {
-                    "child_id": string,"conversation_id": string,"created_at": string,"flagged": boolean,"id": string,"latency_ms": number | null,"main_cache_read_tokens": number,"main_cache_write_tokens": number,"main_input_tokens": number,"main_output_tokens": number,"model": string | null,"rating": number | null,"role": string,"route": string | null,"screen_input_tokens": number,"screen_output_tokens": number,"text": string,"text_blanked_at": string | null
+                    "child_id": string,"client_message_id": string | null,"conversation_id": string,"created_at": string,"flagged": boolean,"id": string,"latency_ms": number | null,"main_cache_read_tokens": number,"main_cache_write_tokens": number,"main_input_tokens": number,"main_output_tokens": number,"model": string | null,"rating": number | null,"role": string,"route": string | null,"screen_input_tokens": number,"screen_output_tokens": number,"text": string,"text_blanked_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "child_id": string,"conversation_id": string,"created_at"?: string,"flagged"?: boolean,"id"?: string,"latency_ms"?: number | null,"main_cache_read_tokens"?: number,"main_cache_write_tokens"?: number,"main_input_tokens"?: number,"main_output_tokens"?: number,"model"?: string | null,"rating"?: number | null,"role": string,"route"?: string | null,"screen_input_tokens"?: number,"screen_output_tokens"?: number,"text": string,"text_blanked_at"?: string | null
+                    "child_id": string,"client_message_id"?: string | null,"conversation_id": string,"created_at"?: string,"flagged"?: boolean,"id"?: string,"latency_ms"?: number | null,"main_cache_read_tokens"?: number,"main_cache_write_tokens"?: number,"main_input_tokens"?: number,"main_output_tokens"?: number,"model"?: string | null,"rating"?: number | null,"role": string,"route"?: string | null,"screen_input_tokens"?: number,"screen_output_tokens"?: number,"text": string,"text_blanked_at"?: string | null
                   }
                   Update: {
-                    "child_id"?: string,"conversation_id"?: string,"created_at"?: string,"flagged"?: boolean,"id"?: string,"latency_ms"?: number | null,"main_cache_read_tokens"?: number,"main_cache_write_tokens"?: number,"main_input_tokens"?: number,"main_output_tokens"?: number,"model"?: string | null,"rating"?: number | null,"role"?: string,"route"?: string | null,"screen_input_tokens"?: number,"screen_output_tokens"?: number,"text"?: string,"text_blanked_at"?: string | null
+                    "child_id"?: string,"client_message_id"?: string | null,"conversation_id"?: string,"created_at"?: string,"flagged"?: boolean,"id"?: string,"latency_ms"?: number | null,"main_cache_read_tokens"?: number,"main_cache_write_tokens"?: number,"main_input_tokens"?: number,"main_output_tokens"?: number,"model"?: string | null,"rating"?: number | null,"role"?: string,"route"?: string | null,"screen_input_tokens"?: number,"screen_output_tokens"?: number,"text"?: string,"text_blanked_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -788,8 +788,13 @@ isOneToOne: false
 "generate_for_schedule":
 { Args: { "p_schedule_id": string,"p_today": string }; Returns: number
                            },
+"guide_find_turn":
+{ Args: { "p_child_id": string,"p_client_message_id": string }; Returns: {
+              "conversation_id": string,"reply_id": string
+            }[]
+                           },
 "guide_record_turn":
-{ Args: { "p_child_id": string,"p_child_text": string,"p_conversation_id": string,"p_flagged": boolean,"p_latency_ms": number,"p_model": string,"p_reply_role": string,"p_reply_text": string,"p_route": string,"p_usage": Json }; Returns: string
+{ Args: { "p_child_id": string,"p_child_text": string,"p_client_message_id": string,"p_conversation_id": string,"p_flagged": boolean,"p_latency_ms": number,"p_model": string,"p_reply_role": string,"p_reply_text": string,"p_route": string,"p_usage": Json }; Returns: string
                            },
 "guide_start_conversation":
 { Args: { "p_child_id": string,"p_context_key": string,"p_entry": string }; Returns: string

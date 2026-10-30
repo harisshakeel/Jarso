@@ -18,6 +18,7 @@ vi.mock("./repository", () => ({
   countFlaggedSince: vi.fn(),
   findConversation: vi.fn(),
   findGuideAccess: vi.fn(),
+  findTurn: vi.fn(),
   hasAnyMessage: vi.fn(),
   hitRateLimit: vi.fn(),
   listConversations: vi.fn(),
@@ -37,6 +38,7 @@ const service = await import("./service");
 
 const child = { id: "child-1", email: null };
 const home = { entry: "home" as const };
+const clientMessageId = "msg-1";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -54,11 +56,13 @@ beforeEach(() => {
   vi.mocked(repo.startConversation).mockResolvedValue("convo-1");
   vi.mocked(repo.recordTurn).mockResolvedValue("reply-1");
   vi.mocked(repo.usageSince).mockResolvedValue([]);
+  vi.mocked(repo.findTurn).mockResolvedValue(null);
 });
 
 describe("askGuide", () => {
   it("answers, stores the turn with contact details removed, and links topics", async () => {
     const result = await service.askGuide({
+      clientMessageId,
       conversationId: null,
       context: home,
       text: "What is saving? call 07700 900123",
@@ -78,6 +82,7 @@ describe("askGuide", () => {
 
   it("shows helplines for the family's country with a safety response", async () => {
     const result = await service.askGuide({
+      clientMessageId,
       conversationId: null,
       context: home,
       text: "someone hurt me",
@@ -93,13 +98,13 @@ describe("askGuide", () => {
   it("is off unless the deployment and the parent both allow it", async () => {
     vi.mocked(config.getGuideProvider).mockReturnValueOnce(null);
     await expect(
-      service.askGuide({ conversationId: null, context: home, text: "hi" }),
+      service.askGuide({ clientMessageId, conversationId: null, context: home, text: "hi" }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     vi.mocked(repo.findGuideAccess).mockResolvedValueOnce(false);
     await expect(
-      service.askGuide({ conversationId: null, context: home, text: "hi" }),
+      service.askGuide({ clientMessageId, conversationId: null, context: home, text: "hi" }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
@@ -111,7 +116,7 @@ describe("askGuide", () => {
       new AppError("FORBIDDEN", "You can't do that."),
     );
     await expect(
-      service.askGuide({ conversationId: null, context: home, text: "hi" }),
+      service.askGuide({ clientMessageId, conversationId: null, context: home, text: "hi" }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
@@ -129,7 +134,7 @@ describe("askGuide", () => {
       lastMessageAt: "",
     });
     await expect(
-      service.askGuide({ conversationId: "convo-2", context: home, text: "hi" }),
+      service.askGuide({ clientMessageId, conversationId: "convo-2", context: home, text: "hi" }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
@@ -144,7 +149,7 @@ describe("askGuide", () => {
       lastMessageAt: "",
     });
     await expect(
-      service.askGuide({ conversationId: "convo-1", context: home, text: "hi" }),
+      service.askGuide({ clientMessageId, conversationId: "convo-1", context: home, text: "hi" }),
     ).rejects.toMatchObject({
       code: "CONFLICT",
     });
@@ -153,13 +158,13 @@ describe("askGuide", () => {
   it("rate limits per minute and per day", async () => {
     vi.mocked(repo.hitRateLimit).mockResolvedValueOnce(false);
     await expect(
-      service.askGuide({ conversationId: null, context: home, text: "hi" }),
+      service.askGuide({ clientMessageId, conversationId: null, context: home, text: "hi" }),
     ).rejects.toMatchObject({
       code: "RATE_LIMITED",
     });
     vi.mocked(repo.hitRateLimit).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
     await expect(
-      service.askGuide({ conversationId: null, context: home, text: "hi" }),
+      service.askGuide({ clientMessageId, conversationId: null, context: home, text: "hi" }),
     ).rejects.toMatchObject({
       code: "RATE_LIMITED",
       message: expect.stringContaining("today"),
@@ -183,6 +188,7 @@ describe("askGuide", () => {
       },
     ]);
     const result = await service.askGuide({
+      clientMessageId,
       conversationId: null,
       context: home,
       text: "my email is a@b.co",
@@ -198,6 +204,7 @@ describe("askGuide", () => {
   it("builds context from content keys and rejects unknown ones before anything is stored", async () => {
     await expect(
       service.askGuide({
+        clientMessageId,
         conversationId: null,
         context: {
           entry: "step",
@@ -250,7 +257,12 @@ describe("askGuide history and fallbacks", () => {
       row("c", "child", "what is saving?", null),
       row("d", "guide", "Keeping money for later.", "on_topic"),
     ]);
-    await service.askGuide({ conversationId: "convo-1", context: home, text: "ok do that now" });
+    await service.askGuide({
+      clientMessageId,
+      conversationId: "convo-1",
+      context: home,
+      text: "ok do that now",
+    });
     expect(reply.mock.calls[0]?.[0].history).toEqual([
       { role: "child", text: "what is saving?" },
       { role: "guide", text: "Keeping money for later." },
@@ -274,6 +286,7 @@ describe("askGuide history and fallbacks", () => {
       },
     ]);
     const result = await service.askGuide({
+      clientMessageId,
       conversationId: null,
       context: home,
       text: "I want to hurt myself",
@@ -288,11 +301,114 @@ describe("askGuide history and fallbacks", () => {
       new AppError("CONFLICT", "That already exists."),
     );
     await expect(
-      service.askGuide({ conversationId: null, context: home, text: "hi" }),
+      service.askGuide({ clientMessageId, conversationId: null, context: home, text: "hi" }),
     ).rejects.toMatchObject({
       code: "CONFLICT",
       message: expect.stringContaining("This chat is full"),
     });
+  });
+});
+
+describe("askGuide retries", () => {
+  const stored = [
+    {
+      id: "child-msg-1",
+      conversationId: "convo-1",
+      role: "child" as const,
+      text: "What is saving?",
+      route: null,
+      flagged: false,
+      rating: null,
+      createdAt: "2026-10-30T10:00:00Z",
+    },
+    {
+      id: "reply-1",
+      conversationId: "convo-1",
+      role: "guide" as const,
+      text: "Saving is keeping money for later.",
+      route: "on_topic" as const,
+      flagged: false,
+      rating: null,
+      createdAt: "2026-10-30T10:00:00Z",
+    },
+  ];
+
+  function spiedProvider() {
+    const provider = createFakeProvider();
+    vi.spyOn(provider, "screenInput");
+    vi.spyOn(provider, "reply");
+    vi.spyOn(provider, "screenOutput");
+    vi.mocked(config.getGuideProvider).mockReturnValue(provider);
+    return provider;
+  }
+
+  it("a repeated clientMessageId returns the stored reply without calling the provider or the rate limiter", async () => {
+    const provider = spiedProvider();
+    vi.mocked(repo.findTurn).mockResolvedValue({ conversationId: "convo-1", replyId: "reply-1" });
+    vi.mocked(repo.listMessages).mockResolvedValue(stored);
+
+    const result = await service.askGuide({
+      clientMessageId,
+      conversationId: null,
+      context: home,
+      text: "What is saving?",
+    });
+
+    expect(repo.findTurn).toHaveBeenCalledWith({ kind: "admin" }, "child-1", clientMessageId);
+    expect(result).toEqual({
+      conversationId: "convo-1",
+      reply: {
+        messageId: "reply-1",
+        role: "guide",
+        text: "Saving is keeping money for later.",
+        route: "on_topic",
+        topics: [],
+        check: null,
+        helplines: [],
+      },
+      turnsLeft: 11,
+    });
+    expect(repo.hitRateLimit).not.toHaveBeenCalled();
+    expect(provider.screenInput).not.toHaveBeenCalled();
+    expect(provider.reply).not.toHaveBeenCalled();
+    expect(provider.screenOutput).not.toHaveBeenCalled();
+    expect(repo.startConversation).not.toHaveBeenCalled();
+    expect(repo.recordTurn).not.toHaveBeenCalled();
+  });
+
+  it("answers with the stored turn when the same question raced in and was saved first", async () => {
+    vi.mocked(repo.findTurn)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ conversationId: "convo-1", replyId: "reply-1" });
+    vi.mocked(repo.recordTurn).mockRejectedValueOnce(new AppError("INTERNAL", "Failed"));
+    vi.mocked(repo.listMessages).mockResolvedValue(stored);
+
+    const result = await service.askGuide({
+      clientMessageId,
+      conversationId: null,
+      context: home,
+      text: "What is saving?",
+    });
+
+    expect(result.reply).toMatchObject({
+      messageId: "reply-1",
+      text: "Saving is keeping money for later.",
+    });
+  });
+
+  it("still fails when a save fails and no turn was stored", async () => {
+    vi.mocked(repo.recordTurn).mockRejectedValueOnce(new AppError("INTERNAL", "Failed"));
+    await expect(
+      service.askGuide({ clientMessageId, conversationId: null, context: home, text: "hi" }),
+    ).rejects.toMatchObject({ code: "INTERNAL" });
+  });
+
+  it("passes the client message id to the stored turn", async () => {
+    await service.askGuide({ clientMessageId, conversationId: null, context: home, text: "hi" });
+    expect(repo.recordTurn).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ clientMessageId }),
+    );
   });
 });
 
