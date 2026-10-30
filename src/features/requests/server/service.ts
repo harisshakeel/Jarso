@@ -1,4 +1,5 @@
 import "server-only";
+import { assertUser } from "@/features/auth/server";
 // Savings requests: a child asks to take money out of Save or records money put into it.
 import {
   assertParentCanRead,
@@ -133,8 +134,10 @@ export async function completeRequest(input: {
   return result;
 }
 
-/** The child or a parent. `already_closed` is a success. */
+/** The child or a parent with a finished profile. `already_closed` is a success. */
 export async function cancelRequest(input: { requestId: string }): Promise<CancelResult> {
-  await assertSelfOrParentOf(await childOf(input.requestId));
+  const childId = await childOf(input.requestId);
+  const user = await assertUser();
+  if (user.id !== childId) await assertParentOf(childId);
   return callCancel(await createClient(), input.requestId);
 }

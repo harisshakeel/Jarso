@@ -22,6 +22,9 @@ vi.mock("./repository", () => ({
   listOpenRequests: vi.fn(),
 }));
 
+vi.mock("@/features/auth/server", () => ({ assertUser: vi.fn() }));
+
+const auth = await import("@/features/auth/server");
 const family = await import("@/features/family/server");
 const repo = await import("./repository");
 const service = await import("./service");
@@ -31,6 +34,7 @@ const requestId = "req-1";
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(auth.assertUser).mockResolvedValue({ id: "child-1", email: null });
   vi.mocked(family.assertParentOf).mockResolvedValue(parent);
   vi.mocked(family.assertParentCanRead).mockResolvedValue(parent);
   vi.mocked(family.assertSelfOrParentOf).mockResolvedValue(parent);
@@ -81,10 +85,24 @@ describe("completeRequest", () => {
 });
 
 describe("cancelRequest", () => {
-  it("lets the child or a parent cancel, already_closed is fine", async () => {
+  it("lets the child cancel without a parent check, already_closed is fine", async () => {
     vi.mocked(repo.callCancel).mockResolvedValue("already_closed");
     await expect(service.cancelRequest({ requestId })).resolves.toBe("already_closed");
-    expect(family.assertSelfOrParentOf).toHaveBeenCalledWith("child-1");
+    expect(family.assertParentOf).not.toHaveBeenCalled();
+  });
+
+  it("sends a parent through assertParentOf", async () => {
+    vi.mocked(auth.assertUser).mockResolvedValue(parent);
+    vi.mocked(repo.callCancel).mockResolvedValue("cancelled");
+    await expect(service.cancelRequest({ requestId })).resolves.toBe("cancelled");
+    expect(family.assertParentOf).toHaveBeenCalledWith("child-1");
+  });
+
+  it("refuses a parent whose profile is incomplete", async () => {
+    vi.mocked(auth.assertUser).mockResolvedValue(parent);
+    vi.mocked(family.assertParentOf).mockRejectedValue(new AppError("FORBIDDEN", "no"));
+    await expect(service.cancelRequest({ requestId })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repo.callCancel).not.toHaveBeenCalled();
   });
 });
 
