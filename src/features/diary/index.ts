@@ -2,6 +2,7 @@
 
 export * from "./components/purchase-sheet";
 export * from "./components/undo-button";
+export * from "./copy";
 export * from "./schemas";
 export { recordPurchaseAction, undoPurchaseAction } from "./server/actions";
 export type * from "./types";
