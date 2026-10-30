@@ -12,7 +12,9 @@ export default function ParentLayout({ children }: LayoutProps<"/parent">) {
     <>
       {children}
       <Suspense fallback={null}>
-        <ParentNavWithCount />
+        <Suspense fallback={<ParentNav />}>
+          <ParentNavWithCount />
+        </Suspense>
       </Suspense>
     </>
   );

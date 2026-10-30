@@ -17,7 +17,9 @@ export default function ChildLayout({ children }: LayoutProps<"/child">) {
     <>
       {children}
       <Suspense fallback={null}>
-        <ChildNavWithCount />
+        <Suspense fallback={<ChildNav />}>
+          <ChildNavWithCount />
+        </Suspense>
       </Suspense>
       <Suspense fallback={null}>
         <ChildOutboxSync />

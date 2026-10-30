@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { type MouseEvent, useTransition } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui";
+import { logger } from "@/lib";
 import { noticeHref, noticeText } from "../links";
 import { markNoticesReadAction } from "../server/actions";
 import type { Notice } from "../types";
@@ -30,10 +31,15 @@ export function InboxList({ items, currency, viewer, moreHref }: InboxListProps)
     const href = event.currentTarget.getAttribute("href");
     if (!href || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
     event.preventDefault();
-    startTransition(async () => {
-      await markNoticesReadAction(null, { ids: [id] });
-      router.push(href as Route);
-    });
+    // Saving "read" is best effort: offline or slow, the child still gets to the record.
+    markNoticesReadAction(null, { ids: [id] })
+      .catch((error: unknown) => {
+        logger.warn("Could not save notice as read", {
+          error: error instanceof Error ? error.name : "unknown",
+        });
+      })
+      .finally(() => router.refresh());
+    router.push(href as Route);
   }
 
   function markAll() {
