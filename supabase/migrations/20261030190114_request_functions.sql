@@ -217,7 +217,7 @@ begin
   end if;
 
   if v_r.kind = 'withdrawal' then
-    -- Only Save is re-checked (this request's own reservation is released first).
+    -- Save must cover this and every other reservation (this request's own is released first).
     -- Rules are not: an approved withdrawal stays approved.
     if v_r.amount_minor >
        public.balance(v_r.child_id, 'save', 'recorded') - (public.reserved_save(v_r.child_id) - v_r.amount_minor) then
@@ -240,7 +240,7 @@ begin
     set status = 'handed_over', completed_by = p_actor, completed_at = pg_catalog.now()
     where id = v_r.id;
   elsif v_r.kind = 'deposit' then
-    -- Spend must cover the amount beyond every other pending hold (this request's own hold is released first).
+    -- Spend must cover this and every other pending hold (this request's own is released first).
     if v_r.amount_minor >
        public.balance(v_r.child_id, 'spend', 'recorded') - (public.held_spend(v_r.child_id) - v_r.amount_minor) then
       return 'over_available';
@@ -268,7 +268,7 @@ end;
 $$;
 
 comment on function public.post_request(uuid, uuid) is
-  'Internal, no grants: the one place a request reaches the ledger. Call under the request row lock and the child''s ledger lock. Withdrawal: re-checks Save only (over_available), posts withdrawal_out (save) and withdrawal_in (spend) with keys request:<id>:out|in, sets handed_over. Deposit: re-checks Spend only (amount <= balance(spend) - (held_spend - amount), else over_available), posts deposit_out (spend) and deposit_in (save), label Put into Save, same keys, sets confirmed. Unknown kind: 22023. Returns completed or over_available.';
+  'Internal, no grants: the one place a request reaches the ledger. Call under the request row lock and the child''s ledger lock. Withdrawal: re-checks Save only (Save must cover this and every other reservation, else over_available), posts withdrawal_out (save) and withdrawal_in (spend) with keys request:<id>:out|in, sets handed_over. Deposit: re-checks Spend only (Spend must cover this and every other hold, i.e. amount <= balance(spend) - (held_spend - amount), else over_available), posts deposit_out (spend) and deposit_in (save), label Put into Save, same keys, sets confirmed. Unknown kind: 22023. Returns completed or over_available.';
 
 -- ---------------------------------------------------------------------------
 -- complete_request
@@ -398,13 +398,17 @@ begin
   end loop;
 
   insert into public.requests (family_id, child_id, kind, status, amount_minor, auto, idempotency_key)
-  values (v_family_id, p_child_id, 'deposit', 'pending', p_amount_minor, false, p_idempotency_key)
+  values (
+    v_family_id, p_child_id, 'deposit', 'pending', p_amount_minor,
+    v_has_auto and v_auto_ok, p_idempotency_key
+  )
   returning id into v_id;
 
   if v_has_auto and v_auto_ok then
     -- Spend was checked above under the same lock, so posting cannot be refused.
-    perform public.post_request(v_id, p_child_id);
-    update public.requests set auto = true where id = v_id;
+    if public.post_request(v_id, p_child_id) <> 'completed' then
+      raise exception using errcode = '22023', message = 'Could not confirm the deposit';
+    end if;
     v_status := 'confirmed';
   else
     perform public.notify_parents(
