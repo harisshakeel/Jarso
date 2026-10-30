@@ -18,17 +18,18 @@ begin
   if p is null then
     return pg_catalog.now();
   end if;
-  -- A clock far ahead or a week behind is wrong, not late: refuse rather than guess.
-  if p > pg_catalog.now() + interval '60 seconds' or p < pg_catalog.now() - interval '7 days' then
+  -- The outbox route derives the time from the action's age on the server clock, so this is
+  -- a backstop. A week behind is not late but wrong: refuse rather than guess.
+  if p < pg_catalog.now() - interval '7 days' then
     raise exception using errcode = '22023', message = 'Check the time on this device';
   end if;
-  -- A little ahead is clock drift: never store a time in the future.
+  -- Ahead of the server is clock drift: never store a time in the future.
   return least(p, pg_catalog.now());
 end;
 $$;
 
 comment on function public.resolve_occurred_at(timestamptz) is
-  'Internal, no grants. When a child action happened: null is now(); up to 60 seconds ahead is now(); within the last 7 days is kept as sent. Further ahead or older raises 22023.';
+  'Internal, no grants. When a child action happened: null or any future time is now(); within the last 7 days is kept as sent. Older raises 22023.';
 
 revoke execute on function public.resolve_occurred_at(timestamptz) from public, anon, authenticated;
 
@@ -79,7 +80,7 @@ end;
 $$;
 
 comment on function public.record_purchase(uuid, bigint, text, text, timestamptz) is
-  'Child records a purchase from Spend (key purchase:<child>:<key>) at p_occurred_at (device time via resolve_occurred_at; null is now). Returns {status: recorded, entry_id, notices} or {status: not_enough_spend, free_minor}; a repeated key returns the original entry, checked before the device time. Overspend off refuses amount > balance(spend) - held_spend; on refuses only going below held_spend. Then evaluates spending limits. JA403 (not the child), 22023 (amount outside 1..100000000000, label over 60, blank key or key over 200, device time over 60 s ahead or over 7 days old).';
+  'Child records a purchase from Spend (key purchase:<child>:<key>) at p_occurred_at (device time via resolve_occurred_at; null is now). Returns {status: recorded, entry_id, notices} or {status: not_enough_spend, free_minor}; a repeated key returns the original entry, checked before the device time. Overspend off refuses amount > balance(spend) - held_spend; on refuses only going below held_spend. Then evaluates spending limits. JA403 (not the child), 22023 (amount outside 1..100000000000, label over 60, blank key or key over 200, device time over 7 days old; a future time is now).';
 
 revoke execute on function public.record_purchase(uuid, bigint, text, text, timestamptz) from public, anon;
 grant execute on function public.record_purchase(uuid, bigint, text, text, timestamptz) to authenticated;

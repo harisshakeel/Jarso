@@ -296,17 +296,13 @@ export const recordStepSchema = z.object({
   tries: z.number().int().min(1).max(2),
 });
 
-/** When the child did it, from the device; sent only by the offline outbox. */
-const occurredAt = z.iso.datetime({ offset: true }).optional();
-
-export const completeMissionSchema = z.object({ attemptId: z.uuid(), occurredAt });
+export const completeMissionSchema = z.object({ attemptId: z.uuid() });
 
 export const recordPracticeSchema = z.object({
   itemKey: contentKey,
   answer: stepAnswerSchema,
   hintsUsed: z.number().int().min(0).max(2),
   tries: z.number().int().min(1).max(2),
-  occurredAt,
 });
 
 export const completeCheckInSchema = z.object({

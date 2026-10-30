@@ -189,9 +189,9 @@ select is((select occurred_at from public.ledger_entries where id = :'ed1'::uuid
 select (public.record_purchase(:'c2'::uuid, 100, null, 'd2', now() + interval '30 seconds'))->>'entry_id' as ed2 \gset
 select is((select occurred_at from public.ledger_entries where id = :'ed2'::uuid), now(),
   'record_purchase 30 s in the future stores now()');
-select throws_ok(
-  format($$select public.record_purchase(%L, 100, null, 'd3', now() + interval '2 minutes')$$, :'c2'),
-  '22023', null, 'record_purchase 2 minutes in the future raises 22023');
+select (public.record_purchase(:'c2'::uuid, 100, null, 'd3', now() + interval '1 hour'))->>'entry_id' as ed3 \gset
+select is((select occurred_at from public.ledger_entries where id = :'ed3'::uuid), now(),
+  'record_purchase from a clock 1 hour fast stores now()');
 select throws_ok(
   format($$select public.record_purchase(%L, 100, null, 'd4', now() - interval '8 days')$$, :'c2'),
   '22023', null, 'record_purchase 8 days ago raises 22023');
@@ -203,7 +203,7 @@ select is(
   '1|true', 'the replay writes no second ledger row and keeps the original time');
 select is(
   (select count(*)::int from public.ledger_entries
-   where idempotency_key in ('purchase:' || :'c2' || ':d3', 'purchase:' || :'c2' || ':d4')),
+   where idempotency_key = 'purchase:' || :'c2' || ':d4'),
   0, 'a refused device time writes nothing');
 select (public.record_purchase(:'c2'::uuid, 100, null, 'd5'))->>'entry_id' as ed5 \gset
 select is((public.record_purchase(:'c2'::uuid, 100, null, 'd5', now() - interval '8 days'))->>'entry_id', :'ed5',

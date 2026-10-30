@@ -15,7 +15,6 @@ function input(userId: string) {
     kind: "purchase" as const,
     payload: { amount: "2.00", label: "Comic", idempotencyKey },
     idempotencyKey,
-    occurredAt: new Date(Date.now() - 60_000).toISOString(),
   };
 }
 
@@ -40,7 +39,6 @@ describe("submit", () => {
       id: data.idempotencyKey,
       idempotencyKey: data.idempotencyKey,
       kind: "purchase",
-      occurredAt: data.occurredAt,
       status: "waiting",
       attempts: 0,
     });
@@ -93,7 +91,6 @@ describe("submit", () => {
     const [item] = (await (await open())?.listForUser(userId)) ?? [];
     expect(item?.idempotencyKey).toBe(idempotencyKey);
     expect(item?.id).not.toBe(idempotencyKey);
-    expect(item?.occurredAt).toBe(item?.createdAt);
   });
 
   it("sends older waiting items first", async () => {

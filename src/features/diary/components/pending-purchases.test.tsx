@@ -35,7 +35,6 @@ function purchase(overrides: Partial<OutboxItem> = {}): OutboxItem {
     kind: "purchase",
     payload: { amount: "20", label: "Comic", idempotencyKey: KEY },
     idempotencyKey: KEY,
-    occurredAt: at,
     createdAt: at,
     attempts: 0,
     nextAttemptAt: at,

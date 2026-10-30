@@ -15,7 +15,6 @@ export function makeItem(overrides: Partial<OutboxItem> = {}): OutboxItem {
     kind: "step",
     payload: { attemptId: id },
     idempotencyKey: id,
-    occurredAt: at,
     createdAt: at,
     attempts: 0,
     nextAttemptAt: at,

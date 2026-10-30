@@ -37,7 +37,6 @@ type Submitted = {
   kind: string;
   payload: { amount: string; label?: string; idempotencyKey: string };
   idempotencyKey: string;
-  occurredAt: string;
 };
 
 function sent(call: number): Submitted {
@@ -69,7 +68,8 @@ describe("PurchaseSheet", () => {
       idempotencyKey: input.idempotencyKey,
     });
     expect(input.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
-    expect(Number.isNaN(Date.parse(input.occurredAt))).toBe(false);
+    // No device time: the outbox sends the action's age instead.
+    expect(input).not.toHaveProperty("occurredAt");
   });
 
   it("thanks the child, closes and refreshes once recorded", async () => {

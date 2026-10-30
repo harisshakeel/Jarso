@@ -56,11 +56,14 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 ### `POST /api/v1/outbox`
 
 Called only by the device outbox (`src/features/offline/outbox/send.ts`), one item at a time.
-Body: `{ kind, userId, payload }`, `kind` one of `purchase | practice | step | completeMission |
-checkIn`. `payload` is exactly that feature's schema input (`purchaseSchema(currency)`,
-`recordPracticeSchema`, `recordStepSchema`, `completeMissionSchema`, `completeCheckInSchema`),
-plus the device `occurredAt`; the step and check-in schemas strip it. The route calls the same
-service as the online form, so `assertRole("child")` and the idempotency keys apply unchanged.
+Body: `{ kind, userId, ageMs, payload }`, `kind` one of `purchase | practice | step |
+completeMission | checkIn`. `payload` is exactly that feature's schema input
+(`purchaseSchema(currency)`, `recordPracticeSchema`, `recordStepSchema`, `completeMissionSchema`,
+`completeCheckInSchema`); none has a time, so a client `occurredAt` is stripped. `ageMs` (integer
+≥ 0) is how long ago the child did it on the device clock; the route sets `occurredAt = now -
+min(ageMs, 7 days - 1 min)` on the server clock for purchases, practice and mission completion,
+so a wrong device clock cancels out. The route calls the same service as the online form, so
+`assertRole("child")` and the idempotency keys apply unchanged.
 
 | Status | Meaning | Outbox does |
 | --- | --- | --- |

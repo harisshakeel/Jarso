@@ -35,15 +35,11 @@ describe("purchaseSchema", () => {
 });
 
 describe("purchaseSchema occurredAt", () => {
-  it('accepts an ISO occurredAt and rejects "yesterday"', () => {
+  it("drops a client occurredAt: only the server sets the time", () => {
     const occurredAt = "2026-10-29T18:30:00.000+01:00";
-    expect(schema.parse({ amount: "3", idempotencyKey: uuid, occurredAt }).occurredAt).toBe(
-      occurredAt,
+    expect(schema.parse({ amount: "3", idempotencyKey: uuid, occurredAt })).not.toHaveProperty(
+      "occurredAt",
     );
-    expect(schema.parse({ amount: "3", idempotencyKey: uuid }).occurredAt).toBeUndefined();
-    expect(
-      schema.safeParse({ amount: "3", idempotencyKey: uuid, occurredAt: "yesterday" }).success,
-    ).toBe(false);
   });
 });
 

@@ -33,12 +33,13 @@ describe("outcome", () => {
     expect(nextState(item, outcome, new Date())).toMatchObject({ status: "needs_look", message });
   });
 
-  it("posts kind and payload with occurredAt to the outbox route", async () => {
+  it("posts kind, payload and the action's age to the outbox route", async () => {
     const fetchMock = respond(200, { data: { id: "entry-1" } });
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-30T09:05:00.000Z"));
     const item = makeItem({
       kind: "purchase",
       payload: { amount: "1.50", label: "Snack", idempotencyKey: "k" },
-      occurredAt: "2026-10-30T09:00:00.000Z",
+      createdAt: "2026-10-30T09:00:00.000Z",
     });
     expect(await sendToServer(item)).toEqual({ kind: "done", data: { id: "entry-1" } });
     const [url, init] = fetchMock.mock.calls[0] ?? [];
@@ -48,14 +49,28 @@ describe("outcome", () => {
     expect(JSON.parse(init.body)).toEqual({
       kind: "purchase",
       userId: item.userId,
-      payload: {
-        amount: "1.50",
-        label: "Snack",
-        idempotencyKey: "k",
-        occurredAt: "2026-10-30T09:00:00.000Z",
-      },
+      ageMs: 5 * 60_000,
+      payload: { amount: "1.50", label: "Snack", idempotencyKey: "k" },
     });
     expect(isOnline()).toBe(true);
+  });
+
+  it("a device clock 1 h fast sends an age of about 0, never a time", async () => {
+    const fetchMock = respond(200, { data: { id: "entry-1" } });
+    const fast = Date.parse("2026-10-30T10:00:00.000Z") + 60 * 60_000;
+    const now = vi.spyOn(Date, "now").mockReturnValue(fast);
+    const item = makeItem({ kind: "purchase", createdAt: new Date(fast).toISOString() });
+    now.mockReturnValue(fast + 40);
+    await sendToServer(item);
+    const sent = JSON.parse(fetchMock.mock.calls[0]?.[1].body);
+    expect(sent.ageMs).toBe(40);
+    expect(JSON.stringify(sent)).not.toContain("occurredAt");
+  });
+
+  it("a createdAt ahead of the clock sends age 0", async () => {
+    const fetchMock = respond(200, { data: {} });
+    await sendToServer(makeItem({ createdAt: new Date(Date.now() + 60_000).toISOString() }));
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1].body).ageMs).toBe(0);
   });
 
   it("a network failure is a retry and reports the connection lost", async () => {

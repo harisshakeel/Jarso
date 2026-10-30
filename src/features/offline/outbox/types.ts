@@ -14,7 +14,7 @@ export type OutboxItem = {
   payload: unknown;
   /** Created once by the caller and never regenerated, so a resend is a replay. */
   idempotencyKey: string;
-  occurredAt: string;
+  /** When the child did it, on the device clock. Only its age goes to the server. */
   createdAt: string;
   attempts: number;
   nextAttemptAt: string;

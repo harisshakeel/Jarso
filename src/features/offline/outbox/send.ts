@@ -6,12 +6,14 @@ import type { OutboxItem, SendOutcome } from "./types";
 const SEND_TIMEOUT_MS = 15_000;
 
 function body(item: OutboxItem): string {
-  const payload = (item.payload ?? {}) as Record<string, unknown>;
   // `userId` lets the route refuse (401) an item queued by a child who is no longer signed in.
+  // The action's age, not its time: both ends of it are on the device clock, so a clock that is
+  // set wrong cancels out, and the server turns the age into a time on its own clock.
   return JSON.stringify({
     kind: item.kind,
     userId: item.userId,
-    payload: { ...payload, occurredAt: item.occurredAt },
+    ageMs: Math.max(0, Date.now() - Date.parse(item.createdAt)),
+    payload: item.payload,
   });
 }
 

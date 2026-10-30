@@ -21,7 +21,6 @@ export async function submitToOutbox(input: {
   kind: OutboxKind;
   payload: unknown;
   idempotencyKey: string;
-  occurredAt?: string;
 }): Promise<SubmitResult> {
   const store = await open();
   if (!store) return { status: "unsaved" };
@@ -33,7 +32,6 @@ export async function submitToOutbox(input: {
     kind: input.kind,
     payload: input.payload,
     idempotencyKey: input.idempotencyKey,
-    occurredAt: input.occurredAt ?? now,
     createdAt: now,
     attempts: 0,
     nextAttemptAt: now,

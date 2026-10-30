@@ -86,13 +86,7 @@ function PurchaseForm({
         return { fieldErrors: z.flattenError(parsed.error).fieldErrors as FieldErrors };
       }
 
-      const result = await submitToOutbox({
-        userId,
-        kind: "purchase",
-        payload,
-        idempotencyKey,
-        occurredAt: new Date().toISOString(),
-      });
+      const result = await submitToOutbox({ userId, kind: "purchase", payload, idempotencyKey });
       switch (result.status) {
         case "sent":
           await onSaved?.();

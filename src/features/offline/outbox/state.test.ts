@@ -28,7 +28,7 @@ describe("state", () => {
   });
 
   it("retry backs off 2s, 5s, 15s, 30s, 60s, 60s", () => {
-    let item = makeItem({ occurredAt: now.toISOString(), createdAt: now.toISOString() });
+    let item = makeItem({ createdAt: now.toISOString() });
     const delays: number[] = [];
     for (let i = 0; i < 6; i++) {
       const next = nextState(item, { kind: "retry" }, now);
@@ -62,15 +62,11 @@ describe("state", () => {
 
   it("older than 7 days becomes needs_look", () => {
     const old = new Date(now.getTime() - 7 * DAY_MS - 1).toISOString();
-    const next = nextState(
-      makeItem({ kind: "purchase", occurredAt: old, createdAt: old }),
-      { kind: "retry" },
-      now,
-    );
+    const next = nextState(makeItem({ kind: "purchase", createdAt: old }), { kind: "retry" }, now);
     expect(next).toMatchObject({ status: "needs_look", message: offlineCopy.expired });
 
     const fresh = new Date(now.getTime() - 7 * DAY_MS + 60_000).toISOString();
-    const kept = nextState(makeItem({ occurredAt: fresh }), { kind: "retry" }, now);
+    const kept = nextState(makeItem({ createdAt: fresh }), { kind: "retry" }, now);
     expect(kept).toMatchObject({ status: "waiting" });
   });
 
@@ -78,7 +74,7 @@ describe("state", () => {
     const old = new Date(now.getTime() - 7 * DAY_MS - 1).toISOString();
     for (const kind of ["step", "practice", "completeMission", "checkIn"] as const) {
       expect(nextState(makeItem({ kind, attempts: 19 }), { kind: "retry" }, now)).toBeNull();
-      const stale = makeItem({ kind, occurredAt: old, createdAt: old });
+      const stale = makeItem({ kind, createdAt: old });
       expect(nextState(stale, { kind: "retry" }, now)).toBeNull();
     }
     // Short of either limit it still waits to retry.

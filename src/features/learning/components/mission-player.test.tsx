@@ -121,7 +121,6 @@ function waitingItem(status: OutboxItem["status"], attempts = 1): OutboxItem {
     kind: "step",
     payload: {},
     idempotencyKey: "item-1",
-    occurredAt: now,
     createdAt: now,
     attempts,
     nextAttemptAt: now,
