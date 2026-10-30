@@ -110,8 +110,7 @@ function useIdAction(
   success: string,
 ) {
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string>();
-  const [calm, setCalm] = useState(false);
+  const [error, setError] = useState<{ code: string; message: string }>();
   function submit(onDone?: () => void) {
     setError(undefined);
     start(async () => {
@@ -120,16 +119,15 @@ function useIdAction(
         toast.success(success);
         onDone?.();
       } else {
-        setError(result.error.message);
-        setCalm(result.error.code === "UNAVAILABLE");
+        setError(result.error);
       }
     });
   }
-  return { pending, error, calm, submit };
+  return { pending, error, submit };
 }
 
 function ResumeButton({ scheduleId }: { scheduleId: string }) {
-  const { pending, error, calm, submit } = useIdAction(
+  const { pending, error, submit } = useIdAction(
     scheduleId,
     (id) => resumeAllowanceAction(null, { id }),
     "Allowance resumed",
@@ -139,14 +137,14 @@ function ResumeButton({ scheduleId }: { scheduleId: string }) {
       <Button size="lg" loading={pending} onClick={() => submit()}>
         Resume
       </Button>
-      <FormError message={error} calm={calm} />
+      <FormError error={error} />
     </div>
   );
 }
 
 function StopButton({ scheduleId, nickname }: { scheduleId: string; nickname: string }) {
   const [open, setOpen] = useState(false);
-  const { pending, error, calm, submit } = useIdAction(
+  const { pending, error, submit } = useIdAction(
     scheduleId,
     (id) => stopAllowanceAction(null, { id }),
     "Allowance stopped",
@@ -169,7 +167,7 @@ function StopButton({ scheduleId, nickname }: { scheduleId: string; nickname: st
           <AlertDialogTitle>Stop {nickname}'s allowance?</AlertDialogTitle>
           <AlertDialogDescription>Anything already due stays due.</AlertDialogDescription>
         </AlertDialogHeader>
-        <FormError message={error} calm={calm} />
+        <FormError error={error} />
         <AlertDialogFooter>
           <AlertDialogCancel>Keep it</AlertDialogCancel>
           <Button

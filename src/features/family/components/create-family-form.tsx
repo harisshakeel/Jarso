@@ -87,10 +87,7 @@ export function CreateFamilyForm({ next }: { next?: string }) {
         <FieldError errors={timezoneErrors} />
       </div>
 
-      <FormError
-        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-      />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" className="w-full" loading={pending} disabled={!timezone}>
         Create family
       </Button>

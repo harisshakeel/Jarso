@@ -58,10 +58,7 @@ export function AddChildForm() {
         <FieldError id="consent-error" errors={consentErrors} />
       </div>
 
-      <FormError
-        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-      />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
           Cancel

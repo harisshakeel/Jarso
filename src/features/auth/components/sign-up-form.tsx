@@ -42,10 +42,7 @@ export function SignUpForm({ next }: { next?: string }) {
         required
         errors={fieldErrors?.password}
       />
-      <FormError
-        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-      />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" disabled={pending}>
         {pending ? "Creating account…" : "Create account"}
       </Button>

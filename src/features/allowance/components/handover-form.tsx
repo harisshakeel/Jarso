@@ -205,12 +205,7 @@ export function HandoverForm({
       </Card>
 
       <FormError
-        message={
-          !dirty && state?.ok === false && !state.error.fieldErrors
-            ? state.error.message
-            : undefined
-        }
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
+        error={!dirty && state?.ok === false && !state.error.fieldErrors ? state.error : undefined}
       />
       <div className="flex flex-col gap-3">
         <Button
@@ -257,8 +252,7 @@ function NotGivenButton({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string>();
-  const [calm, setCalm] = useState(false);
+  const [error, setError] = useState<{ code: string; message: string }>();
 
   useEffect(() => onPendingChange(pending), [pending, onPendingChange]);
 
@@ -270,8 +264,7 @@ function NotGivenButton({
         toast.success(result.data === "closed" ? "Marked as not given." : "Already handled.");
         router.push(routes.parentChild(childId));
       } else {
-        setError(result.error.message);
-        setCalm(result.error.code === "UNAVAILABLE");
+        setError(result.error);
       }
     });
   }
@@ -290,7 +283,7 @@ function NotGivenButton({
             {nickname} won't get this one, and it won't be paid later.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <FormError message={error} calm={calm} />
+        <FormError error={error} />
         <AlertDialogFooter>
           <AlertDialogCancel>Go back</AlertDialogCancel>
           <Button variant="destructive" loading={pending} onClick={confirm}>

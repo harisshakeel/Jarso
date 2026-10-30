@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import { FormError } from "@/components/form";
 import {
   Button,
   Sheet,
@@ -72,7 +73,7 @@ export function GuideSheet({
   const [messages, setMessages] = useState<Message[]>([]);
   const [turnsLeft, setTurnsLeft] = useState<number | null>(null);
   const [text, setText] = useState("");
-  const [error, setError] = useState<{ text: string; calm: boolean } | null>(null);
+  const [error, setError] = useState<{ code: string; message: string } | null>(null);
   const [full, setFull] = useState(false);
   const [pending, startTransition] = useTransition();
   const listEnd = useRef<HTMLDivElement>(null);
@@ -125,13 +126,13 @@ export function GuideSheet({
       if (!result.ok) {
         if (result.error.code === "CONFLICT") setFull(true);
         setError({
-          text:
+          code: result.error.code,
+          message:
             result.error.code === "VALIDATION"
               ? (result.error.fieldErrors?.text?.[0] ?? result.error.message)
               : result.error.code === "INTERNAL"
                 ? guideCopy.routes.unavailable
                 : result.error.message,
-          calm: result.error.code === "UNAVAILABLE",
         });
         return;
       }
@@ -222,14 +223,7 @@ export function GuideSheet({
               </ol>
               <div ref={listEnd} />
 
-              {error ? (
-                <p
-                  role={error.calm ? "status" : "alert"}
-                  className={cn("font-semibold", error.calm ? "text-ink-2" : "text-destructive")}
-                >
-                  {error.text}
-                </p>
-              ) : null}
+              <FormError error={error ?? undefined} />
 
               {full ? (
                 <div className="grid gap-2">

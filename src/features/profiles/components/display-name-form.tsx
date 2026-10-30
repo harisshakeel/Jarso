@@ -35,10 +35,7 @@ export function DisplayNameForm({ fullName }: { fullName: string | null }) {
         required
         errors={fieldErrors?.fullName}
       />
-      <FormError
-        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-      />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" loading={pending} className="sm:w-fit">
         Save name
       </Button>

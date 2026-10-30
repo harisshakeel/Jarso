@@ -71,10 +71,7 @@ export function FamilySettingsForm({ timezone }: { timezone: string }) {
         </p>
         <FieldError id="timezone-error" errors={timezoneErrors} />
       </div>
-      <FormError
-        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-      />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" loading={pending} disabled={chosen === timezone}>
         Save
       </Button>

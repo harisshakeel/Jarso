@@ -114,10 +114,7 @@ export function GiftForm({
         </CardContent>
       </Card>
 
-      <FormError
-        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-      />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link
           href={routes.parentChild(childId)}
@@ -146,8 +143,7 @@ export function CancelGiftForm({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string>();
-  const [calm, setCalm] = useState(false);
+  const [error, setError] = useState<{ code: string; message: string }>();
 
   function confirm() {
     setError(undefined);
@@ -157,8 +153,7 @@ export function CancelGiftForm({
         toast.success("Gift cancelled");
         router.push(routes.parentChild(childId));
       } else {
-        setError(result.error.message);
-        setCalm(result.error.code === "UNAVAILABLE");
+        setError(result.error);
       }
     });
   }
@@ -173,7 +168,7 @@ export function CancelGiftForm({
           <AlertDialogTitle>Cancel this gift?</AlertDialogTitle>
           <AlertDialogDescription>{nickname} won't see it.</AlertDialogDescription>
         </AlertDialogHeader>
-        <FormError message={error} calm={calm} />
+        <FormError error={error} />
         <AlertDialogFooter>
           <AlertDialogCancel>Keep it</AlertDialogCancel>
           <Button variant="destructive" loading={pending} onClick={confirm}>

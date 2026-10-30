@@ -53,10 +53,7 @@ export function RemoveChildDialog({ child }: { child: ChildSummary }) {
         </AlertDialogHeader>
         <form action={action} className="contents" noValidate>
           <input type="hidden" name="childId" value={child.id} />
-          <FormError
-            message={state?.ok === false ? state.error.message : undefined}
-            calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-          />
+          <FormError error={state?.ok === false ? state.error : undefined} />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={pending}>Keep {child.nickname}</AlertDialogCancel>
             <Button type="submit" variant="destructive" size="lg" loading={pending}>

@@ -63,10 +63,7 @@ function NicknameForm({ child, onDone }: { child: ChildSummary; onDone: () => vo
         description="Up to 20 letters, numbers, spaces, dots, dashes or apostrophes."
         errors={fieldErrors?.nickname}
       />
-      <FormError
-        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-      />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
         Save nickname
       </Button>

@@ -66,10 +66,7 @@ function NewPinForm({ child, onDone }: { child: ChildSummary; onDone: () => void
         description="4 to 6 numbers."
         errors={fieldErrors?.pin}
       />
-      <FormError
-        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-      />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
         Save PIN
       </Button>

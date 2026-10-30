@@ -32,8 +32,7 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
   const [on, setOn] = useState(Boolean(rule));
   const [amount, setAmount] = useState(rule ? toMajorString(rule.amountMinor, currency) : "");
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string>();
-  const [calm, setCalm] = useState(false);
+  const [error, setError] = useState<{ code: string; message: string }>();
   const [fieldError, setFieldError] = useState<string>();
   const id = `${kind}-${period}`;
 
@@ -48,8 +47,7 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
       const first = result.error.fieldErrors?.amount?.[0];
       if (first) setFieldError(first);
       else {
-        setError(result.error.message);
-        setCalm(result.error.code === "UNAVAILABLE");
+        setError(result.error);
       }
     });
   }
@@ -107,7 +105,7 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
           </Button>
         </div>
       ) : null}
-      <FormError message={error} calm={calm} />
+      <FormError error={error} />
     </form>
   );
 }

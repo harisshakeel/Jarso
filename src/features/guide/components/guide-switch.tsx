@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { FormError } from "@/components/form";
 import { routes } from "@/config";
 import { runOnline } from "@/features/offline";
 import { cn } from "@/lib";
@@ -21,18 +22,18 @@ export function GuideSwitch({
   enabled: boolean;
 }) {
   const [on, setOn] = useState(enabled);
-  const [error, setError] = useState<{ text: string; calm: boolean } | null>(null);
+  const [error, setError] = useState<{ code: string; message: string } | undefined>();
   const [pending, startTransition] = useTransition();
 
   function toggle() {
     const next = !on;
-    setError(null);
+    setError(undefined);
     setOn(next);
     startTransition(async () => {
       const result = await runOnline(() => setGuideAccessAction(null, { childId, enabled: next }));
       if (!result.ok) {
         setOn(!next);
-        setError({ text: result.error.message, calm: result.error.code === "UNAVAILABLE" });
+        setError(result.error);
       }
     });
   }
@@ -79,14 +80,7 @@ export function GuideSwitch({
           How the guide keeps children safe
         </Link>
       </p>
-      {error ? (
-        <p
-          role={error.calm ? "status" : "alert"}
-          className={cn("font-semibold text-sm", error.calm ? "text-ink-2" : "text-destructive")}
-        >
-          {error.text}
-        </p>
-      ) : null}
+      <FormError error={error} />
     </div>
   );
 }

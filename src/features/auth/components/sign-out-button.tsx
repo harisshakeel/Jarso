@@ -12,10 +12,7 @@ export function SignOutButton() {
       <Button type="submit" variant="outline" size="lg" loading={pending}>
         Sign out
       </Button>
-      <FormError
-        message={state?.ok === false ? state.error.message : undefined}
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-      />
+      <FormError error={state?.ok === false ? state.error : undefined} />
     </form>
   );
 }

@@ -57,10 +57,7 @@ export function ChildSignInForm() {
             required
             errors={fieldErrors?.pin}
           />
-          <FormError
-            message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-            calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-          />
+          <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
           <Button type="submit" variant="keycap" size="lg" className="w-full" loading={pending}>
             Sign in
           </Button>

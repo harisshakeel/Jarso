@@ -134,10 +134,7 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
         </CardContent>
       </Card>
 
-      <FormError
-        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-      />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         {changing ? (
           <Link

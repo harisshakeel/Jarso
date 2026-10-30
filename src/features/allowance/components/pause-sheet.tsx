@@ -109,10 +109,7 @@ function PauseForm({
         onChange={(event) => setMessage(event.target.value)}
         errors={fieldErrors?.message}
       />
-      <FormError
-        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
-      />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
         Pause
       </Button>
