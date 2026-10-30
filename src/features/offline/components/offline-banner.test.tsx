@@ -13,7 +13,7 @@ afterEach(() => {
 describe("OfflineBanner", () => {
   it("shows the copy only when offline", () => {
     render(<OfflineBanner />);
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
     act(() => {
       window.dispatchEvent(new Event("offline"));
     });
@@ -21,6 +21,6 @@ describe("OfflineBanner", () => {
     act(() => {
       window.dispatchEvent(new Event("online"));
     });
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 });

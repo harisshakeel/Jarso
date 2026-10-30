@@ -6,11 +6,14 @@ import { isOnline, reportNetworkFailure, reportNetworkSuccess } from "./use-onli
 const ok = { ok: true, data: 1 } as const;
 
 beforeEach(() => reportNetworkSuccess());
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 describe("runOnline", () => {
   it("does not call the action when offline", async () => {
-    reportNetworkFailure();
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     const action = vi.fn().mockResolvedValue(ok);
     const result = await runOnline(action);
     expect(action).not.toHaveBeenCalled();
@@ -53,5 +56,36 @@ describe("runOnline", () => {
       error: { code: "UNAVAILABLE", message: offlineCopy.updated },
     });
     expect(isOnline()).toBe(true);
+  });
+
+  it("still calls the action after a reported failure while navigator.onLine is true", async () => {
+    reportNetworkFailure();
+    const action = vi.fn().mockResolvedValue(ok);
+    expect(await runOnline(action)).toEqual(ok);
+    expect(action).toHaveBeenCalledOnce();
+  });
+
+  it("clears the offline state when that call succeeds", async () => {
+    reportNetworkFailure();
+    await runOnline(async () => ok);
+    expect(isOnline()).toBe(true);
+  });
+
+  it("handles a late rejection after the timeout and clears the timer when the action settles", async () => {
+    vi.useFakeTimers();
+    let rejectLate: (e: Error) => void = () => {};
+    const pending = runOnline(
+      () =>
+        new Promise((_, reject) => {
+          rejectLate = reject;
+        }),
+    );
+    await vi.advanceTimersByTimeAsync(15_000);
+    await pending;
+    rejectLate(new Error("late"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vi.getTimerCount()).toBe(0);
+    await runOnline(async () => ok);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

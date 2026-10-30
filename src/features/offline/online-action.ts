@@ -3,9 +3,11 @@
 import { useActionState } from "react";
 import type { ActionResult, ActionState } from "@/lib";
 import { offlineCopy } from "./copy";
-import { isOnline, reportNetworkFailure, reportNetworkSuccess } from "./use-online";
+import { reportNetworkFailure, reportNetworkSuccess } from "./use-online";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
+
+const TIMED_OUT = Symbol("timed out");
 
 function unavailable(message: string): ActionResult<never> {
   return { ok: false, error: { code: "UNAVAILABLE", message } };
@@ -19,17 +21,21 @@ export async function runOnline<T>(
   action: () => Promise<ActionResult<T>>,
   options: { timeoutMs?: number } = {},
 ): Promise<ActionResult<T>> {
-  if (!isOnline()) return unavailable(offlineCopy.offline);
+  // Only the browser's own signal blocks a call. A reported failure shows the banner, but the
+  // next attempt still goes through, so a working call can clear it.
+  if (typeof navigator !== "undefined" && navigator.onLine === false)
+    return unavailable(offlineCopy.offline);
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<ActionResult<never>>((resolve) => {
-    timer = setTimeout(() => resolve(unavailable(offlineCopy.slow)), timeoutMs);
+  const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+    timer = setTimeout(() => resolve(TIMED_OUT), timeoutMs);
   });
 
   try {
     const result = await Promise.race([action(), timeout]);
-    if (result.ok || result.error.message !== offlineCopy.slow) reportNetworkSuccess();
+    if (result === TIMED_OUT) return unavailable(offlineCopy.slow);
+    reportNetworkSuccess();
     return result;
   } catch (error) {
     if (error instanceof Error && error.message.includes("Failed to find Server Action")) {
