@@ -4,6 +4,7 @@ import { AppError } from "@/lib";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
 vi.mock("@/features/family/server", () => ({
   assertRole: vi.fn(),
+  assertParentCanRead: vi.fn(),
   assertParentOf: vi.fn(),
   assertSelfOrParentOf: vi.fn(),
 }));
@@ -31,6 +32,7 @@ const requestId = "req-1";
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(family.assertParentOf).mockResolvedValue(parent);
+  vi.mocked(family.assertParentCanRead).mockResolvedValue(parent);
   vi.mocked(family.assertSelfOrParentOf).mockResolvedValue(parent);
   vi.mocked(family.assertRole).mockResolvedValue({
     user: { id: "child-1", email: null },
@@ -129,5 +131,14 @@ describe("getAvailability", () => {
     expect((await service.getAvailability("child-1")).takeOutLimitMinor).toBe(4000);
     vi.mocked(repo.fetchCapRemaining).mockResolvedValue(0);
     expect((await service.getAvailability("child-1")).takeOutLimitMinor).toBe(0);
+  });
+});
+
+describe("parent reads", () => {
+  it("listRequestsNeedingParent reads behind the profile dialog", async () => {
+    vi.mocked(repo.listOpenRequests).mockResolvedValue([]);
+    await service.listRequestsNeedingParent("child-1");
+    expect(family.assertParentCanRead).toHaveBeenCalledWith("child-1");
+    expect(family.assertParentOf).not.toHaveBeenCalled();
   });
 });

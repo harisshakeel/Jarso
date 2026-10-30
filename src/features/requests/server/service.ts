@@ -1,6 +1,11 @@
 import "server-only";
 // Savings requests: a child asks to take money out of Save or records money put into it.
-import { assertParentOf, assertRole, assertSelfOrParentOf } from "@/features/family/server";
+import {
+  assertParentCanRead,
+  assertParentOf,
+  assertRole,
+  assertSelfOrParentOf,
+} from "@/features/family/server";
 import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -57,9 +62,9 @@ export async function listRequests(childId: string): Promise<SavingsRequest[]> {
   return listRequestsFor(await createClient(), childId);
 }
 
-/** Pending and approved withdrawals and pending deposits. Parent only. */
+/** Pending and approved withdrawals and pending deposits. Parent only; a read, so it works behind the profile dialog. */
 export async function listRequestsNeedingParent(childId: string): Promise<SavingsRequest[]> {
-  await assertParentOf(childId);
+  await assertParentCanRead(childId);
   return listOpenRequests(await createClient(), childId);
 }
 
