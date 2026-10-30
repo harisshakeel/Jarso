@@ -23,14 +23,12 @@ function spendingSummary(rules: ChildRules, nickname: string): string {
 
 /** A few rows of one kind of rule, one per period, under a small heading. */
 function RuleGroup({
-  title,
   kind,
   childId,
   nickname,
   currency,
   rules,
 }: {
-  title: string;
   kind: RuleKind;
   childId: string;
   nickname: string;
@@ -38,8 +36,7 @@ function RuleGroup({
   rules: ChildRules;
 }) {
   return (
-    <fieldset className="grid min-w-0 gap-4">
-      <legend className="mb-4 font-bold">{title}</legend>
+    <div className="grid gap-4">
       {SPEND_PERIODS.map((period) => (
         <RuleRow
           key={period}
@@ -51,7 +48,7 @@ function RuleGroup({
           rule={rules.rules.find((r) => r.kind === kind && r.period === period)}
         />
       ))}
-    </fieldset>
+    </div>
   );
 }
 
@@ -88,7 +85,6 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
           </h2>
           <p className="text-ink-2">{summarise(rules.rules, "withdrawal", currency)}</p>
           <RuleGroup
-            title="Most they can take out"
             kind="withdrawal_cap"
             childId={childId}
             nickname={nickname}
@@ -96,7 +92,6 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
             rules={rules}
           />
           <RuleGroup
-            title="Without asking you"
             kind="withdrawal_auto_approve"
             childId={childId}
             nickname={nickname}
@@ -110,7 +105,6 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
           </h2>
           <p className="text-ink-2">{summarise(rules.rules, "deposit", currency)}</p>
           <RuleGroup
-            title="Without you confirming"
             kind="deposit_auto_confirm"
             childId={childId}
             nickname={nickname}

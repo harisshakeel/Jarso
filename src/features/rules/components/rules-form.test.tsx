@@ -36,14 +36,11 @@ describe("RulesForm", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the cap and the deposit rule rows", () => {
+  it("shows the cap rule row", () => {
     show({
       allowNegativeSpend: false,
       rules: [{ kind: "withdrawal_cap", period: "month", amountMinor: 3000 }],
     });
     expect(screen.getByText("Sam can take out at most £30 a month")).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Most they can take out" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Without asking you" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Without you confirming" })).toBeInTheDocument();
   });
 });
