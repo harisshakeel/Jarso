@@ -112,7 +112,7 @@ Functions:
   - `set_guide_access(child_id, enabled)` — approved parent of the child; locks the membership for share, upserts the switch and audits `guide.access_changed` only when it changed. `JA401`, `JA403`, `22023`.
   - `guide_start_conversation(child_id, entry, context_key) → uuid` — **service_role only**; the child must be approved with the guide on (`JA403`).
   - `guide_record_turn(conversation_id, child_id, child_text, reply_role, reply_text, route, flagged, model, usage, latency_ms) → uuid` — **service_role only**; locks the child's membership (as `remove_child` does) then the chat; stores the child's message (blank after a safety or personal-details response) and the reply with one `clock_timestamp()` so turns sort in commit order; counts the turn and flags the chat. `JA403` (not that child, or no longer approved), `JA409` (12 turns), `22023` (texts over 2000, usage not an object).
-  - `guide_usage_since(since) → table(model, token sums)` — **service_role only**; feeds the daily budget.
+  - `guide_usage_since(since) → table(model, token sums)` — **service_role only**; feeds the daily and monthly budgets.
   - `rate_guide_message(message_id, rating smallint)` — the child, on a guide reply in their own chat. `JA401`, `JA403`, `22023`.
   - `blank_old_guide_text() → int` — **cron only, no grants**; `pg_cron` job `blank-old-guide-text` daily at 03:17 UTC; writes a `job_runs` row.
   - `remove_child` also deletes the child's guide chats and switch.

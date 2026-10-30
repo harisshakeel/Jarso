@@ -51,7 +51,7 @@ export type AskGuideResult = {
 /** What a child page needs to show the guide. */
 export type GuideState = { available: boolean; introNeeded: boolean };
 
-/** Token counts for one turn, per kind, for cost and the daily budget. */
+/** Token counts for one turn, per kind, for cost and the budgets. */
 export type GuideUsage = {
   mainInput: number;
   mainOutput: number;

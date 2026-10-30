@@ -245,7 +245,7 @@ export async function recordTurn(
   return data;
 }
 
-/** Token totals since an instant, per main model, for the daily budget. */
+/** Token totals since an instant, per main model, for the daily and monthly budgets. */
 export async function usageSince(
   admin: Client,
   sinceIso: string,

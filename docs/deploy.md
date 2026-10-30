@@ -24,6 +24,7 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `ANTHROPIC_API_KEY` | set (sensitive) | unset | The money guide (ADR 0010). Server only; read only by `features/guide/server/claude.ts`. |
 | `FEATURE_GUIDE` | `true` to run the guide | `false` | Off by default. With it on, each child still needs their parent's switch. |
 | `GUIDE_DAILY_BUDGET_CENTS` | e.g. `1000` | — | Optional; default 1000 (US$10 a day across all children). The guide shows its break copy once reached. |
+| `GUIDE_MONTHLY_BUDGET_CENTS` | e.g. `10000` | — | Optional; default 10000 (US$100 per calendar month, UTC, across all children). The guide shows its break copy once reached. |
 | `GUIDE_PROVIDER` | `anthropic` (default) | — | `fake` is for e2e only and is refused on Vercel production. |
 
 To change a value from a terminal: `printf '<value>' | vercel env add NAME production --force` (pipe it; never type a key into a command line). To take a Supabase key straight from the CLI, pass `--reveal` and pipe the one key into Vercel so it never appears on screen or in a log:
@@ -38,7 +39,7 @@ Never run the `--reveal` command on its own: it prints every secret key. Without
 
 ### Turning the money guide on
 
-1. Create a key in the Anthropic Console (Settings → API Keys) for this project, with a monthly spend limit, and add it to Vercel without typing it on a command line: `pbpaste | vercel env add ANTHROPIC_API_KEY production --sensitive --force` (copy it from the Console first), or paste it in the Vercel dashboard.
+1. Create a key in the Anthropic Console (Settings → API Keys) for this project and set a US$100 monthly spend limit on its workspace (the hard cap: it also covers eval runs and local use, which the app's own budgets don't see). Add it to Vercel without typing it on a command line: `pbpaste | vercel env add ANTHROPIC_API_KEY production --sensitive --force` (copy it from the Console first), or paste it in the Vercel dashboard.
 2. Set `FEATURE_GUIDE=true` for Production, then redeploy or merge.
 3. For the launch gate, create the `guide-evals` environment (GitHub → Settings → Environments) with yourself as a required reviewer, add the same key there as the `ANTHROPIC_API_KEY` environment secret, and run **Guide evals** from the Actions tab. The run fails unless every safety and personal case routes correctly, there are zero FR09 breaks and at least 95% of on-topic answers are helpful.
 4. Until the gate passes and the legal review is done, turn the guide on only for the demo family's child (their parent's switch). Every other child stays off by default.
