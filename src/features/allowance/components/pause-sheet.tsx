@@ -12,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui";
+import { runOnline } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { pauseAllowanceAction } from "../server/actions";
 
@@ -61,7 +62,7 @@ function PauseForm({
 }: PauseSheetProps & { onDone: () => void }) {
   const [state, action, pending] = useActionState(
     async (_prev: ActionState, formData: FormData) => {
-      const result = await pauseAllowanceAction(null, formData);
+      const result = await runOnline(() => pauseAllowanceAction(null, formData));
       if (result.ok) {
         toast.success("Allowance paused");
         onDone();
@@ -108,7 +109,7 @@ function PauseForm({
         onChange={(event) => setMessage(event.target.value)}
         errors={fieldErrors?.message}
       />
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
         Pause
       </Button>

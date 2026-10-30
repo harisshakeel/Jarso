@@ -9,13 +9,21 @@ type Client = SupabaseClient<Database>;
 
 export async function callRecordPurchase(
   db: Client,
-  input: { childId: string; amountMinor: number; label: string; idempotencyKey: string },
+  input: {
+    childId: string;
+    amountMinor: number;
+    label: string;
+    idempotencyKey: string;
+    occurredAt?: string;
+  },
 ): Promise<PurchaseResult> {
   const { data, error } = await db.rpc("record_purchase", {
     p_child_id: input.childId,
     p_amount_minor: input.amountMinor,
     p_label: input.label,
     p_idempotency_key: input.idempotencyKey,
+    // Omitted when online: the function's default null means now().
+    p_occurred_at: input.occurredAt,
   });
   if (error) throw toAppError(error, "Failed to record the purchase");
   const result = data as { status?: string; entry_id?: string; free_minor?: number } | null;

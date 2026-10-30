@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { FormError } from "@/components/form";
 import { Label, Switch } from "@/components/ui";
+import { runOnline } from "@/features/offline";
 import { setOverspendAction } from "../server/actions";
 
 type OverspendSwitchProps = { childId: string; nickname: string; allowed: boolean };
@@ -11,17 +12,20 @@ type OverspendSwitchProps = { childId: string; nickname: string; allowed: boolea
 export function OverspendSwitch({ childId, nickname, allowed }: OverspendSwitchProps) {
   const [checked, setChecked] = useState(allowed);
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<{ code: string; message: string }>();
 
   function change(next: boolean) {
     setChecked(next);
     setError(undefined);
     start(async () => {
-      const result = await setOverspendAction(null, { childId, allowed: next });
-      if (!result.ok) {
-        setChecked(!next);
-        setError(result.error.message);
-      }
+      const result = await runOnline(() => setOverspendAction(null, { childId, allowed: next }));
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      start(() => {
+        if (!result.ok) {
+          setChecked(!next);
+          setError(result.error);
+        }
+      });
     });
   }
 
@@ -36,7 +40,7 @@ export function OverspendSwitch({ childId, nickname, allowed }: OverspendSwitchP
           ? `${nickname} can record a purchase even if Spend is short.`
           : `${nickname} can only spend what is in Spend.`}
       </p>
-      <FormError message={error} />
+      <FormError error={error} />
     </div>
   );
 }

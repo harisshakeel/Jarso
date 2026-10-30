@@ -32,6 +32,7 @@ import {
   findLatestSchedule,
   findOccurrenceChildId,
   findScheduleChildId,
+  findScheduleState,
   insertGift,
   insertSchedule,
   listDueForParent,
@@ -85,6 +86,25 @@ async function conflictAs<T>(work: Promise<T>, message: string): Promise<T> {
       throw new AppError("CONFLICT", message, { cause: error });
     }
     throw error;
+  }
+}
+
+/**
+ * Like `conflictAs`, but a CONFLICT because the target is already where this call takes it
+ * counts as done: on a slow network the first try can commit and lose only its reply, so the
+ * repeat finds the work done. Any other state is still the CONFLICT `message`.
+ */
+async function unlessReached(
+  work: Promise<void>,
+  reached: () => Promise<boolean>,
+  message: string,
+): Promise<void> {
+  try {
+    await work;
+  } catch (error) {
+    if (!isAppError(error) || error.code !== "CONFLICT") throw error;
+    if (await reached().catch(() => false)) return;
+    throw new AppError("CONFLICT", message, { cause: error });
   }
 }
 
@@ -193,19 +213,34 @@ export async function pauseAllowance(input: {
 }): Promise<void> {
   const db = await createClient();
   await assertParentOfChild(await findScheduleChildId(db, input.scheduleId));
-  await conflictAs(pauseSchedule(db, input), "This allowance isn't running, so it can't pause.");
+  await unlessReached(
+    pauseSchedule(db, input),
+    async () => {
+      const state = await findScheduleState(db, input.scheduleId);
+      return state?.status === "paused" && state.pausedThrough === input.through;
+    },
+    "This allowance isn't running, so it can't pause.",
+  );
 }
 
 export async function resumeAllowance(scheduleId: string): Promise<void> {
   const db = await createClient();
   await assertParentOfChild(await findScheduleChildId(db, scheduleId));
-  await conflictAs(resumeSchedule(db, scheduleId), "This allowance isn't paused.");
+  await unlessReached(
+    resumeSchedule(db, scheduleId),
+    async () => (await findScheduleState(db, scheduleId))?.status === "active",
+    "This allowance isn't paused.",
+  );
 }
 
 export async function stopAllowance(scheduleId: string): Promise<void> {
   const db = await createClient();
   await assertParentOfChild(await findScheduleChildId(db, scheduleId));
-  await conflictAs(stopSchedule(db, scheduleId), "This allowance has already stopped.");
+  await unlessReached(
+    stopSchedule(db, scheduleId),
+    async () => (await findScheduleState(db, scheduleId))?.status === "stopped",
+    "This allowance has already stopped.",
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -214,11 +249,13 @@ export async function stopAllowance(scheduleId: string): Promise<void> {
 
 const GIFT_DONE = "This gift was already handed over or cancelled.";
 
+/** A repeated key from the same parent returns the gift it already made. */
 export async function createGift(input: {
   childId: string;
   amountMinor: number;
   giveOn: string;
   note: string | null;
+  idempotencyKey: string;
 }): Promise<string> {
   await assertParentOf(input.childId);
   return insertGift(await createClient(), input);
@@ -248,7 +285,11 @@ export async function updateGift(input: {
 export async function cancelGift(giftId: string): Promise<void> {
   const db = await createClient();
   await assertParentOfChild((await findGift(db, giftId))?.childId);
-  await conflictAs(cancelPendingGift(db, giftId), GIFT_DONE);
+  await unlessReached(
+    cancelPendingGift(db, giftId),
+    async () => (await findGift(db, giftId))?.status === "cancelled",
+    GIFT_DONE,
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -59,6 +59,21 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     { name: "profile", testMatch: "parent-profile.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "offline-purchase",
+      testMatch: "offline-purchase.spec.ts",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "offline-mission",
+      testMatch: "offline-mission.spec.ts",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "offline-parent",
+      testMatch: "offline-parent.spec.ts",
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined

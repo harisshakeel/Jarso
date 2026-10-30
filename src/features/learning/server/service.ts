@@ -176,14 +176,14 @@ export async function recordStep(input: {
 }
 
 /** Finishes the mission once every step (and every replay) is answered. */
-export async function completeMission(attemptId: string) {
+export async function completeMission(attemptId: string, occurredAt?: string) {
   const user = await assertChild();
   const { db, attempt, mission } = await ownAttempt(attemptId, user.id);
   const results = (await repo.listStepResults(db, [attemptId])).get(attemptId) ?? [];
   if (attempt.status === "started" && resumePosition(mission, results).phase !== "finished") {
     throw new AppError("VALIDATION", "Finish every step first.");
   }
-  await repo.completeMission(db, attemptId);
+  await repo.completeMission(db, attemptId, occurredAt);
   return attemptSummary(results);
 }
 
@@ -209,6 +209,7 @@ export async function recordPractice(input: {
   answer: StepAnswer;
   hintsUsed: number;
   tries: number;
+  occurredAt?: string;
 }): Promise<{ correct: boolean }> {
   await assertChild();
   const item = findReviewItem(input.itemKey);
@@ -220,6 +221,7 @@ export async function recordPractice(input: {
     correct,
     hintsUsed: input.hintsUsed,
     tries: input.tries,
+    occurredAt: input.occurredAt,
   });
   return { correct };
 }

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
+import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { ChildAllowanceCard } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
-import { PurchaseSheet, UndoButton } from "@/features/diary";
+import { PendingPurchases, PurchaseSheet, UndoButton } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
 import { GuideSheet } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
@@ -13,6 +14,9 @@ import { getLearningOverview } from "@/features/learning/server";
 import { HistoryList, Jars } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
 import { logger } from "@/lib";
+
+// The guide action runs on this page: allow a full guide turn (45 s) plus saving it.
+export const maxDuration = 60;
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -42,7 +46,8 @@ async function ChildHome() {
         dueTotalMinor={due.totalMinor}
         currency={family.currency}
       />
-      <PurchaseSheet currency={family.currency} />
+      <PurchaseSheet currency={family.currency} userId={user.id} />
+      <PendingPurchases userId={user.id} currency={family.currency} />
       <HistoryList
         items={history}
         currency={family.currency}
@@ -102,7 +107,13 @@ function HomeSkeleton() {
 export default function ChildHomePage() {
   return (
     <div className="mx-auto grid w-full max-w-2xl gap-6">
-      <Suspense fallback={<HomeSkeleton />}>
+      <Suspense
+        fallback={
+          <SlowFallback>
+            <HomeSkeleton />
+          </SlowFallback>
+        }
+      >
         <ChildHome />
       </Suspense>
     </div>

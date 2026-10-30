@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
+import { SlowFallback } from "@/components/shell";
 import { ThemeSwitch } from "@/components/theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { routes } from "@/config";
@@ -53,7 +54,13 @@ export default function ChildSettingsPage() {
   return (
     <div className="mx-auto grid w-full max-w-2xl gap-6">
       <h1 className="text-h1">Settings</h1>
-      <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
+      <Suspense
+        fallback={
+          <SlowFallback>
+            <div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />
+          </SlowFallback>
+        }
+      >
         <ChildSettings />
       </Suspense>
     </div>

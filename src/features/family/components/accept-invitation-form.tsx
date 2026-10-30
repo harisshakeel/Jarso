@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Field, FieldError, FormError } from "@/components/form";
 import { Button, buttonVariants, Checkbox, Label } from "@/components/ui";
 import { routes } from "@/config";
-import { type ActionResult, type ActionState, idle } from "@/lib";
+import { useOnlineActionState } from "@/features/offline";
+import type { ActionResult, ActionState } from "@/lib";
 import { acceptInvitationAction, acceptListedInvitationAction } from "../server/actions";
 
 /** Both accept actions, as this form calls them: always with FormData. */
@@ -33,8 +34,8 @@ export function AcceptInvitationForm({
   invitationId,
   nickname: suggested,
 }: AcceptInvitationFormProps) {
-  const submit: SubmitAction = invitationId ? acceptListedInvitationAction : acceptInvitationAction;
-  const [state, action, pending] = useActionState(submit, idle);
+  const accept: SubmitAction = invitationId ? acceptListedInvitationAction : acceptInvitationAction;
+  const [state, formAction, pending, submit] = useOnlineActionState(accept);
   // Controlled so they survive a failed submit (React resets uncontrolled fields); the PIN clears.
   const [nickname, setNickname] = useState(suggested);
   const [consent, setConsent] = useState(false);
@@ -42,7 +43,7 @@ export function AcceptInvitationForm({
   const consentErrors = fieldErrors?.consent;
 
   return (
-    <form action={action} className="grid gap-6" noValidate>
+    <form action={formAction} onSubmit={submit} className="grid gap-6" noValidate>
       {invitationId ? (
         <input type="hidden" name="invitationId" value={invitationId} />
       ) : (
@@ -88,7 +89,7 @@ export function AcceptInvitationForm({
         <FieldError id="consent-error" errors={consentErrors} />
       </div>
 
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
           Not now

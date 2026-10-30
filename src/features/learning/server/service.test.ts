@@ -183,9 +183,46 @@ describe("completeMission", () => {
       hints: 0,
     });
   });
+
+  it("forwards occurredAt to the RPC", async () => {
+    const results = firstMission.steps
+      .filter((s) => s.type !== "info")
+      .map((s) => ({
+        stepKey: s.key,
+        phase: "main" as const,
+        correct: true,
+        hintsUsed: 0,
+        tries: 1,
+      }));
+    vi.mocked(repo.listStepResults).mockResolvedValue(new Map([[attempt.id, results]]));
+    vi.mocked(repo.completeMission).mockResolvedValue(true);
+    await service.completeMission(attempt.id, "2026-10-29T10:00:00Z");
+    expect(repo.completeMission).toHaveBeenCalledWith(
+      { kind: "user" },
+      attempt.id,
+      "2026-10-29T10:00:00Z",
+    );
+  });
 });
 
 describe("recordPractice", () => {
+  it("forwards occurredAt to the RPC", async () => {
+    const item = content.reviewPool[0];
+    if (!item) throw new Error("missing review item");
+    vi.mocked(repo.recordPracticeResult).mockResolvedValue(true);
+    await service.recordPractice({
+      itemKey: item.key,
+      answer: { kind: "option", optionId: "a" },
+      hintsUsed: 0,
+      tries: 1,
+      occurredAt: "2026-10-29T10:00:00Z",
+    });
+    expect(repo.recordPracticeResult).toHaveBeenCalledWith(
+      { kind: "user" },
+      expect.objectContaining({ itemKey: item.key, occurredAt: "2026-10-29T10:00:00Z" }),
+    );
+  });
+
   it("refuses an unknown item", async () => {
     await expect(
       service.recordPractice({

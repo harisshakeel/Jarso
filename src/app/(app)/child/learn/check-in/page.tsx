@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
 import { MissionPlayer } from "@/features/learning";
@@ -33,6 +34,7 @@ async function CheckInContent() {
       mode={{ kind: "check-in" }}
       steps={checkIn.questions}
       currency={family.currency}
+      userId={user.id}
       intro={{
         eyebrow: "Before mission 1",
         heading: "Five quick questions.",
@@ -54,7 +56,13 @@ export default function CheckInPage() {
         <ChevronLeftIcon aria-hidden className="size-5" />
         Learn
       </Link>
-      <Suspense fallback={<div aria-hidden className="shimmer h-80 rounded-2xl bg-muted" />}>
+      <Suspense
+        fallback={
+          <SlowFallback>
+            <div aria-hidden className="shimmer h-80 rounded-2xl bg-muted" />
+          </SlowFallback>
+        }
+      >
         <CheckInContent />
       </Suspense>
     </div>

@@ -34,6 +34,15 @@ describe("purchaseSchema", () => {
   });
 });
 
+describe("purchaseSchema occurredAt", () => {
+  it("drops a client occurredAt: only the server sets the time", () => {
+    const occurredAt = "2026-10-29T18:30:00.000+01:00";
+    expect(schema.parse({ amount: "3", idempotencyKey: uuid, occurredAt })).not.toHaveProperty(
+      "occurredAt",
+    );
+  });
+});
+
 describe("undoSchema", () => {
   it("needs an entry id", () => {
     expect(undoSchema.parse({ entryId: uuid })).toEqual({ entryId: uuid });

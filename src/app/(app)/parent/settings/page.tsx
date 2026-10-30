@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
 import { Suspense } from "react";
 import { z } from "zod";
-import { PageTabs } from "@/components/shell";
+import { PageTabs, SlowFallback } from "@/components/shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { routes } from "@/config";
 import {
@@ -132,7 +132,13 @@ export default function ParentSettingsPage({ searchParams }: Props) {
   return (
     <div className="mx-auto grid w-full max-w-2xl gap-6">
       <h1 className="text-h1">Settings</h1>
-      <Suspense fallback={<SettingsSkeleton />}>
+      <Suspense
+        fallback={
+          <SlowFallback>
+            <SettingsSkeleton />
+          </SlowFallback>
+        }
+      >
         <ParentSettings searchParams={searchParams} />
       </Suspense>
     </div>

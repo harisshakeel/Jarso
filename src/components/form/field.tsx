@@ -49,13 +49,31 @@ export function FieldError({ id, errors }: { id?: string; errors?: string[] }) {
   );
 }
 
-/** Form-level error (not tied to one field), announced to screen readers. */
-export function FormError({ message }: { message?: string }) {
-  if (!message) return null;
+/**
+ * Form-level error (not tied to one field), announced to screen readers. Pass the action's
+ * `error` to let the code pick the style: `UNAVAILABLE` (offline, slow) is a calm notice in
+ * muted text with no alert icon; anything else is destructive. `message` is for plain strings.
+ */
+export function FormError({
+  error,
+  message,
+}: {
+  error?: { code: string; message: string };
+  message?: string;
+}) {
+  const text = error?.message ?? message;
+  if (!text) return null;
+  if (error?.code === "UNAVAILABLE") {
+    return (
+      <p role="status" className="text-ink-2 text-sm">
+        {text}
+      </p>
+    );
+  }
   return (
     <p role="alert" className="flex items-start gap-1.5 text-destructive text-sm">
       <CircleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
-      {message}
+      {text}
     </p>
   );
 }

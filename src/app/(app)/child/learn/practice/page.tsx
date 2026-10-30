@@ -3,12 +3,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
 import { StepGuide } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
 import { MissionPlayer } from "@/features/learning";
 import { getPracticeSet } from "@/features/learning/server";
+
+// The guide action runs on this page: allow a full guide turn (45 s) plus saving it.
+export const maxDuration = 60;
 
 export const metadata: Metadata = { title: "Practice" };
 
@@ -46,6 +50,7 @@ async function PracticeContent() {
         mode={{ kind: "practice" }}
         steps={items}
         currency={family.currency}
+        userId={user.id}
         doneHref={routes.childLearn}
         doneLabel="Back to Learn"
         stepAside={guide.available ? <StepGuide introNeeded={guide.introNeeded} /> : undefined}
@@ -64,7 +69,13 @@ export default function PracticePage() {
         <ChevronLeftIcon aria-hidden className="size-5" />
         Learn
       </Link>
-      <Suspense fallback={<div aria-hidden className="shimmer h-80 rounded-2xl bg-muted" />}>
+      <Suspense
+        fallback={
+          <SlowFallback>
+            <div aria-hidden className="shimmer h-80 rounded-2xl bg-muted" />
+          </SlowFallback>
+        }
+      >
         <PracticeContent />
       </Suspense>
     </div>

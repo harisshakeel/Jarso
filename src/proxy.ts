@@ -10,8 +10,11 @@ const matches = (pathname: string, prefixes: readonly string[]) =>
  * Real authorization lives in the DAL (src/features/auth/server/session.ts) and RLS.
  */
 export async function proxy(request: NextRequest) {
-  const { response, claims } = await updateSession(request);
+  const { response, claims, unavailable } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
+
+  // Session unknown (Supabase timed out): do not guess. The DAL decides.
+  if (unavailable) return response;
 
   if (!claims && matches(pathname, [routes.child])) {
     // Children sign in with their family code and PIN, never the parent login.

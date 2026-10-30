@@ -1,9 +1,26 @@
+import { AuthRetryableFetchError } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const signUpMock = vi.fn();
+const signOutMock = vi.fn();
+const unsubscribe = vi.fn();
+/** The auth listener the action registered, so a test can say SIGNED_OUT like auth-js. */
+let authListener: (event: string) => void = () => {};
+const onAuthStateChange = vi.fn((listener: (event: string) => void) => {
+  authListener = listener;
+  return { data: { subscription: { unsubscribe } } };
+});
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({ auth: { signUp: signUpMock } })),
+  createClient: vi.fn(async () => ({
+    auth: { signUp: signUpMock, signOut: signOutMock, onAuthStateChange },
+  })),
 }));
+
+const warnMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/logger", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("@/lib/logger")>();
+  return { ...mod, logger: { ...mod.logger, warn: warnMock } };
+});
 
 class Redirect extends Error {
   constructor(readonly url: string) {
@@ -19,7 +36,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const { signUp } = await import("./actions");
+const { signOut, signUp } = await import("./actions");
 
 const input = { email: "parent@example.com", password: "long enough", fullName: "Pat" };
 
@@ -63,5 +80,54 @@ describe("signUp", () => {
     signUpMock.mockResolvedValue({ data: { session: {} }, error: null });
 
     await expect(signUp(null, input)).rejects.toMatchObject({ url: "/dashboard" });
+  });
+});
+
+describe("signOut", () => {
+  beforeEach(() => {
+    signOutMock.mockReset();
+    warnMock.mockReset();
+    unsubscribe.mockReset();
+  });
+
+  /** auth-js removes the session (SIGNED_OUT), then reports `error`. */
+  function signOutRemoving(error: unknown) {
+    signOutMock.mockImplementation(async () => {
+      authListener("SIGNED_OUT");
+      return { error };
+    });
+  }
+
+  it("logs and still redirects when the revoke call errors but the session is gone", async () => {
+    signOutRemoving(new AuthRetryableFetchError("x", 0));
+
+    await expect(signOut(null, {})).rejects.toMatchObject({ url: "/login" });
+
+    expect(warnMock).toHaveBeenCalledWith("Sign-out revoke failed", {
+      name: "AuthRetryableFetchError",
+      status: 0,
+      code: undefined,
+      removed: true,
+    });
+    expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it("returns UNAVAILABLE instead of a bounce when the session could not be removed", async () => {
+    // _useSession failed (a refresh timed out): no SIGNED_OUT, the cookies are still there.
+    signOutMock.mockResolvedValue({ error: new AuthRetryableFetchError("x", 503) });
+
+    expect(await signOut(null, {})).toEqual({
+      ok: false,
+      error: { code: "UNAVAILABLE", message: "Jarso is taking a while. Please try again." },
+    });
+    expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it("redirects without logging when the revoke call succeeds", async () => {
+    signOutRemoving(null);
+
+    await expect(signOut(null, {})).rejects.toMatchObject({ url: "/login" });
+
+    expect(warnMock).not.toHaveBeenCalled();
   });
 });

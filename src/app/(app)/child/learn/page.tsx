@@ -2,6 +2,7 @@ import { BookOpenIcon, ChevronRightIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { requireRole } from "@/features/family/server";
 import {
@@ -67,7 +68,13 @@ function LearnSkeleton() {
 export default function LearnPage() {
   return (
     <div className="mx-auto grid w-full max-w-2xl gap-6">
-      <Suspense fallback={<LearnSkeleton />}>
+      <Suspense
+        fallback={
+          <SlowFallback>
+            <LearnSkeleton />
+          </SlowFallback>
+        }
+      >
         <LearnContent />
       </Suspense>
     </div>

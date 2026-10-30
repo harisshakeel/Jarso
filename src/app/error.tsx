@@ -11,7 +11,8 @@ export default function ErrorBoundary({ error, retry }: { error: unknown; retry:
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-      <h2 className="font-semibold text-xl">Something went wrong</h2>
+      <h2 className="font-semibold text-xl">We couldn't load this</h2>
+      <p className="text-ink-2">Check your connection and try again.</p>
       <Button onClick={retry}>Try again</Button>
     </main>
   );

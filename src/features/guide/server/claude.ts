@@ -84,15 +84,18 @@ export function createAnthropicProvider(apiKey: string): GuideProvider {
   return {
     name: "anthropic",
 
-    async screenInput({ text, history }) {
+    async screenInput({ text, history, signal }) {
       const response = await parsed(() =>
-        client.messages.parse({
-          model: SCREEN_MODEL,
-          max_tokens: 1024,
-          system: INPUT_SCREEN_PROMPT,
-          messages: [{ role: "user", content: transcript(history, text) }],
-          output_config: { effort: "low", format: zodOutputFormat(inputScreenSchema) },
-        }),
+        client.messages.parse(
+          {
+            model: SCREEN_MODEL,
+            max_tokens: 1024,
+            system: INPUT_SCREEN_PROMPT,
+            messages: [{ role: "user", content: transcript(history, text) }],
+            output_config: { effort: "low", format: zodOutputFormat(inputScreenSchema) },
+          },
+          { signal },
+        ),
       );
       // A refused or unreadable screen fails toward support: the child gets the safety reply
       // (helplines, "talk to an adult you trust") and the chat is flagged.
@@ -142,30 +145,33 @@ export function createAnthropicProvider(apiKey: string): GuideProvider {
       return { kind: "ok", reply: response.parsed_output, usage: counted, model: MAIN_MODEL };
     },
 
-    async screenOutput({ reply, childText, context }) {
+    async screenOutput({ reply, childText, context, signal }) {
       const response = await parsed(() =>
-        client.messages.parse({
-          model: SCREEN_MODEL,
-          max_tokens: 1024,
-          system: OUTPUT_SCREEN_PROMPT,
-          messages: [
-            {
-              role: "user",
-              content: [
-                "<context>",
-                context,
-                "</context>",
-                "<child_message>",
-                escapeTags(childText),
-                "</child_message>",
-                "<guide_reply>",
-                escapeTags(reply),
-                "</guide_reply>",
-              ].join("\n"),
-            },
-          ],
-          output_config: { effort: "low", format: zodOutputFormat(outputScreenSchema) },
-        }),
+        client.messages.parse(
+          {
+            model: SCREEN_MODEL,
+            max_tokens: 1024,
+            system: OUTPUT_SCREEN_PROMPT,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  "<context>",
+                  context,
+                  "</context>",
+                  "<child_message>",
+                  escapeTags(childText),
+                  "</child_message>",
+                  "<guide_reply>",
+                  escapeTags(reply),
+                  "</guide_reply>",
+                ].join("\n"),
+              },
+            ],
+            output_config: { effort: "low", format: zodOutputFormat(outputScreenSchema) },
+          },
+          { signal },
+        ),
       );
       const usage = response ? tokens(response.usage) : null;
       const verdict = response?.parsed_output;

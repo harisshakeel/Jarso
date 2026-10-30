@@ -24,6 +24,7 @@ vi.mock("./repository", () => ({
   findLatestSchedule: vi.fn(),
   findOccurrenceChildId: vi.fn(),
   findScheduleChildId: vi.fn(),
+  findScheduleState: vi.fn(),
   insertGift: vi.fn(),
   insertSchedule: vi.fn(),
   listDueForParent: vi.fn(),
@@ -95,7 +96,14 @@ const mutations: [string, () => Promise<unknown>][] = [
   ["stopAllowance", () => service.stopAllowance("s-1")],
   [
     "createGift",
-    () => service.createGift({ childId, amountMinor: 1000, giveOn: "2026-11-01", note: null }),
+    () =>
+      service.createGift({
+        childId,
+        amountMinor: 1000,
+        giveOn: "2026-11-01",
+        note: null,
+        idempotencyKey: "gift-key-1",
+      }),
   ],
   [
     "updateGift",
@@ -199,6 +207,77 @@ describe("conflicts", () => {
     });
   });
 
+  describe("a repeat that finds its work already done", () => {
+    const state = (status: "active" | "paused" | "stopped", pausedThrough: string | null = null) =>
+      vi.mocked(repo.findScheduleState).mockResolvedValue({ status, pausedThrough });
+    const pause = () =>
+      service.pauseAllowance({ scheduleId: "s-1", through: "2026-11-10", message: null });
+
+    it("stop: already stopped is done", async () => {
+      vi.mocked(repo.stopSchedule).mockRejectedValue(conflict());
+      state("stopped");
+      await expect(service.stopAllowance("s-1")).resolves.toBeUndefined();
+    });
+
+    it("resume: already active is done", async () => {
+      vi.mocked(repo.resumeSchedule).mockRejectedValue(conflict());
+      state("active");
+      await expect(service.resumeAllowance("s-1")).resolves.toBeUndefined();
+    });
+
+    it("resume: stopped is still a CONFLICT", async () => {
+      vi.mocked(repo.resumeSchedule).mockRejectedValue(conflict());
+      state("stopped");
+      await expect(service.resumeAllowance("s-1")).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: "This allowance isn't paused.",
+      });
+    });
+
+    it("pause: already paused through the same date is done", async () => {
+      vi.mocked(repo.pauseSchedule).mockRejectedValue(conflict());
+      state("paused", "2026-11-10");
+      await expect(pause()).resolves.toBeUndefined();
+    });
+
+    it.each([
+      ["stopped", null],
+      ["paused", "2026-12-01"],
+    ] as const)("pause: %s (through %s) is still a CONFLICT", async (status, through) => {
+      vi.mocked(repo.pauseSchedule).mockRejectedValue(conflict());
+      state(status, through);
+      await expect(pause()).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: "This allowance isn't running, so it can't pause.",
+      });
+    });
+
+    it("cancel gift: already cancelled is done", async () => {
+      vi.mocked(repo.cancelPendingGift).mockRejectedValue(conflict());
+      vi.mocked(repo.findGift)
+        .mockResolvedValueOnce(gift)
+        .mockResolvedValueOnce({ ...gift, status: "cancelled" });
+      await expect(service.cancelGift("gift-1")).resolves.toBeUndefined();
+    });
+
+    it("cancel gift: handed over is still a CONFLICT", async () => {
+      vi.mocked(repo.cancelPendingGift).mockRejectedValue(conflict());
+      vi.mocked(repo.findGift)
+        .mockResolvedValueOnce(gift)
+        .mockResolvedValueOnce({ ...gift, status: "given" });
+      await expect(service.cancelGift("gift-1")).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: "This gift was already handed over or cancelled.",
+      });
+    });
+
+    it("a failed re-read keeps the CONFLICT", async () => {
+      vi.mocked(repo.stopSchedule).mockRejectedValue(conflict());
+      vi.mocked(repo.findScheduleState).mockRejectedValue(new AppError("UNAVAILABLE", "slow"));
+      await expect(service.stopAllowance("s-1")).rejects.toMatchObject({ code: "CONFLICT" });
+    });
+  });
+
   it("leaves other errors alone", async () => {
     vi.mocked(repo.stopSchedule).mockRejectedValue(new AppError("INTERNAL", "boom"));
     await expect(service.stopAllowance("s-1")).rejects.toMatchObject({ code: "INTERNAL" });
@@ -277,6 +356,23 @@ describe("markNotGiven", () => {
   it("passes already_handled through", async () => {
     vi.mocked(repo.closeOccurrence).mockResolvedValue("already_handled");
     await expect(service.markNotGiven("occ-1")).resolves.toBe("already_handled");
+  });
+});
+
+describe("createGift", () => {
+  it("forwards the idempotency key", async () => {
+    vi.mocked(repo.insertGift).mockResolvedValue("gift-1");
+    await service.createGift({
+      childId,
+      amountMinor: 1000,
+      giveOn: "2026-11-01",
+      note: null,
+      idempotencyKey: "gift-key-1",
+    });
+    expect(repo.insertGift).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ idempotencyKey: "gift-key-1" }),
+    );
   });
 });
 

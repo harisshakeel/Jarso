@@ -48,6 +48,8 @@ Never run the `--reveal` command on its own: it prints every secret key. Without
 
 Applied from the repo: `supabase/config.toml` has a `[remotes.production]` block (Site URL, redirect URLs for production and localhost, secure password change, and the hosted-only values pinned). `supabase config diff` previews, `supabase config push --yes` applies. Dashboard-only items and the free-tier email limits are in `docs/auth.md` → "Hosted setup".
 
+Runbook step: Supabase → Authentication → Sessions → Refresh token reuse interval: 30 seconds. Set by someone with dashboard access. It needs no deploy and takes effect immediately.
+
 ## How deploys happen
 
 - **Git integration (preferred):** connect the GitHub repo in Vercel → Project → Settings → Git. Afterwards every push to `main` deploys to production and every PR gets a preview URL. CI on GitHub still gates merges; Vercel builds independently.

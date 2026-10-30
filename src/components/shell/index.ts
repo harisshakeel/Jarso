@@ -4,3 +4,4 @@ export * from "./bottom-nav";
 export * from "./child-nav";
 export * from "./page-tabs";
 export * from "./parent-nav";
+export * from "./slow-fallback";

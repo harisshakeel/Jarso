@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
 import { Field, FormError } from "@/components/form";
 import { Button, Card, CardContent } from "@/components/ui";
-import { idle } from "@/lib";
+import { useOnlineActionState } from "@/features/offline";
 import { startChildOnboardingAction } from "../server/actions";
 import { InviteShareCard } from "./invite-share-card";
 
@@ -12,14 +11,14 @@ import { InviteShareCard } from "./invite-share-card";
  * email (invariant 16), then swaps to the share card with the link and code.
  */
 export function StartOnboardingForm() {
-  const [state, action, pending] = useActionState(startChildOnboardingAction, idle);
+  const [state, formAction, pending, submit] = useOnlineActionState(startChildOnboardingAction);
   if (state?.ok) return <InviteShareCard link={state.data.link} code={state.data.code} />;
 
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
   return (
     <Card className="rise-in shadow-raised">
       <CardContent>
-        <form action={action} className="grid gap-6" noValidate>
+        <form action={formAction} onSubmit={submit} className="grid gap-6" noValidate>
           <Field
             name="nickname"
             label="Your nickname"
@@ -38,9 +37,7 @@ export function StartOnboardingForm() {
             description="We'll send them a link to say yes."
             errors={fieldErrors?.parentEmail}
           />
-          <FormError
-            message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-          />
+          <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
           <Button type="submit" variant="keycap" size="lg" className="w-full" loading={pending}>
             Ask my parent
           </Button>

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { AmountField, FormError } from "@/components/form";
 import { Button, Switch } from "@/components/ui";
+import { runOnline } from "@/features/offline";
 import { parseMoney, toMajorString } from "@/lib";
 import { describeRule } from "../describe";
 import { setRuleAction } from "../server/actions";
@@ -31,7 +32,7 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
   const [on, setOn] = useState(Boolean(rule));
   const [amount, setAmount] = useState(rule ? toMajorString(rule.amountMinor, currency) : "");
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<{ code: string; message: string }>();
   const [fieldError, setFieldError] = useState<string>();
   const id = `${kind}-${period}`;
 
@@ -39,11 +40,17 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
     setError(undefined);
     setFieldError(undefined);
     start(async () => {
-      const result = await setRuleAction(null, { childId, kind, period, amount: value });
-      if (result.ok) return onOk();
-      const first = result.error.fieldErrors?.amount?.[0];
-      if (first) setFieldError(first);
-      else setError(result.error.message);
+      const result = await runOnline(() =>
+        setRuleAction(null, { childId, kind, period, amount: value }),
+      );
+      // Updates after an await leave the transition unless wrapped again. Wrapped, they commit
+      // with `pending` turning false, so the new sentence never shows beside a disabled switch.
+      start(() => {
+        if (result.ok) return onOk();
+        const first = result.error.fieldErrors?.amount?.[0];
+        if (first) setFieldError(first);
+        else setError(result.error);
+      });
     });
   }
 
@@ -100,7 +107,7 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
           </Button>
         </div>
       ) : null}
-      <FormError message={error} />
+      <FormError error={error} />
     </form>
   );
 }

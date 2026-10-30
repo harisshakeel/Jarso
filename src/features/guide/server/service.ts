@@ -90,8 +90,48 @@ function onTopicHistory(messages: repo.MessageRow[]): Turn[] {
   return turns;
 }
 
-/** One message to the guide from the signed-in child. */
+type Client = ReturnType<typeof createAdminClient>;
+
+/**
+ * The answer already stored for this question, for a re-send after a lost reply. It is read
+ * back as stored: a quick check is part of the reply text, and topic links are not kept.
+ */
+async function storedTurn(
+  admin: Client,
+  childId: string,
+  clientMessageId: string,
+): Promise<AskGuideResult | null> {
+  const turn = await repo.findTurn(admin, childId, clientMessageId);
+  if (!turn) return null;
+  const messages = await repo.listMessages(await createClient(), [turn.conversationId]);
+  const reply = messages.find((message) => message.id === turn.replyId);
+  if (!reply || reply.role === "child" || !reply.route) {
+    throw new AppError("INTERNAL", "Failed to load the chat");
+  }
+  const family = reply.route === "safety" ? await getFamily() : null;
+  const turns = messages.filter((message) => message.role === "child").length;
+  return {
+    conversationId: turn.conversationId,
+    reply: {
+      messageId: reply.role === "guide" ? reply.id : null,
+      role: reply.role,
+      text: reply.text,
+      route: reply.route,
+      topics: [],
+      check: null,
+      helplines: family ? helplinesFor(family.currency) : [],
+    },
+    turnsLeft: Math.max(0, MAX_TURNS - turns),
+  };
+}
+
+/**
+ * One message to the guide from the signed-in child. A question already answered (same
+ * `clientMessageId`) gets its stored reply once the guide is confirmed on, before anything is
+ * counted or sent to the model.
+ */
 export async function askGuide(input: {
+  clientMessageId: string;
   conversationId: string | null;
   context: GuideContextRef;
   text: string;
@@ -103,6 +143,10 @@ export async function askGuide(input: {
   if (!(await repo.findGuideAccess(db, user.id))) {
     throw new AppError("FORBIDDEN", guideCopy.switchedOff);
   }
+  // After the switch (a child-safety boundary), before anything is counted or sent.
+  const admin = createAdminClient();
+  const replay = await storedTurn(admin, user.id, input.clientMessageId);
+  if (replay) return replay;
   const family = await getFamily();
   if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
 
@@ -122,7 +166,6 @@ export async function askGuide(input: {
     history = onTopicHistory(await repo.listMessages(db, [conversationId]));
   }
 
-  const admin = createAdminClient();
   if (!(await repo.hitRateLimit(admin, `guide:min:${user.id}`, "1 minute", PER_MINUTE))) {
     throw new AppError("RATE_LIMITED", guideCopy.rateLimitedMinute);
   }
@@ -162,8 +205,12 @@ export async function askGuide(input: {
       model: result.model,
       usage: result.usage,
       latencyMs: result.latencyMs,
+      clientMessageId: input.clientMessageId,
     });
   } catch (error) {
+    // The same question raced in and was stored first: answer with that turn.
+    const raced = await storedTurn(admin, user.id, input.clientMessageId).catch(() => null);
+    if (raced) return raced;
     // Two messages raced for the last turn of a chat.
     if (isAppError(error) && error.code === "CONFLICT") {
       throw new AppError("CONFLICT", guideCopy.chatFull, { cause: error });

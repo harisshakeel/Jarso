@@ -20,7 +20,8 @@ import {
   CardContent,
 } from "@/components/ui";
 import { routes } from "@/config";
-import { formatMoney } from "@/lib";
+import { runOnline } from "@/features/offline";
+import { type ActionResult, formatMoney } from "@/lib";
 import { cadenceAfterAmount, formatDay } from "../describe";
 import { resumeAllowanceAction, stopAllowanceAction } from "../server/actions";
 import type { Schedule } from "../types";
@@ -105,21 +106,24 @@ function PausedNote({ schedule }: { schedule: Schedule }) {
 /** Runs a Server Action by id and reports a friendly failure; the action refreshes the page. */
 function useIdAction(
   scheduleId: string,
-  run: (id: string) => Promise<{ ok: true } | { ok: false; error: { message: string } }>,
+  run: (id: string) => Promise<ActionResult<unknown>>,
   success: string,
 ) {
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<{ code: string; message: string }>();
   function submit(onDone?: () => void) {
     setError(undefined);
     start(async () => {
-      const result = await run(scheduleId);
-      if (result.ok) {
-        toast.success(success);
-        onDone?.();
-      } else {
-        setError(result.error.message);
-      }
+      const result = await runOnline(() => run(scheduleId));
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      start(() => {
+        if (result.ok) {
+          toast.success(success);
+          onDone?.();
+        } else {
+          setError(result.error);
+        }
+      });
     });
   }
   return { pending, error, submit };
@@ -136,7 +140,7 @@ function ResumeButton({ scheduleId }: { scheduleId: string }) {
       <Button size="lg" loading={pending} onClick={() => submit()}>
         Resume
       </Button>
-      <FormError message={error} />
+      <FormError error={error} />
     </div>
   );
 }
@@ -166,7 +170,7 @@ function StopButton({ scheduleId, nickname }: { scheduleId: string; nickname: st
           <AlertDialogTitle>Stop {nickname}'s allowance?</AlertDialogTitle>
           <AlertDialogDescription>Anything already due stays due.</AlertDialogDescription>
         </AlertDialogHeader>
-        <FormError message={error} />
+        <FormError error={error} />
         <AlertDialogFooter>
           <AlertDialogCancel>Keep it</AlertDialogCancel>
           <Button

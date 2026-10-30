@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui";
+import { runOnline, useFormSubmit } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { updateFamilySettingsAction } from "../server/actions";
 
@@ -28,15 +29,16 @@ export function FamilySettingsForm({ timezone }: { timezone: string }) {
   const zones = useMemo(() => timezoneOptions(timezone), [timezone]);
   const items = useMemo(() => Object.fromEntries(zones.map((zone) => [zone, zone])), [zones]);
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
-    const result = await updateFamilySettingsAction(prev, formData);
+    const result = await runOnline(() => updateFamilySettingsAction(prev, formData));
     if (result.ok) toast.success("Family settings saved");
     return result;
   }, idle);
+  const submit = useFormSubmit(action);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
   const timezoneErrors = fieldErrors?.timezone;
 
   return (
-    <form action={action} className="grid gap-4" noValidate>
+    <form action={action} onSubmit={submit} className="grid gap-4" noValidate>
       <div className="grid gap-2">
         <Label htmlFor="timezone">Timezone</Label>
         <Select
@@ -70,7 +72,7 @@ export function FamilySettingsForm({ timezone }: { timezone: string }) {
         </p>
         <FieldError id="timezone-error" errors={timezoneErrors} />
       </div>
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" loading={pending} disabled={chosen === timezone}>
         Save
       </Button>

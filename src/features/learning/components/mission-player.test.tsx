@@ -1,17 +1,30 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { OutboxItem, SubmitResult } from "@/features/offline";
 import type { Step, StepResult } from "../types";
 import { MissionPlayer } from "./mission-player";
 
-vi.mock("../server/actions", () => ({
-  completeCheckInAction: vi.fn(),
-  completeMissionAction: vi.fn(),
-  recordPracticeAction: vi.fn(),
-  recordStepAction: vi.fn(),
-  startMissionAction: vi.fn(),
+const { submitToOutbox, useOutbox, useOnline } = vi.hoisted(() => ({
+  submitToOutbox: vi.fn(),
+  useOutbox: vi.fn(),
+  useOnline: vi.fn(),
+}));
+
+vi.mock("../server/actions", () => ({ startMissionAction: vi.fn() }));
+vi.mock("@/features/offline", async () => ({
+  offlineCopy: (await import("@/features/offline/copy")).offlineCopy,
+  newId: (await import("@/features/offline/outbox/uuid")).uuid,
+  runOnline: (await import("@/features/offline/online-action")).runOnline,
+  showsAsPending: (await import("@/features/offline/outbox/state")).showsAsPending,
+  submitToOutbox,
+  useOutbox,
+  useOnline,
 }));
 
 const actions = await import("../server/actions");
+
+const USER_ID = "child-1";
+const ATTEMPT_ID = "6f1c2b3a-4d5e-4f60-8a7b-9c0d1e2f3a4b";
 
 const hints: [string, string] = ["Look at the price.", "Compare it with {m:900}."];
 const choice = (key: string, answer = "a"): Step => ({
@@ -54,6 +67,7 @@ function renderMission(attemptId: string | null, results: StepResult[] = []) {
       mode={{ kind: "mission", missionKey: "m1", attemptId, results }}
       steps={steps}
       currency="GBP"
+      userId={USER_ID}
       intro={{ eyebrow: "Day 1", heading: "Mission one", body: "About three minutes." }}
       doneHref={"/child/learn" as never}
       doneLabel="Back to Learn"
@@ -74,27 +88,61 @@ async function continueOn() {
   });
 }
 
-beforeEach(() => {
-  vi.mocked(actions.recordStepAction).mockResolvedValue(ok({ correct: true }));
-  vi.mocked(actions.completeMissionAction).mockResolvedValue(
-    ok({ answerable: 2, firstTry: 1, hints: 1 }),
+type Submitted = { userId: string; kind: string; payload: Record<string, unknown> };
+
+/** Every outbox submit so far, in order. */
+function submitted(): Submitted[] {
+  return submitToOutbox.mock.calls.map((call) => call[0] as Submitted);
+}
+
+/** What the server answers for each kind when the item is sent straight away. */
+function sendAll(input: { kind: string }): SubmitResult {
+  if (input.kind === "completeMission")
+    return { status: "sent", data: { answerable: 2, firstTry: 1, hints: 1 } };
+  if (input.kind === "checkIn") return { status: "sent", data: { correctCount: 1 } };
+  return { status: "sent", data: { correct: true } };
+}
+
+async function startMission() {
+  vi.mocked(actions.startMissionAction).mockResolvedValue(
+    ok({ attemptId: ATTEMPT_ID, results: [] }),
   );
+  renderMission(null);
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Start mission" }));
+  });
+}
+
+function waitingItem(status: OutboxItem["status"], attempts = 1): OutboxItem {
+  const now = new Date().toISOString();
+  return {
+    id: "item-1",
+    userId: USER_ID,
+    kind: "step",
+    payload: {},
+    idempotencyKey: "item-1",
+    createdAt: now,
+    attempts,
+    nextAttemptAt: now,
+    status,
+  };
+}
+
+beforeEach(() => {
+  submitToOutbox.mockImplementation(async (input: { kind: string }) => sendAll(input));
+  useOutbox.mockReturnValue([]);
+  useOnline.mockReturnValue(true);
 });
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe("MissionPlayer", () => {
   it("starts, replays a step missed first time once, then finishes", async () => {
-    vi.mocked(actions.startMissionAction).mockResolvedValue(
-      ok({ attemptId: "att-1", results: [] }),
-    );
-    renderMission(null);
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Start mission" }));
-    });
+    await startMission();
     expect(screen.getByRole("heading", { name: "The idea" })).toBeInTheDocument();
     await continueOn();
 
@@ -123,24 +171,129 @@ describe("MissionPlayer", () => {
       expect(screen.getByRole("heading", { name: "Mission done. Nice work." })).toBeInTheDocument(),
     );
     expect(screen.getByText("1 of 2 first try. 1 hint.")).toBeInTheDocument();
-    expect(actions.recordStepAction).toHaveBeenCalledTimes(3);
-    expect(vi.mocked(actions.recordStepAction).mock.calls[1]?.[1]).toMatchObject({
+    // Steps go into the outbox before the completion, so the server gets them in order.
+    expect(submitted().map((s) => s.kind)).toEqual(["step", "step", "step", "completeMission"]);
+    expect(submitted().every((s) => s.userId === USER_ID)).toBe(true);
+    expect(submitted()[1]?.payload).toEqual({
+      attemptId: ATTEMPT_ID,
       stepKey: "two",
       phase: "main",
+      answer: { kind: "option", optionId: "a" },
       tries: 2,
       hintsUsed: 1,
     });
-    expect(actions.completeMissionAction).toHaveBeenCalledWith(null, { attemptId: "att-1" });
+    expect(submitted()[3]?.payload).toEqual({ attemptId: ATTEMPT_ID });
   });
 
-  it("shows the answer after two wrong tries", async () => {
-    vi.mocked(actions.startMissionAction).mockResolvedValue(
-      ok({ attemptId: "att-1", results: [] }),
+  it("a queued step result advances to the next step", async () => {
+    submitToOutbox.mockResolvedValue({ status: "queued" });
+    await startMission();
+    await continueOn();
+    await answer("Option A");
+    await continueOn();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Question two?" })).toBeInTheDocument();
+  });
+
+  it("builds the finish screen on the device when the completion is queued", async () => {
+    submitToOutbox.mockResolvedValue({ status: "queued" });
+    await startMission();
+    await continueOn();
+    await answer("Option A");
+    await continueOn();
+    fireEvent.click(screen.getByRole("button", { name: "Hint" }));
+    await answer("Option A");
+    await continueOn();
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { name: "Mission done. Nice work." })).toBeInTheDocument(),
     );
+    expect(screen.getByText("2 of 2 first try. 1 hint.")).toBeInTheDocument();
+    expect(submitted().map((s) => s.kind)).toEqual(["step", "step", "completeMission"]);
+  });
+
+  it("falls back to the device's own summary when a reply has an unexpected shape", async () => {
+    submitToOutbox.mockImplementation(async (input: { kind: string }) =>
+      input.kind === "completeMission"
+        ? { status: "sent", data: { answerable: "2" } }
+        : sendAll(input),
+    );
+    await startMission();
+    await continueOn();
+    await answer("Option A");
+    await continueOn();
+    await answer("Option A");
+    await continueOn();
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { name: "Mission done. Nice work." })).toBeInTheDocument(),
+    );
+    expect(screen.getByText("2 of 2 first try. No hints.")).toBeInTheDocument();
+  });
+
+  it("falls back to the device's own count when a check-in reply has an unexpected shape", async () => {
+    submitToOutbox.mockResolvedValue({ status: "sent", data: null });
+    render(
+      <MissionPlayer
+        mode={{ kind: "check-in" }}
+        steps={[choice("q1"), choice("q2")]}
+        currency="GBP"
+        userId={USER_ID}
+        intro={{ eyebrow: "Before mission 1", heading: "Five quick questions.", body: "No score." }}
+        doneHref={"/child/learn" as never}
+        doneLabel="Go to your missions"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start the questions" }));
+    for (const option of ["Option A", "Option B"]) {
+      fireEvent.click(screen.getByLabelText(option));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      });
+    }
+    await waitFor(() =>
+      expect(
+        screen.getByText("You already knew 1 of 5. Mission 1 is a quick warm-up."),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("shows Saved on this device while items wait", async () => {
+    useOutbox.mockReturnValue([waitingItem("waiting")]);
+    await startMission();
+    expect(useOutbox).toHaveBeenCalledWith(USER_ID);
+    expect(screen.getByText("Saved on this device.")).toBeInTheDocument();
+    cleanup();
+
+    // An item that needs a look isn't waiting to send, so the note goes.
+    useOutbox.mockReturnValue([waitingItem("needs_look")]);
+    await startMission();
+    expect(screen.queryByText("Saved on this device.")).not.toBeInTheDocument();
+  });
+
+  it("shows no saved-on-device note while an online save is in flight", async () => {
+    // Every result is stored as waiting just before its first send: that alone isn't news.
+    useOutbox.mockReturnValue([waitingItem("waiting", 0), waitingItem("sending", 0)]);
+    await startMission();
+    expect(screen.queryByText("Saved on this device.")).not.toBeInTheDocument();
+    cleanup();
+
+    useOnline.mockReturnValue(false);
+    await startMission();
+    expect(screen.getByText("Saved on this device.")).toBeInTheDocument();
+  });
+
+  it("starting offline shows the offline copy and does not call startMissionAction", async () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     renderMission(null);
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Start mission" }));
     });
+    expect(screen.getByText("You're offline, try again when connected")).toBeInTheDocument();
+    expect(actions.startMissionAction).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Start mission" })).toBeInTheDocument();
+  });
+
+  it("shows the answer after two wrong tries", async () => {
+    await startMission();
     await continueOn();
     await answer("Option B");
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
@@ -151,7 +304,7 @@ describe("MissionPlayer", () => {
   });
 
   it("resumes in the replay phase", async () => {
-    renderMission("att-1", [
+    renderMission(ATTEMPT_ID, [
       { stepKey: "one", phase: "main", correct: true, hintsUsed: 0, tries: 1 },
       { stepKey: "two", phase: "main", correct: false, hintsUsed: 0, tries: 2 },
     ]);
@@ -163,46 +316,62 @@ describe("MissionPlayer", () => {
   });
 
   it("finishes straight away when every step was already answered", async () => {
-    renderMission("att-1", [
+    renderMission(ATTEMPT_ID, [
       { stepKey: "one", phase: "main", correct: true, hintsUsed: 0, tries: 1 },
       { stepKey: "two", phase: "main", correct: true, hintsUsed: 0, tries: 1 },
     ]);
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     });
-    await waitFor(() =>
-      expect(actions.completeMissionAction).toHaveBeenCalledWith(null, { attemptId: "att-1" }),
-    );
+    await waitFor(() => expect(submitted().map((s) => s.kind)).toEqual(["completeMission"]));
+    expect(submitted()[0]?.payload).toEqual({ attemptId: ATTEMPT_ID });
     expect(screen.getByRole("heading", { name: "Mission done. Nice work." })).toBeInTheDocument();
   });
 
-  it("keeps the step and offers a retry when saving fails, including a dropped connection", async () => {
-    vi.mocked(actions.startMissionAction).mockResolvedValue(
-      ok({ attemptId: "att-1", results: [] }),
-    );
-    vi.mocked(actions.recordStepAction).mockRejectedValueOnce(new TypeError("Failed to fetch"));
-    renderMission(null);
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Start mission" }));
-    });
+  it("keeps the step and offers a retry when the device can't save it", async () => {
+    submitToOutbox.mockResolvedValueOnce({ status: "unsaved" });
+    await startMission();
     await continueOn();
     await answer("Option A");
     await continueOn();
-    expect(screen.getByRole("alert")).toHaveTextContent("Check your connection and try again.");
+    expect(screen.getByText("You're offline, try again when connected")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Question one?" })).toBeInTheDocument();
 
     await continueOn();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText("You're offline, try again when connected")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Question two?" })).toBeInTheDocument();
   });
 
+  it("keeps the step with the slow copy when a direct send without storage fails", async () => {
+    submitToOutbox.mockResolvedValueOnce({ status: "unsent" });
+    await startMission();
+    await continueOn();
+    await answer("Option A");
+    await continueOn();
+    expect(screen.getByText("This is taking a while. Try again?")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Question one?" })).toBeInTheDocument();
+  });
+
+  it("keeps the step and shows the server's message when a result is refused", async () => {
+    submitToOutbox.mockResolvedValueOnce({
+      status: "refused",
+      message: "We couldn't find that mission.",
+    });
+    await startMission();
+    await continueOn();
+    await answer("Option A");
+    await continueOn();
+    expect(screen.getByRole("alert")).toHaveTextContent("We couldn't find that mission.");
+    expect(screen.getByRole("heading", { name: "Question one?" })).toBeInTheDocument();
+  });
+
   it("shows no right or wrong in the check-in and reports what the child knew", async () => {
-    vi.mocked(actions.completeCheckInAction).mockResolvedValue(ok({ correctCount: 1 }));
     render(
       <MissionPlayer
         mode={{ kind: "check-in" }}
         steps={[choice("q1"), choice("q2")]}
         currency="GBP"
+        userId={USER_ID}
         intro={{ eyebrow: "Before mission 1", heading: "Five quick questions.", body: "No score." }}
         doneHref={"/child/learn" as never}
         doneLabel="Go to your missions"
@@ -226,11 +395,71 @@ describe("MissionPlayer", () => {
     expect(
       screen.getByText("You already knew 1 of 5. Mission 1 is a quick warm-up."),
     ).toBeInTheDocument();
-    expect(vi.mocked(actions.completeCheckInAction).mock.calls[0]?.[1]).toEqual({
+    expect(submitted().map((s) => s.kind)).toEqual(["checkIn"]);
+    expect(submitted()[0]?.payload).toEqual({
       answers: [
         { stepKey: "q1", answer: { kind: "option", optionId: "b" } },
         { stepKey: "q2", answer: { kind: "option", optionId: "a" } },
       ],
     });
+  });
+
+  it("counts what the child knew on the device when the check-in is queued", async () => {
+    submitToOutbox.mockResolvedValue({ status: "queued" });
+    render(
+      <MissionPlayer
+        mode={{ kind: "check-in" }}
+        steps={[choice("q1"), choice("q2")]}
+        currency="GBP"
+        userId={USER_ID}
+        intro={{ eyebrow: "Before mission 1", heading: "Five quick questions.", body: "No score." }}
+        doneHref={"/child/learn" as never}
+        doneLabel="Go to your missions"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start the questions" }));
+    for (const option of ["Option A", "Option A"]) {
+      fireEvent.click(screen.getByLabelText(option));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      });
+    }
+    await waitFor(() =>
+      expect(
+        screen.getByText("You already knew 2 of 5. Mission 1 is a quick warm-up."),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("saves a practice answer through the outbox", async () => {
+    submitToOutbox.mockResolvedValue({ status: "queued" });
+    render(
+      <MissionPlayer
+        mode={{ kind: "practice" }}
+        steps={[choice("p1")]}
+        currency="GBP"
+        userId={USER_ID}
+        doneHref={"/child/learn" as never}
+        doneLabel="Back to Learn"
+      />,
+    );
+    await answer("Option A");
+    await continueOn();
+    expect(
+      screen.getByRole("heading", { name: "Practice done. Nicely kept fresh." }),
+    ).toBeInTheDocument();
+    expect(submitted()).toEqual([
+      {
+        userId: USER_ID,
+        kind: "practice",
+        payload: {
+          itemKey: "p1",
+          answer: { kind: "option", optionId: "a" },
+          hintsUsed: 0,
+          tries: 1,
+        },
+        idempotencyKey: expect.any(String),
+      },
+    ]);
   });
 });

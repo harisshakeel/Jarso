@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
+import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
 import { StepGuide } from "@/features/guide";
@@ -10,6 +11,9 @@ import { getGuideState } from "@/features/guide/server";
 import { MissionPlayer, topicTitles } from "@/features/learning";
 import { findMission, getMissionSession, missionTopicKey } from "@/features/learning/server";
 import { isAppError } from "@/lib";
+
+// The guide action runs on this page: allow a full guide turn (45 s) plus saving it.
+export const maxDuration = 60;
 
 export const metadata: Metadata = { title: "Mission" };
 
@@ -40,6 +44,7 @@ async function MissionContent({ params }: { params: Promise<{ missionKey: string
       }}
       steps={mission.steps}
       currency={family.currency}
+      userId={user.id}
       intro={{
         eyebrow: `Day ${mission.day} · ${topicTitles[mission.topic]}`,
         heading: mission.title,
@@ -63,7 +68,13 @@ export default function MissionPage({ params }: PageProps<"/child/learn/[mission
         <ChevronLeftIcon aria-hidden className="size-5" />
         Learn
       </Link>
-      <Suspense fallback={<div aria-hidden className="shimmer h-80 rounded-2xl bg-muted" />}>
+      <Suspense
+        fallback={
+          <SlowFallback>
+            <div aria-hidden className="shimmer h-80 rounded-2xl bg-muted" />
+          </SlowFallback>
+        }
+      >
         <MissionContent params={params} />
       </Suspense>
     </div>

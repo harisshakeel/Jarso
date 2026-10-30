@@ -31,6 +31,21 @@ describe("recordPurchase", () => {
     );
   });
 
+  it("forwards occurredAt to the RPC", async () => {
+    vi.mocked(repo.callRecordPurchase).mockResolvedValue({ status: "recorded", entryId: "e1" });
+    await service.recordPurchase({ ...input, occurredAt: "2026-10-29T10:00:00Z" });
+    expect(repo.callRecordPurchase).toHaveBeenCalledWith(
+      { kind: "user" },
+      {
+        childId: "child-1",
+        amountMinor: 500,
+        label: "",
+        idempotencyKey: "key-1",
+        occurredAt: "2026-10-29T10:00:00Z",
+      },
+    );
+  });
+
   it("passes not_enough_spend through", async () => {
     vi.mocked(repo.callRecordPurchase).mockResolvedValue({
       status: "not_enough_spend",

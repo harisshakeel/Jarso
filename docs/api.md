@@ -51,3 +51,27 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | GET | `/api/health` | – | Liveness |
 | GET | `/api/v1/me` | user | Current user's profile |
 | PATCH | `/api/v1/me` | user | Update profile (`updateProfileSchema`) |
+| POST | `/api/v1/outbox` | child | One queued child action from the device outbox (`outboxRequestSchema`) |
+
+### `POST /api/v1/outbox`
+
+Called only by the device outbox (`src/features/offline/outbox/send.ts`), one item at a time.
+Body: `{ kind, userId, ageMs, payload }`, `kind` one of `purchase | practice | step |
+completeMission | checkIn`. `payload` is exactly that feature's schema input
+(`purchaseSchema(currency)`, `recordPracticeSchema`, `recordStepSchema`, `completeMissionSchema`,
+`completeCheckInSchema`); none has a time, so a client `occurredAt` is stripped. `ageMs` (integer
+≥ 0) is how long ago the child did it on the device clock; the route sets `occurredAt = now -
+min(ageMs, 7 days - 1 min)` on the server clock for purchases, practice and mission completion,
+so a wrong device clock cancels out. The route calls the same service as the online form, so
+`assertRole("child")` and the idempotency keys apply unchanged.
+
+| Status | Meaning | Outbox does |
+| --- | --- | --- |
+| 200 `{ data }` | The service's result (a replayed key returns the original entry) | Removes the item |
+| 400 `VALIDATION` | Unknown `kind` or a payload the schema refuses; message is the calm 22023 wording | "Needs a look" |
+| 401 `UNAUTHORIZED` | Signed out, or `userId` is not the signed-in user | Pauses the item |
+| 403 `FORBIDDEN` | Not a child (`assertRole`), or a cross-origin request (`withApi` guard) | "Needs a look" |
+| 409 `CONFLICT` | A purchase larger than the Spend jar (the purchase sheet's sentence) | "Needs a look" |
+| 503 `UNAVAILABLE` | The database was slow or down | Retries with backoff |
+
+Every refusal message is shown to the child, so it never carries Zod details. `maxDuration = 30`.

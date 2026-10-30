@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(86);
+select plan(94);
 
 -- Fixtures: family A with parent PA and children C and C2; family B with parent PB and child CB.
 -- LONE is a child account in no family.
@@ -313,6 +313,39 @@ select ok(public.complete_checkin(1, 5, 3), 'a child completes the check-in');
 select ok(not public.complete_checkin(1, 5, 5), 'the check-in happens once');
 select tests.authenticate_as(:'cb'::uuid);
 select throws_ok($$ select public.complete_checkin(1, 5, 6) $$, '22023', null, 'more right than questions is refused');
+
+-- ---------------------------------------------------------------------------
+-- Device action time (p_occurred_at): queued learning results keep their day (CB, UTC)
+-- ---------------------------------------------------------------------------
+
+select tests.authenticate_as(:'cb'::uuid);
+select ok(public.record_practice_result('late-1', 'balance.afford', true, 0, 1, now() - interval '1 day'),
+  'a queued practice answer from yesterday is recorded');
+select is(
+  (select string_agg(answered_on::text, ',') from public.practice_results where child_id = :'cb'::uuid and item_key = 'late-1'),
+  (public.family_today(:'fb'::uuid, now() - interval '1 day'))::text,
+  'record_practice_result yesterday counts toward yesterday, not today');
+select ok(public.record_practice_result('late-1', 'balance.afford', true, 0, 1),
+  'the same item can still be answered today');
+select public.start_mission('whats-in-spend', 1) as cb_attempt \gset
+select public.record_step_result(:'cb_attempt'::uuid, 'how-many-packs', 'main', 'amount', 'balance.afford', true, 0, 1);
+select tests.clear_auth();
+update public.mission_attempts set started_at = now() - interval '2 days' where id = :'cb_attempt'::uuid;
+select tests.authenticate_as(:'cb'::uuid);
+select ok(public.complete_mission(:'cb_attempt'::uuid, now() - interval '1 day'),
+  'a queued mission completion is accepted');
+select is((select completed_at from public.mission_attempts where id = :'cb_attempt'::uuid), now() - interval '1 day',
+  'complete_mission with p_occurred_at sets completed_at');
+select is(
+  (select due_on from public.review_items where child_id = :'cb'::uuid and skill_key = 'balance.afford'),
+  public.family_today(:'fb'::uuid),
+  'its first review is the day after the action day');
+select public.start_mission('spend-and-save', 1) as cb_early \gset
+select public.record_step_result(:'cb_early'::uuid, 'x', 'main', 'choice', 'balance.afford', true, 0, 1);
+select ok(public.complete_mission(:'cb_early'::uuid, now() - interval '1 hour'),
+  'a completion stamped before the attempt started is accepted');
+select is((select completed_at = started_at from public.mission_attempts where id = :'cb_early'::uuid), true,
+  'a completion stamped before started_at stores started_at');
 
 -- ---------------------------------------------------------------------------
 -- Who can read

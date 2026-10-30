@@ -75,7 +75,14 @@ describe("changeAllowanceSchema", () => {
 });
 
 describe("giftSchema", () => {
-  const valid = { childId, amount: "10", giveOn: today, note: "Well done" };
+  const valid = { childId, amount: "10", giveOn: today, note: "Well done", idempotencyKey: id };
+
+  it("requires a uuid idempotency key", () => {
+    const schema = giftSchema("GBP", today);
+    expect(schema.parse(valid).idempotencyKey).toBe(id);
+    expect(schema.safeParse({ ...valid, idempotencyKey: undefined }).success).toBe(false);
+    expect(schema.safeParse({ ...valid, idempotencyKey: "not-a-uuid" }).success).toBe(false);
+  });
 
   it("rejects a note of 141 characters", () => {
     expect(giftSchema("GBP", today).safeParse({ ...valid, note: "x".repeat(141) }).success).toBe(

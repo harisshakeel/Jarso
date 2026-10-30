@@ -22,6 +22,7 @@ import {
   Slider,
 } from "@/components/ui";
 import { routes } from "@/config";
+import { runOnline } from "@/features/offline";
 import { type ActionState, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
 import { cashForSaved, checkSplit, formatDay, shareOf, splitAtShare } from "../describe";
 import { confirmHandoverAction, markNotGivenAction } from "../server/actions";
@@ -71,7 +72,7 @@ export function HandoverForm({
   const [state, action, pending] = useActionState(
     async (_prev: ActionState<HandoverResult>, formData: FormData) => {
       setDirty(false);
-      const result = await confirmHandoverAction(null, formData);
+      const result = await runOnline(() => confirmHandoverAction(null, formData));
       if (result.ok) {
         toast.success(
           result.data === "confirmed" ? `Handed over to ${nickname}.` : "Already handled.",
@@ -204,11 +205,7 @@ export function HandoverForm({
       </Card>
 
       <FormError
-        message={
-          !dirty && state?.ok === false && !state.error.fieldErrors
-            ? state.error.message
-            : undefined
-        }
+        error={!dirty && state?.ok === false && !state.error.fieldErrors ? state.error : undefined}
       />
       <div className="flex flex-col gap-3">
         <Button
@@ -255,20 +252,23 @@ function NotGivenButton({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<{ code: string; message: string }>();
 
   useEffect(() => onPendingChange(pending), [pending, onPendingChange]);
 
   function confirm() {
     setError(undefined);
     start(async () => {
-      const result = await markNotGivenAction(null, { id });
-      if (result.ok) {
-        toast.success(result.data === "closed" ? "Marked as not given." : "Already handled.");
-        router.push(routes.parentChild(childId));
-      } else {
-        setError(result.error.message);
-      }
+      const result = await runOnline(() => markNotGivenAction(null, { id }));
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      start(() => {
+        if (result.ok) {
+          toast.success(result.data === "closed" ? "Marked as not given." : "Already handled.");
+          router.push(routes.parentChild(childId));
+        } else {
+          setError(result.error);
+        }
+      });
     });
   }
 
@@ -286,7 +286,7 @@ function NotGivenButton({
             {nickname} won't get this one, and it won't be paid later.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <FormError message={error} />
+        <FormError error={error} />
         <AlertDialogFooter>
           <AlertDialogCancel>Go back</AlertDialogCancel>
           <Button variant="destructive" loading={pending} onClick={confirm}>

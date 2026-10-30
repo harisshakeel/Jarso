@@ -12,6 +12,7 @@ export async function recordPurchase(input: {
   amountMinor: number;
   label?: string;
   idempotencyKey: string;
+  occurredAt?: string;
 }): Promise<PurchaseResult> {
   const { user } = await assertRole("child");
   return callRecordPurchase(await createClient(), {
@@ -19,6 +20,7 @@ export async function recordPurchase(input: {
     amountMinor: input.amountMinor,
     label: input.label ?? "",
     idempotencyKey: input.idempotencyKey,
+    occurredAt: input.occurredAt,
   });
 }
 

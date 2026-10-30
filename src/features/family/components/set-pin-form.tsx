@@ -12,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui";
+import { runOnline, useFormSubmit } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { setChildPinAction } from "../server/actions";
 import type { ChildSummary } from "../types";
@@ -40,17 +41,23 @@ export function SetPinForm({ child }: { child: ChildSummary }) {
 
 function NewPinForm({ child, onDone }: { child: ChildSummary; onDone: () => void }) {
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
-    const result = await setChildPinAction(prev, formData);
+    const result = await runOnline(() => setChildPinAction(prev, formData));
     if (result.ok) {
       toast.success(`PIN updated for ${child.nickname}`);
       onDone();
     }
     return result;
   }, idle);
+  const submit = useFormSubmit(action, state);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
   return (
-    <form action={action} className="grid gap-6 px-4 pb-4 sm:px-6 sm:pb-6" noValidate>
+    <form
+      action={action}
+      onSubmit={submit}
+      className="grid gap-6 px-4 pb-4 sm:px-6 sm:pb-6"
+      noValidate
+    >
       <input type="hidden" name="childId" value={child.id} />
       <Field
         name="pin"
@@ -65,7 +72,7 @@ function NewPinForm({ child, onDone }: { child: ChildSummary; onDone: () => void
         description="4 to 6 numbers."
         errors={fieldErrors?.pin}
       />
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
         Save PIN
       </Button>

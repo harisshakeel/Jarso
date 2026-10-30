@@ -14,6 +14,7 @@ import {
   AlertDialogTrigger,
   Button,
 } from "@/components/ui";
+import { runOnline, useFormSubmit } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { removeChildAction } from "../server/actions";
 import type { ChildSummary } from "../types";
@@ -26,13 +27,14 @@ import type { ChildSummary } from "../types";
 export function RemoveChildDialog({ child }: { child: ChildSummary }) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
-    const result = await removeChildAction(prev, formData);
+    const result = await runOnline(() => removeChildAction(prev, formData));
     if (result.ok) {
       toast.success(`${child.nickname} was removed from your family`);
       setOpen(false);
     }
     return result;
   }, idle);
+  const submit = useFormSubmit(action);
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
@@ -50,9 +52,9 @@ export function RemoveChildDialog({ child }: { child: ChildSummary }) {
             can't be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <form action={action} className="contents" noValidate>
+        <form action={action} onSubmit={submit} className="contents" noValidate>
           <input type="hidden" name="childId" value={child.id} />
-          <FormError message={state?.ok === false ? state.error.message : undefined} />
+          <FormError error={state?.ok === false ? state.error : undefined} />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={pending}>Keep {child.nickname}</AlertDialogCancel>
             <Button type="submit" variant="destructive" size="lg" loading={pending}>

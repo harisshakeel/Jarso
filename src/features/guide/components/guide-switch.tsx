@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { FormError } from "@/components/form";
 import { routes } from "@/config";
+import { runOnline } from "@/features/offline";
 import { cn } from "@/lib";
 import { setGuideAccessAction } from "../server/actions";
 
@@ -20,24 +22,22 @@ export function GuideSwitch({
   enabled: boolean;
 }) {
   const [on, setOn] = useState(enabled);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ code: string; message: string } | undefined>();
   const [pending, startTransition] = useTransition();
 
   function toggle() {
     const next = !on;
-    setError(null);
+    setError(undefined);
     setOn(next);
     startTransition(async () => {
-      try {
-        const result = await setGuideAccessAction(null, { childId, enabled: next });
+      const result = await runOnline(() => setGuideAccessAction(null, { childId, enabled: next }));
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      startTransition(() => {
         if (!result.ok) {
           setOn(!next);
-          setError(result.error.message);
+          setError(result.error);
         }
-      } catch {
-        setOn(!next);
-        setError("We couldn't save that. Check your connection and try again.");
-      }
+      });
     });
   }
 
@@ -83,11 +83,7 @@ export function GuideSwitch({
           How the guide keeps children safe
         </Link>
       </p>
-      {error ? (
-        <p role="alert" className="font-semibold text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      <FormError error={error} />
     </div>
   );
 }

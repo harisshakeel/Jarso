@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
+import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import {
   ChildOverviewCard,
@@ -126,7 +127,13 @@ export default function ParentHomePage() {
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-6">
       <h1 className="text-h1">Your family</h1>
-      <Suspense fallback={<HomeSkeleton />}>
+      <Suspense
+        fallback={
+          <SlowFallback>
+            <HomeSkeleton />
+          </SlowFallback>
+        }
+      >
         <ParentHome />
       </Suspense>
     </div>

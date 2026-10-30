@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Field, FieldError, FormError } from "@/components/form";
 import { Button, buttonVariants, Checkbox, Label } from "@/components/ui";
 import { routes } from "@/config";
-import { idle } from "@/lib";
+import { useOnlineActionState } from "@/features/offline";
 import { addChildAction } from "../server/actions";
 
 export function AddChildForm() {
-  const [state, action, pending] = useActionState(addChildAction, idle);
+  const [state, formAction, pending, submit] = useOnlineActionState(addChildAction);
   // Controlled so they survive a failed submit (React resets uncontrolled fields); the PIN clears.
   const [nickname, setNickname] = useState("");
   const [consent, setConsent] = useState(false);
@@ -17,7 +17,7 @@ export function AddChildForm() {
   const consentErrors = fieldErrors?.consent;
 
   return (
-    <form action={action} className="grid gap-6" noValidate>
+    <form action={formAction} onSubmit={submit} className="grid gap-6" noValidate>
       <Field
         name="nickname"
         label="Nickname"
@@ -58,7 +58,7 @@ export function AddChildForm() {
         <FieldError id="consent-error" errors={consentErrors} />
       </div>
 
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
           Cancel

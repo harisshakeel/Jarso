@@ -28,6 +28,8 @@ export const guideContextSchema = z.discriminatedUnion("entry", [
 export type GuideContextRef = z.infer<typeof guideContextSchema>;
 
 export const askGuideSchema = z.object({
+  /** One per question the sheet sends; a re-send after a lost reply reuses it. */
+  clientMessageId: z.uuid(),
   conversationId: z.uuid().nullable(),
   context: guideContextSchema,
   text: z

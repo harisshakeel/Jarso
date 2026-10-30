@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import { FormError } from "@/components/form";
 import {
   Button,
   Sheet,
@@ -21,7 +22,8 @@ import {
   SheetTrigger,
 } from "@/components/ui";
 import { routes } from "@/config";
-import { type ActionResult, cn } from "@/lib";
+import { newId, runOnline } from "@/features/offline";
+import { cn } from "@/lib";
 import { guideCopy } from "../copy";
 import { type GuideContextRef, MAX_MESSAGE_LENGTH } from "../schemas";
 import { askGuideAction, rateGuideMessageAction } from "../server/actions";
@@ -41,21 +43,17 @@ type GuideSheetProps = {
   compact?: boolean;
 };
 
-const OFFLINE = "We couldn't reach the guide. Check your connection and try again.";
+/**
+ * Client wait for one guide turn: the server's own turn deadline is 45 s, plus headroom so its
+ * reply (or its slow notice) arrives first. Stays under the pages' maxDuration of 60 s.
+ */
+const TURN_TIMEOUT_MS = 52_000;
 
 /**
  * The intro card shows before a child's first-ever message. Once they've read it on this page,
  * other guide buttons (a new step's "Help me") don't show it again.
  */
 let introAcknowledged = false;
-
-async function call<T>(action: () => Promise<ActionResult<T>>): Promise<ActionResult<T>> {
-  try {
-    return await action();
-  } catch {
-    return { ok: false, error: { code: "INTERNAL", message: OFFLINE } };
-  }
-}
 
 /**
  * The AI money guide (FR07) in a bottom sheet. Every open starts a fresh chat about the context
@@ -75,13 +73,16 @@ export function GuideSheet({
   const [messages, setMessages] = useState<Message[]>([]);
   const [turnsLeft, setTurnsLeft] = useState<number | null>(null);
   const [text, setText] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ code: string; message: string } | null>(null);
   const [full, setFull] = useState(false);
   const [pending, startTransition] = useTransition();
   const listEnd = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   // Bumped on every reset, so a reply that lands after the chat was closed is dropped.
   const generation = useRef(0);
+  // The question being sent and its id. Sending the same text again after a failure reuses the
+  // id, so a reply that was saved but lost on the way back is shown, not asked again.
+  const unanswered = useRef<{ text: string; id: string } | null>(null);
 
   // "Got it" and "Start a new chat" disappear when pressed: move focus to the question box.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the dependencies are the triggers
@@ -103,6 +104,7 @@ export function GuideSheet({
     setText("");
     setError(null);
     setFull(false);
+    unanswered.current = null;
   }
 
   function send(event: FormEvent) {
@@ -110,34 +112,46 @@ export function GuideSheet({
     const question = text.trim();
     if (!question || pending) return;
     setError(null);
+    if (unanswered.current?.text !== question) {
+      // Minted on submit, never in render, so server and client HTML match.
+      unanswered.current = { text: question, id: newId() };
+    }
+    const clientMessageId = unanswered.current.id;
     const started = generation.current;
     startTransition(async () => {
-      const result = await call<AskGuideResult>(() =>
-        askGuideAction(null, { conversationId, context, text: question }),
+      const result = await runOnline<AskGuideResult>(
+        () => askGuideAction(null, { clientMessageId, conversationId, context, text: question }),
+        { timeoutMs: TURN_TIMEOUT_MS },
       );
       if (started !== generation.current) return;
-      if (!result.ok) {
-        if (result.error.code === "CONFLICT") setFull(true);
-        setError(
-          result.error.code === "VALIDATION"
-            ? (result.error.fieldErrors?.text?.[0] ?? result.error.message)
-            : result.error.code === "INTERNAL" && result.error.message !== OFFLINE
-              ? guideCopy.routes.unavailable
-              : result.error.message,
-        );
-        return;
-      }
-      const { reply } = result.data;
-      setConversationId(result.data.conversationId);
-      setTurnsLeft(result.data.turnsLeft);
-      if (result.data.turnsLeft === 0) setFull(true);
-      setMessages((current) => [
-        ...current,
-        { id: `child-${current.length}`, from: "child", text: question },
-        { id: reply.messageId ?? `guide-${current.length}`, from: "guide", reply },
-      ]);
-      setText("");
-      input.current?.focus();
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      startTransition(() => {
+        if (!result.ok) {
+          if (result.error.code === "CONFLICT") setFull(true);
+          setError({
+            code: result.error.code,
+            message:
+              result.error.code === "VALIDATION"
+                ? (result.error.fieldErrors?.text?.[0] ?? result.error.message)
+                : result.error.code === "INTERNAL"
+                  ? guideCopy.routes.unavailable
+                  : result.error.message,
+          });
+          return;
+        }
+        unanswered.current = null;
+        const { reply } = result.data;
+        setConversationId(result.data.conversationId);
+        setTurnsLeft(result.data.turnsLeft);
+        if (result.data.turnsLeft === 0) setFull(true);
+        setMessages((current) => [
+          ...current,
+          { id: `child-${current.length}`, from: "child", text: question },
+          { id: reply.messageId ?? `guide-${current.length}`, from: "guide", reply },
+        ]);
+        setText("");
+        input.current?.focus();
+      });
     });
   }
 
@@ -213,11 +227,7 @@ export function GuideSheet({
               </ol>
               <div ref={listEnd} />
 
-              {error ? (
-                <p role="alert" className="font-semibold text-destructive">
-                  {error}
-                </p>
-              ) : null}
+              <FormError error={error ?? undefined} />
 
               {full ? (
                 <div className="grid gap-2">
@@ -283,7 +293,7 @@ function GuideBubble({ reply }: { reply: GuideReply }) {
     const messageId = reply.messageId;
     setRating(value);
     startRating(async () => {
-      await call(() => rateGuideMessageAction(null, { messageId, rating: value }));
+      await runOnline(() => rateGuideMessageAction(null, { messageId, rating: value }));
     });
   }
   return (

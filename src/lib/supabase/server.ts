@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { clientEnv } from "@/config/env.client";
 import type { Database } from "@/types";
+import { supabaseFetch } from "../timed-fetch";
 
 /**
  * Supabase client for Server Components, Server Actions and Route Handlers.
@@ -15,6 +16,8 @@ export async function createClient() {
     clientEnv.NEXT_PUBLIC_SUPABASE_URL,
     clientEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
+      db: { retry: false },
+      global: { fetch: supabaseFetch },
       cookies: {
         getAll() {
           return cookieStore.getAll();

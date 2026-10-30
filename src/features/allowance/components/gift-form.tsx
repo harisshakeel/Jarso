@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type CSSProperties, useActionState, useState, useTransition } from "react";
+import { type CSSProperties, useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { AmountField, Field, FormError } from "@/components/form";
 import {
@@ -20,6 +20,7 @@ import {
   CardContent,
 } from "@/components/ui";
 import { routes } from "@/config";
+import { newId, runOnline } from "@/features/offline";
 import { type ActionState, idle, toMajorString } from "@/lib";
 
 import { cancelGiftAction, createGiftAction, updateGiftAction } from "../server/actions";
@@ -47,11 +48,15 @@ export function GiftForm({
   defaultAmount,
 }: GiftFormProps) {
   const router = useRouter();
+  // One key per form open. Saving again after an error reuses it, so a lost response makes one gift.
+  // Minted after mount, so the server's HTML and the first client render agree.
+  const [idempotencyKey, setIdempotencyKey] = useState("");
+  useEffect(() => setIdempotencyKey(newId()), []);
   const [state, action, pending] = useActionState(
     async (_prev: ActionState<unknown>, formData: FormData) => {
       const result = initial
-        ? await updateGiftAction(null, formData)
-        : await createGiftAction(null, formData);
+        ? await runOnline(() => updateGiftAction(null, formData))
+        : await runOnline(() => createGiftAction(null, formData));
       if (result.ok) {
         toast.success("Gift saved");
         router.push(routes.parentChild(childId));
@@ -72,7 +77,10 @@ export function GiftForm({
       {initial ? (
         <input type="hidden" name="giftId" value={initial.id} />
       ) : (
-        <input type="hidden" name="childId" value={childId} />
+        <>
+          <input type="hidden" name="childId" value={childId} />
+          <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
+        </>
       )}
       <Card className="rise-in shadow-raised">
         <CardContent>
@@ -108,7 +116,7 @@ export function GiftForm({
         </CardContent>
       </Card>
 
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link
           href={routes.parentChild(childId)}
@@ -116,7 +124,7 @@ export function GiftForm({
         >
           Cancel
         </Link>
-        <Button type="submit" size="lg" loading={pending}>
+        <Button type="submit" size="lg" loading={pending} disabled={!initial && !idempotencyKey}>
           Save gift
         </Button>
       </div>
@@ -137,18 +145,21 @@ export function CancelGiftForm({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<{ code: string; message: string }>();
 
   function confirm() {
     setError(undefined);
     start(async () => {
-      const result = await cancelGiftAction(null, { id: giftId });
-      if (result.ok) {
-        toast.success("Gift cancelled");
-        router.push(routes.parentChild(childId));
-      } else {
-        setError(result.error.message);
-      }
+      const result = await runOnline(() => cancelGiftAction(null, { id: giftId }));
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      start(() => {
+        if (result.ok) {
+          toast.success("Gift cancelled");
+          router.push(routes.parentChild(childId));
+        } else {
+          setError(result.error);
+        }
+      });
     });
   }
 
@@ -162,7 +173,7 @@ export function CancelGiftForm({
           <AlertDialogTitle>Cancel this gift?</AlertDialogTitle>
           <AlertDialogDescription>{nickname} won't see it.</AlertDialogDescription>
         </AlertDialogHeader>
-        <FormError message={error} />
+        <FormError error={error} />
         <AlertDialogFooter>
           <AlertDialogCancel>Keep it</AlertDialogCancel>
           <Button variant="destructive" loading={pending} onClick={confirm}>

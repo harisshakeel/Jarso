@@ -85,6 +85,8 @@ export const giftSchema = (currency: string, today: string) =>
       amount: moneySchema(currency),
       giveOn: dateFrom(today),
       note: childText,
+      /** One per form open, so a re-send after a lost response makes one gift. */
+      idempotencyKey: z.uuid(),
     })
     .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));
 

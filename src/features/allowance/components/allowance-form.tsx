@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { AmountField, ChoiceChips, FieldError, FormError } from "@/components/form";
 import { Button, buttonVariants, Card, CardContent, Input, Label } from "@/components/ui";
 import { routes } from "@/config";
+import { runOnline } from "@/features/offline";
 import { type ActionState, addDays, idle, toMajorString } from "@/lib";
 import { describeSchedule, formatDay } from "../describe";
 import { changeAllowanceAction, createAllowanceAction } from "../server/actions";
@@ -38,8 +39,8 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
   const [state, action, pending] = useActionState(
     async (_prev: ActionState<unknown>, formData: FormData) => {
       const result = changing
-        ? await changeAllowanceAction(null, formData)
-        : await createAllowanceAction(null, formData);
+        ? await runOnline(() => changeAllowanceAction(null, formData))
+        : await runOnline(() => createAllowanceAction(null, formData));
       if (result.ok) {
         toast.success("Allowance saved");
         // A change goes back to the manage page; a new allowance to the child's page.
@@ -133,7 +134,7 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
         </CardContent>
       </Card>
 
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         {changing ? (
           <Link

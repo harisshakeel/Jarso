@@ -321,14 +321,14 @@ isOneToOne: false
                   ]
                 },"guide_messages": {
                   Row: {
-                    "child_id": string,"conversation_id": string,"created_at": string,"flagged": boolean,"id": string,"latency_ms": number | null,"main_cache_read_tokens": number,"main_cache_write_tokens": number,"main_input_tokens": number,"main_output_tokens": number,"model": string | null,"rating": number | null,"role": string,"route": string | null,"screen_input_tokens": number,"screen_output_tokens": number,"text": string,"text_blanked_at": string | null
+                    "child_id": string,"client_message_id": string | null,"conversation_id": string,"created_at": string,"flagged": boolean,"id": string,"latency_ms": number | null,"main_cache_read_tokens": number,"main_cache_write_tokens": number,"main_input_tokens": number,"main_output_tokens": number,"model": string | null,"rating": number | null,"role": string,"route": string | null,"screen_input_tokens": number,"screen_output_tokens": number,"text": string,"text_blanked_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "child_id": string,"conversation_id": string,"created_at"?: string,"flagged"?: boolean,"id"?: string,"latency_ms"?: number | null,"main_cache_read_tokens"?: number,"main_cache_write_tokens"?: number,"main_input_tokens"?: number,"main_output_tokens"?: number,"model"?: string | null,"rating"?: number | null,"role": string,"route"?: string | null,"screen_input_tokens"?: number,"screen_output_tokens"?: number,"text": string,"text_blanked_at"?: string | null
+                    "child_id": string,"client_message_id"?: string | null,"conversation_id": string,"created_at"?: string,"flagged"?: boolean,"id"?: string,"latency_ms"?: number | null,"main_cache_read_tokens"?: number,"main_cache_write_tokens"?: number,"main_input_tokens"?: number,"main_output_tokens"?: number,"model"?: string | null,"rating"?: number | null,"role": string,"route"?: string | null,"screen_input_tokens"?: number,"screen_output_tokens"?: number,"text": string,"text_blanked_at"?: string | null
                   }
                   Update: {
-                    "child_id"?: string,"conversation_id"?: string,"created_at"?: string,"flagged"?: boolean,"id"?: string,"latency_ms"?: number | null,"main_cache_read_tokens"?: number,"main_cache_write_tokens"?: number,"main_input_tokens"?: number,"main_output_tokens"?: number,"model"?: string | null,"rating"?: number | null,"role"?: string,"route"?: string | null,"screen_input_tokens"?: number,"screen_output_tokens"?: number,"text"?: string,"text_blanked_at"?: string | null
+                    "child_id"?: string,"client_message_id"?: string | null,"conversation_id"?: string,"created_at"?: string,"flagged"?: boolean,"id"?: string,"latency_ms"?: number | null,"main_cache_read_tokens"?: number,"main_cache_write_tokens"?: number,"main_input_tokens"?: number,"main_output_tokens"?: number,"model"?: string | null,"rating"?: number | null,"role"?: string,"route"?: string | null,"screen_input_tokens"?: number,"screen_output_tokens"?: number,"text"?: string,"text_blanked_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -567,14 +567,14 @@ isOneToOne: true
                   ]
                 },"parent_gifts": {
                   Row: {
-                    "amount_minor": number,"cash_minor": number | null,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"give_on": string,"given_at": string | null,"given_by": string | null,"id": string,"note": string | null,"saved_minor": number | null,"status": string,"updated_at": string
+                    "amount_minor": number,"cash_minor": number | null,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"give_on": string,"given_at": string | null,"given_by": string | null,"id": string,"idempotency_key": string,"note": string | null,"saved_minor": number | null,"status": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_minor": number,"cash_minor"?: number | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"give_on": string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
+                    "amount_minor": number,"cash_minor"?: number | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"give_on": string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"idempotency_key": string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "amount_minor"?: number,"cash_minor"?: number | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"give_on"?: string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
+                    "amount_minor"?: number,"cash_minor"?: number | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"give_on"?: string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"idempotency_key"?: string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -745,7 +745,7 @@ isOneToOne: false
 { Args: { "p_content_version": number,"p_correct_count": number,"p_question_count": number }; Returns: boolean
                            },
 "complete_mission":
-{ Args: { "p_attempt_id": string }; Returns: boolean
+{ Args: { "p_attempt_id": string,"p_occurred_at"?: string }; Returns: boolean
                            },
 "complete_parent_profile":
 { Args: { "p_country": string,"p_date_of_birth": string,"p_gender": string }; Returns: undefined
@@ -763,7 +763,7 @@ isOneToOne: false
 { Args: { "p_currency": string,"p_timezone": string }; Returns: string
                            },
 "create_gift":
-{ Args: { "p_amount_minor": number,"p_child_id": string,"p_give_on": string,"p_note": string }; Returns: string
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_give_on": string,"p_idempotency_key"?: string,"p_note": string }; Returns: string
                            },
 "create_invitation":
 { Args: { "p_code_hash": string,"p_nickname": string,"p_parent_email": string,"p_token_hash": string }; Returns: string
@@ -788,8 +788,13 @@ isOneToOne: false
 "generate_for_schedule":
 { Args: { "p_schedule_id": string,"p_today": string }; Returns: number
                            },
+"guide_find_turn":
+{ Args: { "p_child_id": string,"p_client_message_id": string }; Returns: {
+              "conversation_id": string,"reply_id": string
+            }[]
+                           },
 "guide_record_turn":
-{ Args: { "p_child_id": string,"p_child_text": string,"p_conversation_id": string,"p_flagged": boolean,"p_latency_ms": number,"p_model": string,"p_reply_role": string,"p_reply_text": string,"p_route": string,"p_usage": Json }; Returns: string
+{ Args: { "p_child_id": string,"p_child_text": string,"p_client_message_id"?: string,"p_conversation_id": string,"p_flagged": boolean,"p_latency_ms": number,"p_model": string,"p_reply_role": string,"p_reply_text": string,"p_route": string,"p_usage": Json }; Returns: string
                            },
 "guide_start_conversation":
 { Args: { "p_child_id": string,"p_context_key": string,"p_entry": string }; Returns: string
@@ -866,6 +871,7 @@ isOneToOne: false
 "given_at": string | null,
 "given_by": string | null,
 "id": string,
+"idempotency_key": string,
 "note": string | null,
 "saved_minor": number | null,
 "status": string,
@@ -916,10 +922,10 @@ isOneToOne: false
 { Args: { "p_message_id": string,"p_rating": number }; Returns: undefined
                            },
 "record_practice_result":
-{ Args: { "p_correct": boolean,"p_hints_used": number,"p_item_key": string,"p_skill_key": string,"p_tries": number }; Returns: boolean
+{ Args: { "p_correct": boolean,"p_hints_used": number,"p_item_key": string,"p_occurred_at"?: string,"p_skill_key": string,"p_tries": number }; Returns: boolean
                            },
 "record_purchase":
-{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_label": string }; Returns: Json
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_label": string,"p_occurred_at"?: string }; Returns: Json
                            },
 "record_purchase_at":
 { Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_label": string,"p_now": string }; Returns: Json
@@ -935,6 +941,9 @@ isOneToOne: false
                            },
 "rename_child":
 { Args: { "p_child_id": string,"p_nickname": string }; Returns: undefined
+                           },
+"resolve_occurred_at":
+{ Args: { "p": string }; Returns: string
                            },
 "resume_allowance":
 { Args: { "p_schedule_id": string }; Returns: string

@@ -95,6 +95,22 @@ export async function findScheduleChildId(db: Client, scheduleId: string): Promi
   return data?.child_id ?? null;
 }
 
+/** Where the schedule is now (status and pause end), or null when it isn't visible. */
+export async function findScheduleState(
+  db: Client,
+  scheduleId: string,
+): Promise<Pick<ScheduleRow, "status" | "pausedThrough"> | null> {
+  const { data, error } = await db
+    .from("allowance_schedules")
+    .select("status, paused_through")
+    .eq("id", scheduleId)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load allowance");
+  return data
+    ? { status: asScheduleStatus(data.status), pausedThrough: data.paused_through }
+    : null;
+}
+
 export async function findOccurrenceChildId(
   db: Client,
   occurrenceId: string,
@@ -277,13 +293,20 @@ export async function stopSchedule(db: Client, scheduleId: string): Promise<void
 /** `note` null is sent as "" (the function stores a blank note as null). */
 export async function insertGift(
   db: Client,
-  args: { childId: string; amountMinor: number; giveOn: string; note: string | null },
+  args: {
+    childId: string;
+    amountMinor: number;
+    giveOn: string;
+    note: string | null;
+    idempotencyKey: string;
+  },
 ): Promise<string> {
   const { data, error } = await db.rpc("create_gift", {
     p_child_id: args.childId,
     p_amount_minor: args.amountMinor,
     p_give_on: args.giveOn,
     p_note: args.note ?? "",
+    p_idempotency_key: args.idempotencyKey,
   });
   if (error) throw toAppError(error, "Failed to save the gift");
   return data;

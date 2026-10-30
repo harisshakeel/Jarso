@@ -1,13 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
 import { clientEnv } from "@/config/env.client";
 import type { Database } from "@/types";
+import { supabaseFetch } from "../timed-fetch";
 
 const CACHE_HEADERS = ["cache-control", "expires", "pragma"] as const;
 
 /**
  * Refreshes the Supabase session cookie and returns the response carrying it,
- * plus the verified claims (null when signed out).
+ * plus the verified claims (null when signed out) and `unavailable` when Supabase timed out.
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -16,6 +18,8 @@ export async function updateSession(request: NextRequest) {
     clientEnv.NEXT_PUBLIC_SUPABASE_URL,
     clientEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
+      db: { retry: false },
+      global: { fetch: supabaseFetch },
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -34,9 +38,12 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Do not run code between createServerClient and getClaims() — it refreshes the token.
-  const { data } = await supabase.auth.getClaims();
+  const { data, error } = await supabase.auth.getClaims();
 
-  return { response, claims: data?.claims ?? null };
+  // Supabase did not answer: the session is unknown, not signed out.
+  const unavailable = !!error && isAuthRetryableFetchError(error);
+
+  return { response, claims: data?.claims ?? null, unavailable };
 }
 
 /** Build a redirect that keeps refreshed session cookies + cache headers from `source`. */

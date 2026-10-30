@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Field, FormError } from "@/components/form";
 import { Button, Card, CardContent } from "@/components/ui";
-import { idle } from "@/lib";
+import { useOnlineActionState } from "@/features/offline";
 import { childSignInAction } from "../server/actions";
 
 /**
@@ -11,7 +11,7 @@ import { childSignInAction } from "../server/actions";
  * survive a wrong PIN (React resets uncontrolled fields after an action); the PIN clears.
  */
 export function ChildSignInForm() {
-  const [state, action, pending] = useActionState(childSignInAction, idle);
+  const [state, formAction, pending, submit] = useOnlineActionState(childSignInAction);
   const [familyCode, setFamilyCode] = useState("");
   const [nickname, setNickname] = useState("");
 
@@ -19,7 +19,7 @@ export function ChildSignInForm() {
   return (
     <Card className="rise-in shadow-raised">
       <CardContent>
-        <form action={action} className="grid gap-6" noValidate>
+        <form action={formAction} onSubmit={submit} className="grid gap-6" noValidate>
           <Field
             name="familyCode"
             label="Family code"
@@ -57,9 +57,7 @@ export function ChildSignInForm() {
             required
             errors={fieldErrors?.pin}
           />
-          <FormError
-            message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
-          />
+          <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
           <Button type="submit" variant="keycap" size="lg" className="w-full" loading={pending}>
             Sign in
           </Button>

@@ -7,4 +7,5 @@ export * from "./db-error";
 export * from "./errors";
 export * from "./logger";
 export * from "./money";
+export * from "./timed-fetch";
 export * from "./utils";

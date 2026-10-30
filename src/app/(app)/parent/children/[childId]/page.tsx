@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
+import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { DueList, GiftList, ParentAllowanceCard, upcomingGifts } from "@/features/allowance";
 import { getSchedule, listDue, listGifts } from "@/features/allowance/server";
@@ -132,7 +133,9 @@ export default function ChildPage({ params }: PageProps<"/parent/children/[child
     <Suspense
       fallback={
         <PageShell title="Your child" back={back} wide>
-          <FormSkeleton />
+          <SlowFallback>
+            <FormSkeleton />
+          </SlowFallback>
         </PageShell>
       }
     >

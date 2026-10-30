@@ -31,6 +31,9 @@ E2E never talks to the hosted project. Run `pnpm db:start`, then `pnpm test:e2e`
 | `allowance` | `tests/e2e/allowance.spec.ts` | Local Supabase. Parent sets up, changes, pauses, resumes and stops an allowance; gifts; handover screen |
 | `child-home` | `tests/e2e/child-home.spec.ts` | Local Supabase. Child sees jars, allowance and history after a handover |
 | `purchases` | `tests/e2e/purchases.spec.ts` | Local Supabase. Parent sets a week spend limit; child records purchases, parent gets a `limit_exceeded` notice, a purchase above Spend is refused until overspend is on, undo restores Spend |
+| `offline-purchase` | `tests/e2e/offline-purchase.spec.ts` | Local Supabase. A purchase made offline waits on the device and is recorded on reconnect; a lost reply is resent with the same key and recorded once; a queued purchase above Spend comes back as "Needs a look" with Change it, Ask a parent and Remove |
+| `offline-mission` | `tests/e2e/offline-mission.spec.ts` | Local Supabase. A mission started online is finished offline: each step is graded on the device, the finish screen is built locally, "Saved on this device." shows while results wait, and on reconnect the six steps then the completion arrive in order and Learn shows the mission done |
+| `offline-parent` | `tests/e2e/offline-parent.spec.ts` | Local Supabase. Online-only parent actions refuse cleanly offline: a handover confirmed offline shows "You're offline, try again when connected" and records nothing, a rename keeps the typed nickname, and sign out offline keeps the user signed in |
 | `handover-race` | `tests/e2e/handover-race.spec.ts` | Local Supabase, no browser. Parallel `confirm_handover`, `mark_not_given` and `confirm_gift_handover` calls from a signed-in parent: exactly one wins, ledger rows per source are 0 or 2 |
 | `guide` | `tests/e2e/guide.spec.ts` | Local Supabase, fake provider (`FEATURE_GUIDE=true`, `GUIDE_PROVIDER=fake` in `playwright.config.ts`). Off until the parent's switch, the intro card, an answer with topic links and a check, a safety reply with helplines, an off-topic redirect, "Help me" in a mission, the parent's flagged-first transcript with the private safety message, switching off |
 | `learning` | `tests/e2e/learning.spec.ts` | Local Supabase. Check-in, a full mission with a mistake replayed at the end, leaving and resuming, a locked mission, a topic page with the way back, a due review as practice (made due through the admin client), the parent's learning page and another family kept out |
@@ -50,7 +53,7 @@ E2E never talks to the hosted project. Run `pnpm db:start`, then `pnpm test:e2e`
 - Run `pnpm db:start` then `pnpm db:test` (exits non-zero on failure).
 - Each file starts with `begin;` then `\ir _helpers.psql` (works with `supabase test db`), then `select plan(n);`, and ends with `select * from finish(); rollback;`.
 - Helpers in `supabase/tests/database/_helpers.psql`: `tests.create_user(email, role)`, `tests.authenticate_as(user_id)`, `tests.clear_auth()`.
-- Files: `harness`, `family_core`, `child_accounts`, `child_role`, `invitations`, `list_my_invitations`, `ledger`, `allowance_schedules`, `allowance_generation`, `handover`, `parent_gifts`, `learning_progress` and `guide` (all `*.test.sql`).
+- Files: `harness`, `family_core`, `child_accounts`, `child_role`, `invitations`, `list_my_invitations`, `ledger`, `allowance_schedules`, `allowance_generation`, `handover`, `parent_gifts`, `learning_progress`, `guide` and `retry_safety` (all `*.test.sql`).
 
 ## Guide evals (on request)
 
