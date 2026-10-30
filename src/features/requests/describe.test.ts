@@ -28,6 +28,6 @@ describe("overCapMessage", () => {
   });
 
   it("drops the second sentence when nothing is used (a per-time cap)", () => {
-    expect(overCapMessage("item", 500, 0, "GBP")).toBe("You can take out up to £5 each time.");
+    expect(overCapMessage("item", 500, 0, "GBP")).toBe("You can take out up to £5 per time.");
   });
 });

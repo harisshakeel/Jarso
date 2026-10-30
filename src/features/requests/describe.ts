@@ -20,7 +20,7 @@ export function statusLabel(_kind: RequestKind, status: RequestStatus): StatusLa
   }
 }
 
-const PER: Record<CapPeriod, string> = { item: "each time", week: "a week", month: "a month" };
+const PER: Record<CapPeriod, string> = { item: "per time", week: "a week", month: "a month" };
 
 /** Why a withdrawal went over a cap, in the child's words. */
 export function overCapMessage(
