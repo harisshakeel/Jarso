@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
+import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { ChildAllowanceCard } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
@@ -106,7 +107,13 @@ function HomeSkeleton() {
 export default function ChildHomePage() {
   return (
     <div className="mx-auto grid w-full max-w-2xl gap-6">
-      <Suspense fallback={<HomeSkeleton />}>
+      <Suspense
+        fallback={
+          <SlowFallback>
+            <HomeSkeleton />
+          </SlowFallback>
+        }
+      >
         <ChildHome />
       </Suspense>
     </div>

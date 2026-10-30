@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
 import { GuideSheet, StepGuide } from "@/features/guide";
@@ -78,7 +79,13 @@ export default function TopicPage({
 }: PageProps<"/child/learn/topics/[topicKey]">) {
   return (
     <div className="mx-auto grid w-full max-w-xl gap-5">
-      <Suspense fallback={<div aria-hidden className="shimmer h-96 rounded-2xl bg-muted" />}>
+      <Suspense
+        fallback={
+          <SlowFallback>
+            <div aria-hidden className="shimmer h-96 rounded-2xl bg-muted" />
+          </SlowFallback>
+        }
+      >
         <TopicContent params={params} searchParams={searchParams} />
       </Suspense>
     </div>

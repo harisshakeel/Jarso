@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { AllowanceOverview } from "@/features/allowance";
 import { getSchedule, listDue } from "@/features/allowance/server";
@@ -33,7 +34,13 @@ export default function AllowanceOverviewPage() {
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-6">
       <h1 className="text-h1">Allowance</h1>
-      <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
+      <Suspense
+        fallback={
+          <SlowFallback>
+            <div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />
+          </SlowFallback>
+        }
+      >
         <OverviewContent />
       </Suspense>
     </div>
