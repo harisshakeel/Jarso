@@ -54,14 +54,32 @@ export const signUp = createAction(signUpSchema, async ({ email, password, fullN
 
 export const signOut = createAction(z.object({}), async () => {
   const supabase = await createClient();
-  const { error } = await supabase.auth.signOut();
-  // auth-js clears the local session even when the revoke request fails, so the device is
-  // signed out either way. Log it and carry on.
-  if (error)
-    logger.warn("Sign-out revoke failed", {
-      name: error.name,
-      status: error.status,
-      code: error.code,
-    });
+  // auth-js clears the session cookies (and says SIGNED_OUT) even when the revoke request fails.
+  // It keeps them when it could not load the session at all (a refresh that timed out); a
+  // redirect then would bounce straight back into the app, so that one is a calm retry.
+  let removed = false;
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT") removed = true;
+  });
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      logger.warn("Sign-out revoke failed", {
+        name: error.name,
+        status: error.status,
+        code: error.code,
+        removed,
+      });
+      if (!removed) {
+        throw new AppError("UNAVAILABLE", "Jarso is taking a while. Please try again.", {
+          cause: error,
+        });
+      }
+    }
+  } finally {
+    subscription.unsubscribe();
+  }
   redirect(routes.login);
 });
