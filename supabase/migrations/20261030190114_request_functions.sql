@@ -526,7 +526,8 @@ begin
   select fm.family_id into v_family_id
   from public.family_members fm
   where fm.profile_id = p_child_id
-  limit 1;
+    and fm.role = 'child'
+    and fm.status = 'approved';
 
   for v_rule in
     select r.period, r.amount_minor
