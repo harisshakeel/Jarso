@@ -23,6 +23,7 @@ export const routes = {
   parentChildHistory: (childId: string) => `/parent/children/${childId}/history` as Route,
   parentAllowance: (childId: string) => `/parent/children/${childId}/allowance` as Route,
   parentAllowanceEdit: (childId: string) => `/parent/children/${childId}/allowance/edit` as Route,
+  parentRules: (childId: string) => `/parent/children/${childId}/rules` as Route,
   parentGiftNew: (childId: string) => `/parent/children/${childId}/gifts/new` as Route,
   parentGiftEdit: (childId: string, giftId: string) =>
     `/parent/children/${childId}/gifts/${giftId}/edit` as Route,

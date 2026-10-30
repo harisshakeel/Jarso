@@ -10,7 +10,6 @@ import {
   prefillSplit,
   shareOf,
   splitAtShare,
-  toMajorString,
 } from "./describe";
 import type { Schedule } from "./types";
 
@@ -125,15 +124,9 @@ describe("cashForSaved", () => {
   });
 });
 
-describe("formatDay and toMajorString", () => {
+describe("formatDay", () => {
   it("formats a day without shifting it", () => {
     expect(formatDay("2026-11-02")).toBe("2 Nov");
-  });
-
-  it("turns minor units into an input value", () => {
-    expect(toMajorString(50000, "INR")).toBe("500.00");
-    expect(toMajorString(550, "GBP")).toBe("5.50");
-    expect(toMajorString(500, "JPY")).toBe("500");
   });
 });
 

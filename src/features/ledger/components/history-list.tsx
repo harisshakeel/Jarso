@@ -1,4 +1,5 @@
 import { GiftIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui";
 import { formatMoney } from "@/lib";
 import type { HistoryItem } from "../types";
@@ -12,6 +13,8 @@ type HistoryListProps = {
   skippedLabel?: string;
   /** Parents see exact amounts ("always"); the child sees "₹500" for whole amounts. */
   showMinor?: ShowMinor;
+  /** Extra control beside a line, e.g. the child's undo button on a purchase. */
+  renderAction?: (item: HistoryItem) => ReactNode;
 };
 
 /** `YYYY-MM-DD` as "2 Nov", without shifting the day. */
@@ -33,6 +36,14 @@ function Amount({
   showMinor: ShowMinor;
 }) {
   if (item.amountMinor === null) return null;
+  if (item.kind === "purchase") {
+    const spent = formatMoney(item.amountMinor, currency, { showMinor });
+    return (
+      <span className={item.undone ? "money font-bold text-ink-2 line-through" : "money font-bold"}>
+        −{spent}
+      </span>
+    );
+  }
   const given = formatMoney(item.amountMinor, currency, { showMinor });
   // A gentle shortfall: "<given> of <due>".
   const text =
@@ -42,12 +53,13 @@ function Amount({
   return <span className="money font-bold">{text}</span>;
 }
 
-/** Allowances, gifts and skipped ones, newest first. */
+/** Allowances, gifts, purchases and skipped ones, newest first. */
 export function HistoryList({
   items,
   currency,
   skippedLabel = "Skipped",
   showMinor = "nonzero",
+  renderAction,
 }: HistoryListProps) {
   return (
     <Card className="shadow-raised">
@@ -79,9 +91,15 @@ export function HistoryList({
                         item.label
                       )}
                     </span>
-                    <span className="text-ink-2 text-sm">{day(item.occurredOn)}</span>
+                    <span className="text-ink-2 text-sm">
+                      {day(item.occurredOn)}
+                      {item.undone ? " · Undone" : ""}
+                    </span>
                   </div>
-                  <Amount item={item} currency={currency} showMinor={showMinor} />
+                  <div className="flex items-baseline gap-2">
+                    <Amount item={item} currency={currency} showMinor={showMinor} />
+                    {renderAction?.(item)}
+                  </div>
                 </li>
               ))}
             </ul>

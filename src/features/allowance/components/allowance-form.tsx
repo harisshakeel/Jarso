@@ -5,14 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useActionState, useState } from "react";
 import { toast } from "sonner";
-import { ChoiceChips, FieldError, FormError } from "@/components/form";
+import { AmountField, ChoiceChips, FieldError, FormError } from "@/components/form";
 import { Button, buttonVariants, Card, CardContent, Input, Label } from "@/components/ui";
 import { routes } from "@/config";
-import { type ActionState, addDays, idle } from "@/lib";
-import { describeSchedule, formatDay, toMajorString } from "../describe";
+import { type ActionState, addDays, idle, toMajorString } from "@/lib";
+import { describeSchedule, formatDay } from "../describe";
 import { changeAllowanceAction, createAllowanceAction } from "../server/actions";
 import { type Frequency, frequencies, type Schedule } from "../types";
-import { AmountField } from "./amount-field";
 
 const ONE_TIME = "one_time";
 

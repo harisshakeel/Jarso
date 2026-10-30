@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppError } from "@/lib";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
@@ -20,6 +20,9 @@ const { getHistory, getHistoryPage, getJars } = await import("./service");
 const childId = "child-1";
 const row = (over: Partial<Awaited<ReturnType<typeof repo.listLedgerRows>>[number]>) => ({
   id: "row",
+  kind: "allowance",
+  reversesEntryId: null,
+  reversed: false,
   jar: "spend" as const,
   direction: "in" as const,
   amountMinor: 0,
@@ -76,6 +79,9 @@ describe("getHistory", () => {
         dueMinor: 50000,
         label: "Allowance",
         occurredOn: "2026-10-26",
+        undone: false,
+        entryId: null,
+        canUndo: false,
       },
     ]);
   });
@@ -106,6 +112,97 @@ describe("getHistory", () => {
       ["allowance", "occ-1", 500, null, "2026-10-20"],
     ]);
     expect(items[0]?.label).toBe("Well done");
+  });
+});
+
+describe("getHistory purchases", () => {
+  const NOW = Date.parse("2026-10-29T12:00:00Z");
+  const hoursAgo = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
+  const purchase = (over: Parameters<typeof row>[0] = {}) =>
+    row({
+      id: "p1",
+      kind: "purchase",
+      direction: "out",
+      amountMinor: 300,
+      label: "Snack",
+      sourceType: "diary",
+      sourceId: null,
+      occurredAt: hoursAgo(2),
+      ...over,
+    });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("shows a purchase as its own line that can be undone within 24 hours", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([purchase()]);
+    await expect(getHistory(childId)).resolves.toEqual([
+      {
+        id: "p1",
+        kind: "purchase",
+        amountMinor: 300,
+        dueMinor: null,
+        label: "Snack",
+        occurredOn: "2026-10-29",
+        undone: false,
+        entryId: "p1",
+        canUndo: true,
+      },
+    ]);
+  });
+
+  it("cannot undo a purchase older than 24 hours", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([purchase({ occurredAt: hoursAgo(25) })]);
+    const [item] = await getHistory(childId);
+    expect(item).toMatchObject({ kind: "purchase", undone: false, canUndo: false });
+  });
+
+  it("folds a purchase and its reversal into one undone line", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      row({
+        id: "rev",
+        kind: "reversal",
+        direction: "in",
+        amountMinor: 300,
+        sourceType: "diary",
+        sourceId: null,
+        reversesEntryId: "p1",
+        occurredAt: hoursAgo(1),
+      }),
+      purchase({ reversed: true }),
+    ]);
+    const items = await getHistory(childId);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      id: "p1",
+      kind: "purchase",
+      amountMinor: 300,
+      undone: true,
+      canUndo: false,
+    });
+  });
+
+  it("marks a purchase undone from its flag even when the reversal is on another page", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([purchase({ reversed: true })]);
+    const [item] = await getHistory(childId);
+    expect(item).toMatchObject({ undone: true, canUndo: false });
+  });
+
+  it("labels an unlabelled purchase 'Purchase'", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([purchase({ label: null })]);
+    const [item] = await getHistory(childId);
+    expect(item?.label).toBe("Purchase");
+  });
+
+  it("gives existing lines no undo", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      row({ id: "g", sourceType: "parent_gift", sourceId: "gift-1", amountMinor: 100 }),
+    ]);
+    const [item] = await getHistory(childId);
+    expect(item).toMatchObject({ undone: false, entryId: null, canUndo: false });
   });
 });
 

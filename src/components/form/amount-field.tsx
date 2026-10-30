@@ -1,5 +1,5 @@
-import { FieldError } from "@/components/form";
 import { Label } from "@/components/ui";
+import { FieldError } from "./field";
 
 function currencySymbol(currency: string): string {
   const part = new Intl.NumberFormat("en-GB", {
@@ -17,21 +17,31 @@ type AmountFieldProps = {
   value: string;
   onValueChange: (value: string) => void;
   errors?: string[];
+  /** Input id and name; change it when several amount fields share a page. */
+  id?: string;
+  label?: string;
 };
 
 /** Big amount input with the currency symbol at 60 % (spec §5.1). Parsed on the server. */
-export function AmountField({ currency, value, onValueChange, errors }: AmountFieldProps) {
-  const errorId = errors?.length ? "amount-error" : undefined;
+export function AmountField({
+  currency,
+  value,
+  onValueChange,
+  errors,
+  id = "amount",
+  label = "Amount",
+}: AmountFieldProps) {
+  const errorId = errors?.length ? `${id}-error` : undefined;
   return (
     <div className="grid gap-2">
-      <Label htmlFor="amount">Amount</Label>
+      <Label htmlFor={id}>{label}</Label>
       <div className="flex items-baseline gap-2">
         <span aria-hidden className="money text-h1 text-ink-2">
           <span className="opacity-60">{currencySymbol(currency)}</span>
         </span>
         <input
-          id="amount"
-          name="amount"
+          id={id}
+          name={id}
           inputMode="decimal"
           autoComplete="off"
           required

@@ -13,6 +13,11 @@ type Client = SupabaseClient<Database>;
 
 export type LedgerRow = {
   id: string;
+  kind: string;
+  /** Set on a reversal row: the entry it reverses. */
+  reversesEntryId: string | null;
+  /** True when a reversal entry exists for this row. */
+  reversed: boolean;
   jar: Jar;
   direction: "in" | "out";
   amountMinor: number;
@@ -46,6 +51,9 @@ export async function listLedgerRows(
   if (error) throw toAppError(error, "Failed to load history");
   return data.map((row) => ({
     id: row.id,
+    kind: row.kind,
+    reversesEntryId: row.reverses_entry_id,
+    reversed: row.reversed,
     jar: row.jar === "save" ? "save" : "spend",
     direction: row.direction === "out" ? "out" : "in",
     amountMinor: Number(row.amount_minor),

@@ -165,6 +165,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"child_settings": {
+                  Row: {
+                    "allow_negative_spend": boolean,"child_id": string,"family_id": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "allow_negative_spend"?: boolean,"child_id": string,"family_id": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "allow_negative_spend"?: boolean,"child_id"?: string,"family_id"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_settings_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "child_settings_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "child_settings_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"families": {
                   Row: {
                     "code": string,"created_at": string,"created_by": string,"currency": string,"id": string,"timezone": string,"updated_at": string
@@ -443,6 +475,76 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"money_rules": {
+                  Row: {
+                    "amount_minor": number,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"id": string,"kind": string,"period": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_minor": number,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"id"?: string,"kind": string,"period": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "amount_minor"?: number,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"id"?: string,"kind"?: string,"period"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "money_rules_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "money_rules_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "money_rules_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "money_rules_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"notifications": {
+                  Row: {
+                    "child_id": string,"created_at": string,"family_id": string,"id": string,"kind": string,"payload": NonNullable<Json>,"read_at": string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"created_at"?: string,"family_id": string,"id"?: string,"kind": string,"payload"?: NonNullable<Json>,"read_at"?: string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key"?: string | null
+                  }
+                  Update: {
+                    "child_id"?: string,"created_at"?: string,"family_id"?: string,"id"?: string,"kind"?: string,"payload"?: NonNullable<Json>,"read_at"?: string | null,"recipient_id"?: string,"source_id"?: string,"source_type"?: string,"window_key"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notifications_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notifications_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notifications_recipient_id_fkey"
+      columns: ["recipient_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"parent_details": {
                   Row: {
                     "completed_at": string,"country": string,"date_of_birth": string,"gender": string,"profile_id": string,"updated_at": string
@@ -669,6 +771,9 @@ isOneToOne: false
 "current_family_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"evaluate_spend_limits":
+{ Args: { "p_entry_id": string }; Returns: number
+                           },
 "family_today":
 { Args: { "p_family_id": string,"p_now"?: string }; Returns: string
                            },
@@ -694,6 +799,9 @@ isOneToOne: false
               "main_cache_read": number,"main_cache_write": number,"main_input": number,"main_output": number,"model": string,"screen_input": number,"screen_output": number
             }[]
                            },
+"held_spend":
+{ Args: { "p_child_id": string }; Returns: number
+                           },
 "hit_rate_limit":
 { Args: { "p_key": string,"p_max": number,"p_window": string }; Returns: boolean
                            },
@@ -716,7 +824,7 @@ isOneToOne: false
                            },
 "list_ledger_history":
 { Args: { "p_before"?: string,"p_child_id": string,"p_limit"?: number }; Returns: {
-              "amount_minor": number,"direction": string,"id": string,"jar": string,"kind": string,"label": string,"occurred_at": string,"source_id": string,"source_type": string
+              "amount_minor": number,"direction": string,"id": string,"jar": string,"kind": string,"label": string,"occurred_at": string,"reversed": boolean,"reverses_entry_id": string,"source_id": string,"source_type": string
             }[]
                            },
 "list_my_invitations":
@@ -795,6 +903,12 @@ isOneToOne: false
 "mark_not_given":
 { Args: { "p_occurrence_id": string }; Returns: string
                            },
+"notify_child":
+{ Args: { "p_child_id": string,"p_kind": string,"p_payload": Json,"p_source_id": string,"p_source_type": string,"p_window_key": string }; Returns: number
+                           },
+"notify_parents":
+{ Args: { "p_child_id": string,"p_kind": string,"p_payload": Json,"p_source_id": string,"p_source_type": string,"p_window_key": string }; Returns: number
+                           },
 "pause_allowance":
 { Args: { "p_message": string,"p_schedule_id": string,"p_through": string }; Returns: string
                            },
@@ -803,6 +917,12 @@ isOneToOne: false
                            },
 "record_practice_result":
 { Args: { "p_correct": boolean,"p_hints_used": number,"p_item_key": string,"p_skill_key": string,"p_tries": number }; Returns: boolean
+                           },
+"record_purchase":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_label": string }; Returns: Json
+                           },
+"record_purchase_at":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_label": string,"p_now": string }; Returns: Json
                            },
 "record_step_result":
 { Args: { "p_attempt_id": string,"p_correct": boolean,"p_hints_used": number,"p_phase": string,"p_skill_key": string,"p_step_key": string,"p_step_type": string,"p_tries": number }; Returns: boolean
@@ -822,17 +942,32 @@ isOneToOne: false
 "revoke_user_sessions":
 { Args: { "p_user_id": string }; Returns: number
                            },
+"rule_window_start":
+{ Args: { "p_at": string,"p_family_id": string,"p_period": string }; Returns: string
+                           },
+"set_allow_negative_spend":
+{ Args: { "p_allowed": boolean,"p_child_id": string }; Returns: undefined
+                           },
 "set_child_pin":
 { Args: { "p_child_id": string,"p_pin": string }; Returns: undefined
                            },
 "set_guide_access":
 { Args: { "p_child_id": string,"p_enabled": boolean }; Returns: undefined
                            },
+"set_money_rule":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_kind": string,"p_period": string }; Returns: undefined
+                           },
 "start_mission":
 { Args: { "p_content_version": number,"p_mission_key": string }; Returns: string
                            },
 "stop_allowance":
 { Args: { "p_schedule_id": string }; Returns: string
+                           },
+"undo_purchase":
+{ Args: { "p_entry_id": string }; Returns: string
+                           },
+"undo_purchase_at":
+{ Args: { "p_entry_id": string,"p_now": string }; Returns: string
                            },
 "update_family_timezone":
 { Args: { "p_timezone": string }; Returns: undefined

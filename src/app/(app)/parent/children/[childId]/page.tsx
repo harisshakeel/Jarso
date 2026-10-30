@@ -38,6 +38,12 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
           <Jars jars={jars} currency={currency} showMinor="always" />
           <DueList childId={childId} items={due} currency={currency} />
           <ParentAllowanceCard childId={childId} schedule={schedule} currency={currency} />
+          <Link
+            href={routes.parentRules(childId)}
+            className="inline-flex min-h-11 w-fit items-center rounded-full px-2 font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            Money rules
+          </Link>
           <div className="grid gap-3">
             <GiftList childId={childId} gifts={upcoming} currency={currency} />
             <Link

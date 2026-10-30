@@ -16,6 +16,9 @@ const HISTORY_LIMIT = 50;
 /** A handover writes up to two rows (Spend and Save), so read enough rows for the items. */
 const ROW_LIMIT = HISTORY_LIMIT * 2;
 
+/** A purchase can be undone for this long after it happened. */
+const UNDO_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 const SOURCE_KIND: Record<string, "allowance" | "gift"> = {
   occurrence: "allowance",
   parent_gift: "gift",
@@ -72,6 +75,23 @@ function groupBySource(rows: LedgerRow[]): Group[] {
   return [...groups.values()];
 }
 
+/** One purchase entry as its own line; its reversal row never shows, `reversed` marks it undone. */
+function purchaseItem(row: LedgerRow, timezone: string, now: number): HistoryItem & { at: string } {
+  const undone = row.reversed;
+  return {
+    id: row.id,
+    kind: "purchase",
+    amountMinor: row.amountMinor,
+    dueMinor: null,
+    label: row.label ?? "Purchase",
+    occurredOn: localDate(row.occurredAt, timezone),
+    undone,
+    entryId: row.id,
+    canUndo: !undone && now - Date.parse(row.occurredAt) < UNDO_WINDOW_MS,
+    at: row.occurredAt,
+  };
+}
+
 export type HistoryPage = {
   items: HistoryItem[];
   /** Cursor for the next, older page (`before`), or null when this is the last page. */
@@ -79,7 +99,7 @@ export type HistoryPage = {
 };
 
 /**
- * Allowances and gifts that reached the jars (Spend and Save of one handover as one item), plus
+ * Allowances, gifts and purchases (each its own line, undone ones marked) that reached the jars (Spend and Save of one handover as one item), plus
  * allowances closed as not given (`skipped`, no amount). Newest first, at most 50, and only
  * those before the `before` cursor when given.
  */
@@ -92,6 +112,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
     getFamily(),
   ]);
   const timezone = family?.timezone ?? "UTC";
+  const now = Date.now(); // Server clock decides canUndo.
   const groups = groupBySource(rows);
 
   const occurrenceIds = groups.filter((g) => g.kind === "allowance").map((g) => g.sourceId);
@@ -109,9 +130,13 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
         dueMinor: occurrence && occurrence.shortfallMinor > 0 ? occurrence.amountMinor : null,
         label: group.label,
         occurredOn: localDate(group.at, timezone),
+        undone: false,
+        entryId: null,
+        canUndo: false,
         at: group.at,
       };
     }),
+    ...rows.filter((row) => row.kind === "purchase").map((row) => purchaseItem(row, timezone, now)),
     ...closed.map((occurrence) => ({
       id: occurrence.id,
       kind: "skipped" as const,
@@ -119,6 +144,9 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
       dueMinor: null,
       label: "Allowance",
       occurredOn: localDate(occurrence.closedAt, timezone),
+      undone: false,
+      entryId: null,
+      canUndo: false,
       at: occurrence.closedAt,
     })),
   ];

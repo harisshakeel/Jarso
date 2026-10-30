@@ -22,15 +22,8 @@ import {
   Slider,
 } from "@/components/ui";
 import { routes } from "@/config";
-import { type ActionState, formatMoney, idle, parseMoney } from "@/lib";
-import {
-  cashForSaved,
-  checkSplit,
-  formatDay,
-  shareOf,
-  splitAtShare,
-  toMajorString,
-} from "../describe";
+import { type ActionState, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
+import { cashForSaved, checkSplit, formatDay, shareOf, splitAtShare } from "../describe";
 import { confirmHandoverAction, markNotGivenAction } from "../server/actions";
 import type { HandoverResult, Split } from "../types";
 

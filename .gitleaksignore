@@ -6,3 +6,6 @@
 1006ac40b42161b0eaeaf6db59aa9dda00a57e91:.claude-logs/2026-10-29_13-42-09_3336f19b-eaaf-4cb6-a13d-6ae3f17c0076.md:generic-api-key:397
 ecab39dfc63638f1df44b8640e7428ca4788f243:.claude-logs/2026-10-29_13-42-09_3336f19b-eaaf-4cb6-a13d-6ae3f17c0076.md:generic-api-key:738
 ecab39dfc63638f1df44b8640e7428ca4788f243:.claude-logs/2026-10-29_13-42-09_3336f19b-eaaf-4cb6-a13d-6ae3f17c0076.md:generic-api-key:769
+
+# Test fixture UUID (idempotency key in the diary schemas test), not a secret.
+26f033f44268e4592a18644e24524fdce8a4fa04:src/features/diary/schemas.test.ts:generic-api-key:4
