@@ -151,12 +151,15 @@ export function CancelGiftForm({
     setError(undefined);
     start(async () => {
       const result = await runOnline(() => cancelGiftAction(null, { id: giftId }));
-      if (result.ok) {
-        toast.success("Gift cancelled");
-        router.push(routes.parentChild(childId));
-      } else {
-        setError(result.error);
-      }
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      start(() => {
+        if (result.ok) {
+          toast.success("Gift cancelled");
+          router.push(routes.parentChild(childId));
+        } else {
+          setError(result.error);
+        }
+      });
     });
   }
 

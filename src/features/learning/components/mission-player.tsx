@@ -187,24 +187,27 @@ export function MissionPlayer(props: MissionPlayerProps) {
       const result = await runOnline(() =>
         startMissionAction(null, { missionKey: mode.missionKey }),
       );
-      if (!result.ok) {
-        setError(
-          result.error.code === "UNAVAILABLE"
-            ? { text: result.error.message, calm: true }
-            : { text: failureText(result), calm: false },
-        );
-        return;
-      }
-      const { attemptId: id, results: saved } = result.data;
-      setAttemptId(id);
-      setResults(saved);
-      const nextQueue = initialQueue(mode, steps, saved);
-      setQueue(nextQueue);
-      setReplaysAdded(resumePosition({ steps }, saved).phase !== "main");
-      setIndex(0);
-      // Another tab may have answered every step already.
-      if (nextQueue.length === 0) finish(saved, checkInAnswers, id);
-      else setStage("playing");
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      startTransition(() => {
+        if (!result.ok) {
+          setError(
+            result.error.code === "UNAVAILABLE"
+              ? { text: result.error.message, calm: true }
+              : { text: failureText(result), calm: false },
+          );
+          return;
+        }
+        const { attemptId: id, results: saved } = result.data;
+        setAttemptId(id);
+        setResults(saved);
+        const nextQueue = initialQueue(mode, steps, saved);
+        setQueue(nextQueue);
+        setReplaysAdded(resumePosition({ steps }, saved).phase !== "main");
+        setIndex(0);
+        // Another tab may have answered every step already.
+        if (nextQueue.length === 0) finish(saved, checkInAnswers, id);
+        else setStage("playing");
+      });
     });
   }
 
@@ -231,22 +234,25 @@ export function MissionPlayer(props: MissionPlayerProps) {
     startTransition(async () => {
       if (mode.kind === "check-in") {
         const saved = await save(userId, "checkIn", { answers });
-        if (!saved.ok) {
-          setError(saved.problem);
-          return;
-        }
-        // Waiting to send (or an odd reply): the device graded the same answers, so it counts.
-        const known = isCheckInResult(saved.data)
-          ? saved.data.correctCount
-          : allResults.filter((r) => r.correct).length;
-        setFinishText({
-          heading: "Thanks. That helps pick where you start.",
-          body:
-            known > 0
-              ? `You already knew ${known} of 5. Mission 1 is a quick warm-up.`
-              : "Mission 1 starts with the basics.",
+        // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+        startTransition(() => {
+          if (!saved.ok) {
+            setError(saved.problem);
+            return;
+          }
+          // Waiting to send (or an odd reply): the device graded the same answers, so it counts.
+          const known = isCheckInResult(saved.data)
+            ? saved.data.correctCount
+            : allResults.filter((r) => r.correct).length;
+          setFinishText({
+            heading: "Thanks. That helps pick where you start.",
+            body:
+              known > 0
+                ? `You already knew ${known} of 5. Mission 1 is a quick warm-up.`
+                : "Mission 1 starts with the basics.",
+          });
+          setStage("finished");
         });
-        setStage("finished");
         return;
       }
       if (!id) {
@@ -255,13 +261,15 @@ export function MissionPlayer(props: MissionPlayerProps) {
       }
       // Queued after this mission's steps, so the server never sees it before them.
       const saved = await save(userId, "completeMission", { attemptId: id });
-      if (!saved.ok) {
-        setError(saved.problem);
-        return;
-      }
-      const summary = isSummary(saved.data) ? saved.data : attemptSummary(allResults);
-      setFinishText({ heading: "Mission done. Nice work.", body: summaryLine(summary) });
-      setStage("finished");
+      startTransition(() => {
+        if (!saved.ok) {
+          setError(saved.problem);
+          return;
+        }
+        const summary = isSummary(saved.data) ? saved.data : attemptSummary(allResults);
+        setFinishText({ heading: "Mission done. Nice work.", body: summaryLine(summary) });
+        setStage("finished");
+      });
     });
   }
 

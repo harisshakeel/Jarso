@@ -124,31 +124,34 @@ export function GuideSheet({
         { timeoutMs: TURN_TIMEOUT_MS },
       );
       if (started !== generation.current) return;
-      if (!result.ok) {
-        if (result.error.code === "CONFLICT") setFull(true);
-        setError({
-          code: result.error.code,
-          message:
-            result.error.code === "VALIDATION"
-              ? (result.error.fieldErrors?.text?.[0] ?? result.error.message)
-              : result.error.code === "INTERNAL"
-                ? guideCopy.routes.unavailable
-                : result.error.message,
-        });
-        return;
-      }
-      unanswered.current = null;
-      const { reply } = result.data;
-      setConversationId(result.data.conversationId);
-      setTurnsLeft(result.data.turnsLeft);
-      if (result.data.turnsLeft === 0) setFull(true);
-      setMessages((current) => [
-        ...current,
-        { id: `child-${current.length}`, from: "child", text: question },
-        { id: reply.messageId ?? `guide-${current.length}`, from: "guide", reply },
-      ]);
-      setText("");
-      input.current?.focus();
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      startTransition(() => {
+        if (!result.ok) {
+          if (result.error.code === "CONFLICT") setFull(true);
+          setError({
+            code: result.error.code,
+            message:
+              result.error.code === "VALIDATION"
+                ? (result.error.fieldErrors?.text?.[0] ?? result.error.message)
+                : result.error.code === "INTERNAL"
+                  ? guideCopy.routes.unavailable
+                  : result.error.message,
+          });
+          return;
+        }
+        unanswered.current = null;
+        const { reply } = result.data;
+        setConversationId(result.data.conversationId);
+        setTurnsLeft(result.data.turnsLeft);
+        if (result.data.turnsLeft === 0) setFull(true);
+        setMessages((current) => [
+          ...current,
+          { id: `child-${current.length}`, from: "child", text: question },
+          { id: reply.messageId ?? `guide-${current.length}`, from: "guide", reply },
+        ]);
+        setText("");
+        input.current?.focus();
+      });
     });
   }
 

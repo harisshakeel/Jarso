@@ -31,10 +31,13 @@ export function GuideSwitch({
     setOn(next);
     startTransition(async () => {
       const result = await runOnline(() => setGuideAccessAction(null, { childId, enabled: next }));
-      if (!result.ok) {
-        setOn(!next);
-        setError(result.error);
-      }
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      startTransition(() => {
+        if (!result.ok) {
+          setOn(!next);
+          setError(result.error);
+        }
+      });
     });
   }
 

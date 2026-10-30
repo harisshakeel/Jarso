@@ -260,12 +260,15 @@ function NotGivenButton({
     setError(undefined);
     start(async () => {
       const result = await runOnline(() => markNotGivenAction(null, { id }));
-      if (result.ok) {
-        toast.success(result.data === "closed" ? "Marked as not given." : "Already handled.");
-        router.push(routes.parentChild(childId));
-      } else {
-        setError(result.error);
-      }
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      start(() => {
+        if (result.ok) {
+          toast.success(result.data === "closed" ? "Marked as not given." : "Already handled.");
+          router.push(routes.parentChild(childId));
+        } else {
+          setError(result.error);
+        }
+      });
     });
   }
 

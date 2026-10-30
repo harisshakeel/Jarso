@@ -115,12 +115,15 @@ function useIdAction(
     setError(undefined);
     start(async () => {
       const result = await runOnline(() => run(scheduleId));
-      if (result.ok) {
-        toast.success(success);
-        onDone?.();
-      } else {
-        setError(result.error);
-      }
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      start(() => {
+        if (result.ok) {
+          toast.success(success);
+          onDone?.();
+        } else {
+          setError(result.error);
+        }
+      });
     });
   }
   return { pending, error, submit };

@@ -16,11 +16,11 @@ export function UndoButton({ entryId, label }: { entryId: string; label: string 
     setError(undefined);
     start(async () => {
       const result = await runOnline(() => undoPurchaseAction(null, { entryId }));
-      if (!result.ok) {
-        setError(result.error);
-      } else {
-        toast.success("Undone. The money is back in Spend.");
-      }
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      start(() => {
+        if (!result.ok) setError(result.error);
+        else toast.success("Undone. The money is back in Spend.");
+      });
     });
   }
 

@@ -19,10 +19,13 @@ export function OverspendSwitch({ childId, nickname, allowed }: OverspendSwitchP
     setError(undefined);
     start(async () => {
       const result = await runOnline(() => setOverspendAction(null, { childId, allowed: next }));
-      if (!result.ok) {
-        setChecked(!next);
-        setError(result.error);
-      }
+      // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
+      start(() => {
+        if (!result.ok) {
+          setChecked(!next);
+          setError(result.error);
+        }
+      });
     });
   }
 
