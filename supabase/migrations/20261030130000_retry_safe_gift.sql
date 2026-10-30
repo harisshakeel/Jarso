@@ -59,7 +59,7 @@ begin
   -- A retry returns the original gift without re-checking the date (it may be a day later).
   select g.id into v_id
   from public.parent_gifts g
-  where g.created_by = v_uid and g.idempotency_key = p_idempotency_key;
+  where g.created_by = v_uid and g.idempotency_key = p_idempotency_key and g.child_id = p_child_id;
   if found then
     return v_id;
   end if;
@@ -76,7 +76,7 @@ begin
   end if;
 
   -- Two sends racing past the lookup: the loser waits on the unique key, inserts nothing and
-  -- reads the winner's row.
+  -- reads the winner's row. A key this parent already used for another child is refused.
   insert into public.parent_gifts (family_id, child_id, amount_minor, give_on, note, created_by, idempotency_key)
   values (v_family_id, p_child_id, p_amount_minor, p_give_on, v_note, v_uid, p_idempotency_key)
   on conflict (created_by, idempotency_key) do nothing
@@ -85,7 +85,10 @@ begin
   if v_id is null then
     select g.id into v_id
     from public.parent_gifts g
-    where g.created_by = v_uid and g.idempotency_key = p_idempotency_key;
+    where g.created_by = v_uid and g.idempotency_key = p_idempotency_key and g.child_id = p_child_id;
+    if v_id is null then
+      raise exception using errcode = 'JA409', message = 'Key already used for another gift';
+    end if;
     return v_id;
   end if;
 
@@ -102,7 +105,7 @@ begin
 end;
 $$;
 
-comment on function public.create_gift(uuid, bigint, date, text, text) is 'Parent plans a one-time gift for the child (hidden from the child until given). Note trimmed, empty = null. A repeated key from the same parent returns the existing gift id without inserting or auditing. JA403, 22023 (blank key or key over 200, amount outside 1..100000000000, give_on outside family today..today + 366, note over 140).';
+comment on function public.create_gift(uuid, bigint, date, text, text) is 'Parent plans a one-time gift for the child (hidden from the child until given). Note trimmed, empty = null. A repeated key from the same parent for the same child returns the existing gift id without inserting or auditing. JA403, JA409 (key already used by this parent for another child), 22023 (blank key or key over 200, amount outside 1..100000000000, give_on outside family today..today + 366, note over 140).';
 
 revoke execute on function public.create_gift(uuid, bigint, date, text, text) from public, anon;
 grant execute on function public.create_gift(uuid, bigint, date, text, text) to authenticated;

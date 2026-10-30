@@ -1,15 +1,17 @@
 begin;
 \ir _helpers.psql
-select plan(14);
+select plan(15);
 
 -- Family A: parents PA and PB, child C (guide on).
 select tests.create_user('pa@example.com') as pa \gset
 select tests.create_user('pb@example.com') as pb \gset
 select tests.create_user('c@example.com', 'child') as c \gset
+select tests.create_user('c2@example.com', 'child') as c2 \gset
 
 select tests.authenticate_as(:'pa'::uuid);
 select public.create_family('GBP', 'UTC') as fa \gset
 select public.register_child(:'c'::uuid, :'fa'::uuid, 'Sam', '1234', true);
+select public.register_child(:'c2'::uuid, :'fa'::uuid, 'Alex', '2345', true);
 select public.set_guide_access(:'c'::uuid, true);
 select tests.clear_auth();
 
@@ -43,6 +45,9 @@ select is(
 select throws_ok(
   format($$ select public.create_gift(%L, 1000, %L, null, '  ') $$, :'c', :'today'),
   '22023', null, 'a blank key is refused');
+select throws_ok(
+  format($$ select public.create_gift(%L, 1000, %L, null, %L) $$, :'c2', :'today', :'gift_key'),
+  'JA409', null, 'same key for a different child does not return the first child''s gift');
 
 select tests.authenticate_as(:'pb'::uuid);
 select public.create_gift(:'c'::uuid, 1000, :'today'::date, 'Well done', :'gift_key') as g2 \gset
