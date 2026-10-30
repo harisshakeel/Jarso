@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { routes } from "@/config";
+import { runOnline } from "@/features/offline";
 import { cn } from "@/lib";
 import { setGuideAccessAction } from "../server/actions";
 
@@ -20,7 +21,7 @@ export function GuideSwitch({
   enabled: boolean;
 }) {
   const [on, setOn] = useState(enabled);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ text: string; calm: boolean } | null>(null);
   const [pending, startTransition] = useTransition();
 
   function toggle() {
@@ -28,15 +29,10 @@ export function GuideSwitch({
     setError(null);
     setOn(next);
     startTransition(async () => {
-      try {
-        const result = await setGuideAccessAction(null, { childId, enabled: next });
-        if (!result.ok) {
-          setOn(!next);
-          setError(result.error.message);
-        }
-      } catch {
+      const result = await runOnline(() => setGuideAccessAction(null, { childId, enabled: next }));
+      if (!result.ok) {
         setOn(!next);
-        setError("We couldn't save that. Check your connection and try again.");
+        setError({ text: result.error.message, calm: result.error.code === "UNAVAILABLE" });
       }
     });
   }
@@ -84,8 +80,11 @@ export function GuideSwitch({
         </Link>
       </p>
       {error ? (
-        <p role="alert" className="font-semibold text-destructive text-sm">
-          {error}
+        <p
+          role={error.calm ? "status" : "alert"}
+          className={cn("font-semibold text-sm", error.calm ? "text-ink-2" : "text-destructive")}
+        >
+          {error.text}
         </p>
       ) : null}
     </div>

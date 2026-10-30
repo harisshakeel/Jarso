@@ -21,7 +21,8 @@ import {
   SheetTrigger,
 } from "@/components/ui";
 import { routes } from "@/config";
-import { type ActionResult, cn } from "@/lib";
+import { runOnline } from "@/features/offline";
+import { cn } from "@/lib";
 import { guideCopy } from "../copy";
 import { type GuideContextRef, MAX_MESSAGE_LENGTH } from "../schemas";
 import { askGuideAction, rateGuideMessageAction } from "../server/actions";
@@ -41,21 +42,14 @@ type GuideSheetProps = {
   compact?: boolean;
 };
 
-const OFFLINE = "We couldn't reach the guide. Check your connection and try again.";
+/** A whole guide turn may take this long before the child is asked to try again. */
+const TURN_TIMEOUT_MS = 45_000;
 
 /**
  * The intro card shows before a child's first-ever message. Once they've read it on this page,
  * other guide buttons (a new step's "Help me") don't show it again.
  */
 let introAcknowledged = false;
-
-async function call<T>(action: () => Promise<ActionResult<T>>): Promise<ActionResult<T>> {
-  try {
-    return await action();
-  } catch {
-    return { ok: false, error: { code: "INTERNAL", message: OFFLINE } };
-  }
-}
 
 /**
  * The AI money guide (FR07) in a bottom sheet. Every open starts a fresh chat about the context
@@ -75,7 +69,7 @@ export function GuideSheet({
   const [messages, setMessages] = useState<Message[]>([]);
   const [turnsLeft, setTurnsLeft] = useState<number | null>(null);
   const [text, setText] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ text: string; calm: boolean } | null>(null);
   const [full, setFull] = useState(false);
   const [pending, startTransition] = useTransition();
   const listEnd = useRef<HTMLDivElement>(null);
@@ -120,19 +114,22 @@ export function GuideSheet({
     const clientMessageId = unanswered.current.id;
     const started = generation.current;
     startTransition(async () => {
-      const result = await call<AskGuideResult>(() =>
-        askGuideAction(null, { clientMessageId, conversationId, context, text: question }),
+      const result = await runOnline<AskGuideResult>(
+        () => askGuideAction(null, { clientMessageId, conversationId, context, text: question }),
+        { timeoutMs: TURN_TIMEOUT_MS },
       );
       if (started !== generation.current) return;
       if (!result.ok) {
         if (result.error.code === "CONFLICT") setFull(true);
-        setError(
-          result.error.code === "VALIDATION"
-            ? (result.error.fieldErrors?.text?.[0] ?? result.error.message)
-            : result.error.code === "INTERNAL" && result.error.message !== OFFLINE
-              ? guideCopy.routes.unavailable
-              : result.error.message,
-        );
+        setError({
+          text:
+            result.error.code === "VALIDATION"
+              ? (result.error.fieldErrors?.text?.[0] ?? result.error.message)
+              : result.error.code === "INTERNAL"
+                ? guideCopy.routes.unavailable
+                : result.error.message,
+          calm: result.error.code === "UNAVAILABLE",
+        });
         return;
       }
       unanswered.current = null;
@@ -223,8 +220,11 @@ export function GuideSheet({
               <div ref={listEnd} />
 
               {error ? (
-                <p role="alert" className="font-semibold text-destructive">
-                  {error}
+                <p
+                  role={error.calm ? "status" : "alert"}
+                  className={cn("font-semibold", error.calm ? "text-ink-2" : "text-destructive")}
+                >
+                  {error.text}
                 </p>
               ) : null}
 
@@ -292,7 +292,7 @@ function GuideBubble({ reply }: { reply: GuideReply }) {
     const messageId = reply.messageId;
     setRating(value);
     startRating(async () => {
-      await call(() => rateGuideMessageAction(null, { messageId, rating: value }));
+      await runOnline(() => rateGuideMessageAction(null, { messageId, rating: value }));
     });
   }
   return (
