@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { AmountField, FormError } from "@/components/form";
 import { Button, Switch } from "@/components/ui";
+import { runOnline } from "@/features/offline";
 import { parseMoney, toMajorString } from "@/lib";
 import { describeRule } from "../describe";
 import { setRuleAction } from "../server/actions";
@@ -32,6 +33,7 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
   const [amount, setAmount] = useState(rule ? toMajorString(rule.amountMinor, currency) : "");
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
+  const [calm, setCalm] = useState(false);
   const [fieldError, setFieldError] = useState<string>();
   const id = `${kind}-${period}`;
 
@@ -39,11 +41,16 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
     setError(undefined);
     setFieldError(undefined);
     start(async () => {
-      const result = await setRuleAction(null, { childId, kind, period, amount: value });
+      const result = await runOnline(() =>
+        setRuleAction(null, { childId, kind, period, amount: value }),
+      );
       if (result.ok) return onOk();
       const first = result.error.fieldErrors?.amount?.[0];
       if (first) setFieldError(first);
-      else setError(result.error.message);
+      else {
+        setError(result.error.message);
+        setCalm(result.error.code === "UNAVAILABLE");
+      }
     });
   }
 
@@ -100,7 +107,7 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
           </Button>
         </div>
       ) : null}
-      <FormError message={error} />
+      <FormError message={error} calm={calm} />
     </form>
   );
 }

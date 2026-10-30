@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { FormError } from "@/components/form";
 import { Label, Switch } from "@/components/ui";
+import { runOnline } from "@/features/offline";
 import { setOverspendAction } from "../server/actions";
 
 type OverspendSwitchProps = { childId: string; nickname: string; allowed: boolean };
@@ -12,15 +13,17 @@ export function OverspendSwitch({ childId, nickname, allowed }: OverspendSwitchP
   const [checked, setChecked] = useState(allowed);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
+  const [calm, setCalm] = useState(false);
 
   function change(next: boolean) {
     setChecked(next);
     setError(undefined);
     start(async () => {
-      const result = await setOverspendAction(null, { childId, allowed: next });
+      const result = await runOnline(() => setOverspendAction(null, { childId, allowed: next }));
       if (!result.ok) {
         setChecked(!next);
         setError(result.error.message);
+        setCalm(result.error.code === "UNAVAILABLE");
       }
     });
   }
@@ -36,7 +39,7 @@ export function OverspendSwitch({ childId, nickname, allowed }: OverspendSwitchP
           ? `${nickname} can record a purchase even if Spend is short.`
           : `${nickname} can only spend what is in Spend.`}
       </p>
-      <FormError message={error} />
+      <FormError message={error} calm={calm} />
     </div>
   );
 }
