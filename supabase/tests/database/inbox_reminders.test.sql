@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(28);
+select plan(32);
 
 select tests.create_user('pa@example.com') as pa \gset
 select tests.create_user('pb@example.com') as pb \gset
@@ -82,6 +82,28 @@ select is((select count(*)::int from public.notifications where source_id = :'g1
 
 -- Job log: every run writes a finished job_runs row (job_runs.started_at is this transaction's now()).
 select is((select count(*)::int from public.job_runs where job = 'send-handover-reminders' and started_at = now() and status = 'ok' and finished_at is not null), 11, 'each reminder run is logged as ok in job_runs');
+
+-- One failing occurrence is isolated: the run ends as error, names it, and later occurrences still notify.
+insert into public.allowance_occurrences (schedule_id, family_id, child_id, period_key, due_on, amount_minor)
+values (:'s1'::uuid, :'fa'::uuid, :'c1'::uuid, 'p4', date '2026-11-17', 500)
+returning id as o4 \gset
+insert into public.allowance_occurrences (schedule_id, family_id, child_id, period_key, due_on, amount_minor)
+values (:'s1'::uuid, :'fa'::uuid, :'c1'::uuid, 'p5', date '2026-11-20', 500)
+returning id as o5 \gset
+create function tests.fail_for_o4() returns trigger language plpgsql as $$
+begin
+  raise exception 'test failure for this occurrence';
+end;
+$$;
+create trigger fail_for_o4 before insert on public.notifications
+  for each row when (new.source_id = :'o4'::uuid) execute function tests.fail_for_o4();
+
+select public.send_handover_reminders('2026-11-20 10:00Z') as r \gset
+select is((select count(*)::int from public.notifications where source_id = :'o4'::uuid), 0, 'failing occurrence creates no notices');
+select is((select count(*)::int from public.notifications where source_id = :'o5'::uuid and kind = 'allowance_due'), 3, 'later occurrence still notifies after a failure');
+select is((select status from public.job_runs where job = 'send-handover-reminders' and status = 'error' and started_at = now() order by finished_at desc limit 1), 'error', 'failed run is logged as error');
+select is((select details->'errors'->0->>'occurrence_id' from public.job_runs where job = 'send-handover-reminders' and status = 'error' and started_at = now() order by finished_at desc limit 1), :'o4', 'job_runs.details.errors names the failed occurrence');
+drop trigger fail_for_o4 on public.notifications;
 
 -- Read state
 select id as a_row from public.notifications where recipient_id = :'pa'::uuid order by created_at, id limit 1 \gset
