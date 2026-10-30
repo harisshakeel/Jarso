@@ -48,6 +48,7 @@ describe("InboxList", () => {
     render(<InboxList items={[notice]} currency="USD" viewer="child" />);
     fireEvent.click(screen.getByRole("link"));
     expect(push).toHaveBeenCalledWith("/child");
-    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

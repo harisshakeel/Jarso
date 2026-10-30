@@ -32,13 +32,14 @@ export function InboxList({ items, currency, viewer, moreHref }: InboxListProps)
     if (!href || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
     event.preventDefault();
     // Saving "read" is best effort: offline or slow, the child still gets to the record.
-    markNoticesReadAction(null, { ids: [id] })
-      .catch((error: unknown) => {
+    markNoticesReadAction(null, { ids: [id] }).then(
+      () => router.refresh(),
+      (error: unknown) => {
         logger.warn("Could not save notice as read", {
           error: error instanceof Error ? error.name : "unknown",
         });
-      })
-      .finally(() => router.refresh());
+      },
+    );
     router.push(href as Route);
   }
 
