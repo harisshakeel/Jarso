@@ -125,7 +125,10 @@ describe("PurchaseSheet", () => {
   it("asks for an amount before saving anything", async () => {
     openSheet();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByLabelText("Amount")).toHaveAttribute("aria-invalid", "true");
+    // The field exists before the action answers, so wait on the attribute, not the element.
+    await waitFor(() =>
+      expect(screen.getByLabelText("Amount")).toHaveAttribute("aria-invalid", "true"),
+    );
     expect(submitToOutbox).not.toHaveBeenCalled();
   });
 });
