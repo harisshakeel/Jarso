@@ -63,7 +63,7 @@ async function ParentHome() {
           <RequestsSection reads={reads} currency={family.currency} />
         </Suspense>
       </div>
-      <section aria-labelledby="children-title" className="rise-in grid gap-3" style={rise(1)}>
+      <section aria-labelledby="children-title" className="rise-in grid gap-3" style={rise(2)}>
         <h2 id="children-title" className="text-h2">
           Children
         </h2>
