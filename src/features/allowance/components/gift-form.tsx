@@ -47,6 +47,8 @@ export function GiftForm({
   defaultAmount,
 }: GiftFormProps) {
   const router = useRouter();
+  // One key per form open. Saving again after an error reuses it, so a lost response makes one gift.
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [state, action, pending] = useActionState(
     async (_prev: ActionState<unknown>, formData: FormData) => {
       const result = initial
@@ -72,7 +74,10 @@ export function GiftForm({
       {initial ? (
         <input type="hidden" name="giftId" value={initial.id} />
       ) : (
-        <input type="hidden" name="childId" value={childId} />
+        <>
+          <input type="hidden" name="childId" value={childId} />
+          <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
+        </>
       )}
       <Card className="rise-in shadow-raised">
         <CardContent>

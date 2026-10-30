@@ -214,11 +214,13 @@ export async function stopAllowance(scheduleId: string): Promise<void> {
 
 const GIFT_DONE = "This gift was already handed over or cancelled.";
 
+/** A repeated key from the same parent returns the gift it already made. */
 export async function createGift(input: {
   childId: string;
   amountMinor: number;
   giveOn: string;
   note: string | null;
+  idempotencyKey: string;
 }): Promise<string> {
   await assertParentOf(input.childId);
   return insertGift(await createClient(), input);

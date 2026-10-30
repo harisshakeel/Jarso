@@ -277,13 +277,20 @@ export async function stopSchedule(db: Client, scheduleId: string): Promise<void
 /** `note` null is sent as "" (the function stores a blank note as null). */
 export async function insertGift(
   db: Client,
-  args: { childId: string; amountMinor: number; giveOn: string; note: string | null },
+  args: {
+    childId: string;
+    amountMinor: number;
+    giveOn: string;
+    note: string | null;
+    idempotencyKey: string;
+  },
 ): Promise<string> {
   const { data, error } = await db.rpc("create_gift", {
     p_child_id: args.childId,
     p_amount_minor: args.amountMinor,
     p_give_on: args.giveOn,
     p_note: args.note ?? "",
+    p_idempotency_key: args.idempotencyKey,
   });
   if (error) throw toAppError(error, "Failed to save the gift");
   return data;

@@ -567,14 +567,14 @@ isOneToOne: true
                   ]
                 },"parent_gifts": {
                   Row: {
-                    "amount_minor": number,"cash_minor": number | null,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"give_on": string,"given_at": string | null,"given_by": string | null,"id": string,"note": string | null,"saved_minor": number | null,"status": string,"updated_at": string
+                    "amount_minor": number,"cash_minor": number | null,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"give_on": string,"given_at": string | null,"given_by": string | null,"id": string,"idempotency_key": string,"note": string | null,"saved_minor": number | null,"status": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_minor": number,"cash_minor"?: number | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"give_on": string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
+                    "amount_minor": number,"cash_minor"?: number | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"give_on": string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"idempotency_key": string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "amount_minor"?: number,"cash_minor"?: number | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"give_on"?: string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
+                    "amount_minor"?: number,"cash_minor"?: number | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"give_on"?: string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"idempotency_key"?: string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -763,7 +763,7 @@ isOneToOne: false
 { Args: { "p_currency": string,"p_timezone": string }; Returns: string
                            },
 "create_gift":
-{ Args: { "p_amount_minor": number,"p_child_id": string,"p_give_on": string,"p_note": string }; Returns: string
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_give_on": string,"p_idempotency_key": string,"p_note": string }; Returns: string
                            },
 "create_invitation":
 { Args: { "p_code_hash": string,"p_nickname": string,"p_parent_email": string,"p_token_hash": string }; Returns: string
@@ -866,6 +866,7 @@ isOneToOne: false
 "given_at": string | null,
 "given_by": string | null,
 "id": string,
+"idempotency_key": string,
 "note": string | null,
 "saved_minor": number | null,
 "status": string,

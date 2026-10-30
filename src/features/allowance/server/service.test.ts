@@ -95,7 +95,14 @@ const mutations: [string, () => Promise<unknown>][] = [
   ["stopAllowance", () => service.stopAllowance("s-1")],
   [
     "createGift",
-    () => service.createGift({ childId, amountMinor: 1000, giveOn: "2026-11-01", note: null }),
+    () =>
+      service.createGift({
+        childId,
+        amountMinor: 1000,
+        giveOn: "2026-11-01",
+        note: null,
+        idempotencyKey: "gift-key-1",
+      }),
   ],
   [
     "updateGift",
@@ -277,6 +284,23 @@ describe("markNotGiven", () => {
   it("passes already_handled through", async () => {
     vi.mocked(repo.closeOccurrence).mockResolvedValue("already_handled");
     await expect(service.markNotGiven("occ-1")).resolves.toBe("already_handled");
+  });
+});
+
+describe("createGift", () => {
+  it("forwards the idempotency key", async () => {
+    vi.mocked(repo.insertGift).mockResolvedValue("gift-1");
+    await service.createGift({
+      childId,
+      amountMinor: 1000,
+      giveOn: "2026-11-01",
+      note: null,
+      idempotencyKey: "gift-key-1",
+    });
+    expect(repo.insertGift).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ idempotencyKey: "gift-key-1" }),
+    );
   });
 });
 

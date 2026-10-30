@@ -31,11 +31,11 @@ returning id as o1 \gset
 -- ---------------------------------------------------------------------------
 select tests.authenticate_as(:'pa'::uuid);
 
-select public.create_gift(:'c1'::uuid, 1000, :'today'::date, '  Great report card!  ') as g1 \gset
-select public.create_gift(:'c1'::uuid, 2000, :'next_week'::date, null) as g2 \gset
-select public.create_gift(:'c1'::uuid, 700, :'today'::date, '   ') as g3 \gset
-select public.create_gift(:'c1'::uuid, 300, :'today'::date, 'Cancelled surprise') as g4 \gset
-select public.create_gift(:'c1'::uuid, 1000, :'today'::date, null) as g5 \gset
+select public.create_gift(:'c1'::uuid, 1000, :'today'::date, '  Great report card!  ', gen_random_uuid()::text) as g1 \gset
+select public.create_gift(:'c1'::uuid, 2000, :'next_week'::date, null, gen_random_uuid()::text) as g2 \gset
+select public.create_gift(:'c1'::uuid, 700, :'today'::date, '   ', gen_random_uuid()::text) as g3 \gset
+select public.create_gift(:'c1'::uuid, 300, :'today'::date, 'Cancelled surprise', gen_random_uuid()::text) as g4 \gset
+select public.create_gift(:'c1'::uuid, 1000, :'today'::date, null, gen_random_uuid()::text) as g5 \gset
 
 select is(
   (select family_id::text || ':' || status || ':' || note from public.parent_gifts where id = :'g1'::uuid),
@@ -46,22 +46,22 @@ select is(
   1, 'create writes gift.created');
 
 select throws_ok(
-  format($$select public.create_gift(%L, 1000, %L, null)$$, :'c1', :'three_days_ago'),
+  format($$select public.create_gift(%L, 1000, %L, null, gen_random_uuid()::text)$$, :'c1', :'three_days_ago'),
   '22023', null, 'give_on before family today rejected');
-select throws_ok(format($$select public.create_gift(%L, 0, %L, null)$$, :'c1', :'today'), '22023', null, 'zero amount rejected');
-select throws_ok(format($$select public.create_gift(%L, -5, %L, null)$$, :'c1', :'today'), '22023', null, 'negative amount rejected');
-select throws_ok(format($$select public.create_gift(%L, 100, null, null)$$, :'c1'), '22023', null, 'null give_on rejected');
+select throws_ok(format($$select public.create_gift(%L, 0, %L, null, gen_random_uuid()::text)$$, :'c1', :'today'), '22023', null, 'zero amount rejected');
+select throws_ok(format($$select public.create_gift(%L, -5, %L, null, gen_random_uuid()::text)$$, :'c1', :'today'), '22023', null, 'negative amount rejected');
+select throws_ok(format($$select public.create_gift(%L, 100, null, null, gen_random_uuid()::text)$$, :'c1'), '22023', null, 'null give_on rejected');
 select throws_ok(
-  format($$select public.create_gift(%L, 100, %L, null)$$, :'c1', (:'today'::date + 367)),
+  format($$select public.create_gift(%L, 100, %L, null, gen_random_uuid()::text)$$, :'c1', (:'today'::date + 367)),
   '22023', null, 'give_on more than 366 days ahead rejected');
 select throws_ok(
-  format($$select public.create_gift(%L, 100000000001, %L, null)$$, :'c1', :'today'),
+  format($$select public.create_gift(%L, 100000000001, %L, null, gen_random_uuid()::text)$$, :'c1', :'today'),
   '22023', null, 'amount above the maximum rejected');
 select throws_ok(
-  format($$select public.create_gift(%L, 100, %L, %L)$$, :'c1', :'today', repeat('x', 141)),
+  format($$select public.create_gift(%L, 100, %L, %L, gen_random_uuid()::text)$$, :'c1', :'today', repeat('x', 141)),
   '22023', null, 'note over 140 rejected');
 select lives_ok(
-  format($$select public.create_gift(%L, 100, %L, %L)$$, :'c1', :'next_week', ' ' || repeat('x', 140) || ' '),
+  format($$select public.create_gift(%L, 100, %L, %L, gen_random_uuid()::text)$$, :'c1', :'next_week', ' ' || repeat('x', 140) || ' '),
   'note of 140 after trim accepted');
 
 -- Parent view
@@ -89,7 +89,7 @@ select throws_ok(format($$select * from public.list_due_for_parent(%L)$$, :'c1')
 select is(public.balance(:'c1'::uuid, 'spend'), 0::bigint, 'child spend balance unchanged by pending gift');
 select is(public.balance(:'c1'::uuid, 'save'), 0::bigint, 'child save balance unchanged by pending gift');
 select is((select count(*)::int from public.list_ledger_history(:'c1'::uuid)), 0, 'child history empty before handover');
-select throws_ok(format($$select public.create_gift(%L, 100, %L, null)$$, :'c1', :'today'), 'JA403', null, 'child cannot create a gift');
+select throws_ok(format($$select public.create_gift(%L, 100, %L, null, gen_random_uuid()::text)$$, :'c1', :'today'), 'JA403', null, 'child cannot create a gift');
 select throws_ok(format($$select public.update_gift(%L, 100, %L, null)$$, :'g1', :'today'), 'JA403', null, 'child cannot edit a gift');
 select throws_ok(format($$select public.cancel_gift(%L)$$, :'g1'), 'JA403', null, 'child cannot cancel a gift');
 select throws_ok(format($$select public.confirm_gift_handover(%L, 100, 0, 'k-child')$$, :'g1'), 'JA403', null, 'child cannot confirm a gift');
@@ -144,7 +144,7 @@ select throws_ok(format($$select public.confirm_gift_handover(%L, 100001, 0, 'k5
 select throws_ok(format($$select public.confirm_gift_handover(%L, -1, 500, 'k5c')$$, :'g5'), '22023', null, 'negative rejected');
 select throws_ok(format($$select public.confirm_gift_handover(%L, 100, 0, '  ')$$, :'g5'), '22023', null, 'blank key rejected');
 select throws_ok(format($$select public.confirm_gift_handover(%L, 100, 0, null)$$, :'g5'), '22023', null, 'null key rejected');
-select public.create_gift(:'c1'::uuid, 100000000000, :'today'::date, null) as g6 \gset
+select public.create_gift(:'c1'::uuid, 100000000000, :'today'::date, null, gen_random_uuid()::text) as g6 \gset
 select throws_ok(
   format($$select public.confirm_gift_handover(%L, 100000000001, 0, 'k6a')$$, :'g6'),
   '22023', null, 'gift cash above the maximum rejected');
@@ -199,7 +199,7 @@ select tests.clear_auth();
 -- ---------------------------------------------------------------------------
 select tests.authenticate_as(:'pb'::uuid);
 select is((select count(*)::int from public.parent_gifts), 0, 'other family sees no gifts');
-select throws_ok(format($$select public.create_gift(%L, 100, %L, null)$$, :'c1', :'today'), 'JA403', null, 'other family cannot create');
+select throws_ok(format($$select public.create_gift(%L, 100, %L, null, gen_random_uuid()::text)$$, :'c1', :'today'), 'JA403', null, 'other family cannot create');
 select throws_ok(format($$select public.update_gift(%L, 100, %L, null)$$, :'g2', :'next_week'), 'JA403', null, 'other family cannot edit');
 select throws_ok(format($$select public.cancel_gift(%L)$$, :'g2'), 'JA403', null, 'other family cannot cancel');
 select throws_ok(format($$select public.confirm_gift_handover(%L, 100, 0, 'k-b')$$, :'g3'), 'JA403', null, 'other family cannot confirm');
@@ -208,7 +208,7 @@ select throws_ok(format($$select public.cancel_gift(%L)$$, gen_random_uuid()), '
 select tests.clear_auth();
 
 set local role anon;
-select throws_ok(format($$select public.create_gift(%L, 100, %L, null)$$, :'c1', :'today'), '42501', null, 'anon cannot create');
+select throws_ok(format($$select public.create_gift(%L, 100, %L, null, gen_random_uuid()::text)$$, :'c1', :'today'), '42501', null, 'anon cannot create');
 reset role;
 
 select * from finish();

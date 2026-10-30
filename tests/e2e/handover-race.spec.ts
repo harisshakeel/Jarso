@@ -112,6 +112,7 @@ async function dueGift(parent: SupabaseClient, childId: string): Promise<string>
     p_amount_minor: 500,
     p_give_on: today(),
     p_note: "",
+    p_idempotency_key: randomUUID(),
   });
 }
 

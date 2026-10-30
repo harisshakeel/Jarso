@@ -50,7 +50,7 @@ E2E never talks to the hosted project. Run `pnpm db:start`, then `pnpm test:e2e`
 - Run `pnpm db:start` then `pnpm db:test` (exits non-zero on failure).
 - Each file starts with `begin;` then `\ir _helpers.psql` (works with `supabase test db`), then `select plan(n);`, and ends with `select * from finish(); rollback;`.
 - Helpers in `supabase/tests/database/_helpers.psql`: `tests.create_user(email, role)`, `tests.authenticate_as(user_id)`, `tests.clear_auth()`.
-- Files: `harness`, `family_core`, `child_accounts`, `child_role`, `invitations`, `list_my_invitations`, `ledger`, `allowance_schedules`, `allowance_generation`, `handover`, `parent_gifts`, `learning_progress` and `guide` (all `*.test.sql`).
+- Files: `harness`, `family_core`, `child_accounts`, `child_role`, `invitations`, `list_my_invitations`, `ledger`, `allowance_schedules`, `allowance_generation`, `handover`, `parent_gifts`, `learning_progress`, `guide` and `retry_safety` (all `*.test.sql`).
 
 ## Guide evals (on request)
 
