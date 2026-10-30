@@ -185,3 +185,12 @@ test("asking for more than is available shows what can be taken out", async () =
   await sheet.getByRole("button", { name: "Close" }).click();
   await expect(child.getByRole("dialog")).toHaveCount(0);
 });
+
+test("with a week cap of 400, asking for 300 more shows the cap message", async () => {
+  await setRule("Taking money out of Save", 1, "400", "Sam can take out at most US$400 a week");
+  // The 500 handed over and the 200 approved earlier all count this week.
+  const sheet = await ask("Take out", "300", "Ask");
+  await expect(sheet.getByRole("status").first()).toHaveText(
+    "You can take out up to US$400 a week. US$700 is already taken out or waiting.",
+  );
+});
