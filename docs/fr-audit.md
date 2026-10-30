@@ -8,7 +8,7 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 
 | FR | Requirement | Status | What exists | What is missing | Slice |
 | --- | --- | --- | --- | --- | --- |
-| FR01 | Allowance schedule and handover | Partial: all but the reminder | Weekly, monthly, every 3 months and yearly schedules; due exactly once from the hourly `generate-due-occurrences` job; change, pause (through a date or until resumed), resume, stop; handover with the Spend/Save split starting from the last split; not given (S10); one-time gifts that stay hidden from the child until handover (S2–S5); due badges on both sides; child allowance card and history. | The parent **reminder** while an allowance stays unconfirmed (needs the FR16 inbox). | 2, 5 |
+| FR01 | Allowance schedule and handover | **Built** | Weekly, monthly, every 3 months and yearly schedules; due exactly once from the hourly `generate-due-occurrences` job; change, pause (through a date or until resumed), resume, stop; handover with the Spend/Save split starting from the last split; not given (S10); one-time gifts that stay hidden from the child until handover (S2–S5); due badges on both sides; child allowance card and history. The hourly `send-handover-reminders` job (minute 7) gives the parent an `allowance_due` notice on the due day and a `handover_reminder` every 3 days while the allowance is still due; the child gets only the `allowance_due` notice. Gifts get no notices. | — | 2, 5 |
 | FR02 | Personal savings goal | Not started | Nothing. | `goals`, planned split, progress and payments-remaining estimate, goal screen | rest of pilot |
 | FR03 | Spend and Save jars | Partial | `ledger_entries`, `balance()`, `list_ledger_history`; confirmed balances per jar with due shown separately; the handover records the actual split; child and parent history. | Savings deposits and withdrawals (FR14, slice 4); effect on a goal (FR02). Child split planning is deferred by decision. | 4 |
 | FR04 | Money diary | Partial | Child records purchases (amount, optional label); undo within 24 hours as a reversing entry, shown as Undone to child and parent; purchases in both histories. | Money from other sources recorded by the child, corrections beyond undo, a dedicated diary screen | 3, later |
@@ -23,7 +23,7 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 | FR13 | Family accounts and onboarding | **Built** | Families, members, invitations (link and short code), child PIN sign-in with lockout, rate limits, audit log, both onboarding paths. Parent settings in tabs: family, children (rename, reset PIN, remove per ADR 0007), and the parent's own details. Parent profile completion behind a blocking dialog (ADR 0008); reads stay open, actions are gated in the app. A child with money history keeps their account when removed. | Minor: child sign-out landing, nickname charset for combining marks, invitation retention job. | 1 |
 | FR14 | Purchases, limits, deposits, withdrawals | Partial | Purchases with the overspend rule (D2) and a per-child overspend switch; money rules (spending limit, withdrawal cap, auto-approve, auto-confirm; per item, week or month) with the Spending section on the parent's rules page; a spending-limit notice once per window. | `requests` with reservations, deposits and withdrawals, their rule sections and screens | 3, 4 |
 | FR15 | Emergency funds | Not started | Nothing. | `emergency` request type on the slice-4 machinery | rest of pilot |
-| FR16 | Notifications | Partial | `notifications` table written in the same transaction as the record (slice 3: limit notices). Optional Resend email adapter (invitation email). Due badges and the parent's "Needs you" list are on screen but are not notifications. | Notifications and deliveries, inbox and badge, due and handover reminders, dispatcher, deep links, the `/api/cron` fallback; push and PWA later | 5 |
+| FR16 | Notifications | Partial: in-app only | `notifications` table written in the same transaction as the record (limit notices), plus `allowance_due` and `handover_reminder` from the hourly job. In-app inbox at `/child/inbox` and `/parent/inbox` with an unread badge on the Inbox tab; opening a notice marks it read, with "Mark all as read"; notices open the record's current state. Optional Resend email adapter (invitation email only). Due badges and the parent's "Needs you" list are on screen but are not notifications. | Request notices (need slice 4). Email for notices, `notification_deliveries`, the dispatcher and the `/api/cron` fallback: moved to the final demo with web push and app install, by decision. | 5 |
 
 ## Production state (hosted database)
 
@@ -41,9 +41,9 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 | Both onboarding paths reach parent-approved state | Yes |
 | Parent sets allowance schedule and limits | Yes |
 | Allowance becomes due exactly once, no balance change | Yes (pgTAP `allowance_generation`, live job) |
-| Due badge on both accounts and parent reminder | Partly: badges yes, reminder needs FR16 |
+| Due badge on both accounts and parent reminder | Yes (badges, plus the due and 3-day reminders in the parent's inbox) |
 | Handover posts cash and savings exactly once | Yes (pgTAP `handover`, `handover-race` e2e) |
-| Over-limit purchase recorded and parent notified | Recorded with a notice row; shown to the parent with the slice 5 inbox |
+| Over-limit purchase recorded and parent notified | Yes (notice row, shown in the parent's inbox) |
 | Withdrawal posts only after approval and handover; reservation | No |
 | Deposit posts only after receipt confirmation | No |
 | Parent gets in-app notices for request and limit breach | No |
@@ -52,7 +52,7 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 | Works with push disabled | Yes |
 | Unlinked account cannot act for the family | Yes (pgTAP and e2e) |
 
-Seven of thirteen are met and three are partly met. The rest need deposits and withdrawals (slice 4) and the inbox (slice 5).
+Nine of thirteen are met and one is partly met. The rest need deposits and withdrawals (slice 4).
 
 ## Known follow-ups from slice 2 (non-blocking)
 

@@ -1,6 +1,6 @@
 # First milestone — design
 
-Date: 2026-10-28. Status: draft for approval.
+Date: 2026-10-28. Status: draft for approval. Slice 5 and D13 are superseded for Demo 2 by `2026-10-30-inbox-goal-jar-home-design.md`: the inbox is in-app only, with no email, no `notification_deliveries` and no `/api/cron` route; email moves to the final demo with web push. The text below is kept as written.
 
 ## 1. Intent
 
@@ -52,7 +52,7 @@ These resolve REQUIREMENTS.md "Open decisions" for the pilot.
 | D10 | Savings deposits | **In** this milestone (they are a first-milestone acceptance criterion), built in slice 4 on the same request machinery as withdrawals. |
 | D11 | Demo time | **Clock override.** Every time-based function and service takes an injectable `now`. A per-family clock offset lets a parent fast-forward their own family's time, enabled only when `FEATURE_DEMO_CLOCK` is on (§4). |
 | D12 | Several children | Yes. Parent screens are scoped by child id in the route, with a child switcher in the parent shell. Badges and inbox aggregate across the parent's children. |
-| D13 | Email | No verified sending domain yet. Invitations always produce a **copyable link + short code** the child shows the parent; email is sent additionally only when Resend is configured. Neither the demo nor any acceptance criterion depends on email delivery. |
+| D13 | Email | **Superseded 2026-10-30: no email in Demo 2; it moves to the final demo with web push.** Original decision: No verified sending domain yet. Invitations always produce a **copyable link + short code** the child shows the parent; email is sent additionally only when Resend is configured. Neither the demo nor any acceptance criterion depends on email delivery. |
 
 Calls I made after the builder check (correct if wrong):
 
@@ -95,7 +95,7 @@ Each slice: migration(s) with RLS and per-operation policies, regenerated types,
 | **2. Ledger, allowance, handover** | `ledger_entries`, `balance()`, `allowance_schedules`, `allowance_occurrences`, `child_settings` (planned split lives on schedule), `generate_due_occurrences` (pg_cron hourly + `job_runs`), `confirm_handover`; jars read view; schedule setup; handover sheet; child planned split. | Occurrence created exactly once under rerun; due never in balance; handover posts exactly once under double submit and concurrent calls; shortfall recorded; D6 holds. |
 | **3. Purchases & limits** | `record_entry(purchase)` with D2 rule, `spending_limits` (D3), `evaluate_limits`, overspend toggle, record-purchase screen, limits screen. | Over-limit purchase recorded + notice row created; overspend blocked when off, allowed when on; windows respect family timezone. |
 | **4. Withdrawals & deposits** | `requests` (withdrawal + deposit, D10), `reserved_save()`, `available_save()`, `create_request`, `decide_request`, `complete_request`; child request screen; parent decision + handover. | Posts only on handover; reject/no handover changes nothing; reserved shown; cap checked at request and handover; second request against same money refused; concurrent approvals cannot overdraw. Deposit posts only on receipt confirmation; cancel/reject change nothing; Spend cap at request and confirmation. |
-| **5. Inbox & reminders** | `notifications`, `notification_deliveries`; inbox UI + unread badge both roles; `send_handover_reminders` (D4); dispatcher route + Resend email for parent types, hourly batching; deep links to current record state. Notification rows for slices 2–4 are inserted by their functions from slice 5 on (slices 2–4 leave a clearly marked call site or the builder orders migrations so `notifications` lands first — *builder's call*). | All FR16 first-milestone notices appear with push disabled and email failing; delivery failure never affects records. |
+| **5. Inbox & reminders** *(superseded 2026-10-30: in-app only; no `notification_deliveries`, dispatcher, Resend email or `/api/cron`)* | `notifications`, `notification_deliveries`; inbox UI + unread badge both roles; `send_handover_reminders` (D4); dispatcher route + Resend email for parent types, hourly batching; deep links to current record state. Notification rows for slices 2–4 are inserted by their functions from slice 5 on (slices 2–4 leave a clearly marked call site or the builder orders migrations so `notifications` lands first — *builder's call*). | All FR16 first-milestone notices appear with push disabled and email failing; delivery failure never affects records. |
 | **6. Demo hardening** | Demo clock (D11; the `now` parameter is threaded from slice 2 on, the offset + UI land here), seed script for one demo family with two children (no real data), full e2e of the milestone flow, acceptance-criteria checklist ticked against tests, design polish pass. | Every REQUIREMENTS.md first-milestone acceptance criterion maps to a passing test. |
 
 Recommended order is as listed; slices 3 and 4 are independent after 2.
