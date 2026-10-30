@@ -35,16 +35,17 @@ async function ask(button: "Take out" | "Put in", amount: string, submit: "Ask" 
 }
 
 /**
- * Switches one rule on and saves its amount. Rule rows are forms in a fixed order inside their
- * section: item, week, month (the take-out section lists the cap rows, then auto-approve).
+ * Switches one rule on and saves its amount. Rule rows are in a fixed order inside their section:
+ * item, week, month (the take-out section lists the cap rows, then auto-approve).
  */
-async function setRule(section: "take-out" | "put-in", index: number, amount: string) {
+async function setRule(section: string, index: number, amount: string, sentence: string) {
   await parent.goto(`${childBase}/rules`);
-  const row = parent.locator(`section[aria-labelledby=${section}-heading] form`).nth(index);
+  const row = parent.getByRole("group", { name: section }).locator("form").nth(index);
   await row.getByRole("switch").click();
+  await expect(row.getByRole("switch")).toBeChecked();
   await row.getByLabel(/limit$/).fill(amount);
   await row.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(parent.getByText("Saved").first()).toBeVisible();
+  await expect(row.getByText(sentence)).toBeVisible();
 }
 
 test.beforeAll(async ({ browser }) => {
@@ -131,7 +132,12 @@ test("child takes out 500, parent approves and confirms the handover", async () 
 });
 
 test("with auto-approve per time 300, a 200 take-out is approved at once", async () => {
-  await setRule("take-out", 3, "300");
+  await setRule(
+    "Taking money out of Save",
+    3,
+    "300",
+    "Sam can take out up to US$300 per time without asking me",
+  );
   const sheet = await ask("Take out", "200", "Ask");
   await expect(sheet.getByRole("status").first()).toHaveText(
     "Approved, your parent will hand it over",
@@ -155,7 +161,13 @@ test("child puts in 300 and the parent confirms it", async () => {
 });
 
 test("with auto-confirm a week 500, a 200 put-in lands in Save at once", async () => {
-  await setRule("put-in", 1, "500");
+  await setRule(
+    "Putting money into Save",
+    1,
+    "500",
+    "Add deposits up to US$500 a week without me confirming",
+  );
+  // Even if the 300 confirmed earlier counts toward the week, 300 + 200 = 500 stays within the limit.
   const sheet = await ask("Put in", "200", "Put in");
   await expect(sheet.getByRole("status").first()).toHaveText("Added to Save");
   await sheet.getByRole("button", { name: "Done" }).click();

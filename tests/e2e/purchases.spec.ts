@@ -100,7 +100,7 @@ test("parent hands over 1000 to Spend and sets a week spend limit of 500", async
   await parent.goto(`${childBase}/rules`);
   await expect(parent.getByText("No spending limits yet")).toBeVisible();
   // The take-out and put-in sections also have "A week" rows: stay in Spending.
-  const spending = parent.locator("section[aria-labelledby=spending-heading]");
+  const spending = parent.getByRole("group", { name: "Spending" });
   await spending.getByRole("switch", { name: "A week", exact: true }).click();
   await spending.getByLabel("A week limit").fill("500");
   await spending.getByRole("button", { name: "Save", exact: true }).click();
