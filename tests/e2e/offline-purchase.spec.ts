@@ -149,3 +149,60 @@ test("refused queued purchase shows Needs a look", async () => {
   await expect(pending()).toHaveCount(0);
   await expect(history().getByText("Too big")).toHaveCount(0);
 });
+
+test("Change it on a refused purchase saves the changed one", async () => {
+  await childContext.setOffline(true);
+  await spend("500", "Too much");
+  await childContext.setOffline(false);
+  const line = pending().getByRole("listitem").filter({ hasText: "Too much" });
+  await expect(line).toContainText("That's more than you have in Spend (US$50).");
+
+  await line.getByRole("button", { name: "Change it: Too much" }).click();
+  const sheet = child.getByRole("dialog");
+  await expect(sheet.getByLabel("Amount")).toHaveValue("500");
+  await expect(sheet.getByLabel("What for? (optional)")).toHaveValue("Too much");
+  await sheet.getByLabel("Amount").fill("10");
+  await sheet.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(child.getByRole("dialog")).toHaveCount(0);
+
+  await expect(history().getByText("Too much")).toHaveCount(1);
+  await expect(spendJar()).toContainText("US$40");
+  await expect(pending()).toHaveCount(0);
+});
+
+test("Change it on an expired purchase sends the old one once", async () => {
+  await childContext.setOffline(true);
+  await spend("5", "Old snack");
+  await expect(pending()).toContainText("Waiting to send");
+  // Stand in for 20 failed sends: mark the stored item expired, as the outbox would.
+  await child.evaluate(async (expired) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("jarso-outbox");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const store = db.transaction("items", "readwrite").objectStore("items");
+    const items = await new Promise<Record<string, unknown>[]>((resolve) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+    });
+    for (const item of items) {
+      store.put({ ...item, status: "needs_look", attempts: 20, message: expired });
+    }
+    await new Promise((resolve) => {
+      store.transaction.oncomplete = resolve;
+    });
+    db.close();
+  }, "This one waited too long. Add it again?");
+  await childContext.setOffline(false);
+  await child.reload();
+
+  const line = pending().getByRole("listitem").filter({ hasText: "Old snack" });
+  await expect(line).toContainText("This one waited too long. Add it again?");
+  await line.getByRole("button", { name: "Change it: Old snack" }).click();
+  await expect(child.getByText("Saved. Nice one.")).toBeVisible();
+  await expect(child.getByRole("dialog")).toHaveCount(0);
+  await expect(pending()).toHaveCount(0);
+  await expect(history().getByText("Old snack")).toHaveCount(1);
+  await expect(spendJar()).toContainText("US$35");
+});

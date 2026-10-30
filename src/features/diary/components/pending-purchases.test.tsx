@@ -3,15 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OutboxItem } from "@/features/offline";
 import { PendingPurchases } from "./pending-purchases";
 
-const { useOutbox, useOnline, submitToOutbox, removeOutboxItem, refresh } = vi.hoisted(() => ({
-  useOutbox: vi.fn(),
-  useOnline: vi.fn(),
-  submitToOutbox: vi.fn(),
-  removeOutboxItem: vi.fn(),
-  refresh: vi.fn(),
-}));
+const { useOutbox, useOnline, submitToOutbox, removeOutboxItem, sendToServer, refresh, toast } =
+  vi.hoisted(() => ({
+    useOutbox: vi.fn(),
+    useOnline: vi.fn(),
+    submitToOutbox: vi.fn(),
+    removeOutboxItem: vi.fn(),
+    sendToServer: vi.fn(),
+    refresh: vi.fn(),
+    toast: Object.assign(vi.fn(), { success: vi.fn() }),
+  }));
 
-vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
+vi.mock("sonner", () => ({ toast }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("@/features/offline", async () => ({
   offlineCopy: (await import("@/features/offline/copy")).offlineCopy,
@@ -21,6 +24,7 @@ vi.mock("@/features/offline", async () => ({
   useOnline,
   submitToOutbox,
   removeOutboxItem,
+  sendToServer,
 }));
 
 const KEY = "5b7d8f1e-2c3a-4b5c-8d9e-0f1a2b3c4d5e";
@@ -44,6 +48,8 @@ function purchase(overrides: Partial<OutboxItem> = {}): OutboxItem {
 }
 
 const needsLook = () => purchase({ status: "needs_look", message: REFUSED });
+const EXPIRED = "This one waited too long. Add it again?";
+const expired = () => purchase({ status: "needs_look", message: EXPIRED, attempts: 20 });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -133,6 +139,55 @@ describe("PendingPurchases", () => {
     const input = submitToOutbox.mock.calls[0]?.[0] as { idempotencyKey: string };
     expect(removeOutboxItem).toHaveBeenCalledWith(input.idempotencyKey);
     expect(removeOutboxItem).not.toHaveBeenCalledWith(KEY);
+  });
+
+  it("Change it on a refused item opens the sheet without sending the old one", () => {
+    show([needsLook()]);
+    fireEvent.click(screen.getByRole("button", { name: "Change it: Comic" }));
+    expect(screen.getByRole("dialog")).toBeVisible();
+    expect(sendToServer).not.toHaveBeenCalled();
+  });
+
+  describe("Change it on an expired item", () => {
+    it("re-sends the old item once and, once taken, removes it and says so", async () => {
+      sendToServer.mockResolvedValue({ kind: "done", data: { status: "recorded" } });
+      show([expired()]);
+      fireEvent.click(screen.getByRole("button", { name: "Change it: Comic" }));
+      await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(KEY));
+      expect(sendToServer).toHaveBeenCalledOnce();
+      expect(sendToServer.mock.calls[0]?.[0]).toMatchObject({ id: KEY, idempotencyKey: KEY });
+      expect(toast.success).toHaveBeenCalledWith("Saved. Nice one.");
+      expect(refresh).toHaveBeenCalled();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("opens the sheet with the old amount when the re-send is refused", async () => {
+      sendToServer.mockResolvedValue({ kind: "refused", message: REFUSED });
+      submitToOutbox.mockResolvedValue({ status: "queued" });
+      show([expired()]);
+      fireEvent.click(screen.getByRole("button", { name: "Change it: Comic" }));
+      const sheet = await screen.findByRole("dialog");
+      expect(within(sheet).getByLabelText("Amount")).toHaveValue("20");
+      expect(removeOutboxItem).not.toHaveBeenCalled();
+      fireEvent.click(within(sheet).getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(KEY));
+      const input = submitToOutbox.mock.calls[0]?.[0] as { idempotencyKey: string };
+      expect(input.idempotencyKey).not.toBe(KEY);
+    });
+
+    it.each([{ kind: "retry" }, { kind: "unauthorized" }])(
+      "keeps the item and shows the offline copy on $kind",
+      async (outcome) => {
+        sendToServer.mockResolvedValue(outcome);
+        show([expired()]);
+        fireEvent.click(screen.getByRole("button", { name: "Change it: Comic" }));
+        expect(
+          await screen.findByText("You're offline, try again when connected"),
+        ).toBeInTheDocument();
+        expect(removeOutboxItem).not.toHaveBeenCalled();
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      },
+    );
   });
 
   it("refreshes the page once an item has been sent in the background", () => {

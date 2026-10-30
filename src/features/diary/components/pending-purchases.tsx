@@ -2,12 +2,14 @@
 
 import { HourglassIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button, Card, CardContent, Sheet } from "@/components/ui";
 import {
   type OutboxItem,
   offlineCopy,
   removeOutboxItem,
+  sendToServer,
   showsAsPending,
   useOnline,
   useOutbox,
@@ -41,6 +43,26 @@ export function PendingPurchases({ userId, currency }: PendingPurchasesProps) {
   const items = stored.filter((item) => showsAsPending(item, online));
   const [changing, setChanging] = useState<OutboxItem | null>(null);
 
+  /**
+   * An expired purchase may have reached the server already (a reply lost on the way back), so
+   * it is sent once more with its own key first: a replay never records twice. Only a refusal
+   * opens the form, which brings a new key. Returns "offline" when that send didn't get through.
+   */
+  async function resend(item: OutboxItem): Promise<"offline" | undefined> {
+    const outcome = await sendToServer(item);
+    if (outcome.kind === "done") {
+      await removeOutboxItem(item.id).catch(() => undefined);
+      toast.success("Saved. Nice one.");
+      router.refresh();
+      return;
+    }
+    if (outcome.kind === "refused") {
+      setChanging(item);
+      return;
+    }
+    return "offline";
+  }
+
   // An item that left the outbox was sent (or removed): show the server's new history and jars.
   const count = stored.length;
   const previous = useRef(count);
@@ -63,6 +85,7 @@ export function PendingPurchases({ userId, currency }: PendingPurchasesProps) {
                     item={item}
                     currency={currency}
                     onChange={() => setChanging(item)}
+                    onResend={() => resend(item)}
                   />
                 ))}
               </ul>
@@ -90,12 +113,17 @@ function PendingLine({
   item,
   currency,
   onChange,
+  onResend,
 }: {
   item: OutboxItem;
   currency: string;
   onChange: () => void;
+  /** For an expired item: send it once more before anything is changed. */
+  onResend: () => Promise<"offline" | undefined>;
 }) {
   const [asked, setAsked] = useState(false);
+  const [unsent, setUnsent] = useState(false);
+  const [checking, startChecking] = useTransition();
   const parsed = purchaseSchema(currency).safeParse(item.payload);
   const amount = parsed.success
     ? formatMoney(parsed.data.amountMinor, currency, { showMinor: "nonzero" })
@@ -112,7 +140,18 @@ function PendingLine({
         <>
           <p className="text-ink-2 text-sm">{item.message ?? offlineCopy.refused}</p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" aria-label={`Change it: ${label}`} onClick={onChange}>
+            <Button
+              variant="outline"
+              aria-label={`Change it: ${label}`}
+              loading={checking}
+              onClick={() => {
+                if (item.message !== offlineCopy.expired) return onChange();
+                startChecking(async () => {
+                  const result = await onResend();
+                  startChecking(() => setUnsent(result === "offline"));
+                });
+              }}
+            >
               Change it
             </Button>
             <Button
@@ -130,7 +169,12 @@ function PendingLine({
               Remove
             </Button>
           </div>
-          <div role="status">
+          <div role="status" className="grid gap-2">
+            {unsent ? (
+              <p className="rounded-lg bg-muted px-3.5 py-2.5 text-ink-2 text-sm">
+                {offlineCopy.offline}
+              </p>
+            ) : null}
             {asked ? (
               <p className="rounded-lg bg-muted px-3.5 py-2.5 text-ink-2 text-sm">{ASK_A_PARENT}</p>
             ) : null}
