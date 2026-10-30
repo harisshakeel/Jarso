@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
 vi.mock("@/features/auth/server", () => ({ assertUser: vi.fn(async () => ({ id: "u1" })) }));
 vi.mock("./repository", () => ({
+  encodeCursor: (n: { createdAt: string; id: string }) => `${n.createdAt}|${n.id}`,
   listNoticeRows: vi.fn(),
   fetchUnreadCount: vi.fn(),
   setRead: vi.fn(),
@@ -31,7 +32,17 @@ describe("listNotices", () => {
     vi.mocked(repo.listNoticeRows).mockResolvedValue(rows);
     const page = await listNotices();
     expect(page.items).toHaveLength(20);
-    expect(page.nextBefore).toBe(rows[19]?.createdAt);
+    expect(page.nextBefore).toBe(`${rows[19]?.createdAt}|n19`);
+  });
+
+  it("cursor carries the id so a same-timestamp group is not skipped", async () => {
+    const rows = Array.from({ length: 20 }, (_, i) => ({
+      ...notice(i),
+      createdAt: "2026-10-30T09:00:00Z",
+    }));
+    vi.mocked(repo.listNoticeRows).mockResolvedValue(rows);
+    const page = await listNotices();
+    expect(page.nextBefore).toBe("2026-10-30T09:00:00Z|n19");
   });
 
   it("returns no cursor on a short page", async () => {

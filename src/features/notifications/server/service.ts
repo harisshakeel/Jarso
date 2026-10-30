@@ -2,16 +2,16 @@ import "server-only";
 import { assertUser } from "@/features/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import type { NoticePage } from "../types";
-import { fetchUnreadCount, listNoticeRows, setRead } from "./repository";
+import { encodeCursor, fetchUnreadCount, listNoticeRows, setRead } from "./repository";
 
 const PAGE_SIZE = 20;
 
-/** The caller's notices, newest first. `before` is the previous page's `nextBefore`. */
+/** The caller's notices, newest first. `before` is the previous page's `nextBefore` (`<created_at>|<id>`). */
 export async function listNotices(limit = PAGE_SIZE, before?: string): Promise<NoticePage> {
   await assertUser();
   const items = await listNoticeRows(await createClient(), limit, before);
   const last = items.at(-1);
-  return { items, nextBefore: items.length === limit && last ? last.createdAt : null };
+  return { items, nextBefore: items.length === limit && last ? encodeCursor(last) : null };
 }
 
 export async function getUnreadCount(): Promise<number> {

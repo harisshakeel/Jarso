@@ -79,12 +79,16 @@ export function noticeText(
       };
     case "withdrawal_decided":
     case "deposit_decided": {
-      const approved = notice.payload.decision === "approved";
-      const declined = notice.payload.decision === "declined";
-      if (approved) return { title: "Your parent said yes", detail: amount ?? "Take a look." };
-      if (declined)
+      const { approved, decision } = notice.payload;
+      if (approved === true || decision === "approved") {
+        return { title: "Your parent said yes", detail: amount ?? "Take a look." };
+      }
+      if (approved === false || decision === "declined") {
         return { title: "Your parent said not now", detail: "You can ask again later." };
+      }
       return { title: "Your parent answered your request", detail: "Take a look." };
     }
+    default:
+      return { title: "Something new", detail: "Take a look." };
   }
 }

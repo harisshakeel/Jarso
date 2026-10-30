@@ -62,4 +62,26 @@ describe("noticeText", () => {
     };
     expect(noticeText(n, "parent", "GBP").detail).toBe("Spent £12 against a limit of £10.");
   });
+  it.each(["withdrawal_decided", "deposit_decided"] as const)(
+    "%s reads the approved flag",
+    (kind) => {
+      const n = { ...base, kind, sourceType: "request" as const };
+      expect(noticeText({ ...n, payload: { approved: true } }, "child", "GBP").title).toBe(
+        "Your parent said yes",
+      );
+      expect(noticeText({ ...n, payload: { approved: false } }, "child", "GBP").title).toBe(
+        "Your parent said not now",
+      );
+      expect(noticeText({ ...n, payload: {} }, "child", "GBP").title).toBe(
+        "Your parent answered your request",
+      );
+    },
+  );
+  it("falls back for an unknown kind", () => {
+    const n = { ...base, kind: "mystery" as never };
+    expect(noticeText(n, "parent", "GBP")).toEqual({
+      title: "Something new",
+      detail: "Take a look.",
+    });
+  });
 });

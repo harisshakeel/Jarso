@@ -1,10 +1,52 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { toAppError } from "@/lib";
+import { AppError, toAppError } from "@/lib";
 import type { Database } from "@/types";
 import type { Notice, NoticeKind, NoticeSource } from "../types";
 
 type Client = SupabaseClient<Database>;
+
+type Row = {
+  id: string;
+  kind: string;
+  child_id: string;
+  source_type: string;
+  source_id: string;
+  payload: unknown;
+  created_at: string;
+  read_at: string | null;
+  child: { nickname: string } | null;
+};
+
+/** Pure row to Notice mapping. */
+export function toNotice(row: Row): Notice {
+  const { payload } = row;
+  return {
+    id: row.id,
+    kind: row.kind as NoticeKind,
+    childId: row.child_id,
+    childName: row.child?.nickname ?? "",
+    sourceType: row.source_type as NoticeSource,
+    sourceId: row.source_id,
+    payload:
+      payload && typeof payload === "object" && !Array.isArray(payload)
+        ? (payload as Record<string, unknown>)
+        : {},
+    createdAt: row.created_at,
+    read: row.read_at !== null,
+  };
+}
+
+const CURSOR_RE = /^(\d{4}-\d{2}-\d{2}[T ][0-9:.]+(?:Z|[+-]\d{2}(?::?\d{2})?)?)\|([0-9a-f-]{36})$/i;
+
+export const encodeCursor = (n: { createdAt: string; id: string }) => `${n.createdAt}|${n.id}`;
+
+/** Parses a `<created_at>|<id>` cursor; anything else is a validation error. */
+export function parseCursor(cursor: string): { createdAt: string; id: string } {
+  const match = CURSOR_RE.exec(cursor);
+  if (!match?.[1] || !match[2]) throw new AppError("VALIDATION", "That page is not available.");
+  return { createdAt: match[1], id: match[2] };
+}
 
 /** Only place that knows notifications table, column and function names. RLS scopes rows to the caller. */
 export async function listNoticeRows(
@@ -20,23 +62,15 @@ export async function listNoticeRows(
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(limit);
-  if (before) query = query.lt("created_at", before);
+  if (before) {
+    const c = parseCursor(before);
+    query = query.or(
+      `created_at.lt."${c.createdAt}",and(created_at.eq."${c.createdAt}",id.lt.${c.id})`,
+    );
+  }
   const { data, error } = await query;
   if (error) throw toAppError(error, "Failed to load notices");
-  return data.map((row) => ({
-    id: row.id,
-    kind: row.kind as NoticeKind,
-    childId: row.child_id,
-    childName: row.child?.nickname ?? "",
-    sourceType: row.source_type as NoticeSource,
-    sourceId: row.source_id,
-    payload:
-      row.payload && typeof row.payload === "object" && !Array.isArray(row.payload)
-        ? (row.payload as Record<string, unknown>)
-        : {},
-    createdAt: row.created_at,
-    read: row.read_at !== null,
-  }));
+  return data.map((row) => toNotice(row as Row));
 }
 
 export async function fetchUnreadCount(db: Client): Promise<number> {
