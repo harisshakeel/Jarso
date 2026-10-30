@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { FieldError, FormError } from "@/components/form";
 import {
   Button,
@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui";
 import { supportedCurrencies } from "@/config";
-import { idle } from "@/lib";
+import { useOnlineActionState } from "@/features/offline";
 import {
   type Currency,
   currencyForLocale,
@@ -28,7 +28,7 @@ const browserTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const browserCurrency = () => currencyForLocale(navigator.language);
 
 export function CreateFamilyForm({ next }: { next?: string }) {
-  const [state, action, pending] = useActionState(createFamilyAction, idle);
+  const [state, action, pending] = useOnlineActionState(createFamilyAction);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
   const timezone = useSyncExternalStore(subscribe, browserTimezone, () => "");
@@ -87,7 +87,10 @@ export function CreateFamilyForm({ next }: { next?: string }) {
         <FieldError errors={timezoneErrors} />
       </div>
 
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError
+        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
+        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
+      />
       <Button type="submit" size="lg" className="w-full" loading={pending} disabled={!timezone}>
         Create family
       </Button>

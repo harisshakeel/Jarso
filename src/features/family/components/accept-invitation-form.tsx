@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Field, FieldError, FormError } from "@/components/form";
 import { Button, buttonVariants, Checkbox, Label } from "@/components/ui";
 import { routes } from "@/config";
-import { type ActionResult, type ActionState, idle } from "@/lib";
+import { useOnlineActionState } from "@/features/offline";
+import type { ActionResult, ActionState } from "@/lib";
 import { acceptInvitationAction, acceptListedInvitationAction } from "../server/actions";
 
 /** Both accept actions, as this form calls them: always with FormData. */
@@ -34,7 +35,7 @@ export function AcceptInvitationForm({
   nickname: suggested,
 }: AcceptInvitationFormProps) {
   const submit: SubmitAction = invitationId ? acceptListedInvitationAction : acceptInvitationAction;
-  const [state, action, pending] = useActionState(submit, idle);
+  const [state, action, pending] = useOnlineActionState(submit);
   // Controlled so they survive a failed submit (React resets uncontrolled fields); the PIN clears.
   const [nickname, setNickname] = useState(suggested);
   const [consent, setConsent] = useState(false);
@@ -88,7 +89,10 @@ export function AcceptInvitationForm({
         <FieldError id="consent-error" errors={consentErrors} />
       </div>
 
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError
+        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
+        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
+      />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
           Not now

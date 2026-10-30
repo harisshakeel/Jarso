@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
 import { Field, FormError } from "@/components/form";
 import { Button, Card, CardContent } from "@/components/ui";
-import { idle } from "@/lib";
+import { useOnlineActionState } from "@/features/offline";
 import { startChildOnboardingAction } from "../server/actions";
 import { InviteShareCard } from "./invite-share-card";
 
@@ -12,7 +11,7 @@ import { InviteShareCard } from "./invite-share-card";
  * email (invariant 16), then swaps to the share card with the link and code.
  */
 export function StartOnboardingForm() {
-  const [state, action, pending] = useActionState(startChildOnboardingAction, idle);
+  const [state, action, pending] = useOnlineActionState(startChildOnboardingAction);
   if (state?.ok) return <InviteShareCard link={state.data.link} code={state.data.code} />;
 
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
@@ -40,6 +39,7 @@ export function StartOnboardingForm() {
           />
           <FormError
             message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
+            calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
           />
           <Button type="submit" variant="keycap" size="lg" className="w-full" loading={pending}>
             Ask my parent

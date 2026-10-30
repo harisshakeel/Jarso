@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Field, FieldError, FormError } from "@/components/form";
 import { Button, buttonVariants, Checkbox, Label } from "@/components/ui";
 import { routes } from "@/config";
-import { idle } from "@/lib";
+import { useOnlineActionState } from "@/features/offline";
 import { addChildAction } from "../server/actions";
 
 export function AddChildForm() {
-  const [state, action, pending] = useActionState(addChildAction, idle);
+  const [state, action, pending] = useOnlineActionState(addChildAction);
   // Controlled so they survive a failed submit (React resets uncontrolled fields); the PIN clears.
   const [nickname, setNickname] = useState("");
   const [consent, setConsent] = useState(false);
@@ -58,7 +58,10 @@ export function AddChildForm() {
         <FieldError id="consent-error" errors={consentErrors} />
       </div>
 
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError
+        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
+        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
+      />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
           Cancel

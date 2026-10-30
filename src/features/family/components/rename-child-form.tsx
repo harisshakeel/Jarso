@@ -12,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui";
+import { runOnline } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { renameChildAction } from "../server/actions";
 import type { ChildSummary } from "../types";
@@ -39,7 +40,7 @@ export function RenameChildForm({ child }: { child: ChildSummary }) {
 
 function NicknameForm({ child, onDone }: { child: ChildSummary; onDone: () => void }) {
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
-    const result = await renameChildAction(prev, formData);
+    const result = await runOnline(() => renameChildAction(prev, formData));
     if (result.ok) {
       toast.success("Nickname updated");
       onDone();
@@ -62,7 +63,10 @@ function NicknameForm({ child, onDone }: { child: ChildSummary; onDone: () => vo
         description="Up to 20 letters, numbers, spaces, dots, dashes or apostrophes."
         errors={fieldErrors?.nickname}
       />
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError
+        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
+        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
+      />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
         Save nickname
       </Button>

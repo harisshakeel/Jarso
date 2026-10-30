@@ -12,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui";
+import { runOnline } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { setChildPinAction } from "../server/actions";
 import type { ChildSummary } from "../types";
@@ -40,7 +41,7 @@ export function SetPinForm({ child }: { child: ChildSummary }) {
 
 function NewPinForm({ child, onDone }: { child: ChildSummary; onDone: () => void }) {
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
-    const result = await setChildPinAction(prev, formData);
+    const result = await runOnline(() => setChildPinAction(prev, formData));
     if (result.ok) {
       toast.success(`PIN updated for ${child.nickname}`);
       onDone();
@@ -65,7 +66,10 @@ function NewPinForm({ child, onDone }: { child: ChildSummary; onDone: () => void
         description="4 to 6 numbers."
         errors={fieldErrors?.pin}
       />
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError
+        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
+        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
+      />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
         Save PIN
       </Button>

@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui";
+import { runOnline } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { updateFamilySettingsAction } from "../server/actions";
 
@@ -28,7 +29,7 @@ export function FamilySettingsForm({ timezone }: { timezone: string }) {
   const zones = useMemo(() => timezoneOptions(timezone), [timezone]);
   const items = useMemo(() => Object.fromEntries(zones.map((zone) => [zone, zone])), [zones]);
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
-    const result = await updateFamilySettingsAction(prev, formData);
+    const result = await runOnline(() => updateFamilySettingsAction(prev, formData));
     if (result.ok) toast.success("Family settings saved");
     return result;
   }, idle);
@@ -70,7 +71,10 @@ export function FamilySettingsForm({ timezone }: { timezone: string }) {
         </p>
         <FieldError id="timezone-error" errors={timezoneErrors} />
       </div>
-      <FormError message={state?.ok === false && !fieldErrors ? state.error.message : undefined} />
+      <FormError
+        message={state?.ok === false && !fieldErrors ? state.error.message : undefined}
+        calm={state?.ok === false && state.error.code === "UNAVAILABLE"}
+      />
       <Button type="submit" size="lg" loading={pending} disabled={chosen === timezone}>
         Save
       </Button>
