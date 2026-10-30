@@ -1,12 +1,6 @@
 import "server-only";
 // Savings requests: a child asks to take money out of Save or records money put into it.
-import {
-  assertParentOf,
-  assertRole,
-  assertSelfOrParentOf,
-  getFamily,
-} from "@/features/family/server";
-import { getChildRules } from "@/features/rules/server";
+import { assertParentOf, assertRole, assertSelfOrParentOf } from "@/features/family/server";
 import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -19,7 +13,6 @@ import type {
   SavingsRequest,
   WithdrawalResult,
 } from "../types";
-import { windowStart } from "../window";
 import {
   callCancel,
   callComplete,
@@ -28,10 +21,10 @@ import {
   callDecideDeposit,
   callDecideWithdrawal,
   fetchBalances,
+  fetchCapRemaining,
   findRequestChildId,
   listOpenRequests,
   listRequestsFor,
-  sumWithdrawalsSince,
 } from "./repository";
 
 const CHANGED = "This request changed. Refresh to see where it is.";
@@ -47,29 +40,14 @@ async function childOf(requestId: string): Promise<string> {
 export async function getAvailability(childId: string): Promise<Availability> {
   await assertSelfOrParentOf(childId);
   const db = await createClient();
-  const [balances, { rules }, family] = await Promise.all([
+  const [balances, capRemaining] = await Promise.all([
     fetchBalances(db, childId),
-    getChildRules(childId),
-    getFamily(),
+    fetchCapRemaining(db, childId),
   ]);
-  const timezone = family?.timezone ?? "UTC";
-  const now = new Date();
-
-  const remaining = await Promise.all(
-    rules
-      .filter((rule) => rule.kind === "withdrawal_cap")
-      .map(async (rule) => {
-        // A per-time cap has no running total.
-        const since = windowStart(rule.period, timezone, now);
-        const used = rule.period === "item" ? 0 : await sumWithdrawalsSince(db, childId, since);
-        return Math.max(0, rule.amountMinor - used);
-      }),
-  );
   return {
     ...balances,
-    takeOutLimitMinor: remaining.length
-      ? Math.min(balances.availableSaveMinor, ...remaining)
-      : null,
+    takeOutLimitMinor:
+      capRemaining === null ? null : Math.min(balances.availableSaveMinor, capRemaining),
   };
 }
 
@@ -137,7 +115,7 @@ export async function rejectDeposit(input: {
   });
 }
 
-/** Hands an approved withdrawal over. `already_completed` is a success. */
+/** Hands an approved withdrawal over or confirms a pending deposit. `already_completed` is a success. */
 export async function completeRequest(input: {
   requestId: string;
   idempotencyKey: string;

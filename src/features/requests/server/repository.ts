@@ -64,22 +64,11 @@ export async function fetchBalances(db: Client, childId: string): Promise<Balanc
   };
 }
 
-/** Withdrawals that count towards a cap (pending, approved, handed over) since `since`. */
-export async function sumWithdrawalsSince(
-  db: Client,
-  childId: string,
-  since: string | null,
-): Promise<number> {
-  let query = db
-    .from("requests")
-    .select("amount_minor")
-    .eq("child_id", childId)
-    .eq("kind", "withdrawal")
-    .in("status", ["pending", "approved", "handed_over"]);
-  if (since) query = query.gte("occurred_at", since);
-  const { data, error } = await query;
-  if (error) throw toAppError(error, "Failed to load your requests");
-  return data.reduce((sum, row) => sum + Number(row.amount_minor), 0);
+/** Smallest remaining withdrawal cap, or null when the child has none. */
+export async function fetchCapRemaining(db: Client, childId: string): Promise<number | null> {
+  const { data, error } = await db.rpc("withdrawal_cap_remaining", { p_child_id: childId });
+  if (error) throw toAppError(error, "Failed to load your limits");
+  return data === null || data === undefined ? null : Number(data);
 }
 
 function toRequest(row: {

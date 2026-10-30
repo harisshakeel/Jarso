@@ -6,9 +6,7 @@ vi.mock("@/features/family/server", () => ({
   assertRole: vi.fn(),
   assertParentOf: vi.fn(),
   assertSelfOrParentOf: vi.fn(),
-  getFamily: vi.fn(),
 }));
-vi.mock("@/features/rules/server", () => ({ getChildRules: vi.fn() }));
 vi.mock("./repository", () => ({
   callCancel: vi.fn(),
   callComplete: vi.fn(),
@@ -17,14 +15,13 @@ vi.mock("./repository", () => ({
   callDecideDeposit: vi.fn(),
   callDecideWithdrawal: vi.fn(),
   fetchBalances: vi.fn(),
+  fetchCapRemaining: vi.fn(),
   findRequestChildId: vi.fn(),
   listRequestsFor: vi.fn(),
   listOpenRequests: vi.fn(),
-  sumWithdrawalsSince: vi.fn(),
 }));
 
 const family = await import("@/features/family/server");
-const rules = await import("@/features/rules/server");
 const repo = await import("./repository");
 const service = await import("./service");
 
@@ -38,12 +35,6 @@ beforeEach(() => {
   vi.mocked(family.assertRole).mockResolvedValue({
     user: { id: "child-1", email: null },
     membership: null,
-  });
-  vi.mocked(family.getFamily).mockResolvedValue({
-    id: "f",
-    code: "ABC234",
-    currency: "GBP",
-    timezone: "UTC",
   });
   vi.mocked(repo.findRequestChildId).mockResolvedValue("child-1");
 });
@@ -118,50 +109,25 @@ describe("getAvailability", () => {
     availableSaveMinor: 4000,
     availableSpendMinor: 500,
   };
-  const rule = (period: "item" | "week" | "month", amountMinor: number) =>
-    ({ kind: "withdrawal_cap", period, amountMinor }) as const;
 
   beforeEach(() => {
     vi.mocked(repo.fetchBalances).mockResolvedValue(balances);
   });
 
   it("is null without a cap", async () => {
-    vi.mocked(rules.getChildRules).mockResolvedValue({ allowNegativeSpend: false, rules: [] });
+    vi.mocked(repo.fetchCapRemaining).mockResolvedValue(null);
     await expect(service.getAvailability("child-1")).resolves.toEqual({
       ...balances,
       takeOutLimitMinor: null,
     });
   });
 
-  it("is the smallest of available Save and each cap minus used", async () => {
-    vi.mocked(rules.getChildRules).mockResolvedValue({
-      allowNegativeSpend: false,
-      rules: [rule("item", 3500), rule("week", 3000), rule("month", 9000)],
-    });
-    vi.mocked(repo.sumWithdrawalsSince).mockImplementation(async (_db, _c, since) => {
-      // Week window started Monday 2026-10-26; month window on the 1st.
-      return since?.startsWith("2026-10-01") ? 1000 : 2500;
-    });
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-10-29T12:00:00Z"));
-    const result = await service.getAvailability("child-1");
-    vi.useRealTimers();
-    // item 3500, week 3000-2500=500, month 9000-1000=8000, available 4000.
-    expect(result.takeOutLimitMinor).toBe(500);
-  });
-
-  it("caps at available Save and never goes below zero", async () => {
-    vi.mocked(rules.getChildRules).mockResolvedValue({
-      allowNegativeSpend: false,
-      rules: [rule("item", 99999)],
-    });
+  it("is the smaller of available Save and the cap that is left", async () => {
+    vi.mocked(repo.fetchCapRemaining).mockResolvedValue(500);
+    expect((await service.getAvailability("child-1")).takeOutLimitMinor).toBe(500);
+    vi.mocked(repo.fetchCapRemaining).mockResolvedValue(99999);
     expect((await service.getAvailability("child-1")).takeOutLimitMinor).toBe(4000);
-
-    vi.mocked(rules.getChildRules).mockResolvedValue({
-      allowNegativeSpend: false,
-      rules: [rule("week", 100)],
-    });
-    vi.mocked(repo.sumWithdrawalsSince).mockResolvedValue(900);
+    vi.mocked(repo.fetchCapRemaining).mockResolvedValue(0);
     expect((await service.getAvailability("child-1")).takeOutLimitMinor).toBe(0);
   });
 });
