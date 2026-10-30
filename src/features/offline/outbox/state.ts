@@ -28,6 +28,11 @@ export function nextState(item: OutboxItem, outcome: SendOutcome, now: Date): Ou
       const attempts = item.attempts + 1;
       const tooOld = now.getTime() - Date.parse(item.occurredAt) > MAX_AGE_MS;
       if (attempts >= MAX_ATTEMPTS || tooOld) {
+        // As with a refusal, only purchases have a screen to show an expired item on.
+        if (item.kind !== "purchase") {
+          logger.warn("Expired outbox item dropped", { kind: item.kind });
+          return null;
+        }
         return { ...item, attempts, status: "needs_look", message: offlineCopy.expired };
       }
       const delay = BACKOFF_MS[attempts - 1] ?? BACKOFF_CAP_MS;

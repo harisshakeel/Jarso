@@ -42,9 +42,17 @@ describe("state", () => {
   });
 
   it("20th retry becomes needs_look with the expired copy", () => {
-    const nineteenth = nextState(makeItem({ attempts: 18 }), { kind: "retry" }, now);
+    const nineteenth = nextState(
+      makeItem({ kind: "purchase", attempts: 18 }),
+      { kind: "retry" },
+      now,
+    );
     expect(nineteenth).toMatchObject({ status: "waiting", attempts: 19 });
-    const twentieth = nextState(makeItem({ attempts: 19 }), { kind: "retry" }, now);
+    const twentieth = nextState(
+      makeItem({ kind: "purchase", attempts: 19 }),
+      { kind: "retry" },
+      now,
+    );
     expect(twentieth).toMatchObject({
       status: "needs_look",
       attempts: 20,
@@ -54,12 +62,29 @@ describe("state", () => {
 
   it("older than 7 days becomes needs_look", () => {
     const old = new Date(now.getTime() - 7 * DAY_MS - 1).toISOString();
-    const next = nextState(makeItem({ occurredAt: old, createdAt: old }), { kind: "retry" }, now);
+    const next = nextState(
+      makeItem({ kind: "purchase", occurredAt: old, createdAt: old }),
+      { kind: "retry" },
+      now,
+    );
     expect(next).toMatchObject({ status: "needs_look", message: offlineCopy.expired });
 
     const fresh = new Date(now.getTime() - 7 * DAY_MS + 60_000).toISOString();
     const kept = nextState(makeItem({ occurredAt: fresh }), { kind: "retry" }, now);
     expect(kept).toMatchObject({ status: "waiting" });
+  });
+
+  it("an expired learning item is deleted", () => {
+    const old = new Date(now.getTime() - 7 * DAY_MS - 1).toISOString();
+    for (const kind of ["step", "practice", "completeMission", "checkIn"] as const) {
+      expect(nextState(makeItem({ kind, attempts: 19 }), { kind: "retry" }, now)).toBeNull();
+      const stale = makeItem({ kind, occurredAt: old, createdAt: old });
+      expect(nextState(stale, { kind: "retry" }, now)).toBeNull();
+    }
+    // Short of either limit it still waits to retry.
+    expect(nextState(makeItem({ attempts: 18 }), { kind: "retry" }, now)).toMatchObject({
+      status: "waiting",
+    });
   });
 
   it("unauthorized leaves the item unchanged", () => {
