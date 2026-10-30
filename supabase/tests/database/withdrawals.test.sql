@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(66);
+select plan(67);
 
 -- Fixtures: PA owns family A (UTC) with C1..C7; PB owns family B with C8.
 select tests.create_user('pa@example.com') as pa \gset
@@ -162,6 +162,7 @@ select tests.authenticate_as(:'c4'::uuid);
 select public.create_withdrawal(:'c4'::uuid, 400, null, 'a-1')::text as ra1 \gset
 select is((:'ra1'::jsonb)->>'status', 'approved', 'within the auto-approve limit is approved');
 select is((select auto from public.requests where id = ((:'ra1'::jsonb)->>'request_id')::uuid), true, 'auto flag set');
+select ok((select decided_at is not null and decided_by is null from public.requests where id = ((:'ra1'::jsonb)->>'request_id')::uuid), 'auto-approved: decided_at set, decided_by null');
 select is(public.reserved_save(:'c4'::uuid), 400::bigint, 'an auto-approved request is reserved');
 select tests.clear_auth();
 select is((select count(*)::int from public.notifications where child_id = :'c4'::uuid), 0, 'no notice for an auto-approved request');

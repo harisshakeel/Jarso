@@ -114,11 +114,13 @@ begin
   end if;
 
   insert into public.requests (
-    family_id, child_id, kind, status, amount_minor, reason, auto, idempotency_key
+    family_id, child_id, kind, status, amount_minor, reason, auto, decided_at, idempotency_key
   )
   values (
     v_family_id, p_child_id, 'withdrawal', v_status, p_amount_minor, v_reason,
-    v_status = 'approved', p_idempotency_key
+    v_status = 'approved',
+    case when v_status = 'approved' then pg_catalog.now() end,
+    p_idempotency_key
   )
   returning id into v_id;
 
