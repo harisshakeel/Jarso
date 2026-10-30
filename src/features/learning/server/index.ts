@@ -12,8 +12,12 @@ export {
   topics,
 } from "../content";
 export {
+  completeCheckIn,
+  completeMission,
   getLearningOverview,
   getMissionSession,
   getPracticeSet,
   type MissionSession,
+  recordPractice,
+  recordStep,
 } from "./service";
