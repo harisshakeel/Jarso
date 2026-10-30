@@ -203,14 +203,15 @@
   - `goalProgress(input: { saveMinor: number; reservedMinor: number; targetMinor: number; planMinor: number | null }): GoalProgress`, the only place this maths lives:
     - counted = max(save − reserved, 0);
     - remaining = max(target − counted, 0);
-    - paymentsLeft = plan > 0 ? ceil(remaining / plan) : null (0 when remaining is 0);
+    - paymentsLeft = plan > 0 ? ceil(remaining / plan) : null, so null for every non-positive or missing plan, and 0 only when a positive plan is set and remaining is 0;
     - fillRatio = min(counted / target, 1).
   - `GOAL_EMOJI: readonly string[]` with 24 entries: objects and activities only, no flags, no people.
 
 - [ ] **Step 1:** Write `progress.test.ts`:
   - save 3100, reserved 500, target 4500, plan 400 → counted 2600, remaining 1900, paymentsLeft 5, reached false, fillRatio ≈ 0.578;
   - plan 0 → paymentsLeft null; plan null → null;
-  - save 5000, reserved 0, target 4500 → remaining 0, paymentsLeft 0, reached true, fillRatio 1 (Review Focus 3);
+  - save 5000, reserved 0, target 4500, plan 400 → remaining 0, paymentsLeft 0, reached true, fillRatio 1 (Review Focus 3);
+  - same with plan null → remaining 0, paymentsLeft null, reached true;
   - reserved > save → counted 0.
 - [ ] **Step 2:** Write `goals.test.sql`:
   - The child saves a goal; saving again updates the same row (count 1).
@@ -266,9 +267,9 @@
 
 **Interfaces:**
 - Consumes: Task 6.
-- Produces: `<GoalSheet goal={Goal | null} currency allowanceMinor={number | null} trigger />`, a sheet with:
+- Produces: `<GoalSheet goal={Goal | null} currency allowanceMinor={number | null} saveMinor={number} reservedMinor={number} trigger />`, a sheet with:
   - fields for name, an emoji grid (radio group), price, and "How much will you save each time?";
-  - a live preview "About {n} more allowances" (from `goalProgress` with the current Save, passed in as `saveMinor` and `reservedMinor` props), or "Set how much you'll save each time to see how long it'll take";
+  - a live preview "About {n} more allowances" (from `goalProgress` with the current Save, passed in as the `saveMinor` and `reservedMinor` props; its tests supply both and check the preview changes with them), or "Set how much you'll save each time to see how long it'll take";
   - a "Save my goal" keycap;
   - a "Start a new goal" outline button with a confirm dialog that calls `archiveGoalAction`.
 
@@ -363,7 +364,7 @@
     - Two `JarIllustration`s side by side at every width.
     - Under Spend: the balance, "Cash you have", and the buttons "Record a purchase" (`PurchaseSheet`) and "Move to Save" (the deposit sheet).
     - Under Save: the balance and "Kept by your parent".
-      - With a goal: "{emoji} {name}, {target}. {remaining} to go · about {n} more allowances at {plan} each", or "Goal reached" when remaining is 0.
+      - With a goal: "{emoji} {name}, {target}. {remaining} to go · about {n} more allowances at {plan} each", or "Goal reached" when remaining is 0. With no plan (`planMinor` null or 0) the estimate is replaced by "Set how much you'll save each time to see how long it'll take".
       - Buttons: "Take some out" (the withdrawal sheet) and "Change my goal" or "Set a goal" (`GoalSheet`).
     - Pending request chips under their jar, worded as in spec §6.1.
     - A due coin with "{amount} on its way · due {weekday}" between the jars.
