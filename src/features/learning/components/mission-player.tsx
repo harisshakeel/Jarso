@@ -16,7 +16,9 @@ import {
   type OutboxKind,
   offlineCopy,
   runOnline,
+  showsAsPending,
   submitToOutbox,
+  useOnline,
   useOutbox,
 } from "@/features/offline";
 import { cn } from "@/lib";
@@ -452,10 +454,11 @@ export function MissionPlayer(props: MissionPlayerProps) {
   );
 }
 
-/** Shown while any of this child's results wait on the device to be sent. */
+/** Shown while any of this child's results really wait on the device: offline, or a failed send. */
 function SavedOnDevice({ userId }: { userId: string }) {
+  const online = useOnline();
   const waiting = useOutbox(userId).some(
-    (item) => item.status === "waiting" || item.status === "sending",
+    (item) => item.status !== "needs_look" && showsAsPending(item, online),
   );
   if (!waiting) return null;
   return (

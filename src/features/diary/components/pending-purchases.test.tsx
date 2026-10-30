@@ -3,8 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OutboxItem } from "@/features/offline";
 import { PendingPurchases } from "./pending-purchases";
 
-const { useOutbox, submitToOutbox, removeOutboxItem, refresh } = vi.hoisted(() => ({
+const { useOutbox, useOnline, submitToOutbox, removeOutboxItem, refresh } = vi.hoisted(() => ({
   useOutbox: vi.fn(),
+  useOnline: vi.fn(),
   submitToOutbox: vi.fn(),
   removeOutboxItem: vi.fn(),
   refresh: vi.fn(),
@@ -15,7 +16,9 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("@/features/offline", async () => ({
   offlineCopy: (await import("@/features/offline/copy")).offlineCopy,
   newId: (await import("@/features/offline/outbox/uuid")).uuid,
+  showsAsPending: (await import("@/features/offline/outbox/state")).showsAsPending,
   useOutbox,
+  useOnline,
   submitToOutbox,
   removeOutboxItem,
 }));
@@ -46,6 +49,7 @@ const needsLook = () => purchase({ status: "needs_look", message: REFUSED });
 beforeEach(() => {
   vi.clearAllMocks();
   removeOutboxItem.mockResolvedValue(undefined);
+  useOnline.mockReturnValue(true);
 });
 afterEach(cleanup);
 
@@ -56,13 +60,24 @@ function show(items: OutboxItem[]) {
 
 describe("PendingPurchases", () => {
   it("waiting shows the waiting copy", () => {
-    show([purchase()]);
+    show([purchase({ attempts: 1 })]);
     expect(useOutbox).toHaveBeenCalledWith("child-1");
     const line = screen.getByRole("listitem");
     expect(line).toHaveTextContent("Comic");
     expect(line).toHaveTextContent("£20");
     expect(line).toHaveTextContent("Waiting to send. We'll add it when you're back online.");
     expect(within(line).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("shows a waiting item while offline, even before a send was tried", () => {
+    useOnline.mockReturnValue(false);
+    show([purchase()]);
+    expect(screen.getByRole("listitem")).toHaveTextContent("Waiting to send.");
+  });
+
+  it("shows no card while an online save is in flight", () => {
+    const { container } = show([purchase()]);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("needs_look shows message and three actions", () => {

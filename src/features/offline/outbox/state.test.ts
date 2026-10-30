@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { offlineCopy } from "../copy";
-import { nextState } from "./state";
+import { nextState, showsAsPending } from "./state";
 import { makeItem } from "./test-utils";
 
 const now = new Date("2026-10-30T10:00:00.000Z");
@@ -65,5 +65,13 @@ describe("state", () => {
   it("unauthorized leaves the item unchanged", () => {
     const item = makeItem({ attempts: 3 });
     expect(nextState(item, { kind: "unauthorized" }, now)).toBe(item);
+  });
+
+  it("shows a waiting item only after a failed send or while offline", () => {
+    expect(showsAsPending(makeItem(), true)).toBe(false);
+    expect(showsAsPending(makeItem({ status: "sending" }), true)).toBe(false);
+    expect(showsAsPending(makeItem({ attempts: 1 }), true)).toBe(true);
+    expect(showsAsPending(makeItem(), false)).toBe(true);
+    expect(showsAsPending(makeItem({ kind: "purchase", status: "needs_look" }), true)).toBe(true);
   });
 });

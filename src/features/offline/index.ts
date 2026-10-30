@@ -5,6 +5,7 @@ export * from "./copy";
 export * from "./online-action";
 export { flushOutbox } from "./outbox/flush";
 export { sendToServer } from "./outbox/send";
+export { showsAsPending } from "./outbox/state";
 export { removeOutboxItem } from "./outbox/store";
 export { submitToOutbox } from "./outbox/submit";
 export type { OutboxItem, OutboxKind, SendOutcome, SubmitResult } from "./outbox/types";

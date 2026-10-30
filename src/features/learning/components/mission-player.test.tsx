@@ -4,9 +4,10 @@ import type { OutboxItem, SubmitResult } from "@/features/offline";
 import type { Step, StepResult } from "../types";
 import { MissionPlayer } from "./mission-player";
 
-const { submitToOutbox, useOutbox } = vi.hoisted(() => ({
+const { submitToOutbox, useOutbox, useOnline } = vi.hoisted(() => ({
   submitToOutbox: vi.fn(),
   useOutbox: vi.fn(),
+  useOnline: vi.fn(),
 }));
 
 vi.mock("../server/actions", () => ({ startMissionAction: vi.fn() }));
@@ -14,8 +15,10 @@ vi.mock("@/features/offline", async () => ({
   offlineCopy: (await import("@/features/offline/copy")).offlineCopy,
   newId: (await import("@/features/offline/outbox/uuid")).uuid,
   runOnline: (await import("@/features/offline/online-action")).runOnline,
+  showsAsPending: (await import("@/features/offline/outbox/state")).showsAsPending,
   submitToOutbox,
   useOutbox,
+  useOnline,
 }));
 
 const actions = await import("../server/actions");
@@ -110,7 +113,7 @@ async function startMission() {
   });
 }
 
-function waitingItem(status: OutboxItem["status"]): OutboxItem {
+function waitingItem(status: OutboxItem["status"], attempts = 1): OutboxItem {
   const now = new Date().toISOString();
   return {
     id: "item-1",
@@ -120,7 +123,7 @@ function waitingItem(status: OutboxItem["status"]): OutboxItem {
     idempotencyKey: "item-1",
     occurredAt: now,
     createdAt: now,
-    attempts: 0,
+    attempts,
     nextAttemptAt: now,
     status,
   };
@@ -129,6 +132,7 @@ function waitingItem(status: OutboxItem["status"]): OutboxItem {
 beforeEach(() => {
   submitToOutbox.mockImplementation(async (input: { kind: string }) => sendAll(input));
   useOutbox.mockReturnValue([]);
+  useOnline.mockReturnValue(true);
 });
 
 afterEach(() => {
@@ -219,6 +223,18 @@ describe("MissionPlayer", () => {
     useOutbox.mockReturnValue([waitingItem("needs_look")]);
     await startMission();
     expect(screen.queryByText("Saved on this device.")).not.toBeInTheDocument();
+  });
+
+  it("shows no saved-on-device note while an online save is in flight", async () => {
+    // Every result is stored as waiting just before its first send: that alone isn't news.
+    useOutbox.mockReturnValue([waitingItem("waiting", 0), waitingItem("sending", 0)]);
+    await startMission();
+    expect(screen.queryByText("Saved on this device.")).not.toBeInTheDocument();
+    cleanup();
+
+    useOnline.mockReturnValue(false);
+    await startMission();
+    expect(screen.getByText("Saved on this device.")).toBeInTheDocument();
   });
 
   it("starting offline shows the offline copy and does not call startMissionAction", async () => {

@@ -4,7 +4,14 @@ import { HourglassIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button, Card, CardContent, Sheet } from "@/components/ui";
-import { type OutboxItem, offlineCopy, removeOutboxItem, useOutbox } from "@/features/offline";
+import {
+  type OutboxItem,
+  offlineCopy,
+  removeOutboxItem,
+  showsAsPending,
+  useOnline,
+  useOutbox,
+} from "@/features/offline";
 import { formatMoney } from "@/lib";
 import { purchaseSchema } from "../schemas";
 import { type PurchaseDraft, PurchaseSheetContent } from "./purchase-sheet";
@@ -28,11 +35,14 @@ function draftOf(item: OutboxItem): PurchaseDraft {
  */
 export function PendingPurchases({ userId, currency }: PendingPurchasesProps) {
   const router = useRouter();
-  const items = useOutbox(userId).filter((item) => item.kind === "purchase");
+  const online = useOnline();
+  const stored = useOutbox(userId).filter((item) => item.kind === "purchase");
+  // A purchase mid-way through its first online send isn't news: it shows once that has failed.
+  const items = stored.filter((item) => showsAsPending(item, online));
   const [changing, setChanging] = useState<OutboxItem | null>(null);
 
   // An item that left the outbox was sent (or removed): show the server's new history and jars.
-  const count = items.length;
+  const count = stored.length;
   const previous = useRef(count);
   useEffect(() => {
     if (count < previous.current) router.refresh();
@@ -41,7 +51,7 @@ export function PendingPurchases({ userId, currency }: PendingPurchasesProps) {
 
   return (
     <>
-      {count > 0 ? (
+      {items.length > 0 ? (
         <Card>
           <CardContent>
             <section aria-label="Not sent yet" className="grid gap-3">

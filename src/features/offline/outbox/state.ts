@@ -40,3 +40,11 @@ export function nextState(item: OutboxItem, outcome: SendOutcome, now: Date): Ou
     }
   }
 }
+
+/**
+ * Whether to tell the child an item is still on the device. Every item is stored as waiting just
+ * before its first send, so a waiting one only counts once a send has failed or while offline.
+ */
+export function showsAsPending(item: OutboxItem, online: boolean): boolean {
+  return item.status === "needs_look" || item.attempts > 0 || !online;
+}
