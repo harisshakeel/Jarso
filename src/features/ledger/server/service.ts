@@ -92,6 +92,37 @@ function purchaseItem(row: LedgerRow, timezone: string, now: number): HistoryIte
   };
 }
 
+const REQUEST_KIND: Record<string, "withdrawal" | "deposit"> = {
+  withdrawal_out: "withdrawal",
+  withdrawal_in: "withdrawal",
+  deposit_out: "deposit",
+  deposit_in: "deposit",
+};
+
+/** One line per request: its out/in pair is the same amount, so the first row stands for both. */
+function requestItems(rows: LedgerRow[], timezone: string): (HistoryItem & { at: string })[] {
+  const seen = new Set<string>();
+  const items: (HistoryItem & { at: string })[] = [];
+  for (const row of rows) {
+    const kind = REQUEST_KIND[row.kind];
+    if (row.sourceType !== "request" || !kind || !row.sourceId || seen.has(row.sourceId)) continue;
+    seen.add(row.sourceId);
+    items.push({
+      id: row.sourceId,
+      kind,
+      amountMinor: row.amountMinor,
+      dueMinor: null,
+      label: row.label ?? (kind === "withdrawal" ? "Take out" : "Put in"),
+      occurredOn: localDate(row.occurredAt, timezone),
+      undone: false,
+      entryId: null,
+      canUndo: false,
+      at: row.occurredAt,
+    });
+  }
+  return items;
+}
+
 export type HistoryPage = {
   items: HistoryItem[];
   /** Cursor for the next, older page (`before`), or null when this is the last page. */
@@ -137,6 +168,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
       };
     }),
     ...rows.filter((row) => row.kind === "purchase").map((row) => purchaseItem(row, timezone, now)),
+    ...requestItems(rows, timezone),
     ...closed.map((occurrence) => ({
       id: occurrence.id,
       kind: "skipped" as const,

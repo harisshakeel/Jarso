@@ -81,6 +81,8 @@ export const routes = {
   /** A topic page (FR08); `from` is the mission to return to. */
   childTopic: (topicKey: string, from?: string) =>
     `/child/learn/topics/${topicKey}${from ? `?from=${encodeURIComponent(from)}` : ""}` as Route,
+  /** Take out and put in: the child's savings requests. */
+  childRequests: "/child/requests" as Route,
   childStart: "/start",
   childSignIn: "/sign-in/child",
   invite: "/invite",

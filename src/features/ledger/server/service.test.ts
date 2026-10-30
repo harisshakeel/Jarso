@@ -115,6 +115,62 @@ describe("getHistory", () => {
   });
 });
 
+describe("getHistory requests", () => {
+  const requestRow = (over: Parameters<typeof row>[0]) =>
+    row({
+      sourceType: "request",
+      sourceId: "req-1",
+      label: null,
+      occurredAt: "2026-10-28T10:00:00Z",
+      ...over,
+    });
+
+  it("shows a withdrawal's out/in pair as one line", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      requestRow({
+        id: "r2",
+        kind: "withdrawal_in",
+        jar: "spend",
+        direction: "in",
+        amountMinor: 500,
+      }),
+      requestRow({
+        id: "r1",
+        kind: "withdrawal_out",
+        jar: "save",
+        direction: "out",
+        amountMinor: 500,
+      }),
+    ]);
+    const items = await getHistory(childId);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      id: "req-1",
+      kind: "withdrawal",
+      amountMinor: 500,
+      label: "Take out",
+      occurredOn: "2026-10-28",
+      canUndo: false,
+    });
+  });
+
+  it("shows a deposit as one line", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      requestRow({ id: "r2", kind: "deposit_in", jar: "save", direction: "in", amountMinor: 700 }),
+      requestRow({
+        id: "r1",
+        kind: "deposit_out",
+        jar: "spend",
+        direction: "out",
+        amountMinor: 700,
+      }),
+    ]);
+    const items = await getHistory(childId);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ kind: "deposit", amountMinor: 700, label: "Put in" });
+  });
+});
+
 describe("getHistory purchases", () => {
   const NOW = Date.parse("2026-10-29T12:00:00Z");
   const hoursAgo = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
