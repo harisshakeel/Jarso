@@ -185,7 +185,7 @@
     - `status text check in ('active','archived') default 'active'`;
     - `reached_at`, `celebrated_at`, `created_at`, `updated_at`.
   - Unique index `goals_one_active on goals (child_id) where status = 'active'`.
-  - RLS: select for `is_self(child_id) or is_parent_of(child_id)`. Revoke insert, update and delete from `authenticated`.
+  - RLS enabled with an explicit policy per operation in the same migration: select for `is_self(child_id) or is_parent_of(child_id)`; insert, update and delete policies `using (false)` / `with check (false)` for `authenticated`, plus revoking those privileges, so only the definer functions write.
   - Functions, all child-only (`is_self`, else `JA403`):
     - `save_goal(p_name text, p_emoji text, p_target_minor bigint, p_plan_minor bigint) returns uuid`:
       - Upserts the caller's active goal.
@@ -414,7 +414,7 @@
 - Test: `src/features/family/components/child-card.test.tsx` (create if absent), `tests/e2e/allowance.spec.ts` (Needs you rows)
 
 **Interfaces:**
-- Consumes: `JarIllustration` (size `sm`), `jarCapacity`, `getGoalView`, slice 4 pending requests, unread `limit_exceeded` notices for the parent (from `listNotices` filtered by kind, read and unread both shown until read).
+- Consumes: `JarIllustration` (size `sm`), `jarCapacity`, `getGoalView`, slice 4 pending requests, unread `limit_exceeded` notices for the parent. Add `listUnreadNotices(kinds: NoticeKind[]): Promise<Notice[]>` to the notifications service (repository filters `kind in (...)` and `read_at is null` in the query, newest first, capped at 20), with a unit test. Don't filter a `listNotices` page on the client, which would hide older unread notices.
 - Produces:
   - **Needs you**, in this order: due handovers (Hand over), pending withdrawals (Say yes / Say no), pending deposits (Confirm received), unread limit notices (View, which marks the notice read). Empty state: "All caught up."
   - **ChildCard:**
