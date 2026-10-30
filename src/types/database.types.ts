@@ -782,6 +782,9 @@ isOneToOne: false
 "cancel_gift":
 { Args: { "p_gift_id": string }; Returns: string
                            },
+"cancel_request":
+{ Args: { "p_request_id": string }; Returns: string
+                           },
 "change_allowance":
 { Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
                            },
@@ -793,6 +796,9 @@ isOneToOne: false
                            },
 "complete_parent_profile":
 { Args: { "p_country": string,"p_date_of_birth": string,"p_gender": string }; Returns: undefined
+                           },
+"complete_request":
+{ Args: { "p_idempotency_key": string,"p_request_id": string }; Returns: string
                            },
 "confirm_gift_handover":
 { Args: { "p_cash_minor": number,"p_gift_id": string,"p_idempotency_key": string,"p_saved_minor": number }; Returns: string
@@ -812,8 +818,14 @@ isOneToOne: false
 "create_invitation":
 { Args: { "p_code_hash": string,"p_nickname": string,"p_parent_email": string,"p_token_hash": string }; Returns: string
                            },
+"create_withdrawal":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_reason": string }; Returns: Json
+                           },
 "current_family_id":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"decide_withdrawal":
+{ Args: { "p_approve": boolean,"p_note": string,"p_request_id": string }; Returns: string
                            },
 "evaluate_spend_limits":
 { Args: { "p_entry_id": string }; Returns: number
@@ -964,6 +976,9 @@ isOneToOne: false
                            },
 "pause_allowance":
 { Args: { "p_message": string,"p_schedule_id": string,"p_through": string }; Returns: string
+                           },
+"post_request":
+{ Args: { "p_actor": string,"p_request_id": string }; Returns: string
                            },
 "rate_guide_message":
 { Args: { "p_message_id": string,"p_rating": number }; Returns: undefined
