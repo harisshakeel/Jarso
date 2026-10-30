@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(73);
+select plan(76);
 
 -- Fixtures: PA owns family A (UTC) with children C1 and C2; PB owns family B (Asia/Kolkata) with C3.
 select tests.create_user('pa@example.com') as pa \gset
@@ -205,6 +205,14 @@ select is(
   (select count(*)::int from public.ledger_entries
    where idempotency_key in ('purchase:' || :'c2' || ':d3', 'purchase:' || :'c2' || ':d4')),
   0, 'a refused device time writes nothing');
+select (public.record_purchase(:'c2'::uuid, 100, null, 'd5'))->>'entry_id' as ed5 \gset
+select is((public.record_purchase(:'c2'::uuid, 100, null, 'd5', now() - interval '8 days'))->>'entry_id', :'ed5',
+  'a replay with an out-of-range time still returns the original entry');
+select is((select count(*)::int from public.ledger_entries where idempotency_key = 'purchase:' || :'c2' || ':d5'), 1,
+  'that replay writes no second ledger row');
+select throws_ok(
+  format($$select public.record_purchase(%L, 100, null, 'd6', now() - interval '8 days')$$, :'c2'),
+  '22023', null, 'a new key with an 8-day-old time still raises 22023');
 select throws_ok($$select public.resolve_occurred_at(now())$$, '42501', null, 'resolve_occurred_at is not granted');
 select tests.clear_auth();
 

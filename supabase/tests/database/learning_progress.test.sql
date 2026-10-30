@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(92);
+select plan(94);
 
 -- Fixtures: family A with parent PA and children C and C2; family B with parent PB and child CB.
 -- LONE is a child account in no family.
@@ -340,6 +340,12 @@ select is(
   (select due_on from public.review_items where child_id = :'cb'::uuid and skill_key = 'balance.afford'),
   public.family_today(:'fb'::uuid),
   'its first review is the day after the action day');
+select public.start_mission('spend-and-save', 1) as cb_early \gset
+select public.record_step_result(:'cb_early'::uuid, 'x', 'main', 'choice', 'balance.afford', true, 0, 1);
+select ok(public.complete_mission(:'cb_early'::uuid, now() - interval '1 hour'),
+  'a completion stamped before the attempt started is accepted');
+select is((select completed_at = started_at from public.mission_attempts where id = :'cb_early'::uuid), true,
+  'a completion stamped before started_at stores started_at');
 
 -- ---------------------------------------------------------------------------
 -- Who can read

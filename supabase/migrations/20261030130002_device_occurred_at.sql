@@ -49,18 +49,37 @@ create function public.record_purchase(
   p_occurred_at timestamptz default null
 )
 returns jsonb
-language sql
+language plpgsql
 volatile
 security definer
 set search_path = ''
 as $$
-  select public.record_purchase_at(
+declare
+  v_entry_id uuid;
+begin
+  -- A replay always wins, even when its device time has since gone out of range: refusing it
+  -- could make the child enter the purchase again and debit Spend twice. Same gate and reply
+  -- as the replay inside record_purchase_at; a new key goes through the time check and the lock.
+  if public.is_self(p_child_id) and exists (
+    select 1 from public.family_members fm
+    where fm.profile_id = p_child_id and fm.role = 'child' and fm.status = 'approved'
+  ) then
+    select le.id into v_entry_id
+    from public.ledger_entries le
+    where le.idempotency_key = 'purchase:' || p_child_id::text || ':' || p_idempotency_key;
+    if found then
+      return pg_catalog.jsonb_build_object('status', 'recorded', 'entry_id', v_entry_id, 'notices', 0);
+    end if;
+  end if;
+
+  return public.record_purchase_at(
     p_child_id, p_amount_minor, p_label, p_idempotency_key, public.resolve_occurred_at(p_occurred_at)
   );
+end;
 $$;
 
 comment on function public.record_purchase(uuid, bigint, text, text, timestamptz) is
-  'Child records a purchase from Spend (key purchase:<child>:<key>) at p_occurred_at (device time via resolve_occurred_at; null is now). Returns {status: recorded, entry_id, notices} or {status: not_enough_spend, free_minor}; a repeated key returns the original entry. Overspend off refuses amount > balance(spend) - held_spend; on refuses only going below held_spend. Then evaluates spending limits. JA403 (not the child), 22023 (amount outside 1..100000000000, label over 60, blank key or key over 200, device time over 60 s ahead or over 7 days old).';
+  'Child records a purchase from Spend (key purchase:<child>:<key>) at p_occurred_at (device time via resolve_occurred_at; null is now). Returns {status: recorded, entry_id, notices} or {status: not_enough_spend, free_minor}; a repeated key returns the original entry, checked before the device time. Overspend off refuses amount > balance(spend) - held_spend; on refuses only going below held_spend. Then evaluates spending limits. JA403 (not the child), 22023 (amount outside 1..100000000000, label over 60, blank key or key over 200, device time over 60 s ahead or over 7 days old).';
 
 revoke execute on function public.record_purchase(uuid, bigint, text, text, timestamptz) from public, anon;
 grant execute on function public.record_purchase(uuid, bigint, text, text, timestamptz) to authenticated;
