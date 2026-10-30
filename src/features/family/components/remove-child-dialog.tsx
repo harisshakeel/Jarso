@@ -14,7 +14,7 @@ import {
   AlertDialogTrigger,
   Button,
 } from "@/components/ui";
-import { runOnline } from "@/features/offline";
+import { runOnline, useFormSubmit } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { removeChildAction } from "../server/actions";
 import type { ChildSummary } from "../types";
@@ -34,6 +34,7 @@ export function RemoveChildDialog({ child }: { child: ChildSummary }) {
     }
     return result;
   }, idle);
+  const submit = useFormSubmit(action);
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
@@ -51,7 +52,7 @@ export function RemoveChildDialog({ child }: { child: ChildSummary }) {
             can't be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <form action={action} className="contents" noValidate>
+        <form onSubmit={submit} className="contents" noValidate>
           <input type="hidden" name="childId" value={child.id} />
           <FormError error={state?.ok === false ? state.error : undefined} />
           <AlertDialogFooter>

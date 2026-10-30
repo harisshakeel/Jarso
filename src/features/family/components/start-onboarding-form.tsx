@@ -11,14 +11,14 @@ import { InviteShareCard } from "./invite-share-card";
  * email (invariant 16), then swaps to the share card with the link and code.
  */
 export function StartOnboardingForm() {
-  const [state, action, pending] = useOnlineActionState(startChildOnboardingAction);
+  const [state, , pending, submit] = useOnlineActionState(startChildOnboardingAction);
   if (state?.ok) return <InviteShareCard link={state.data.link} code={state.data.code} />;
 
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
   return (
     <Card className="rise-in shadow-raised">
       <CardContent>
-        <form action={action} className="grid gap-6" noValidate>
+        <form onSubmit={submit} className="grid gap-6" noValidate>
           <Field
             name="nickname"
             label="Your nickname"

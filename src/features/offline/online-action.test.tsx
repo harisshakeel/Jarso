@@ -1,12 +1,14 @@
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { offlineCopy } from "./copy";
-import { runOnline } from "./online-action";
+import { runOnline, useOnlineActionState } from "./online-action";
 import { isOnline, reportNetworkFailure, reportNetworkSuccess } from "./use-online";
 
 const ok = { ok: true, data: 1 } as const;
 
 beforeEach(() => reportNetworkSuccess());
 afterEach(() => {
+  cleanup();
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
@@ -95,5 +97,56 @@ describe("runOnline", () => {
     expect(vi.getTimerCount()).toBe(0);
     await runOnline(async () => ok);
     expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+function NameForm({ action }: { action: Parameters<typeof useOnlineActionState>[0] }) {
+  const [state, , pending, submit] = useOnlineActionState(action);
+  return (
+    <form onSubmit={submit}>
+      <label htmlFor="name">Name</label>
+      <input id="name" name="name" />
+      <input aria-label="PIN" name="pin" type="password" />
+      <button type="submit" disabled={pending}>
+        Save
+      </button>
+      {state?.ok === false ? <p>{state.error.message}</p> : null}
+    </form>
+  );
+}
+
+describe("useOnlineActionState", () => {
+  it("submit keeps uncontrolled field values after a refused submit", async () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    const action = vi.fn().mockResolvedValue(ok);
+    render(<NameForm action={action} />);
+    const input = screen.getByLabelText("Name");
+    fireEvent.change(input, { target: { value: "Sam" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText(offlineCopy.offline)).toBeInTheDocument();
+    expect(action).not.toHaveBeenCalled();
+    expect(input).toHaveValue("Sam");
+  });
+
+  it("submit sends the form values to the action", async () => {
+    const action = vi.fn().mockResolvedValue(ok);
+    render(<NameForm action={action} />);
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Sam" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    const payload = action.mock.calls[0]?.[1] as FormData | undefined;
+    expect(payload?.get("name")).toBe("Sam");
+  });
+
+  it("empties password fields once the server has answered, but not when offline", async () => {
+    const refusal = { ok: false, error: { code: "VALIDATION", message: "No match" } } as const;
+    const action = vi.fn().mockResolvedValue(refusal);
+    render(<NameForm action={action} />);
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Sam" } });
+    fireEvent.change(screen.getByLabelText("PIN"), { target: { value: "1234" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("No match")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText("PIN")).toHaveValue(""));
+    expect(screen.getByLabelText("Name")).toHaveValue("Sam");
   });
 });

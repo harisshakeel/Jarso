@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui";
-import { runOnline } from "@/features/offline";
+import { runOnline, useFormSubmit } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { updateFamilySettingsAction } from "../server/actions";
 
@@ -33,11 +33,12 @@ export function FamilySettingsForm({ timezone }: { timezone: string }) {
     if (result.ok) toast.success("Family settings saved");
     return result;
   }, idle);
+  const submit = useFormSubmit(action);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
   const timezoneErrors = fieldErrors?.timezone;
 
   return (
-    <form action={action} className="grid gap-4" noValidate>
+    <form onSubmit={submit} className="grid gap-4" noValidate>
       <div className="grid gap-2">
         <Label htmlFor="timezone">Timezone</Label>
         <Select

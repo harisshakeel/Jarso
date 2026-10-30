@@ -1,7 +1,14 @@
 "use client";
 
 import { unstable_rethrow } from "next/navigation";
-import { useActionState } from "react";
+import {
+  type FormEvent,
+  startTransition,
+  useActionState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import type { ActionResult, ActionState } from "@/lib";
 import { offlineCopy } from "./copy";
 import { reportNetworkFailure, reportNetworkSuccess } from "./use-online";
@@ -52,12 +59,49 @@ export async function runOnline<T>(
   }
 }
 
-/** `useActionState` with `runOnline` applied inside. */
+/**
+ * An `onSubmit` handler for a form whose action is `formAction`. React 19 resets a form's
+ * uncontrolled fields once a `<form action>` finishes, which would wipe what was typed after a
+ * refused (offline) or slow submit. Submitting through here runs the same action without the reset.
+ *
+ * Pass the action's `state` so secrets still clear as before: once the server has answered (anything
+ * but `UNAVAILABLE`), password and PIN inputs are emptied.
+ */
+export function useFormSubmit(
+  formAction: (payload: FormData) => void,
+  state?: ActionState<unknown>,
+) {
+  const form = useRef<HTMLFormElement | null>(null);
+  useEffect(() => {
+    if (!state || (!state.ok && state.error.code === "UNAVAILABLE")) return;
+    for (const input of form.current?.querySelectorAll<HTMLInputElement>("input[type=password]") ??
+      []) {
+      input.value = "";
+    }
+  }, [state]);
+  return useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      form.current = event.currentTarget;
+      const submitter = (event.nativeEvent as SubmitEvent).submitter;
+      const data = new FormData(event.currentTarget, submitter);
+      startTransition(() => formAction(data));
+    },
+    [formAction],
+  );
+}
+
+/**
+ * `useActionState` with `runOnline` applied inside. The fourth element is the form's `onSubmit`
+ * (see `useFormSubmit`): use it instead of `action={formAction}` so typed values are kept.
+ */
 export function useOnlineActionState<T>(
   action: (prev: ActionState<T>, payload: FormData) => Promise<ActionResult<T>>,
 ) {
-  return useActionState<ActionState<T>, FormData>(
+  const [state, formAction, pending] = useActionState<ActionState<T>, FormData>(
     (prev, payload) => runOnline(() => action(prev, payload)),
     null,
   );
+  const submit = useFormSubmit(formAction, state);
+  return [state, formAction, pending, submit] as const;
 }

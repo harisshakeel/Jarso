@@ -12,7 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui";
-import { runOnline } from "@/features/offline";
+import { runOnline, useFormSubmit } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { renameChildAction } from "../server/actions";
 import type { ChildSummary } from "../types";
@@ -47,10 +47,11 @@ function NicknameForm({ child, onDone }: { child: ChildSummary; onDone: () => vo
     }
     return result;
   }, idle);
+  const submit = useFormSubmit(action);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
   return (
-    <form action={action} className="grid gap-6 px-4 pb-4 sm:px-6 sm:pb-6" noValidate>
+    <form onSubmit={submit} className="grid gap-6 px-4 pb-4 sm:px-6 sm:pb-6" noValidate>
       <input type="hidden" name="childId" value={child.id} />
       <Field
         name="nickname"

@@ -88,6 +88,22 @@ test("parent confirms a handover offline and sees the warning; nothing is record
   await expect(dueNow()).toHaveCount(0);
 });
 
+test("rename offline keeps the typed nickname and saves once back online", async () => {
+  await parent.goto("/parent/settings?tab=children");
+  await parent.getByRole("button", { name: "Rename Sam" }).click();
+  const nickname = parent.getByRole("textbox", { name: "Nickname", exact: true });
+  await nickname.fill("Sammy");
+
+  await parentContext.setOffline(true);
+  await parent.getByRole("button", { name: "Save nickname" }).click();
+  await expect(parent.getByRole("dialog").getByText(OFFLINE)).toBeVisible();
+  await expect(nickname).toHaveValue("Sammy");
+
+  await parentContext.setOffline(false);
+  await parent.getByRole("button", { name: "Save nickname" }).click();
+  await expect(parent.getByText("Nickname updated")).toBeVisible();
+});
+
 test("sign out offline shows the warning and keeps the user signed in", async () => {
   await parent.goto(childBase);
   await parentContext.setOffline(true);

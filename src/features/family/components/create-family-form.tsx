@@ -28,7 +28,7 @@ const browserTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 const browserCurrency = () => currencyForLocale(navigator.language);
 
 export function CreateFamilyForm({ next }: { next?: string }) {
-  const [state, action, pending] = useOnlineActionState(createFamilyAction);
+  const [state, , pending, submit] = useOnlineActionState(createFamilyAction);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
   const timezone = useSyncExternalStore(subscribe, browserTimezone, () => "");
@@ -40,7 +40,7 @@ export function CreateFamilyForm({ next }: { next?: string }) {
   const timezoneErrors = fieldErrors?.timezone;
 
   return (
-    <form action={action} className="grid gap-6" noValidate>
+    <form onSubmit={submit} className="grid gap-6" noValidate>
       {next ? <input type="hidden" name="next" value={next} /> : null}
       <input type="hidden" name="timezone" value={timezone} />
 
