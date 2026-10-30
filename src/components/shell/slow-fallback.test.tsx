@@ -63,6 +63,7 @@ describe("SlowFallback", () => {
     });
     afterEach(() => {
       vi.unstubAllGlobals();
+      vi.restoreAllMocks();
     });
 
     function showSlow() {
@@ -94,6 +95,33 @@ describe("SlowFallback", () => {
         vi.advanceTimersByTime(1);
       });
       expect(reload).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not reload when the browser went offline in the meantime", () => {
+      showSlow();
+      vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+      act(() => {
+        vi.advanceTimersByTime(5_000);
+      });
+      expect(reload).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+    });
+
+    it("does not reload once the app knows it is offline, and shows the offline copy", () => {
+      showSlow();
+      act(() => {
+        window.dispatchEvent(new Event("offline"));
+      });
+      act(() => {
+        vi.advanceTimersByTime(10_000);
+      });
+      expect(reload).not.toHaveBeenCalled();
+      expect(screen.getByText("You're offline, try again when connected")).toBeInTheDocument();
+      expect(screen.queryByRole("button")).toBeNull();
+      act(() => {
+        window.dispatchEvent(new Event("online"));
+      });
+      expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
     });
 
     it("does not reload when it unmounts before 5 s", () => {
