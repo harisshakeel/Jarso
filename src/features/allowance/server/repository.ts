@@ -95,6 +95,22 @@ export async function findScheduleChildId(db: Client, scheduleId: string): Promi
   return data?.child_id ?? null;
 }
 
+/** Where the schedule is now (status and pause end), or null when it isn't visible. */
+export async function findScheduleState(
+  db: Client,
+  scheduleId: string,
+): Promise<Pick<ScheduleRow, "status" | "pausedThrough"> | null> {
+  const { data, error } = await db
+    .from("allowance_schedules")
+    .select("status, paused_through")
+    .eq("id", scheduleId)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load allowance");
+  return data
+    ? { status: asScheduleStatus(data.status), pausedThrough: data.paused_through }
+    : null;
+}
+
 export async function findOccurrenceChildId(
   db: Client,
   occurrenceId: string,
