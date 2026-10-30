@@ -1,0 +1,160 @@
+<style>
+  .web{width:100%;max-width:1180px;margin:0 auto 36px;display:flex;background:#F7F5F0;border-radius:18px;border:1px solid rgb(20 28 31/.14);overflow:hidden;font-family:Nunito,system-ui,sans-serif;color:#141C1F;box-shadow:0 14px 40px -22px rgb(20 28 31/.35)}
+  .web *{box-sizing:border-box}
+  .rail{width:190px;padding:24px 14px;border-right:1px solid rgb(20 28 31/.08);display:flex;flex-direction:column;gap:4px}
+  .logo{font-weight:800;font-size:22px;color:#057B99;margin:0 10px 20px}
+  .nav{padding:10px 14px;border-radius:999px;font-weight:700;font-size:15px;color:#566469;display:flex;justify-content:space-between}
+  .nav.on{background:#C4F4FF;color:#00627D}
+  .nav b{background:#FDC301;color:#141C1F;border-radius:999px;font-size:11px;padding:1px 7px}
+  .main{flex:1;padding:28px 32px}
+  .hi{font-size:32px;font-weight:800;letter-spacing:-.02em}
+  .eb{font-size:13px;font-weight:700;color:#00627D;margin-bottom:6px}
+  .c{background:#fff;border-radius:20px;padding:20px 22px;box-shadow:0 0 0 1px rgb(20 28 31/.06),0 1px 2px rgb(20 28 31/.06)}
+  .raised{box-shadow:0 0 0 1px rgb(20 28 31/.06),0 14px 40px -22px rgb(20 28 31/.35)}
+  .big{font-size:22px;font-weight:800;line-height:1.25}
+  .mid{font-size:17px;font-weight:800}
+  .sm{font-size:15px;color:#3E4B50;line-height:1.45}
+  .xs{font-size:13px;color:#566469;line-height:1.4}
+  .key{display:inline-block;background:#00627D;color:#fff;font-weight:700;font-size:16px;border-radius:999px;padding:12px 28px;box-shadow:inset 0 1px 0 rgb(255 255 255/.5),0 3px 0 #003548;white-space:nowrap}
+  .btn{display:inline-block;background:#fff;color:#141C1F;font-weight:700;font-size:15px;border-radius:999px;padding:10px 18px;box-shadow:0 0 0 1px rgb(20 28 31/.14);white-space:nowrap}
+  .btn.p{background:#00627D;color:#fff;box-shadow:none}
+  .shelf{display:flex;gap:28px;justify-content:center;align-items:flex-end;margin:22px 0 8px}
+  .jarcol{display:flex;flex-direction:column;align-items:center;text-align:center;width:300px}
+  .money{font-size:40px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.05}
+  .money small{font-size:22px}
+  .acts{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+  .wood{height:10px;background:#E6E2DA;border-radius:6px;margin:0 40px 22px}
+  .skills{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .sk{background:#EFECE5;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700}
+  .sk.got{background:#FFF6D6;color:#705300}
+  .need{display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid rgb(20 28 31/.08)}
+  .need:first-of-type{border-top:0}
+  .ico{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  .kids{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  .mini{display:flex;gap:18px;justify-content:center;align-items:flex-end;margin:10px 0 4px}
+  .legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+  .legend span{display:flex;align-items:center;gap:6px;font-size:13px;color:#3E4B50}
+  .sw{width:14px;height:14px;border-radius:4px;display:inline-block}
+</style>
+
+<svg aria-hidden="true" width="0" height="0" style="position:absolute">
+  <defs>
+    <clipPath id="inside"><rect x="40" y="52" width="120" height="146" rx="14"/></clipPath>
+    <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#FFF6D6"/><rect width="3" height="8" fill="#EBB500"/>
+    </pattern>
+    <g id="jarbody">
+      <rect x="34" y="14" width="132" height="26" rx="13" fill="#01D8ED"/>
+      <path d="M62 44 C62 60 30 62 30 96 V180 Q30 206 56 206 H144 Q170 206 170 180 V48" fill="none" stroke="#057B99" stroke-width="16" stroke-linecap="round"/>
+    </g>
+  </defs>
+</svg>
+
+<h2>Jar-based Home: the jars are the screen</h2>
+<p class="subtitle">Two big jars do the work. Save fills toward the goal: a full jar means the goal is reached. Money that is due floats above the lid, not inside. Each jar has its own buttons. Learning stays outside the jars on purpose (learning is never tied to money).</p>
+
+<!-- CHILD -->
+<div class="web">
+  <div class="rail">
+    <div class="logo">Jarso</div>
+    <div class="nav on">Home</div><div class="nav">Diary</div><div class="nav">Learn</div><div class="nav">Inbox <b>2</b></div>
+  </div>
+  <div class="main">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:20px">
+      <div><div class="xs">Child view</div><div class="hi">Hi Maya</div></div>
+      <div class="c raised" style="display:flex;align-items:center;gap:20px;padding:14px 18px">
+        <div><div class="eb" style="margin:0">Do this next</div><div class="mid">Mission 3: Needs or wants · 3 min</div></div>
+        <span class="key">Start</span>
+      </div>
+    </div>
+
+    <div class="shelf">
+      <!-- SPEND -->
+      <div class="jarcol">
+        <svg aria-hidden="true" width="190" height="215" viewBox="0 0 200 220">
+          <g clip-path="url(#inside)"><rect x="40" y="150" width="120" height="48" fill="#3D92AE"/>
+            <ellipse cx="80" cy="150" rx="22" ry="6" fill="#FDC301" stroke="#004B62" stroke-width="2"/><ellipse cx="118" cy="146" rx="22" ry="6" fill="#FDC301" stroke="#004B62" stroke-width="2"/></g>
+          <use href="#jarbody"/>
+        </svg>
+        <div class="mid" style="color:#00627D">Spend</div>
+        <div class="money"><small>£</small>8</div>
+        <div class="xs">Cash you have</div>
+        <div class="acts"><span class="btn">Record a purchase</span><span class="btn">Move to Save</span></div>
+      </div>
+
+      <!-- SAVE with goal -->
+      <div class="jarcol">
+        <svg aria-hidden="true" width="230" height="250" viewBox="-20 -24 240 250">
+          <!-- due coin floating -->
+          <g>
+            <ellipse cx="190" cy="0" rx="22" ry="12" fill="none" stroke="#006570" stroke-width="2.5" stroke-dasharray="5 4"/>
+            <text x="190" y="5" text-anchor="middle" font-size="13" font-weight="800" fill="#006570">£5</text>
+          </g>
+          <g clip-path="url(#inside)">
+            <rect x="40" y="113" width="120" height="85" fill="#FDC301"/>
+            <rect x="40" y="96" width="120" height="17" fill="url(#hatch)"/>
+          </g>
+          <use href="#jarbody"/>
+          <!-- goal line at top of inside -->
+          <line x1="22" y1="58" x2="178" y2="58" stroke="#141C1F" stroke-width="2" stroke-dasharray="6 5"/>
+          <text x="-16" y="63" font-size="20">⚽</text>
+        </svg>
+        <div class="mid" style="color:#8B6900">Save</div>
+        <div class="money"><small>£</small>31</div>
+        <div class="sm" style="margin-top:4px"><b>⚽ Football boots, £45.</b> When the jar is full, you're there.</div>
+        <div class="sm">£19 to go · about <b>5 more allowances</b> at £4 each</div>
+        <div class="acts"><span class="btn">Take some out</span><span class="btn">Change my goal</span></div>
+      </div>
+    </div>
+    <div class="wood"></div>
+
+    <div class="legend">
+      <span><i class="sw" style="background:#FDC301"></i>Counts toward your goal (£26)</span>
+      <span><i class="sw" style="background:url(#);background-image:repeating-linear-gradient(45deg,#EBB500 0 3px,#FFF6D6 3px 8px)"></i>Waiting to come out (£5)</span>
+      <span><i class="sw" style="border:2px dashed #006570;border-radius:50%"></i>Allowance on its way, due Friday</span>
+      <span><i class="sw" style="border-top:2px dashed #141C1F;height:0;margin-top:6px;border-radius:0"></i>Goal line</span>
+    </div>
+
+    <div class="c" style="margin-top:22px;display:flex;justify-content:space-between;align-items:center;gap:20px">
+      <div><div class="eb">What I've learned</div><div class="skills" style="margin:0"><span class="sk got">✓ Needs vs wants</span><span class="sk got">✓ Your balance</span><span class="sk">Planning a split · Practised</span><span class="sk">Saving · Started</span></div></div>
+      <span class="btn">See all</span>
+    </div>
+  </div>
+</div>
+
+<!-- PARENT -->
+<div class="web">
+  <div class="rail">
+    <div class="logo">Jarso</div>
+    <div class="nav on">Home</div><div class="nav">Allowance</div><div class="nav">Inbox <b>3</b></div>
+  </div>
+  <div class="main">
+    <div class="xs">Parent view</div><div class="hi">Good afternoon, Sam</div>
+
+    <div class="c raised" style="margin-top:16px">
+      <div class="eb">Needs you · 3</div>
+      <div class="need"><div class="ico" style="background:#7FFFFF;color:#006570">◷</div><div style="flex:1"><div class="mid">Maya's £5 allowance is due</div><div class="xs">Due since Tuesday</div></div><span class="btn p">Hand over</span></div>
+      <div class="need"><div class="ico" style="background:#EFECE5">⌛</div><div style="flex:1"><div class="mid">Leo asked to take £10 out of Save</div><div class="xs">"Cinema with the class" · 2 hours ago</div></div><span class="btn">Say no</span><span class="btn p">Say yes</span></div>
+      <div class="need"><div class="ico" style="background:#FFE462;color:#705300">🔔</div><div style="flex:1"><div class="mid">Maya went over her weekly limit</div><div class="xs">£12 spent of £10 · yesterday</div></div><span class="btn">View</span></div>
+    </div>
+
+    <div class="kids">
+      <div class="c">
+        <div class="mid">Maya</div><div class="xs">Weekly £5</div>
+        <div class="mini">
+          <div style="text-align:center"><svg aria-hidden="true" width="90" height="100" viewBox="0 0 200 220"><g clip-path="url(#inside)"><rect x="40" y="150" width="120" height="48" fill="#3D92AE"/></g><use href="#jarbody"/></svg><div class="xs"><b>Spend £8</b></div></div>
+          <div style="text-align:center"><svg aria-hidden="true" width="104" height="112" viewBox="-20 -24 240 250"><ellipse cx="190" cy="0" rx="22" ry="12" fill="none" stroke="#006570" stroke-width="3" stroke-dasharray="5 4"/><g clip-path="url(#inside)"><rect x="40" y="113" width="120" height="85" fill="#FDC301"/><rect x="40" y="96" width="120" height="17" fill="url(#hatch)"/></g><use href="#jarbody"/><line x1="22" y1="58" x2="178" y2="58" stroke="#141C1F" stroke-width="3" stroke-dasharray="6 5"/></svg><div class="xs"><b>Save £31</b></div></div>
+        </div>
+        <div class="xs" style="text-align:center">⚽ Football boots · £26 of £45 · plans £4 each allowance</div>
+      </div>
+      <div class="c">
+        <div class="mid">Leo</div><div class="xs">Weekly £4</div>
+        <div class="mini">
+          <div style="text-align:center"><svg aria-hidden="true" width="90" height="100" viewBox="0 0 200 220"><g clip-path="url(#inside)"><rect x="40" y="176.1" width="120" height="21.9" fill="#3D92AE"/></g><use href="#jarbody"/></svg><div class="xs"><b>Spend £3</b></div></div>
+          <div style="text-align:center"><svg aria-hidden="true" width="104" height="112" viewBox="-20 -24 240 250"><g clip-path="url(#inside)"><rect x="40" y="139.6" width="120" height="58.4" fill="#FDC301"/><rect x="40" y="66.6" width="120" height="73" fill="url(#hatch)"/></g><use href="#jarbody"/></svg><div class="xs"><b>Save £18</b></div></div>
+        </div>
+        <div class="xs" style="text-align:center">No goal yet · £10 waiting to come out</div>
+      </div>
+    </div>
+  </div>
+</div>

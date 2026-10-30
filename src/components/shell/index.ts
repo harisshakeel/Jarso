@@ -2,6 +2,7 @@
 export * from "./app-header";
 export * from "./bottom-nav";
 export * from "./child-nav";
+export * from "./inbox-refresh";
 export * from "./page-tabs";
 export * from "./parent-nav";
 export * from "./slow-fallback";

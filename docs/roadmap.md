@@ -10,7 +10,7 @@ Dates to be set. Tracks run in parallel; an arrow means "after".
 | --- | --- | --- | --- |
 | **Demo 1** (now) | Built | Built | Key in Vercel, guide on for the demo child, Console spend limit |
 | **Demo 2** | Deposits and withdrawals → inbox and reminders, savings goal | Landing page (built, #34 and #35) → gamified child dashboard (after the goal) | Guide eval gate; demo hardening last |
-| **Final demo** | Emergency funds, diary complete, predict before deciding | Weekly review and comeback task, inside the dashboard | Web push and app install, pilot readiness |
+| **Final demo** | Emergency funds, diary complete, predict before deciding | Weekly review and comeback task, inside the dashboard | Email for notices, web push and app install, pilot readiness |
 
 ## At a glance
 
@@ -26,7 +26,7 @@ Dates to be set. Tracks run in parallel; an arrow means "after".
 | FR10 | Learning progress | Built | Skill badges on the dashboard | — |
 | FR12 | Return experience | Next learning step on child Home | Requests and goal in the next step; recognition on the dashboard | Comeback task after missed days |
 | FR07, FR09 | AI money guide (Jarso) and its boundaries | Behind a flag, demo child only | Ask Jarso on Home with look-ups of the child's own data (ADR 0011); goal look-ups and memory; eval gate passed | On for pilot families after legal review |
-| FR16 | Notifications | Notice rows only | Inbox, badge, reminders, email | Web push and app install |
+| FR16 | Notifications | Notice rows only | Inbox, badge, reminders (in-app only) | Email for notices, web push and app install |
 | FR02 | Personal savings goal | — | Goal, plan, progress, payments left | — |
 | FR15 | Emergency funds | — | — | Request, decision, handover |
 | FR05 | Predict before deciding | — | — | Predict, reveal, try other choices |
@@ -34,7 +34,7 @@ Dates to be set. Tracks run in parallel; an arrow means "after".
 | Design | Landing page | Built: scroll-driven landing page with the coded hero and the jar thread (#34, #35) | — | — |
 | Design | Child dashboard | Next step, jars, learning summary | Gamified dashboard | Weekly review card |
 
-First-milestone acceptance criteria (`REQUIREMENTS.md`): 7 of 13 met and 3 partly met today. Demo 2 closes all 13.
+First-milestone acceptance criteria (`REQUIREMENTS.md`): 9 of 13 met and 2 partly met today. Demo 2 closes all 13.
 
 Sizes below are relative effort (S < M < L), not dates.
 
@@ -68,7 +68,7 @@ Sizes below are relative effort (S < M < L), not dates.
 | # | Slice | FRs | Size | Design | Depends on |
 | --- | --- | --- | --- | --- | --- |
 | 1 | **Deposits and withdrawals.** `requests` with reservations; withdrawal cap, auto-approve and auto-confirm in use; child request sheets and list; parent "Needs you" items and decisions; request notices. | FR14, FR03 | L | Written: slices 3–4 design §4.4–4.6 and plan | #30 |
-| 2 | **Inbox and reminders.** Inbox and unread badge for both roles; handover reminders (the due day, then every 3 days); email for parent notices; `/api/cron` fallback; notices open the record's current state. | FR16, FR01 | L | Written: first-milestone design, slice 5 | 1, for request notices |
+| 2 | **Inbox and reminders, in-app only.** Inbox and unread badge for both roles; handover reminders (the due day, then every 3 days); notices open the record's current state. No email, no `notification_deliveries` and no `/api/cron` route yet: email moves to the final demo with web push. | FR16, FR01 | L | Written: first-milestone design, slice 5 | 1, for request notices |
 | 3 | **Savings goal.** One goal per child; a plan per allowance; progress net of reserved withdrawals; payments-left estimate; the goal's effect shown on the jars and the handover screen; goal and pending requests in the next step on both homes. Built straight after slice 7 (product owner, 2026-10-30): reserved money counts as zero until slice 1 lands. | FR02, FR03, FR12 | M | To write | 7 |
 | 4 | **Landing page.** Replaces the sign-in page at `/`: the coded hero (the kid's question, the toss, the savings loop), How it works with live demos, the money guide, parent and child side by side, the safety statement and both ways in, joined by the jar's outline as one thread; light and dark, reduced motion, SEO and a sitemap. | — | M | Built: `superpowers/specs/2026-10-30-landing-page-design.md` (#34, #35) | Done |
 | 5 | **Gamified child dashboard.** Child Home rebuilt as the child's hub: the next step as today's mission; Spend and Save as jars that fill; the goal as a journey with milestones; the learning path with skill badges (Started, Practised, Got it); learning days this week; recognition for understanding and thoughtful decisions (FR12). Parent Home stays calm, adding each child's progress at a glance. Designed in Figma first. | FR12, FR02, FR10 | L | To design | 3; 2 for the inbox badge |
@@ -106,7 +106,7 @@ Three tracks run side by side: Jarso (7, then 3 and 8), money (1, then 2), and d
 | Money | **Predict before deciding.** Before a purchase, withdrawal or plan change, the child predicts the effect on their goal, sees the result explained, and can try other choices without changing recorded money. | FR05 | M |
 | Learning | **Weekly review**, as a card on the dashboard. Received, spent, saved, still due and goal progress; how one decision changed the plan; a skill shown and one worth practising; a fresh question from the review pool. | FR11 | M |
 | Learning | **Comeback task.** After missed days, a short, manageable task that eases the child back in. | FR12 | S |
-| Platform | **Web push and app install** for the inbox events, with everything still working when push is off. | FR16 | M |
+| Platform | **Email, web push and app install** for the inbox events: email for parent notices (Resend, `notification_deliveries`, a dispatcher route and the `/api/cron` fallback), with everything still working when email and push are off. | FR16 | M |
 | Platform | **Pilot readiness**, below. | FR13, FR07 | M |
 
 The three tracks can run in parallel.
