@@ -29,9 +29,9 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 
 | Item | State |
 | --- | --- |
-| Migration history | Matches `supabase/migrations` on `main` except `20261030164347_inbox_reminders.sql` (20 migrations in the repo, 19 applied): pending until `pnpm db:push` after merge. New migrations reach production only by merging to `main`, through the Supabase GitHub integration. |
+| Migration history | Matches `supabase/migrations` on `main`. `20261030164347_inbox_reminders.sql` (this branch) is applied by the Supabase GitHub integration when it merges; `pnpm db:push` is only the fallback (`docs/deploy.md`). |
 | `generate-due-occurrences` | pg_cron, hourly at minute 5, succeeding. |
-| `send-handover-reminders` | pg_cron, hourly at minute 7. Pending: created by the inbox migration, so it runs only after `pnpm db:push`. |
+| `send-handover-reminders` | pg_cron, hourly at minute 7. The inbox migration creates the job and its function, so both appear when that migration is applied on merge. |
 | Child money history | `ledger_entries.child_id` is `on delete restrict`, and `remove_child` keeps the account once ledger rows exist (ADR 0007). |
 | Email confirmation | **Off.** Needs custom SMTP first; the confirmation template is commented out in `supabase/config.toml` until then, because the free tier rejects template changes and that stops the integration. Turn both back on before real families. |
 
@@ -47,13 +47,13 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 | Over-limit purchase recorded and parent notified | Yes (notice row, shown in the parent's inbox) |
 | Withdrawal posts only after approval and handover; reservation | No |
 | Deposit posts only after receipt confirmation | No |
-| Parent gets in-app notices for request and limit breach | No |
+| Parent gets in-app notices for request and limit breach | Partly: limit notices show in the inbox; request notices need slice 4 |
 | Child-initiated onboarding collects only nickname and parent email | Yes |
 | Repeated or concurrent confirmations cannot duplicate | Partly: handovers yes; requests not built |
 | Works with push disabled | Yes |
 | Unlinked account cannot act for the family | Yes (pgTAP and e2e) |
 
-Nine of thirteen are met and one is partly met. The rest need deposits and withdrawals (slice 4).
+Nine of thirteen are met and two are partly met. The rest need deposits and withdrawals (slice 4).
 
 ## Known follow-ups from slice 2 (non-blocking)
 
