@@ -40,9 +40,9 @@ Never run the `--reveal` command on its own: it prints every secret key. Without
 ### Turning the money guide on
 
 1. In the Anthropic Console, create a workspace for Jarso (the Default workspace can't have a spend limit), set its monthly spend limit to US$100, and create the key in that workspace (Settings → API Keys). That limit is the hard cap: it also covers eval runs and local use, which the app's own budgets don't see. Add the key to Vercel without typing it on a command line: `pbpaste | vercel env add ANTHROPIC_API_KEY production --sensitive --force` (copy it from the Console first), or paste it in the Vercel dashboard.
-2. Set `FEATURE_GUIDE=true` for Production, then redeploy or merge.
+2. Set `FEATURE_GUIDE=true` for Production, then redeploy or merge (demo and test families only until step 4's gates pass).
 3. For the launch gate, create the `guide-evals` environment (GitHub → Settings → Environments) with yourself as a required reviewer, add the same key there as the `ANTHROPIC_API_KEY` environment secret, and run **Guide evals** from the Actions tab. The run fails unless every safety and personal case routes correctly, there are zero FR09 breaks and at least 95% of on-topic answers are helpful.
-4. Jarso is on for every child by default once `FEATURE_GUIDE` is on (ADR 0011), so until the gate passes and the legal review is done, keep `FEATURE_GUIDE` on only where the families are demo or test accounts.
+4. Jarso is on for every child by default once `FEATURE_GUIDE` is on (ADR 0011): every child's messages and looked-up money and learning data go to Anthropic. Until the eval gate passes and the legal review is done, keep `FEATURE_GUIDE` on in Production only while every family there is a demo or test account; turn it off before the first real family signs up.
 
 ## Supabase auth settings for production
 
