@@ -4,15 +4,27 @@ import { logger } from "@/lib";
 import { guideCopy } from "../copy";
 import type { GuideCheck, GuideRoute, GuideUsage } from "../types";
 import { addUsage, zeroUsage } from "./cost";
-import type { GuideProvider, MainReply, MainResult, Turn } from "./provider";
+import { describeFacts, type Facts, fillFacts } from "./facts";
+import {
+  type GuideProvider,
+  type MainReply,
+  type MainResult,
+  type Toolbox,
+  type Turn,
+  type TurnTools,
+  usageOf,
+} from "./provider";
 import { looksUnsafe } from "./safety-net";
 import { scrub } from "./scrub";
+import type { ToolCall } from "./tool-specs";
 
 /**
- * One guide turn (spec §5.2 steps 3 to 7): scrub, then the input screen and the main call in
- * parallel, then the output screen on everything the child would see (the answer and any quick
- * check). Anything but a clean on-topic reply that passes the output screen becomes reviewed
- * fixed copy. Pure apart from the provider, so the evals run exactly this code.
+ * One guide turn (spec §5.2 steps 3 to 7, ADR 0011): scrub, then the input screen and Jarso's
+ * answer in parallel (the answer may look things up), then the figure refs filled from what the
+ * tools returned, then the output screen on everything the child would see (the answer and any
+ * quick check). Anything but a clean on-topic reply that passes the output screen becomes
+ * reviewed fixed copy. Pure apart from the provider and the toolbox, so the evals run exactly
+ * this code.
  */
 
 export type PipelineResult = {
@@ -33,6 +45,8 @@ export type PipelineResult = {
   latencyMs: number;
   /** An infrastructure failure (error or timeout), for the circuit breaker. */
   failed: boolean;
+  /** What Jarso looked up this turn, kept on the reply so the parent sees it. */
+  toolCalls: ToolCall[];
 };
 
 const FLAGGED_ROUTES: ReadonlySet<GuideRoute> = new Set([
@@ -46,7 +60,7 @@ const REDIRECT_TOPICS: TopicKey[] = ["spending", "saving-goal", "tradeoffs"];
 /** Longest answer shown (about 80 words is the target; this is the hard stop). */
 const MAX_REPLY_CHARS = 900;
 
-type Base = Pick<PipelineResult, "childText" | "usage" | "model" | "latencyMs">;
+type Base = Pick<PipelineResult, "childText" | "usage" | "model" | "latencyMs" | "toolCalls">;
 
 function fixed(route: Exclude<GuideRoute, "on_topic">, base: Base, failed = false): PipelineResult {
   const text = guideCopy.routes[route];
@@ -69,11 +83,41 @@ function fixed(route: Exclude<GuideRoute, "on_topic">, base: Base, failed = fals
  */
 export function fallbackResult(
   text: string,
-  base: Omit<Base, "childText">,
+  base: Omit<Base, "childText" | "toolCalls">,
   failed = false,
 ): PipelineResult {
   const childText = scrub(text);
-  return fixed(looksUnsafe(childText) ? "safety" : "unavailable", { ...base, childText }, failed);
+  return fixed(
+    looksUnsafe(childText) ? "safety" : "unavailable",
+    { ...base, childText, toolCalls: [] },
+    failed,
+  );
+}
+
+/**
+ * The reply and its check with every figure ref filled from the tools' facts. Null when a ref
+ * was never looked up (or is malformed): the model wrote a figure the app can't vouch for.
+ */
+function withFacts(reply: MainReply, facts: Facts): MainReply | null {
+  const unknown: string[] = [];
+  const fill = (text: string) => {
+    const filled = fillFacts(text, facts);
+    unknown.push(...filled.unknown);
+    return filled.text;
+  };
+  const filled: MainReply = {
+    ...reply,
+    reply: fill(reply.reply),
+    check: reply.check
+      ? {
+          ...reply.check,
+          question: fill(reply.check.question),
+          options: reply.check.options.map(fill),
+          explanation: fill(reply.check.explanation),
+        }
+      : null,
+  };
+  return unknown.length === 0 ? filled : null;
 }
 
 /** Keeps a model-proposed check only when it is well formed and short. */
@@ -97,8 +141,32 @@ function visibleText(reply: string, check: GuideCheck | null): string {
 /** One guide turn, every provider call included, ends here (the pages allow 60 s). */
 const TURN_DEADLINE_MS = 45_000;
 
+/** How long a fixed reply waits for a cancelled answer to report the tokens it used. */
+const CANCEL_GRACE_MS = 1_000;
+
+type MainOutcome = { ok: true; value: MainResult } | { ok: false; error: unknown };
+
+/** The tokens an answer used, whether it finished, failed or was cancelled. */
+function mainUsage(outcome: MainOutcome | null) {
+  if (!outcome) return {};
+  return outcome.ok ? outcome.value.usage : usageOf(outcome.error);
+}
+
+/** A cancelled answer settles almost at once; never hold a fixed reply back for long. */
+async function settled(main: Promise<MainOutcome>): Promise<MainOutcome | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), CANCEL_GRACE_MS);
+  });
+  try {
+    return await Promise.race([main, late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function runGuidePipeline(
-  input: { text: string; history: Turn[]; context: string },
+  input: { text: string; history: Turn[]; context: string; tools: TurnTools },
   provider: GuideProvider,
   { deadlineMs = TURN_DEADLINE_MS }: { deadlineMs?: number } = {},
 ): Promise<PipelineResult> {
@@ -108,7 +176,13 @@ export async function runGuidePipeline(
   const history = input.history.map((turn) => ({ ...turn, text: scrub(turn.text) }));
   let usage = zeroUsage;
   let model: string | null = null;
-  const base = (): Base => ({ childText, usage, model, latencyMs: now() - started });
+  const base = (): Base => ({
+    childText,
+    usage,
+    model,
+    latencyMs: now() - started,
+    toolCalls: [...input.tools.calls],
+  });
 
   // The answer starts at once (so an on-topic reply isn't slowed by the screen) and is cancelled
   // when the screen routes the message elsewhere, so a safety reply never waits for it.
@@ -123,8 +197,21 @@ export async function runGuidePipeline(
     deadlineLogged = true;
     logger.warn("Guide turn hit its deadline", { deadlineMs });
   };
-  const main: Promise<{ ok: true; value: MainResult } | { ok: false; error: unknown }> = provider
-    .reply({ text: childText, history, context: input.context, signal })
+  // Look-ups wait for the input screen: nothing about the child's money is read, or sent to
+  // the model, for a message the screen routes elsewhere.
+  let release: (onTopic: boolean) => void = () => {};
+  const screened = new Promise<boolean>((resolve) => {
+    release = resolve;
+  });
+  const tools: Toolbox = {
+    specs: input.tools.specs,
+    run: async (name, args) =>
+      (await screened)
+        ? input.tools.run(name, args)
+        : { content: JSON.stringify({ error: "Not available." }), isError: true },
+  };
+  const main: Promise<MainOutcome> = provider
+    .reply({ text: childText, history, context: input.context, tools, signal })
     .then(
       (value) => ({ ok: true as const, value }),
       (error: unknown) => ({ ok: false as const, error }),
@@ -136,15 +223,20 @@ export async function runGuidePipeline(
     usage = addUsage(usage, screen.usage);
     route = screen.route;
   } catch (error) {
+    release(false);
     controller.abort();
     noteDeadline();
     logger.warn("Guide input screen failed", { error: errorName(error) });
+    usage = addUsage(usage, mainUsage(await settled(main)));
     return fallbackResult(input.text, { usage, model, latencyMs: now() - started }, true);
   }
 
   // Off-topic, personal, safety, unsafe and jailbreak messages never see the model's reply.
+  release(route === "on_topic");
   if (route !== "on_topic") {
     controller.abort();
+    // A round that finished before the cancel was still paid for.
+    usage = addUsage(usage, mainUsage(await settled(main)));
     return fixed(route, base());
   }
 
@@ -152,6 +244,7 @@ export async function runGuidePipeline(
   if (!answer.ok) {
     noteDeadline();
     logger.warn("Guide main call failed", { error: errorName(answer.error) });
+    usage = addUsage(usage, usageOf(answer.error));
     return fixed("unavailable", base(), true);
   }
   usage = addUsage(usage, answer.value.usage);
@@ -161,12 +254,17 @@ export async function runGuidePipeline(
     return fixed("unavailable", base());
   }
 
-  const reply = answer.value.reply.reply.trim();
+  const filled = withFacts(answer.value.reply, input.tools.facts);
+  if (!filled) {
+    logger.info("Guide reply used a figure that was never looked up");
+    return fixed("blocked_output", base());
+  }
+  const reply = filled.reply.trim();
   if (!reply || reply.length > MAX_REPLY_CHARS) {
     logger.info("Guide reply empty or too long", { chars: reply.length });
     return fixed("blocked_output", base());
   }
-  const check = cleanCheck(answer.value.reply.check);
+  const check = cleanCheck(filled.check);
   const shown = visibleText(reply, check);
 
   let verdict: Awaited<ReturnType<GuideProvider["screenOutput"]>>;
@@ -174,7 +272,7 @@ export async function runGuidePipeline(
     verdict = await provider.screenOutput({
       reply: shown,
       childText,
-      context: input.context,
+      context: `${input.context}\n${describeFacts(input.tools.facts)}`,
       signal,
     });
   } catch (error) {
@@ -194,7 +292,7 @@ export async function runGuidePipeline(
     role: "guide",
     text: reply,
     storedText: shown,
-    topics: [...new Set(answer.value.reply.topics)].slice(0, 2),
+    topics: [...new Set(filled.topics)].slice(0, 2),
     check,
     flagged: false,
     failed: false,

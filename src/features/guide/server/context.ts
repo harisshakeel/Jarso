@@ -93,8 +93,26 @@ function describeChildAnswer(body: StepBody, answer: StepAnswer | null, currency
   return "their own sorting or matching";
 }
 
-export function buildContext(ref: GuideContextRef, currency: string): BuiltContext {
-  const money = `The family's currency is ${currency}; write amounts like ${formatMoney(1250, currency)}.`;
+/** "Friday 30 October 2026" for the family's local ISO date. */
+function longDate(isoDate: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${isoDate}T00:00:00Z`));
+}
+
+/**
+ * The context for one message. `today` is the family's local date, so "this week" means the
+ * child's week.
+ */
+export function buildContext(ref: GuideContextRef, currency: string, today?: string): BuiltContext {
+  const money = [
+    `The family's currency is ${currency}; write amounts like ${formatMoney(1250, currency)}.`,
+    ...(today ? [`Today is ${longDate(today)} where the family lives.`] : []),
+  ].join("\n");
   switch (ref.entry) {
     case "step": {
       const { step, where } = findStep(ref);
@@ -152,7 +170,7 @@ export function buildContext(ref: GuideContextRef, currency: string): BuiltConte
         text: [
           "Context from the app (not from the child):",
           money,
-          "The child opened the guide from their home screen.",
+          "The child opened Jarso from their home screen. They may ask about their own money: look it up with your tools.",
         ].join("\n"),
       };
   }

@@ -7,7 +7,7 @@ import {
   getFamily,
 } from "@/features/family/server";
 import { topicTitles } from "@/features/learning";
-import { AppError, isAppError, logger } from "@/lib";
+import { AppError, familyToday, isAppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { guideCopy } from "../copy";
@@ -21,12 +21,14 @@ import {
   guideMonthlyBudgetCents,
   guideProviderName,
 } from "./config";
-import { buildContext } from "./context";
+import { type BuiltContext, buildContext } from "./context";
 import { usageCents, zeroUsage } from "./cost";
 import { fallbackResult, type PipelineResult, runGuidePipeline } from "./pipeline";
 import { GUIDE_PROMPT_VERSION } from "./prompts";
-import type { Turn } from "./provider";
+import type { GuideProvider, Turn } from "./provider";
 import * as repo from "./repository";
+import type { ToolName } from "./tool-specs";
+import { createTurnTools } from "./tools";
 
 /** Spec §5.2: 5 messages a minute and 30 a day per child. */
 const PER_MINUTE = 5;
@@ -120,22 +122,45 @@ async function storedTurn(
       topics: [],
       check: null,
       helplines: family ? helplinesFor(family.currency) : [],
+      lookedAt: lookedAt(reply.checked),
     },
     turnsLeft: Math.max(0, MAX_TURNS - turns),
   };
 }
 
+/** What Jarso looked at, in plain words, each once. */
+function lookedAt(names: readonly ToolName[]): string[] {
+  return [...new Set(names.map((name) => guideCopy.checked[name]))];
+}
+
+/** A message checked and ready for Jarso, or one already answered (a re-send). */
+export type PreparedTurn =
+  | { kind: "stored"; result: AskGuideResult }
+  | {
+      kind: "ready";
+      childId: string;
+      family: { currency: string; timezone: string };
+      provider: GuideProvider;
+      context: BuiltContext;
+      conversationId: string;
+      turns: number;
+      history: Turn[];
+      text: string;
+      clientMessageId: string;
+    };
+
 /**
- * One message to the guide from the signed-in child. A question already answered (same
- * `clientMessageId`) gets its stored reply once the guide is confirmed on, before anything is
- * counted or sent to the model.
+ * Everything before Jarso runs: the child, the switch, a re-send, the context, the chat, the
+ * rate limits. Throws an AppError for anything that stops the turn, before any of it streams. A
+ * question already answered (same `clientMessageId`) gets its stored reply once Jarso is
+ * confirmed on, before anything is counted or sent to the model.
  */
-export async function askGuide(input: {
+export async function prepareGuideTurn(input: {
   clientMessageId: string;
   conversationId: string | null;
   context: GuideContextRef;
   text: string;
-}): Promise<AskGuideResult> {
+}): Promise<PreparedTurn> {
   const { user } = await assertRole("child");
   const provider = getGuideProvider();
   if (!provider) throw new AppError("FORBIDDEN", guideCopy.switchedOff);
@@ -146,12 +171,12 @@ export async function askGuide(input: {
   // After the switch (a child-safety boundary), before anything is counted or sent.
   const admin = createAdminClient();
   const replay = await storedTurn(admin, user.id, input.clientMessageId);
-  if (replay) return replay;
+  if (replay) return { kind: "stored", result: replay };
   const family = await getFamily();
   if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
 
   // Context first: an unknown key fails before anything is counted or stored.
-  const context = buildContext(input.context, family.currency);
+  const context = buildContext(input.context, family.currency, familyToday(family.timezone));
 
   let history: Turn[] = [];
   let conversationId = input.conversationId;
@@ -181,13 +206,46 @@ export async function askGuide(input: {
     });
   }
 
+  return {
+    kind: "ready",
+    childId: user.id,
+    family: { currency: family.currency, timezone: family.timezone },
+    provider,
+    context,
+    conversationId,
+    turns,
+    history,
+    text: input.text,
+    clientMessageId: input.clientMessageId,
+  };
+}
+
+/**
+ * Runs a prepared turn: Jarso answers (looking things up as the signed-in child, with a status
+ * line for each look-up through `onStatus`), then the turn is stored and the reply returned.
+ */
+export async function runGuideTurn(
+  turn: Extract<PreparedTurn, { kind: "ready" }>,
+  { onStatus }: { onStatus?: (text: string) => void } = {},
+): Promise<AskGuideResult> {
+  const { provider, family, conversationId, clientMessageId } = turn;
+  const admin = createAdminClient();
+
   let result: PipelineResult;
   const paused = guideBreaker.isOpen() || (provider.name === "anthropic" && (await budgetSpent()));
   if (paused) {
     // No screens run: the keyword net still turns a worrying message into the safety reply.
-    result = fallbackResult(input.text, { usage: zeroUsage, model: null, latencyMs: 0 });
+    result = fallbackResult(turn.text, { usage: zeroUsage, model: null, latencyMs: 0 });
   } else {
-    result = await runGuidePipeline({ text: input.text, history, context: context.text }, provider);
+    // The child's id comes from the session, never from the model (ADR 0011).
+    const tools = createTurnTools(
+      { childId: turn.childId, currency: family.currency, timezone: family.timezone },
+      onStatus,
+    );
+    result = await runGuidePipeline(
+      { text: turn.text, history: turn.history, context: turn.context.text, tools },
+      provider,
+    );
     if (result.failed) guideBreaker.recordFailure();
     else guideBreaker.recordSuccess();
   }
@@ -196,7 +254,7 @@ export async function askGuide(input: {
   try {
     messageId = await repo.recordTurn(admin, {
       conversationId,
-      childId: user.id,
+      childId: turn.childId,
       childText: result.childText,
       replyRole: result.role,
       replyText: result.storedText,
@@ -205,11 +263,12 @@ export async function askGuide(input: {
       model: result.model,
       usage: result.usage,
       latencyMs: result.latencyMs,
-      clientMessageId: input.clientMessageId,
+      clientMessageId,
+      toolCalls: result.toolCalls,
     });
   } catch (error) {
     // The same question raced in and was stored first: answer with that turn.
-    const raced = await storedTurn(admin, user.id, input.clientMessageId).catch(() => null);
+    const raced = await storedTurn(admin, turn.childId, clientMessageId).catch(() => null);
     if (raced) return raced;
     // Two messages raced for the last turn of a chat.
     if (isAppError(error) && error.code === "CONFLICT") {
@@ -218,7 +277,7 @@ export async function askGuide(input: {
     throw error;
   }
 
-  // Route, model, tokens and latency only: never message text (spec §9).
+  // Route, model, tokens, latency and look-up names only: never message text (spec §9).
   logger.info("Guide turn", {
     route: result.route,
     model: result.model,
@@ -227,6 +286,7 @@ export async function askGuide(input: {
     mainInput: result.usage.mainInput,
     mainOutput: result.usage.mainOutput,
     cacheRead: result.usage.mainCacheRead,
+    lookups: result.toolCalls.map((call) => call.name),
   });
 
   return {
@@ -239,9 +299,21 @@ export async function askGuide(input: {
       topics: result.topics.map((key) => ({ key, title: topicTitles[key] })),
       check: result.check,
       helplines: result.route === "safety" ? helplinesFor(family.currency) : [],
+      lookedAt: lookedAt(result.toolCalls.map((call) => call.name)),
     },
-    turnsLeft: Math.max(0, MAX_TURNS - (turns + 1)),
+    turnsLeft: Math.max(0, MAX_TURNS - (turn.turns + 1)),
   };
+}
+
+/** One message to Jarso, without status lines (the step and topic sheets). */
+export async function askGuide(input: {
+  clientMessageId: string;
+  conversationId: string | null;
+  context: GuideContextRef;
+  text: string;
+}): Promise<AskGuideResult> {
+  const turn = await prepareGuideTurn(input);
+  return turn.kind === "stored" ? turn.result : runGuideTurn(turn);
 }
 
 export async function rateGuideMessage(messageId: string, rating: 1 | -1): Promise<void> {
@@ -277,14 +349,16 @@ const EXPIRED = "Older than 30 days, so deleted.";
  * is stored blank (spec decision 3, ADR 0010); the parent sees a note in its place.
  */
 function forParent(messages: repo.MessageRow[]): TranscriptMessage[] {
-  return messages.map((message, index) => {
-    if (message.role !== "child")
-      return { ...message, hidden: false, text: message.text || EXPIRED };
+  return messages.map(({ checked, ...message }, index) => {
+    if (message.role !== "child") {
+      const text = message.text || EXPIRED;
+      return { ...message, hidden: false, text, lookedAt: lookedAt(checked) };
+    }
+    const shown = { ...message, lookedAt: [] };
     const reply = messages[index + 1];
-    if (reply?.route === "safety") return { ...message, hidden: true, text: SAFETY_HIDDEN };
-    if (reply?.route === "personal_info")
-      return { ...message, hidden: true, text: PERSONAL_HIDDEN };
-    return { ...message, hidden: false, text: message.text || EXPIRED };
+    if (reply?.route === "safety") return { ...shown, hidden: true, text: SAFETY_HIDDEN };
+    if (reply?.route === "personal_info") return { ...shown, hidden: true, text: PERSONAL_HIDDEN };
+    return { ...shown, hidden: false, text: message.text || EXPIRED };
   });
 }
 

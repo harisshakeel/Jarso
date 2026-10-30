@@ -90,7 +90,7 @@ async function ChildLearning({ childId, nickname }: { childId: string; nickname:
   }
 }
 
-/** The money guide switch and flagged chats, when the guide runs on this deployment. */
+/** The Jarso switch and flagged chats, when Jarso runs on this deployment. */
 async function ChildGuide({ childId, nickname }: { childId: string; nickname: string }) {
   try {
     const access = await getGuideAccess(childId);

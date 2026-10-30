@@ -22,7 +22,7 @@ Learning has no dependency on the money ledger: missions use fictional amounts i
 **Non-goals (this plan)**
 
 - FR05 predict-before-deciding on recorded money, FR11 weekly review, practice-money ledger entries (FR01 practice mode).
-- The guide reading balances, jars or goals. That comes once those features exist on `main`.
+- The guide reading balances, jars or goals. That comes once those features exist on `main`. (Done: ADR 0011 and `2026-10-30-jarso-agent-design.md`.)
 - Voice, images, push reminders for missions, leaderboards, a content admin UI, more than one language.
 
 **Anti-goals (failure even if it "works")**

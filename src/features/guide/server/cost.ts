@@ -6,11 +6,16 @@ import type { GuideUsage } from "../types";
  * 1.25× input. Used only for the daily and monthly budgets; the Console spend limit is the backstop.
  */
 const PRICES = {
+  "claude-sonnet-5-5": { input: 2, output: 10, cacheRead: 0.2 },
+  // Earlier replies (ADR 0010) still count toward this month's budget at their own price.
   "claude-opus-5-5": { input: 4, output: 20, cacheRead: 0.2 },
   "claude-haiku-5-5": { input: 0.1, output: 0.5, cacheRead: 0.01 },
 } as const;
 
-export const MAIN_MODEL = "claude-opus-5-5";
+/** Jarso's answers and look-ups (ADR 0011). Changing it means re-running the evals. */
+export const MAIN_MODEL = "claude-sonnet-5-5";
+/** Low suits chat; raise it only if the evals show tool use or answers need it. */
+export const MAIN_EFFORT = "low";
 export const SCREEN_MODEL = "claude-haiku-5-5";
 
 /** The cost of one turn's tokens, in US cents (fractional). */

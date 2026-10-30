@@ -107,6 +107,7 @@ The initial topics are:
 - During exercises, it encourages an attempt before offering progressively stronger hints.
 - Basic conceptual questions receive a direct answer.
 - The guide can offer a short follow-up activity to check understanding.
+- When the child asks, the guide (Jarso) looks up the child's own jars, allowance, money history, money rules and learning progress, and can work out how far Save is from a price the child gives. Figures it shows come from the app, never from the model (ADR 0011).
 
 ## FR08 — Related learning material
 
@@ -121,6 +122,7 @@ The initial topics are:
 - Unrelated requests receive a brief redirection toward relevant learning.
 - The guide acknowledges uncertainty or missing information.
 - It does not request sensitive personal or account information, recommend specific investments, or instruct the child to make purchases.
+- It states the child's own figures plainly when asked, but never judges an amount or compares it with anyone else's. It cannot see other children's money, a parent's planned gifts, or anything outside Jarso, and it cannot move money.
 - Safety concerns receive a supportive response and appropriate guidance toward help.
 
 ## FR10 — Learning progress

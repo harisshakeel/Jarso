@@ -68,8 +68,8 @@ Four steps, each 80 % of a screen tall on desktop, beside a sticky rail of big o
 
 | | |
 | --- | --- |
-| Copy | H2 **"Stuck? Ask."** muted second beat: "Hints first. Answers after two tries." Small line under the demo: "Off until you turn it on. You can read every chat." Link: "How the guide stays safe" → `/safety`. |
-| Demo | The real guide sheet layout. A child bubble types "Why save before I spend?" (AFK's typewriter, 28 ms a character), three dots, then a reply card with the cyan "AI guide" chip: "If you save first, the saving always happens. What's left is yours to spend." plus a topic chip "Spend and Save". Plays once. |
+| Copy | H2 **"Ask Jarso."** muted second beat: "It checks your jars, then answers." Small line under the demo: "Off until you turn it on. You can read every chat, and see what it looked at." Link: "How Jarso's AI stays safe" → `/safety`. (Updated for ADR 0011; was "Stuck? Ask.") |
+| Demo | The real Ask Jarso layout. A child bubble types "My bike costs £120. How long will it take?" (AFK's typewriter, 30 ms a character), the status line "Working out a saving plan…", then a reply card with the cyan "Jarso AI" chip: "You have £64 in Save, so £56 to go. Saving £8 from each allowance, that's about 7 more allowances.", the line "Looked at: saving plan" and a topic chip "Saving toward a goal". Plays once. |
 
 ### 3.4 Kids plan. Parents stay in charge.
 
@@ -77,7 +77,7 @@ Two phone frames side by side (stacked on phones): the child's Home (next-step c
 
 ### 3.5 Safety statement, lit by scroll
 
-One sentence at H1 size, words going from 25 % to full ink as the line crosses the viewport (Karma, Definable): **"No cards. No bank details. No ads.** The cash stays with you, and you can see every jar, purchase and chat." Under it, three quiet chips with icons: "No real payments", "Guide off by default", "Ages 11 to 14".
+One sentence at H1 size, words going from 25 % to full ink as the line crosses the viewport (Karma, Definable): **"No cards. No bank details. No ads.** The cash stays with you, and you can see every jar, purchase and chat." Under it, three quiet chips with icons: "No real payments", "AI off by default", "Ages 11 to 14".
 
 ### 3.6 Your turn
 

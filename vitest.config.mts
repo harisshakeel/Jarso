@@ -1,8 +1,20 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
+/**
+ * Imports `.md` files as their text, as the `*.md` Turbopack rule in next.config.ts does for the
+ * app, so tests load Jarso's voice (`instructions.md`) exactly as Next does.
+ */
+const markdownAsText = {
+  name: "markdown-as-text",
+  transform(code: string, id: string) {
+    if (!id.endsWith(".md")) return null;
+    return { code: `export default ${JSON.stringify(code)};`, map: null };
+  },
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), markdownAsText],
   resolve: { tsconfigPaths: true },
   test: {
     environment: "jsdom",

@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(67);
+select plan(83);
 
 -- Fixtures: family A with parent PA and children C and C2; family B with parent PB and child CB.
 select tests.create_user('pa@example.com') as pa \gset
@@ -30,8 +30,11 @@ select table_privs_are('public', 'guide_messages', 'authenticated', array['SELEC
 select table_privs_are('public', 'guide_conversations', 'authenticated', array['SELECT'], 'and chats');
 select table_privs_are('public', 'guide_access', 'anon', array[]::text[], 'anon has no access');
 select function_privs_are('public', 'guide_record_turn',
-  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'boolean', 'text', 'jsonb', 'integer', 'uuid'],
+  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'boolean', 'text', 'jsonb', 'integer', 'uuid', 'jsonb'],
   'authenticated', array[]::text[], 'only the server records turns');
+select function_privs_are('public', 'guide_record_turn',
+  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'boolean', 'text', 'jsonb', 'integer', 'uuid', 'jsonb'],
+  'service_role', array['EXECUTE'], 'the server records turns with their look-ups');
 select function_privs_are('public', 'guide_start_conversation', array['uuid', 'text', 'text'],
   'authenticated', array[]::text[], 'only the server opens chats');
 select function_privs_are('public', 'guide_usage_since', array['timestamp with time zone'],
@@ -58,6 +61,8 @@ select lives_ok(format($$ select public.set_guide_access(%L, true) $$, :'c'), 'a
 select is(
   (select enabled::text || '/' || (changed_by = :'pa'::uuid)::text from public.guide_access where child_id = :'c'::uuid),
   'true/true', 'the switch records who turned it on');
+select is((select consent_version::int from public.guide_access where child_id = :'c'::uuid), 2,
+  'turning it on records the current consent (ADR 0011)');
 select public.set_guide_access(:'c'::uuid, true);
 select is(
   (select count(*)::int from public.audit_log where action = 'guide.access_changed' and subject_id = :'c'::uuid),
@@ -127,6 +132,33 @@ select lives_ok(
   format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{"main_input": 800.0, "main_output": -5}'::jsonb, 1, null) $$, :'convo', :'c'),
   'odd usage numbers are clamped, not fatal');
 
+-- What Jarso looked up goes on the reply (ADR 0011).
+select public.guide_record_turn(:'convo'::uuid, :'c'::uuid, 'My bike costs 120', 'guide', 'You need £56 more.',
+  'on_topic', false, 'm', '{}'::jsonb, 1, null,
+  '[{"name": "get_jars", "input": {}}, {"name": "plan_saving", "input": {"price": "120", "save_each": null}}]'::jsonb) as tc_reply \gset
+select is((select jsonb_array_length(tool_calls) from public.guide_messages where id = :'tc_reply'::uuid), 2,
+  'a reply keeps its look-ups');
+select ok(
+  (select tool_calls is null from public.guide_messages where conversation_id = :'convo'::uuid and role = 'child'
+   order by created_at desc limit 1),
+  'the child''s message carries none');
+select public.guide_record_turn(:'convo'::uuid, :'c'::uuid, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1, null,
+  '[]'::jsonb) as empty_reply \gset
+select ok((select tool_calls is null from public.guide_messages where id = :'empty_reply'::uuid),
+  'no look-ups is stored as none');
+select throws_ok(
+  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1, null, '{"name": "get_jars"}'::jsonb) $$, :'convo', :'c'),
+  '22023', null, 'look-ups must be a list');
+select throws_ok(
+  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1, null, (select jsonb_agg(jsonb_build_object('name', 'get_jars')) from generate_series(1, 7))) $$, :'convo', :'c'),
+  '22023', null, 'at most six look-ups');
+select throws_ok(
+  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1, null, '[{"name": "Get Jars!"}]'::jsonb) $$, :'convo', :'c'),
+  '22023', null, 'a look-up name is a tool name');
+select throws_ok(
+  format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1, null, '[{"input": {}}]'::jsonb) $$, :'convo', :'c'),
+  '22023', null, 'every look-up has a name');
+
 update public.guide_conversations set turns = 11 where id = :'convo'::uuid;
 select lives_ok(
   format($$ select public.guide_record_turn(%L, %L, 'hi', 'guide', 'hi', 'on_topic', false, 'm', '{}'::jsonb, 1, null) $$, :'convo', :'c'),
@@ -183,6 +215,9 @@ select throws_ok(
 select throws_ok(
   format($$ insert into public.guide_messages (conversation_id, child_id, role, text, route) values (%L, %L, 'child', 'x', 'on_topic') $$, :'convo', :'c'),
   '23514', null, 'a child''s message never carries a route');
+select throws_ok(
+  format($$ insert into public.guide_messages (conversation_id, child_id, role, text, tool_calls) values (%L, %L, 'child', 'x', '[]') $$, :'convo', :'c'),
+  '23514', null, 'or look-ups');
 
 -- ---------------------------------------------------------------------------
 -- Ratings
@@ -233,10 +268,41 @@ select is(
    where conversation_id = :'convo'::uuid and id <> :'reply'::uuid and (text <> '' or text_blanked_at is null)),
   0, 'the older text is gone');
 select is((select main_input_tokens::int from public.guide_messages where id = :'reply'::uuid), 800, 'the metadata stays');
+select is((select tool_calls from public.guide_messages where id = :'tc_reply'::uuid),
+  '[{"name": "get_jars"}, {"name": "plan_saving"}]'::jsonb,
+  'look-ups keep only their names: arguments can echo the child''s words');
 select is(public.blank_old_guide_text(), 0, 'blanking twice changes nothing');
 select ok(
   exists (select 1 from public.job_runs where job = 'blank-old-guide-text' and status = 'ok' and finished_at is not null),
   'each run is recorded');
+
+-- ---------------------------------------------------------------------------
+-- Consent version 2 (ADR 0011): a switch turned on under the older consent counts as off
+-- ---------------------------------------------------------------------------
+
+select tests.clear_auth();
+insert into public.guide_access (child_id, family_id, enabled, consent_version)
+values (:'c2'::uuid, :'fa'::uuid, true, 1);
+set local role service_role;
+select throws_ok(format($$ select public.guide_start_conversation(%L, 'home', 'home') $$, :'c2'), 'JA403', null,
+  'no chat under the older consent');
+reset role;
+select tests.authenticate_as(:'pa'::uuid);
+select public.set_guide_access(:'c2'::uuid, true);
+select is((select consent_version::int from public.guide_access where child_id = :'c2'::uuid), 2,
+  'turning it on again records the new consent');
+select is(
+  (select count(*)::int from public.audit_log
+   where action = 'guide.access_changed' and subject_id = :'c2'::uuid and details ->> 'consent_version' = '2'),
+  1, 'and audits it, though it was already on');
+set local role service_role;
+select lives_ok(format($$ select public.guide_start_conversation(%L, 'home', 'home') $$, :'c2'),
+  'then chats open again');
+reset role;
+select tests.authenticate_as(:'pa'::uuid);
+select public.set_guide_access(:'c2'::uuid, false);
+select is((select enabled::text || '/' || consent_version from public.guide_access where child_id = :'c2'::uuid),
+  'false/2', 'turning it off keeps the last consent on record');
 
 -- ---------------------------------------------------------------------------
 -- Removing a child deletes their guide chats and switch
