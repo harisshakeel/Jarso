@@ -65,7 +65,12 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
     start(async () => {
       const result = await runOnline(call);
       start(() => {
-        if (!result.ok) return setError(result.error);
+        if (!result.ok) {
+          setError(result.error);
+          // Someone else got there first: show the row as it is now.
+          if (result.error.code === "CONFLICT") router.refresh();
+          return;
+        }
         onOk(result.data);
         router.refresh();
       });
@@ -89,20 +94,12 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
 
   const settled = () => toast("Already sorted.");
 
-  const complete = (done: string, shortOf: "Save" | "Spend") => {
+  const complete = (done: string) => {
     key.current ??= newId();
     const idempotencyKey = key.current;
     run(
       () => completeRequestAction(null, { requestId: request.id, idempotencyKey }),
-      (data) => {
-        // The service turns the other outcomes into errors; read them all the same.
-        const status: string = data;
-        if (status === "completed") toast.success(done);
-        else if (status === "already_completed") settled();
-        else if (status === "over_available") {
-          setError({ code: "CONFLICT", message: `There isn't enough in ${shortOf} for this now.` });
-        }
-      },
+      (data) => (data === "completed" ? toast.success(done) : settled()),
     );
   };
 
@@ -124,7 +121,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
     sentence = `${nickname} gave you ${amount}?`;
     actions = (
       <>
-        <Button type="button" loading={pending} onClick={() => complete("Added to Save.", "Spend")}>
+        <Button type="button" loading={pending} onClick={() => complete("Added to Save.")}>
           Confirm
         </Button>
         <Button type="button" variant="outline" disabled={pending} onClick={rejectDeposit}>
@@ -136,7 +133,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
     sentence = `Hand over ${amount} to ${nickname}`;
     actions = (
       <>
-        <Button type="button" loading={pending} onClick={() => complete("Handed over.", "Save")}>
+        <Button type="button" loading={pending} onClick={() => complete("Handed over.")}>
           Confirm
         </Button>
         <DidntHandOver disabled={pending} onConfirm={cancel} />

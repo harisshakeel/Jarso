@@ -130,27 +130,17 @@ describe("ParentRequestItems", () => {
 });
 
 describe("ParentRequestItems outcomes", () => {
-  it("shows an error, not a success, when Save no longer covers a handover", async () => {
+  it("shows the error and refreshes when the request changed under the parent", async () => {
+    const message = "This request changed. Refresh to see where it is.";
     vi.mocked(completeRequestAction).mockResolvedValue({
-      ok: true,
-      data: "over_available" as never,
+      ok: false,
+      error: { code: "CONFLICT", message },
     });
     show(request({ status: "approved" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(await screen.findByText("There isn't enough in Save for this now.")).toBeInTheDocument();
+    expect(await screen.findByText(message)).toBeInTheDocument();
     expect(toast.success).not.toHaveBeenCalled();
-  });
-
-  it("says Spend when a deposit is over what Spend has", async () => {
-    vi.mocked(completeRequestAction).mockResolvedValue({
-      ok: true,
-      data: "over_available" as never,
-    });
-    show(request({ kind: "deposit" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(
-      await screen.findByText("There isn't enough in Spend for this now."),
-    ).toBeInTheDocument();
+    expect(refresh).toHaveBeenCalled();
   });
 
   it("is calm when a deposit was already decided", async () => {
