@@ -43,6 +43,7 @@ async function MissionContent({ params }: { params: Promise<{ missionKey: string
       }}
       steps={mission.steps}
       currency={family.currency}
+      userId={user.id}
       intro={{
         eyebrow: `Day ${mission.day} · ${topicTitles[mission.topic]}`,
         heading: mission.title,

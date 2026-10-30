@@ -62,6 +62,7 @@ async function TopicContent({ params, searchParams }: Props) {
           mode={{ kind: "topic" }}
           steps={[topic.practice]}
           currency={family.currency}
+          userId={user.id}
           doneHref={back.href}
           doneLabel={from ? "Back to your mission" : "Back to Learn"}
           stepAside={guide.available ? <StepGuide introNeeded={guide.introNeeded} /> : undefined}

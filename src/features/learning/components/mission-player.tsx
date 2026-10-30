@@ -1,20 +1,28 @@
 "use client";
 
-import { BookOpenIcon, CircleCheckIcon, LightbulbIcon, RotateCcwIcon } from "lucide-react";
+import {
+  BookOpenIcon,
+  CircleCheckIcon,
+  HourglassIcon,
+  LightbulbIcon,
+  RotateCcwIcon,
+} from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { type ReactNode, type Ref, useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui";
-import { type ActionResult, cn } from "@/lib";
-import { describeAnswer, gradeStep } from "../grade";
-import { resumePosition, summaryLine } from "../journey";
 import {
-  completeCheckInAction,
-  completeMissionAction,
-  recordPracticeAction,
-  recordStepAction,
-  startMissionAction,
-} from "../server/actions";
+  newId,
+  type OutboxKind,
+  offlineCopy,
+  runOnline,
+  submitToOutbox,
+  useOutbox,
+} from "@/features/offline";
+import { cn } from "@/lib";
+import { describeAnswer, gradeStep } from "../grade";
+import { attemptSummary, resumePosition, summaryLine } from "../journey";
+import { startMissionAction } from "../server/actions";
 import { bodyFor, type Draft, draftToAnswer, emptyDraft } from "../steps";
 import { renderText } from "../text";
 import type {
@@ -43,6 +51,8 @@ type MissionPlayerProps = {
   /** A mission's steps, or the answerable items of a practice set, the check-in or a topic. */
   steps: Step[];
   currency: string;
+  /** The signed-in child: results wait in their device outbox when the connection drops. */
+  userId: string;
   /** Start screen (missions and the check-in). */
   intro?: { eyebrow: string; heading: string; body: string };
   doneHref: Route;
@@ -55,6 +65,12 @@ type MissionPlayerProps = {
 
 type StepOutcome = { answer: StepAnswer; correct: boolean; tries: number; hintsUsed: number };
 
+/** Something to tell the child under the step. `calm` is a connection state, never red. */
+type Problem = { text: string; calm: boolean };
+
+/** Saved means sent, or stored on the device to send later (`data` is then null). */
+type Saved = { ok: true; data: unknown } | { ok: false; problem: Problem };
+
 const SAVE_FAILED = "We couldn't save that. Check your connection and try again.";
 
 const PROGRESS_LABEL: Record<PlayerMode["kind"], string> = {
@@ -64,20 +80,26 @@ const PROGRESS_LABEL: Record<PlayerMode["kind"], string> = {
   topic: "Practice progress",
 };
 
-/**
- * Runs a server action and turns a dropped connection into a failed result, so the player can
- * show "Check your connection" and a retry instead of the page's error boundary.
- */
-async function call<T>(action: () => Promise<ActionResult<T>>): Promise<ActionResult<T>> {
-  try {
-    return await action();
-  } catch {
-    return { ok: false, error: { code: "INTERNAL", message: SAVE_FAILED } };
-  }
-}
-
 function failureText(result: { error: { code: string; message: string } }): string {
   return result.error.code === "INTERNAL" ? SAVE_FAILED : result.error.message;
+}
+
+/**
+ * Puts a result in the device outbox, which sends it straight away when it can and otherwise
+ * later, oldest first. The payload is exactly the learning schema's input for that kind.
+ */
+async function save(userId: string, kind: OutboxKind, payload: unknown): Promise<Saved> {
+  const result = await submitToOutbox({ userId, kind, payload, idempotencyKey: newId() });
+  switch (result.status) {
+    case "sent":
+      return { ok: true, data: result.data };
+    case "queued":
+      return { ok: true, data: null };
+    case "refused":
+      return { ok: false, problem: { text: result.message, calm: false } };
+    case "unsaved":
+      return { ok: false, problem: { text: offlineCopy.offline, calm: true } };
+  }
 }
 
 function initialQueue(mode: PlayerMode, steps: Step[], results: StepResult[]): Item[] {
@@ -103,7 +125,7 @@ function replayItems(steps: Step[], keys: string[]): Item[] {
  * it again when the result is saved. Wrong steps come back once at the end of a mission.
  */
 export function MissionPlayer(props: MissionPlayerProps) {
-  const { mode, steps, currency, intro, doneHref, doneLabel, topicHref, stepAside } = props;
+  const { mode, steps, currency, userId, intro, doneHref, doneLabel, topicHref, stepAside } = props;
   const initialResults = mode.kind === "mission" ? mode.results : [];
   const [stage, setStage] = useState<"intro" | "playing" | "finishing" | "finished">(
     intro ? "intro" : "playing",
@@ -117,7 +139,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
   const [index, setIndex] = useState(0);
   const [checkInAnswers, setCheckInAnswers] = useState<CheckInAnswer[]>([]);
   const [finishText, setFinishText] = useState<{ heading: string; body: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Problem | null>(null);
   // Focus follows the child's own actions only: never on first load (it would scroll past a
   // topic's explanation).
   const [acted, setActed] = useState(false);
@@ -141,9 +163,16 @@ export function MissionPlayer(props: MissionPlayerProps) {
       return;
     }
     startTransition(async () => {
-      const result = await call(() => startMissionAction(null, { missionKey: mode.missionKey }));
+      // Starting needs the server (it creates the attempt), so it stays an online action.
+      const result = await runOnline(() =>
+        startMissionAction(null, { missionKey: mode.missionKey }),
+      );
       if (!result.ok) {
-        setError(failureText(result));
+        setError(
+          result.error.code === "UNAVAILABLE"
+            ? { text: result.error.message, calm: true }
+            : { text: failureText(result), calm: false },
+        );
         return;
       }
       const { attemptId: id, results: saved } = result.data;
@@ -181,12 +210,15 @@ export function MissionPlayer(props: MissionPlayerProps) {
     setStage("finishing");
     startTransition(async () => {
       if (mode.kind === "check-in") {
-        const result = await call(() => completeCheckInAction(null, { answers }));
-        if (!result.ok) {
-          setError(failureText(result));
+        const saved = await save(userId, "checkIn", { answers });
+        if (!saved.ok) {
+          setError(saved.problem);
           return;
         }
-        const known = result.data.correctCount;
+        // Waiting to send: the device graded the same answers, so it can count them itself.
+        const known =
+          (saved.data as { correctCount: number } | null)?.correctCount ??
+          allResults.filter((r) => r.correct).length;
         setFinishText({
           heading: "Thanks. That helps pick where you start.",
           body:
@@ -198,15 +230,18 @@ export function MissionPlayer(props: MissionPlayerProps) {
         return;
       }
       if (!id) {
-        setError(SAVE_FAILED);
+        setError({ text: SAVE_FAILED, calm: false });
         return;
       }
-      const result = await call(() => completeMissionAction(null, { attemptId: id }));
-      if (!result.ok) {
-        setError(failureText(result));
+      // Queued after this mission's steps, so the server never sees it before them.
+      const saved = await save(userId, "completeMission", { attemptId: id });
+      if (!saved.ok) {
+        setError(saved.problem);
         return;
       }
-      setFinishText({ heading: "Mission done. Nice work.", body: summaryLine(result.data) });
+      const summary =
+        (saved.data as ReturnType<typeof attemptSummary> | null) ?? attemptSummary(allResults);
+      setFinishText({ heading: "Mission done. Nice work.", body: summaryLine(summary) });
       setStage("finished");
     });
   }
@@ -244,35 +279,29 @@ export function MissionPlayer(props: MissionPlayerProps) {
       hintsUsed: outcome.hintsUsed,
       tries: outcome.tries,
     };
-    const id = attemptId;
-    if (mode.kind === "mission" && id) {
-      const saved = await call(() =>
-        recordStepAction(null, {
-          attemptId: id,
-          stepKey: item.step.key,
-          phase: item.phase,
-          answer: outcome.answer,
-          hintsUsed: outcome.hintsUsed,
-          tries: outcome.tries,
-        }),
-      );
-      if (!saved.ok) {
-        setError(failureText(saved));
-        return false;
-      }
-    } else if (mode.kind === "practice") {
-      const saved = await call(() =>
-        recordPracticeAction(null, {
-          itemKey: item.step.key,
-          answer: outcome.answer,
-          hintsUsed: outcome.hintsUsed,
-          tries: outcome.tries,
-        }),
-      );
-      if (!saved.ok) {
-        setError(failureText(saved));
-        return false;
-      }
+    // The player already graded the step on the device, so a result waiting to send doesn't
+    // hold the child up: the next step comes straight away either way.
+    const saved =
+      mode.kind === "mission" && attemptId
+        ? await save(userId, "step", {
+            attemptId,
+            stepKey: item.step.key,
+            phase: item.phase,
+            answer: outcome.answer,
+            hintsUsed: outcome.hintsUsed,
+            tries: outcome.tries,
+          })
+        : mode.kind === "practice"
+          ? await save(userId, "practice", {
+              itemKey: item.step.key,
+              answer: outcome.answer,
+              hintsUsed: outcome.hintsUsed,
+              tries: outcome.tries,
+            })
+          : null;
+    if (saved && !saved.ok) {
+      setError(saved.problem);
+      return false;
     }
     const allResults = [...results, record];
     const answers =
@@ -296,11 +325,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
           {resumed ? "Pick up where you left off." : intro.heading}
         </h1>
         <p className="text-ink-2">{intro.body}</p>
-        {error ? (
-          <p role="alert" className="font-semibold text-destructive">
-            {error}
-          </p>
-        ) : null}
+        <ProblemText problem={error} />
         <Button
           variant="keycap"
           size="lg"
@@ -336,11 +361,10 @@ export function MissionPlayer(props: MissionPlayerProps) {
         {stage === "finished" && finishText ? (
           <p className="text-ink-2">{finishText.body}</p>
         ) : null}
+        <SavedOnDevice userId={userId} />
         {error ? (
           <div className="grid justify-items-center gap-3">
-            <p role="alert" className="font-semibold text-destructive">
-              {error}
-            </p>
+            <ProblemText problem={error} />
             <Button
               variant="outline"
               onClick={() => finish(results, checkInAnswers, attemptId)}
@@ -397,6 +421,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
         }
         total={mainTotal}
       />
+      <SavedOnDevice userId={userId} />
       {item.step.type === "info" ? (
         <InfoView
           key={`${item.phase}:${item.step.key}`}
@@ -424,6 +449,33 @@ export function MissionPlayer(props: MissionPlayerProps) {
         />
       )}
     </div>
+  );
+}
+
+/** Shown while any of this child's results wait on the device to be sent. */
+function SavedOnDevice({ userId }: { userId: string }) {
+  const waiting = useOutbox(userId).some(
+    (item) => item.status === "waiting" || item.status === "sending",
+  );
+  if (!waiting) return null;
+  return (
+    <p className="flex items-center gap-1.5 text-ink-2 text-sm">
+      <HourglassIcon aria-hidden className="size-4 shrink-0" />
+      Saved on this device.
+    </p>
+  );
+}
+
+function ProblemText({ problem }: { problem: Problem | null }) {
+  if (!problem) return null;
+  return problem.calm ? (
+    <p role="status" className="rounded-lg bg-muted px-3.5 py-2.5 text-ink-2 text-sm">
+      {problem.text}
+    </p>
+  ) : (
+    <p role="alert" className="font-semibold text-destructive">
+      {problem.text}
+    </p>
   );
 }
 
@@ -509,7 +561,7 @@ type StepViewProps = {
   missionKey: string | null;
   topicHref?: Route;
   stepAside?: ReactNode;
-  error: string | null;
+  error: Problem | null;
   focusOnMount: boolean;
   onDone: (outcome: StepOutcome) => Promise<boolean>;
 };
@@ -651,11 +703,7 @@ function StepView({
           ) : null}
         </div>
 
-        {error ? (
-          <p role="alert" className="font-semibold text-destructive">
-            {error}
-          </p>
-        ) : null}
+        <ProblemText problem={error} />
 
         <div className="flex flex-wrap items-center gap-3">
           {!outcome ? (

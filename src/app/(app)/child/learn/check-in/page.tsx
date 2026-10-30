@@ -33,6 +33,7 @@ async function CheckInContent() {
       mode={{ kind: "check-in" }}
       steps={checkIn.questions}
       currency={family.currency}
+      userId={user.id}
       intro={{
         eyebrow: "Before mission 1",
         heading: "Five quick questions.",

@@ -49,6 +49,7 @@ async function PracticeContent() {
         mode={{ kind: "practice" }}
         steps={items}
         currency={family.currency}
+        userId={user.id}
         doneHref={routes.childLearn}
         doneLabel="Back to Learn"
         stepAside={guide.available ? <StepGuide introNeeded={guide.introNeeded} /> : undefined}

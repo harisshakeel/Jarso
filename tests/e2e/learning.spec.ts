@@ -175,6 +175,8 @@ test("a mission gives instant feedback and replays a mistake at the end", async 
   await check(child);
   await expect(child.getByText(/Each buy changes what's left/)).toBeVisible();
   await next(child);
+  // The player moves on once step 4 is saved (it goes through the device outbox first).
+  await expect(child.getByText("Step 5 of 7")).toBeVisible();
 
   // Leave mid-mission and come back: it resumes at step 5.
   await child.goto("/child");

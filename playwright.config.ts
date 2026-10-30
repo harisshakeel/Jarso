@@ -63,6 +63,11 @@ export default defineConfig({
       testMatch: "offline-purchase.spec.ts",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "offline-mission",
+      testMatch: "offline-mission.spec.ts",
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
