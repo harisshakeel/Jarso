@@ -8,9 +8,9 @@ import {
   recordPractice,
   recordStep,
 } from "@/features/learning/server";
-import { type OutboxRequest, outboxRequestSchema } from "@/features/offline";
 import { AppError } from "@/lib";
 import { json, withApi } from "@/lib/api";
+import { type OutboxRequest, outboxRequestSchema } from "./schema";
 
 export const maxDuration = 30;
 

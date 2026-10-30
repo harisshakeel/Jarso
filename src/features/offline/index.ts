@@ -11,7 +11,6 @@ export type { OutboxItem, OutboxKind, SendOutcome, SubmitResult } from "./outbox
 export { useOutbox } from "./outbox/use-outbox";
 /** A random uuid for a client-minted key; works where `crypto.randomUUID` is missing. */
 export { uuid as newId } from "./outbox/uuid";
-export * from "./schemas";
 export {
   onNetworkSuccess,
   reportNetworkFailure,
