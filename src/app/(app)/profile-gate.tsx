@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import { getCurrentUser } from "@/features/auth/server";
 import { currentRole } from "@/features/family/server";
 import { ProfileCompletionDialog } from "@/features/profiles";
@@ -20,6 +21,8 @@ export async function ProfileGate() {
     if (!user || (await currentRole()) !== "parent") return null;
     if (await isParentProfileComplete(user.id)) return null;
   } catch (error) {
+    // Next's own control flow (prerender bail-out, redirect, not found) is not a failure.
+    unstable_rethrow(error);
     logger.warn("Profile gate check failed; showing the page without the dialog", { error });
     return null;
   }
