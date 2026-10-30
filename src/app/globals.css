@@ -298,6 +298,22 @@
   }
 }
 
+/* Landing page (spec 2026-10-30-landing-page-design §4): headline words rise and unblur once;
+   the hero's lid coin bobs while the page waits for the first scroll. */
+@keyframes word-rise {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+    filter: blur(8px);
+  }
+}
+
+@keyframes coin-bob {
+  50% {
+    translate: 0 -12px;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring;

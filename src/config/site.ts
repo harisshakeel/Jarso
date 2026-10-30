@@ -1,9 +1,47 @@
 import type { Route } from "next";
 
+/** What search engines and link previews say about Jarso. The landing page copy lives in `@/features/landing`. */
 export const siteConfig = {
   name: "Jarso",
-  description: "Jarso",
+  tagline: "Spend some. Save some.",
+  description:
+    "Pocket money your child plans and you can see. Spend and Save jars, short money missions and a safe AI money guide, for families with children aged 11 to 14.",
+  locale: "en_GB",
+  keywords: [
+    "pocket money app",
+    "allowance app for kids",
+    "kids money app",
+    "money lessons for children",
+    "spend and save jars",
+    "savings goal for kids",
+    "financial literacy for kids",
+    "children aged 11 to 14",
+  ],
 } as const;
+
+/**
+ * Open Graph fields every public page repeats: a page's `openGraph` replaces its layout's whole,
+ * including the image Next.js takes from `src/app/opengraph-image.png`, so the image is named here.
+ */
+export const sharedOpenGraph = {
+  type: "website",
+  siteName: siteConfig.name,
+  locale: siteConfig.locale,
+  images: [
+    {
+      url: "/opengraph-image.png",
+      width: 1200,
+      height: 630,
+      alt: "Jarso: Spend some. Save some. Pocket money your child plans, you stay in the loop. A Spend jar and a Save jar inside a gold savings ring.",
+    },
+  ],
+};
+
+/** Public pages for the sitemap, with the date their content last changed (`YYYY-MM-DD`). */
+export const publicPages = [
+  { path: "/", updated: "2026-10-30", priority: 1 },
+  { path: "/safety", updated: "2026-10-30", priority: 0.6 },
+] as const;
 
 export const routes = {
   home: "/",

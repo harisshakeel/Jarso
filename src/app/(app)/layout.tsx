@@ -1,8 +1,12 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AppHeader } from "@/components/shell";
 import { routes } from "@/config";
 import { SignOutButton } from "@/features/auth";
 import { ProfileGate } from "./profile-gate";
+
+/** Signed-in pages are private: never indexed (robots.ts also keeps crawlers out). */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * Shell for authenticated routes. The shell itself stays static; pages read the user behind

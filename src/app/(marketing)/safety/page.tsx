@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { helplineDirectory, pilotHelplines, routes } from "@/config";
+import { helplineDirectory, pilotHelplines, routes, sharedOpenGraph } from "@/config";
+
+const description =
+  "How Jarso's AI money guide keeps children safe: what it does, what it never does, and what is kept.";
 
 export const metadata: Metadata = {
   title: "Money guide safety",
-  description:
-    "How Jarso's AI money guide keeps children safe: what it does, what it never does, and what is kept.",
+  description,
+  alternates: { canonical: routes.safety },
+  openGraph: {
+    ...sharedOpenGraph,
+    title: "Money guide safety · Jarso",
+    description,
+    url: routes.safety,
+  },
 };
 
 const sections: { heading: string; body: string[] }[] = [

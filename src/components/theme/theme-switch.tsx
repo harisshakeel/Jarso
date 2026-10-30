@@ -23,7 +23,9 @@ export function ThemeSwitch() {
   const mounted = useMounted();
   const isDark = resolvedTheme === "dark";
   const next = isDark ? "light" : "dark";
-  const Icon = isDark ? MoonIcon : SunIcon;
+  // The server can't know the theme, so the icon waits for mount too: picking it from
+  // `resolvedTheme` during hydration rendered a moon where the server sent a sun.
+  const Icon = mounted && isDark ? MoonIcon : SunIcon;
 
   return (
     <Button
