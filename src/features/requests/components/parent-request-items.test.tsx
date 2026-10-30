@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cancelRequestAction,
@@ -125,5 +126,55 @@ describe("ParentRequestItems", () => {
     await waitFor(() =>
       expect(rejectDepositAction).toHaveBeenCalledWith(null, { requestId: "r1" }),
     );
+  });
+});
+
+describe("ParentRequestItems outcomes", () => {
+  it("shows an error, not a success, when Save no longer covers a handover", async () => {
+    vi.mocked(completeRequestAction).mockResolvedValue({
+      ok: true,
+      data: "over_available" as never,
+    });
+    show(request({ status: "approved" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(await screen.findByText("There isn't enough in Save for this now.")).toBeInTheDocument();
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("says Spend when a deposit is over what Spend has", async () => {
+    vi.mocked(completeRequestAction).mockResolvedValue({
+      ok: true,
+      data: "over_available" as never,
+    });
+    show(request({ kind: "deposit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(
+      await screen.findByText("There isn't enough in Spend for this now."),
+    ).toBeInTheDocument();
+  });
+
+  it("is calm when a deposit was already decided", async () => {
+    vi.mocked(rejectDepositAction).mockResolvedValue({ ok: true, data: "already_decided" });
+    show(request({ kind: "deposit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Didn't get it" }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith("Already sorted."));
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("is calm when the handover was already closed", async () => {
+    vi.mocked(cancelRequestAction).mockResolvedValue({ ok: true, data: "already_closed" });
+    show(request({ status: "approved" }));
+    fireEvent.click(screen.getByRole("button", { name: "Didn't hand it over" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, didn't hand it over" }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith("Already sorted."));
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("is calm when a handover was already completed", async () => {
+    vi.mocked(completeRequestAction).mockResolvedValue({ ok: true, data: "already_completed" });
+    show(request({ status: "approved" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith("Already sorted."));
   });
 });

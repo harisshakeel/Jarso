@@ -81,30 +81,41 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
             code: "CONFLICT",
             message: `There isn't enough in Save for this now.`,
           });
-        } else if (data === "approved") toast.success(`Approved. Hand ${amount} to ${nickname}.`);
+        } else if (data === "already_decided") settled();
+        else if (data === "approved") toast.success(`Approved. Hand ${amount} to ${nickname}.`);
         else if (data === "rejected") toast.success("Not now. We let them know.");
       },
     );
 
-  const complete = (done: string) => {
+  const settled = () => toast("Already sorted.");
+
+  const complete = (done: string, shortOf: "Save" | "Spend") => {
     key.current ??= newId();
     const idempotencyKey = key.current;
     run(
       () => completeRequestAction(null, { requestId: request.id, idempotencyKey }),
-      () => toast.success(done),
+      (data) => {
+        // The service turns the other outcomes into errors; read them all the same.
+        const status: string = data;
+        if (status === "completed") toast.success(done);
+        else if (status === "already_completed") settled();
+        else if (status === "over_available") {
+          setError({ code: "CONFLICT", message: `There isn't enough in ${shortOf} for this now.` });
+        }
+      },
     );
   };
 
   const cancel = () =>
     run(
       () => cancelRequestAction(null, { requestId: request.id }),
-      () => toast("Okay, left as it was."),
+      (data) => (data === "cancelled" ? toast("Okay, left as it was.") : settled()),
     );
 
   const rejectDeposit = () =>
     run(
       () => rejectDepositAction(null, { requestId: request.id }),
-      () => toast("Okay, not added."),
+      (data) => (data === "rejected" ? toast("Okay, not added.") : settled()),
     );
 
   let sentence: string;
@@ -113,7 +124,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
     sentence = `${nickname} gave you ${amount}?`;
     actions = (
       <>
-        <Button type="button" loading={pending} onClick={() => complete("Added to Save.")}>
+        <Button type="button" loading={pending} onClick={() => complete("Added to Save.", "Spend")}>
           Confirm
         </Button>
         <Button type="button" variant="outline" disabled={pending} onClick={rejectDeposit}>
@@ -125,7 +136,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
     sentence = `Hand over ${amount} to ${nickname}`;
     actions = (
       <>
-        <Button type="button" loading={pending} onClick={() => complete("Handed over.")}>
+        <Button type="button" loading={pending} onClick={() => complete("Handed over.", "Save")}>
           Confirm
         </Button>
         <DidntHandOver disabled={pending} onConfirm={cancel} />
