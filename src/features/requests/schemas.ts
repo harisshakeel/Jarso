@@ -30,8 +30,18 @@ export const requestIdSchema = z.object({ requestId: z.uuid("We couldn't find th
 
 export const decideSchema = z.object({
   requestId: z.uuid("We couldn't find that."),
-  // Forms send "true"/"false" strings or booleans.
-  approve: z.preprocess((value) => value === true || value === "true", z.boolean()),
+  // Forms send "true"/"false" strings or booleans; anything else is refused, not read as "no".
+  approve: z.union(
+    [z.boolean(), z.enum(["true", "false"]).transform((value) => value === "true")],
+    {
+      error: "Choose approve or not now.",
+    },
+  ),
+  note: optionalText,
+});
+
+export const rejectDepositSchema = z.object({
+  requestId: z.uuid("We couldn't find that."),
   note: optionalText,
 });
 

@@ -7,6 +7,7 @@ import {
   completeSchema,
   decideSchema,
   depositSchema,
+  rejectDepositSchema,
   requestIdSchema,
   withdrawalSchema,
 } from "../schemas";
@@ -43,8 +44,8 @@ export const decideWithdrawalAction = createAction(decideSchema, async (input) =
   return result;
 });
 
-export const rejectDepositAction = createAction(requestIdSchema, async ({ requestId }) => {
-  const result = await rejectDeposit({ requestId });
+export const rejectDepositAction = createAction(rejectDepositSchema, async (input) => {
+  const result = await rejectDeposit(input);
   refresh();
   return result;
 });
