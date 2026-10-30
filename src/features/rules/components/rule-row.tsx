@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { AmountField, FormError } from "@/components/form";
 import { Button, Switch } from "@/components/ui";
@@ -35,6 +35,7 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
   const [error, setError] = useState<{ code: string; message: string }>();
   const [fieldError, setFieldError] = useState<string>();
   const id = `${kind}-${period}`;
+  const sentenceId = useId();
 
   function send(value: string, onOk: () => void) {
     setError(undefined);
@@ -87,15 +88,24 @@ export function RuleRow({ childId, nickname, currency, kind, period, rule }: Rul
         <label htmlFor={id} className="font-semibold">
           {PERIOD_LABEL[period]}
         </label>
-        <Switch id={id} checked={on} disabled={pending} onCheckedChange={toggle} />
+        <Switch
+          id={id}
+          aria-describedby={sentenceId}
+          checked={on}
+          disabled={pending}
+          onCheckedChange={toggle}
+        />
       </div>
-      <p className="text-ink-2 text-sm">{sentence}</p>
+      <p id={sentenceId} className="text-ink-2 text-sm">
+        {sentence}
+      </p>
       {on ? (
         <div className="flex items-end gap-3">
           <div className="flex-1">
             <AmountField
               id={`${id}-amount`}
               label={`${PERIOD_LABEL[period]} limit`}
+              describedBy={sentenceId}
               currency={currency}
               value={amount}
               onValueChange={setAmount}

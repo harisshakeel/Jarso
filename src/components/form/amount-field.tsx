@@ -20,6 +20,8 @@ type AmountFieldProps = {
   /** Input id and name; change it when several amount fields share a page. */
   id?: string;
   label?: string;
+  /** Id of text that describes this field (read after the label). */
+  describedBy?: string;
 };
 
 /** Big amount input with the currency symbol at 60 % (spec §5.1). Parsed on the server. */
@@ -30,6 +32,7 @@ export function AmountField({
   errors,
   id = "amount",
   label = "Amount",
+  describedBy,
 }: AmountFieldProps) {
   const errorId = errors?.length ? `${id}-error` : undefined;
   return (
@@ -48,7 +51,7 @@ export function AmountField({
           value={value}
           onChange={(event) => onValueChange(event.target.value)}
           aria-invalid={errorId ? true : undefined}
-          aria-describedby={errorId}
+          aria-describedby={[errorId, describedBy].filter(Boolean).join(" ") || undefined}
           className="money h-14 w-full min-w-0 rounded-lg border border-input bg-muted px-3.5 font-extrabold text-3xl transition-colors focus-visible:border-ring aria-invalid:border-destructive"
         />
       </div>

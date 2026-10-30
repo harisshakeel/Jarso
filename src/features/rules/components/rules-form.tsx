@@ -57,7 +57,7 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
   return (
     <Card className="rise-in">
       <CardContent className="grid gap-6">
-        <section aria-labelledby="spending-heading" className="grid gap-4">
+        <fieldset aria-labelledby="spending-heading" className="grid min-w-0 gap-4">
           <h2 id="spending-heading" className="text-h3">
             Spending
           </h2>
@@ -78,8 +78,8 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
             nickname={nickname}
             allowed={rules.allowNegativeSpend}
           />
-        </section>
-        <section aria-labelledby="take-out-heading" className="grid gap-4">
+        </fieldset>
+        <fieldset aria-labelledby="take-out-heading" className="grid min-w-0 gap-4">
           <h2 id="take-out-heading" className="text-h3">
             Taking money out of Save
           </h2>
@@ -98,8 +98,8 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
             currency={currency}
             rules={rules}
           />
-        </section>
-        <section aria-labelledby="put-in-heading" className="grid gap-4">
+        </fieldset>
+        <fieldset aria-labelledby="put-in-heading" className="grid min-w-0 gap-4">
           <h2 id="put-in-heading" className="text-h3">
             Putting money into Save
           </h2>
@@ -112,7 +112,7 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
             rules={rules}
           />
           <p className="text-ink-2 text-sm">Deposits will count before you get the cash</p>
-        </section>
+        </fieldset>
       </CardContent>
     </Card>
   );
