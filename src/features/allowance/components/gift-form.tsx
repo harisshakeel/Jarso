@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type CSSProperties, useActionState, useState, useTransition } from "react";
+import { type CSSProperties, useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { AmountField, Field, FormError } from "@/components/form";
 import {
@@ -20,7 +20,7 @@ import {
   CardContent,
 } from "@/components/ui";
 import { routes } from "@/config";
-import { runOnline } from "@/features/offline";
+import { newId, runOnline } from "@/features/offline";
 import { type ActionState, idle, toMajorString } from "@/lib";
 
 import { cancelGiftAction, createGiftAction, updateGiftAction } from "../server/actions";
@@ -49,7 +49,9 @@ export function GiftForm({
 }: GiftFormProps) {
   const router = useRouter();
   // One key per form open. Saving again after an error reuses it, so a lost response makes one gift.
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  // Minted after mount, so the server's HTML and the first client render agree.
+  const [idempotencyKey, setIdempotencyKey] = useState("");
+  useEffect(() => setIdempotencyKey(newId()), []);
   const [state, action, pending] = useActionState(
     async (_prev: ActionState<unknown>, formData: FormData) => {
       const result = initial
@@ -122,7 +124,7 @@ export function GiftForm({
         >
           Cancel
         </Link>
-        <Button type="submit" size="lg" loading={pending}>
+        <Button type="submit" size="lg" loading={pending} disabled={!initial && !idempotencyKey}>
           Save gift
         </Button>
       </div>

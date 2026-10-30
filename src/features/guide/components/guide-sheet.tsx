@@ -22,7 +22,7 @@ import {
   SheetTrigger,
 } from "@/components/ui";
 import { routes } from "@/config";
-import { runOnline } from "@/features/offline";
+import { newId, runOnline } from "@/features/offline";
 import { cn } from "@/lib";
 import { guideCopy } from "../copy";
 import { type GuideContextRef, MAX_MESSAGE_LENGTH } from "../schemas";
@@ -113,7 +113,8 @@ export function GuideSheet({
     if (!question || pending) return;
     setError(null);
     if (unanswered.current?.text !== question) {
-      unanswered.current = { text: question, id: crypto.randomUUID() };
+      // Minted on submit, never in render, so server and client HTML match.
+      unanswered.current = { text: question, id: newId() };
     }
     const clientMessageId = unanswered.current.id;
     const started = generation.current;
