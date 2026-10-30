@@ -2,8 +2,8 @@ import "server-only";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { clientEnv } from "@/config/env.client";
 import { serverEnv } from "@/config/env.server";
-import { supabaseFetch } from "@/lib/timed-fetch";
 import type { Database } from "@/types";
+import { supabaseFetch } from "../timed-fetch";
 
 /**
  * Privileged client that BYPASSES RLS. Server-only.

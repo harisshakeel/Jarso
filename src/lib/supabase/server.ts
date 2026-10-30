@@ -2,8 +2,8 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { clientEnv } from "@/config/env.client";
-import { supabaseFetch } from "@/lib/timed-fetch";
 import type { Database } from "@/types";
+import { supabaseFetch } from "../timed-fetch";
 
 /**
  * Supabase client for Server Components, Server Actions and Route Handlers.

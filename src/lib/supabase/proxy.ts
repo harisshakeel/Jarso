@@ -2,8 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
 import { clientEnv } from "@/config/env.client";
-import { supabaseFetch } from "@/lib/timed-fetch";
 import type { Database } from "@/types";
+import { supabaseFetch } from "../timed-fetch";
 
 const CACHE_HEADERS = ["cache-control", "expires", "pragma"] as const;
 
