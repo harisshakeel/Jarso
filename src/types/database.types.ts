@@ -909,6 +909,9 @@ isOneToOne: false
 "mark_not_given":
 { Args: { "p_occurrence_id": string }; Returns: string
                            },
+"mark_notifications_read":
+{ Args: { "p_ids"?: (string)[] }; Returns: number
+                           },
 "notify_child":
 { Args: { "p_child_id": string,"p_kind": string,"p_payload": Json,"p_source_id": string,"p_source_type": string,"p_window_key": string }; Returns: number
                            },
@@ -954,6 +957,9 @@ isOneToOne: false
 "rule_window_start":
 { Args: { "p_at": string,"p_family_id": string,"p_period": string }; Returns: string
                            },
+"send_handover_reminders":
+{ Args: { "p_now"?: string }; Returns: number
+                           },
 "set_allow_negative_spend":
 { Args: { "p_allowed": boolean,"p_child_id": string }; Returns: undefined
                            },
@@ -977,6 +983,9 @@ isOneToOne: false
                            },
 "undo_purchase_at":
 { Args: { "p_entry_id": string,"p_now": string }; Returns: string
+                           },
+"unread_notification_count":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "update_family_timezone":
 { Args: { "p_timezone": string }; Returns: undefined
