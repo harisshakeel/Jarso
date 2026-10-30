@@ -102,19 +102,19 @@ function PendingLine({
         <>
           <p className="text-ink-2 text-sm">{item.message ?? offlineCopy.refused}</p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" aria-label={`Change ${label}`} onClick={onChange}>
+            <Button variant="outline" aria-label={`Change it: ${label}`} onClick={onChange}>
               Change it
             </Button>
             <Button
               variant="outline"
-              aria-label={`Ask a parent about ${label}`}
+              aria-label={`Ask a parent: ${label}`}
               onClick={() => setAsked(true)}
             >
               Ask a parent
             </Button>
             <Button
               variant="ghost"
-              aria-label={`Remove ${label}`}
+              aria-label={`Remove: ${label}`}
               onClick={() => void removeOutboxItem(item.id).catch(() => {})}
             >
               Remove

@@ -137,15 +137,15 @@ test("refused queued purchase shows Needs a look", async () => {
   await expect(line).toContainText(
     "That's more than you have in Spend (US$50). Record money you got first, or ask a parent.",
   );
-  await expect(line.getByRole("button", { name: "Change Too big" })).toBeVisible();
-  await expect(line.getByRole("button", { name: "Ask a parent about Too big" })).toBeVisible();
-  await expect(line.getByRole("button", { name: "Remove Too big" })).toBeVisible();
+  await expect(line.getByRole("button", { name: "Change it: Too big" })).toBeVisible();
+  await expect(line.getByRole("button", { name: "Ask a parent: Too big" })).toBeVisible();
+  await expect(line.getByRole("button", { name: "Remove: Too big" })).toBeVisible();
   await expect(spendJar()).toContainText("US$50");
 
-  await line.getByRole("button", { name: "Ask a parent about Too big" }).click();
+  await line.getByRole("button", { name: "Ask a parent: Too big" }).click();
   await expect(line).toContainText("Show this to a parent and decide together.");
 
-  await line.getByRole("button", { name: "Remove Too big" }).click();
+  await line.getByRole("button", { name: "Remove: Too big" }).click();
   await expect(pending()).toHaveCount(0);
   await expect(history().getByText("Too big")).toHaveCount(0);
 });

@@ -78,20 +78,20 @@ describe("PendingPurchases", () => {
 
   it("Remove deletes the item", async () => {
     show([needsLook()]);
-    fireEvent.click(screen.getByRole("button", { name: "Remove Comic" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove: Comic" }));
     await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(KEY));
   });
 
   it("Ask a parent shows the advice and keeps the item", () => {
     show([needsLook()]);
-    fireEvent.click(screen.getByRole("button", { name: "Ask a parent about Comic" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ask a parent: Comic" }));
     expect(screen.getByText("Show this to a parent and decide together.")).toBeVisible();
     expect(removeOutboxItem).not.toHaveBeenCalled();
   });
 
   it("Change it opens the sheet with the old amount", () => {
     show([needsLook()]);
-    fireEvent.click(screen.getByRole("button", { name: "Change Comic" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change it: Comic" }));
     const sheet = screen.getByRole("dialog");
     expect(within(sheet).getByLabelText("Amount")).toHaveValue("20");
     expect(within(sheet).getByLabelText("What for? (optional)")).toHaveValue("Comic");
@@ -100,7 +100,7 @@ describe("PendingPurchases", () => {
   it("Change it saves with a new key, then removes the old item", async () => {
     submitToOutbox.mockResolvedValue({ status: "queued" });
     show([needsLook()]);
-    fireEvent.click(screen.getByRole("button", { name: "Change Comic" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change it: Comic" }));
     const sheet = screen.getByRole("dialog");
     fireEvent.change(within(sheet).getByLabelText("Amount"), { target: { value: "5" } });
     fireEvent.click(within(sheet).getByRole("button", { name: "Save" }));
@@ -112,7 +112,7 @@ describe("PendingPurchases", () => {
   it("Change it keeps the old item when the new one is refused", async () => {
     submitToOutbox.mockResolvedValue({ status: "refused", message: REFUSED });
     show([needsLook()]);
-    fireEvent.click(screen.getByRole("button", { name: "Change Comic" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change it: Comic" }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(submitToOutbox).toHaveBeenCalled());
     await screen.findByRole("alert");
@@ -141,9 +141,9 @@ describe("PendingPurchases", () => {
         payload: { amount: "20", idempotencyKey: KEY },
       }),
     ]);
-    expect(screen.getByRole("button", { name: "Change Purchase" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Ask a parent about Purchase" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Remove Purchase" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Change it: Purchase" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Ask a parent: Purchase" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Remove: Purchase" })).toBeVisible();
   });
 
   it("ignores items that are not purchases", () => {
