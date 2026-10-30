@@ -1,6 +1,6 @@
 import { logger } from "@/lib";
 import { offlineCopy } from "../copy";
-import { reportNetworkFailure, reportNetworkSuccess } from "../use-online";
+import { isNetworkFailure, reportNetworkFailure, reportNetworkSuccess } from "../use-online";
 import type { OutboxItem, SendOutcome } from "./types";
 
 const SEND_TIMEOUT_MS = 15_000;
@@ -30,7 +30,8 @@ export async function sendToServer(item: OutboxItem): Promise<SendOutcome> {
   } catch (error) {
     const reason = error instanceof DOMException && error.name === "TimeoutError";
     logger.warn("Outbox send failed", { kind: item.kind, reason: reason ? "timeout" : "network" });
-    reportNetworkFailure();
+    // A timeout is a slow link, not a lost one: only a fetch that never got out reports offline.
+    if (isNetworkFailure(error)) reportNetworkFailure();
     return { kind: "retry" };
   }
 
@@ -47,9 +48,9 @@ export async function sendToServer(item: OutboxItem): Promise<SendOutcome> {
     logger.warn("Outbox send deferred", { kind: item.kind, status: response.status });
     return { kind: "retry" };
   }
+  // The server answered, so this is not the device being offline.
   if (response.status >= 500) {
     logger.warn("Outbox send failed", { kind: item.kind, status: response.status });
-    reportNetworkFailure();
     return { kind: "retry" };
   }
   if (response.status === 401) return { kind: "unauthorized" };

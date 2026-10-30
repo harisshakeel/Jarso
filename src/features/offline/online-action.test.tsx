@@ -38,6 +38,28 @@ describe("runOnline", () => {
     expect(isOnline()).toBe(false);
   });
 
+  it.each([
+    new TypeError("Failed to fetch"),
+    new TypeError("NetworkError when attempting to fetch resource."),
+    new TypeError("Load failed"),
+  ])("treats a fetch %s as offline", async (error) => {
+    expect(await runOnline(() => Promise.reject(error))).toMatchObject({
+      error: { message: offlineCopy.offline },
+    });
+    expect(isOnline()).toBe(false);
+  });
+
+  it.each([
+    new Error("An unexpected response was received from the server."),
+    new TypeError("Cannot read properties of undefined (reading 'id')"),
+  ])("does not report offline for %s", async (error) => {
+    expect(await runOnline(() => Promise.reject(error))).toEqual({
+      ok: false,
+      error: { code: "UNAVAILABLE", message: offlineCopy.slow },
+    });
+    expect(isOnline()).toBe(true);
+  });
+
   it("rethrows a Server Action redirect instead of showing the offline copy", async () => {
     const redirect = Object.assign(new Error("NEXT_REDIRECT"), {
       digest: "NEXT_REDIRECT;push;/login;307;",

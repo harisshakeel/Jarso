@@ -11,7 +11,7 @@ import {
 } from "react";
 import type { ActionResult, ActionState } from "@/lib";
 import { offlineCopy } from "./copy";
-import { reportNetworkFailure, reportNetworkSuccess } from "./use-online";
+import { isNetworkFailure, reportNetworkFailure, reportNetworkSuccess } from "./use-online";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
@@ -24,6 +24,7 @@ function unavailable(message: string): ActionResult<never> {
 /**
  * Runs an online-only Server Action. Offline, a dropped connection or a slow reply becomes a
  * calm `UNAVAILABLE` result instead of a throw. A timed-out call is left to settle on its own.
+ * Only a real network failure marks the device offline; a reply clears that again.
  */
 export async function runOnline<T>(
   action: () => Promise<ActionResult<T>>,
@@ -52,8 +53,12 @@ export async function runOnline<T>(
     if (error instanceof Error && error.message.includes("Failed to find Server Action")) {
       return unavailable(offlineCopy.updated);
     }
-    reportNetworkFailure();
-    return unavailable(offlineCopy.offline);
+    if (isNetworkFailure(error)) {
+      reportNetworkFailure();
+      return unavailable(offlineCopy.offline);
+    }
+    // The server was reached (or the call broke on this side): calm, but not "offline".
+    return unavailable(offlineCopy.slow);
   } finally {
     clearTimeout(timer);
   }

@@ -79,9 +79,20 @@ describe("outcome", () => {
     expect(isOnline()).toBe(false);
   });
 
+  it("a timeout is a retry but does not report the connection lost", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError")),
+    );
+    expect(await sendToServer(makeItem())).toEqual({ kind: "retry" });
+    expect(isOnline()).toBe(true);
+  });
+
   it("a 503 is a retry", async () => {
     respond(503, { error: { code: "UNAVAILABLE", message: "Jarso is taking a while." } });
     expect(await sendToServer(makeItem())).toEqual({ kind: "retry" });
+    // The server answered: the device is not offline.
+    expect(isOnline()).toBe(true);
   });
 
   it("a 408 is a retry", async () => {
