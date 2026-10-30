@@ -160,7 +160,8 @@ test.beforeAll(async () => {
 
   const parent = await parentClient();
   familyId = await rpc<string>(parent, "create_family", { p_currency: "GBP", p_timezone: "UTC" });
-  for (const name of ["ReqA", "ReqB", "ReqC", "ReqD", "ReqE", "ReqF"]) await addChild(parent, name);
+  for (const name of ["ReqA", "ReqB", "ReqC", "ReqD", "ReqE", "ReqF", "ReqG", "ReqH"])
+    await addChild(parent, name);
 });
 
 test.afterAll(async () => {
@@ -331,4 +332,44 @@ test("a deposit confirms even when a purchase races for the held Spend", async (
   expect(purchase.status).toBe("not_enough_spend");
   expect(await statusOf(id)).toBe("confirmed");
   expect(await ledgerCount(id)).toBe(2);
+});
+
+/** Five children-side clients each ask for 300 under their own key at the same moment. */
+async function fiveDifferentKeys(childIndex: number): Promise<{ status: string }[]> {
+  const child = childAt(childIndex);
+  const clients = await many(5, () => childClient(childIndex));
+  return Promise.all(
+    clients.map((c) =>
+      rpc<{ status: string }>(c, "create_withdrawal", {
+        p_child_id: child,
+        p_amount_minor: 300,
+        p_reason: "",
+        p_idempotency_key: randomUUID(),
+      }),
+    ),
+  );
+}
+
+test("five parallel 300 asks with different keys against 1000 Save: 3 wait, 2 are over_available", async () => {
+  const child = childAt(6);
+  await fund(child, 0, 1000);
+  const results = await fiveDifferentKeys(6);
+  expect(tally(results.map((r) => r.status))).toEqual({ pending: 3, over_available: 2 });
+  const parent = await parentClient();
+  expect(await rpc<number>(parent, "reserved_save", { p_child_id: child })).toBe(900);
+});
+
+test("with a week cap of 800, five parallel 300 asks: 2 wait, the rest are over_cap", async () => {
+  const child = childAt(7);
+  await fund(child, 0, 1000);
+  const parent = await parentClient();
+  await rpc(parent, "set_money_rule", {
+    p_child_id: child,
+    p_kind: "withdrawal_cap",
+    p_period: "week",
+    p_amount_minor: 800,
+  });
+  const results = await fiveDifferentKeys(7);
+  expect(tally(results.map((r) => r.status))).toEqual({ pending: 2, over_cap: 3 });
+  expect(await rpc<number>(parent, "reserved_save", { p_child_id: child })).toBe(600);
 });
