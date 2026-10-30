@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Extract clean conversation logs from Claude Code sessions."""
 
-import hashlib
 import json
 import os
 import re
@@ -65,34 +64,30 @@ REDACTIONS: List[Tuple[re.Pattern, str]] = [
 ]
 
 
-# Words about the owner's other, unrelated work (another GitHub account, its project and org)
-# that must never appear in these public logs. Listed as SHA-256 hashes of the lowercased word,
-# so this public file doesn't publish them either.
-PRIVATE_WORD_HASHES = frozenset({
-    '3c445edd84220394cd07506b0ea5e752e23a723985caf05c3bd8a278e38de725',
-    'aa86630126540c476d6321daf59eed7125d3ba0c5f7828216466bc574c5c9c7b',
-    '1a1ba90ebfaa6411260215cc0cc80965e5dff04123b9e0bb08ca69021f6abf71',
-    '11a9b96cd510f769423ace96f0033a45883e6c4f330897272ec49f260f352ed9',
-    '0b150a7a30cd2edf67255b9a68622cdf7d6e21823e227605234733fa5c8f5132',
-    'd1ea181e89e007ac9a4ca6d7fe6ba1c4baefdef0527f9faea702d4dc851c1b5a',
-})
-_WORD = re.compile(r'[A-Za-z0-9][A-Za-z0-9\-]*')
+# Words that must never appear in these public logs (the owner's unrelated accounts and
+# projects). They live in a gitignored file next to this hook, one per line, so the public repo
+# never lists them, not even as hashes. Matched case-insensitively anywhere, including inside
+# longer identifiers ("<word>App", "<word>-dev").
+PRIVATE_WORDS_FILE = Path(__file__).with_name('private-words.local')
 
 
-def _is_private(word: str) -> bool:
-    return hashlib.sha256(word.lower().encode()).hexdigest() in PRIVATE_WORD_HASHES
+def _private_words_pattern() -> Optional[re.Pattern]:
+    try:
+        lines = PRIVATE_WORDS_FILE.read_text(encoding='utf-8').splitlines()
+    except OSError:
+        return None
+    words = sorted({line.strip() for line in lines if line.strip() and not line.startswith('#')},
+                   key=len, reverse=True)
+    if not words:
+        return None
+    return re.compile('|'.join(re.escape(word) for word in words), re.IGNORECASE)
+
+
+_PRIVATE_WORDS = _private_words_pattern()
 
 
 def _redact_private_words(text: str) -> str:
-    def swap(match: re.Match) -> str:
-        word = match.group(0)
-        if _is_private(word):
-            return '[private]'
-        # A hyphenated compound ("x-adjacent") hides a private part.
-        if '-' in word:
-            return '-'.join('[private]' if _is_private(part) else part for part in word.split('-'))
-        return word
-    return _WORD.sub(swap, text)
+    return _PRIVATE_WORDS.sub('[private]', text) if _PRIVATE_WORDS else text
 
 
 def redact(text: str) -> str:

@@ -47,7 +47,7 @@ Consent version 2 (`guide_access.consent_version`); look-ups only after the inpu
 
 ## 7. Evals
 
-`evals/guide` runs every case through the real pipeline with a fixture child (`fixture-tools.ts`: Spend £12.40, Save £64, £10 a week, a planted instruction in one purchase label). 21 new cases: 14 data cases graded on the look-ups made and the figures shown, 4 scope cases (a sibling's money, a present, a parent's money, moving money), 3 judgement cases. Gate adds: every data case right.
+`evals/guide` runs every case through the real pipeline with a fixture child (`fixture-tools.ts`: Spend £12.40, Save £64, £10 a week, a planted instruction in one purchase label). 22 new cases: 15 data cases (one compares two weeks) graded on the look-ups made and the figures shown, 4 scope cases (a sibling's money, a present, a parent's money, moving money), 3 judgement cases. Gate adds: every data case right.
 
 ## 8. Next (roadmap slice 8)
 
