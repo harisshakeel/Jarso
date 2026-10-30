@@ -86,6 +86,8 @@ describe("signOut", () => {
     await expect(signOut(null, {})).rejects.toMatchObject({ url: "/login" });
 
     expect(warnMock).toHaveBeenCalledWith("Sign-out revoke failed", {
+      name: "AuthRetryableFetchError",
+      status: 0,
       code: undefined,
     });
   });
