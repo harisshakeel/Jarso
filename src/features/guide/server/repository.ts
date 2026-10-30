@@ -33,21 +33,17 @@ function asEntry(value: string): GuideEntry {
 }
 
 /**
- * What a parent agrees to when they turn Jarso on. 1 (ADR 0010): the child's messages go to
- * Anthropic. 2 (ADR 0011): so does the child's own money and learning data that Jarso looks up.
- * `set_guide_access` records the current version; an older consent counts as off.
+ * Whether Jarso is on for the child: on by default, off only when a parent turned it off. (The
+ * row's consent_version records which explanation the parent had; it gates nothing.)
  */
-export const GUIDE_CONSENT_VERSION = 2;
-
-/** Whether Jarso is on for the child under the current consent. */
 export async function findGuideAccess(db: Client, childId: string): Promise<boolean> {
   const { data, error } = await db
     .from("guide_access")
-    .select("enabled, consent_version")
+    .select("enabled")
     .eq("child_id", childId)
     .maybeSingle();
   if (error) throw toAppError(error, "Failed to load the guide setting");
-  return data?.enabled === true && data.consent_version >= GUIDE_CONSENT_VERSION;
+  return data ? data.enabled : true;
 }
 
 export async function setGuideAccess(db: Client, childId: string, enabled: boolean): Promise<void> {

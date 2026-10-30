@@ -84,8 +84,12 @@ select throws_ok(format($$ select public.set_guide_access(%L, true) $$, :'c'), '
 set local role service_role;
 select public.guide_start_conversation(:'c'::uuid, 'home', 'home') as convo \gset
 select ok(:'convo' is not null, 'the server opens a chat for a child whose guide is on');
-select throws_ok(format($$ select public.guide_start_conversation(%L, 'home', 'home') $$, :'c2'), 'JA403', null,
-  'no chat for a child whose guide is off');
+select lives_ok(format($$ select public.guide_start_conversation(%L, 'home', 'home') $$, :'cb'),
+  'on by default: a chat opens for a child whose parent never touched the switch (ADR 0011)');
+-- Keep the read checks below about one family's chat.
+reset role;
+delete from public.guide_conversations where child_id = :'cb'::uuid;
+set local role service_role;
 select throws_ok(format($$ select public.guide_start_conversation(%L, 'home', 'home') $$, :'pa'), 'JA403', null,
   'no chat for a parent');
 select throws_ok(format($$ select public.guide_start_conversation(%L, 'home', 'Free Text!') $$, :'c'), '23514', null,
@@ -277,15 +281,16 @@ select ok(
   'each run is recorded');
 
 -- ---------------------------------------------------------------------------
--- Consent version 2 (ADR 0011): a switch turned on under the older consent counts as off
+-- Consent version 2 (ADR 0011): on by default, so an older consent still counts as on; turning
+-- it on again records the newer explanation
 -- ---------------------------------------------------------------------------
 
 select tests.clear_auth();
 insert into public.guide_access (child_id, family_id, enabled, consent_version)
 values (:'c2'::uuid, :'fa'::uuid, true, 1);
 set local role service_role;
-select throws_ok(format($$ select public.guide_start_conversation(%L, 'home', 'home') $$, :'c2'), 'JA403', null,
-  'no chat under the older consent');
+select lives_ok(format($$ select public.guide_start_conversation(%L, 'home', 'home') $$, :'c2'),
+  'a switch turned on under the older consent still counts as on');
 reset role;
 select tests.authenticate_as(:'pa'::uuid);
 select public.set_guide_access(:'c2'::uuid, true);
@@ -295,14 +300,14 @@ select is(
   (select count(*)::int from public.audit_log
    where action = 'guide.access_changed' and subject_id = :'c2'::uuid and details ->> 'consent_version' = '2'),
   1, 'and audits it, though it was already on');
-set local role service_role;
-select lives_ok(format($$ select public.guide_start_conversation(%L, 'home', 'home') $$, :'c2'),
-  'then chats open again');
-reset role;
 select tests.authenticate_as(:'pa'::uuid);
 select public.set_guide_access(:'c2'::uuid, false);
 select is((select enabled::text || '/' || consent_version from public.guide_access where child_id = :'c2'::uuid),
   'false/2', 'turning it off keeps the last consent on record');
+set local role service_role;
+select throws_ok(format($$ select public.guide_start_conversation(%L, 'home', 'home') $$, :'c2'), 'JA403', null,
+  'and no chat opens once a parent turns it off');
+reset role;
 
 -- ---------------------------------------------------------------------------
 -- Removing a child deletes their guide chats and switch

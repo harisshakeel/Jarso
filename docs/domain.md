@@ -41,7 +41,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Practice | One-minute spaced review: one question per due skill from the review pool, in a new situation, at most five per set. Boxes of 1, 3, 7 and 14 days. |
 | Skill level | Per skill: Started (seen in a mission), Practised (right in a mission), Got it (right without hints in a review). Learning progress, never shown next to money. |
 | Notification | Inbox item (+ optional web push) pointing at a record: due reminder, limit notice, request, decision. Never authoritative. |
-| Guide | AI money helper (Claude) with strict topic and safety boundaries (ADR 0010). Off for each child until a parent turns it on; parents can read every chat. |
+| Guide | AI money helper (Claude) with strict topic and safety boundaries (ADR 0010). On for each child by default; a parent can turn it off at any time and can read every chat. |
 
 ## Planned feature modules
 

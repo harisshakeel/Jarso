@@ -29,7 +29,7 @@ FR02–FR06, FR08, FR10–FR12, emergency funds (FR15), web push and app install
 
 ### Later versions
 
-- AI money guide and its boundaries (FR07, FR09): **moved into the pilot** behind the `FEATURE_GUIDE` flag and a per-child parent switch, off by default (ADR 0010). It is switched on for real families only after the eval gate and a legal review.
+- AI money guide and its boundaries (FR07, FR09): **moved into the pilot** behind the `FEATURE_GUIDE` flag and a per-child parent switch. The switch is on by default and a parent can turn it off at any time (product owner, 2026-10-31; ADR 0011); parents are told on the add-child form. The deployment flag is switched on for real families only after the eval gate and a legal review, which must confirm the default-on consent.
 - Practice money with the learning section (FR05/FR06). Practice money stays separate from recorded money.
 - Native mobile apps.
 - Real payments, bank connections, live fund tracking, investments, and investment-return projections.

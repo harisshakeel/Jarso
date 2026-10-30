@@ -55,14 +55,14 @@ export const landingCopy = {
   },
   guide: {
     title: ["Ask Jarso.", "It checks your jars, then answers."],
-    note: "Off until you turn it on. You can read every chat, and see what it looked at.",
+    note: "You can turn it off anytime. You can read every chat, and see what it looked at.",
     link: "How Jarso's AI stays safe",
   },
   family: { title: ["Kids plan.", "Parents stay in charge."] },
   safety: {
     lead: "No cards. No bank details. No ads.",
     rest: "The cash stays with you, and you can see every jar, purchase and chat.",
-    chips: ["No real payments", "AI off by default", "Ages 11 to 14"],
+    chips: ["No real payments", "AI you can switch off", "Ages 11 to 14"],
   },
   turn: {
     title: ["Your turn.", "Start with this week's pocket money."],

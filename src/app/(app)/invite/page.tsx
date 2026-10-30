@@ -13,6 +13,8 @@ import {
   listMyInvitations,
   requireRole,
 } from "@/features/family/server";
+import { JarsoNotice } from "@/features/guide";
+import { isGuideConfigured } from "@/features/guide/server";
 import { isParentProfileComplete } from "@/features/profiles/server";
 import { isAppError } from "@/lib";
 
@@ -90,7 +92,9 @@ async function InviteContent({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <Card className="rise-in shadow-raised">
-      <CardContent>
+      <CardContent className="grid gap-6">
+        {/* Jarso is on by default (ADR 0011): the parent is told before approving the child. */}
+        {isGuideConfigured() ? <JarsoNotice /> : null}
         <AcceptInvitationForm invite={invite} nickname={invitation.nickname} />
       </CardContent>
     </Card>
@@ -103,7 +107,8 @@ async function ListedInvitation({ id }: { id: string }) {
   if (!invitation) return <Gone />;
   return (
     <Card className="rise-in shadow-raised">
-      <CardContent>
+      <CardContent className="grid gap-6">
+        {isGuideConfigured() ? <JarsoNotice /> : null}
         <AcceptInvitationForm invitationId={invitation.id} nickname={invitation.nickname} />
       </CardContent>
     </Card>

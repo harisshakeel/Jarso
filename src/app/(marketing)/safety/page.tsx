@@ -26,10 +26,10 @@ const sections: { heading: string; body: string[] }[] = [
     ],
   },
   {
-    heading: "Off until a parent turns it on",
+    heading: "On by default, and a parent can turn it off",
     body: [
-      "Jarso's AI is off for every child. A parent turns it on for each child from that child's page. Turning it on is the parent's consent for the child's messages, and the child's own money and learning details it looks up to answer them, to be sent to Anthropic to get answers.",
-      "A parent can turn it off at any time. The child is told, before their first message, that their parent can see their chats.",
+      "Jarso's AI is on for each child unless their parent turns it off. When a parent adds a child, the form says so and explains that the child's messages, and the child's own money and learning details Jarso looks up to answer them, are sent to Anthropic to get answers.",
+      "A parent can turn it off at any time from the child's page, and back on again. The child is told, before their first message, that their parent can see their chats.",
     ],
   },
   {

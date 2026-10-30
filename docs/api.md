@@ -81,7 +81,7 @@ Every refusal message is shown to the child, so it never carries Zod details. `m
 
 ### `POST /api/v1/guide/turns`
 
-Called by the Ask Jarso window on the child's Home (`src/features/guide/send-turn.ts`), the one Route Handler our own UI calls for a reason other than the outbox: a Server Action can't stream status lines (ADR 0011). Body: `askGuideSchema` (`clientMessageId`, `conversationId`, `context`, `text`). Every check (child role, the deployment flag and the parent's switch under the current consent, a re-sent question, the context key, the chat, the rate limits) runs first and fails with the usual JSON error envelope and status. After that the response is `200 application/x-ndjson`, one JSON object per line:
+Called by the Ask Jarso window on the child's Home (`src/features/guide/send-turn.ts`), the one Route Handler our own UI calls for a reason other than the outbox: a Server Action can't stream status lines (ADR 0011). Body: `askGuideSchema` (`clientMessageId`, `conversationId`, `context`, `text`). Every check (child role, the deployment flag and the parent's switch, on unless a parent turned it off, a re-sent question, the context key, the chat, the rate limits) runs first and fails with the usual JSON error envelope and status. After that the response is `200 application/x-ndjson`, one JSON object per line:
 
 - `{ "type": "status", "text": "Looking at your jars…" }` — one per look-up, fixed copy from `guideCopy.status`;
 - then `{ "type": "reply", "data": AskGuideResult }` (the screened reply, in one piece), or `{ "type": "error", "error": { "code", "message" } }`.
