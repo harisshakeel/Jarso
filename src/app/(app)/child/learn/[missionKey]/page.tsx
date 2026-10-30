@@ -11,6 +11,9 @@ import { MissionPlayer, topicTitles } from "@/features/learning";
 import { findMission, getMissionSession, missionTopicKey } from "@/features/learning/server";
 import { isAppError } from "@/lib";
 
+// The guide action runs on this page: allow a full guide turn (45 s) plus saving it.
+export const maxDuration = 60;
+
 export const metadata: Metadata = { title: "Mission" };
 
 async function MissionContent({ params }: { params: Promise<{ missionKey: string }> }) {

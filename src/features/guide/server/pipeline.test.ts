@@ -212,26 +212,30 @@ describe("runGuidePipeline", () => {
     expect(signals.every((signal) => signal?.aborted)).toBe(true);
   });
 
-  it("passes one deadline signal to the output screen too", async () => {
-    let screenSignal: AbortSignal | undefined;
-    let replySignal: AbortSignal | undefined;
+  it("passes the same deadline signal to every provider call", async () => {
+    const signals: Record<string, AbortSignal | undefined> = {};
     const base = createFakeProvider();
     await runGuidePipeline(
       { text: "What is saving?", history: [], context },
       provider({
+        screenInput: async (args) => {
+          signals.input = args.signal;
+          return base.screenInput(args);
+        },
         reply: async (args) => {
-          replySignal = args.signal;
+          signals.reply = args.signal;
           return base.reply(args);
         },
         screenOutput: async (args) => {
-          screenSignal = args.signal;
+          signals.output = args.signal;
           expect(args.signal?.aborted).toBe(false);
           return base.screenOutput(args);
         },
       }),
     );
-    expect(screenSignal).toBeDefined();
-    expect(replySignal).toBeDefined();
+    expect(signals.input).toBeDefined();
+    expect(signals.reply).toBe(signals.input);
+    expect(signals.output).toBe(signals.input);
   });
 
   it("blocks an overlong reply", async () => {

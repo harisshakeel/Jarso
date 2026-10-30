@@ -10,6 +10,9 @@ import { getGuideState } from "@/features/guide/server";
 import { MissionPlayer } from "@/features/learning";
 import { getPracticeSet } from "@/features/learning/server";
 
+// The guide action runs on this page: allow a full guide turn (45 s) plus saving it.
+export const maxDuration = 60;
+
 export const metadata: Metadata = { title: "Practice" };
 
 async function PracticeContent() {

@@ -114,7 +114,15 @@ export async function runGuidePipeline(
   // when the screen routes the message elsewhere, so a safety reply never waits for it.
   // Every provider call shares one signal: the turn deadline, or the cancel below.
   const controller = new AbortController();
-  const signal = AbortSignal.any([AbortSignal.timeout(deadlineMs), controller.signal]);
+  const deadline = AbortSignal.timeout(deadlineMs);
+  const signal = AbortSignal.any([deadline, controller.signal]);
+  let deadlineLogged = false;
+  // Tells a deadline hit from the internal cancel; once per turn, never any message text.
+  const noteDeadline = () => {
+    if (!deadline.aborted || deadlineLogged) return;
+    deadlineLogged = true;
+    logger.warn("Guide turn hit its deadline", { deadlineMs });
+  };
   const main: Promise<{ ok: true; value: MainResult } | { ok: false; error: unknown }> = provider
     .reply({ text: childText, history, context: input.context, signal })
     .then(
@@ -129,6 +137,7 @@ export async function runGuidePipeline(
     route = screen.route;
   } catch (error) {
     controller.abort();
+    noteDeadline();
     logger.warn("Guide input screen failed", { error: errorName(error) });
     return fallbackResult(input.text, { usage, model, latencyMs: now() - started }, true);
   }
@@ -141,6 +150,7 @@ export async function runGuidePipeline(
 
   const answer = await main;
   if (!answer.ok) {
+    noteDeadline();
     logger.warn("Guide main call failed", { error: errorName(answer.error) });
     return fixed("unavailable", base(), true);
   }
@@ -168,6 +178,7 @@ export async function runGuidePipeline(
       signal,
     });
   } catch (error) {
+    noteDeadline();
     logger.warn("Guide output screen failed", { error: errorName(error) });
     return fixed("unavailable", base(), true);
   }
