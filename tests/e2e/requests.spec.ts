@@ -122,6 +122,11 @@ test("child takes out 500, parent approves and confirms the handover", async () 
   await handover.getByRole("button", { name: "Confirm" }).click();
   await expect(handover).toHaveCount(0);
 
+  await parent.goto("/parent/inbox");
+  await expect(parent.getByText("Sam asked to take money out of Save").first()).toBeVisible();
+  await child.goto("/child/inbox");
+  await expect(child.getByText("Your parent said yes").first()).toBeVisible();
+
   await child.goto("/child");
   await expect(saveJar()).toContainText("US$1,500");
   await expect(spendJar()).toContainText("US$1,500");
