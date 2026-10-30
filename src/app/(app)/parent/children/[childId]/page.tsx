@@ -13,6 +13,8 @@ import { LearningSummaryCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { Jars, RecentHistory } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
+import { ParentRequestItems } from "@/features/requests";
+import { listRequestsNeedingParent } from "@/features/requests/server";
 import { logger } from "@/lib";
 import { loadChild } from "./load-child";
 import { FormSkeleton, PageShell } from "./page-shell";
@@ -37,6 +39,9 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <div className="grid gap-6">
           <Jars jars={jars} currency={currency} showMinor="always" />
+          <Suspense fallback={null}>
+            <ChildRequests childId={childId} nickname={child.nickname} currency={currency} />
+          </Suspense>
           <DueList childId={childId} items={due} currency={currency} />
           <ParentAllowanceCard childId={childId} schedule={schedule} currency={currency} />
           <Link
@@ -67,6 +72,25 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
         </Suspense>
       </div>
     </PageShell>
+  );
+}
+
+/** Take-outs and put-ins waiting on a parent, next to what is due. */
+async function ChildRequests({
+  childId,
+  nickname,
+  currency,
+}: {
+  childId: string;
+  nickname: string;
+  currency: string;
+}) {
+  const requests = await listRequestsNeedingParent(childId);
+  return (
+    <ParentRequestItems
+      items={requests.map((request) => ({ nickname, request }))}
+      currency={currency}
+    />
   );
 }
 

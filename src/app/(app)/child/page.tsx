@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
@@ -13,6 +14,9 @@ import { NextStepCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { HistoryList, Jars } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
+import { RequestActions } from "@/features/requests";
+import { getAvailability } from "@/features/requests/server";
+import { getChildRules } from "@/features/rules/server";
 import { logger } from "@/lib";
 
 // The guide action runs on this page: allow a full guide turn (45 s) plus saving it.
@@ -23,13 +27,15 @@ export const metadata: Metadata = { title: "Home" };
 /** requireRole sends signed-out users to the PIN sign-in and parents to their own home. */
 async function ChildHome() {
   const { user } = await requireRole("child", routes.child);
-  const [nickname, family, jars, history, schedule, due] = await Promise.all([
+  const [nickname, family, jars, history, schedule, due, availability, rules] = await Promise.all([
     getChildNickname(),
     getFamilyContext(),
     getJars(user.id),
     getHistory(user.id),
     getSchedule(user.id),
     listDueForChild(user.id),
+    getAvailability(user.id),
+    getChildRules(user.id),
   ]);
   return (
     <>
@@ -41,6 +47,13 @@ async function ChildHome() {
         <HomeGuide childId={user.id} />
       </Suspense>
       <Jars jars={jars} currency={family.currency} />
+      <RequestActions availability={availability} currency={family.currency} rules={rules.rules} />
+      <Link
+        href={routes.childRequests}
+        className="-mt-3 inline-flex min-h-11 w-fit items-center rounded-full px-2 font-semibold text-primary text-sm underline-offset-4 hover:underline"
+      >
+        See your Save requests
+      </Link>
       <ChildAllowanceCard
         schedule={schedule}
         dueTotalMinor={due.totalMinor}

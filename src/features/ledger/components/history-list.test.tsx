@@ -38,3 +38,21 @@ describe("HistoryList purchases", () => {
     expect(screen.getByText("−£3.00")).toHaveClass("line-through");
   });
 });
+
+describe("HistoryList jar moves", () => {
+  const move = (kind: "withdrawal" | "deposit"): HistoryItem =>
+    purchase({ id: "m1", kind, label: "New bike", canUndo: false, entryId: null });
+
+  it("shows a take-out as a move from Save to Spend, not as money in", () => {
+    render(<HistoryList items={[move("withdrawal")]} currency="GBP" showMinor="always" />);
+    expect(screen.getByText(/Save → Spend/)).toBeInTheDocument();
+    expect(screen.getByText("£3.00")).toBeInTheDocument();
+    expect(screen.queryByText(/[+−]£3/)).not.toBeInTheDocument();
+  });
+
+  it("shows a put-in as a move from Spend to Save", () => {
+    render(<HistoryList items={[move("deposit")]} currency="GBP" showMinor="always" />);
+    expect(screen.getByText(/Spend → Save/)).toBeInTheDocument();
+    expect(screen.queryByText(/[+−]£3/)).not.toBeInTheDocument();
+  });
+});

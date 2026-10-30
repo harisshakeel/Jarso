@@ -18,6 +18,8 @@ import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 import type { JarBalances } from "@/features/ledger";
 import { getJars } from "@/features/ledger/server";
+import { ParentRequestItems, type SavingsRequest } from "@/features/requests";
+import { listRequestsNeedingParent } from "@/features/requests/server";
 
 export const metadata: Metadata = { title: "Your family" };
 
@@ -28,6 +30,7 @@ type ChildReads = {
   child: ChildSummary;
   due: Promise<DueItem[]>;
   jars: Promise<JarBalances>;
+  requests: Promise<SavingsRequest[]>;
   schedule: Promise<Schedule | null>;
 };
 
@@ -44,6 +47,7 @@ async function ParentHome() {
     child,
     due: listDue(child.id),
     jars: getJars(child.id),
+    requests: listRequestsNeedingParent(child.id),
     schedule: getSchedule(child.id),
   }));
 
@@ -52,6 +56,11 @@ async function ParentHome() {
       <div className="rise-in">
         <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
           <NeedsYouSection reads={reads} currency={family.currency} />
+        </Suspense>
+      </div>
+      <div className="rise-in" style={rise(1)}>
+        <Suspense fallback={null}>
+          <RequestsSection reads={reads} currency={family.currency} />
         </Suspense>
       </div>
       <section aria-labelledby="children-title" className="rise-in grid gap-3" style={rise(1)}>
@@ -96,6 +105,17 @@ async function NeedsYouSection({ reads, currency }: { reads: ChildReads[]; curre
     reads.map(async ({ child, due }) => ({ child, due: await due })),
   );
   return <NeedsYou items={mergeDue(perChild)} currency={currency} />;
+}
+
+/** Take-outs and put-ins waiting on a parent, across the family. */
+async function RequestsSection({ reads, currency }: { reads: ChildReads[]; currency: string }) {
+  const perChild = await Promise.all(
+    reads.map(async ({ child, requests }) => ({ child, requests: await requests })),
+  );
+  const items = perChild.flatMap(({ child, requests }) =>
+    requests.map((request) => ({ nickname: child.nickname, request })),
+  );
+  return <ParentRequestItems items={items} currency={currency} />;
 }
 
 async function ChildCard({ read, currency }: { read: ChildReads; currency: string }) {

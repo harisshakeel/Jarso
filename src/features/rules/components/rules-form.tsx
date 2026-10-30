@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui";
-import type { ChildRules, Period } from "../types";
+import { summarise } from "../describe";
+import type { ChildRules, Period, RuleKind } from "../types";
 import { OverspendSwitch } from "./overspend-switch";
 import { RuleRow } from "./rule-row";
 
@@ -20,7 +21,41 @@ function spendingSummary(rules: ChildRules, nickname: string): string {
     : "No spending limits yet";
 }
 
-/** The Spending section of a child's money rules. */
+/** A few rows of one kind of rule, one per period, under a small heading. */
+function RuleGroup({
+  title,
+  kind,
+  childId,
+  nickname,
+  currency,
+  rules,
+}: {
+  title: string;
+  kind: RuleKind;
+  childId: string;
+  nickname: string;
+  currency: string;
+  rules: ChildRules;
+}) {
+  return (
+    <fieldset className="grid min-w-0 gap-4">
+      <legend className="mb-4 font-bold">{title}</legend>
+      {SPEND_PERIODS.map((period) => (
+        <RuleRow
+          key={period}
+          childId={childId}
+          nickname={nickname}
+          currency={currency}
+          kind={kind}
+          period={period}
+          rule={rules.rules.find((r) => r.kind === kind && r.period === period)}
+        />
+      ))}
+    </fieldset>
+  );
+}
+
+/** The money rules for a child: spending, taking money out of Save, putting money in. */
 export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps) {
   return (
     <Card className="rise-in">
@@ -46,6 +81,43 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
             nickname={nickname}
             allowed={rules.allowNegativeSpend}
           />
+        </section>
+        <section aria-labelledby="take-out-heading" className="grid gap-4">
+          <h2 id="take-out-heading" className="text-h3">
+            Taking money out of Save
+          </h2>
+          <p className="text-ink-2">{summarise(rules.rules, "withdrawal", currency)}</p>
+          <RuleGroup
+            title="Most they can take out"
+            kind="withdrawal_cap"
+            childId={childId}
+            nickname={nickname}
+            currency={currency}
+            rules={rules}
+          />
+          <RuleGroup
+            title="Without asking you"
+            kind="withdrawal_auto_approve"
+            childId={childId}
+            nickname={nickname}
+            currency={currency}
+            rules={rules}
+          />
+        </section>
+        <section aria-labelledby="put-in-heading" className="grid gap-4">
+          <h2 id="put-in-heading" className="text-h3">
+            Putting money into Save
+          </h2>
+          <p className="text-ink-2">{summarise(rules.rules, "deposit", currency)}</p>
+          <RuleGroup
+            title="Without you confirming"
+            kind="deposit_auto_confirm"
+            childId={childId}
+            nickname={nickname}
+            currency={currency}
+            rules={rules}
+          />
+          <p className="text-ink-2 text-sm">Deposits will count before you get the cash</p>
         </section>
       </CardContent>
     </Card>

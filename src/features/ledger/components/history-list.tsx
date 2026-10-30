@@ -17,6 +17,12 @@ type HistoryListProps = {
   renderAction?: (item: HistoryItem) => ReactNode;
 };
 
+/** A request moves money between jars. It is not income, so no sign and no "in". */
+const MOVE: Record<"withdrawal" | "deposit", string> = {
+  withdrawal: "Save → Spend",
+  deposit: "Spend → Save",
+};
+
 /** `YYYY-MM-DD` as "2 Nov", without shifting the day. */
 function day(isoDate: string): string {
   return new Intl.DateTimeFormat("en-GB", {
@@ -92,6 +98,9 @@ export function HistoryList({
                       )}
                     </span>
                     <span className="text-ink-2 text-sm">
+                      {item.kind === "withdrawal" || item.kind === "deposit"
+                        ? `${MOVE[item.kind]} · `
+                        : null}
                       {day(item.occurredOn)}
                       {item.undone ? " · Undone" : ""}
                     </span>
