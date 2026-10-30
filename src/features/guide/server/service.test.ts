@@ -13,6 +13,7 @@ vi.mock("@/features/family/server", () => ({
 vi.mock("./config", () => ({
   getGuideProvider: vi.fn(),
   guideDailyBudgetCents: vi.fn(() => 1000),
+  guideMonthlyBudgetCents: vi.fn(() => 10000),
   guideProviderName: vi.fn(() => "fake"),
 }));
 vi.mock("./repository", () => ({
@@ -199,6 +200,40 @@ describe("askGuide", () => {
     expect(repo.recordTurn).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ childText: "my email is [removed]" }),
+    );
+  });
+
+  it("pauses once the monthly budget is spent, even with today's budget left", async () => {
+    const provider = { ...createFakeProvider(), name: "anthropic" as const, reply: vi.fn() };
+    vi.mocked(config.getGuideProvider).mockReturnValue(provider);
+    const opusOutput = (tokens: number) => [
+      {
+        model: "claude-opus-5-5",
+        usage: {
+          mainInput: 0,
+          mainOutput: tokens,
+          mainCacheRead: 0,
+          mainCacheWrite: 0,
+          screenInput: 0,
+          screenOutput: 0,
+        },
+      },
+    ];
+    // Today: US$2 of US$10. This month: US$120 of US$100.
+    vi.mocked(repo.usageSince)
+      .mockResolvedValueOnce(opusOutput(100_000))
+      .mockResolvedValueOnce(opusOutput(6_000_000));
+    const result = await service.askGuide({
+      clientMessageId,
+      conversationId: null,
+      context: home,
+      text: "hi",
+    });
+    expect(result.reply.route).toBe("unavailable");
+    expect(provider.reply).not.toHaveBeenCalled();
+    expect(repo.usageSince).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.stringMatching(/^\d{4}-\d{2}-01T00:00:00Z$/),
     );
   });
 

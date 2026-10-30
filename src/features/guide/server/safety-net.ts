@@ -1,7 +1,7 @@
 import "server-only";
 
 /**
- * A keyword net for when the screens can't run (the daily budget is spent, the circuit breaker
+ * A keyword net for when the screens can't run (a budget is spent, the circuit breaker
  * is open, or Claude is down). It errs toward support: a match gets the safety reply with
  * helplines and a flag instead of "the guide is taking a break". The Haiku input screen remains
  * the real classifier; this only covers the gaps.
