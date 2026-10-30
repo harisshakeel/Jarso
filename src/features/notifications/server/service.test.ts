@@ -27,16 +27,24 @@ const notice = (i: number) => ({
 beforeEach(() => vi.clearAllMocks());
 
 describe("listNotices", () => {
-  it("returns nextBefore when a full page comes back", async () => {
-    const rows = Array.from({ length: 20 }, (_, i) => notice(i));
+  it("returns nextBefore when there is a row beyond the page", async () => {
+    const rows = Array.from({ length: 21 }, (_, i) => notice(i));
     vi.mocked(repo.listNoticeRows).mockResolvedValue(rows);
     const page = await listNotices();
     expect(page.items).toHaveLength(20);
     expect(page.nextBefore).toBe(`${rows[19]?.createdAt}|n19`);
   });
 
+  it("returns no cursor when the last page is exactly full", async () => {
+    const rows = Array.from({ length: 20 }, (_, i) => notice(i));
+    vi.mocked(repo.listNoticeRows).mockResolvedValue(rows);
+    const page = await listNotices();
+    expect(page.items).toHaveLength(20);
+    expect(page.nextBefore).toBeNull();
+  });
+
   it("cursor carries the id so a same-timestamp group is not skipped", async () => {
-    const rows = Array.from({ length: 20 }, (_, i) => ({
+    const rows = Array.from({ length: 21 }, (_, i) => ({
       ...notice(i),
       createdAt: "2026-10-30T09:00:00Z",
     }));
@@ -50,10 +58,10 @@ describe("listNotices", () => {
     await expect(listNotices()).resolves.toEqual({ items: [notice(0)], nextBefore: null });
   });
 
-  it("passes limit and cursor to the repository", async () => {
+  it("asks the repository for one row more than the page, to know if another page exists", async () => {
     vi.mocked(repo.listNoticeRows).mockResolvedValue([]);
     await listNotices(20, "2026-10-30T00:00:00Z");
-    expect(repo.listNoticeRows).toHaveBeenCalledWith({ kind: "user" }, 20, "2026-10-30T00:00:00Z");
+    expect(repo.listNoticeRows).toHaveBeenCalledWith({ kind: "user" }, 21, "2026-10-30T00:00:00Z");
   });
 });
 
