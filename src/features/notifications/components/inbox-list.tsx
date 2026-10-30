@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { type MouseEvent, useTransition } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui";
+import { runOnline } from "@/features/offline";
 import { logger } from "@/lib";
 import { noticeHref, noticeText } from "../links";
 import { markNoticesReadAction } from "../server/actions";
@@ -47,7 +48,7 @@ export function InboxList({ items, currency, viewer, moreHref }: InboxListProps)
 
   function markAll() {
     startTransition(async () => {
-      const result = await markNoticesReadAction(null, { ids: null });
+      const result = await runOnline(() => markNoticesReadAction(null, { ids: null }));
       if (!result.ok) toast.error(result.error.message);
     });
   }

@@ -6,7 +6,12 @@ import { InboxList } from "./inbox-list";
 const push = vi.fn();
 const refresh = vi.fn();
 const mark = vi.hoisted(() => vi.fn());
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
+const toastError = vi.hoisted(() => vi.fn());
+vi.mock("sonner", () => ({ toast: { error: toastError } }));
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  useRouter: () => ({ push, refresh }),
+}));
 vi.mock("../server/actions", () => ({ markNoticesReadAction: mark }));
 
 const notice: Notice = {
@@ -59,5 +64,13 @@ describe("InboxList", () => {
     expect(push).toHaveBeenCalledWith("/child");
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("shows a calm message when Mark all as read cannot reach the server", async () => {
+    mark.mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<InboxList items={[notice]} currency="USD" viewer="child" />);
+    fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
+    await waitFor(() => expect(toastError).toHaveBeenCalled());
+    expect(toastError.mock.calls[0]?.[0]).toMatch(/offline/i);
   });
 });
