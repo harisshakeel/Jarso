@@ -8,6 +8,8 @@ import { ChildAllowanceCard, runningSchedule } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
 import { PendingPurchases, PurchaseSheet, UndoButton } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
+import { GoalCard } from "@/features/goals";
+import { getGoalView } from "@/features/goals/server";
 import { AskJarso, guideCopy } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
 import { NextStepCard } from "@/features/learning";
@@ -44,6 +46,13 @@ async function ChildHome() {
       <Jars jars={jars} currency={family.currency} />
       <Suspense fallback={<div aria-hidden className="shimmer h-16 rounded-xl bg-muted" />}>
         <HomeRequestActions childId={user.id} currency={family.currency} />
+      </Suspense>
+      <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
+        <HomeGoal
+          childId={user.id}
+          currency={family.currency}
+          allowanceMinor={runningSchedule(schedule)?.amountMinor ?? null}
+        />
       </Suspense>
       <Link
         href={routes.childRequests}
@@ -100,6 +109,40 @@ async function HomeRequestActions({ childId, currency }: { childId: string; curr
   } catch (error) {
     unstable_rethrow(error);
     logger.warn("Request actions unavailable on child home", { error: errorName(error) });
+    return null;
+  }
+}
+
+/**
+ * The child's goal (FR02) streams on its own and hides itself if it can't load, so a goal error
+ * never takes the child's money view down with it.
+ */
+async function HomeGoal({
+  childId,
+  currency,
+  allowanceMinor,
+}: {
+  childId: string;
+  currency: string;
+  allowanceMinor: number | null;
+}) {
+  try {
+    const [view, availability] = await Promise.all([
+      getGoalView(childId),
+      getAvailability(childId),
+    ]);
+    return (
+      <GoalCard
+        view={view}
+        currency={currency}
+        allowanceMinor={allowanceMinor}
+        saveMinor={availability.saveMinor}
+        reservedMinor={availability.reservedSaveMinor}
+      />
+    );
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Goal unavailable on child home", { error: errorName(error) });
     return null;
   }
 }

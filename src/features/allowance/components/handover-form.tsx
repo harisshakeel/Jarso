@@ -42,6 +42,8 @@ type HandoverFormProps = {
   prefill: Split;
   /** True when an earlier handover set the split, so the hint can say "as last time". */
   hasPrevious?: boolean;
+  /** The child's own goal plan, shown as a note; it never changes the prefill. */
+  goalNote?: string | null;
 };
 
 const MONEY_ERROR = "Enter an amount like 5 or 5.50.";
@@ -58,6 +60,7 @@ export function HandoverForm({
   note,
   prefill,
   hasPrevious = false,
+  goalNote = null,
 }: HandoverFormProps) {
   const router = useRouter();
   const isAllowance = kind === "allowance";
@@ -189,6 +192,7 @@ export function HandoverForm({
               ? "Same split as last time. Drag or type to change."
               : "Drag or type to change."}
           </p>
+          {goalNote ? <p className="text-ink-2 text-sm">{goalNote}</p> : null}
           <FieldError errors={totalError ? [totalError] : undefined} />
           {short > 0 ? (
             <p role="status" className="text-ink-2 text-sm">

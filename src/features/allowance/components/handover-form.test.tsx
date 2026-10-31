@@ -32,6 +32,27 @@ function renderForm(kind: "allowance" | "gift" = "allowance") {
 }
 
 describe("HandoverForm", () => {
+  it("shows the child's goal plan as a note and keeps the prefill", () => {
+    render(
+      <HandoverForm
+        kind="allowance"
+        id="occ-1"
+        childId="child-1"
+        nickname="Sam"
+        currency="GBP"
+        amountMinor={500}
+        dueOn="2026-11-02"
+        note={null}
+        prefill={{ cash: 500, saved: 0 }}
+        goalNote="Sam plans to save £4 each time toward ⚽ Football boots"
+      />,
+    );
+    expect(
+      screen.getByText("Sam plans to save £4 each time toward ⚽ Football boots"),
+    ).toBeInTheDocument();
+    expect((screen.getByLabelText("Save (you keep)") as HTMLInputElement).value).toBe("0.00");
+  });
+
   it("fills Spend with the rest when only Save is typed", () => {
     const { spend, save } = renderForm();
     fireEvent.change(save, { target: { value: "2" } });
