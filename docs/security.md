@@ -18,7 +18,9 @@ The Supabase **project URL** and its project ref are not secrets; they ship to e
 | `SUPABASE_SECRET_KEY` | Host env vars (server only) | `src/lib/supabase/admin.ts` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Host env vars (public) | browser + server clients |
 | `ANTHROPIC_API_KEY` | Vercel env vars (Production, sensitive); GitHub repository secret for the eval workflow | `features/guide/server/claude.ts` only (ADR 0010) |
-| `CRON_SECRET` (future) | Host env vars | cron Route Handlers |
+| `CRON_SECRET` | Vercel env vars (server only); Vercel sends it as the cron request's bearer token | `app/api/cron/push/route.ts` |
+| `VAPID_PRIVATE_KEY` | Vercel env vars (Production, sensitive) | `features/notifications/server/push.ts` only |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Host env vars (public: it is the `applicationServerKey` every browser receives) | the push toggle and the dispatcher |
 | Supabase access token, project DB password | CI repository secrets | migration job |
 | Local copies | `.env.local` (gitignored) | `pnpm dev` |
 

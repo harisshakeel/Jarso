@@ -17,10 +17,12 @@ const recordPractice = vi.fn();
 const recordStep = vi.fn();
 const completeMission = vi.fn();
 const completeCheckIn = vi.fn();
+const pushAfterNotices = vi.fn();
 
 vi.mock("@/features/auth/server", () => ({ assertUser }));
 vi.mock("@/features/allowance/server", () => ({ getFamilyContext }));
 vi.mock("@/features/diary/server", () => ({ recordPurchase }));
+vi.mock("@/features/notifications/server", () => ({ pushAfterNotices }));
 vi.mock("@/features/learning/server", () => ({
   recordPractice,
   recordStep,
@@ -72,6 +74,7 @@ describe("POST /api/v1/outbox", () => {
       idempotencyKey: uuid,
       occurredAt: ago(5 * MINUTE),
     });
+    expect(pushAfterNotices).toHaveBeenCalledTimes(1);
   });
 
   it("ignores a client occurredAt, so a clock 1 h fast records at the server's now", async () => {

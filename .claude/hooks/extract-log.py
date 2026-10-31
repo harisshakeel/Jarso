@@ -55,6 +55,10 @@ REDACTIONS: List[Tuple[re.Pattern, str]] = [
         r'|ACCESS_KEY|CLIENT_SECRET|DATABASE_URL|SERVICE_ROLE)[A-Z0-9_]*\s*[=:]\s*["\']?)'
         r'(?!\[REDACTED\])([A-Za-z0-9_\-+/=.:@]{12,})(?<!\.\.\.)(["\']?\s*(?:#.*)?)$'),
      r'\1[REDACTED]\3'),
+    # Web push VAPID private keys have no prefix: match the forms `web-push generate-vapid-keys`
+    # prints ("privateKey": "…" and a bare key on the line after "Private Key:")
+    (re.compile(r'(?i)(private[ _-]?key["\']?\s*[:=]\s*["\']?)(?!\[REDACTED\])[A-Za-z0-9_\-]{40,}'), r'\1[REDACTED]'),
+    (re.compile(r'(?i)(private key:\s*\r?\n\s*)(?!\[REDACTED\])[A-Za-z0-9_\-]{40,}'), r'\1[REDACTED]'),
     # "password": "..." style literals in JSON/YAML/TS
     (re.compile(r'(?i)(["\']?(?:password|passwd|secret|token|api[_-]?key|client[_-]?secret)["\']?\s*[:=]\s*["\'])([^"\']{8,})(["\'])'),
      r'\1[REDACTED]\3'),

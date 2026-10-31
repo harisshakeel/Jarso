@@ -10,7 +10,7 @@ Dates to be set. Tracks run in parallel; an arrow means "after".
 | --- | --- | --- | --- |
 | **Demo 1** (now) | Built | Built | Key in Vercel, guide on for the demo child, Console spend limit |
 | **Demo 2** | Deposits and withdrawals → inbox and reminders, savings goal | Landing page (built, #34 and #35) → gamified child dashboard (after the goal) | Guide eval gate; demo hardening last |
-| **Final demo** | Emergency funds, diary complete, predict before deciding | Weekly review and comeback task, inside the dashboard | Email for notices, web push and app install, pilot readiness |
+| **Final demo** | Emergency funds, diary complete, predict before deciding | Weekly review and comeback task, inside the dashboard | Web push and app install, pilot readiness (email for notices deferred) |
 
 ## At a glance
 
@@ -26,7 +26,7 @@ Dates to be set. Tracks run in parallel; an arrow means "after".
 | FR10 | Learning progress | Built | Skill badges on the dashboard | — |
 | FR12 | Return experience | Next learning step on child Home | Requests and goal in the next step; recognition on the dashboard | Comeback task after missed days |
 | FR07, FR09 | AI money guide (Jarso) and its boundaries | Behind a flag, demo child only | Ask Jarso on Home with look-ups of the child's own data (ADR 0011); goal look-ups and memory; eval gate passed | On for pilot families after legal review |
-| FR16 | Notifications | Notice rows only | Inbox, badge, reminders (in-app only) | Email for notices, web push and app install |
+| FR16 | Notifications | Notice rows only | Inbox, badge, reminders (in-app only) | Web push and app install (built); email for notices deferred |
 | FR02 | Personal savings goal | — | Goal, plan, progress, payments left | — |
 | FR15 | Emergency funds | — | — | Request, decision, handover |
 | FR05 | Predict before deciding | — | — | Predict, reveal, try other choices |
@@ -106,7 +106,7 @@ Three tracks run side by side: Jarso (7, then 3 and 8), money (1, then 2), and d
 | Money | **Predict before deciding.** Built: a guess, the real answer and a what-if slider before take-outs, put-ins and plan changes; the purchase hook waits for the diary. | FR05 | M |
 | Learning | **Weekly review**, as a card on the dashboard. Built (`features/review`): received, spent, saved, still due and goal progress; how one decision changed the plan; a skill shown and one worth practising; a fresh question from the review pool. | FR11 | M |
 | Learning | **Comeback task.** Built: after three days away, Home offers one fresh question before the next mission. | FR12 | S |
-| Platform | **Email, web push and app install** for the inbox events: email for parent notices (Resend, `notification_deliveries`, a dispatcher route and the `/api/cron` fallback), with everything still working when email and push are off. | FR16 | M |
+| Platform | **Web push and app install.** Built (ADR 0012): a per-browser switch on both inboxes, each notice pushed once from its own row after the action or by the daily `/api/cron/push` sweep, a manifest and service worker for install; everything works with the keys unset. Email for notices stays deferred until a sending domain exists. | FR16 | M |
 | Platform | **Pilot readiness**, below. | FR13, FR07 | M |
 
 The three tracks can run in parallel.

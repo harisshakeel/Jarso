@@ -29,6 +29,12 @@ description = "Resend API key (invitation email)"
 regex = '''\bre_[A-Za-z0-9_]{20,}'''
 keywords = ["re_"]
 
+[[rules]]
+id = "vapid-private-key"
+description = "Web push VAPID private key (no prefix: matched by its variable name)"
+regex = '''(?i)private[ _-]?key[A-Z0-9_]*["']?\s*[:=]\s*["']?[A-Za-z0-9_-]{40,}|(?i)private key:\s*\r?\n\s*[A-Za-z0-9_-]{40,}'''
+keywords = ["private_key", "privatekey", "private key", "VAPID_PRIVATE_KEY"]
+
 [[allowlists]]
 description = "Placeholders, fixtures and lockfile hashes"
 paths = ['''\.env\.example$''', '''pnpm-lock\.yaml$''']
