@@ -14,6 +14,8 @@ import {
   isCurrency,
 } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
+import { paymentCopy, SavedCardPanel } from "@/features/payments";
+import { getSavedCard, paymentsEnabled } from "@/features/payments/server";
 import { DisplayNameForm, ParentDetailsForm } from "@/features/profiles";
 import { getParentDetails, getProfile } from "@/features/profiles/server";
 
@@ -29,11 +31,13 @@ type Props = { searchParams: PageProps<"/parent/settings">["searchParams"] };
 async function ParentSettings({ searchParams }: Props) {
   const { user, membership } = await requireRole("parent", routes.parentSettings);
   if (!membership) redirect(routes.parentSetup);
-  const [family, children, profile, details] = await Promise.all([
+  const cardPayments = paymentsEnabled();
+  const [family, children, profile, details, card] = await Promise.all([
     getFamily(),
     listChildren(),
     getProfile(user.id),
     getParentDetails(user.id),
+    cardPayments ? getSavedCard() : null,
   ]);
   if (!family) redirect(routes.parentSetup);
   const { tab } = paramsSchema.parse(await searchParams);
@@ -78,6 +82,12 @@ async function ParentSettings({ searchParams }: Props) {
             submitLabel="Save details"
             successMessage="Details saved"
           />
+        </Section>
+      ) : null}
+
+      {cardPayments ? (
+        <Section index={2} title="Saved card" description={paymentCopy.testMode}>
+          <SavedCardPanel card={card} />
         </Section>
       ) : null}
     </>

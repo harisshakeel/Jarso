@@ -26,6 +26,7 @@ const schedule = {
   nextDueOn: "2026-11-06",
   pausedThrough: null,
   pauseMessage: null,
+  autoCharge: false,
 };
 
 const item = (overrides: Record<string, unknown>) => ({

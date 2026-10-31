@@ -140,6 +140,7 @@ describe("describeAllowanceState", () => {
     nextDueOn: "2026-11-08",
     pausedThrough: null,
     pauseMessage: null,
+    autoCharge: false,
   };
 
   it("reads the next date, pause, stop and none", () => {

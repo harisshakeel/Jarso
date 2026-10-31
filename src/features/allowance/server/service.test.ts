@@ -47,6 +47,7 @@ const gift = {
   giveOn: "2026-10-20",
   note: null,
   status: "pending" as const,
+  autoCharge: false,
 };
 const conflict = () => toAppError({ code: "JA409", message: "Allowance has stopped" }, "x");
 
@@ -436,10 +437,28 @@ describe("getLastSplit", () => {
     vi.mocked(repo.findLatestGiftSplit).mockResolvedValue(null);
     await expect(service.getLastSplit(childId)).resolves.toBeNull();
   });
+
+  it("getLastSplitWith reads with the given client and checks no session", async () => {
+    const admin = { kind: "admin" } as never;
+    vi.mocked(repo.findLatestAllowanceSplit).mockResolvedValue({
+      cash: 300,
+      saved: 200,
+      at: "2026-10-20T10:00:00Z",
+    });
+    vi.mocked(repo.findLatestGiftSplit).mockResolvedValue(null);
+
+    await expect(service.getLastSplitWith(admin, childId)).resolves.toEqual({
+      cash: 300,
+      saved: 200,
+    });
+    expect(repo.findLatestAllowanceSplit).toHaveBeenCalledWith(admin, childId);
+    expect(family.assertParentCanRead).not.toHaveBeenCalled();
+  });
 });
 
 describe("getSchedule", () => {
   it("skips the next date for a stopped schedule", async () => {
+    vi.mocked(family.assertSelfOrParentOf).mockResolvedValue({ id: "parent-1", email: null });
     vi.mocked(repo.findLatestSchedule).mockResolvedValue({
       id: "s-1",
       amountMinor: 500,
@@ -448,6 +467,7 @@ describe("getSchedule", () => {
       anchorOn: "2026-11-01",
       pausedThrough: null,
       pauseMessage: null,
+      autoCharge: false,
     });
 
     await expect(service.getSchedule(childId)).resolves.toMatchObject({
@@ -456,5 +476,22 @@ describe("getSchedule", () => {
     });
     expect(repo.fetchNextDueOn).not.toHaveBeenCalled();
     expect(family.assertSelfOrParentOf).toHaveBeenCalledWith(childId);
+  });
+
+  it("shows auto charge to a parent and never to the child", async () => {
+    vi.mocked(repo.findLatestSchedule).mockResolvedValue({
+      id: "s-1",
+      amountMinor: 500,
+      frequency: "weekly",
+      status: "stopped",
+      anchorOn: "2026-11-01",
+      pausedThrough: null,
+      pauseMessage: null,
+      autoCharge: true,
+    });
+    vi.mocked(family.assertSelfOrParentOf).mockResolvedValue({ id: "parent-1", email: null });
+    await expect(service.getSchedule(childId)).resolves.toMatchObject({ autoCharge: true });
+    vi.mocked(family.assertSelfOrParentOf).mockResolvedValue({ id: childId, email: null });
+    await expect(service.getSchedule(childId)).resolves.toMatchObject({ autoCharge: false });
   });
 });

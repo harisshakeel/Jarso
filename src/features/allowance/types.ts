@@ -15,6 +15,8 @@ export type Schedule = {
   nextDueOn: string | null;
   pausedThrough: string | null;
   pauseMessage: string | null;
+  /** Card auto charge is on for this schedule. Always false for the child. */
+  autoCharge: boolean;
 };
 
 /** Something waiting for the parent to hand over (parents only: it includes gifts). */
@@ -37,6 +39,8 @@ export type Gift = {
   giveOn: string;
   note: string | null;
   status: GiftStatus;
+  /** Card auto charge is on for this gift. */
+  autoCharge: boolean;
 };
 
 /** How a handover was split: cash to Spend, the rest kept as Save. Minor units. */

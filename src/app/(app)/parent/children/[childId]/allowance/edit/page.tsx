@@ -5,6 +5,8 @@ import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { AllowanceForm, runningSchedule } from "@/features/allowance";
 import { getSchedule } from "@/features/allowance/server";
+import { AutoChargeToggle } from "@/features/payments";
+import { getAutoChargeCard } from "@/features/payments/server";
 import { loadChild } from "../../load-child";
 import { FormSkeleton, PageShell } from "../../page-shell";
 
@@ -13,7 +15,8 @@ export const metadata: Metadata = { title: "Change allowance" };
 async function EditContent({ params }: { params: Promise<{ childId: string }> }) {
   const { childId } = await params;
   const { child, currency, today } = await loadChild(childId, routes.parentAllowanceEdit(childId));
-  const schedule = runningSchedule(await getSchedule(childId));
+  const [latest, autoCharge] = await Promise.all([getSchedule(childId), getAutoChargeCard()]);
+  const schedule = runningSchedule(latest);
   const title = `Allowance for ${child.nickname}`;
 
   if (!schedule) {
@@ -33,6 +36,14 @@ async function EditContent({ params }: { params: Promise<{ childId: string }> })
   return (
     <PageShell title={title}>
       <AllowanceForm childId={childId} currency={currency} today={today} initial={schedule} />
+      {autoCharge ? (
+        <AutoChargeToggle
+          target={{ type: "allowance_schedule", id: schedule.id }}
+          on={schedule.autoCharge}
+          cardSaved={autoCharge.cardSaved}
+          unavailable={autoCharge.unavailableReason}
+        />
+      ) : null}
     </PageShell>
   );
 }

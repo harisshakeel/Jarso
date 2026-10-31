@@ -5,6 +5,8 @@ import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { CancelGiftForm, GiftForm } from "@/features/allowance";
 import { listGifts } from "@/features/allowance/server";
+import { AutoChargeToggle } from "@/features/payments";
+import { getAutoChargeCard } from "@/features/payments/server";
 import { loadChild } from "../../../load-child";
 import { FormSkeleton, PageShell } from "../../../page-shell";
 
@@ -20,7 +22,8 @@ async function EditGiftContent({
     childId,
     routes.parentGiftEdit(childId, giftId),
   );
-  const gift = (await listGifts(childId)).find((g) => g.id === giftId);
+  const [gifts, autoCharge] = await Promise.all([listGifts(childId), getAutoChargeCard()]);
+  const gift = gifts.find((g) => g.id === giftId);
   const title = `Gift for ${child.nickname}`;
   const back = { href: routes.parentChild(childId), label: child.nickname };
 
@@ -47,6 +50,15 @@ async function EditGiftContent({
         today={today}
         initial={gift}
       />
+      {autoCharge ? (
+        <AutoChargeToggle
+          target={{ type: "parent_gift", id: gift.id }}
+          on={gift.autoCharge}
+          cardSaved={autoCharge.cardSaved}
+          // Auto charge never back-charges, so a gift whose day has passed can't use it.
+          unavailable={autoCharge.unavailableReason ?? (gift.giveOn < today ? "overdue" : null)}
+        />
+      ) : null}
       <CancelGiftForm childId={childId} giftId={gift.id} nickname={child.nickname} />
     </PageShell>
   );

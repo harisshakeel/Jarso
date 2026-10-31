@@ -29,6 +29,7 @@ export type ScheduleRow = {
   anchorOn: string;
   pausedThrough: string | null;
   pauseMessage: string | null;
+  autoCharge: boolean;
 };
 
 export type GiftRow = Gift & { childId: string };
@@ -60,7 +61,9 @@ function oneOf<const T extends string>(value: string, allowed: readonly T[], fal
 export async function findLatestSchedule(db: Client, childId: string): Promise<ScheduleRow | null> {
   const { data, error } = await db
     .from("allowance_schedules")
-    .select("id, amount_minor, frequency, status, anchor_on, paused_through, pause_message")
+    .select(
+      "id, amount_minor, frequency, status, anchor_on, paused_through, pause_message, auto_charge",
+    )
     .eq("child_id", childId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -75,6 +78,7 @@ export async function findLatestSchedule(db: Client, childId: string): Promise<S
     anchorOn: data.anchor_on,
     pausedThrough: data.paused_through,
     pauseMessage: data.pause_message,
+    autoCharge: data.auto_charge,
   };
 }
 
@@ -127,7 +131,7 @@ export async function findOccurrenceChildId(
 export async function findGift(db: Client, giftId: string): Promise<GiftRow | null> {
   const { data, error } = await db
     .from("parent_gifts")
-    .select("id, child_id, amount_minor, give_on, note, status")
+    .select("id, child_id, amount_minor, give_on, note, status, auto_charge")
     .eq("id", giftId)
     .maybeSingle();
   if (error) throw toAppError(error, "Failed to load gift");
@@ -139,6 +143,7 @@ export async function findGift(db: Client, giftId: string): Promise<GiftRow | nu
     giveOn: data.give_on,
     note: data.note,
     status: asGiftStatus(data.status),
+    autoCharge: data.auto_charge,
   };
 }
 
@@ -146,7 +151,7 @@ export async function findGift(db: Client, giftId: string): Promise<GiftRow | nu
 export async function listPendingGifts(db: Client, childId: string): Promise<Gift[]> {
   const { data, error } = await db
     .from("parent_gifts")
-    .select("id, amount_minor, give_on, note, status")
+    .select("id, amount_minor, give_on, note, status, auto_charge")
     .eq("child_id", childId)
     .eq("status", "pending")
     .order("give_on", { ascending: true })
@@ -158,6 +163,7 @@ export async function listPendingGifts(db: Client, childId: string): Promise<Gif
     giveOn: row.give_on,
     note: row.note,
     status: asGiftStatus(row.status),
+    autoCharge: row.auto_charge,
   }));
 }
 

@@ -51,6 +51,7 @@ const schedule = (status: Schedule["status"]): Schedule => ({
   nextDueOn: null,
   pausedThrough: null,
   pauseMessage: null,
+  autoCharge: false,
 });
 
 describe("runningSchedule", () => {
@@ -72,6 +73,7 @@ describe("upcomingGifts", () => {
     giveOn,
     note: null,
     status: "pending",
+    autoCharge: false,
   });
 
   it("keeps only gifts dated after the family's today (due ones are in the due list)", () => {

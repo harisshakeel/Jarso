@@ -1,4 +1,5 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertUser } from "@/features/auth/server";
 import {
   assertParentCanRead,
@@ -9,6 +10,7 @@ import {
 } from "@/features/family/server";
 import { AppError, familyToday, isAppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/types";
 import type {
   DueItem,
   Frequency,
@@ -114,12 +116,14 @@ async function unlessReached(
 
 /** The child's latest schedule (a stopped one too, so it can say so), or null. Child or parent. */
 export async function getSchedule(childId: string): Promise<Schedule | null> {
-  await assertSelfOrParentOf(childId);
+  const user = await assertSelfOrParentOf(childId);
   const db = await createClient();
   const row = await findLatestSchedule(db, childId);
   if (!row) return null;
   const nextDueOn = row.status === "stopped" ? null : await fetchNextDueOn(db, row.id);
-  return { ...row, nextDueOn };
+  // Payment state is the parent's: the child never sees whether a card pays their allowance.
+  const autoCharge = user.id === childId ? false : row.autoCharge;
+  return { ...row, autoCharge, nextDueOn };
 }
 
 /**
@@ -148,7 +152,17 @@ export async function listGifts(childId: string): Promise<Gift[]> {
 /** The split of the child's most recent handover (allowance or gift), for the prefill. */
 export async function getLastSplit(childId: string): Promise<Split | null> {
   await assertParentCanRead(childId);
-  const db = await createClient();
+  return getLastSplitWith(await createClient(), childId);
+}
+
+/**
+ * The newer of the child's last allowance and last gift split, read with `db`. No auth: the
+ * caller authorises, or passes the admin client from a trusted job (the auto charge).
+ */
+export async function getLastSplitWith(
+  db: SupabaseClient<Database>,
+  childId: string,
+): Promise<Split | null> {
   const [allowance, gift] = await Promise.all([
     findLatestAllowanceSplit(db, childId),
     findLatestGiftSplit(db, childId),

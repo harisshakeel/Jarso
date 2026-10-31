@@ -8,6 +8,13 @@ import { HandoverForm, handoverParamsSchema, prefillSplit } from "@/features/all
 import { getLastSplit, listDue } from "@/features/allowance/server";
 import { planNote } from "@/features/goals";
 import { getGoalView } from "@/features/goals/server";
+import {
+  CardCancelledReturn,
+  CardReturnedBanner,
+  cardReturnParamsSchema,
+  PaymentStatusNote,
+} from "@/features/payments";
+import { getCardPaymentState, paymentsEnabled } from "@/features/payments/server";
 import { logger } from "@/lib";
 import { loadChild } from "../../../load-child";
 import { FormSkeleton, PageShell } from "../../../page-shell";
@@ -16,8 +23,10 @@ export const metadata: Metadata = { title: "Hand over" };
 
 async function HandoverContent({
   params,
+  searchParams,
 }: {
   params: Promise<{ childId: string; kind: string; id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { childId, ...rest } = await params;
   const parsed = handoverParamsSchema.safeParse(rest);
@@ -25,7 +34,16 @@ async function HandoverContent({
   const { kind, id } = parsed.data;
   const { child, currency } = await loadChild(childId, routes.parentHandover(childId, kind, id));
   const back = { href: routes.parentChild(childId), label: child.nickname };
-  const [due, last, goalView] = await Promise.all([
+  const cardReturn = paymentsEnabled()
+    ? cardReturnParamsSchema.parse(await searchParams).card
+    : undefined;
+  const returnedFromCard = cardReturn === "returned";
+  // Backed out of the hosted checkout: cancel it from the client, after render.
+  const cancelledCard =
+    cardReturn === "cancelled" ? (
+      <CardCancelledReturn childId={childId} kind={kind} id={id} />
+    ) : null;
+  const [due, last, goalView, card] = await Promise.all([
     listDue(childId),
     getLastSplit(childId),
     // The goal note is a nice-to-have: a failed read must never block a handover.
@@ -34,12 +52,29 @@ async function HandoverContent({
       logger.warn("Goal note unavailable", { error });
       return null;
     }),
+    // Card payments are optional too: with them off, or a failed read, cash handover is unchanged.
+    paymentsEnabled()
+      ? getCardPaymentState(childId, {
+          type: kind === "allowance" ? "occurrence" : "parent_gift",
+          id,
+        }).catch((error: unknown) => {
+          unstable_rethrow(error);
+          logger.warn("Card payment state unavailable", { error });
+          return null;
+        })
+      : null,
   ]);
   const item = due.find((d) => d.kind === kind && d.id === id);
 
   if (!item) {
     return (
       <PageShell title={`Hand over to ${child.nickname}`} back={back}>
+        {cancelledCard}
+        {card?.lastOutcome?.status === "succeeded_unapplied" ? (
+          <PaymentStatusNote state={card} />
+        ) : returnedFromCard ? (
+          <CardReturnedBanner handled />
+        ) : null}
         <Card className="rise-in">
           <CardContent className="grid gap-4">
             <p className="font-bold">Already handled</p>
@@ -53,6 +88,8 @@ async function HandoverContent({
   }
   return (
     <PageShell title={`Hand over to ${child.nickname}`} back={back}>
+      {cancelledCard}
+      {returnedFromCard ? <CardReturnedBanner /> : null}
       <HandoverForm
         kind={item.kind}
         id={item.id}
@@ -65,6 +102,7 @@ async function HandoverContent({
         prefill={prefillSplit(item.amountMinor, last)}
         hasPrevious={last !== null}
         goalNote={planNote(child.nickname, goalView?.goal ?? null, currency)}
+        card={card}
       />
       {item.kind === "gift" ? (
         <Link
@@ -80,6 +118,7 @@ async function HandoverContent({
 
 export default function HandoverPage({
   params,
+  searchParams,
 }: PageProps<"/parent/children/[childId]/handover/[kind]/[id]">) {
   return (
     <Suspense
@@ -89,7 +128,7 @@ export default function HandoverPage({
         </PageShell>
       }
     >
-      <HandoverContent params={params} />
+      <HandoverContent params={params} searchParams={searchParams} />
     </Suspense>
   );
 }

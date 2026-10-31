@@ -67,6 +67,29 @@ describe("HandoverForm", () => {
     expect(screen.getByRole("status")).toHaveTextContent("will be noted as short");
   });
 
+  it("offers Pay by card beside the cash button only with a card state", () => {
+    renderForm();
+    expect(screen.queryByRole("button", { name: "Pay by card" })).not.toBeInTheDocument();
+    cleanup();
+    render(
+      <HandoverForm
+        kind="allowance"
+        id="occ-1"
+        childId="child-1"
+        nickname="Sam"
+        currency="GBP"
+        amountMinor={500}
+        dueOn="2026-11-02"
+        note={null}
+        prefill={{ cash: 500, saved: 0 }}
+        card={{ available: true, unavailableReason: null, pending: null, lastOutcome: null }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Pay by card" })).toBeEnabled();
+    fireEvent.change(screen.getByLabelText("Spend (cash to Sam)"), { target: { value: "1" } });
+    expect(screen.getByRole("button", { name: "Pay by card" })).toBeDisabled();
+  });
+
   it("shows no shortfall for a gift given in full or in part", () => {
     const { spend } = renderForm("gift");
     fireEvent.change(spend, { target: { value: "1" } });
