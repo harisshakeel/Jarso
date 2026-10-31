@@ -130,6 +130,7 @@ const HISTORY_KIND: Record<string, string> = {
   skipped: "allowance not given",
   withdrawal: "taken out of Save into Spend (not new money)",
   deposit: "put from Spend into Save (not new money)",
+  extra: "extra money from their parent, into Spend",
 };
 
 function nextStepText(step: NextStep): string {
@@ -312,7 +313,12 @@ const runners: { [N in ToolName]: Run<N> } = {
       requests: shown.map((request, index) => {
         const n = index + 1;
         return {
-          what: request.kind === "withdrawal" ? "take out of Save" : "put into Save",
+          what:
+            request.kind === "withdrawal"
+              ? "take out of Save"
+              : request.kind === "deposit"
+                ? "put into Save"
+                : "extra money from their parent (goes into Spend when handed over)",
           status: REQUEST_STATUS[request.status],
           amount: money(fact, `requests.${n}.amount`, request.amountMinor, currency),
           date: fact(`requests.${n}.date`, showDate(localDateOf(request.occurredAt, timezone))),

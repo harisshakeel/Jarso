@@ -99,6 +99,30 @@ describe("noticeText", () => {
       "Your money wasn't added to Save",
     );
   });
+  it("emergency asked names the amount and reason for the parent", () => {
+    const n = {
+      ...base,
+      kind: "emergency_requested" as const,
+      sourceType: "request" as const,
+      payload: { amount_minor: 500, reason: "School trip" },
+    };
+    expect(noticeText(n, "parent", "GBP")).toEqual({
+      title: "Maya asked for extra money",
+      detail: "£5: School trip",
+    });
+  });
+  it("emergency decided tells the child where the money goes", () => {
+    const n = { ...base, kind: "emergency_decided" as const, sourceType: "request" as const };
+    expect(
+      noticeText({ ...n, payload: { approved: true, amount_minor: 500 } }, "child", "GBP"),
+    ).toEqual({
+      title: "Your parent said yes to extra money",
+      detail: "£5 will come to Spend when they hand it over.",
+    });
+    expect(noticeText({ ...n, payload: { approved: false } }, "child", "GBP").title).toBe(
+      "Your parent said not now",
+    );
+  });
   it("falls back for an unknown kind", () => {
     const n = { ...base, kind: "mystery" as never };
     expect(noticeText(n, "parent", "GBP")).toEqual({

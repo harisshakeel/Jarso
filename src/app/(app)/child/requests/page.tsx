@@ -4,11 +4,11 @@ import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { getFamilyContext } from "@/features/allowance/server";
 import { requireRole } from "@/features/family/server";
-import { RequestActions, RequestList } from "@/features/requests";
+import { AskExtraSheet, RequestActions, RequestList } from "@/features/requests";
 import { getAvailability, listRequests } from "@/features/requests/server";
 import { getChildRules } from "@/features/rules/server";
 
-export const metadata: Metadata = { title: "Save requests" };
+export const metadata: Metadata = { title: "Requests" };
 
 async function RequestsContent() {
   const { user } = await requireRole("child", routes.childRequests);
@@ -20,8 +20,10 @@ async function RequestsContent() {
   ]);
   return (
     <>
-      <h1 className="text-balance text-display">Save requests</h1>
+      <h1 className="text-balance text-display">Requests</h1>
       <RequestActions availability={availability} currency={family.currency} rules={rules.rules} />
+      {/* Extra money (FR15) is new money, so it sits apart from the Save moves. */}
+      <AskExtraSheet currency={family.currency} />
       <RequestList requests={requests} currency={family.currency} timeZone={family.timezone} />
     </>
   );

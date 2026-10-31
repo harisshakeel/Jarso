@@ -69,7 +69,8 @@ function RequestRow({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<{ code: string; message: string }>();
-  const what = request.kind === "withdrawal" ? "Take out" : "Put in";
+  const what =
+    request.kind === "withdrawal" ? "Take out" : request.kind === "deposit" ? "Put in" : "Extra";
   const amount = formatMoney(request.amountMinor, currency, { showMinor: "nonzero" });
 
   function cancel() {

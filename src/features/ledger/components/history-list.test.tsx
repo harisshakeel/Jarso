@@ -55,4 +55,18 @@ describe("HistoryList jar moves", () => {
     expect(screen.getByText(/Spend → Save/)).toBeInTheDocument();
     expect(screen.queryByText(/[+−]£3/)).not.toBeInTheDocument();
   });
+
+  it("shows an emergency grant as extra money with its reason", () => {
+    const extra: HistoryItem = purchase({
+      id: "g1",
+      kind: "extra",
+      label: "School trip",
+      canUndo: false,
+      entryId: null,
+    });
+    render(<HistoryList items={[extra]} currency="GBP" showMinor="always" />);
+    expect(screen.getByText(/Extra money/)).toBeInTheDocument();
+    expect(screen.getByText("School trip")).toBeInTheDocument();
+    expect(screen.getByText("£3.00")).toBeInTheDocument();
+  });
 });

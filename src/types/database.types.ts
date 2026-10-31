@@ -841,6 +841,9 @@ isOneToOne: false
 "create_deposit":
 { Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string }; Returns: Json
                            },
+"create_emergency":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_reason": string }; Returns: Json
+                           },
 "create_family":
 { Args: { "p_currency": string,"p_timezone": string }; Returns: string
                            },

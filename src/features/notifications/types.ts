@@ -7,6 +7,8 @@ export type NoticeKind =
   | "withdrawal_decided"
   | "deposit_requested"
   | "deposit_decided"
+  | "emergency_requested"
+  | "emergency_decided"
   | "allowance_due"
   | "handover_reminder";
 
