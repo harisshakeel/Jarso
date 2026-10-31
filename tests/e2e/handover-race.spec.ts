@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { addChild, createParentUser, dueOccurrence, signedInClient } from "./helpers";
 import { assertLocalUrl, loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -25,13 +26,7 @@ const authUserIds: string[] = [];
 /** A fresh client signed in as the parent: its own connection and request per call. */
 async function parentClient(): Promise<SupabaseClient> {
   if (!local) throw new Error("unreachable");
-  const client = createClient(local.url, local.publishableKey, options);
-  const { error } = await client.auth.signInWithPassword({
-    email: `e2e-race-${run}@example.com`,
-    password,
-  });
-  if (error) throw new Error(`Parent sign-in failed: ${error.message}`);
-  return client;
+  return signedInClient(local, `e2e-race-${run}@example.com`, password);
 }
 
 async function rpcText(client: SupabaseClient, fn: string, args: Record<string, unknown>) {
@@ -67,43 +62,15 @@ function tally(values: string[]): Record<string, number> {
   return counts;
 }
 
-async function addChild(parent: SupabaseClient, nickname: string): Promise<string> {
-  const { data, error } = await admin.auth.admin.createUser({
+async function addRaceChild(parent: SupabaseClient, nickname: string): Promise<string> {
+  const id = await addChild(admin, parent, {
+    familyId,
+    nickname,
     email: `e2e-race-child-${nickname}-${run}@example.com`,
-    password: `pw-${randomUUID()}`,
-    email_confirm: true,
-    app_metadata: { jarso_role: "child" },
   });
-  if (error) throw new Error(`Child creation failed: ${error.message}`);
-  authUserIds.push(data.user.id);
-  const { error: regError } = await parent.rpc("register_child", {
-    p_child_id: data.user.id,
-    p_family_id: familyId,
-    p_nickname: nickname,
-    p_pin: "1234",
-    p_consent: true,
-  });
-  if (regError) throw new Error(`register_child failed: ${regError.message}`);
-  childIds.push(data.user.id);
-  return data.user.id;
-}
-
-/** A due occurrence (allowance starting today) for a child. */
-async function dueOccurrence(parent: SupabaseClient, childId: string): Promise<string> {
-  await rpcText(parent, "create_allowance", {
-    p_child_id: childId,
-    p_amount_minor: 500,
-    p_frequency: "weekly",
-    p_first_on: today(),
-  });
-  const { data, error } = await admin
-    .from("allowance_occurrences")
-    .select("id")
-    .eq("child_id", childId)
-    .eq("status", "due")
-    .single();
-  if (error) throw new Error(`Occurrence lookup failed: ${error.message}`);
-  return data.id;
+  authUserIds.push(id);
+  childIds.push(id);
+  return id;
 }
 
 async function dueGift(parent: SupabaseClient, childId: string): Promise<string> {
@@ -120,21 +87,14 @@ test.beforeAll(async () => {
   if (!local) return;
   assertLocalUrl(local.url);
   admin = createClient(local.url, local.secretKey, options);
-  const { data, error } = await admin.auth.admin.createUser({
-    email: `e2e-race-${run}@example.com`,
-    password,
-    email_confirm: true,
-    app_metadata: { jarso_role: "parent" },
-  });
-  if (error) throw new Error(`Parent creation failed: ${error.message}`);
-  parentId = data.user.id;
+  parentId = await createParentUser(admin, `e2e-race-${run}@example.com`, password);
   authUserIds.push(parentId);
 
   const parent = await parentClient();
   familyId = await rpcText(parent, "create_family", { p_currency: "GBP", p_timezone: "UTC" });
-  await addChild(parent, "RaceA");
-  await addChild(parent, "RaceB");
-  await addChild(parent, "RaceC");
+  await addRaceChild(parent, "RaceA");
+  await addRaceChild(parent, "RaceB");
+  await addRaceChild(parent, "RaceC");
 });
 
 test.afterAll(async () => {
@@ -145,7 +105,7 @@ test.afterAll(async () => {
 
 test("five concurrent confirm_handover calls confirm once", async () => {
   const parent = await parentClient();
-  const id = await dueOccurrence(parent, childAt(0));
+  const id = await dueOccurrence(admin, parent, childAt(0));
   const clients = await parentClients(5);
   const results = await Promise.all(
     clients.map((client, i) =>
@@ -163,7 +123,7 @@ test("five concurrent confirm_handover calls confirm once", async () => {
 
 test("confirm_handover racing mark_not_given changes state once", async () => {
   const parent = await parentClient();
-  const id = await dueOccurrence(parent, childAt(1));
+  const id = await dueOccurrence(admin, parent, childAt(1));
   const [first, second] = await parentClients(2);
   if (!first || !second) throw new Error("unreachable");
   const [a, b] = await Promise.all([

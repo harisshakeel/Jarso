@@ -1,4 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { LocalSupabase } from "./local-supabase";
+
+/** Bearer for the cron routes in e2e runs; playwright.config.ts gives the app server the same. */
+export const E2E_CRON_SECRET = "e2e-cron-secret-0000";
 
 /**
  * Marks the page's Supabase session cookie as expired so the next request must use the refresh
@@ -75,4 +81,82 @@ export async function completeParentProfile(
     .click();
   await dialog.getByRole("button", { name: "Save and continue" }).click();
   await expect(dialog).toBeHidden();
+}
+
+const apiOptions = { auth: { autoRefreshToken: false, persistSession: false } };
+
+/** A confirmed parent account on the local stack, created with the admin API. Returns its id. */
+export async function createParentUser(
+  admin: SupabaseClient,
+  email: string,
+  password: string,
+): Promise<string> {
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    app_metadata: { jarso_role: "parent" },
+  });
+  if (error) throw new Error(`Parent creation failed: ${error.message}`);
+  return data.user.id;
+}
+
+/** A fresh supabase-js client signed in with email and password: its own session and requests. */
+export async function signedInClient(
+  local: LocalSupabase,
+  email: string,
+  password: string,
+): Promise<SupabaseClient> {
+  const client = createClient(local.url, local.publishableKey, apiOptions);
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(`Sign-in failed: ${error.message}`);
+  return client;
+}
+
+/** Creates a child account and registers it in the family as the signed-in parent. Returns its id. */
+export async function addChild(
+  admin: SupabaseClient,
+  parent: SupabaseClient,
+  child: { familyId: string; nickname: string; email: string },
+): Promise<string> {
+  const { data, error } = await admin.auth.admin.createUser({
+    email: child.email,
+    password: `pw-${randomUUID()}`,
+    email_confirm: true,
+    app_metadata: { jarso_role: "child" },
+  });
+  if (error) throw new Error(`Child creation failed: ${error.message}`);
+  const { error: regError } = await parent.rpc("register_child", {
+    p_child_id: data.user.id,
+    p_family_id: child.familyId,
+    p_nickname: child.nickname,
+    p_pin: "1234",
+    p_consent: true,
+  });
+  if (regError) throw new Error(`register_child failed: ${regError.message}`);
+  return data.user.id;
+}
+
+/** A weekly allowance starting today, so one occurrence is due now. Returns the occurrence id. */
+export async function dueOccurrence(
+  admin: SupabaseClient,
+  parent: SupabaseClient,
+  childId: string,
+  amountMinor = 500,
+): Promise<string> {
+  const { error } = await parent.rpc("create_allowance", {
+    p_child_id: childId,
+    p_amount_minor: amountMinor,
+    p_frequency: "weekly",
+    p_first_on: new Date().toISOString().slice(0, 10),
+  });
+  if (error) throw new Error(`create_allowance failed: ${error.message}`);
+  const { data, error: readError } = await admin
+    .from("allowance_occurrences")
+    .select("id")
+    .eq("child_id", childId)
+    .eq("status", "due")
+    .single();
+  if (readError) throw new Error(`Occurrence lookup failed: ${readError.message}`);
+  return data.id;
 }

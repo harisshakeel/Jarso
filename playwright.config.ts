@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { E2E_CRON_SECRET } from "./tests/e2e/helpers";
 import { loadLocalSupabase } from "./tests/e2e/local-supabase";
 
 /**
@@ -28,6 +29,10 @@ const serverEnv: Record<string, string> = {
   FEATURE_GUIDE: "true",
   GUIDE_PROVIDER: "fake",
   GUIDE_ALLOW_FAKE: "true",
+  // Card payments run on the fake provider and its hosted page; no Stripe calls, no keys.
+  PAYMENTS_PROVIDER: "fake",
+  PAYMENTS_ALLOW_FAKE: "true",
+  CRON_SECRET: E2E_CRON_SECRET,
 };
 
 export default defineConfig({
@@ -55,6 +60,7 @@ export default defineConfig({
     { name: "inbox", testMatch: "inbox.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "learning", testMatch: "learning.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "guide", testMatch: "guide.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    { name: "payments", testMatch: "payments.spec.ts", use: { ...devices["Desktop Chrome"] } },
     // A spec only runs if a project matches it; add a project here for every new spec file.
     {
       name: "settings",
