@@ -30,7 +30,9 @@ export function SkillsStrip({ skills }: { skills: SkillProgress[] }) {
         </Link>
       </div>
       <p className="font-bold">
-        {learned} {learned === 1 ? "skill" : "skills"} learned
+        {learned === 0
+          ? "Your first skill is one mission away."
+          : `${learned} ${learned === 1 ? "skill" : "skills"} learned`}
       </p>
       {started.length > 0 ? (
         <ul className="flex flex-wrap gap-2">

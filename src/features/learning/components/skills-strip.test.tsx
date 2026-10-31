@@ -38,6 +38,7 @@ describe("SkillsStrip", () => {
   it("leaves out skills not started", () => {
     render(<SkillsStrip skills={[progress("split.amounts", 0)]} />);
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
-    expect(screen.getByText("0 skills learned")).toBeInTheDocument();
+    expect(screen.queryByText("0 skills learned")).toBeNull();
+    expect(screen.getByText("Your first skill is one mission away.")).toBeInTheDocument();
   });
 });
