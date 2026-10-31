@@ -59,6 +59,11 @@ export function JarShelf({
     rules.filter((rule) => kinds.includes(rule.kind)).map((r) => describeRuleForChild(r, currency));
 
   const { spendMinor, saveMinor, reservedSaveMinor } = availability;
+  // FR05: with an unreached goal, the Save sheets ask the child to predict the effect first.
+  const predict =
+    goal && !goal.progress.reached
+      ? { goal: goal.goal, saveMinor, reservedMinor: reservedSaveMinor }
+      : undefined;
   const countedMinor = Math.max(saveMinor - reservedSaveMinor, 0);
   const shared = jarCapacity({ spendMinor, saveMinor, allowanceMinor, currency });
   const saveCapacity = goal ? goal.goal.targetMinor : shared;
@@ -93,6 +98,7 @@ export function JarShelf({
               currency={currency}
               availableSpendMinor={availability.availableSpendMinor}
               ruleLines={ruleLines(["deposit_auto_confirm"])}
+              predict={predict}
             />
           </div>
         </section>
@@ -121,6 +127,7 @@ export function JarShelf({
               currency={currency}
               limitMinor={takeOutLimit(availability)}
               ruleLines={ruleLines(["withdrawal_cap", "withdrawal_auto_approve"])}
+              predict={predict}
             />
             <GoalSheet
               goal={goal?.goal ?? null}

@@ -103,9 +103,9 @@ Three tracks run side by side: Jarso (7, then 3 and 8), money (1, then 2), and d
 | --- | --- | --- | --- |
 | Money | **Emergency funds** on the request machinery from Demo 2. Built: the grant lands in Spend (decided 2026-10-31). | FR15 | S |
 | Money | **Diary complete.** Money received from other sources, traceable corrections, a diary screen. | FR04 | M |
-| Money | **Predict before deciding.** Before a purchase, withdrawal or plan change, the child predicts the effect on their goal, sees the result explained, and can try other choices without changing recorded money. | FR05 | M |
-| Learning | **Weekly review**, as a card on the dashboard. Received, spent, saved, still due and goal progress; how one decision changed the plan; a skill shown and one worth practising; a fresh question from the review pool. | FR11 | M |
-| Learning | **Comeback task.** After missed days, a short, manageable task that eases the child back in. | FR12 | S |
+| Money | **Predict before deciding.** Built: a guess, the real answer and a what-if slider before take-outs, put-ins and plan changes; the purchase hook waits for the diary. | FR05 | M |
+| Learning | **Weekly review**, as a card on the dashboard. Built (`features/review`): received, spent, saved, still due and goal progress; how one decision changed the plan; a skill shown and one worth practising; a fresh question from the review pool. | FR11 | M |
+| Learning | **Comeback task.** Built: after three days away, Home offers one fresh question before the next mission. | FR12 | S |
 | Platform | **Email, web push and app install** for the inbox events: email for parent notices (Resend, `notification_deliveries`, a dispatcher route and the `/api/cron` fallback), with everything still working when email and push are off. | FR16 | M |
 | Platform | **Pilot readiness**, below. | FR13, FR07 | M |
 

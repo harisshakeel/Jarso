@@ -141,6 +141,8 @@ function nextStepText(step: NextStep): string {
       return "Do the starting check-in";
     case "practice":
       return "Answer the practice questions that are waiting";
+    case "comeback":
+      return "Answer one fresh question to ease back in after a few days away";
     case "mission":
       return `Start the mission "${step.title}"`;
     case "done":
