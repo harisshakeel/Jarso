@@ -175,7 +175,10 @@ async function HomeSkills({ childId }: { childId: string }) {
  * turns stream from /api/v1/guide/turns, so this page needs no long maxDuration.
  */
 async function HomeJarso({ childId, hasAllowance }: { childId: string; hasAllowance: boolean }) {
-  const guide = await getGuideState(childId);
+  const [guide, goal] = await Promise.all([
+    getGuideState(childId),
+    fallback(getGoalView(childId), null, "Goal for Ask Jarso"),
+  ]);
   if (!guide.available) return null;
   const { suggestions } = guideCopy;
   return (
@@ -185,7 +188,7 @@ async function HomeJarso({ childId, hasAllowance }: { childId: string; hasAllowa
         suggestions.jars,
         suggestions.spent,
         hasAllowance ? suggestions.allowance : suggestions.learning,
-        suggestions.saving,
+        goal ? suggestions.goal : suggestions.saving,
       ]}
     />
   );

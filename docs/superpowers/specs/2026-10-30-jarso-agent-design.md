@@ -22,12 +22,14 @@ Jarso's AI is the app's headline feature: a prompt window at the top of the chil
 
 | Tool | Reads (service) | Returns (figures as refs) |
 | --- | --- | --- |
-| `get_jars` | `getJars`, `listDueForChild` | `jars.spend`, `jars.save`, `jars.total`, `jars.waiting` |
+| `get_jars` | `getAvailability`, `listDueForChild` | `jars.spend`, `jars.save`, `jars.total`, `jars.reserved` (waiting to come out of Save), `jars.held` (waiting to go in), `jars.free_spend`, `jars.free_save`, `jars.waiting` |
 | `get_allowance` | `getSchedule`, `listDueForChild` | `allowance.amount`, `allowance.next_date`, `allowance.waiting`; how often; status |
 | `get_money_history(period)` | `getHistoryPage` | `history.money_in`, `history.spent`, `history.purchases`, up to 10 lines (`history.N.date`, `history.N.amount`); labels scrubbed, braces removed; `complete` |
 | `get_money_rules` | `getChildRules` | spending limits (`rules.spend_limit_<period>`), overspend setting |
 | `get_learning` | `getLearningOverview` | next step, skill levels, `learning.practice_due`, `learning.days_this_week`, `learning.missions_done` |
-| `plan_saving(price, save_each)` | `getJars`, `getSchedule` | `plan.price`, `plan.in_save`, `plan.still_needed`, `plan.save_each`, `plan.allowances`, `plan.allowance_amount`, `plan.next_date` |
+| `get_goal` | `getGoalView` | goal name (scrubbed), `goal.price`, `goal.saved`, `goal.still_needed`, `goal.plan`, `goal.allowances`, `goal.percent` |
+| `get_requests` | `listRequests` | up to 5 requests: what, status, `requests.N.amount`, `requests.N.date`, reason (scrubbed) |
+| `plan_saving(price, save_each)` | `getAvailability`, `getSchedule` (free money only, like the goal) | `plan.price`, `plan.in_save`, `plan.still_needed`, `plan.save_each`, `plan.allowances`, `plan.allowance_amount`, `plan.next_date` |
 
 Specs live in `server/tool-specs.ts` (pure data, shared by the provider, the fake provider and the evals); runners in `server/tools.ts`. Adding one: spec, runner over a feature service, `guideCopy.status` and `guideCopy.checked` copy, a unit test, and eval cases.
 
