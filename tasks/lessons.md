@@ -12,3 +12,4 @@ Patterns learned from corrections. Review at session start.
 - `.env.local` points at the HOSTED Supabase project. Never run the app, spikes or smoke tests with it; force local URL/keys in the process env (see playwright.config.ts).
 - Supabase-js `getClaims()` calls `Date.now()`; with Partial Prefetching, read the session after `await connection()`.
 - GoTrue admin `createUser` writes `app_metadata` after the insert; DB triggers must handle the follow-up UPDATE.
+- Never commit until the user explicitly says so — not docs, not per-task SDD commits. Leave work uncommitted and ask.
