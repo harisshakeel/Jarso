@@ -42,6 +42,8 @@ export type GuideReply = {
   helplines: Helpline[];
   /** What Jarso looked at for this reply, in plain words ("jars", "allowance"). */
   lookedAt: string[];
+  /** Facts this reply kept, shown so the child always knows what Jarso remembers. */
+  remembered: string[];
 };
 
 export type AskGuideResult = {
@@ -58,6 +60,17 @@ export type GuideTurnEvent =
   | { type: "status"; text: string }
   | { type: "reply"; data: AskGuideResult }
   | { type: "error"; error: { code: string; message: string } };
+
+/** One thing Jarso remembers about a child between chats (ADR 0011, slice 8). */
+export const memoryKinds = ["interest", "thinking_about", "finds_tricky", "prefers"] as const;
+export type MemoryKind = (typeof memoryKinds)[number];
+export type Memory = {
+  id: string;
+  kind: MemoryKind;
+  text: string;
+  createdAt: string;
+  expiresAt: string;
+};
 
 /** What a child page needs to show the guide. */
 export type GuideState = { available: boolean; introNeeded: boolean };

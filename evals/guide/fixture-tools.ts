@@ -190,6 +190,7 @@ export function createFixtureTools(): TurnTools {
     specs: toolSpecs,
     facts,
     calls,
+    remembered: [],
     async run(name, input) {
       if (!isToolName(name)) return error(`There is no tool called ${name}.`);
       if (calls.length >= MAX_TOOL_CALLS) return error("That's enough look-ups for this question.");

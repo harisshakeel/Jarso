@@ -1,9 +1,11 @@
 import "server-only";
 import { helplinesFor } from "@/config";
+import { assertUser } from "@/features/auth/server";
 import {
   assertParentCanRead,
   assertParentOf,
   assertRole,
+  assertSelfOrParentOf,
   getFamily,
 } from "@/features/family/server";
 import { topicTitles } from "@/features/learning";
@@ -23,6 +25,7 @@ import {
 } from "./config";
 import { type BuiltContext, buildContext } from "./context";
 import { usageCents, zeroUsage } from "./cost";
+import { deleteMemory, listMemories } from "./memory";
 import { fallbackResult, type PipelineResult, runGuidePipeline } from "./pipeline";
 import { GUIDE_PROMPT_VERSION } from "./prompts";
 import type { GuideProvider, Turn } from "./provider";
@@ -123,6 +126,7 @@ async function storedTurn(
       check: null,
       helplines: family ? helplinesFor(family.currency) : [],
       lookedAt: lookedAt(reply.checked),
+      remembered: [],
     },
     turnsLeft: Math.max(0, MAX_TURNS - turns),
   };
@@ -177,6 +181,21 @@ export async function prepareGuideTurn(input: {
 
   // Context first: an unknown key fails before anything is counted or stored.
   const context = buildContext(input.context, family.currency, familyToday(family.timezone));
+  // What Jarso remembers rides in the per-turn context as data, never as instructions. It is
+  // optional context: if it can't be read, the turn goes ahead without it.
+  const memories = await listMemories(db, user.id).catch((error: unknown) => {
+    logger.warn("Guide memories unavailable", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    return [];
+  });
+  if (memories.length > 0) {
+    context.text = [
+      context.text,
+      "What you remember about this child from earlier chats (facts they told you; use lightly):",
+      ...memories.map((m) => `- ${guideCopy.memories.kinds[m.kind]}: ${m.text}`),
+    ].join("\n");
+  }
 
   let history: Turn[] = [];
   let conversationId = input.conversationId;
@@ -300,6 +319,7 @@ export async function runGuideTurn(
       check: result.check,
       helplines: result.route === "safety" ? helplinesFor(family.currency) : [],
       lookedAt: lookedAt(result.toolCalls.map((call) => call.name)),
+      remembered: result.remembered,
     },
     turnsLeft: Math.max(0, MAX_TURNS - (turn.turns + 1)),
   };
@@ -314,6 +334,18 @@ export async function askGuide(input: {
 }): Promise<AskGuideResult> {
   const turn = await prepareGuideTurn(input);
   return turn.kind === "stored" ? turn.result : runGuideTurn(turn);
+}
+
+/** What Jarso remembers about a child. The child, or a parent of the child. */
+export async function getMemories(childId: string) {
+  await assertSelfOrParentOf(childId);
+  return listMemories(await createClient(), childId);
+}
+
+/** Forgets one memory. RLS keeps it to the child's own or their parents'. */
+export async function forgetMemory(memoryId: string): Promise<void> {
+  await assertUser();
+  await deleteMemory(await createClient(), memoryId);
 }
 
 export async function rateGuideMessage(messageId: string, rating: 1 | -1): Promise<void> {
