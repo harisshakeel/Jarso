@@ -5,7 +5,7 @@ import { useEffect, useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui";
 import { clientEnv } from "@/config";
-import { subscribePushAction, unsubscribePushAction } from "../server/actions";
+import { pushOwnedAction, subscribePushAction, unsubscribePushAction } from "../server/actions";
 
 const SW_PATH = "/sw.js";
 
@@ -61,8 +61,14 @@ export function PushToggle() {
     navigator.serviceWorker
       .getRegistration(SW_PATH)
       .then((registration) => registration?.pushManager.getSubscription() ?? null)
-      .then((subscription) => {
-        if (!cancelled) setState(subscription ? "on" : "off");
+      // A browser two accounts share may hold the other account's subscription: on means ours.
+      .then(async (subscription) => {
+        if (!subscription) return false;
+        const result = await pushOwnedAction(null, { endpoint: subscription.endpoint });
+        return result.ok && result.data.owned;
+      })
+      .then((owned) => {
+        if (!cancelled) setState(owned ? "on" : "off");
       })
       .catch(() => {
         if (!cancelled) setState("off");

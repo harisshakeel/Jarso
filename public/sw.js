@@ -38,13 +38,10 @@ self.addEventListener("notificationclick", (event) => {
   const url = targetUrl(event.notification.data?.url);
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      const open = clients.find((client) => "focus" in client);
-      if (!open) return self.clients.openWindow(url);
-      // navigate() rejects for a tab this worker does not control; open a fresh one then.
-      return open
-        .navigate(url)
-        .then((client) => client?.focus())
-        .catch(() => self.clients.openWindow(url));
+      // A tab already on the record is focused; any other tab may hold unsent work, so a new
+      // one opens instead of navigating it away.
+      const there = clients.find((client) => client.url === url && "focus" in client);
+      return there ? there.focus() : self.clients.openWindow(url);
     }),
   );
 });

@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { routes } from "@/config";
 import { createAction } from "@/lib";
 import { markReadSchema, pushEndpointSchema, pushSubscriptionSchema } from "../schemas";
-import { markRead, subscribePush, unsubscribePush } from "./service";
+import { markRead, ownsPushEndpoint, subscribePush, unsubscribePush } from "./service";
 
 export const markNoticesReadAction = createAction(markReadSchema, async ({ ids }) => {
   const changed = await markRead(ids);
@@ -22,4 +22,8 @@ export const subscribePushAction = createAction(pushSubscriptionSchema, async (i
 
 export const unsubscribePushAction = createAction(pushEndpointSchema, async ({ endpoint }) =>
   unsubscribePush(endpoint),
+);
+
+export const pushOwnedAction = createAction(pushEndpointSchema, async ({ endpoint }) =>
+  ownsPushEndpoint(endpoint),
 );

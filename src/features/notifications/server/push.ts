@@ -20,6 +20,10 @@ import { claimUnpushed, deleteSubscriptionById, subscriptionsFor } from "./repos
 const TTL_SECONDS = 60 * 60;
 /** Sends in flight at once: a few dozen notices must not open hundreds of connections. */
 const CONCURRENCY = 8;
+/** A stalled push service must not hold a worker until the function's own limit. */
+const SEND_TIMEOUT_MS = 10_000;
+/** How many notices one claim takes; `drainPush` repeats while a batch comes back full. */
+const BATCH = 200;
 
 /** Runs `tasks` with at most `CONCURRENCY` in flight; every task settles, none throws. */
 async function runLimited(tasks: Array<() => Promise<void>>): Promise<void> {
@@ -95,7 +99,7 @@ export async function dispatchPush(limit = 50): Promise<PushResult> {
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
             pushPayload(claimed),
-            { TTL: TTL_SECONDS, urgency: "normal" },
+            { TTL: TTL_SECONDS, urgency: "normal", timeout: SEND_TIMEOUT_MS },
           );
           result.sent += 1;
         } catch (error) {
@@ -115,6 +119,23 @@ export async function dispatchPush(limit = 50): Promise<PushResult> {
   );
   logger.info("Push dispatched", result);
   return result;
+}
+
+/**
+ * The sweep: claims batch after batch while a batch comes back full and time remains, so a day
+ * with more than one batch of notices is still drained before the one-day cutoff passes.
+ */
+export async function drainPush(budgetMs: number): Promise<PushResult> {
+  const total: PushResult = { claimed: 0, sent: 0, dropped: 0, failed: 0 };
+  const start = Date.now();
+  for (;;) {
+    const batch = await dispatchPush(BATCH);
+    total.claimed += batch.claimed;
+    total.sent += batch.sent;
+    total.dropped += batch.dropped;
+    total.failed += batch.failed;
+    if (batch.claimed < BATCH || Date.now() - start >= budgetMs) return total;
+  }
 }
 
 /**

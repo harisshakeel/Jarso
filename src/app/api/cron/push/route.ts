@@ -1,10 +1,12 @@
 import { timingSafeEqual } from "node:crypto";
 import { serverEnv } from "@/config/env.server";
-import { dispatchPush } from "@/features/notifications/server";
+import { drainPush } from "@/features/notifications/server";
 import { AppError } from "@/lib";
 import { json, withApi } from "@/lib/api";
 
 export const maxDuration = 30;
+/** Leaves room inside maxDuration for the batch in flight to finish. */
+const DRAIN_BUDGET_MS = 15_000;
 
 function sameSecret(header: string | null, secret: string): boolean {
   const given = Buffer.from(header ?? "");
@@ -23,5 +25,5 @@ export const GET = withApi(async (request: Request) => {
   const secret = serverEnv.CRON_SECRET;
   if (!secret) throw new AppError("NOT_FOUND", "Not found");
   if (!sameSecret(authorization, secret)) throw new AppError("UNAUTHORIZED", "Unauthorized");
-  return json(await dispatchPush(200));
+  return json(await drainPush(DRAIN_BUDGET_MS));
 });

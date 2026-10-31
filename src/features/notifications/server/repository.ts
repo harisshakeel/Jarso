@@ -134,6 +134,16 @@ export async function saveSubscription(
   return String(data);
 }
 
+/** Whether the caller owns a subscription for this endpoint (RLS shows only their own rows). */
+export async function ownsSubscription(db: Client, endpoint: string): Promise<boolean> {
+  const { count, error } = await db
+    .from("push_subscriptions")
+    .select("id", { head: true, count: "exact" })
+    .eq("endpoint", endpoint);
+  if (error) throw toAppError(error, "Failed to check the subscription");
+  return (count ?? 0) > 0;
+}
+
 /** Forgets the caller's subscription for this endpoint. True when one went. */
 export async function removeSubscription(db: Client, endpoint: string): Promise<boolean> {
   const { data, error } = await db.rpc("push_unsubscribe", { p_endpoint: endpoint });

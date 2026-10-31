@@ -35,7 +35,9 @@ vi.mock("@/lib", async (importOriginal) => ({
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ kind: "admin" }) }));
 vi.mock("./repository", () => repo);
 
-const { dispatchPush, isPushConfigured, pushAfterNotices, pushPayload } = await import("./push");
+const { dispatchPush, drainPush, isPushConfigured, pushAfterNotices, pushPayload } = await import(
+  "./push"
+);
 
 const claimed = (recipientId: string, id = "n1"): ClaimedNotice => ({
   recipientId,
@@ -110,7 +112,11 @@ describe("dispatchPush", () => {
       "https://push.example.test/s1",
       "https://push.example.test/s2",
     ]);
-    expect(webpush.sendNotification.mock.calls[0]?.[2]).toEqual({ TTL: 3600, urgency: "normal" });
+    expect(webpush.sendNotification.mock.calls[0]?.[2]).toEqual({
+      TTL: 3600,
+      urgency: "normal",
+      timeout: 10_000,
+    });
     expect(webpush.setVapidDetails).toHaveBeenCalledWith(
       "https://jarso.test",
       "public-placeholder",
@@ -144,6 +150,35 @@ describe("dispatchPush", () => {
     await dispatchPush();
     const logged = JSON.stringify([...log.info.mock.calls, ...log.warn.mock.calls]);
     expect(logged).not.toMatch(/push\.example\.test|Sam|Save/);
+  });
+});
+
+describe("drainPush", () => {
+  it("claims again while a batch comes back full, and adds the counts up", async () => {
+    const full = Array.from({ length: 200 }, (_, i) => claimed("p1", `n${i}`));
+    repo.claimUnpushed
+      .mockResolvedValueOnce(full)
+      .mockResolvedValueOnce(full)
+      .mockResolvedValueOnce([claimed("p1", "last")]);
+    repo.subscriptionsFor.mockResolvedValue([]);
+    const result = await drainPush(60_000);
+    expect(repo.claimUnpushed).toHaveBeenCalledTimes(3);
+    expect(result).toEqual({ claimed: 401, sent: 0, dropped: 0, failed: 0 });
+  });
+
+  it("stops after one batch when nothing is left", async () => {
+    repo.claimUnpushed.mockResolvedValue([]);
+    expect(await drainPush(60_000)).toEqual({ claimed: 0, sent: 0, dropped: 0, failed: 0 });
+    expect(repo.claimUnpushed).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops once the time budget is spent even if batches stay full", async () => {
+    const full = Array.from({ length: 200 }, (_, i) => claimed("p1", `n${i}`));
+    repo.claimUnpushed.mockResolvedValue(full);
+    repo.subscriptionsFor.mockResolvedValue([]);
+    const result = await drainPush(0);
+    expect(repo.claimUnpushed).toHaveBeenCalledTimes(1);
+    expect(result.claimed).toBe(200);
   });
 });
 
