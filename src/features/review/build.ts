@@ -102,8 +102,13 @@ export function decisionLine(
   );
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
   const plan = goal?.goal.planMinor ?? null;
-  const allowances = (minor: number) =>
-    plan && plan > 0 ? Math.max(1, Math.round(minor / plan)) : null;
+  // Below half a plan rounds to nothing, so the money wording is used instead of "1 allowance".
+  const allowances = (minor: number) => {
+    if (!plan || plan <= 0) return null;
+    const n = Math.round(minor / plan);
+    return n >= 1 ? n : null;
+  };
+  const reached = goal?.progress.reached ?? false;
   const byAmount = (a: HistoryItem, b: HistoryItem) => (b.amountMinor ?? 0) - (a.amountMinor ?? 0);
 
   const move = week
@@ -115,18 +120,22 @@ export function decisionLine(
       return {
         what: `You put ${money(move.amountMinor)} into Save.`,
         effect: goal
-          ? n
-            ? `That's about ${n} allowance${n === 1 ? "" : "s"} closer to your ${goal.goal.name}.`
-            : `It all counts toward your ${goal.goal.name}.`
+          ? reached
+            ? `Your ${goal.goal.name} is already saved up; this is extra on top.`
+            : n
+              ? `That's about ${n} allowance${n === 1 ? "" : "s"} closer to your ${goal.goal.name}.`
+              : `It all counts toward your ${goal.goal.name}.`
           : "It's kept for later now. Good thinking.",
       };
     }
     return {
       what: `You took ${money(move.amountMinor)} out of Save.`,
       effect: goal
-        ? n
-          ? `Your ${goal.goal.name} is about ${n} allowance${n === 1 ? "" : "s"} further off. You decided it was worth it.`
-          : `Your ${goal.goal.name} is a bit further off. You decided it was worth it.`
+        ? reached
+          ? `Your ${goal.goal.name} is still saved up. You decided this was worth it.`
+          : n
+            ? `Your ${goal.goal.name} is about ${n} allowance${n === 1 ? "" : "s"} further off. You decided it was worth it.`
+            : `Your ${goal.goal.name} is a bit further off. You decided it was worth it.`
         : "You chose to use it now. That's a decision too.",
     };
   }

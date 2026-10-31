@@ -53,10 +53,13 @@ export function PredictStep({
   maxMinor,
   onTryAmount,
 }: PredictStepProps) {
-  const [guess, setGuess] = useState<Prediction | null>(null);
+  // A guess is about one amount: change the amount and the question is asked again.
+  const [answered, setAnswered] = useState<{ amountMinor: number; guess: Prediction } | null>(null);
   const [tryMinor, setTryMinor] = useState<number | null>(null);
   const groupId = useId();
   if (amountMinor === null || amountMinor <= 0) return null;
+  const guess = answered?.amountMinor === amountMinor ? answered.guess : null;
+  const setGuess = (next: Prediction) => setAnswered({ amountMinor, guess: next });
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
   const input = {
     move,

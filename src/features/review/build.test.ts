@@ -52,10 +52,10 @@ const goal = (planMinor: number | null, countedMinor = 6400): GoalView => ({
   },
   progress: {
     countedMinor,
-    remainingMinor: 12000 - countedMinor,
-    paymentsLeft: planMinor ? Math.ceil((12000 - countedMinor) / planMinor) : null,
-    reached: false,
-    fillRatio: countedMinor / 12000,
+    remainingMinor: Math.max(12000 - countedMinor, 0),
+    paymentsLeft: planMinor ? Math.ceil(Math.max(12000 - countedMinor, 0) / planMinor) : null,
+    reached: countedMinor >= 12000,
+    fillRatio: Math.min(countedMinor / 12000, 1),
   },
 });
 
@@ -131,6 +131,26 @@ describe("decisionLine", () => {
 
   it("is null for a quiet week", () => {
     expect(decisionLine([], null, "GBP", today)).toBeNull();
+  });
+
+  it("uses money wording for a move below half a plan, never 'about 1 allowance'", () => {
+    const line = decisionLine(
+      [item({ kind: "deposit", amountMinor: 50 })],
+      goal(1000),
+      "GBP",
+      today,
+    );
+    expect(line?.effect).toBe("It all counts toward your bike.");
+  });
+
+  it("keeps a reached goal reached", () => {
+    const done = goal(400, 12000);
+    expect(
+      decisionLine([item({ kind: "deposit", amountMinor: 500 })], done, "GBP", today)?.effect,
+    ).toBe("Your bike is already saved up; this is extra on top.");
+    expect(
+      decisionLine([item({ kind: "withdrawal", amountMinor: 500 })], done, "GBP", today)?.effect,
+    ).toBe("Your bike is still saved up. You decided this was worth it.");
   });
 });
 

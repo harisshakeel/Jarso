@@ -15,13 +15,12 @@ describe("predictOutcome", () => {
     expect(o).toMatchObject({ actual: "closer", before: 7, after: 5 });
   });
 
-  it("a small move that doesn't change the allowance count is the same", () => {
+  it("a small move that keeps the allowance count is still closer in money, said in money", () => {
     const o = predictOutcome({ ...base, move: "put_in", amountMinor: 100 });
-    expect(o.actual).toBe("closer");
-    expect(o.before).toBe(7);
-    expect(o.after).toBe(7);
-    // Same count, but the remaining dropped: still closer in money, so "closer".
-    expect(o.remainingAfter).toBe(5500);
+    expect(o).toMatchObject({ actual: "closer", before: 7, after: 7, remainingAfter: 5500 });
+    expect(explainOutcome(o, "bike", money)).toBe(
+      "You'd need £55 for your bike, less than now (£56).",
+    );
   });
 
   it("a plan change changes only the estimate", () => {

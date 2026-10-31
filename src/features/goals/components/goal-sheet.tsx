@@ -111,7 +111,19 @@ function GoalForm({
   const preview = previewLine({ target, plan, saveMinor, reservedMinor }, currency);
   // FR05: changing an existing plan is a decision about savings, so the child predicts it first.
   const planMinor = plan.trim() === "" ? null : parseMoney(plan, currency);
-  const planChanged = goal?.planMinor && planMinor !== null && planMinor !== goal.planMinor;
+  // The edited target, so the prediction matches the screen after saving; the saved one otherwise.
+  const targetMinor = parseMoney(target, currency) ?? goal?.targetMinor ?? null;
+  const reached =
+    goal !== null &&
+    targetMinor !== null &&
+    goalProgress({ saveMinor, reservedMinor, targetMinor, planMinor: goal.planMinor }).reached;
+  // Any new plan on an unreached goal (the first one included) is a decision worth predicting.
+  const planChanged =
+    goal !== null &&
+    !reached &&
+    planMinor !== null &&
+    planMinor > 0 &&
+    planMinor !== goal.planMinor;
 
   return (
     <form action={action} className="grid gap-6 px-4 pb-4 sm:px-6 sm:pb-6" noValidate>
@@ -173,11 +185,11 @@ function GoalForm({
           allowance.
         </p>
       ) : null}
-      {goal && planChanged ? (
+      {goal && planChanged && targetMinor !== null ? (
         <PredictStep
           move="change_plan"
           amountMinor={planMinor}
-          goal={goal}
+          goal={{ ...goal, targetMinor }}
           saveMinor={saveMinor}
           reservedMinor={reservedMinor}
           currency={currency}
