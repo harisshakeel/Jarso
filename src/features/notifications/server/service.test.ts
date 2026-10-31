@@ -5,12 +5,13 @@ vi.mock("@/features/auth/server", () => ({ assertUser: vi.fn(async () => ({ id: 
 vi.mock("./repository", () => ({
   encodeCursor: (n: { createdAt: string; id: string }) => `${n.createdAt}|${n.id}`,
   listNoticeRows: vi.fn(),
+  listUnreadRows: vi.fn(),
   fetchUnreadCount: vi.fn(),
   setRead: vi.fn(),
 }));
 
 const repo = await import("./repository");
-const { listNotices, getUnreadCount, markRead } = await import("./service");
+const { listNotices, listUnreadNotices, getUnreadCount, markRead } = await import("./service");
 
 const notice = (i: number) => ({
   id: `n${i}`,
@@ -72,5 +73,13 @@ describe("getUnreadCount and markRead", () => {
     await expect(getUnreadCount()).resolves.toBe(3);
     await expect(markRead(null)).resolves.toBe(2);
     expect(repo.setRead).toHaveBeenCalledWith({ kind: "user" }, null);
+  });
+});
+
+describe("listUnreadNotices", () => {
+  it("asks the database for unread notices of the given kinds, newest first, at most 20", async () => {
+    vi.mocked(repo.listUnreadRows).mockResolvedValue([notice(0)]);
+    await expect(listUnreadNotices(["limit_exceeded"])).resolves.toEqual([notice(0)]);
+    expect(repo.listUnreadRows).toHaveBeenCalledWith({ kind: "user" }, ["limit_exceeded"], 20);
   });
 });

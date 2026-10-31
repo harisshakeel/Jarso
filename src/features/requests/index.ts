@@ -7,6 +7,7 @@ export * from "./components/request-list";
 export * from "./components/requests-unavailable";
 export * from "./components/take-out-sheet";
 export * from "./describe";
+export * from "./limit";
 export * from "./schemas";
 export {
   cancelRequestAction,

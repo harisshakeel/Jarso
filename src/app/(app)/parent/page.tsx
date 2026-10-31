@@ -11,21 +11,26 @@ import {
   type DueItem,
   mergeDue,
   NeedsYou,
+  runningSchedule,
   type Schedule,
 } from "@/features/allowance";
 import { getSchedule, listDue } from "@/features/allowance/server";
 import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
-import type { JarBalances } from "@/features/ledger";
-import { getJars } from "@/features/ledger/server";
+import type { GoalView } from "@/features/goals";
+import { getGoalView } from "@/features/goals/server";
+import { jarCapacity } from "@/features/ledger";
+import { type Notice, UnreadNotices } from "@/features/notifications";
+import { listUnreadNotices } from "@/features/notifications/server";
 import {
+  type Availability,
   ParentRequestItems,
   RequestsUnavailable,
   type SavingsRequest,
   settleRequestReads,
 } from "@/features/requests";
-import { listRequestsNeedingParent } from "@/features/requests/server";
-import { logger } from "@/lib";
+import { getAvailability, listRequestsNeedingParent } from "@/features/requests/server";
+import { fallback, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Your family" };
 
@@ -35,7 +40,8 @@ const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
 type ChildReads = {
   child: ChildSummary;
   due: Promise<DueItem[]>;
-  jars: Promise<JarBalances>;
+  availability: Promise<Availability>;
+  goal: Promise<GoalView>;
   requests: Promise<SavingsRequest[]>;
   schedule: Promise<Schedule | null>;
 };
@@ -52,21 +58,34 @@ async function ParentHome() {
   const reads: ChildReads[] = children.map((child) => ({
     child,
     due: listDue(child.id),
-    jars: getJars(child.id),
+    availability: getAvailability(child.id),
+    // The goal line is a nice-to-have; the fallback is attached now, so a failure is never unhandled.
+    goal: fallback(getGoalView(child.id), null, "Goal on parent home"),
     requests: listRequestsNeedingParent(child.id),
     schedule: getSchedule(child.id),
   }));
+  // Limit notices are the parent's own rows; a failed read leaves them out, never the page.
+  const notices = listUnreadNotices(["limit_exceeded"]).catch((error: unknown) => {
+    unstable_rethrow(error);
+    logger.warn("Limit notices unavailable", { error: errorName(error) });
+    return [] as Notice[];
+  });
 
   return (
     <>
       <div className="rise-in">
         <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
-          <NeedsYouSection reads={reads} currency={family.currency} />
+          <NeedsYouSection reads={reads} notices={notices} currency={family.currency} />
         </Suspense>
       </div>
       <div className="rise-in" style={rise(1)}>
         <Suspense fallback={null}>
           <RequestsSection reads={reads} currency={family.currency} />
+        </Suspense>
+      </div>
+      <div className="rise-in" style={rise(1)}>
+        <Suspense fallback={null}>
+          <NoticesSection notices={notices} currency={family.currency} />
         </Suspense>
       </div>
       <section aria-labelledby="children-title" className="rise-in grid gap-3" style={rise(2)}>
@@ -105,12 +124,46 @@ async function ParentHome() {
   );
 }
 
-/** Everything due across the family, oldest first. */
-async function NeedsYouSection({ reads, currency }: { reads: ChildReads[]; currency: string }) {
-  const perChild = await Promise.all(
-    reads.map(async ({ child, due }) => ({ child, due: await due })),
+/**
+ * Everything due across the family, oldest first. Requests and limit notices are listed just
+ * below; they count here so "All caught up." only shows when nothing waits.
+ */
+async function NeedsYouSection({
+  reads,
+  notices,
+  currency,
+}: {
+  reads: ChildReads[];
+  notices: Promise<Notice[]>;
+  currency: string;
+}) {
+  const [perChild, requests, unread] = await Promise.all([
+    Promise.all(reads.map(async ({ child, due }) => ({ child, due: await due }))),
+    Promise.allSettled(reads.map(({ requests }) => requests)),
+    notices,
+  ]);
+  const waitingRequests = requests.reduce(
+    (sum, result) => sum + (result.status === "fulfilled" ? result.value.length : 0),
+    0,
   );
-  return <NeedsYou items={mergeDue(perChild)} currency={currency} />;
+  return (
+    <NeedsYou
+      items={mergeDue(perChild)}
+      currency={currency}
+      otherCount={waitingRequests + unread.length}
+    />
+  );
+}
+
+/** Unread limit notices; View marks each read. */
+async function NoticesSection({
+  notices,
+  currency,
+}: {
+  notices: Promise<Notice[]>;
+  currency: string;
+}) {
+  return <UnreadNotices items={await notices} currency={currency} />;
 }
 
 /** Take-outs and put-ins waiting on a parent. A child whose read fails gets a calm line; the rest still show. */
@@ -136,18 +189,36 @@ async function RequestsSection({ reads, currency }: { reads: ChildReads[]; curre
 }
 
 async function ChildCard({ read, currency }: { read: ChildReads; currency: string }) {
-  const [due, jars, schedule] = await Promise.all([read.due, read.jars, read.schedule]);
+  const [due, availability, schedule] = await Promise.all([
+    read.due,
+    read.availability,
+    read.schedule,
+  ]);
+  const goal = await read.goal;
+  const allowanceMinor = runningSchedule(schedule)?.amountMinor ?? null;
   return (
     <ChildOverviewCard
       childId={read.child.id}
       nickname={read.child.nickname}
-      spendMinor={jars.spend}
-      saveMinor={jars.save}
+      spendMinor={availability.spendMinor}
+      saveMinor={availability.saveMinor}
+      reservedMinor={availability.reservedSaveMinor}
+      capacityMinor={jarCapacity({
+        spendMinor: availability.spendMinor,
+        saveMinor: availability.saveMinor,
+        allowanceMinor,
+        currency,
+      })}
+      goal={goal?.goal ?? null}
       schedule={schedule}
       dueCount={due.length}
       currency={currency}
     />
   );
+}
+
+function errorName(error: unknown): string {
+  return error instanceof Error ? error.name : typeof error;
 }
 
 function HomeSkeleton() {

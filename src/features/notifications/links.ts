@@ -14,7 +14,7 @@ export function noticeHref(notice: Notice, role: Role): Route {
     if (notice.sourceType === "request") return routes.parentChild(notice.childId);
     return routes.parentChildHistory(notice.childId);
   }
-  return routes.child;
+  return notice.sourceType === "ledger_entry" ? routes.childDiary : routes.child;
 }
 
 function minor(payload: Record<string, unknown>, key: string): number | null {

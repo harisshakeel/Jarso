@@ -10,6 +10,8 @@ type NeedsYouProps = {
   /** Every due allowance and gift across the family, oldest first. */
   items: ChildDueItem[];
   currency: string;
+  /** Requests and notices also waiting on the parent, listed under this section. */
+  otherCount?: number;
 };
 
 function What({ item }: { item: ChildDueItem }) {
@@ -45,25 +47,26 @@ function HandOverLink({ item, size }: { item: ChildDueItem; size: "sm" | "lg" })
  * The first thing on the parent's Home (design.md §5, §10): what is waiting to be handed over,
  * each with its action inline. A table from 768 px, a stacked list below.
  */
-export function NeedsYou({ items, currency }: NeedsYouProps) {
+export function NeedsYou({ items, currency, otherCount = 0 }: NeedsYouProps) {
   const money = (minor: number) => formatMoney(minor, currency);
   const key = (item: ChildDueItem) => `${item.kind}-${item.id}`;
+  const waiting = items.length + otherCount;
   return (
     <section aria-labelledby="needs-you-title" className="grid gap-3">
       <h2 id="needs-you-title" className="eyebrow flex items-center gap-2">
         Needs you
-        {items.length > 0 ? (
+        {waiting > 0 ? (
           <Badge variant="count">
-            {items.length}
+            {waiting}
             <span className="sr-only"> waiting</span>
           </Badge>
         ) : null}
       </h2>
-      {items.length === 0 ? (
+      {waiting === 0 ? (
         <Card size="sm">
           <p className="px-(--card-spacing) font-semibold">All caught up.</p>
         </Card>
-      ) : (
+      ) : items.length === 0 ? null : (
         <Card size="sm" className="shadow-raised">
           <table className="hidden w-full text-left text-sm md:table">
             <thead>

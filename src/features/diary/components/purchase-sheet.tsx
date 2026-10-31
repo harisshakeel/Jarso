@@ -20,12 +20,19 @@ import { purchaseSchema } from "../schemas";
 
 type PurchaseSheetProps = { currency: string; userId: string };
 
-/** The child's main action: "Spent something?" opens a bottom sheet to record a purchase. */
-export function PurchaseSheet({ currency, userId }: PurchaseSheetProps) {
+/**
+ * "Spent something?" opens a bottom sheet to record a purchase. A keycap where it is the
+ * screen's one primary action (Diary); `outline` where another keycap leads (Home).
+ */
+export function PurchaseSheet({
+  currency,
+  userId,
+  variant = "keycap",
+}: PurchaseSheetProps & { variant?: "keycap" | "outline" }) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button variant="keycap" size="lg" className="w-full" />}>
+      <SheetTrigger render={<Button variant={variant} size="lg" className="w-full" />}>
         Spent something?
       </SheetTrigger>
       <PurchaseSheetContent currency={currency} userId={userId} onDone={() => setOpen(false)} />

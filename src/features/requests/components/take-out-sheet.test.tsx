@@ -44,7 +44,11 @@ describe("TakeOutSheet", () => {
     expect(input.amount).toBe("4");
     expect(input.reason).toBe("Bike");
     expect(input.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
-    expect(refresh).toHaveBeenCalled();
+    // Home refreshes only when the child closes the sheet, so the screen behind can't change
+    // under them (e.g. the goal-reached step being replaced while the sheet is open).
+    expect(refresh).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
   });
 
   it("says a parent will hand it over when it is approved", async () => {

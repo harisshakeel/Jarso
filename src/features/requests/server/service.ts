@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { assertUser } from "@/features/auth/server";
 // Savings requests: a child asks to take money out of Save or records money put into it.
 import {
@@ -43,7 +44,7 @@ async function childOf(requestId: string): Promise<string> {
 }
 
 /** Jar balances, what is promised, and how much more the child may take out right now. */
-export async function getAvailability(childId: string): Promise<Availability> {
+export const getAvailability = cache(async (childId: string): Promise<Availability> => {
   await assertSelfOrParentOf(childId);
   const db = await createClient();
   const [balances, capRemaining] = await Promise.all([
@@ -55,13 +56,13 @@ export async function getAvailability(childId: string): Promise<Availability> {
     takeOutLimitMinor:
       capRemaining === null ? null : Math.min(balances.availableSaveMinor, capRemaining),
   };
-}
+});
 
 /** A child's requests, newest first. The child or a parent. */
-export async function listRequests(childId: string): Promise<SavingsRequest[]> {
+export const listRequests = cache(async (childId: string): Promise<SavingsRequest[]> => {
   await assertSelfOrParentOf(childId);
   return listRequestsFor(await createClient(), childId);
-}
+});
 
 /** Pending and approved withdrawals and pending deposits. Parent only; a read, so it works behind the profile dialog. */
 export async function listRequestsNeedingParent(childId: string): Promise<SavingsRequest[]> {

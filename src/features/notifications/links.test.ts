@@ -31,8 +31,8 @@ describe("noticeHref", () => {
     expect(noticeHref({ ...base, sourceType: "request" }, "child")).toBe(routes.child);
     expect(noticeHref(base, "child")).toBe(routes.child);
   });
-  it("child ledger entry opens Home until the diary page exists", () => {
-    expect(noticeHref({ ...base, sourceType: "ledger_entry" }, "child")).toBe(routes.child);
+  it("child ledger entry opens the diary", () => {
+    expect(noticeHref({ ...base, sourceType: "ledger_entry" }, "child")).toBe(routes.childDiary);
   });
 });
 

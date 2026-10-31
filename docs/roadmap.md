@@ -19,7 +19,7 @@ Dates to be set. Tracks run in parallel; an arrow means "after".
 | FR13 | Family accounts and onboarding | Built | — | Email confirmation back on, slice 1 fixes |
 | FR01 | Allowance schedule and handover | Built, except the reminder | Handover reminder | — |
 | FR03 | Spend and Save jars | Balances, split at handover, history | Deposits and withdrawals between jars; effect on the goal | — |
-| FR04 | Money diary | Purchases and undo | — | Money received, corrections, diary screen |
+| FR04 | Money diary | Purchases and undo | Diary tab with history and Undo | Money received, corrections |
 | FR14 | Purchases, limits, deposits, withdrawals | Purchases, overspend rule, money rules, limit notice rows | Deposits, withdrawals, reservations, cap, auto-approve, auto-confirm | — |
 | FR06 | Interactive daily learning | Built | — | — |
 | FR08 | Related learning material | Built | — | — |
@@ -32,7 +32,7 @@ Dates to be set. Tracks run in parallel; an arrow means "after".
 | FR05 | Predict before deciding | — | — | Predict, reveal, try other choices |
 | FR11 | Weekly review | — | — | Weekly summary with a fresh question |
 | Design | Landing page | Built: scroll-driven landing page with the coded hero and the jar thread (#34, #35) | — | — |
-| Design | Child dashboard | Next step, jars, learning summary | Gamified dashboard | Weekly review card |
+| Design | Child dashboard | Next step, jars, learning summary | Jar Home: the jars are the screen | Weekly review card |
 
 First-milestone acceptance criteria (`REQUIREMENTS.md`): all 13 met once the requests slice (PR B) merges.
 
@@ -71,7 +71,7 @@ Sizes below are relative effort (S < M < L), not dates.
 | 2 | **Inbox and reminders, in-app only.** Inbox and unread badge for both roles; handover reminders (the due day, then every 3 days); notices open the record's current state. No email, no `notification_deliveries` and no `/api/cron` route yet: email moves to the final demo with web push. | FR16, FR01 | L | Written: first-milestone design, slice 5 | 1, for request notices |
 | 3 | **Savings goal.** One goal per child; a plan per allowance; progress net of reserved withdrawals; payments-left estimate; the goal's effect shown on the jars and the handover screen; goal and pending requests in the next step on both homes. Built straight after slice 7 (product owner, 2026-10-30): reserved money counts as zero until slice 1 lands. | FR02, FR03, FR12 | M | To write | 7 |
 | 4 | **Landing page.** Replaces the sign-in page at `/`: the coded hero (the kid's question, the toss, the savings loop), How it works with live demos, the money guide, parent and child side by side, the safety statement and both ways in, joined by the jar's outline as one thread; light and dark, reduced motion, SEO and a sitemap. | — | M | Built: `superpowers/specs/2026-10-30-landing-page-design.md` (#34, #35) | Done |
-| 5 | **Gamified child dashboard.** Child Home rebuilt as the child's hub: the next step as today's mission; Spend and Save as jars that fill; the goal as a journey with milestones; the learning path with skill badges (Started, Practised, Got it); learning days this week; recognition for understanding and thoughtful decisions (FR12). Parent Home stays calm, adding each child's progress at a glance. Designed in Figma first. | FR12, FR02, FR10 | L | To design | 3; 2 for the inbox badge |
+| 5 | **Jar Home.** Child Home built around two jars: "Do this next" (goal reached, a withdrawal a parent said yes to, the learning order, set a goal, all done), Spend and Save side by side with the Save jar filling to the goal's line, due money as a coin outside the jars, open requests under their jar, and a strip of skills learned (counts that only go up, no day grid). History moves to a Diary tab. Parent Home leads with Needs you (due handovers, requests, unread limit notices) and shows each child's jars small with the goal line. Designed from the HTML mockup the user approved, with no Figma step and no milestone road. | FR12, FR02, FR03, FR04, FR10 | L | Built: `superpowers/specs/2026-10-30-inbox-goal-jar-home-design.md` §6 | 3; 2 for the inbox badge |
 | 7 | **Jarso, the agent (child).** "Ask Jarso" at the top of the child's Home; read-only look-ups of the child's own jars, allowance, history, rules and learning, and a saving plan for a price they give; figures filled in by the app; status lines while it works; on by default with a parent switch to turn it off; parents see what it looked at; Claude Sonnet 5.5; `instructions.md` for its voice. | FR07, FR09 | L | Written: `superpowers/specs/2026-10-30-jarso-agent-design.md`, ADR 0011 | Done (this slice) |
 | 8 | **Jarso knows the goal, and remembers.** `get_goal` over the savings goal ("how much more for my bike?" without giving the price); structured memory (short typed facts, at most 20, 90 days, checked for personal details, shown to child and parent with delete). | FR07, FR02 | M | Plan in the agent spec §8 | 3, 7 |
 | 6 | **Demo hardening.** Demo clock (D11) with the injectable clock in the remaining time functions; a seed family with two children; a full-milestone e2e; each acceptance criterion mapped to a test; a design polish pass. | All | M | Written: first-milestone design, slice 6 | 1–5 |

@@ -56,3 +56,16 @@ Tailwind v4 + shadcn/ui, Supabase (`@supabase/ssr`), Zod, Biome, Husky, Vitest, 
 - [x] Screens: child purchase sheet and undo; parent money rules page with overspend switch
 - [x] E2E: `tests/e2e/purchases.spec.ts`
 - [x] Slice 4: savings deposits and withdrawals as requests (`requests` table, `create_request`, `decide_request`, `complete_request`), withdrawal cap and auto-approve / auto-confirm rules in use, request screens, notices for requests
+
+# Demo 2: inbox, savings goal, jar Home (plan 2026-10-30)
+
+- [x] PR C: in-app inbox and handover reminders (#37)
+- [x] Slice 4: savings withdrawals and deposits (#40)
+- [x] PR D: personal savings goal (#41)
+- [x] PR E: jar Home — JarIllustration, jar scale and next step, child Home around the jars, Diary tab, parent Home with Needs you and mini jars, docs
+
+## Review (PR E)
+
+- `pnpm check`, `pnpm build`, `pnpm db:test` and the full `pnpm test:e2e` green before the PR; results in the PR description.
+- Not done here: an axe check (no axe dependency in the repo); the goal-reached moment is unit-tested, not end to end.
+- Next: slice 6, demo hardening (demo clock, seed family, full milestone e2e).

@@ -1,13 +1,14 @@
 "use client";
 
-import { GraduationCapIcon, HomeIcon, InboxIcon } from "lucide-react";
+import { GraduationCapIcon, HomeIcon, InboxIcon, NotebookPenIcon } from "lucide-react";
 import { routes } from "@/config";
 import { BottomNav, type BottomNavItem } from "./bottom-nav";
 
 // Icons are components, which can't cross the server → client boundary, so the tabs live here.
-// design.md §5: Home · Jars · Diary · Learn · Inbox; later slices add the rest as they ship.
+// design.md §5: Home · Diary · Learn · Inbox. Home is the jars, so there is no Jars tab.
 const items: BottomNavItem[] = [
   { href: routes.child, label: "Home", icon: HomeIcon },
+  { href: routes.childDiary, label: "Diary", icon: NotebookPenIcon },
   { href: routes.childLearn, label: "Learn", icon: GraduationCapIcon },
   { href: routes.childInbox, label: "Inbox", icon: InboxIcon },
 ];

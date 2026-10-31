@@ -159,7 +159,7 @@ Design at 360 px first, then 768 and 1024. Single column on phones; parent scree
 
 | Child | Parent |
 | --- | --- |
-| Home · Jars · Diary · Learn · Inbox | Home · Requests · Allowance · Inbox |
+| Home · Diary · Learn · Inbox | Home · Allowance · Inbox |
 
 Tab bar height 64 px plus the safe-area inset, icons 24 px, labels 12 px 600, active tab primary with a filled icon. The Inbox tab shows a count badge in gold with ink text. Family settings live under the parent's Home.
 
@@ -178,13 +178,13 @@ Built on the existing shadcn primitives in `src/components/ui`. Add with `pnpm d
 | Button | Pill. Default = primary teal-700 with white text; `outline` on canvas with the hairline for secondary actions; `ghost` in lists; `destructive` only for irreversible actions. Height 44 px (`lg`) for any action a child taps; 36 px allowed in parent tables. Loading state keeps width and shows a spinner. |
 | Keycap button | The child's one primary action per screen (Record purchase, Ask a parent, Confirm). Primary pill plus the keycap shadow: a 3 px teal-900 ledge below; pressed state drops the ledge and moves 2 px down. Gold keycap (gold fill, ink text, gold-700 ledge) only for money moments such as confirming a handover. Never more than one keycap per screen. |
 | Card | White surface, 20 px radius, border, optional soft shadow when it is the page's primary card. |
-| Jar card | Mark-shaped illustration on the left, jar name, Money L balance, a one-line status chip (due, reserved). Spend is teal, Save is gold. |
-| Progress | Goal: ring on the goal card, bar in lists. Gold on teal-100. Shows amount saved, remaining and estimated payments. |
+| Jar shelf (child Home) | The two jars side by side at every width, drawn with `JarIllustration`: under each, the jar name, Money L balance, a one-line caption ("Cash you have", "Kept by your parent"), open requests as plain lines, and the jar's buttons. With a goal the Save jar's full height is the goal's price: counted money is gold, money waiting to come out is a hatched band, and a dashed goal line with the goal's emoji marks the top. Money that is due floats outside as a dashed coin. A key in words sits under the shelf. The parent's child card shows the same two jars small. |
+| Progress | Goal: the Save jar's goal line on child Home; a line of text elsewhere ("⚽ Football boots · £26 of £45 · plans £4 each allowance"). Always says amount saved, remaining and the estimated payments in words. |
 | Status chip | See 2.5. Icon plus word, never colour alone. |
 | Badge (count) | Gold fill, ink text, min 20 px, on Inbox tab and request lists. |
 | Inbox item | Icon in a tinted circle, one-line title, one-line detail, relative time, chevron. Unread has a teal-100 background. |
 | Request card | Amount in Money, reason, status chip, who asked, and the one action available to this role. |
-| Handover sheet (parent) | Bottom sheet: due amount, two inputs (cash to child, kept as savings) prefilled from the child's plan, running total must equal the due amount, one confirm button. |
+| Handover sheet (parent) | Bottom sheet: due amount, two inputs (cash to child, kept as savings) starting from the previous handover's split, running total must equal the due amount, one confirm button. When the child has a goal with a plan, one note line says so ("Maya plans to save £4 each time toward ⚽ Football boots"); it never changes the split. |
 | Forms | Label above, 44 px input, helper text below, error text in destructive with icon, `aria-invalid` and `aria-describedby` wired (already in `Field`). |
 | Empty state | Mark illustration, one sentence, one action. |
 | Toast | Sonner, bottom above the tab bar, 4 s, never for errors that need action. |
@@ -203,7 +203,7 @@ Primitives to add next: `badge`, `progress`, `tabs`, `sheet`, `dialog`, `avatar`
 ## 7. Iconography and illustration
 
 - **Lucide** icons only, 24 px in navigation and 20 px inline, stroke 2. Prefer filled variants only for the active tab.
-- **Jar illustrations** are SVGs drawn from the mark: an outline jar that fills with teal or gold to the balance ratio, coins as gold ellipses with a teal-800 rim as in the mark. One component, `JarIllustration`, with `jar`, `fill` and `size` props.
+- **Jar illustrations** are SVGs drawn from the mark: an outline jar that fills with teal or gold to the balance ratio, coins as gold ellipses with a teal-800 rim as in the mark. One component, `JarIllustration` (`@/components/jar`), with `jar`, `capacityMinor`, `filledMinor`, `reservedMinor`, `goal`, `dueCoin` and `size` props. It is decorative (`aria-hidden`); every amount is also written beside it.
 - **Coins** appear only where money moves: handover confirmed, deposit confirmed, goal reached.
 - No emoji in UI chrome. Emoji may appear in child-authored labels.
 
