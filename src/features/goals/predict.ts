@@ -82,7 +82,7 @@ export function explainOutcome(
   if (outcome.actual === "same") {
     return `Your ${goalName} stays just where it is: ${money(outcome.remainingAfter)} to go.`;
   }
-  if (outcome.before !== null && outcome.after !== null) {
+  if (outcome.before !== null && outcome.after !== null && outcome.before !== outcome.after) {
     const direction = outcome.actual === "closer" ? "closer" : "further off";
     return `Your ${goalName} would be about ${allowances(outcome.after)} away instead of ${allowances(outcome.before)}: ${direction}.`;
   }
