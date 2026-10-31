@@ -7,6 +7,7 @@ const env = vi.hoisted(() => ({
 const actions = vi.hoisted(() => ({
   subscribePushAction: vi.fn(),
   unsubscribePushAction: vi.fn(),
+  pushOwnedAction: vi.fn(),
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 
@@ -56,6 +57,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   env.client.NEXT_PUBLIC_VAPID_PUBLIC_KEY = "QUJD";
   pushManager.getSubscription.mockResolvedValue(null);
+  actions.pushOwnedAction.mockResolvedValue({ ok: true, data: { owned: true } });
   requestPermission.mockResolvedValue("granted");
   installBrowser();
 });
@@ -89,10 +91,24 @@ describe("PushToggle", () => {
     expect(screen.getByRole("switch")).toHaveAttribute("aria-disabled", "true");
   });
 
-  it("shows on when this browser already subscribed", async () => {
+  it("shows on when this browser's subscription is this account's", async () => {
     pushManager.getSubscription.mockResolvedValue(subscription);
     render(<PushToggle />);
     await waitFor(() => expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "true"));
+    expect(actions.pushOwnedAction).toHaveBeenCalledWith(null, {
+      endpoint: "https://push.example.test/abc",
+    });
+  });
+
+  it("shows off when the browser's subscription belongs to another account", async () => {
+    pushManager.getSubscription.mockResolvedValue(subscription);
+    actions.pushOwnedAction.mockResolvedValue({ ok: true, data: { owned: false } });
+    render(<PushToggle />);
+    await waitFor(() =>
+      expect(screen.getByRole("switch")).not.toHaveAttribute("aria-disabled", "true"),
+    );
+    expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "false");
+    expect(subscription.unsubscribe).not.toHaveBeenCalled();
   });
 
   it("asks permission, subscribes and tells the server", async () => {

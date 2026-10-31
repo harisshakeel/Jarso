@@ -2,12 +2,13 @@
 import "server-only";
 
 export { sendEmail } from "./email";
-export { dispatchPush, isPushConfigured, pushAfterNotices } from "./push";
+export { dispatchPush, drainPush, isPushConfigured, pushAfterNotices } from "./push";
 export {
   getUnreadCount,
   listNotices,
   listUnreadNotices,
   markRead,
+  ownsPushEndpoint,
   subscribePush,
   unsubscribePush,
 } from "./service";

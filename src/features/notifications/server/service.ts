@@ -7,6 +7,7 @@ import {
   fetchUnreadCount,
   listNoticeRows,
   listUnreadRows,
+  ownsSubscription,
   removeSubscription,
   saveSubscription,
   setRead,
@@ -54,6 +55,16 @@ export async function subscribePush(
 ): Promise<void> {
   await assertUser();
   await saveSubscription(await createClient(), input, describeAgent(userAgent));
+}
+
+/**
+ * On a browser two accounts share, the browser's subscription may belong to the other account
+ * (`push_subscribe` moves an endpoint to its latest subscriber). The switch shows "on" only
+ * when the signed-in account owns it.
+ */
+export async function ownsPushEndpoint(endpoint: string): Promise<{ owned: boolean }> {
+  await assertUser();
+  return { owned: await ownsSubscription(await createClient(), endpoint) };
 }
 
 export async function unsubscribePush(endpoint: string): Promise<{ removed: boolean }> {
