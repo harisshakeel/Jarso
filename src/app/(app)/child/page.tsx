@@ -4,7 +4,7 @@ import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
-import { ChildAllowanceCard } from "@/features/allowance";
+import { ChildAllowanceCard, runningSchedule } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
 import { PendingPurchases, PurchaseSheet, UndoButton } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
@@ -36,7 +36,7 @@ async function ChildHome() {
     <>
       <h1 className="rise-in text-balance text-display">{nickname ? `Hi, ${nickname}!` : "Hi!"}</h1>
       <Suspense fallback={null}>
-        <HomeJarso childId={user.id} hasAllowance={!!schedule && schedule.status !== "stopped"} />
+        <HomeJarso childId={user.id} hasAllowance={!!runningSchedule(schedule)} />
       </Suspense>
       <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
         <NextStep childId={user.id} />
