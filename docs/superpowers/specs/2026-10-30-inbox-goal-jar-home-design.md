@@ -68,7 +68,7 @@ The user's direction: the child's UI must not be confusing, must be quick to gra
   - Child: `/child/inbox`. Parent: `/parent/inbox`.
   - Both show newest first, with the Inbox item component (`docs/design.md` §6). Unread rows get a teal-100 background.
   - The parent's inbox covers all their children (D12).
-- **Unread badge** on the Inbox nav item for both roles (gold, ink text). The count is read on the server inside `<Suspense>` and refreshes when the user navigates. No realtime connection (my call).
+- **Unread badge** on the Inbox nav item for both roles (gold, ink text). The count is read on the server inside `<Suspense>` and refreshes when the user navigates. Superseded 2026-10-31: the inbox is now live over Supabase Realtime (see `docs/architecture.md` §8).
 - **Read state.**
   - Opening a notice marks it read.
   - There is also a "Mark all as read" button.

@@ -120,7 +120,8 @@ test("purchase recorded once after a lost response", async () => {
 
   await spend("30", "Lost reply");
   await expect(history().getByText("Lost reply")).toBeVisible();
-  expect(calls).toBeGreaterThan(1);
+  // A live inbox refresh can show the recorded purchase before the outbox retry runs.
+  await expect.poll(() => calls).toBeGreaterThan(1);
   await expect(spendJar()).toContainText("US$50");
   await child.unroute("**/api/v1/outbox");
 

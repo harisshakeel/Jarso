@@ -176,3 +176,45 @@ test("Show more pages through a long inbox with no repeats and no gaps", async (
   const spent = all.filter((text) => text.includes("went over a spending limit"));
   expect(spent).toHaveLength(22);
 });
+
+test("a new notice arrives live: toast, badge and inbox update without a reload", async () => {
+  const admin = createClient(local?.url ?? "", local?.secretKey ?? "", {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: users } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const owner = users?.users.find((user) => user.email === `e2e-inbox-${run}@example.com`);
+  const { data: existing } = await admin
+    .from("notifications")
+    .select("family_id, child_id")
+    .eq("recipient_id", owner?.id ?? "")
+    .limit(1)
+    .single();
+
+  // Wait for the live channel to join, so the insert below is not sent before anyone listens.
+  const subscribed = new Promise<void>((resolve) => {
+    parent.on("websocket", (ws) =>
+      ws.on("framereceived", ({ payload }) => {
+        if (String(payload).includes("Subscribed to PostgreSQL")) resolve();
+      }),
+    );
+  });
+  await parent.goto("/parent/inbox");
+  await subscribed;
+  await parent.getByRole("button", { name: "Mark all as read" }).click();
+  await expect(parentInboxTab()).not.toContainText(/\d/);
+
+  const { error } = await admin.from("notifications").insert({
+    family_id: existing?.family_id,
+    recipient_id: owner?.id,
+    child_id: existing?.child_id,
+    kind: "deposit_requested",
+    source_type: "request",
+    source_id: randomUUID(),
+    payload: { amount_minor: 250 },
+  });
+  expect(error).toBeNull();
+
+  await expect(parent.getByText("Your child asked to add money to Save")).toBeVisible();
+  await expect(parentInboxTab()).toContainText("1");
+  await expect(parent.getByRole("link", { name: /Sam asked to add money to Save/ })).toBeVisible();
+});

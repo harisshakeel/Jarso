@@ -315,6 +315,29 @@ describe("MissionPlayer", () => {
     expect(screen.getByRole("heading", { name: "Replay two?" })).toBeInTheDocument();
   });
 
+  it("keeps its step number when a refresh hands down new step objects", () => {
+    const results: StepResult[] = [
+      { stepKey: "intro", phase: "main", correct: true, hintsUsed: 0, tries: 1 },
+      { stepKey: "one", phase: "main", correct: true, hintsUsed: 0, tries: 1 },
+    ];
+    const player = (s: Step[]) => (
+      <MissionPlayer
+        mode={{ kind: "mission", missionKey: "m1", attemptId: ATTEMPT_ID, results }}
+        steps={s}
+        currency="GBP"
+        userId={USER_ID}
+        intro={{ eyebrow: "Day 1", heading: "Mission one", body: "About three minutes." }}
+        doneHref={"/child/learn" as never}
+        doneLabel="Back to Learn"
+      />
+    );
+    const { rerender } = render(player(steps));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getByText("Step 3 of 3")).toBeInTheDocument();
+    rerender(player(structuredClone(steps)));
+    expect(screen.getByText("Step 3 of 3")).toBeInTheDocument();
+  });
+
   it("finishes straight away when every step was already answered", async () => {
     renderMission(ATTEMPT_ID, [
       { stepKey: "one", phase: "main", correct: true, hintsUsed: 0, tries: 1 },

@@ -564,6 +564,7 @@ flowchart LR
 
 - Notifications are created inside the same transaction as the record change, so a posted handover always has its notification.
 - The inbox is just `notifications` filtered by recipient; no delivery step can lose it.
+- The inbox is live: `notifications` is in the `supabase_realtime` publication, and `NoticeListener` (mounted in both role layouts) subscribes over Supabase Realtime's WebSocket to the user's own inserts and updates. RLS applies to each change. On a change it calls `router.refresh()`, so the badge, inbox and "Needs you" re-render from the server; new notices also toast. After a dropped connection comes back it refreshes once to catch up. If Realtime is down, everything still updates on navigation.
 - Email goes to parents for `due`, `reminder`, `request_new` and `limit_notice`; children get inbox only in the pilot. Batching rule: at most one email per parent per hour, grouping pending items.
 - Push is opt-in per device (`push_subscriptions`), added later in the pilot with the PWA.
 - The dispatcher is idempotent per delivery row and backs off (1, 5, 30, 120 minutes), then marks `dead`. A weekly query lists dead deliveries.

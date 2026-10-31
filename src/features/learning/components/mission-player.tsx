@@ -428,24 +428,20 @@ export function MissionPlayer(props: MissionPlayerProps) {
   const item = queue[index];
   if (!item) return null;
   const replayStart = queue.findIndex((i) => i.phase === "replay");
+  // By key, not identity: a refresh hands down new step objects while the queue keeps the old ones.
+  const stepIndex = steps.findIndex((s) => s.key === item.step.key);
   const position =
     item.phase === "replay"
       ? `One more look: ${index - replayStart + 1} of ${queue.length - replayStart}`
       : mode.kind === "mission"
-        ? `Step ${steps.indexOf(item.step) + 1} of ${mainTotal}`
+        ? `Step ${stepIndex + 1} of ${mainTotal}`
         : `Question ${index + 1} of ${queue.length}`;
 
   return (
     <div className="grid gap-4">
       <ProgressDots
         label={PROGRESS_LABEL[mode.kind]}
-        done={
-          item.phase === "replay"
-            ? mainTotal
-            : mode.kind === "mission"
-              ? steps.indexOf(item.step)
-              : index
-        }
+        done={item.phase === "replay" ? mainTotal : mode.kind === "mission" ? stepIndex : index}
         total={mainTotal}
       />
       <SavedOnDevice userId={userId} />
