@@ -140,4 +140,9 @@ describe("PurchaseSheet", () => {
     );
     expect(submitToOutbox).not.toHaveBeenCalled();
   });
+
+  it("can open from a quiet button so a screen keeps one keycap", () => {
+    render(<PurchaseSheet currency="GBP" userId="child-1" variant="outline" />);
+    expect(screen.getByRole("button", { name: "Spent something?" })).not.toHaveClass("keycap");
+  });
 });

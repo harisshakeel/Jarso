@@ -140,4 +140,26 @@ describe("JarShelf", () => {
     expect(screen.getByText("Waiting to come out")).toBeInTheDocument();
     expect(screen.getByText("On its way")).toBeInTheDocument();
   });
+
+  it("writes how much counts toward the goal when some is waiting to come out", () => {
+    shelf();
+    expect(screen.getByText("£26 counts toward it")).toBeInTheDocument();
+  });
+
+  it("draws due money between the jars, not on the Save jar", () => {
+    const { container } = render(
+      <JarShelf
+        currency="GBP"
+        userId="c1"
+        availability={availability}
+        rules={[]}
+        goal={null}
+        allowanceMinor={500}
+        dueMinor={500}
+        openRequests={[]}
+      />,
+    );
+    expect(container.querySelector("[data-due-coin]")).toBeNull();
+    expect(screen.getByText("£5 on its way · waiting for a parent")).toBeInTheDocument();
+  });
 });

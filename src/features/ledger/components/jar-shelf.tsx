@@ -82,7 +82,7 @@ export function JarShelf({
             </p>
           ))}
           <div className="grid w-full gap-2">
-            <PurchaseSheet currency={currency} userId={userId} />
+            <PurchaseSheet currency={currency} userId={userId} variant="outline" />
             <PutInSheet
               currency={currency}
               availableSpendMinor={availability.availableSpendMinor}
@@ -100,12 +100,11 @@ export function JarShelf({
             filledMinor={countedMinor}
             reservedMinor={reservedSaveMinor}
             goal={goal ? { emoji: goal.goal.emoji } : null}
-            dueCoin={dueMinor > 0 ? money(dueMinor) : null}
           />
           <h2 className="font-bold text-gold-text text-h3">Save</h2>
           <p className="money font-extrabold text-money-l">{money(saveMinor)}</p>
           <p className="text-ink-2 text-sm">Kept by your parent</p>
-          {goal ? <GoalLines goal={goal} money={money} /> : null}
+          {goal ? <GoalLines goal={goal} money={money} reservedMinor={reservedSaveMinor} /> : null}
           {withdrawals.map((r) => (
             <p key={r.id} className="text-ink-2 text-sm">
               {requestChip(r, money)}
@@ -157,15 +156,21 @@ export function JarShelf({
 function GoalLines({
   goal: { goal, progress },
   money,
+  reservedMinor,
 }: {
   goal: NonNullable<GoalView>;
   money: (minor: number) => string;
+  reservedMinor: number;
 }) {
   return (
     <div className="grid gap-1 text-sm">
       <p className="font-semibold">
         {goal.emoji} {goal.name}, {money(goal.targetMinor)}.
       </p>
+      {/* With money waiting to come out, Save and "to go" don't add up unless we say this. */}
+      {reservedMinor > 0 && !progress.reached ? (
+        <p>{money(progress.countedMinor)} counts toward it</p>
+      ) : null}
       {progress.reached ? (
         <p className="font-bold">Goal reached</p>
       ) : progress.paymentsLeft === null ? (
