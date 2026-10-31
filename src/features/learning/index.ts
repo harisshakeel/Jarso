@@ -9,6 +9,7 @@ export * from "./components/path-map";
 export * from "./components/skill-list";
 export * from "./components/topic-view";
 export * from "./grade";
+export * from "./home-step";
 export * from "./journey";
 export * from "./schemas";
 export {
