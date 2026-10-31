@@ -25,6 +25,21 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  // Card handover (payments design §6.2). "none" turns payments off; "fake" is for tests and
+  // needs PAYMENTS_ALLOW_FAKE, never on Vercel production.
+  PAYMENTS_PROVIDER: z.enum(["none", "stripe", "fake"]).default("none"),
+  PAYMENTS_ALLOW_FAKE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  /** Test mode only: a live key is refused. */
+  STRIPE_SECRET_KEY: z
+    .string()
+    .regex(/^(sk|rk)_test_/, "Use a Stripe test-mode key (sk_test_… or rk_test_…)")
+    .optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
+  /** Bearer secret for the cron routes (Vercel Cron and pg_net). Unset: the routes are 404. */
+  CRON_SECRET: z.string().min(16).optional(),
   /** Set by Vercel: "production", "preview" or "development". */
   VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
 });

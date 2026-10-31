@@ -1,0 +1,7 @@
+{
+  "id": "evt_8",
+  "object": "event",
+  "type": "customer.created",
+  "livemode": false,
+  "data": { "object": { "id": "cus_1", "object": "customer" } }
+}
