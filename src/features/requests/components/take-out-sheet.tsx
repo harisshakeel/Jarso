@@ -24,15 +24,19 @@ type TakeOutSheetProps = {
   limitMinor: number;
   /** The child's active rules for taking money out, in plain words. */
   ruleLines?: string[];
+  /** A different button to open the sheet, e.g. "Ask to use my savings" when a goal is reached. */
+  trigger?: { label: string; variant?: "outline" | "keycap-gold" };
 };
 
 /** "Take out" on the Save jar: ask a parent for money from Save. */
-export function TakeOutSheet({ currency, limitMinor, ruleLines = [] }: TakeOutSheetProps) {
+export function TakeOutSheet({ currency, limitMinor, ruleLines = [], trigger }: TakeOutSheetProps) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button variant="outline" size="lg" className="flex-1" />}>
-        Take out
+      <SheetTrigger
+        render={<Button variant={trigger?.variant ?? "outline"} size="lg" className="flex-1" />}
+      >
+        {trigger?.label ?? "Take out"}
       </SheetTrigger>
       <SheetContent side="bottom" className="sm:mx-auto sm:w-full sm:max-w-lg">
         <SheetHeader>

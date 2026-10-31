@@ -2,11 +2,13 @@
 // Content (missions, topics, reviews) is NOT exported here: it is parsed on the server
 // (./content) and passed to the player as props, so it never ships in a shared bundle.
 export * from "./components/current-step";
+export * from "./components/home-step-card";
 export * from "./components/learning-summary";
 export * from "./components/mission-player";
 export * from "./components/next-step-card";
 export * from "./components/path-map";
 export * from "./components/skill-list";
+export * from "./components/skills-strip";
 export * from "./components/topic-view";
 export * from "./grade";
 export * from "./home-step";
