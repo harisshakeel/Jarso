@@ -1,14 +1,18 @@
 import "server-only";
 import { describeCadence } from "@/features/allowance";
 import { getSchedule, listDueForChild } from "@/features/allowance/server";
+import { getGoalView } from "@/features/goals/server";
 import { type NextStep, skillLevelLabels, skills } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
-import { getHistoryPage, getJars, type HistoryPage } from "@/features/ledger/server";
+import { getHistoryPage, type HistoryPage } from "@/features/ledger/server";
+import type { RequestStatus } from "@/features/requests";
+import { getAvailability, listRequests } from "@/features/requests/server";
 import { getChildRules } from "@/features/rules/server";
 import {
   addDays,
   familyToday,
   formatMoney,
+  localDateOf,
   logger,
   MAX_AMOUNT_MINOR,
   parseMoney,
@@ -41,6 +45,8 @@ import {
 
 /** Lines of money history the model sees at most. */
 const HISTORY_LINES = 10;
+/** Requests the model sees at most. */
+const REQUEST_LINES = 5;
 /** A label typed by a person, as the model sees it. */
 const LABEL_CHARS = 40;
 
@@ -111,6 +117,21 @@ function coversRange(page: HistoryPage, from: string): boolean {
   return !!oldest && oldest.occurredOn < from;
 }
 
+const REQUEST_STATUS: Record<RequestStatus, string> = {
+  pending: "waiting for a parent",
+  approved: "parent said yes; the hand-over is next",
+  handed_over: "done: handed over",
+  confirmed: "done: parent confirmed",
+  rejected: "parent said no",
+  cancelled: "cancelled",
+};
+
+const HISTORY_KIND: Record<string, string> = {
+  skipped: "allowance not given",
+  withdrawal: "taken out of Save into Spend (not new money)",
+  deposit: "put from Spend into Save (not new money)",
+};
+
 function nextStepText(step: NextStep): string {
   switch (step.kind) {
     case "resume":
@@ -128,11 +149,29 @@ function nextStepText(step: NextStep): string {
 
 const runners: { [N in ToolName]: Run<N> } = {
   async get_jars(_input, { childId, currency }, fact) {
-    const [jars, due] = await Promise.all([getJars(childId), listDueForChild(childId)]);
+    const [jars, due] = await Promise.all([getAvailability(childId), listDueForChild(childId)]);
     return {
-      spend: money(fact, "jars.spend", jars.spend, currency),
-      save: money(fact, "jars.save", jars.save, currency),
-      both_jars: money(fact, "jars.total", jars.spend + jars.save, currency),
+      spend: money(fact, "jars.spend", jars.spendMinor, currency),
+      save: money(fact, "jars.save", jars.saveMinor, currency),
+      both_jars: money(fact, "jars.total", jars.spendMinor + jars.saveMinor, currency),
+      waiting_to_come_out_of_save:
+        jars.reservedSaveMinor > 0
+          ? {
+              amount: money(fact, "jars.reserved", jars.reservedSaveMinor, currency),
+              note: "Asked to take out and not handed over yet: still in Save, but not free.",
+            }
+          : null,
+      waiting_to_go_into_save:
+        jars.heldSpendMinor > 0
+          ? {
+              amount: money(fact, "jars.held", jars.heldSpendMinor, currency),
+              note: "Asked to put in and not confirmed yet: still in Spend, but held.",
+            }
+          : null,
+      free_to_use: {
+        spend: money(fact, "jars.free_spend", jars.availableSpendMinor, currency),
+        save: money(fact, "jars.free_save", jars.availableSaveMinor, currency),
+      },
       allowance_waiting:
         due.count > 0
           ? {
@@ -186,12 +225,7 @@ const runners: { [N in ToolName]: Run<N> } = {
       const n = index + 1;
       return {
         date: fact(`history.${n}.date`, showDate(item.occurredOn)),
-        what:
-          item.kind === "skipped"
-            ? "allowance not given"
-            : item.undone
-              ? "purchase (undone)"
-              : item.kind,
+        what: item.undone ? "purchase (undone)" : (HISTORY_KIND[item.kind] ?? item.kind),
         label: cleanLabel(item.label),
         amount:
           item.amountMinor === null
@@ -246,6 +280,50 @@ const runners: { [N in ToolName]: Run<N> } = {
     };
   },
 
+  async get_goal(_input, { childId, currency }, fact) {
+    const view = await getGoalView(childId);
+    if (!view) {
+      return { has_goal: false, note: "No goal yet. The child can set one from their Save jar." };
+    }
+    const { goal, progress } = view;
+    return {
+      has_goal: true,
+      goal: cleanLabel(goal.name),
+      price: money(fact, "goal.price", goal.targetMinor, currency),
+      counts_toward_it: money(fact, "goal.saved", progress.countedMinor, currency),
+      still_needed: money(fact, "goal.still_needed", progress.remainingMinor, currency),
+      reached: progress.reached,
+      plan_per_allowance: goal.planMinor
+        ? money(fact, "goal.plan", goal.planMinor, currency)
+        : null,
+      allowances_left:
+        progress.paymentsLeft !== null && !progress.reached
+          ? fact("goal.allowances", String(progress.paymentsLeft))
+          : null,
+      how_full: fact("goal.percent", `${Math.floor(progress.fillRatio * 100)}%`),
+      note: "Only Save counts, less money waiting to come out. Due and pending money doesn't count.",
+    };
+  },
+
+  async get_requests(_input, { childId, currency, timezone }, fact) {
+    const requests = await listRequests(childId);
+    const shown = requests.slice(0, REQUEST_LINES);
+    return {
+      requests: shown.map((request, index) => {
+        const n = index + 1;
+        return {
+          what: request.kind === "withdrawal" ? "take out of Save" : "put into Save",
+          status: REQUEST_STATUS[request.status],
+          amount: money(fact, `requests.${n}.amount`, request.amountMinor, currency),
+          date: fact(`requests.${n}.date`, showDate(localDateOf(request.occurredAt, timezone))),
+          reason: request.reason ? cleanLabel(request.reason) : null,
+          automatic: request.auto,
+        };
+      }),
+      more_not_shown: Math.max(0, requests.length - shown.length),
+    };
+  },
+
   async plan_saving({ price, save_each }, { childId, currency }, fact) {
     const priceMinor = parseMoney(price, currency);
     if (!priceMinor || priceMinor > MAX_AMOUNT_MINOR) {
@@ -255,8 +333,9 @@ const runners: { [N in ToolName]: Run<N> } = {
     if (save_each !== null && (!eachMinor || eachMinor > MAX_AMOUNT_MINOR)) {
       return { error: "save_each must be a plain amount like 5, or null." };
     }
-    const [jars, schedule] = await Promise.all([getJars(childId), getSchedule(childId)]);
-    const needed = Math.max(0, priceMinor - jars.save);
+    const [jars, schedule] = await Promise.all([getAvailability(childId), getSchedule(childId)]);
+    // Like the goal: only free money counts, never money waiting to come out or go in.
+    const needed = Math.max(0, priceMinor - jars.availableSaveMinor);
     const allowance =
       schedule && schedule.status !== "stopped"
         ? {
@@ -269,9 +348,9 @@ const runners: { [N in ToolName]: Run<N> } = {
         : null;
     return {
       price: money(fact, "plan.price", priceMinor, currency),
-      in_spend: money(fact, "plan.in_spend", jars.spend, currency),
-      spend_covers_it: jars.spend >= priceMinor,
-      in_save: money(fact, "plan.in_save", jars.save, currency),
+      in_spend: money(fact, "plan.in_spend", jars.availableSpendMinor, currency),
+      spend_covers_it: jars.availableSpendMinor >= priceMinor,
+      in_save: money(fact, "plan.in_save", jars.availableSaveMinor, currency),
       still_needed: money(fact, "plan.still_needed", needed, currency),
       already_enough: needed === 0,
       save_each: eachMinor ? money(fact, "plan.save_each", eachMinor, currency) : null,
@@ -280,7 +359,7 @@ const runners: { [N in ToolName]: Run<N> } = {
           ? fact("plan.allowances", String(Math.ceil(needed / eachMinor)))
           : null,
       allowance,
-      note: "Only the Save jar counts toward a price. Money that is due is not counted until it is handed over.",
+      note: "Only free money counts: Save less money waiting to come out, Spend less money waiting to go in. Money that is due is not counted until it is handed over.",
     };
   },
 };

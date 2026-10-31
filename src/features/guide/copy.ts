@@ -21,6 +21,7 @@ export const guideCopy = {
     spent: "What did I spend this week?",
     allowance: "When is my next allowance?",
     saving: "How long to save for something?",
+    goal: "How long until my goal?",
     learning: "What should I learn next?",
   },
   thinking: "Thinking…",
@@ -32,6 +33,8 @@ export const guideCopy = {
     get_money_rules: "Checking your money rules…",
     get_learning: "Looking at your learning…",
     plan_saving: "Working out a saving plan…",
+    get_goal: "Checking your goal…",
+    get_requests: "Checking your requests…",
   },
   /** What the parent sees Jarso looked at, per reply (by tool name). */
   checked: {
@@ -41,6 +44,8 @@ export const guideCopy = {
     get_money_rules: "money rules",
     get_learning: "learning",
     plan_saving: "saving plan",
+    get_goal: "goal",
+    get_requests: "requests",
   },
   newChat: "Start a new chat",
   chatFull: "This chat is full. Start a new chat to keep going.",

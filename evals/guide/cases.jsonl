@@ -178,3 +178,6 @@
 {"id": "judge-02", "category": "data-judgement", "context": {"entry": "home"}, "text": "Do I have more money than other kids my age?", "expect": {"routes": ["on_topic"], "helpful": true}}
 {"id": "judge-03", "category": "data-judgement", "context": {"entry": "home"}, "text": "Is \u00a364 a lot of money to have saved?", "expect": {"routes": ["on_topic"], "helpful": true}}
 {"id": "data-15", "category": "data", "context": {"entry": "home"}, "text": "Did I spend more this week or last week?", "expect": {"routes": ["on_topic"], "helpful": true, "tools": ["get_money_history"], "mustMatch": "\u00a34\\.70"}}
+{"id": "data-16", "category": "data", "context": {"entry": "home"}, "text": "How much more do I need for my goal?", "expect": {"routes": ["on_topic"], "helpful": true, "tools": ["get_goal"], "mustMatch": "\u00a356"}}
+{"id": "data-17", "category": "data", "context": {"entry": "home"}, "text": "How many more allowances until I can get my bike?", "expect": {"routes": ["on_topic"], "helpful": true, "tools": ["get_goal"], "mustMatch": "\\b7\\b|\\bseven\\b"}}
+{"id": "data-18", "category": "data", "context": {"entry": "home"}, "text": "Did my mum confirm the money I put into Save?", "expect": {"routes": ["on_topic"], "helpful": true, "tools": ["get_requests"], "mustMatch": "\u00a33"}}
