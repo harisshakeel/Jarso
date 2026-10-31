@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { HandoverForm, handoverParamsSchema, prefillSplit } from "@/features/allowance";
 import { getLastSplit, listDue } from "@/features/allowance/server";
+import { planNote } from "@/features/goals";
+import { getGoalView } from "@/features/goals/server";
+import { logger } from "@/lib";
 import { loadChild } from "../../../load-child";
 import { FormSkeleton, PageShell } from "../../../page-shell";
 
@@ -22,7 +25,16 @@ async function HandoverContent({
   const { kind, id } = parsed.data;
   const { child, currency } = await loadChild(childId, routes.parentHandover(childId, kind, id));
   const back = { href: routes.parentChild(childId), label: child.nickname };
-  const [due, last] = await Promise.all([listDue(childId), getLastSplit(childId)]);
+  const [due, last, goalView] = await Promise.all([
+    listDue(childId),
+    getLastSplit(childId),
+    // The goal note is a nice-to-have: a failed read must never block a handover.
+    getGoalView(childId).catch((error: unknown) => {
+      unstable_rethrow(error);
+      logger.warn("Goal note unavailable", { error });
+      return null;
+    }),
+  ]);
   const item = due.find((d) => d.kind === kind && d.id === id);
 
   if (!item) {
@@ -52,6 +64,7 @@ async function HandoverContent({
         note={item.note}
         prefill={prefillSplit(item.amountMinor, last)}
         hasPrevious={last !== null}
+        goalNote={planNote(child.nickname, goalView?.goal ?? null, currency)}
       />
       {item.kind === "gift" ? (
         <Link
