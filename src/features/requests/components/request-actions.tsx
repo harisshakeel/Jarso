@@ -1,5 +1,6 @@
 import { describeRuleForChild, type MoneyRule } from "@/features/rules";
 import { formatMoney } from "@/lib";
+import { takeOutLimit } from "../limit";
 import type { Availability } from "../types";
 import { PutInSheet } from "./put-in-sheet";
 import { TakeOutSheet } from "./take-out-sheet";
@@ -19,8 +20,7 @@ export function RequestActions({ availability, currency, rules }: RequestActions
     rules
       .filter((rule) => kinds.includes(rule.kind))
       .map((rule) => describeRuleForChild(rule, currency));
-  // `takeOutLimitMinor` is already no more than Save has free; null means no cap.
-  const limitMinor = availability.takeOutLimitMinor ?? availability.availableSaveMinor;
+  const limitMinor = takeOutLimit(availability);
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
   return (
     <div className="grid gap-2">

@@ -7,7 +7,8 @@ import { JarShelf } from "./jar-shelf";
 vi.mock("@/features/diary", () => ({
   PurchaseSheet: () => <button type="button">Spent something?</button>,
 }));
-vi.mock("@/features/requests", () => ({
+vi.mock("@/features/requests", async () => ({
+  ...(await import("@/features/requests/limit")),
   TakeOutSheet: () => <button type="button">Take out</button>,
   PutInSheet: () => <button type="button">Put in</button>,
 }));

@@ -6,6 +6,7 @@ import {
   PutInSheet,
   type SavingsRequest,
   TakeOutSheet,
+  takeOutLimit,
 } from "@/features/requests";
 import { describeRuleForChild, type MoneyRule } from "@/features/rules";
 import { formatMoney } from "@/lib";
@@ -56,7 +57,6 @@ export function JarShelf({
   const countedMinor = Math.max(saveMinor - reservedSaveMinor, 0);
   const shared = jarCapacity({ spendMinor, saveMinor, allowanceMinor, currency });
   const saveCapacity = goal ? goal.goal.targetMinor : shared;
-  const takeOutLimit = availability.takeOutLimitMinor ?? availability.availableSaveMinor;
   const deposits = openRequests.filter((r) => r.kind === "deposit");
   const withdrawals = openRequests.filter((r) => r.kind === "withdrawal");
 
@@ -113,7 +113,7 @@ export function JarShelf({
           <div className="grid w-full gap-2">
             <TakeOutSheet
               currency={currency}
-              limitMinor={takeOutLimit}
+              limitMinor={takeOutLimit(availability)}
               ruleLines={ruleLines(["withdrawal_cap", "withdrawal_auto_approve"])}
             />
             <GoalSheet

@@ -14,6 +14,7 @@ import { getGuideState } from "@/features/guide/server";
 import { chooseHomeStep, HomeStepCard, SkillsStrip } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { JarShelf } from "@/features/ledger";
+import { takeOutLimit } from "@/features/requests";
 import { getAvailability, listRequests } from "@/features/requests/server";
 import { getChildRules } from "@/features/rules/server";
 import { fallback, logger } from "@/lib";
@@ -97,7 +98,7 @@ async function HomeStep({
       <HomeStepCard
         step={step}
         currency={currency}
-        takeOutLimitMinor={availability.takeOutLimitMinor ?? availability.availableSaveMinor}
+        takeOutLimitMinor={takeOutLimit(availability)}
         goalSheet={{
           goal: goal?.goal ?? null,
           currency,
