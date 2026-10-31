@@ -47,6 +47,12 @@ async function ChildHome() {
       <Suspense fallback={<div aria-hidden className="shimmer h-16 rounded-xl bg-muted" />}>
         <HomeRequestActions childId={user.id} currency={family.currency} />
       </Suspense>
+      <Link
+        href={routes.childRequests}
+        className="-mt-3 inline-flex min-h-11 w-fit items-center rounded-full px-2 font-semibold text-primary text-sm underline-offset-4 hover:underline"
+      >
+        See your Save requests
+      </Link>
       <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
         <HomeGoal
           childId={user.id}
@@ -54,12 +60,6 @@ async function ChildHome() {
           allowanceMinor={runningSchedule(schedule)?.amountMinor ?? null}
         />
       </Suspense>
-      <Link
-        href={routes.childRequests}
-        className="-mt-3 inline-flex min-h-11 w-fit items-center rounded-full px-2 font-semibold text-primary text-sm underline-offset-4 hover:underline"
-      >
-        See your Save requests
-      </Link>
       <ChildAllowanceCard
         schedule={schedule}
         dueTotalMinor={due.totalMinor}
