@@ -1,7 +1,7 @@
 import { PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
@@ -20,6 +20,7 @@ import type { JarBalances } from "@/features/ledger";
 import { getJars } from "@/features/ledger/server";
 import { ParentRequestItems, type SavingsRequest } from "@/features/requests";
 import { listRequestsNeedingParent } from "@/features/requests/server";
+import { logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Your family" };
 
@@ -107,15 +108,23 @@ async function NeedsYouSection({ reads, currency }: { reads: ChildReads[]; curre
   return <NeedsYou items={mergeDue(perChild)} currency={currency} />;
 }
 
-/** Take-outs and put-ins waiting on a parent, across the family. */
+/** Take-outs and put-ins waiting on a parent. Hides itself on error so the family home stays. */
 async function RequestsSection({ reads, currency }: { reads: ChildReads[]; currency: string }) {
-  const perChild = await Promise.all(
-    reads.map(async ({ child, requests }) => ({ child, requests: await requests })),
-  );
-  const items = perChild.flatMap(({ child, requests }) =>
-    requests.map((request) => ({ nickname: child.nickname, request })),
-  );
-  return <ParentRequestItems items={items} currency={currency} />;
+  try {
+    const perChild = await Promise.all(
+      reads.map(async ({ child, requests }) => ({ child, requests: await requests })),
+    );
+    const items = perChild.flatMap(({ child, requests }) =>
+      requests.map((request) => ({ nickname: child.nickname, request })),
+    );
+    return <ParentRequestItems items={items} currency={currency} />;
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Parent requests unavailable", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    return null;
+  }
 }
 
 async function ChildCard({ read, currency }: { read: ChildReads; currency: string }) {

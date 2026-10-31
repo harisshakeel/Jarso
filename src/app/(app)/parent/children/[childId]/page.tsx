@@ -75,7 +75,7 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
   );
 }
 
-/** Take-outs and put-ins waiting on a parent, next to what is due. */
+/** Take-outs and put-ins waiting on a parent. Hides itself on error so jars stay visible. */
 async function ChildRequests({
   childId,
   nickname,
@@ -85,13 +85,21 @@ async function ChildRequests({
   nickname: string;
   currency: string;
 }) {
-  const requests = await listRequestsNeedingParent(childId);
-  return (
-    <ParentRequestItems
-      items={requests.map((request) => ({ nickname, request }))}
-      currency={currency}
-    />
-  );
+  try {
+    const requests = await listRequestsNeedingParent(childId);
+    return (
+      <ParentRequestItems
+        items={requests.map((request) => ({ nickname, request }))}
+        currency={currency}
+      />
+    );
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Child requests unavailable", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    return null;
+  }
 }
 
 /** Learning streams on its own and hides itself on error, so money stays visible. */
