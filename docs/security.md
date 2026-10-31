@@ -18,7 +18,9 @@ The Supabase **project URL** and its project ref are not secrets; they ship to e
 | `SUPABASE_SECRET_KEY` | Host env vars (server only) | `src/lib/supabase/admin.ts` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Host env vars (public) | browser + server clients |
 | `ANTHROPIC_API_KEY` | Vercel env vars (Production, sensitive); GitHub repository secret for the eval workflow | `features/guide/server/claude.ts` only (ADR 0010) |
-| `CRON_SECRET` (future) | Host env vars | cron Route Handlers |
+| `STRIPE_SECRET_KEY` (`sk_test_…`, test mode only) | Vercel env vars (sensitive) | `src/lib/payments/stripe/` only (ADR 0012) |
+| `STRIPE_WEBHOOK_SECRET` (`whsec_…`) | Vercel env vars (sensitive). A separate value for `stripe listen` in `.env.local` | the Stripe webhook verification in `src/lib/payments/stripe/` |
+| `CRON_SECRET` | Vercel env vars (sensitive), and the same value in Supabase Vault as `cron_secret` | `/api/cron/payments/auto-charge`; pg_cron reads the Vault copy through `trigger_auto_charge` |
 | Supabase access token, project DB password | CI repository secrets | migration job |
 | Local copies | `.env.local` (gitignored) | `pnpm dev` |
 
@@ -40,6 +42,7 @@ All three pattern lists (`extract-log.py`, `check-secrets.sh`, `.gitleaks.toml`)
 - **Authorization:** RLS on every table, per-operation policies, `(select auth.uid())`; the admin client only after explicit checks.
 - **CSRF:** Server Actions are protected by Next.js origin checks. `withApi` rejects non-GET Route Handler calls whose `Origin` matches neither the app URL nor the request host.
 - **CORS:** Route Handlers are same-origin; no permissive CORS headers on cookie-authenticated routes.
+- **Payments (ADR 0012):** test mode only (`STRIPE_SECRET_KEY` must be `sk_test_`/`rk_test_`, live-mode events are rejected). Card numbers never reach Jarso; only the provider's references, brand and last 4 are stored. The webhook route authenticates by signature, the cron route by a constant-time bearer check, and both fail closed (404 when payments are off or `CRON_SECRET` is unset). `fake` is refused on Vercel production. Logs carry payment IDs, provider refs and failure codes, never payment-method details or raw payloads. The child never sees card details or a failed charge.
 - **Input:** Zod on every external input; PostgREST parameterises queries; plpgsql uses `set search_path = ''`.
 - **Output:** React escaping; guide output rendered as text or HTML-escaped Markdown; `AppError` messages only, never raw errors.
 - **Headers:** `next.config.ts` sets `nosniff`, `X-Frame-Options: DENY`, referrer policy, permissions policy and HSTS. Add a Content-Security-Policy when the first third-party script arrives.
@@ -59,6 +62,9 @@ Assume any secret that touched a commit, a log, a chat or a screenshot is compro
    - Supabase access token (`sbp_…`): Dashboard → Account → Access Tokens → revoke; create a new one for CI.
    - Database password: Dashboard → Project Settings → Database → reset; update CI secrets.
    - Anthropic key: Console → API Keys → disable; create a new key; update host env vars.
+   - Stripe secret key (`sk_test_…`): Stripe dashboard (test mode) → Developers → API keys → roll the key (set an expiry on the old one, or none to cut it off at once); update `STRIPE_SECRET_KEY` on Vercel; redeploy.
+   - Stripe webhook secret (`whsec_…`): Developers → Webhooks → the endpoint → Roll secret; update `STRIPE_WEBHOOK_SECRET` on Vercel; redeploy. Events signed with the old secret are rejected (400) until then, and Stripe retries them.
+   - `CRON_SECRET`: generate a new value; update it in Vercel **and** in Supabase Vault in the same sitting (`select vault.update_secret(id, '<new cron secret ≥16 chars>') from vault.secrets where name = 'cron_secret'`, or edit it in the dashboard); redeploy. Until both match, pg_cron calls get 401 and the Vercel fallback covers the gap.
    - GitHub token: Settings → Developer settings → revoke.
 2. **Remove it from the repo.** A follow-up commit is not enough for a public repo because history is public. Rewrite history (`git filter-repo` or GitHub's documented process), force-push, and ask GitHub Support to purge cached views. Tell collaborators to re-clone.
 3. **Fix the log.** If it reached `.claude-logs/`, redact the file, extend the `REDACTIONS` list so the shape is caught next time, and commit both.

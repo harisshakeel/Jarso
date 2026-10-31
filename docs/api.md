@@ -9,7 +9,7 @@
 
 Both must stay thin and call the feature **service**.
 
-There is no `/api/cron` route yet. Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. A cron route arrives with email delivery in the final demo.
+Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. The one cron route today is `/api/cron/payments/auto-charge`, because charging a card needs app code (ADR 0012). More arrive with email delivery in the final demo.
 
 ## Server Actions
 
@@ -55,6 +55,8 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | PATCH | `/api/v1/me` | user | Update profile (`updateProfileSchema`) |
 | POST | `/api/v1/outbox` | child | One queued child action from the device outbox (`outboxRequestSchema`) |
 | POST | `/api/v1/guide/turns` | child | One message to Jarso, streamed as NDJSON (`askGuideSchema`) |
+| POST | `/api/v1/payments/webhooks/[provider]` | provider signature | A payment provider's signed event (ADR 0012) |
+| GET, POST | `/api/cron/payments/auto-charge` | `Authorization: Bearer <CRON_SECRET>` | Charge every due item with auto charge on |
 
 ### `POST /api/v1/outbox`
 
@@ -87,3 +89,20 @@ Called by the Ask Jarso window on the child's Home (`src/features/guide/send-tur
 - then `{ "type": "reply", "data": AskGuideResult }` (the screened reply, in one piece), or `{ "type": "error", "error": { "code", "message" } }`.
 
 No model text ever streams. `maxDuration` 60 s (the turn's own deadline is 45 s).
+
+### `POST /api/v1/payments/webhooks/[provider]`
+
+Called by the payment provider, never by our UI (`src/app/api/v1/payments/webhooks/[provider]/route.ts`). `[provider]` must be the active provider (`PAYMENTS_PROVIDER`); an unknown or inactive one, or payments set to `none`, returns 404. The route reads the raw body once with `req.text()`, passes it and the headers to `provider.parseWebhook` (signature check, live-mode rejection, event mapping), then calls `handleProviderEvent`. There is no session: the signature is the authentication, and Stripe's `whsec_…` secret is `STRIPE_WEBHOOK_SECRET`.
+
+| Status | Meaning |
+| --- | --- |
+| 200 `{ data: { received: true } }` | Handled, ignored (an event type we don't map), or a payment this database doesn't know. The provider stops retrying |
+| 400 `VALIDATION` | Bad signature, or a live-mode event |
+| 404 `NOT_FOUND` | Unknown provider, or payments off |
+| 5xx | A processing failure. The provider retries; the status machine and the `payment_webhook_events` key make a replay harmless |
+
+### `GET|POST /api/cron/payments/auto-charge`
+
+Calls `runAutoCharges()`: every due item with auto charge on, a saved card and no earlier auto attempt is claimed once and charged. Needs `Authorization: Bearer <CRON_SECRET>` (constant-time compare). Returns 404 when `CRON_SECRET` is unset or payments are off, and 401 for a wrong secret. pg_cron calls it hourly at :09 with POST through pg_net; a daily Vercel Cron (`vercel.json`, `30 3 * * *`) calls it with GET as a fallback. A missed or doubled run is harmless. `maxDuration` 60 s.
+
+`/dev/payments/fake` is a page, not an endpoint: the fake provider's hosted checkout for tests and local runs. It is a 404 unless `PAYMENTS_PROVIDER=fake`.
