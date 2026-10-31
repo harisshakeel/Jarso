@@ -1,6 +1,6 @@
 # Architecture
 
-Jarso is a single Next.js 16 application on Vercel, backed by one Supabase project (Postgres, Auth, Storage, pg_cron, Realtime), with email through a transactional provider and, later, web push and the Claude API. This document is the map: who talks to what, which module owns which data, how money moves, and where every planned component lives. Product scope is `REQUIREMENTS.md`; domain terms and invariants are `docs/domain.md`; visual system is `docs/design.md`; operational posture is the `production-readiness` skill.
+Jarso is a single Next.js 16 application on Vercel, backed by one Supabase project (Postgres, Auth, Storage, pg_cron, Realtime), with email through a transactional provider (invitations), web push (VAPID) and the Claude API. This document is the map: who talks to what, which module owns which data, how money moves, and where every planned component lives. Product scope is `REQUIREMENTS.md`; domain terms and invariants are `docs/domain.md`; visual system is `docs/design.md`; operational posture is the `production-readiness` skill.
 
 Diagrams are Mermaid and render on GitHub.
 
@@ -9,7 +9,7 @@ Diagrams are Mermaid and render on GitHub.
 1. **One source of truth for money.** The append-only `ledger_entries` table. Balances are derived, never stored as the truth. Only three paths write to it: a parent's handover confirmation, a child's recorded entry (purchase, gift, correction), and a request reaching its final state. Each path is a Postgres function running in one transaction.
 2. **Feature modules own their domain.** UI, validation, data access and business rules for one area live in `src/features/<name>/`. `src/app` routes and composes. Modules talk through barrels only.
 3. **Authorization in three layers, the database last and loudest.** Proxy redirects optimistically, the data access layer verifies the user and role, Row Level Security decides. A bug in app code cannot read another family's rows.
-4. **Records are authoritative, notifications are derived.** The inbox, email and push are projections of records. Delivery can fail; the record cannot be lost.
+4. **Records are authoritative, notifications are derived.** The inbox and push are projections of records. Delivery can fail; the record cannot be lost.
 5. **Idempotent by construction.** Every balance-changing write carries a key with a unique constraint. Retries, double taps and cron reruns are no-ops.
 6. **Small on purpose.** Sixty users, one region, one database, no queue broker, no second service. Escalation triggers are listed in the production-readiness skill.
 
@@ -34,9 +34,8 @@ flowchart LR
   app --> db
   app --> storage
   cron --> db
-  db -. database webhook .-> app
   app -->|send| email[Email provider<br/>Resend]
-  app -->|later| push[Browser push services<br/>VAPID]
+  app -->|web-push, VAPID| push[Browser push services]
   app -->|pilot, behind a flag| claude[Claude API<br/>Jarso]
   github[GitHub · CI · Dependabot] -->|push to main| vercel
   github -->|migrations| db
@@ -48,8 +47,8 @@ External dependencies and what happens when each is down:
 | --- | --- | --- |
 | Supabase Postgres + Auth | everything | App shows the error boundary; nothing is written; no silent fallback. |
 | pg_cron | due allowances, reminders, retention jobs | Occurrences generate late, never twice; next run catches up. |
-| Email provider | parent reminders, request notices | Inbox still has the item; delivery rows retry with backoff and dead-letter after 5 attempts. |
-| Browser push (later) | same events, opt-in | Inbox is the fallback by design (FR16). |
+| Email provider | invitation email (notices by email deferred: no sending domain) | Invitation code still shows on screen. |
+| Browser push | inbox events, opt-in per browser (ADR 0012) | Inbox is the record by design (FR16); a failed send is logged by status and not retried. |
 | Claude API | Jarso's answers and look-ups (ADR 0010, 0011) | Friendly fallback copy ("Jarso is taking a break"); a circuit breaker after 5 failures a minute; topic material still available. |
 | Vercel | hosting | Status page; nothing to do in-app. |
 
@@ -60,11 +59,11 @@ External dependencies and what happens when each is down:
 | `src/proxy.ts` | Vercel edge of every request | Refresh Supabase session cookie; optimistic redirects for protected and auth routes; attach a request id header. No data access. |
 | Server Components | Vercel function | Read data through services inside `<Suspense>`; never mutate. |
 | Server Actions (`createAction`) | Vercel function | Mutations from our own UI: validate with Zod, `assertUser()`, call a service, `refresh()`. |
-| Route Handlers (`withApi`) | Vercel function | Non-UI callers: cron triggers, webhooks, `/api/v1/*` for a future mobile app. CSRF origin check built in. |
+| Route Handlers (`withApi`) | Vercel function | Non-UI callers: the cron sweep, the device outbox, Jarso's stream, `/api/v1/*` for a future mobile app. CSRF origin check built in. |
 | Postgres functions (`rpc`) | Supabase | Every multi-row money write, PIN verification, due generation, limit evaluation. One transaction each. |
-| pg_cron jobs | Supabase | Hourly due-occurrence generation, reminder scheduling, notification dispatch kick, nightly retention and reconciliation. |
-| Database webhook → `/api/hooks/notifications` | Supabase → Vercel | Fires on `notification_deliveries` insert so email goes out within seconds; cron sweeps anything missed. |
-| Service worker (later) | Browser | Push subscription and offline shell for the installed PWA. |
+| pg_cron jobs | Supabase | Hourly due-occurrence generation and reminders, nightly retention. |
+| Vercel cron → `/api/cron/push` | Vercel | Daily sweep that pushes any notice of the last day no action pushed (`CRON_SECRET`). Actions push their own notices right away with `after()`. |
+| Service worker (`public/sw.js`) | Browser | Shows a push and opens the notice's record. Caches nothing; the device outbox is the offline story. |
 
 Rendering model: `cacheComponents` is on. Anything reading cookies, headers or the user's rows is request-time and renders inside `<Suspense>`. Shared content (lesson topics, marketing) uses `"use cache"` with tags. Per-user data is never placed in a shared cache.
 
@@ -94,8 +93,7 @@ src/
 │   │   └── parent/…              # home, requests, allowance, family, limits, inbox
 │   ├── api/
 │   │   ├── health/               # shallow + deep health
-│   │   ├── cron/[job]/           # CRON_SECRET-guarded triggers (fallback to pg_cron)
-│   │   ├── hooks/notifications/  # database webhook receiver
+│   │   ├── cron/push/            # CRON_SECRET-guarded daily push sweep
 │   │   └── v1/…                  # versioned API for non-UI callers
 │   └── auth/
 │       ├── callback/             # PKCE exchange (OAuth, same-browser links)
@@ -113,7 +111,7 @@ src/
 │   ├── diary/           diary UI over ledger entries (add, correct, undo)
 │   ├── learning/     ✅ missions, topics, hints, spaced review, check-in, skill progress (ADR 0009)
 │   ├── review/       ✅ weekly review (FR11) built in code from the week's history, goal, skills and review pool
-│   ├── notifications/   inbox, deliveries, channels (inbox, email, push), preferences
+│   ├── notifications/   inbox, web push (subscriptions, dispatcher, toggle), invitation email adapter
 │   └── guide/        ✅ Jarso: Claude-backed guide with read-only look-ups and FR09 boundaries (ADR 0010, 0011)
 ├── components/ui/      shadcn primitives + brand components (JarsoMark, JarIllustration, Money, StatusChip)
 ├── config/             routes, site, env (Zod-validated), feature flags
@@ -192,7 +190,6 @@ erDiagram
   profiles ||--o{ review_items : scheduled
   profiles ||--o{ weekly_reviews : receives
   profiles ||--o{ notifications : receives
-  notifications ||--o{ notification_deliveries : "sent via"
   profiles ||--o{ push_subscriptions : registers
   allowance_occurrences ||--o{ ledger_entries : "posts as"
   parent_gifts ||--o{ ledger_entries : "posts as"
@@ -374,20 +371,14 @@ erDiagram
     text body
     timestamptz read_at
   }
-  notification_deliveries {
-    uuid id PK
-    uuid notification_id FK
-    text channel "inbox | email | push"
-    text status "queued | sent | failed | dead"
-    int attempts
-    timestamptz next_attempt_at
-    text last_error
-  }
   push_subscriptions {
     uuid id PK
     uuid profile_id FK
-    text endpoint "unique"
-    jsonb keys
+    text endpoint "unique, https"
+    text p256dh
+    text auth
+    text user_agent "family only"
+    timestamptz last_used_at
   }
 ```
 
@@ -449,7 +440,7 @@ RLS helper predicates, all `stable` and `security definer`:
 | requests | child or parent of | child (self) via function | functions only | never |
 | goals, mission_progress, review_items | self or parent of (read) | self | self | self (goals archive only) |
 | notifications | recipient | functions only | recipient (`read_at` only) | never |
-| notification_deliveries, push_subscriptions | service role; subscriptions: self | self (subscriptions) | service role | self (subscriptions) |
+| push_subscriptions | self | `push_subscribe` only | `push_subscribe` only | `push_unsubscribe`; service role for gone endpoints |
 
 The DAL mirrors this at the app layer: `requireUser()` for pages, `assertUser()` for actions and handlers, plus `requireRole("parent" | "child")` and `assertParentOf(childId)` so a wrong-role request fails before the database is asked.
 
@@ -501,7 +492,7 @@ sequenceDiagram
   participant A as Server Action
   CR->>DB: generate_due_occurrences()
   DB->>DB: insert allowance_occurrences (schedule_id, period_key) on conflict do nothing
-  DB->>N: notifications(type=due) for child and parent; deliveries(inbox, email)
+  DB->>N: notifications(type=due) for child and parent
   P->>A: confirmHandover(occurrenceId, cashMinor, savedMinor, idemKey)
   A->>A: assertUser, assertParentOf(child)
   A->>DB: confirm_handover(...)
@@ -553,22 +544,20 @@ Withdrawal cap is checked against `available_save` at `pending` and again inside
 ```mermaid
 flowchart LR
   rec[(record change<br/>function)] --> n[(notifications)]
-  n --> d[(notification_deliveries<br/>inbox · email · push)]
-  d -->|inbox row is the inbox| ui[Inbox tab + badge]
-  d -->|webhook on insert| disp[/api/hooks/notifications<br/>dispatcher]
-  cr[pg_cron sweep<br/>every 10 min] --> disp
-  disp -->|Resend| mail[Parent email]
+  n -->|row is the inbox| ui[Inbox tab + badge]
+  act[Server Action / outbox route<br/>after()] --> disp[dispatchPush]
+  cr[Vercel cron<br/>daily] --> disp
+  disp -->|claim_unpushed_notifications<br/>pushed_at| n
   disp -->|web-push, VAPID| push[Browser push]
-  disp -->|status, attempts, next_attempt_at| d
+  push --> sw[public/sw.js<br/>opens the record]
 ```
 
 - Notifications are created inside the same transaction as the record change, so a posted handover always has its notification.
 - The inbox is just `notifications` filtered by recipient; no delivery step can lose it.
 - The inbox is live: `notifications` is in the `supabase_realtime` publication, and `NoticeListener` (mounted in both role layouts) subscribes over Supabase Realtime's WebSocket to the user's own inserts and updates. RLS applies to each change. On a change it calls `router.refresh()`, so the badge, inbox and "Needs you" re-render from the server; new notices also toast. After a dropped connection comes back it refreshes once to catch up. If Realtime is down, everything still updates on navigation.
-- Email goes to parents for `due`, `reminder`, `request_new` and `limit_notice`; children get inbox only in the pilot. Batching rule: at most one email per parent per hour, grouping pending items.
-- Push is opt-in per device (`push_subscriptions`), added later in the pilot with the PWA.
-- The dispatcher is idempotent per delivery row and backs off (1, 5, 30, 120 minutes), then marks `dead`. A weekly query lists dead deliveries.
-- Preferences per profile (`notification_prefs` jsonb on `profiles`) can mute email per type; the inbox cannot be muted.
+- Web push (ADR 0012) is an at-most-once copy of the row: `claim_unpushed_notifications` stamps `pushed_at` on a batch of the last day's notices for still-approved recipients (`for update skip locked`) and the dispatcher sends `noticeText` of each to the recipient's `push_subscriptions` with VAPID. Actions that write notices call `pushAfterNotices()` (Next `after()`); the daily Vercel cron sweeps the rest, chiefly the hourly allowance reminders. A 404/410 forgets the subscription; other failures are logged by status and not retried, because the inbox has the row.
+- Opt-in is per browser: the inbox's "Pings on this device" switch registers `public/sw.js` and stores the subscription through `push_subscribe`, which also moves an endpoint over from another account that used the device and keeps a member's newest 10. Everything works with the VAPID keys unset: the switch does not render and nothing is claimed.
+- Email for notices is deferred until a sending domain exists; the Resend adapter sends invitations only.
 
 ## 9. Scheduling
 
@@ -576,12 +565,12 @@ flowchart LR
 | --- | --- | --- | --- |
 | `generate_due_occurrences` | hourly | creates occurrences whose `due_on <= today` for active schedules; skips paused ones and auto-resumes them after `paused_through` | unique `(schedule_id, period_key)` |
 | `send_handover_reminders` | hourly | reminder notifications for stale `due` occurrences | one per occurrence per day |
-| `dispatch_notifications` | every 10 min | sweeps `queued` and retryable deliveries (webhook does the fast path) | per delivery row |
+| `/api/cron/push` (Vercel) | daily 01:30 UTC | pushes unpushed notices of the last day | `pushed_at` claim |
 | `schedule_reviews` | nightly | spaced-repetition items due tomorrow | unique `(child_id, skill_key, due_on)` |
 | `generate_weekly_reviews` | weekly | FR11 summaries | unique `(child_id, week_start)` |
 | `reconcile_and_retain` | nightly | balance sanity checks, expire invitations, prune `job_runs` | n/a |
 
-All jobs run in `pg_cron` with `job_runs` rows for observability. If a job needs app code (Claude, email), it enqueues deliveries or rows and `/api/cron/[job]` (guarded by `CRON_SECRET`) does the app-side work; the Vercel Hobby plan's cron limits are the reason the schedule itself lives in Postgres.
+Database jobs run in `pg_cron` with `job_runs` rows for observability. Work that needs app code (web push) runs in `/api/cron/push` (guarded by `CRON_SECRET`), daily because of the Vercel Hobby plan's cron limit; the actions that write notices push them right away, so the sweep is a safety net.
 
 ## 10. Cross-cutting concerns
 
@@ -608,7 +597,7 @@ Children use school or home Wi-Fi and parents use mobile data, so slow and dropp
 - **Online-only actions.** `runOnline` / `useOnlineActionState` (`@/features/offline`) race a Server Action against 15 s (the guide sheet 52 s). Offline, a dropped connection or a slow reply returns a calm `UNAVAILABLE` result ("You're offline, try again when connected" or "This is taking a while. Try again?"), and the form keeps what was typed. This covers everything that moves or controls money (handover, gifts, allowance, rules, undo purchase), account and family settings, sign-in/out and the money guide.
 - **Device outbox.** Purchases, mission steps, mission completion, practice results and check-ins go through an IndexedDB outbox scoped to the signed-in user id. Each item keeps its idempotency key and is sent one at a time to `POST /api/v1/outbox` under a Web Lock, with 15 s per send and backoff 2 s, 5 s, 15 s, 30 s, then 60 s; nothing is sent while the browser is offline. It flushes on app start, `online`, tab focus and after any successful request. The device sends the action's age (`ageMs`), not its clock time, and the server sets the action time to `now - ageMs` (at most 7 days back), so a wrong device clock cancels out; the database clamps any future time to `now()`. A known key is replayed without moving money twice. 408 and 429 are retried like a 5xx. Items expire after 7 days or 20 attempts. A refused or expired purchase stays in the diary as "Needs a look" ("Change it" on an expired one first re-sends it once with its own key); refused or expired learning items are deleted. Without IndexedDB an online save is sent directly. The outbox never sends another user's items.
 - **Slow pages.** Page fallbacks switch to "This is taking a while. Try again?" after 10 s; Try again refreshes the route, then reloads if it is still showing 5 s later; never while offline, where it shows the offline copy instead. A stale Server Action after a deploy shows "Jarso was updated. Refresh to continue."
-- **Out of scope.** No Service Worker, web manifest or `experimental.useOffline`: opening Jarso cold with no network shows the browser's offline page, and nothing sends in the background while the app is closed.
+- **Out of scope.** No offline shell: `public/sw.js` only shows pushes and opens records and `experimental.useOffline` is off, so opening Jarso cold with no network shows the browser's offline page, and nothing sends in the background while the app is closed. The web manifest makes the app installable (FR16); install does not add offline pages.
 
 ## 11. Environments and delivery
 
@@ -624,7 +613,7 @@ Delivery pipeline: PR → CI (lint, typecheck, unit, build, e2e, gitleaks, migra
 
 - Uptime monitor on `/api/health?deep=1` (runs a trivial query).
 - Error tracking (Sentry free tier) on client and server with source maps.
-- `job_runs` and `notification_deliveries` are the operational tables; two saved SQL queries ("failed jobs last 7 days", "dead deliveries") are the dashboard.
+- `job_runs` is the operational table; a saved SQL query ("failed jobs last 7 days") plus the cron route's counts in the Vercel logs are the dashboard.
 - Metrics for the pilot evaluation come from SQL over `families`, `allowance_occurrences` (due → confirmed lag), `requests` (unanswered), `mission_progress`, and a nightly reconciliation of balances versus ledger sums.
 - SLOs: 99.5 % availability of the deep health check; p95 dashboard under 2 s from Japan and the pilot country.
 
@@ -646,7 +635,7 @@ Modules per milestone. The delivery order, demo by demo, is in `roadmap.md`.
 | Milestone | Modules | Tables and functions | Screens |
 | --- | --- | --- | --- |
 | **First milestone** (FR13, FR01, FR03, FR14 purchases + deposits + withdrawals, FR16 inbox) | `family`, `allowance`, `ledger`, `jars` (read), `diary` (purchases), `requests` (withdrawal, deposit), `limits`, `notifications` (inbox + email), demo clock | families, family_members, invitations, child_credentials, child_settings, allowance_schedules/occurrences, ledger_entries, requests, spending_limits, notifications, notification_deliveries, job_runs; functions `create_child_account`, `accept_invitation`, `verify_child_pin`, `generate_due_occurrences`, `confirm_handover`, `record_entry`, `evaluate_limits`, `complete_request`, `family_now`, `send_handover_reminders` | parent: onboarding with child switcher, family, allowance setup, home with due + requests, handover sheet, limits and overspend toggle, demo clock, inbox; child: sign-in, home, jars, record purchase, request withdrawal or deposit, inbox |
-| **Rest of pilot** (FR02, FR04–FR06, FR08, FR10–FR12, FR15, push, PWA) | `goals`, `diary` full, `learning`, `reviews`, `requests` (emergency), `notifications` (push), PWA shell | goals, mission_progress, review_items, weekly_reviews, push_subscriptions, `reverse_entry`, review jobs | goal, diary, missions, topics, weekly review, emergency request, settings |
+| **Rest of pilot** (FR02, FR04–FR06, FR08, FR10–FR12, FR15, push, install) | `goals`, `diary` full, `learning`, `review`, `requests` (emergency), `notifications` (push), manifest + service worker | goals, mission_progress, review_items, weekly_reviews, push_subscriptions, `reverse_entry`, review jobs | goal, diary, missions, topics, weekly review, emergency request, settings |
 | **Pilot, behind a flag** (FR07, FR09; ADR 0010, 0011) | `guide` | guide_access (consent version), guide_conversations, guide_messages (look-ups), usage_counters (rate limits); reads jars, allowance, history, rules and learning through their services | Ask Jarso on the child's Home (status lines streamed, replies screened, not streamed), guide sheet, parent transcripts and switch, `/safety` |
 
 ## 15. Decisions and assumptions
@@ -656,7 +645,7 @@ Decided with the product owner on 2026-10-28:
 - Child identity: parent-created Supabase user with family code + nickname + PIN sign-in; no child email (ADR 0004).
 - Family model: `families` hub with many parents and many children (ADR 0005).
 - Environments: one hosted project; previews share it for the pilot.
-- Notification channels: inbox for everyone, email for parent actions, push later (ADR 0006).
+- Notification channels: inbox for everyone, web push per browser from the notice row itself (ADR 0006, amended by 0012); email for notices deferred.
 
 Assumed by the architecture, to be confirmed when first implemented:
 

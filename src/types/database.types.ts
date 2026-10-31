@@ -567,14 +567,14 @@ isOneToOne: false
                   ]
                 },"notifications": {
                   Row: {
-                    "child_id": string,"created_at": string,"family_id": string,"id": string,"kind": string,"payload": NonNullable<Json>,"read_at": string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key": string | null
+                    "child_id": string,"created_at": string,"family_id": string,"id": string,"kind": string,"payload": NonNullable<Json>,"pushed_at": string | null,"read_at": string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "child_id": string,"created_at"?: string,"family_id": string,"id"?: string,"kind": string,"payload"?: NonNullable<Json>,"read_at"?: string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key"?: string | null
+                    "child_id": string,"created_at"?: string,"family_id": string,"id"?: string,"kind": string,"payload"?: NonNullable<Json>,"pushed_at"?: string | null,"read_at"?: string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key"?: string | null
                   }
                   Update: {
-                    "child_id"?: string,"created_at"?: string,"family_id"?: string,"id"?: string,"kind"?: string,"payload"?: NonNullable<Json>,"read_at"?: string | null,"recipient_id"?: string,"source_id"?: string,"source_type"?: string,"window_key"?: string | null
+                    "child_id"?: string,"created_at"?: string,"family_id"?: string,"id"?: string,"kind"?: string,"payload"?: NonNullable<Json>,"pushed_at"?: string | null,"read_at"?: string | null,"recipient_id"?: string,"source_id"?: string,"source_type"?: string,"window_key"?: string | null
                   }
                   Relationships: [
                     {
@@ -688,6 +688,26 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"push_subscriptions": {
+                  Row: {
+                    "auth": string,"created_at": string,"endpoint": string,"id": string,"last_used_at": string,"p256dh": string,"profile_id": string,"user_agent": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "auth": string,"created_at"?: string,"endpoint": string,"id"?: string,"last_used_at"?: string,"p256dh": string,"profile_id": string,"user_agent"?: string | null
+                  }
+                  Update: {
+                    "auth"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"last_used_at"?: string,"p256dh"?: string,"profile_id"?: string,"user_agent"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_subscriptions_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"requests": {
                   Row: {
@@ -842,6 +862,11 @@ isOneToOne: false
                            },
 "change_allowance":
 { Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
+                           },
+"claim_unpushed_notifications":
+{ Args: { "p_limit"?: number }; Returns: {
+              "child_id": string,"child_name": string,"created_at": string,"currency": string,"id": string,"kind": string,"payload": Json,"recipient_id": string,"recipient_role": string,"source_id": string,"source_type": string
+            }[]
                            },
 "complete_checkin":
 { Args: { "p_content_version": number,"p_correct_count": number,"p_question_count": number }; Returns: boolean
@@ -1057,6 +1082,17 @@ isOneToOne: false
                            },
 "post_request":
 { Args: { "p_actor": string,"p_request_id": string }; Returns: string
+                           },
+"push_subscribe":
+{ Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string,"p_user_agent"?: string }; Returns: string
+                           },
+"push_subscriptions_for":
+{ Args: { "p_recipient_ids": (string)[] }; Returns: {
+              "auth": string,"endpoint": string,"id": string,"p256dh": string,"profile_id": string
+            }[]
+                           },
+"push_unsubscribe":
+{ Args: { "p_endpoint": string }; Returns: boolean
                            },
 "rate_guide_message":
 { Args: { "p_message_id": string,"p_rating": number }; Returns: undefined

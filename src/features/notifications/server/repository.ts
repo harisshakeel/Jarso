@@ -2,7 +2,14 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database } from "@/types";
-import type { Notice, NoticeKind, NoticeSource } from "../types";
+import type {
+  ClaimedNotice,
+  Notice,
+  NoticeKind,
+  NoticeSource,
+  PushSubscriptionInput,
+  PushSubscriptionRow,
+} from "../types";
 
 type Client = SupabaseClient<Database>;
 
@@ -107,4 +114,89 @@ export async function setRead(db: Client, ids: string[] | null): Promise<number>
   );
   if (error) throw toAppError(error, "Failed to mark as read");
   return Number(data ?? 0);
+}
+
+// --- Web push (FR16) --------------------------------------------------------------------------
+
+/** Stores or refreshes the caller's subscription for this browser; returns its id. */
+export async function saveSubscription(
+  db: Client,
+  input: PushSubscriptionInput,
+  userAgent: string | null,
+): Promise<string> {
+  const { data, error } = await db.rpc("push_subscribe", {
+    p_endpoint: input.endpoint,
+    p_p256dh: input.keys.p256dh,
+    p_auth: input.keys.auth,
+    ...(userAgent ? { p_user_agent: userAgent } : {}),
+  });
+  if (error) throw toAppError(error, "Failed to save the subscription");
+  return String(data);
+}
+
+/** Forgets the caller's subscription for this endpoint. True when one went. */
+export async function removeSubscription(db: Client, endpoint: string): Promise<boolean> {
+  const { data, error } = await db.rpc("push_unsubscribe", { p_endpoint: endpoint });
+  if (error) throw toAppError(error, "Failed to remove the subscription");
+  return data === true;
+}
+
+type ClaimedRow = {
+  id: string;
+  recipient_id: string;
+  recipient_role: string | null;
+  currency: string;
+  child_id: string;
+  child_name: string | null;
+  kind: string;
+  source_type: string;
+  source_id: string;
+  payload: unknown;
+  created_at: string;
+};
+
+/** Pure claimed-row mapping. A recipient without a membership row counts as a parent. */
+export function toClaimed(row: ClaimedRow): ClaimedNotice {
+  return {
+    recipientId: row.recipient_id,
+    role: row.recipient_role === "child" ? "child" : "parent",
+    currency: row.currency,
+    notice: toNotice({
+      ...row,
+      read_at: null,
+      child: row.child_name === null ? null : { nickname: row.child_name },
+    }),
+  };
+}
+
+/** Admin only: claims up to `limit` unpushed notices from the last day and returns them. */
+export async function claimUnpushed(admin: Client, limit: number): Promise<ClaimedNotice[]> {
+  const { data, error } = await admin.rpc("claim_unpushed_notifications", { p_limit: limit });
+  if (error) throw toAppError(error, "Failed to claim notices");
+  return (data ?? []).map((row) => toClaimed(row as ClaimedRow));
+}
+
+/** Admin only: the subscriptions of these recipients. */
+export async function subscriptionsFor(
+  admin: Client,
+  recipientIds: string[],
+): Promise<PushSubscriptionRow[]> {
+  if (recipientIds.length === 0) return [];
+  const { data, error } = await admin.rpc("push_subscriptions_for", {
+    p_recipient_ids: recipientIds,
+  });
+  if (error) throw toAppError(error, "Failed to load subscriptions");
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    profileId: row.profile_id,
+    endpoint: row.endpoint,
+    p256dh: row.p256dh,
+    auth: row.auth,
+  }));
+}
+
+/** Admin only: forgets a subscription whose endpoint is gone (404/410). */
+export async function deleteSubscriptionById(admin: Client, id: string): Promise<void> {
+  const { error } = await admin.from("push_subscriptions").delete().eq("id", id);
+  if (error) throw toAppError(error, "Failed to remove the subscription");
 }

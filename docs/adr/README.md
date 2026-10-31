@@ -15,3 +15,4 @@ Short records of significant decisions. Copy `0000-template.md`, increment the n
 | [0009](./0009-learning-content-as-code.md) | Learning content as versioned JSON, progress in Postgres | Accepted |
 | [0010](./0010-ai-money-guide.md) | AI money guide: a screened Claude pipeline behind two switches | Accepted |
 | [0011](./0011-jarso-agent.md) | Jarso, the agent: read-only look-ups of the child's own data, figures the app fills in | Accepted |
+| [0012](./0012-web-push.md) | Web push from the notice row itself, with no delivery table | Accepted |

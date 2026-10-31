@@ -55,6 +55,7 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | PATCH | `/api/v1/me` | user | Update profile (`updateProfileSchema`) |
 | POST | `/api/v1/outbox` | child | One queued child action from the device outbox (`outboxRequestSchema`) |
 | POST | `/api/v1/guide/turns` | child | One message to Jarso, streamed as NDJSON (`askGuideSchema`) |
+| GET | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Daily web push sweep (ADR 0012); 404 when the secret is unset |
 
 ### `POST /api/v1/outbox`
 

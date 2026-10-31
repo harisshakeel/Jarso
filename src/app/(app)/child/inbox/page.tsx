@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
-import { InboxList, inboxParamsSchema } from "@/features/notifications";
+import { InboxList, inboxParamsSchema, PushToggle } from "@/features/notifications";
 import { listNotices } from "@/features/notifications/server";
 
 export const metadata: Metadata = { title: "Inbox" };
@@ -20,6 +20,7 @@ async function InboxContent({ searchParams }: Pick<Props, "searchParams">) {
   return (
     <>
       <h1 className="text-balance text-display">Inbox</h1>
+      <PushToggle />
       <InboxList
         items={page.items}
         currency={family?.currency ?? "USD"}

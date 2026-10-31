@@ -27,6 +27,12 @@ const schema = z.object({
     .transform((value) => value === "true"),
   /** Set by Vercel: "production", "preview" or "development". */
   VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
+  /** Web push (FR16): the VAPID private key. Push is skipped unless this and the public key are set. */
+  VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+  /** VAPID contact, a mailto: or https: URL push services can reach; defaults to the app's host. */
+  VAPID_SUBJECT: z.string().min(1).optional(),
+  /** Shared secret the cron route expects as a Bearer token; unset means the route is off. */
+  CRON_SECRET: z.string().min(16).optional(),
 });
 
 const parsed = schema.safeParse(process.env);

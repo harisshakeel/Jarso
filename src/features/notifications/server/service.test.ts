@@ -11,7 +11,9 @@ vi.mock("./repository", () => ({
 }));
 
 const repo = await import("./repository");
-const { listNotices, listUnreadNotices, getUnreadCount, markRead } = await import("./service");
+const { listNotices, listUnreadNotices, getUnreadCount, markRead, describeAgent } = await import(
+  "./service"
+);
 
 const notice = (i: number) => ({
   id: `n${i}`,
@@ -81,5 +83,21 @@ describe("listUnreadNotices", () => {
     vi.mocked(repo.listUnreadRows).mockResolvedValue([notice(0)]);
     await expect(listUnreadNotices(["limit_exceeded"])).resolves.toEqual([notice(0)]);
     expect(repo.listUnreadRows).toHaveBeenCalledWith({ kind: "user" }, ["limit_exceeded"], 20);
+  });
+});
+
+describe("describeAgent", () => {
+  it.each([
+    ["Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile Safari/537.36", "Chrome on Android"],
+    [
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) Version/17.0 Mobile Safari/604.1",
+      "Safari on iPhone",
+    ],
+    ["Mozilla/5.0 (Windows NT 10.0) Chrome/130 Safari/537.36 Edg/130", "Edge on Windows"],
+    ["Mozilla/5.0 (Macintosh) Firefox/131.0", "Firefox on Macintosh"],
+    ["curl/8.0", null],
+    [null, null],
+  ])("%s → %s", (agent, expected) => {
+    expect(describeAgent(agent)).toBe(expected);
   });
 });
