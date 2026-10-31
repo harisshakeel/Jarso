@@ -31,6 +31,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 const notice: Notice = {
@@ -65,15 +66,26 @@ describe("NoticeListener", () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it("catches up after a reconnect, not on the first connect", () => {
+  it("catches up on every join: the first one and after a drop", () => {
+    render(<NoticeListener userId="u1" viewer="parent" currency="GBP" />);
+    handlers.onStatus?.(true);
+    vi.runAllTimers();
+    expect(refresh).toHaveBeenCalledTimes(1);
+    handlers.onStatus?.(true);
+    vi.runAllTimers();
+    expect(refresh).toHaveBeenCalledTimes(1);
+    handlers.onStatus?.(false);
+    handlers.onStatus?.(true);
+    vi.runAllTimers();
+    expect(refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips the refresh while offline", () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     render(<NoticeListener userId="u1" viewer="parent" currency="GBP" />);
     handlers.onStatus?.(true);
     vi.runAllTimers();
     expect(refresh).not.toHaveBeenCalled();
-    handlers.onStatus?.(false);
-    handlers.onStatus?.(true);
-    vi.runAllTimers();
-    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it("opens the inbox from the toast and unsubscribes on unmount", () => {
