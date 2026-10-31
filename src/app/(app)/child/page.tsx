@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
-import { ChildAllowanceCard } from "@/features/allowance";
+import { ChildAllowanceCard, runningSchedule } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
 import { PendingPurchases, PurchaseSheet, UndoButton } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
@@ -13,6 +14,9 @@ import { NextStepCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { HistoryList, Jars } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
+import { RequestActions } from "@/features/requests";
+import { getAvailability } from "@/features/requests/server";
+import { getChildRules } from "@/features/rules/server";
 import { logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Home" };
@@ -32,12 +36,21 @@ async function ChildHome() {
     <>
       <h1 className="rise-in text-balance text-display">{nickname ? `Hi, ${nickname}!` : "Hi!"}</h1>
       <Suspense fallback={null}>
-        <HomeJarso childId={user.id} hasAllowance={!!schedule && schedule.status !== "stopped"} />
+        <HomeJarso childId={user.id} hasAllowance={!!runningSchedule(schedule)} />
       </Suspense>
       <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
         <NextStep childId={user.id} />
       </Suspense>
       <Jars jars={jars} currency={family.currency} />
+      <Suspense fallback={<div aria-hidden className="shimmer h-16 rounded-xl bg-muted" />}>
+        <HomeRequestActions childId={user.id} currency={family.currency} />
+      </Suspense>
+      <Link
+        href={routes.childRequests}
+        className="-mt-3 inline-flex min-h-11 w-fit items-center rounded-full px-2 font-semibold text-primary text-sm underline-offset-4 hover:underline"
+      >
+        See your Save requests
+      </Link>
       <ChildAllowanceCard
         schedule={schedule}
         dueTotalMinor={due.totalMinor}
@@ -69,6 +82,24 @@ async function NextStep({ childId }: { childId: string }) {
   } catch (error) {
     unstable_rethrow(error);
     logger.warn("Next step unavailable on child home", { error: errorName(error) });
+    return null;
+  }
+}
+
+/**
+ * Take out / put in streams on its own and hides itself if the request reads fail, so a requests
+ * error never takes the child's money view down with it.
+ */
+async function HomeRequestActions({ childId, currency }: { childId: string; currency: string }) {
+  try {
+    const [availability, rules] = await Promise.all([
+      getAvailability(childId),
+      getChildRules(childId),
+    ]);
+    return <RequestActions availability={availability} currency={currency} rules={rules.rules} />;
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Request actions unavailable on child home", { error: errorName(error) });
     return null;
   }
 }

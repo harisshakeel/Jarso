@@ -637,6 +637,44 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"requests": {
+                  Row: {
+                    "amount_minor": number,"auto": boolean,"child_id": string,"completed_at": string | null,"completed_by": string | null,"created_at": string,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"family_id": string,"id": string,"idempotency_key": string,"kind": string,"occurred_at": string,"reason": string | null,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_minor": number,"auto"?: boolean,"child_id": string,"completed_at"?: string | null,"completed_by"?: string | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"family_id": string,"id"?: string,"idempotency_key": string,"kind": string,"occurred_at"?: string,"reason"?: string | null,"status": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount_minor"?: number,"auto"?: boolean,"child_id"?: string,"completed_at"?: string | null,"completed_by"?: string | null,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"family_id"?: string,"id"?: string,"idempotency_key"?: string,"kind"?: string,"occurred_at"?: string,"reason"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "requests_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "requests_completed_by_fkey"
+      columns: ["completed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "requests_decided_by_fkey"
+      columns: ["decided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "requests_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"review_items": {
                   Row: {
                     "box": number,"child_id": string,"due_on": string,"last_result": string | null,"last_reviewed_on": string | null,"skill_key": string
@@ -729,6 +767,12 @@ isOneToOne: false
 "allowance_next_due_on":
 { Args: { "p_schedule_id": string }; Returns: string
                            },
+"available_save":
+{ Args: { "p_child_id": string }; Returns: number
+                           },
+"available_spend":
+{ Args: { "p_child_id": string }; Returns: number
+                           },
 "balance":
 { Args: { "p_child_id": string,"p_jar": string,"p_mode"?: string }; Returns: number
                            },
@@ -737,6 +781,9 @@ isOneToOne: false
                            },
 "cancel_gift":
 { Args: { "p_gift_id": string }; Returns: string
+                           },
+"cancel_request":
+{ Args: { "p_request_id": string }; Returns: string
                            },
 "change_allowance":
 { Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
@@ -750,6 +797,9 @@ isOneToOne: false
 "complete_parent_profile":
 { Args: { "p_country": string,"p_date_of_birth": string,"p_gender": string }; Returns: undefined
                            },
+"complete_request":
+{ Args: { "p_idempotency_key": string,"p_request_id": string }; Returns: string
+                           },
 "confirm_gift_handover":
 { Args: { "p_cash_minor": number,"p_gift_id": string,"p_idempotency_key": string,"p_saved_minor": number }; Returns: string
                            },
@@ -758,6 +808,9 @@ isOneToOne: false
                            },
 "create_allowance":
 { Args: { "p_amount_minor": number,"p_child_id": string,"p_first_on": string,"p_frequency": string }; Returns: string
+                           },
+"create_deposit":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string }; Returns: Json
                            },
 "create_family":
 { Args: { "p_currency": string,"p_timezone": string }; Returns: string
@@ -768,8 +821,17 @@ isOneToOne: false
 "create_invitation":
 { Args: { "p_code_hash": string,"p_nickname": string,"p_parent_email": string,"p_token_hash": string }; Returns: string
                            },
+"create_withdrawal":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_reason": string }; Returns: Json
+                           },
 "current_family_id":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"decide_deposit":
+{ Args: { "p_note": string,"p_request_id": string }; Returns: string
+                           },
+"decide_withdrawal":
+{ Args: { "p_approve": boolean,"p_note": string,"p_request_id": string }; Returns: string
                            },
 "evaluate_spend_limits":
 { Args: { "p_entry_id": string }; Returns: number
@@ -921,6 +983,9 @@ isOneToOne: false
 "pause_allowance":
 { Args: { "p_message": string,"p_schedule_id": string,"p_through": string }; Returns: string
                            },
+"post_request":
+{ Args: { "p_actor": string,"p_request_id": string }; Returns: string
+                           },
 "rate_guide_message":
 { Args: { "p_message_id": string,"p_rating": number }; Returns: undefined
                            },
@@ -944,6 +1009,12 @@ isOneToOne: false
                            },
 "rename_child":
 { Args: { "p_child_id": string,"p_nickname": string }; Returns: undefined
+                           },
+"request_window_total":
+{ Args: { "p_child_id": string,"p_kind": string,"p_statuses": (string)[],"p_window_start": string }; Returns: number
+                           },
+"reserved_save":
+{ Args: { "p_child_id": string }; Returns: number
                            },
 "resolve_occurred_at":
 { Args: { "p": string }; Returns: string
@@ -997,6 +1068,9 @@ isOneToOne: false
 { Args: { "p_family_code": string,"p_nickname": string,"p_pin": string,"p_source_hash": string }; Returns: {
               "child_id": string,"status": string
             }[]
+                           },
+"withdrawal_cap_remaining":
+{ Args: { "p_child_id": string }; Returns: number
                            }
           }
           Enums: {

@@ -1,7 +1,7 @@
 import { PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
@@ -18,6 +18,14 @@ import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 import type { JarBalances } from "@/features/ledger";
 import { getJars } from "@/features/ledger/server";
+import {
+  ParentRequestItems,
+  RequestsUnavailable,
+  type SavingsRequest,
+  settleRequestReads,
+} from "@/features/requests";
+import { listRequestsNeedingParent } from "@/features/requests/server";
+import { logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Your family" };
 
@@ -28,6 +36,7 @@ type ChildReads = {
   child: ChildSummary;
   due: Promise<DueItem[]>;
   jars: Promise<JarBalances>;
+  requests: Promise<SavingsRequest[]>;
   schedule: Promise<Schedule | null>;
 };
 
@@ -44,6 +53,7 @@ async function ParentHome() {
     child,
     due: listDue(child.id),
     jars: getJars(child.id),
+    requests: listRequestsNeedingParent(child.id),
     schedule: getSchedule(child.id),
   }));
 
@@ -54,7 +64,12 @@ async function ParentHome() {
           <NeedsYouSection reads={reads} currency={family.currency} />
         </Suspense>
       </div>
-      <section aria-labelledby="children-title" className="rise-in grid gap-3" style={rise(1)}>
+      <div className="rise-in" style={rise(1)}>
+        <Suspense fallback={null}>
+          <RequestsSection reads={reads} currency={family.currency} />
+        </Suspense>
+      </div>
+      <section aria-labelledby="children-title" className="rise-in grid gap-3" style={rise(2)}>
         <h2 id="children-title" className="text-h2">
           Children
         </h2>
@@ -96,6 +111,28 @@ async function NeedsYouSection({ reads, currency }: { reads: ChildReads[]; curre
     reads.map(async ({ child, due }) => ({ child, due: await due })),
   );
   return <NeedsYou items={mergeDue(perChild)} currency={currency} />;
+}
+
+/** Take-outs and put-ins waiting on a parent. A child whose read fails gets a calm line; the rest still show. */
+async function RequestsSection({ reads, currency }: { reads: ChildReads[]; currency: string }) {
+  const results = await Promise.allSettled(reads.map(({ requests }) => requests));
+  const { items, failed } = settleRequestReads(
+    reads.map(({ child }) => child.nickname),
+    results,
+  );
+  for (const result of results) {
+    if (result.status !== "rejected") continue;
+    unstable_rethrow(result.reason);
+    logger.warn("Parent requests unavailable", {
+      error: result.reason instanceof Error ? result.reason.name : typeof result.reason,
+    });
+  }
+  return (
+    <>
+      <ParentRequestItems items={items} currency={currency} />
+      {failed.length > 0 ? <RequestsUnavailable names={failed} /> : null}
+    </>
+  );
 }
 
 async function ChildCard({ read, currency }: { read: ChildReads; currency: string }) {

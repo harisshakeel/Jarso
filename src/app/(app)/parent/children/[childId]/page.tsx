@@ -13,6 +13,8 @@ import { LearningSummaryCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { Jars, RecentHistory } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
+import { ParentRequestItems, RequestsUnavailable } from "@/features/requests";
+import { listRequestsNeedingParent } from "@/features/requests/server";
 import { logger } from "@/lib";
 import { loadChild } from "./load-child";
 import { FormSkeleton, PageShell } from "./page-shell";
@@ -37,6 +39,9 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <div className="grid gap-6">
           <Jars jars={jars} currency={currency} showMinor="always" />
+          <Suspense fallback={null}>
+            <ChildRequests childId={childId} nickname={child.nickname} currency={currency} />
+          </Suspense>
           <DueList childId={childId} items={due} currency={currency} />
           <ParentAllowanceCard childId={childId} schedule={schedule} currency={currency} />
           <Link
@@ -68,6 +73,33 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
       </div>
     </PageShell>
   );
+}
+
+/** Take-outs and put-ins waiting on a parent. A failed read shows a calm line so jars stay visible. */
+async function ChildRequests({
+  childId,
+  nickname,
+  currency,
+}: {
+  childId: string;
+  nickname: string;
+  currency: string;
+}) {
+  try {
+    const requests = await listRequestsNeedingParent(childId);
+    return (
+      <ParentRequestItems
+        items={requests.map((request) => ({ nickname, request }))}
+        currency={currency}
+      />
+    );
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Child requests unavailable", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    return <RequestsUnavailable />;
+  }
 }
 
 /** Learning streams on its own and hides itself on error, so money stays visible. */

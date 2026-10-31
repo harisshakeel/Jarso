@@ -75,14 +75,30 @@ describe("noticeText", () => {
       expect(noticeText({ ...n, payload: { approved: true } }, "child", "GBP").title).toBe(
         "Your parent said yes",
       );
-      expect(noticeText({ ...n, payload: { approved: false } }, "child", "GBP").title).toBe(
-        "Your parent said not now",
-      );
       expect(noticeText({ ...n, payload: {} }, "child", "GBP").title).toBe(
         "Your parent answered your request",
       );
     },
   );
+  it("withdrawal declined says not now", () => {
+    const n = { ...base, kind: "withdrawal_decided" as const, sourceType: "request" as const };
+    expect(noticeText({ ...n, payload: { approved: false } }, "child", "GBP")).toEqual({
+      title: "Your parent said not now",
+      detail: "You can ask again later.",
+    });
+  });
+  it("deposit not confirmed says it is still in Spend", () => {
+    const n = { ...base, kind: "deposit_decided" as const, sourceType: "request" as const };
+    expect(
+      noticeText({ ...n, payload: { approved: false, amount_minor: 500 } }, "child", "GBP"),
+    ).toEqual({
+      title: "Your £5 wasn't added to Save",
+      detail: "It's still in Spend. Talk to your parent.",
+    });
+    expect(noticeText({ ...n, payload: { approved: false } }, "child", "GBP").title).toBe(
+      "Your money wasn't added to Save",
+    );
+  });
   it("falls back for an unknown kind", () => {
     const n = { ...base, kind: "mystery" as never };
     expect(noticeText(n, "parent", "GBP")).toEqual({
