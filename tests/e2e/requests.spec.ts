@@ -210,9 +210,9 @@ test("child asks for extra money, parent approves and hands it over into Spend",
   await child.goto("/child/inbox");
   await expect(child.getByText("Your parent said yes to extra money").first()).toBeVisible();
 
-  // 1500 (Spend after the earlier tests) + 150 extra; Save stays at 2000.
+  // Spend: 1500 after the take-out, less the 300 and 200 put into Save, plus 150 extra. Save stays.
   await child.goto("/child");
-  await expect(spendJar()).toContainText("US$1,650");
+  await expect(spendJar()).toContainText("US$1,150");
   await expect(saveJar()).toContainText("US$2,000");
   await child.goto("/child/diary");
   await expect(history().getByText("Extra money").first()).toBeVisible();
