@@ -115,4 +115,9 @@ describe("GoalSheet", () => {
     fireEvent.click(screen.getByRole("button", { name: "Yes, start a new goal" }));
     await waitFor(() => expect(archiveGoalAction).toHaveBeenCalledWith(null, { goalId: goal.id }));
   });
+
+  it("shows the allowance hint in the family currency", () => {
+    openNew();
+    expect(screen.getByText("Up to £5 from each allowance.")).toBeInTheDocument();
+  });
 });

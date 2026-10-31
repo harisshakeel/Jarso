@@ -55,4 +55,10 @@ describe("GoalCard", () => {
     expect(screen.getByText("Something to save for?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Set a goal" })).toBeInTheDocument();
   });
+
+  it("never shows a full bar while money is still to go", () => {
+    render(<GoalCard view={view(4480)} {...common} />);
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "99");
+    expect(screen.getByText("£44.80 saved. £0.20 to go.")).toBeInTheDocument();
+  });
 });

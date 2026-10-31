@@ -21,7 +21,7 @@ import {
   SheetTrigger,
 } from "@/components/ui";
 import { runOnline } from "@/features/offline";
-import { type ActionState, cn, idle, parseMoney, toMajorString } from "@/lib";
+import { type ActionState, cn, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
 import { GOAL_EMOJI, type GoalEmoji } from "../emoji";
 import { goalProgress } from "../progress";
 import { archiveGoalAction, saveGoalAction } from "../server/actions";
@@ -165,7 +165,8 @@ function GoalForm({
       />
       {allowanceMinor ? (
         <p id="goal-plan-hint" className="-mt-4 text-ink-2 text-sm">
-          Up to {toMajorString(allowanceMinor, currency)} from each allowance.
+          Up to {formatMoney(allowanceMinor, currency, { showMinor: "nonzero" })} from each
+          allowance.
         </p>
       ) : null}
       {preview ? (

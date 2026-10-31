@@ -47,7 +47,8 @@ export function GoalCard({
   }
 
   const { goal, progress } = view;
-  const percent = Math.round(progress.fillRatio * 100);
+  // Floor, so the bar is never full while money is still to go.
+  const percent = progress.reached ? 100 : Math.floor(progress.fillRatio * 100);
   return (
     <Card>
       <CardContent className="grid gap-3">
