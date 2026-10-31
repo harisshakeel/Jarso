@@ -13,6 +13,7 @@ vi.mock("./repository", () => ({
   findAttempt: vi.fn(),
   findCheckIn: vi.fn(),
   listActivity: vi.fn(),
+  findLastActivity: vi.fn(),
   listAttempts: vi.fn(),
   listPracticeHistory: vi.fn(),
   listReviewItems: vi.fn(),
@@ -56,6 +57,7 @@ beforeEach(() => {
   vi.mocked(repo.listReviewItems).mockResolvedValue([]);
   vi.mocked(repo.findCheckIn).mockResolvedValue(null);
   vi.mocked(repo.listActivity).mockResolvedValue([]);
+  vi.mocked(repo.findLastActivity).mockResolvedValue(null);
   vi.mocked(repo.listStepResults).mockResolvedValue(new Map());
   vi.mocked(repo.findAttempt).mockResolvedValue(attempt);
 });

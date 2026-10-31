@@ -112,7 +112,7 @@ src/
 │   ├── goals/           goal, plan, payments-remaining estimate, what-if simulation
 │   ├── diary/           diary UI over ledger entries (add, correct, undo)
 │   ├── learning/     ✅ missions, topics, hints, spaced review, check-in, skill progress (ADR 0009)
-│   ├── reviews/         weekly review generation and next-step recommendation
+│   ├── review/       ✅ weekly review (FR11) built in code from the week's history, goal, skills and review pool
 │   ├── notifications/   inbox, deliveries, channels (inbox, email, push), preferences
 │   └── guide/        ✅ Jarso: Claude-backed guide with read-only look-ups and FR09 boundaries (ADR 0010, 0011)
 ├── components/ui/      shadcn primitives + brand components (JarsoMark, JarIllustration, Money, StatusChip)

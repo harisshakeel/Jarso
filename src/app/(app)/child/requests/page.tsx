@@ -4,24 +4,32 @@ import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { getFamilyContext } from "@/features/allowance/server";
 import { requireRole } from "@/features/family/server";
+import { getGoalView } from "@/features/goals/server";
 import { AskExtraSheet, RequestActions, RequestList } from "@/features/requests";
 import { getAvailability, listRequests } from "@/features/requests/server";
 import { getChildRules } from "@/features/rules/server";
+import { fallback } from "@/lib";
 
 export const metadata: Metadata = { title: "Requests" };
 
 async function RequestsContent() {
   const { user } = await requireRole("child", routes.childRequests);
-  const [family, availability, rules, requests] = await Promise.all([
+  const [family, availability, rules, requests, goal] = await Promise.all([
     getFamilyContext(),
     getAvailability(user.id),
     getChildRules(user.id),
     listRequests(user.id),
+    fallback(getGoalView(user.id), null, "Goal on requests"),
   ]);
   return (
     <>
       <h1 className="text-balance text-display">Requests</h1>
-      <RequestActions availability={availability} currency={family.currency} rules={rules.rules} />
+      <RequestActions
+        availability={availability}
+        currency={family.currency}
+        rules={rules.rules}
+        goal={goal}
+      />
       {/* Extra money (FR15) is new money, so it sits apart from the Save moves. */}
       <AskExtraSheet currency={family.currency} />
       <RequestList requests={requests} currency={family.currency} timeZone={family.timezone} />
