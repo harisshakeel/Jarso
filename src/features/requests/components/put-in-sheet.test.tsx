@@ -19,6 +19,11 @@ function putIn(result: DepositResult) {
 }
 
 describe("PutInSheet", () => {
+  it("says already sent when a retried key finds a closed request", async () => {
+    putIn({ status: "already_sent", requestId: "r1" });
+    expect(await screen.findByText("Already sent to your parent")).toBeInTheDocument();
+  });
+
   it("shows what Spend has", () => {
     render(<PutInSheet currency="GBP" availableSpendMinor={800} />);
     fireEvent.click(screen.getByRole("button", { name: "Put in" }));

@@ -60,11 +60,17 @@ export function withdrawalMessage(result: WithdrawalResult, currency: string): s
       return "Sent to your parent";
     case "approved":
       return "Approved, your parent will hand it over";
+    case "already_sent":
+      return "Already sent to your parent";
     case "over_cap":
       return overCapMessage(result.period, result.capMinor, result.usedMinor, currency);
     case "over_available":
       return `You can take out up to ${formatMoney(result.availableMinor, currency, { showMinor: "nonzero" })}`;
   }
+}
+
+function isSent(result: WithdrawalResult) {
+  return result.status !== "over_available" && result.status !== "over_cap";
 }
 
 function TakeOutForm({
@@ -82,16 +88,11 @@ function TakeOutForm({
     const result = await runOnline(() =>
       createWithdrawalAction(null, { amount, reason, idempotencyKey }),
     );
-    if (result.ok && (result.data.status === "pending" || result.data.status === "approved")) {
-      router.refresh();
-    }
+    if (result.ok && isSent(result.data)) router.refresh();
     return result;
   }, idle);
 
-  const sent =
-    state?.ok && (state.data.status === "pending" || state.data.status === "approved")
-      ? state.data
-      : null;
+  const sent = state?.ok && isSent(state.data) ? state.data : null;
   const fieldErrors = state && !state.ok ? state.error.fieldErrors : undefined;
 
   if (sent) {

@@ -21,6 +21,11 @@ function ask(result: WithdrawalResult, ruleLines?: string[]) {
 }
 
 describe("TakeOutSheet", () => {
+  it("says already sent when a retried key finds a closed request", async () => {
+    ask({ status: "already_sent", requestId: "r1" });
+    expect(await screen.findByText("Already sent to your parent")).toBeInTheDocument();
+  });
+
   it("shows the limit, the fields and the child's rules", () => {
     render(
       <TakeOutSheet currency="GBP" limitMinor={500} ruleLines={["You can take out up to £5"]} />,

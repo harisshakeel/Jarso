@@ -37,12 +37,12 @@ export type Availability = {
 };
 
 export type WithdrawalResult =
-  | { status: "pending" | "approved"; requestId: string }
+  | { status: "pending" | "approved" | "already_sent"; requestId: string }
   | { status: "over_available"; availableMinor: number }
   | { status: "over_cap"; period: CapPeriod; capMinor: number; usedMinor: number };
 
 export type DepositResult =
-  | { status: "pending" | "confirmed"; requestId: string }
+  | { status: "pending" | "confirmed" | "already_sent"; requestId: string }
   | { status: "over_available"; availableMinor: number };
 
 export type DecideWithdrawalResult = "approved" | "rejected" | "already_decided" | "over_available";

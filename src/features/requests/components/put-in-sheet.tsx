@@ -58,6 +58,8 @@ export function depositMessage(result: DepositResult, currency: string): string 
       return "Waiting for your parent to confirm";
     case "confirmed":
       return "Added to Save";
+    case "already_sent":
+      return "Already sent to your parent";
     case "over_available":
       return `Spend has ${formatMoney(result.availableMinor, currency, { showMinor: "nonzero" })}`;
   }
