@@ -13,7 +13,7 @@ import { LearningSummaryCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { Jars, RecentHistory } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
-import { ParentRequestItems } from "@/features/requests";
+import { ParentRequestItems, RequestsUnavailable } from "@/features/requests";
 import { listRequestsNeedingParent } from "@/features/requests/server";
 import { logger } from "@/lib";
 import { loadChild } from "./load-child";
@@ -75,7 +75,7 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
   );
 }
 
-/** Take-outs and put-ins waiting on a parent. Hides itself on error so jars stay visible. */
+/** Take-outs and put-ins waiting on a parent. A failed read shows a calm line so jars stay visible. */
 async function ChildRequests({
   childId,
   nickname,
@@ -98,7 +98,7 @@ async function ChildRequests({
     logger.warn("Child requests unavailable", {
       error: error instanceof Error ? error.name : typeof error,
     });
-    return null;
+    return <RequestsUnavailable />;
   }
 }
 

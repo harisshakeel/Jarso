@@ -18,7 +18,12 @@ import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 import type { JarBalances } from "@/features/ledger";
 import { getJars } from "@/features/ledger/server";
-import { ParentRequestItems, type SavingsRequest } from "@/features/requests";
+import {
+  ParentRequestItems,
+  RequestsUnavailable,
+  type SavingsRequest,
+  settleRequestReads,
+} from "@/features/requests";
 import { listRequestsNeedingParent } from "@/features/requests/server";
 import { logger } from "@/lib";
 
@@ -108,23 +113,26 @@ async function NeedsYouSection({ reads, currency }: { reads: ChildReads[]; curre
   return <NeedsYou items={mergeDue(perChild)} currency={currency} />;
 }
 
-/** Take-outs and put-ins waiting on a parent. Hides itself on error so the family home stays. */
+/** Take-outs and put-ins waiting on a parent. A child whose read fails gets a calm line; the rest still show. */
 async function RequestsSection({ reads, currency }: { reads: ChildReads[]; currency: string }) {
-  try {
-    const perChild = await Promise.all(
-      reads.map(async ({ child, requests }) => ({ child, requests: await requests })),
-    );
-    const items = perChild.flatMap(({ child, requests }) =>
-      requests.map((request) => ({ nickname: child.nickname, request })),
-    );
-    return <ParentRequestItems items={items} currency={currency} />;
-  } catch (error) {
-    unstable_rethrow(error);
+  const results = await Promise.allSettled(reads.map(({ requests }) => requests));
+  const { items, failed } = settleRequestReads(
+    reads.map(({ child }) => child.nickname),
+    results,
+  );
+  for (const result of results) {
+    if (result.status !== "rejected") continue;
+    unstable_rethrow(result.reason);
     logger.warn("Parent requests unavailable", {
-      error: error instanceof Error ? error.name : typeof error,
+      error: result.reason instanceof Error ? result.reason.name : typeof result.reason,
     });
-    return null;
   }
+  return (
+    <>
+      <ParentRequestItems items={items} currency={currency} />
+      {failed.length > 0 ? <RequestsUnavailable names={failed} /> : null}
+    </>
+  );
 }
 
 async function ChildCard({ read, currency }: { read: ChildReads; currency: string }) {
