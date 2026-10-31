@@ -26,6 +26,7 @@ import { GOAL_EMOJI, type GoalEmoji } from "../emoji";
 import { goalProgress } from "../progress";
 import { archiveGoalAction, saveGoalAction } from "../server/actions";
 import type { Goal } from "../types";
+import { PredictStep } from "./predict-step";
 
 type GoalSheetProps = {
   goal: Goal | null;
@@ -108,6 +109,9 @@ function GoalForm({
 
   const fieldErrors = state && !state.ok ? state.error.fieldErrors : undefined;
   const preview = previewLine({ target, plan, saveMinor, reservedMinor }, currency);
+  // FR05: changing an existing plan is a decision about savings, so the child predicts it first.
+  const planMinor = plan.trim() === "" ? null : parseMoney(plan, currency);
+  const planChanged = goal?.planMinor && planMinor !== null && planMinor !== goal.planMinor;
 
   return (
     <form action={action} className="grid gap-6 px-4 pb-4 sm:px-6 sm:pb-6" noValidate>
@@ -169,7 +173,18 @@ function GoalForm({
           allowance.
         </p>
       ) : null}
-      {preview ? (
+      {goal && planChanged ? (
+        <PredictStep
+          move="change_plan"
+          amountMinor={planMinor}
+          goal={goal}
+          saveMinor={saveMinor}
+          reservedMinor={reservedMinor}
+          currency={currency}
+          maxMinor={allowanceMinor ?? goal.targetMinor}
+          onTryAmount={(minor) => setPlan(toMajorString(minor, currency))}
+        />
+      ) : preview ? (
         <p role="status" className="rounded-lg bg-muted px-3.5 py-2.5 font-semibold">
           {preview}
         </p>

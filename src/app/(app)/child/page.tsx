@@ -16,8 +16,10 @@ import { getLearningOverview } from "@/features/learning/server";
 import { JarShelf } from "@/features/ledger";
 import { takeOutLimit } from "@/features/requests";
 import { getAvailability, listRequests } from "@/features/requests/server";
+import { showsOnHome, WeekCard } from "@/features/review";
+import { getWeeklyReview } from "@/features/review/server";
 import { getChildRules } from "@/features/rules/server";
-import { fallback, logger } from "@/lib";
+import { fallback, familyToday, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -60,6 +62,9 @@ async function ChildHome() {
         dueTotalMinor={due.totalMinor}
         currency={family.currency}
       />
+      <Suspense fallback={null}>
+        <HomeWeek childId={user.id} currency={family.currency} timezone={family.timezone} />
+      </Suspense>
       <Suspense fallback={<div aria-hidden className="shimmer h-24 rounded-xl bg-muted" />}>
         <HomeSkills childId={user.id} />
       </Suspense>
@@ -155,6 +160,30 @@ async function HomeShelf({
         We couldn't load your jars just now. Refresh to try again.
       </p>
     );
+  }
+}
+
+/**
+ * "Your week" (FR11) from Friday to Monday, when the week is nearly in or just over. The full
+ * review is always at /child/learn/week. Hides itself if it can't load.
+ */
+async function HomeWeek({
+  childId,
+  currency,
+  timezone,
+}: {
+  childId: string;
+  currency: string;
+  timezone: string;
+}) {
+  if (!showsOnHome(familyToday(timezone))) return null;
+  try {
+    const review = await getWeeklyReview(childId);
+    return <WeekCard review={review} currency={currency} compact />;
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Weekly review unavailable on child home", { error: errorName(error) });
+    return null;
   }
 }
 

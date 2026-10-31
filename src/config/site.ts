@@ -77,6 +77,9 @@ export const routes = {
   childDiary: "/child/diary" as Route,
   /** Learn: the seven-day journey (FR06). */
   childLearn: "/child/learn" as Route,
+  /** The weekly review (FR11) and its one fresh question. */
+  childWeek: "/child/learn/week" as Route,
+  childWeekQuestion: "/child/learn/week/question" as Route,
   childMission: (missionKey: string) => `/child/learn/${missionKey}` as Route,
   childCheckIn: "/child/learn/check-in" as Route,
   childPractice: "/child/learn/practice" as Route,
