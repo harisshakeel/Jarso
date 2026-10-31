@@ -24,6 +24,18 @@ regex = '''sk-ant-[A-Za-z0-9_-]{12,}'''
 keywords = ["sk-ant-"]
 
 [[rules]]
+id = "stripe-api-key"
+description = "Stripe secret or restricted API key"
+regex = '''\b(sk|rk)_(test|live)_[A-Za-z0-9]{16,}'''
+keywords = ["sk_test_", "sk_live_", "rk_test_", "rk_live_"]
+
+[[rules]]
+id = "stripe-webhook-secret"
+description = "Stripe webhook signing secret"
+regex = '''\bwhsec_[A-Za-z0-9]{16,}'''
+keywords = ["whsec_"]
+
+[[rules]]
 id = "resend-api-key"
 description = "Resend API key (invitation email)"
 regex = '''\bre_[A-Za-z0-9_]{20,}'''
