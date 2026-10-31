@@ -258,7 +258,6 @@ Agree on the evaluation period, definitions, and numerical targets before launch
 ## Open decisions
 
 - Pilot countries, and stronger parental verification than email confirmation plus the guardian-consent checkbox.
-- Which jar receives an emergency grant.
 - Pilot duration and success thresholds.
 
 ### Decided for the pilot (2026-10-28)
@@ -272,6 +271,7 @@ Agree on the evaluation period, definitions, and numerical targets before launch
 - **Parent verification.** Email confirmation plus a guardian-consent checkbox ("I am this child's parent or guardian"), stored with a timestamp and the consenting parent.
 - **Savings deposits** are part of the first milestone, on the same request flow as withdrawals.
 - **Several children.** A parent can link more than one child. Parent Home shows every child, and each child has their own page.
+- **Emergency grants** (FR15, 2026-10-31) land in Spend: they are for using now, so they count as cash in hand and leave Save and the goal untouched.
 - **Invitations.** Always a copyable link plus a short code the child shows the parent. Email is sent additionally only when a sending domain is configured; nothing in the pilot depends on email delivery.
 
 ### Decided for the pilot: slice 2 (2026-10-29)

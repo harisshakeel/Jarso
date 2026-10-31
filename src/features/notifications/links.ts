@@ -77,6 +77,26 @@ export function noticeText(
         title: `${name} asked to add money to Save`,
         detail: amount ? `${amount}. Your answer is waiting.` : "Your answer is waiting.",
       };
+    case "emergency_requested": {
+      const reason = typeof notice.payload.reason === "string" ? notice.payload.reason : null;
+      return {
+        title: `${name} asked for extra money`,
+        detail: [amount, reason].filter(Boolean).join(": ") || "Your answer is waiting.",
+      };
+    }
+    case "emergency_decided": {
+      const { approved } = notice.payload;
+      if (approved === true) {
+        return {
+          title: "Your parent said yes to extra money",
+          detail: amount ? `${amount} will come to Spend when they hand it over.` : "Take a look.",
+        };
+      }
+      if (approved === false) {
+        return { title: "Your parent said not now", detail: "Talk about it together." };
+      }
+      return { title: "Your parent answered your request", detail: "Take a look." };
+    }
     case "withdrawal_decided":
     case "deposit_decided": {
       const { approved, decision } = notice.payload;

@@ -92,14 +92,18 @@ function purchaseItem(row: LedgerRow, timezone: string, now: number): HistoryIte
   };
 }
 
-const REQUEST_KIND: Record<string, "withdrawal" | "deposit"> = {
+const REQUEST_KIND: Record<string, "withdrawal" | "deposit" | "extra"> = {
   withdrawal_out: "withdrawal",
   withdrawal_in: "withdrawal",
   deposit_out: "deposit",
   deposit_in: "deposit",
+  grant_in: "extra",
 };
 
-/** One line per request: its out/in pair is the same amount, so the first row stands for both. */
+/**
+ * One line per request: a move's out/in pair is the same amount, so the first row stands for
+ * both; an emergency grant (FR15) is a single row.
+ */
 function requestItems(rows: LedgerRow[], timezone: string): (HistoryItem & { at: string })[] {
   const seen = new Set<string>();
   const items: (HistoryItem & { at: string })[] = [];
@@ -112,7 +116,7 @@ function requestItems(rows: LedgerRow[], timezone: string): (HistoryItem & { at:
       kind,
       amountMinor: row.amountMinor,
       dueMinor: null,
-      // The database always labels a request pair (the reason, "Taken out of Save", "Put into Save").
+      // The database always labels a request row (the reason, "Taken out of Save", "Put into Save").
       label: row.label ?? "",
       occurredOn: localDate(row.occurredAt, timezone),
       undone: false,

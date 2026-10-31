@@ -7,6 +7,7 @@ import {
   completeSchema,
   decideSchema,
   depositSchema,
+  emergencySchema,
   rejectDepositSchema,
   requestIdSchema,
   withdrawalSchema,
@@ -15,6 +16,7 @@ import {
   cancelRequest,
   completeRequest,
   createDeposit,
+  createEmergency,
   createWithdrawal,
   decideWithdrawal,
   rejectDeposit,
@@ -24,6 +26,15 @@ export const createWithdrawalAction = createAction(
   async () => withdrawalSchema((await getFamilyContext()).currency),
   async (input) => {
     const result = await createWithdrawal(input);
+    refresh();
+    return result;
+  },
+);
+
+export const createEmergencyAction = createAction(
+  async () => emergencySchema((await getFamilyContext()).currency),
+  async (input) => {
+    const result = await createEmergency(input);
     refresh();
     return result;
   },

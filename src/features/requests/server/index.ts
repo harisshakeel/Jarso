@@ -5,6 +5,7 @@ export {
   cancelRequest,
   completeRequest,
   createDeposit,
+  createEmergency,
   createWithdrawal,
   decideWithdrawal,
   getAvailability,

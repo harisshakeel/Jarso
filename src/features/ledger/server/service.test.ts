@@ -155,6 +155,28 @@ describe("getHistory requests", () => {
     });
   });
 
+  it("shows an emergency grant as one extra-money line", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      requestRow({
+        id: "g1",
+        kind: "grant_in",
+        jar: "spend",
+        direction: "in",
+        amountMinor: 500,
+        label: "School trip",
+      }),
+    ]);
+    const items = await getHistory(childId);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      id: "req-1",
+      kind: "extra",
+      amountMinor: 500,
+      label: "School trip",
+      canUndo: false,
+    });
+  });
+
   it("shows a deposit as one line", async () => {
     vi.mocked(repo.listLedgerRows).mockResolvedValue([
       requestRow({

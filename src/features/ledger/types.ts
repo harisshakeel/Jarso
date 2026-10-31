@@ -10,11 +10,12 @@ export type Jars = { spend: number; save: number };
  * A purchase's `amountMinor` is the positive amount spent (the kind says it went out). `entryId`
  * is the purchase entry, for the undo button; `undone` is true once it was reversed; `canUndo` is
  * decided on the server (a purchase, not undone, under 24 h old). A withdrawal or deposit is one
- * line for its out/in pair; `amountMinor` is the amount moved.
+ * line for its out/in pair; `amountMinor` is the amount moved. An `extra` is an emergency grant
+ * a parent handed over (FR15): new money into Spend.
  */
 export type HistoryItem = {
   id: string;
-  kind: "allowance" | "gift" | "skipped" | "purchase" | "withdrawal" | "deposit";
+  kind: "allowance" | "gift" | "skipped" | "purchase" | "withdrawal" | "deposit" | "extra";
   amountMinor: number | null;
   dueMinor: number | null;
   label: string;

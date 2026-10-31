@@ -101,7 +101,7 @@ Three tracks run side by side: Jarso (7, then 3 and 8), money (1, then 2), and d
 
 | Track | Slice | FRs | Size |
 | --- | --- | --- | --- |
-| Money | **Emergency funds** on the request machinery from Demo 2. Needs the jar decision. | FR15 | S |
+| Money | **Emergency funds** on the request machinery from Demo 2. Built: the grant lands in Spend (decided 2026-10-31). | FR15 | S |
 | Money | **Diary complete.** Money received from other sources, traceable corrections, a diary screen. | FR04 | M |
 | Money | **Predict before deciding.** Before a purchase, withdrawal or plan change, the child predicts the effect on their goal, sees the result explained, and can try other choices without changing recorded money. | FR05 | M |
 | Learning | **Weekly review**, as a card on the dashboard. Received, spent, saved, still due and goal progress; how one decision changed the plan; a skill shown and one worth practising; a fresh question from the review pool. | FR11 | M |
@@ -122,7 +122,6 @@ The three tracks can run in parallel.
 
 **Decisions needed first** (`REQUIREMENTS.md`, open decisions)
 
-- Which jar receives an emergency grant. Blocks FR15.
 - Pilot countries and stronger parental verification.
 - Pilot duration and success thresholds. Blocks the evaluation measures.
 

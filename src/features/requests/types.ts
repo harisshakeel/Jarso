@@ -1,4 +1,5 @@
-export type RequestKind = "withdrawal" | "deposit";
+/** Take money out of Save, put money in, or ask for extra money (FR15, lands in Spend). */
+export type RequestKind = "withdrawal" | "deposit" | "emergency";
 
 export const requestStatuses = [
   "pending",
@@ -40,6 +41,9 @@ export type WithdrawalResult =
   | { status: "pending" | "approved" | "already_sent"; requestId: string }
   | { status: "over_available"; availableMinor: number }
   | { status: "over_cap"; period: CapPeriod; capMinor: number; usedMinor: number };
+
+/** An emergency ask is always pending until a parent decides; nothing is reserved or capped. */
+export type EmergencyResult = { status: "pending" | "already_sent"; requestId: string };
 
 export type DepositResult =
   | { status: "pending" | "confirmed" | "already_sent"; requestId: string }

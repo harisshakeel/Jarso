@@ -31,13 +31,16 @@ export type ParentRequestItem = { nickname: string; request: SavingsRequest };
 
 type ParentRequestItemsProps = { items: ParentRequestItem[]; currency: string };
 
-/** What a parent has to do about money moving in and out of Save. Nothing to show, nothing drawn. */
+/**
+ * What a parent has to do about money moving in and out of Save, and asks for extra money
+ * (FR15). Nothing to show, nothing drawn.
+ */
 export function ParentRequestItems({ items, currency }: ParentRequestItemsProps) {
   if (items.length === 0) return null;
   return (
     <section aria-labelledby="save-requests-title" className="grid gap-3">
       <h2 id="save-requests-title" className="eyebrow">
-        Save requests
+        Requests
       </h2>
       <Card size="sm" className="shadow-raised">
         <ul className="divide-y divide-hairline">
@@ -142,7 +145,10 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
       </>
     );
   } else if (request.status === "approved") {
-    sentence = `Hand over ${amount} to ${nickname}`;
+    sentence =
+      request.kind === "emergency"
+        ? `Hand over ${amount} extra to ${nickname}`
+        : `Hand over ${amount} to ${nickname}`;
     actions = (
       <>
         <Button
@@ -154,6 +160,30 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           Confirm
         </Button>
         <DidntHandOver describedBy={sentenceId} disabled={pending} onConfirm={cancel} />
+      </>
+    );
+  } else if (request.kind === "emergency") {
+    // The reason is required for an emergency; it is what the parent decides on.
+    sentence = `${nickname} asks for ${amount} extra: ${request.reason ?? ""}`;
+    actions = (
+      <>
+        <Button
+          type="button"
+          aria-describedby={sentenceId}
+          loading={pending}
+          onClick={() => decide(true)}
+        >
+          Approve
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          aria-describedby={sentenceId}
+          disabled={pending}
+          onClick={() => decide(false)}
+        >
+          Not now
+        </Button>
       </>
     );
   } else {
