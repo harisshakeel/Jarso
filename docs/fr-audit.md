@@ -83,8 +83,8 @@ Thirteen of thirteen are met on `main` once PR B merges.
 ## Cross-cutting, not built
 
 - Demo clock (D11) and the demo seed family (slice 6).
-- `/api/health?deep=1`, error tracking, uptime monitor.
-- Custom SMTP, the confirmation email, and the privacy notice (ADR 0008).
+- Error tracking (deferred: logs carry codes and ids; a Sentry free tier when someone will read it) and the uptime monitor itself (`/api/health?deep=1` is built for it).
+- Custom SMTP and the confirmation email (dashboard work). The privacy notice is built at `/privacy`; legal review pending.
 
 ## Plan
 

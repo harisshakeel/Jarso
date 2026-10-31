@@ -6,7 +6,11 @@ import sitemap from "./sitemap";
 describe("sitemap", () => {
   it("lists only the public pages, as absolute URLs on the app's origin", () => {
     const urls = sitemap().map((entry) => entry.url);
-    expect(urls).toEqual(["http://localhost:3000/", "http://localhost:3000/safety"]);
+    expect(urls).toEqual([
+      "http://localhost:3000/",
+      "http://localhost:3000/safety",
+      "http://localhost:3000/privacy",
+    ]);
   });
 });
 
