@@ -126,16 +126,15 @@ begin
     end if;
   end if;
 
-  update public.goals g
-  set name = v_name, emoji = p_emoji, target_minor = p_target_minor, plan_minor = p_plan_minor
-  where g.child_id = v_child_id and g.status = 'active'
-  returning g.id into v_id;
-
-  if v_id is null then
-    insert into public.goals (family_id, child_id, name, emoji, target_minor, plan_minor)
-    values (v_family_id, v_child_id, v_name, p_emoji, p_target_minor, p_plan_minor)
-    returning id into v_id;
-  end if;
+  -- One statement against goals_one_active, so two first saves at once can't both insert.
+  insert into public.goals (family_id, child_id, name, emoji, target_minor, plan_minor)
+  values (v_family_id, v_child_id, v_name, p_emoji, p_target_minor, p_plan_minor)
+  on conflict (child_id) where status = 'active' do update
+    set name = excluded.name,
+        emoji = excluded.emoji,
+        target_minor = excluded.target_minor,
+        plan_minor = excluded.plan_minor
+  returning id into v_id;
 
   return v_id;
 end;

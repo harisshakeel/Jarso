@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(24);
+select plan(25);
 
 -- Fixtures: PA owns family A with C1 and C2; PB owns family B.
 select tests.create_user('pa@example.com') as pa \gset
@@ -83,6 +83,7 @@ select isnt((select celebrated_at from public.goals where id = :'g1'::uuid), nul
 select public.archive_goal(:'g1'::uuid);
 select public.save_goal('Headphones', '🎧', 6000, null) as g2 \gset
 select is((select status from public.goals where id = :'g1'::uuid), 'archived', 'old goal archived');
+select is((select status from public.goals where id = :'g2'::uuid), 'active', 'new goal active');
 
 select * from finish();
 rollback;
