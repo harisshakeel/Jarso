@@ -27,7 +27,7 @@ function tools(): TurnTools & { run: ReturnType<typeof vi.fn> } {
       isError: false,
     };
   });
-  return { specs: [], facts, calls, run };
+  return { specs: [], facts, calls, remembered: [], run };
 }
 
 describe("runGuidePipeline", () => {

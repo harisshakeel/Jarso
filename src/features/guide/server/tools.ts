@@ -404,6 +404,7 @@ export function createTurnTools(
 ): TurnTools {
   const facts: Facts = new Map();
   const calls: ToolCall[] = [];
+  const remembered: string[] = [];
   const timesCalled = new Map<ToolName, number>();
   const today = familyToday(ctx.timezone);
   const error = (message: string) => ({
@@ -415,6 +416,7 @@ export function createTurnTools(
     specs: toolSpecs,
     facts,
     calls,
+    remembered,
     async run(name, input) {
       if (!isToolName(name)) {
         return error(`There is no tool called ${name}. Use one of: ${toolNames.join(", ")}.`);
@@ -440,6 +442,14 @@ export function createTurnTools(
         const data = await run(parsed.data as never, { ...ctx, today }, fact);
         // A runner returns `{ error }` for arguments the model can fix (a price it can't read).
         const failed = typeof data === "object" && data !== null && "error" in data;
+        // Only a fact that was really stored is shown to the child as remembered.
+        if (
+          !failed &&
+          name === "remember" &&
+          typeof (data as { remembered?: unknown }).remembered === "string"
+        ) {
+          remembered.push((data as { remembered: string }).remembered);
+        }
         return { content: JSON.stringify(data), isError: failed };
       } catch (cause) {
         // Name only: an error message can echo data.

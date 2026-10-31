@@ -29,7 +29,9 @@ async function GuideContent({ params }: { params: Promise<{ childId: string }> }
           <GuideSwitch childId={childId} nickname={child.nickname} enabled={access.enabled} />
         </section>
       ) : null}
-      {access.configured ? <MemoryList memories={memories} whose={child.nickname} /> : null}
+      {access.configured || memories.length > 0 ? (
+        <MemoryList memories={memories} whose={child.nickname} />
+      ) : null}
       <section aria-labelledby="chats-heading" className="grid gap-3">
         <h2 id="chats-heading" className="text-h3">
           Chats

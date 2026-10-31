@@ -73,6 +73,7 @@ beforeEach(() => {
       specs: [],
       facts,
       calls,
+      remembered: [],
       run: async (name) => {
         calls.push({ name: name as "get_jars", input: {} });
         onStatus?.(guideCopy.status.get_jars);

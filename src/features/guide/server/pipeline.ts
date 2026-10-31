@@ -47,6 +47,8 @@ export type PipelineResult = {
   failed: boolean;
   /** What Jarso looked up this turn, kept on the reply so the parent sees it. */
   toolCalls: ToolCall[];
+  /** Facts this turn stored, as written; shown to the child under the reply. */
+  remembered: string[];
 };
 
 const FLAGGED_ROUTES: ReadonlySet<GuideRoute> = new Set([
@@ -60,7 +62,10 @@ const REDIRECT_TOPICS: TopicKey[] = ["spending", "saving-goal", "tradeoffs"];
 /** Longest answer shown (about 80 words is the target; this is the hard stop). */
 const MAX_REPLY_CHARS = 900;
 
-type Base = Pick<PipelineResult, "childText" | "usage" | "model" | "latencyMs" | "toolCalls">;
+type Base = Pick<
+  PipelineResult,
+  "childText" | "usage" | "model" | "latencyMs" | "toolCalls" | "remembered"
+>;
 
 function fixed(route: Exclude<GuideRoute, "on_topic">, base: Base, failed = false): PipelineResult {
   const text = guideCopy.routes[route];
@@ -83,13 +88,13 @@ function fixed(route: Exclude<GuideRoute, "on_topic">, base: Base, failed = fals
  */
 export function fallbackResult(
   text: string,
-  base: Omit<Base, "childText" | "toolCalls">,
+  base: Omit<Base, "childText" | "toolCalls" | "remembered">,
   failed = false,
 ): PipelineResult {
   const childText = scrub(text);
   return fixed(
     looksUnsafe(childText) ? "safety" : "unavailable",
-    { ...base, childText, toolCalls: [] },
+    { ...base, childText, toolCalls: [], remembered: [] },
     failed,
   );
 }
@@ -182,6 +187,7 @@ export async function runGuidePipeline(
     model,
     latencyMs: now() - started,
     toolCalls: [...input.tools.calls],
+    remembered: [...input.tools.remembered],
   });
 
   // The answer starts at once (so an on-topic reply isn't slowed by the screen) and is cancelled

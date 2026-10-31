@@ -68,6 +68,10 @@ begin
     raise exception using errcode = 'JA403', message = 'Jarso is off for this child';
   end if;
 
+  -- One writer per child at a time, so a repeated fact refreshes instead of doubling and the
+  -- trim to 20 sees every committed row.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('memory:' || p_child_id::text, 0));
+
   -- The same fact again just refreshes its date. clock_timestamp, so facts kept in one
   -- transaction still order newest first (now() is fixed for the whole transaction).
   update public.guide_memories

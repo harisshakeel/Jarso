@@ -322,6 +322,17 @@ describe("remember", () => {
     expect(statuses).toEqual([guideCopy.status.remember]);
   });
 
+  it("lists only facts that were stored, as written", async () => {
+    vi.mocked(memory.remember).mockResolvedValue("m1");
+    const tools = createTurnTools(ctx);
+    await tools.run("remember", { kind: "interest", text: "  Likes football examples " });
+    await tools.run("remember", { kind: "interest", text: "is called Sam" });
+    vi.mocked(memory.remember).mockRejectedValueOnce(new Error("db down"));
+    await tools.run("remember", { kind: "prefers", text: "Short hints" });
+    expect(tools.remembered).toEqual(["Likes football examples"]);
+    expect(tools.calls).toHaveLength(3);
+  });
+
   it.each([
     "my school is Oak Hill",
     "lives at 12 Oak Road",

@@ -16,11 +16,15 @@ const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
 
 async function ChildSettings() {
   const { user } = await requireRole("child", routes.childSettings);
-  const [nickname, guide] = await Promise.all([getChildNickname(), getGuideState(user.id)]);
-  const memories = guide.available ? await getMemories(user.id) : null;
+  // Memories show whenever any exist, even with Jarso off: the child can always forget them.
+  const [nickname, guide, memories] = await Promise.all([
+    getChildNickname(),
+    getGuideState(user.id),
+    getMemories(user.id),
+  ]);
   return (
     <>
-      {memories ? (
+      {guide.available || memories.length > 0 ? (
         <div className="rise-in">
           <MemoryList memories={memories} whose="you" />
         </div>

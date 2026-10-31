@@ -30,7 +30,7 @@ import { fallbackResult, type PipelineResult, runGuidePipeline } from "./pipelin
 import { GUIDE_PROMPT_VERSION } from "./prompts";
 import type { GuideProvider, Turn } from "./provider";
 import * as repo from "./repository";
-import type { ToolCall, ToolName } from "./tool-specs";
+import type { ToolName } from "./tool-specs";
 import { createTurnTools } from "./tools";
 
 /** Spec §5.2: 5 messages a minute and 30 a day per child. */
@@ -137,13 +137,6 @@ function lookedAt(names: readonly ToolName[]): string[] {
   return [...new Set(names.map((name) => guideCopy.checked[name]))];
 }
 
-/** The facts a turn kept, so the child sees "Jarso will remember: …" under the reply. */
-function remembered(calls: readonly ToolCall[]): string[] {
-  return calls.flatMap((call) =>
-    call.name === "remember" && typeof call.input.text === "string" ? [call.input.text] : [],
-  );
-}
-
 /** A message checked and ready for Jarso, or one already answered (a re-send). */
 export type PreparedTurn =
   | { kind: "stored"; result: AskGuideResult }
@@ -188,8 +181,14 @@ export async function prepareGuideTurn(input: {
 
   // Context first: an unknown key fails before anything is counted or stored.
   const context = buildContext(input.context, family.currency, familyToday(family.timezone));
-  // What Jarso remembers rides in the per-turn context as data, never as instructions.
-  const memories = await listMemories(db, user.id);
+  // What Jarso remembers rides in the per-turn context as data, never as instructions. It is
+  // optional context: if it can't be read, the turn goes ahead without it.
+  const memories = await listMemories(db, user.id).catch((error: unknown) => {
+    logger.warn("Guide memories unavailable", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    return [];
+  });
   if (memories.length > 0) {
     context.text = [
       context.text,
@@ -320,7 +319,7 @@ export async function runGuideTurn(
       check: result.check,
       helplines: result.route === "safety" ? helplinesFor(family.currency) : [],
       lookedAt: lookedAt(result.toolCalls.map((call) => call.name)),
-      remembered: remembered(result.toolCalls),
+      remembered: result.remembered,
     },
     turnsLeft: Math.max(0, MAX_TURNS - (turn.turns + 1)),
   };
