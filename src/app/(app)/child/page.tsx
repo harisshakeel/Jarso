@@ -16,7 +16,7 @@ import { getLearningOverview } from "@/features/learning/server";
 import { JarShelf } from "@/features/ledger";
 import { getAvailability, listRequests } from "@/features/requests/server";
 import { getChildRules } from "@/features/rules/server";
-import { logger } from "@/lib";
+import { fallback, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -80,10 +80,11 @@ async function HomeStep({
   allowanceMinor: number | null;
 }) {
   try {
+    // The goal and requests only shape the step; if they fail, learning still leads.
     const [learning, goal, requests, availability] = await Promise.all([
       getLearningOverview(childId),
-      getGoalView(childId),
-      listRequests(childId),
+      fallback(getGoalView(childId), null, "Goal on child home"),
+      fallback(listRequests(childId), [], "Requests on child home"),
       getAvailability(childId),
     ]);
     const approved = requests.find((r) => r.kind === "withdrawal" && r.status === "approved");
@@ -126,18 +127,19 @@ async function HomeShelf({
   dueMinor: number;
 }) {
   try {
+    // Only the balances can fail the shelf; the goal, requests and rules are nice to have.
     const [availability, rules, goal, requests] = await Promise.all([
       getAvailability(childId),
-      getChildRules(childId),
-      getGoalView(childId),
-      listRequests(childId),
+      fallback(getChildRules(childId), null, "Rules on child home"),
+      fallback(getGoalView(childId), null, "Goal on child home"),
+      fallback(listRequests(childId), [], "Requests on child home"),
     ]);
     return (
       <JarShelf
         currency={currency}
         userId={childId}
         availability={availability}
-        rules={rules.rules}
+        rules={rules?.rules ?? []}
         goal={goal}
         allowanceMinor={allowanceMinor}
         dueMinor={dueMinor}
