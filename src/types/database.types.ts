@@ -63,17 +63,23 @@ isOneToOne: false
                   ]
                 },"allowance_schedules": {
                   Row: {
-                    "amount_minor": number,"anchor_on": string,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"frequency": string,"id": string,"next_index": number,"pause_message": string | null,"paused_through": string | null,"status": string,"updated_at": string
+                    "amount_minor": number,"anchor_on": string,"auto_charge": boolean,"auto_charge_by": string | null,"auto_charge_since": string | null,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"frequency": string,"id": string,"next_index": number,"pause_message": string | null,"paused_through": string | null,"status": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_minor": number,"anchor_on": string,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"frequency": string,"id"?: string,"next_index"?: number,"pause_message"?: string | null,"paused_through"?: string | null,"status"?: string,"updated_at"?: string
+                    "amount_minor": number,"anchor_on": string,"auto_charge"?: boolean,"auto_charge_by"?: string | null,"auto_charge_since"?: string | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"frequency": string,"id"?: string,"next_index"?: number,"pause_message"?: string | null,"paused_through"?: string | null,"status"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "amount_minor"?: number,"anchor_on"?: string,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"frequency"?: string,"id"?: string,"next_index"?: number,"pause_message"?: string | null,"paused_through"?: string | null,"status"?: string,"updated_at"?: string
+                    "amount_minor"?: number,"anchor_on"?: string,"auto_charge"?: boolean,"auto_charge_by"?: string | null,"auto_charge_since"?: string | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"frequency"?: string,"id"?: string,"next_index"?: number,"pause_message"?: string | null,"paused_through"?: string | null,"status"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "allowance_schedules_auto_charge_by_fkey"
+      columns: ["auto_charge_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "allowance_schedules_child_id_fkey"
       columns: ["child_id"]
 isOneToOne: false
@@ -439,14 +445,14 @@ isOneToOne: true
                   ]
                 },"ledger_entries": {
                   Row: {
-                    "amount_minor": number,"child_id": string,"created_at": string,"created_by": string | null,"direction": string,"family_id": string,"id": string,"idempotency_key": string,"jar": string,"kind": string,"label": string | null,"mode": string,"occurred_at": string,"reverses_entry_id": string | null,"source_id": string | null,"source_type": string
+                    "amount_minor": number,"child_id": string,"created_at": string,"created_by": string | null,"direction": string,"family_id": string,"id": string,"idempotency_key": string,"jar": string,"kind": string,"label": string | null,"method": string,"mode": string,"occurred_at": string,"reverses_entry_id": string | null,"source_id": string | null,"source_type": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_minor": number,"child_id": string,"created_at"?: string,"created_by"?: string | null,"direction": string,"family_id": string,"id"?: string,"idempotency_key": string,"jar": string,"kind": string,"label"?: string | null,"mode"?: string,"occurred_at"?: string,"reverses_entry_id"?: string | null,"source_id"?: string | null,"source_type": string
+                    "amount_minor": number,"child_id": string,"created_at"?: string,"created_by"?: string | null,"direction": string,"family_id": string,"id"?: string,"idempotency_key": string,"jar": string,"kind": string,"label"?: string | null,"method"?: string,"mode"?: string,"occurred_at"?: string,"reverses_entry_id"?: string | null,"source_id"?: string | null,"source_type": string
                   }
                   Update: {
-                    "amount_minor"?: number,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"direction"?: string,"family_id"?: string,"id"?: string,"idempotency_key"?: string,"jar"?: string,"kind"?: string,"label"?: string | null,"mode"?: string,"occurred_at"?: string,"reverses_entry_id"?: string | null,"source_id"?: string | null,"source_type"?: string
+                    "amount_minor"?: number,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"direction"?: string,"family_id"?: string,"id"?: string,"idempotency_key"?: string,"jar"?: string,"kind"?: string,"label"?: string | null,"method"?: string,"mode"?: string,"occurred_at"?: string,"reverses_entry_id"?: string | null,"source_id"?: string | null,"source_type"?: string
                   }
                   Relationships: [
                     {
@@ -593,17 +599,23 @@ isOneToOne: true
                   ]
                 },"parent_gifts": {
                   Row: {
-                    "amount_minor": number,"cash_minor": number | null,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"give_on": string,"given_at": string | null,"given_by": string | null,"id": string,"idempotency_key": string,"note": string | null,"saved_minor": number | null,"status": string,"updated_at": string
+                    "amount_minor": number,"auto_charge": boolean,"auto_charge_by": string | null,"auto_charge_since": string | null,"cash_minor": number | null,"child_id": string,"created_at": string,"created_by": string | null,"family_id": string,"give_on": string,"given_at": string | null,"given_by": string | null,"id": string,"idempotency_key": string,"note": string | null,"saved_minor": number | null,"status": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_minor": number,"cash_minor"?: number | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"give_on": string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"idempotency_key": string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
+                    "amount_minor": number,"auto_charge"?: boolean,"auto_charge_by"?: string | null,"auto_charge_since"?: string | null,"cash_minor"?: number | null,"child_id": string,"created_at"?: string,"created_by"?: string | null,"family_id": string,"give_on": string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"idempotency_key": string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "amount_minor"?: number,"cash_minor"?: number | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"give_on"?: string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"idempotency_key"?: string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
+                    "amount_minor"?: number,"auto_charge"?: boolean,"auto_charge_by"?: string | null,"auto_charge_since"?: string | null,"cash_minor"?: number | null,"child_id"?: string,"created_at"?: string,"created_by"?: string | null,"family_id"?: string,"give_on"?: string,"given_at"?: string | null,"given_by"?: string | null,"id"?: string,"idempotency_key"?: string,"note"?: string | null,"saved_minor"?: number | null,"status"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "parent_gifts_auto_charge_by_fkey"
+      columns: ["auto_charge_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "parent_gifts_child_id_fkey"
       columns: ["child_id"]
 isOneToOne: false
@@ -624,6 +636,92 @@ isOneToOne: false
     },{
       foreignKeyName: "parent_gifts_given_by_fkey"
       columns: ["given_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payment_customers": {
+                  Row: {
+                    "card_brand": string | null,"card_last4": string | null,"created_at": string,"customer_ref": string,"method_ref": string | null,"parent_id": string,"provider": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "card_brand"?: string | null,"card_last4"?: string | null,"created_at"?: string,"customer_ref": string,"method_ref"?: string | null,"parent_id": string,"provider": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "card_brand"?: string | null,"card_last4"?: string | null,"created_at"?: string,"customer_ref"?: string,"method_ref"?: string | null,"parent_id"?: string,"provider"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payment_customers_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payment_setups": {
+                  Row: {
+                    "arm_id": string | null,"arm_type": string | null,"created_at": string,"id": string,"parent_id": string,"provider": string,"provider_ref": string | null,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "arm_id"?: string | null,"arm_type"?: string | null,"created_at"?: string,"id"?: string,"parent_id": string,"provider": string,"provider_ref"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "arm_id"?: string | null,"arm_type"?: string | null,"created_at"?: string,"id"?: string,"parent_id"?: string,"provider"?: string,"provider_ref"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payment_setups_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payment_webhook_events": {
+                  Row: {
+                    "event_id": string,"provider": string,"received_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "event_id": string,"provider": string,"received_at"?: string
+                  }
+                  Update: {
+                    "event_id"?: string,"provider"?: string,"received_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"payments": {
+                  Row: {
+                    "amount_minor": number,"cash_minor": number,"child_id": string,"created_at": string,"currency": string,"expires_at": string | null,"failure_code": string | null,"family_id": string,"id": string,"payer_id": string | null,"provider": string,"provider_ref": string | null,"redirect_url": string | null,"saved_minor": number,"source_id": string,"source_type": string,"status": string,"trigger": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_minor": number,"cash_minor": number,"child_id": string,"created_at"?: string,"currency": string,"expires_at"?: string | null,"failure_code"?: string | null,"family_id": string,"id"?: string,"payer_id"?: string | null,"provider": string,"provider_ref"?: string | null,"redirect_url"?: string | null,"saved_minor": number,"source_id": string,"source_type": string,"status"?: string,"trigger"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "amount_minor"?: number,"cash_minor"?: number,"child_id"?: string,"created_at"?: string,"currency"?: string,"expires_at"?: string | null,"failure_code"?: string | null,"family_id"?: string,"id"?: string,"payer_id"?: string | null,"provider"?: string,"provider_ref"?: string | null,"redirect_url"?: string | null,"saved_minor"?: number,"source_id"?: string,"source_type"?: string,"status"?: string,"trigger"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payments_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_payer_id_fkey"
+      columns: ["payer_id"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
@@ -793,8 +891,14 @@ isOneToOne: false
 "allowance_next_due_on":
 { Args: { "p_schedule_id": string }; Returns: string
                            },
+"apply_payment":
+{ Args: { "p_payment_id": string }; Returns: string
+                           },
 "archive_goal":
 { Args: { "p_goal_id": string }; Returns: undefined
+                           },
+"arm_auto_charge":
+{ Args: { "p_parent_id": string,"p_provider": string,"p_target_id": string,"p_target_type": string }; Returns: undefined
                            },
 "available_save":
 { Args: { "p_child_id": string }; Returns: number
@@ -814,8 +918,14 @@ isOneToOne: false
 "cancel_request":
 { Args: { "p_request_id": string }; Returns: string
                            },
+"card_payment_in_progress":
+{ Args: { "p_source_id": string,"p_source_type": string }; Returns: boolean
+                           },
 "change_allowance":
 { Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
+                           },
+"clear_auto_charge_by":
+{ Args: { "p_parent_id": string }; Returns: undefined
                            },
 "complete_checkin":
 { Args: { "p_content_version": number,"p_correct_count": number,"p_question_count": number }; Returns: boolean
@@ -862,8 +972,16 @@ isOneToOne: false
 "decide_withdrawal":
 { Args: { "p_approve": boolean,"p_note": string,"p_request_id": string }; Returns: string
                            },
+"due_auto_charges":
+{ Args: { "p_limit"?: number,"p_now"?: string,"p_provider": string }; Returns: {
+              "amount_minor": number,"child_id": string,"currency": string,"customer_ref": string,"family_id": string,"method_ref": string,"payer_id": string,"source_id": string,"source_type": string
+            }[]
+                           },
 "evaluate_spend_limits":
 { Args: { "p_entry_id": string }; Returns: number
+                           },
+"fail_payment":
+{ Args: { "p_failure_code": string,"p_payment_id": string,"p_status": string }; Returns: undefined
                            },
 "family_today":
 { Args: { "p_family_id": string,"p_now"?: string }; Returns: string
@@ -928,7 +1046,7 @@ isOneToOne: false
                            },
 "list_ledger_history":
 { Args: { "p_before"?: string,"p_child_id": string,"p_limit"?: number }; Returns: {
-              "amount_minor": number,"direction": string,"id": string,"jar": string,"kind": string,"label": string,"occurred_at": string,"reversed": boolean,"reverses_entry_id": string,"source_id": string,"source_type": string
+              "amount_minor": number,"direction": string,"id": string,"jar": string,"kind": string,"label": string,"method": string,"occurred_at": string,"reversed": boolean,"reverses_entry_id": string,"source_id": string,"source_type": string
             }[]
                            },
 "list_my_invitations":
@@ -940,6 +1058,9 @@ isOneToOne: false
 { Args: { "p_schedule_id": string }; Returns: {
               "amount_minor": number,
 "anchor_on": string,
+"auto_charge": boolean,
+"auto_charge_by": string | null,
+"auto_charge_since": string | null,
 "child_id": string,
 "created_at": string,
 "created_by": string | null,
@@ -961,6 +1082,9 @@ isOneToOne: false
 "lock_gift_for_parent":
 { Args: { "p_gift_id": string }; Returns: {
               "amount_minor": number,
+"auto_charge": boolean,
+"auto_charge_by": string | null,
+"auto_charge_since": string | null,
 "cash_minor": number | null,
 "child_id": string,
 "created_at": string,
@@ -1077,6 +1201,9 @@ isOneToOne: false
 "set_allow_negative_spend":
 { Args: { "p_allowed": boolean,"p_child_id": string }; Returns: undefined
                            },
+"set_auto_charge":
+{ Args: { "p_on": boolean,"p_provider": string,"p_target_id": string,"p_target_type": string }; Returns: undefined
+                           },
 "set_child_pin":
 { Args: { "p_child_id": string,"p_pin": string }; Returns: undefined
                            },
@@ -1091,6 +1218,9 @@ isOneToOne: false
                            },
 "stop_allowance":
 { Args: { "p_schedule_id": string }; Returns: string
+                           },
+"trigger_auto_charge":
+{ Args: Record<PropertyKey, never>; Returns: undefined
                            },
 "undo_purchase":
 { Args: { "p_entry_id": string }; Returns: string
@@ -1114,6 +1244,9 @@ isOneToOne: false
                            },
 "withdrawal_cap_remaining":
 { Args: { "p_child_id": string }; Returns: number
+                           },
+"write_auto_charge":
+{ Args: { "p_on": boolean,"p_parent_id": string,"p_provider": string,"p_target_id": string,"p_target_type": string }; Returns: undefined
                            }
           }
           Enums: {
