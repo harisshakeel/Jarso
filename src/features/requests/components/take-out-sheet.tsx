@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { AmountField, Field, FormError } from "@/components/form";
 import {
   Button,
@@ -30,9 +30,19 @@ type TakeOutSheetProps = {
 
 /** "Take out" on the Save jar: ask a parent for money from Save. */
 export function TakeOutSheet({ currency, limitMinor, ruleLines = [], trigger }: TakeOutSheetProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  // Refresh only once the sheet closes, so the screen behind it can't change while it is open.
+  const sent = useRef(false);
+  function onOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next && sent.current) {
+      sent.current = false;
+      router.refresh();
+    }
+  }
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger
         render={<Button variant={trigger?.variant ?? "outline"} size="lg" className="flex-1" />}
       >
@@ -50,7 +60,10 @@ export function TakeOutSheet({ currency, limitMinor, ruleLines = [], trigger }: 
           currency={currency}
           limitMinor={limitMinor}
           ruleLines={ruleLines}
-          onDone={() => setOpen(false)}
+          onSent={() => {
+            sent.current = true;
+          }}
+          onDone={() => onOpenChange(false)}
         />
       </SheetContent>
     </Sheet>
@@ -80,9 +93,9 @@ function isSent(result: WithdrawalResult) {
 function TakeOutForm({
   currency,
   ruleLines,
+  onSent,
   onDone,
-}: TakeOutSheetProps & { ruleLines: string[]; onDone: () => void }) {
-  const router = useRouter();
+}: TakeOutSheetProps & { ruleLines: string[]; onSent: () => void; onDone: () => void }) {
   // One key per open: a double tap, or sending again after a refusal, asks once.
   const [idempotencyKey] = useState(newId);
   const [amount, setAmount] = useState("");
@@ -92,7 +105,7 @@ function TakeOutForm({
     const result = await runOnline(() =>
       createWithdrawalAction(null, { amount, reason, idempotencyKey }),
     );
-    if (result.ok && isSent(result.data)) router.refresh();
+    if (result.ok && isSent(result.data)) onSent();
     return result;
   }, idle);
 
