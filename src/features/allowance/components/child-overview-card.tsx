@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { JarIllustration } from "@/components/jar";
 import { Badge, Card } from "@/components/ui";
 import { routes } from "@/config";
 import { formatMoney } from "@/lib";
@@ -11,6 +12,12 @@ type ChildOverviewCardProps = {
   /** Confirmed jar balances, minor units. */
   spendMinor: number;
   saveMinor: number;
+  /** Save promised to withdrawals; drawn hatched and left out of goal progress. */
+  reservedMinor: number;
+  /** The shared jar scale (jarCapacity), used for Spend, and for Save without a goal. */
+  capacityMinor: number;
+  /** The child's active goal, or null. */
+  goal: { emoji: string; name: string; targetMinor: number; planMinor: number | null } | null;
   schedule: Schedule | null;
   /** Handovers waiting for a parent. */
   dueCount: number;
@@ -27,11 +34,25 @@ export function ChildOverviewCard({
   nickname,
   spendMinor,
   saveMinor,
+  reservedMinor,
+  capacityMinor,
+  goal,
   schedule,
   dueCount,
   currency,
 }: ChildOverviewCardProps) {
   const money = (minor: number) => formatMoney(minor, currency);
+  const short = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
+  const counted = Math.max(saveMinor - reservedMinor, 0);
+  const goalLine = goal
+    ? [
+        `${goal.emoji} ${goal.name}`,
+        `${short(counted)} of ${short(goal.targetMinor)}`,
+        goal.planMinor ? `plans ${short(goal.planMinor)} each allowance` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "No goal yet";
   return (
     <Card className="relative transition-shadow hover:shadow-raised">
       <div className="grid gap-3 px-(--card-spacing)">
@@ -57,14 +78,33 @@ export function ChildOverviewCard({
             </Badge>
           ) : null}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="inline-flex h-7 items-center gap-1 rounded-full bg-secondary px-3 text-secondary-foreground text-sm">
-            Spend <span className="money font-bold">{money(spendMinor)}</span>
-          </span>
-          <span className="inline-flex h-7 items-center gap-1 rounded-full bg-gold/25 px-3 text-sm">
-            Save <span className="money font-bold">{money(saveMinor)}</span>
-          </span>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="grid justify-items-center gap-1 text-center">
+            <JarIllustration
+              jar="spend"
+              size="sm"
+              capacityMinor={capacityMinor}
+              filledMinor={spendMinor}
+            />
+            <p className="text-sm">
+              Spend <span className="money font-bold">{money(spendMinor)}</span>
+            </p>
+          </div>
+          <div className="grid justify-items-center gap-1 text-center">
+            <JarIllustration
+              jar="save"
+              size="sm"
+              capacityMinor={goal ? goal.targetMinor : capacityMinor}
+              filledMinor={counted}
+              reservedMinor={reservedMinor}
+              goal={goal ? { emoji: goal.emoji } : null}
+            />
+            <p className="text-sm">
+              Save <span className="money font-bold">{money(saveMinor)}</span>
+            </p>
+          </div>
         </div>
+        <p className="text-sm">{goalLine}</p>
         <p className="text-ink-2 text-sm">{describeAllowanceState(schedule)}</p>
       </div>
     </Card>

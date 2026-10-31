@@ -49,6 +49,26 @@ export function parseCursor(cursor: string): { createdAt: string; id: string } {
 }
 
 /** Only place that knows notifications table, column and function names. RLS scopes rows to the caller. */
+/** The caller's unread notices of some kinds, newest first. Filtered in the query, not after. */
+export async function listUnreadRows(
+  db: Client,
+  kinds: NoticeKind[],
+  limit: number,
+): Promise<Notice[]> {
+  const { data, error } = await db
+    .from("notifications")
+    .select(
+      "id, kind, child_id, source_type, source_id, payload, created_at, read_at, child:profiles!notifications_child_id_fkey(nickname)",
+    )
+    .in("kind", kinds)
+    .is("read_at", null)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(limit);
+  if (error) throw toAppError(error, "Failed to load notices");
+  return data.map((row) => toNotice(row as Row));
+}
+
 export async function listNoticeRows(
   db: Client,
   limit: number,

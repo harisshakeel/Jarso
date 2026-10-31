@@ -3,16 +3,15 @@
 import { InboxIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { type MouseEvent, useTransition } from "react";
+import { useTransition } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui";
 import { runOnline } from "@/features/offline";
-import { logger } from "@/lib";
 import { noticeHref, noticeText } from "../links";
 import { markNoticesReadAction } from "../server/actions";
 import type { Notice } from "../types";
 import { InboxItem } from "./inbox-item";
+import { useOpenNotice } from "./use-open-notice";
 
 type InboxListProps = {
   items: Notice[];
@@ -24,27 +23,9 @@ type InboxListProps = {
 
 /** The inbox, newest first. Opening a row saves it as read, then goes to the record. */
 export function InboxList({ items, currency, viewer, moreHref }: InboxListProps) {
-  const router = useRouter();
+  const open = useOpenNotice();
   const [pending, startTransition] = useTransition();
   const hasUnread = items.some((item) => !item.read);
-
-  function open(id: string, event: MouseEvent<HTMLAnchorElement>) {
-    const href = event.currentTarget.getAttribute("href");
-    if (!href || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
-    event.preventDefault();
-    // Saving "read" is best effort: offline or slow, the child still gets to the record.
-    markNoticesReadAction(null, { ids: [id] }).then(
-      (result) => {
-        if (result.ok) router.refresh();
-      },
-      (error: unknown) => {
-        logger.warn("Could not save notice as read", {
-          error: error instanceof Error ? error.name : "unknown",
-        });
-      },
-    );
-    router.push(href as Route);
-  }
 
   function markAll() {
     startTransition(async () => {
