@@ -30,7 +30,7 @@ import {
   settleRequestReads,
 } from "@/features/requests";
 import { getAvailability, listRequestsNeedingParent } from "@/features/requests/server";
-import { logger } from "@/lib";
+import { fallback, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Your family" };
 
@@ -59,7 +59,8 @@ async function ParentHome() {
     child,
     due: listDue(child.id),
     availability: getAvailability(child.id),
-    goal: getGoalView(child.id),
+    // The goal line is a nice-to-have; the fallback is attached now, so a failure is never unhandled.
+    goal: fallback(getGoalView(child.id), null, "Goal on parent home"),
     requests: listRequestsNeedingParent(child.id),
     schedule: getSchedule(child.id),
   }));
@@ -193,12 +194,7 @@ async function ChildCard({ read, currency }: { read: ChildReads; currency: strin
     read.availability,
     read.schedule,
   ]);
-  // The goal line is a nice-to-have: a failed read shows the card without it.
-  const goal = await read.goal.catch((error: unknown) => {
-    unstable_rethrow(error);
-    logger.warn("Goal unavailable on parent home", { error: errorName(error) });
-    return null;
-  });
+  const goal = await read.goal;
   const allowanceMinor = runningSchedule(schedule)?.amountMinor ?? null;
   return (
     <ChildOverviewCard
