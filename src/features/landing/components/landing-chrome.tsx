@@ -54,6 +54,12 @@ export function LandingFooter() {
             {nav.safety}
           </Link>
           <Link
+            href={routes.privacy}
+            className={buttonVariants({ variant: "ghost", className: "px-4" })}
+          >
+            {nav.privacy}
+          </Link>
+          <Link
             href={routes.login}
             className={buttonVariants({ variant: "ghost", className: "px-4" })}
           >

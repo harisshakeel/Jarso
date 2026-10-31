@@ -611,10 +611,10 @@ Delivery pipeline: PR → CI (lint, typecheck, unit, build, e2e, gitleaks, migra
 
 ## 12. Observability and operations
 
-- Uptime monitor on `/api/health?deep=1` (runs a trivial query).
-- Error tracking (Sentry free tier) on client and server with source maps.
+- Uptime monitor on `/api/health?deep=1` (one RLS-scoped read as `anon`; 503 when the database does not answer).
+- Error tracking: deferred. `logger` lines carry error codes and ids in the Vercel function logs; a Sentry free tier is the step up when someone will read it.
 - `job_runs` is the operational table; a saved SQL query ("failed jobs last 7 days") plus the cron route's counts in the Vercel logs are the dashboard.
-- Metrics for the pilot evaluation come from SQL over `families`, `allowance_occurrences` (due → confirmed lag), `requests` (unanswered), `mission_progress`, and a nightly reconciliation of balances versus ledger sums.
+- Metrics for the pilot evaluation are the SQL in `docs/pilot-measures.md`, over `families`, `allowance_occurrences` (due → confirmed lag), `requests` (unanswered), `mission_attempts`, `skill_progress`, `practice_results` and `balance()`.
 - SLOs: 99.5 % availability of the deep health check; p95 dashboard under 2 s from Japan and the pilot country.
 
 ## 13. Testing strategy

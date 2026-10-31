@@ -66,3 +66,13 @@ test("the safety link opens the AI safety page", async ({ page }) => {
   await page.getByRole("link", { name: "How Jarso's AI stays safe" }).click();
   await expect(page).toHaveURL(/\/safety$/);
 });
+
+test("the footer's privacy link opens the privacy notice", async ({ page }) => {
+  await page.goto("/");
+  await page
+    .getByRole("navigation", { name: "Footer" })
+    .getByRole("link", { name: "Privacy" })
+    .click();
+  await expect(page).toHaveURL(/\/privacy$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Privacy notice" })).toBeVisible();
+});

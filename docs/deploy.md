@@ -8,7 +8,7 @@ Production runs on Vercel, database and auth on Supabase. Both are in Tokyo so e
 | Production URL | https://jarso.vercel.app |
 | Function region | `hnd1` (pinned in `vercel.json`) |
 | Supabase project | `sbnakvwvaymzypwmpqzv`, region `ap-northeast-1` |
-| Health check | https://jarso.vercel.app/api/health → `{"data":{"status":"ok"}}` |
+| Health check | https://jarso.vercel.app/api/health → `{"data":{"status":"ok"}}`; `?deep=1` also asks the database and answers 503 when it does not reply (point the uptime monitor here) |
 
 ## Environment variables
 
@@ -65,6 +65,7 @@ Runbook step: Supabase → Authentication → Sessions → Refresh token reuse i
 
 ```bash
 curl -s https://jarso.vercel.app/api/health            # {"data":{"status":"ok"}}
+curl -s https://jarso.vercel.app/api/health?deep=1     # {"data":{"status":"ok","database":"ok"}}
 curl -sI https://jarso.vercel.app/dashboard | head -1   # 307 to /login?next=%2Fdashboard when signed out
 vercel inspect <deployment-url>                         # status, aliases, per-function region
 ```

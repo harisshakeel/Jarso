@@ -255,6 +255,8 @@ Agree on the evaluation period, definitions, and numerical targets before launch
 
 "Most families return weekly" and "children complete the first few missions" are proposed measures, not final thresholds.
 
+The SQL for each measure is in `docs/pilot-measures.md`.
+
 ## Open decisions
 
 - Pilot countries, and stronger parental verification than email confirmation plus the guardian-consent checkbox.

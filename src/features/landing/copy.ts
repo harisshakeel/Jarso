@@ -6,6 +6,7 @@ export const landingCopy = {
   meta: { title: "Jarso · Spend some. Save some." },
   nav: {
     safety: "Safety",
+    privacy: "Privacy",
     start: "Get started",
     parents: "Parents",
     logIn: "Log in",

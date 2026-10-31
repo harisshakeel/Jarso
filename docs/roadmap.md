@@ -113,12 +113,12 @@ The three tracks can run in parallel.
 
 **Pilot readiness**
 
-- Custom SMTP and email confirmation back on; the privacy notice (ADR 0008), linked from the landing page.
-- The guide on for pilot families after the eval gate and a UK/US legal review.
-- `/api/health?deep=1`, error tracking and an uptime monitor.
-- The pilot evaluation measures from `REQUIREMENTS.md`, on an internal page or saved queries: families completing the first flow, weekly return, time from due to handover, journey completion, understanding apart from completion, unanswered requests, balance errors.
-- Slice 1 fixes (PIN rotation signing children out elsewhere, the global invite cap); leftover test users deleted.
-- An accessibility and performance pass on a low-end phone.
+- Custom SMTP and email confirmation back on (Supabase dashboard; owner). The privacy notice (ADR 0008): built at `/privacy`, linked from the landing footer and the sitemap; a lawyer reviews it before Jarso opens beyond the pilot (owner).
+- The guide on for pilot families after the eval gate and a UK/US legal review (owner).
+- `/api/health?deep=1`: built (one RLS-scoped read; 503 when the database does not answer). Uptime monitor: point one at it (owner). Error tracking: deferred; Vercel's function logs plus `logger` carry codes and ids, and a Sentry free tier can be added when someone will read it.
+- The pilot evaluation measures: written as SQL in `docs/pilot-measures.md` (families completing the first flow, weekly return, due-to-handover time, journey completion, understanding apart from completion, unanswered requests, balance errors). Period and thresholds remain an open decision in `REQUIREMENTS.md`.
+- Slice 1 fixes: done (`setChildPin` revokes the child's sessions; `invite:global` caps invitations at 200 a day). Leftover test users deleted (owner, hosted project).
+- An accessibility and performance pass on a low-end phone: not done; a manual pass with a real device before families join.
 
 **Decisions needed first** (`REQUIREMENTS.md`, open decisions)
 
