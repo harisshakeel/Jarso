@@ -261,6 +261,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"goals": {
+                  Row: {
+                    "celebrated_at": string | null,"child_id": string,"created_at": string,"emoji": string,"family_id": string,"id": string,"name": string,"plan_minor": number | null,"reached_at": string | null,"status": string,"target_minor": number,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "celebrated_at"?: string | null,"child_id": string,"created_at"?: string,"emoji": string,"family_id": string,"id"?: string,"name": string,"plan_minor"?: number | null,"reached_at"?: string | null,"status"?: string,"target_minor": number,"updated_at"?: string
+                  }
+                  Update: {
+                    "celebrated_at"?: string | null,"child_id"?: string,"created_at"?: string,"emoji"?: string,"family_id"?: string,"id"?: string,"name"?: string,"plan_minor"?: number | null,"reached_at"?: string | null,"status"?: string,"target_minor"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "goals_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "goals_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"guide_access": {
                   Row: {
                     "changed_at": string,"changed_by": string | null,"child_id": string,"consent_version": number,"enabled": boolean,"family_id": string
@@ -767,6 +793,9 @@ isOneToOne: false
 "allowance_next_due_on":
 { Args: { "p_schedule_id": string }; Returns: string
                            },
+"archive_goal":
+{ Args: { "p_goal_id": string }; Returns: undefined
+                           },
 "available_save":
 { Args: { "p_child_id": string }; Returns: number
                            },
@@ -849,6 +878,14 @@ isOneToOne: false
                            },
 "generate_for_schedule":
 { Args: { "p_schedule_id": string,"p_today": string }; Returns: number
+                           },
+"goal_child_family":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"goal_progress":
+{ Args: { "p_child_id": string }; Returns: {
+              "counted_minor": number,"goal_id": string,"reached": boolean
+            }[]
                            },
 "guide_find_turn":
 { Args: { "p_child_id": string,"p_client_message_id": string }; Returns: {
@@ -968,6 +1005,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"mark_goal_celebrated":
+{ Args: { "p_goal_id": string }; Returns: undefined
+                           },
 "mark_not_given":
 { Args: { "p_occurrence_id": string }; Returns: string
                            },
@@ -1027,6 +1067,9 @@ isOneToOne: false
                            },
 "rule_window_start":
 { Args: { "p_at": string,"p_family_id": string,"p_period": string }; Returns: string
+                           },
+"save_goal":
+{ Args: { "p_emoji": string,"p_name": string,"p_plan_minor": number,"p_target_minor": number }; Returns: string
                            },
 "send_handover_reminders":
 { Args: { "p_now"?: string }; Returns: number

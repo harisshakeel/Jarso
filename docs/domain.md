@@ -54,7 +54,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | `jars` | FR03 | Planned split preview, transfers. Reads `ledger`. |
 | `requests` | FR14, FR15 | Savings deposits, savings withdrawals and emergency requests: decision, then handover or receipt confirmation posts to `ledger`. Reserves Save for pending/approved withdrawals. |
 | `limits` | FR14 | Spending limits; evaluates purchases after recording and raises limit notices. |
-| `goals` | FR02, FR05 | Goal, plan, payments-remaining estimate, what-if simulation (no writes). |
+| `goals` ✅ | FR02, FR05 | One active goal per child with name, emoji, price and the child's plan; counted progress (Save − reserved) and payments left. What-if simulation (FR05, no writes) comes later. |
 | `diary` | FR04 | UI over `ledger` entries: add, correct, undo. |
 | `learning` ✅ | FR06, FR08, FR10 | Missions, topics, spaced review, check-in, progress (separate from money). Content as JSON (ADR 0009). |
 | `reviews` | FR11, FR12 | Weekly summary, next-step recommendation, resume state. |
