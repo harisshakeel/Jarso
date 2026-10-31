@@ -109,9 +109,13 @@ test("child sees jars, due badge and a revealed gift", async () => {
   await expect(child.getByRole("region", { name: "Spend jar" })).toContainText("US$550");
   await expect(child.getByRole("region", { name: "Save jar" })).toContainText("US$0");
   await expect(child.getByText("waiting for a parent")).toHaveCount(0);
+  // History lives on the Diary tab.
+  await child.getByRole("link", { name: "Diary" }).click();
+  await expect(child).toHaveURL(at("/child/diary"));
   const history = child.getByRole("region", { name: "History" });
   await expect(history.getByText(NOTE)).toBeVisible();
   await expect(history.getByText("Allowance", { exact: true })).toBeVisible();
+  await child.goto("/child");
 
   // Pause with a message: the child sees it.
   await parent.goto(allowancePath);
@@ -126,4 +130,25 @@ test("child sees jars, due badge and a revealed gift", async () => {
   await expect(child.getByText("Paused", { exact: true })).toBeVisible();
   await expect(child.getByText("Paused until a parent resumes it.")).toBeVisible();
   await expect(child.getByText("Back after the holiday")).toBeVisible();
+});
+
+test("child sets a goal and the Save jar shows how far to go", async () => {
+  await child.goto("/child");
+  const saveJar = child.getByRole("region", { name: "Save jar" });
+  await saveJar.getByRole("button", { name: "Set a goal" }).click();
+  const sheet = child.getByRole("dialog");
+  await sheet.getByLabel("What is it?").fill("Football boots");
+  // The radios are visually hidden inside their picture labels.
+  await sheet.getByRole("radio", { name: "⚽" }).check({ force: true });
+  await sheet.getByLabel("How much does it cost?").fill("45");
+  await sheet.getByLabel("How much will you save each time?").fill("4");
+  await expect(sheet.getByText("About 12 more allowances")).toBeVisible();
+  await sheet.getByRole("button", { name: "Save my goal" }).click();
+  await expect(child.getByRole("dialog")).toHaveCount(0);
+
+  await expect(saveJar.getByText("⚽ Football boots, US$45.")).toBeVisible();
+  await expect(
+    saveJar.getByText("US$45 to go · about 12 more allowances at US$4 each"),
+  ).toBeVisible();
+  await expect(saveJar.getByRole("button", { name: "Change my goal" })).toBeVisible();
 });

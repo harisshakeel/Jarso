@@ -83,6 +83,8 @@ test.beforeAll(async ({ browser }) => {
   await child.getByLabel("Your PIN").fill("1234");
   await child.getByRole("button", { name: "Sign in" }).click();
   await expect(child).toHaveURL(at("/child"));
+  // Purchases, pending items and history all sit on the Diary tab.
+  await child.goto("/child/diary");
   await expect(spendJar()).toContainText("US$100");
 });
 

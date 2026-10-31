@@ -24,6 +24,9 @@ let childId = "";
 
 const spendJar = () => child.getByRole("region", { name: "Spend jar" });
 const history = () => child.getByRole("region", { name: "History" });
+// History lives on the Diary tab; the jars live on Home.
+const toDiary = () => child.goto("/child/diary");
+const toHome = () => child.goto("/child");
 
 /** Opens the purchase sheet, records an amount and waits for it to close. */
 async function spend(amount: string, label: string): Promise<void> {
@@ -110,14 +113,17 @@ test("parent hands over 1000 to Spend and sets a week spend limit of 500", async
 });
 
 test("child records two purchases and sees both in history", async () => {
-  await child.goto("/child");
+  await toHome();
   await expect(spendJar()).toContainText("US$1,000");
   await spend("300", "Comic");
-  await expect(history().getByText("Comic")).toBeVisible();
   await expect(spendJar()).toContainText("US$700");
+  await toDiary();
+  await expect(history().getByText("Comic")).toBeVisible();
+  // The diary records purchases too.
   await spend("300", "Sweets");
   await expect(history().getByText("Sweets")).toBeVisible();
   await expect(history().getByText("Comic")).toBeVisible();
+  await toHome();
   await expect(spendJar()).toContainText("US$400");
 });
 
@@ -144,8 +150,10 @@ test("a purchase above Spend is refused and nothing is recorded", async () => {
   await expect(sheet.getByText("Record money you got first, or ask a parent.")).toBeVisible();
   await sheet.getByRole("button", { name: "Close" }).click();
   await expect(child.getByRole("dialog")).toHaveCount(0);
-  await expect(history().getByText("Too much")).toHaveCount(0);
   await expect(spendJar()).toContainText("US$400");
+  await toDiary();
+  await expect(history().getByText("Too much")).toHaveCount(0);
+  await toHome();
 });
 
 test("with overspend on, a purchase can take Spend below zero", async () => {
@@ -157,13 +165,15 @@ test("with overspend on, a purchase can take Spend below zero", async () => {
 
   await child.reload();
   await spend("500", "Game");
-  await expect(history().getByText("Game")).toBeVisible();
   await expect(spendJar()).toContainText("-US$100");
+  await toDiary();
+  await expect(history().getByText("Game")).toBeVisible();
 });
 
 test("child undoes the last purchase and Spend is restored", async () => {
   const line = history().getByRole("listitem").filter({ hasText: "Game" });
   await line.getByRole("button", { name: "Undo Game" }).click();
   await expect(line.getByText(/Undone/)).toBeVisible();
+  await toHome();
   await expect(spendJar()).toContainText("US$400");
 });

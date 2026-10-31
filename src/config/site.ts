@@ -73,6 +73,8 @@ export const routes = {
   parentChildGuideChat: (childId: string, conversationId: string) =>
     `/parent/children/${childId}/guide/${conversationId}` as Route,
   child: "/child",
+  /** Diary: purchases, history and undo (FR04). */
+  childDiary: "/child/diary" as Route,
   /** Learn: the seven-day journey (FR06). */
   childLearn: "/child/learn" as Route,
   childMission: (missionKey: string) => `/child/learn/${missionKey}` as Route,
