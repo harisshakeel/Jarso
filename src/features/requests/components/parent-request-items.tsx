@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { FormError } from "@/components/form";
 import {
@@ -57,6 +57,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
   const [error, setError] = useState<{ code: string; message: string }>();
   // One key for this row's Confirm, made on first tap so server and client markup agree.
   const key = useRef<string | null>(null);
+  const sentenceId = useId();
   const amount = formatMoney(request.amountMinor, currency, { showMinor: "always" });
 
   /** Runs one action, then tells the parent what happened in calm words. */
@@ -121,10 +122,21 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
     sentence = `${nickname} gave you ${amount}?`;
     actions = (
       <>
-        <Button type="button" loading={pending} onClick={() => complete("Added to Save.")}>
+        <Button
+          type="button"
+          aria-describedby={sentenceId}
+          loading={pending}
+          onClick={() => complete("Added to Save.")}
+        >
           Confirm
         </Button>
-        <Button type="button" variant="outline" disabled={pending} onClick={rejectDeposit}>
+        <Button
+          type="button"
+          variant="outline"
+          aria-describedby={sentenceId}
+          disabled={pending}
+          onClick={rejectDeposit}
+        >
           Didn't get it
         </Button>
       </>
@@ -133,20 +145,36 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
     sentence = `Hand over ${amount} to ${nickname}`;
     actions = (
       <>
-        <Button type="button" loading={pending} onClick={() => complete("Handed over.")}>
+        <Button
+          type="button"
+          aria-describedby={sentenceId}
+          loading={pending}
+          onClick={() => complete("Handed over.")}
+        >
           Confirm
         </Button>
-        <DidntHandOver disabled={pending} onConfirm={cancel} />
+        <DidntHandOver describedBy={sentenceId} disabled={pending} onConfirm={cancel} />
       </>
     );
   } else {
     sentence = `${nickname} wants ${amount}${request.reason ? `: ${request.reason}` : ""}`;
     actions = (
       <>
-        <Button type="button" loading={pending} onClick={() => decide(true)}>
+        <Button
+          type="button"
+          aria-describedby={sentenceId}
+          loading={pending}
+          onClick={() => decide(true)}
+        >
           Approve
         </Button>
-        <Button type="button" variant="outline" disabled={pending} onClick={() => decide(false)}>
+        <Button
+          type="button"
+          variant="outline"
+          aria-describedby={sentenceId}
+          disabled={pending}
+          onClick={() => decide(false)}
+        >
           Not now
         </Button>
       </>
@@ -155,7 +183,9 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
 
   return (
     <li className="grid gap-3 px-(--card-spacing) py-3 first:pt-0 last:pb-0">
-      <p className="font-semibold">{sentence}</p>
+      <p id={sentenceId} className="font-semibold">
+        {sentence}
+      </p>
       <div className="flex flex-wrap items-center gap-2">{actions}</div>
       <FormError error={error} />
     </li>
@@ -163,11 +193,28 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
 }
 
 /** A quiet way out of an approved withdrawal, behind a confirm step. */
-function DidntHandOver({ disabled, onConfirm }: { disabled: boolean; onConfirm: () => void }) {
+function DidntHandOver({
+  disabled,
+  describedBy,
+  onConfirm,
+}: {
+  disabled: boolean;
+  describedBy: string;
+  onConfirm: () => void;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger render={<Button type="button" variant="ghost" disabled={disabled} />}>
+      <AlertDialogTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            aria-describedby={describedBy}
+            disabled={disabled}
+          />
+        }
+      >
         Didn't hand it over
       </AlertDialogTrigger>
       <AlertDialogContent>
