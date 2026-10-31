@@ -9,8 +9,9 @@ import { cn } from "@/lib";
 import { setGuideAccessAction } from "../server/actions";
 
 /**
- * The parent's per-child switch for the AI guide (spec §5.5). Off by default. Turning it on is
- * the consent for sending the child's messages to Anthropic, so the explanation sits right here.
+ * The parent's per-child switch for Jarso (spec §5.5, ADR 0011). On by default; a parent can turn
+ * it off at any time. While it is on, the child's messages, and the money and learning data Jarso
+ * looks up to answer them, go to Anthropic, so the explanation sits right here.
  */
 export function GuideSwitch({
   childId,
@@ -45,7 +46,7 @@ export function GuideSwitch({
     <div className="grid gap-3">
       <div className="flex items-center justify-between gap-4">
         <span id={`guide-switch-${childId}`} className="font-semibold">
-          Money guide for {nickname}
+          Jarso for {nickname}
         </span>
         <button
           type="button"
@@ -70,17 +71,20 @@ export function GuideSwitch({
         </button>
       </div>
       <p className="text-ink-2 text-sm">
-        An AI helper made by Anthropic (Claude) that answers {nickname}'s money questions and gives
-        hints in missions. It never asks for personal details, never recommends products or tells
-        them to buy anything, and points them to help if they seem unsafe. Messages are sent to
-        Anthropic to get answers, kept here for 30 days, and you can read every chat, except a
-        message that needed a safety response, which isn't kept. Turning it on is your consent to
-        that.{" "}
+        Jarso is an AI helper made with Anthropic's Claude. It answers {nickname}'s money questions,
+        gives hints in missions, and, when {nickname} asks, looks at their own jars, allowance,
+        purchases and learning to answer. It can't see anyone else's money or your planned gifts,
+        and it can't move money. It never asks for personal details, never recommends products or
+        tells them to buy anything, and points them to help if they seem unsafe. Messages, and what
+        Jarso looks up for them, are sent to Anthropic to get answers. Chats are kept here for 30
+        days and you can read every one, with what Jarso looked at, except a message that needed a
+        safety response, which isn't kept. It's on unless you turn it off, and you can turn it off
+        or back on at any time.{" "}
         <Link
           href={routes.safety}
           className="font-semibold text-primary underline underline-offset-4"
         >
-          How the guide keeps children safe
+          How Jarso keeps children safe
         </Link>
       </p>
       <FormError error={error} />

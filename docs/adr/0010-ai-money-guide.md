@@ -1,6 +1,6 @@
 # 0010. AI money guide: a screened Claude pipeline behind two switches
 
-- Status: Accepted
+- Status: Accepted, amended by [0011](./0011-jarso-agent.md) (model, on by default, figures)
 - Date: 2026-10-30
 
 ## Context

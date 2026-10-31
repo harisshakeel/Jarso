@@ -64,11 +64,37 @@ REDACTIONS: List[Tuple[re.Pattern, str]] = [
 ]
 
 
+# Words that must never appear in these public logs (the owner's unrelated accounts and
+# projects). They live in a gitignored file next to this hook, one per line, so the public repo
+# never lists them, not even as hashes. Matched case-insensitively anywhere, including inside
+# longer identifiers ("<word>App", "<word>-dev").
+PRIVATE_WORDS_FILE = Path(__file__).with_name('private-words.local')
+
+
+def _private_words_pattern() -> Optional[re.Pattern]:
+    try:
+        lines = PRIVATE_WORDS_FILE.read_text(encoding='utf-8').splitlines()
+    except OSError:
+        return None
+    words = sorted({line.strip() for line in lines if line.strip() and not line.startswith('#')},
+                   key=len, reverse=True)
+    if not words:
+        return None
+    return re.compile('|'.join(re.escape(word) for word in words), re.IGNORECASE)
+
+
+_PRIVATE_WORDS = _private_words_pattern()
+
+
+def _redact_private_words(text: str) -> str:
+    return _PRIVATE_WORDS.sub('[private]', text) if _PRIVATE_WORDS else text
+
+
 def redact(text: str) -> str:
-    """Mask credential-shaped strings. Idempotent: redacted text redacts to itself."""
+    """Mask credential-shaped strings and private words. Idempotent: redacted text redacts to itself."""
     for pattern, replacement in REDACTIONS:
         text = pattern.sub(replacement, text)
-    return text
+    return _redact_private_words(text)
 
 
 def mask_email(email: str) -> str:

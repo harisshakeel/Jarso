@@ -27,8 +27,36 @@ export function createFakeProvider(): GuideProvider {
       return { route, usage: { screenInput: 0, screenOutput: 0 } };
     },
 
-    async reply({ context }) {
-      // The signal is ignored: the fake answers at once.
+    async reply({ text, context, tools }) {
+      // The signal is ignored: the fake answers at once. Two questions look things up, so e2e
+      // runs cover the look-up path end to end (status line, figure refs, the parent's view).
+      const lower = text.toLowerCase();
+      const lookup = /\bhow much do i have\b|\bmy jars\b/.test(lower)
+        ? {
+            tool: "get_jars",
+            input: {},
+            reply: "You have {{jars.spend}} in Spend and {{jars.save}} in Save.",
+          }
+        : /\b(spend|spent) this week\b/.test(lower)
+          ? {
+              tool: "get_money_history",
+              input: { period: "this_week" },
+              reply: "This week you spent {{history.spent}}.",
+            }
+          : null;
+      if (lookup) {
+        const result = await tools.run(lookup.tool, lookup.input);
+        return {
+          kind: "ok",
+          reply: {
+            reply: result.isError ? "I couldn't look that up just now." : lookup.reply,
+            topics: ["spending"],
+            check: null,
+          },
+          usage: {},
+          model: "fake",
+        };
+      }
       const midExercise =
         context.includes("Tries so far: 0") || context.includes("Tries so far: 1");
       const reply = midExercise

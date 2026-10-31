@@ -29,7 +29,7 @@ FR02–FR06, FR08, FR10–FR12, emergency funds (FR15), web push and app install
 
 ### Later versions
 
-- AI money guide and its boundaries (FR07, FR09): **moved into the pilot** behind the `FEATURE_GUIDE` flag and a per-child parent switch, off by default (ADR 0010). It is switched on for real families only after the eval gate and a legal review.
+- AI money guide and its boundaries (FR07, FR09): **moved into the pilot** behind the `FEATURE_GUIDE` flag and a per-child parent switch. The switch is on by default and a parent can turn it off at any time (product owner, 2026-10-31; ADR 0011); parents are told on the add-child form. The deployment flag is switched on for real families only after the eval gate and a legal review, which must confirm the default-on consent.
 - Practice money with the learning section (FR05/FR06). Practice money stays separate from recorded money.
 - Native mobile apps.
 - Real payments, bank connections, live fund tracking, investments, and investment-return projections.
@@ -107,6 +107,7 @@ The initial topics are:
 - During exercises, it encourages an attempt before offering progressively stronger hints.
 - Basic conceptual questions receive a direct answer.
 - The guide can offer a short follow-up activity to check understanding.
+- When the child asks, the guide (Jarso) looks up the child's own jars, allowance, money history, money rules and learning progress, and can work out how far Save is from a price the child gives. Figures it shows come from the app, never from the model (ADR 0011).
 
 ## FR08 — Related learning material
 
@@ -121,6 +122,7 @@ The initial topics are:
 - Unrelated requests receive a brief redirection toward relevant learning.
 - The guide acknowledges uncertainty or missing information.
 - It does not request sensitive personal or account information, recommend specific investments, or instruct the child to make purchases.
+- It states the child's own figures plainly when asked, but never judges an amount or compares it with anyone else's. It cannot see other children's money, a parent's planned gifts, or anything outside Jarso, and it cannot move money.
 - Safety concerns receive a supportive response and appropriate guidance toward help.
 
 ## FR10 — Learning progress

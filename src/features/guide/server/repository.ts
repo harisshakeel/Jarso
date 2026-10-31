@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database, Json } from "@/types";
 import type { GuideEntry, GuideRoute, GuideUsage } from "../types";
+import { isToolName, type ToolCall, type ToolName } from "./tool-specs";
 
 type Client = SupabaseClient<Database>;
 
@@ -31,6 +32,10 @@ function asEntry(value: string): GuideEntry {
   return value === "why" || value === "topic" || value === "home" ? value : "step";
 }
 
+/**
+ * Whether Jarso is on for the child: on by default, off only when a parent turned it off. (The
+ * row's consent_version records which explanation the parent had; it gates nothing.)
+ */
 export async function findGuideAccess(db: Client, childId: string): Promise<boolean> {
   const { data, error } = await db
     .from("guide_access")
@@ -38,7 +43,7 @@ export async function findGuideAccess(db: Client, childId: string): Promise<bool
     .eq("child_id", childId)
     .maybeSingle();
   if (error) throw toAppError(error, "Failed to load the guide setting");
-  return data?.enabled === true;
+  return data ? data.enabled : true;
 }
 
 export async function setGuideAccess(db: Client, childId: string, enabled: boolean): Promise<void> {
@@ -122,7 +127,21 @@ export type MessageRow = {
   flagged: boolean;
   rating: -1 | 1 | null;
   createdAt: string;
+  /** What Jarso looked up for this reply, in order (replies only). */
+  checked: ToolName[];
 };
+
+/** Tool names from a stored `tool_calls` array; anything unrecognised is dropped. */
+function asChecked(value: Json | null): ToolName[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((call) =>
+    call && typeof call === "object" && !Array.isArray(call) && typeof call.name === "string"
+      ? isToolName(call.name)
+        ? [call.name]
+        : []
+      : [],
+  );
+}
 
 function asRole(value: string): MessageRow["role"] {
   return value === "guide" || value === "fixed_copy" ? value : "child";
@@ -135,7 +154,7 @@ export async function listMessages(
   if (conversationIds.length === 0) return [];
   const { data, error } = await db
     .from("guide_messages")
-    .select("id, conversation_id, role, text, route, flagged, rating, created_at")
+    .select("id, conversation_id, role, text, route, flagged, rating, created_at, tool_calls")
     .in("conversation_id", [...conversationIds])
     .order("created_at", { ascending: true })
     .order("role", { ascending: true });
@@ -149,6 +168,7 @@ export async function listMessages(
     flagged: row.flagged,
     rating: row.rating === 1 || row.rating === -1 ? row.rating : null,
     createdAt: row.created_at,
+    checked: asChecked(row.tool_calls),
   }));
 }
 
@@ -220,6 +240,7 @@ export async function recordTurn(
     usage: GuideUsage;
     latencyMs: number;
     clientMessageId: string;
+    toolCalls: ToolCall[];
   },
 ): Promise<string> {
   const { data, error } = await admin.rpc("guide_record_turn", {
@@ -241,6 +262,7 @@ export async function recordTurn(
     } as Json,
     p_latency_ms: input.latencyMs,
     p_client_message_id: input.clientMessageId,
+    p_tool_calls: input.toolCalls as unknown as Json,
   });
   if (error) throw toAppError(error, "Failed to save the chat");
   if (!data) throw new AppError("INTERNAL", "Failed to save the chat");

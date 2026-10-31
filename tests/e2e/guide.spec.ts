@@ -4,10 +4,12 @@ import { completeParentProfile, readFamilyCode } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
- * The AI money guide (FR07, FR09) against the LOCAL Supabase stack with the keyword-based fake
- * provider (FEATURE_GUIDE=true, GUIDE_PROVIDER=fake in playwright.config): off by default, the
- * parent's switch, the intro card, an answer with topic links and a check, a safety response
- * with helplines, "Help me" in a mission, and the parent's flagged-first transcript.
+ * Jarso (FR07, FR09, ADR 0011) against the LOCAL Supabase stack with the keyword-based fake
+ * provider (FEATURE_GUIDE=true, GUIDE_PROVIDER=fake in playwright.config): on by default (the
+ * add-child notice and the parent's switch), the intro card in the Ask Jarso window on Home, a
+ * look-up of the child's own jars, an answer with topic links and a check, a safety response with
+ * helplines, "Help me" in a mission, the parent's flagged-first transcript with what Jarso looked
+ * at, and turning it off.
  */
 
 test.skip(!loadLocalSupabase(), "Local Supabase is not running: start it with `pnpm db:start`.");
@@ -23,6 +25,15 @@ let parent: Page;
 let child: Page;
 let childBase = "";
 
+/** The Ask Jarso window at the top of the child's Home. */
+const jarso = (page: Page) => page.getByRole("region", { name: "Ask Jarso" });
+
+async function askJarso(page: Page, question: string): Promise<void> {
+  await jarso(page).getByLabel("Your question for Jarso").fill(question);
+  await jarso(page).getByRole("button", { name: "Ask", exact: true }).click();
+}
+
+/** The sheet beside a mission step. */
 async function ask(page: Page, question: string): Promise<void> {
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Your question").fill(question);
@@ -54,6 +65,8 @@ test.beforeAll(async ({ browser }) => {
   await expect(parent).toHaveURL(at("/parent"));
   const code = await readFamilyCode(parent);
   await parent.getByRole("link", { name: "Add a child" }).first().click();
+  // On by default (ADR 0011): the parent is told before the child exists.
+  await expect(parent.getByRole("heading", { name: "Jarso, the AI helper, is on" })).toBeVisible();
   await parent.getByLabel("Nickname").fill("Remi");
   await parent.getByLabel("PIN", { exact: true }).fill("1357");
   await parent.getByRole("checkbox", { name: "I am this child's parent or guardian" }).click();
@@ -80,66 +93,60 @@ test.afterAll(async () => {
   await child?.context().close();
 });
 
-test("the guide is off until the parent turns it on", async () => {
-  await expect(child.getByRole("heading", { name: /Five quick questions/ })).toBeVisible();
-  // Every streamed section has arrived before checking that the guide button is absent.
-  await child.waitForLoadState("networkidle");
-  await expect(child.getByRole("button", { name: "Ask the money guide" })).toHaveCount(0);
-
-  const toggle = parent.getByRole("switch", { name: "Money guide for Remi" });
-  await expect(toggle).toHaveAttribute("aria-checked", "false");
-  await expect(parent.getByText(/made by Anthropic/)).toBeVisible();
-  await toggle.click();
+test("Jarso is on by default, and the parent sees how to turn it off", async () => {
+  const toggle = parent.getByRole("switch", { name: "Jarso for Remi" });
   await expect(toggle).toHaveAttribute("aria-checked", "true");
-  // The switch is disabled until the save finishes; only then is it safe to reload.
-  await expect(toggle).toBeEnabled();
-  await parent.reload();
-  await expect(parent.getByRole("switch", { name: "Money guide for Remi" })).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
+  // The child's page only: Next keeps the add-child page (with its notice) hidden in the DOM.
+  const card = parent.getByRole("region", { name: "Jarso, the AI helper", exact: true });
+  await expect(card.getByText(/made with Anthropic's Claude/)).toBeVisible();
+  await expect(card.getByText(/looks at their own jars, allowance/)).toBeVisible();
+  await expect(card.getByText(/on unless you turn it off/)).toBeVisible();
+  await expect(child.getByRole("heading", { name: /Five quick questions/ })).toBeVisible();
+  await expect(jarso(child)).toBeVisible();
 });
 
-test("a first chat starts with the intro, then answers with topics and a check", async () => {
-  await child.reload();
-  await child.getByRole("button", { name: "Ask the money guide" }).click();
-  const dialog = child.getByRole("dialog");
-  await expect(dialog.getByText("AI guide. Your parent can see these chats.")).toBeVisible();
-  await expect(dialog.getByRole("heading", { name: "Before we start" })).toBeVisible();
-  await expect(dialog.getByText(/I'm a computer program, not a person/)).toBeVisible();
-  await dialog.getByRole("button", { name: "Got it" }).click();
+test("a first chat starts with the intro, then looks up the child's own jars", async () => {
+  const panel = jarso(child);
+  await expect(panel.getByText("Jarso is an AI. Your parent can see these chats.")).toBeVisible();
+  await expect(panel.getByText("Before we start")).toBeVisible();
+  await expect(panel.getByText(/I'm a computer program, not a person/)).toBeVisible();
+  await panel.getByRole("button", { name: "Got it" }).click();
 
-  await ask(child, "What is saving?");
-  await expect(dialog.getByText(/Saving means keeping some money for later/)).toBeVisible();
-  await expect(dialog.getByText("AI guide", { exact: true }).first()).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "Saving toward a goal" })).toBeVisible();
-  await dialog.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(dialog.getByText(/That's it\. A goal counts only what's in Save\./)).toBeVisible();
-  await dialog.getByRole("button", { name: "Helpful", exact: true }).click();
-  await expect(dialog.getByRole("button", { name: "Helpful", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  // A suggested question, answered from the child's own (empty) jars.
+  await panel.getByRole("button", { name: "How much do I have?" }).click();
+  await expect(panel.getByText("You have £0 in Spend and £0 in Save.")).toBeVisible();
+  await expect(panel.getByText("Looked at: jars")).toBeVisible();
+  await expect(panel.getByText("Jarso AI", { exact: true }).first()).toBeVisible();
+});
+
+test("an idea gets an answer with topics and a check", async () => {
+  const panel = jarso(child);
+  await askJarso(child, "What is saving?");
+  await expect(panel.getByText(/Saving means keeping some money for later/)).toBeVisible();
+  await expect(panel.getByRole("link", { name: "Saving toward a goal" })).toBeVisible();
+  await panel.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(panel.getByText(/That's it\. A goal counts only what's in Save\./)).toBeVisible();
+  const helpful = panel.getByRole("button", { name: "Helpful", exact: true }).last();
+  await helpful.click();
+  await expect(helpful).toHaveAttribute("aria-pressed", "true");
 });
 
 test("a safety message gets a kind fixed reply with helplines, never the model's answer", async () => {
-  await ask(child, "someone at school hurt me");
-  const dialog = child.getByRole("dialog");
-  await expect(dialog.getByText(/Thank you for telling me/)).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "Find A Helpline" })).toBeVisible();
-  await expect(dialog.getByText(/call your local emergency number/)).toBeVisible();
-  await child.keyboard.press("Escape");
+  await askJarso(child, "someone at school hurt me");
+  const panel = jarso(child);
+  await expect(panel.getByText(/Thank you for telling me/)).toBeVisible();
+  await expect(panel.getByRole("link", { name: "Find A Helpline" })).toBeVisible();
+  await expect(panel.getByText(/call your local emergency number/)).toBeVisible();
 });
 
 test("off-topic questions are redirected to money topics", async () => {
-  await child.getByRole("button", { name: "Ask the money guide" }).click();
+  const panel = jarso(child);
+  await panel.getByRole("button", { name: "New chat" }).click();
+  await askJarso(child, "can you do my homework");
+  await expect(panel.getByText(/I can only help with money/)).toBeVisible();
   // The intro shows only before a child's very first message.
-  await expect(
-    child.getByRole("dialog").getByRole("heading", { name: "Before we start" }),
-  ).toHaveCount(0);
-  await ask(child, "can you do my homework");
-  await expect(child.getByRole("dialog").getByText(/I can only help with money/)).toBeVisible();
-  await child.keyboard.press("Escape");
+  await child.reload();
+  await expect(jarso(child).getByText("Before we start")).toHaveCount(0);
 });
 
 test("Help me in a mission gives a hint, not the answer", async () => {
@@ -154,7 +161,7 @@ test("Help me in a mission gives a hint, not the answer", async () => {
   await child.keyboard.press("Escape");
 });
 
-test("the parent reads chats flagged first, without the private safety message", async () => {
+test("the parent reads chats flagged first, with what Jarso looked at", async () => {
   await parent.goto(childBase);
   await expect(parent.getByText("1 chat needs a look.")).toBeVisible();
   await parent.getByRole("link", { name: "Read Remi's chats" }).click();
@@ -171,11 +178,13 @@ test("the parent reads chats flagged first, without the private safety message",
   await expect(transcript.getByText("someone at school hurt me")).toHaveCount(0);
   await expect(transcript.getByText("What is saving?")).toBeVisible();
   await expect(transcript.getByText("Your child found this helpful")).toBeVisible();
+  await expect(transcript.getByText("How much do I have?")).toBeVisible();
+  await expect(transcript.getByText("Looked at: jars")).toBeVisible();
 });
 
-test("turning the guide off hides it from the child", async () => {
+test("turning Jarso off hides it from the child", async () => {
   await parent.goto(childBase);
-  const toggle = parent.getByRole("switch", { name: "Money guide for Remi" });
+  const toggle = parent.getByRole("switch", { name: "Jarso for Remi" });
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-checked", "false");
   await expect(toggle).toBeEnabled();
@@ -183,5 +192,5 @@ test("turning the guide off hides it from the child", async () => {
   // By now the child has started a mission, so Home leads with "Keep going"; wait on the greeting.
   await expect(child.getByRole("heading", { name: "Hi, Remi!" })).toBeVisible();
   await child.waitForLoadState("networkidle");
-  await expect(child.getByRole("button", { name: "Ask the money guide" })).toHaveCount(0);
+  await expect(jarso(child)).toHaveCount(0);
 });

@@ -8,7 +8,7 @@ import { ChildAllowanceCard } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
 import { PendingPurchases, PurchaseSheet, UndoButton } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
-import { GuideSheet } from "@/features/guide";
+import { AskJarso, guideCopy } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
 import { NextStepCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
@@ -18,9 +18,6 @@ import { RequestActions } from "@/features/requests";
 import { getAvailability } from "@/features/requests/server";
 import { getChildRules } from "@/features/rules/server";
 import { logger } from "@/lib";
-
-// The guide action runs on this page: allow a full guide turn (45 s) plus saving it.
-export const maxDuration = 60;
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -40,11 +37,11 @@ async function ChildHome() {
   return (
     <>
       <h1 className="rise-in text-balance text-display">{nickname ? `Hi, ${nickname}!` : "Hi!"}</h1>
+      <Suspense fallback={null}>
+        <HomeJarso childId={user.id} hasAllowance={!!schedule && schedule.status !== "stopped"} />
+      </Suspense>
       <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
         <NextStep childId={user.id} />
-      </Suspense>
-      <Suspense fallback={null}>
-        <HomeGuide childId={user.id} />
       </Suspense>
       <Jars jars={jars} currency={family.currency} />
       <RequestActions availability={availability} currency={family.currency} rules={rules.rules} />
@@ -89,18 +86,24 @@ async function NextStep({ childId }: { childId: string }) {
   }
 }
 
-/** "Ask the money guide", when the parent has turned it on (FR07). */
-async function HomeGuide({ childId }: { childId: string }) {
+/**
+ * "Ask Jarso" at the top of Home, when the parent has turned Jarso on (FR07, ADR 0011). Its
+ * turns stream from /api/v1/guide/turns, so this page needs no long maxDuration.
+ */
+async function HomeJarso({ childId, hasAllowance }: { childId: string; hasAllowance: boolean }) {
   const guide = await getGuideState(childId);
   if (!guide.available) return null;
+  const { suggestions } = guideCopy;
   return (
-    <div>
-      <GuideSheet
-        context={{ entry: "home" }}
-        introNeeded={guide.introNeeded}
-        triggerLabel="Ask the money guide"
-      />
-    </div>
+    <AskJarso
+      introNeeded={guide.introNeeded}
+      suggestions={[
+        suggestions.jars,
+        suggestions.spent,
+        hasAllowance ? suggestions.allowance : suggestions.learning,
+        suggestions.saving,
+      ]}
+    />
   );
 }
 

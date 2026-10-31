@@ -40,6 +40,8 @@ export type GuideReply = {
   topics: TopicLink[];
   check: GuideCheck | null;
   helplines: Helpline[];
+  /** What Jarso looked at for this reply, in plain words ("jars", "allowance"). */
+  lookedAt: string[];
 };
 
 export type AskGuideResult = {
@@ -47,6 +49,15 @@ export type AskGuideResult = {
   reply: GuideReply;
   turnsLeft: number;
 };
+
+/**
+ * One line of a streamed turn (`POST /api/v1/guide/turns`, NDJSON): a status line per look-up
+ * while Jarso works, then the screened reply or an error. Never any unscreened model text.
+ */
+export type GuideTurnEvent =
+  | { type: "status"; text: string }
+  | { type: "reply"; data: AskGuideResult }
+  | { type: "error"; error: { code: string; message: string } };
 
 /** What a child page needs to show the guide. */
 export type GuideState = { available: boolean; introNeeded: boolean };
@@ -83,4 +94,6 @@ export type TranscriptMessage = {
   createdAt: string;
   /** Hidden from the parent: a message that got a safety response (spec decision 3). */
   hidden: boolean;
+  /** Replies only: what Jarso looked at, in plain words. */
+  lookedAt: string[];
 };

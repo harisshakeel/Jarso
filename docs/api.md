@@ -54,6 +54,7 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | GET | `/api/v1/me` | user | Current user's profile |
 | PATCH | `/api/v1/me` | user | Update profile (`updateProfileSchema`) |
 | POST | `/api/v1/outbox` | child | One queued child action from the device outbox (`outboxRequestSchema`) |
+| POST | `/api/v1/guide/turns` | child | One message to Jarso, streamed as NDJSON (`askGuideSchema`) |
 
 ### `POST /api/v1/outbox`
 
@@ -77,3 +78,12 @@ so a wrong device clock cancels out. The route calls the same service as the onl
 | 503 `UNAVAILABLE` | The database was slow or down | Retries with backoff |
 
 Every refusal message is shown to the child, so it never carries Zod details. `maxDuration = 30`.
+
+### `POST /api/v1/guide/turns`
+
+Called by the Ask Jarso window on the child's Home (`src/features/guide/send-turn.ts`), the one Route Handler our own UI calls for a reason other than the outbox: a Server Action can't stream status lines (ADR 0011). Body: `askGuideSchema` (`clientMessageId`, `conversationId`, `context`, `text`). Every check (child role, the deployment flag and the parent's switch, on unless a parent turned it off, a re-sent question, the context key, the chat, the rate limits) runs first and fails with the usual JSON error envelope and status. After that the response is `200 application/x-ndjson`, one JSON object per line:
+
+- `{ "type": "status", "text": "Looking at your jars…" }` — one per look-up, fixed copy from `guideCopy.status`;
+- then `{ "type": "reply", "data": AskGuideResult }` (the screened reply, in one piece), or `{ "type": "error", "error": { "code", "message" } }`.
+
+No model text ever streams. `maxDuration` 60 s (the turn's own deadline is 45 s).
