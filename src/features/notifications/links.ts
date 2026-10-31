@@ -1,13 +1,37 @@
 import type { Route } from "next";
 import { routes } from "@/config";
+import { type FailureCode, failureCopy } from "@/features/payments";
 import { formatMoney } from "@/lib";
 import type { Notice } from "./types";
 
 type Role = "parent" | "child";
 
+/**
+ * The due item a card payment notice is about. The payload carries the payment row's source
+ * (written from the row when the notice is made), so live notices resolve without a read.
+ */
+function paymentItem(notice: Notice): { kind: "allowance" | "gift"; id: string } | null {
+  const { source_type: type, source_id: id } = notice.payload;
+  if (typeof id !== "string" || id === "") return null;
+  if (type === "occurrence") return { kind: "allowance", id };
+  if (type === "parent_gift") return { kind: "gift", id };
+  return null;
+}
+
+function failureReason(payload: Record<string, unknown>): string | null {
+  const code = payload.failure_code;
+  return typeof code === "string" && Object.hasOwn(failureCopy, code)
+    ? failureCopy[code as FailureCode]
+    : null;
+}
+
 /** Where a notice opens: the record as it is now, not as it was when the notice was sent. */
 export function noticeHref(notice: Notice, role: Role): Route {
   if (role === "parent") {
+    if (notice.sourceType === "payment") {
+      const item = paymentItem(notice);
+      return item ? routes.parentHandover(notice.childId, item.kind, item.id) : routes.parent;
+    }
     if (notice.sourceType === "allowance_occurrence") {
       return routes.parentHandover(notice.childId, "allowance", notice.sourceId);
     }
@@ -93,6 +117,14 @@ export function noticeText(
         return { title: "Your parent said not now", detail: "You can ask again later." };
       }
       return { title: "Your parent answered your request", detail: "Take a look." };
+    }
+    case "card_charge_failed": {
+      const what = paymentItem(notice)?.kind === "gift" ? "gift" : "allowance";
+      const reason = failureReason(notice.payload);
+      return {
+        title: `Card payment for ${name}'s ${what} didn't go through`,
+        detail: reason ? `${reason} Hand it over another way.` : "Hand it over another way.",
+      };
     }
     default:
       return { title: "Something new", detail: "Take a look." };

@@ -6,6 +6,7 @@ import {
   CalendarClockIcon,
   CheckCircle2Icon,
   ChevronRightIcon,
+  CreditCardIcon,
   HandCoinsIcon,
   type LucideIcon,
   PiggyBankIcon,
@@ -15,7 +16,8 @@ import Link from "next/link";
 import type { MouseEvent } from "react";
 import type { Notice, NoticeKind } from "../types";
 
-// Tinted circles follow design.md §2.5: cyan for due, gold for limits, teal for decisions.
+// Tinted circles follow design.md §2.5: cyan for due, gold for limits and failed card charges,
+// teal for decisions.
 const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
   allowance_due: { icon: CalendarClockIcon, tint: "bg-cyan-100 text-cyan-700" },
   handover_reminder: { icon: HandCoinsIcon, tint: "bg-cyan-100 text-cyan-700" },
@@ -24,6 +26,8 @@ const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
   deposit_requested: { icon: PiggyBankIcon, tint: "bg-secondary text-ink-2" },
   withdrawal_decided: { icon: CheckCircle2Icon, tint: "bg-teal-100 text-teal-800" },
   deposit_decided: { icon: CheckCircle2Icon, tint: "bg-teal-100 text-teal-800" },
+  // Informational, like a limit notice: never red (design.md §2.4).
+  card_charge_failed: { icon: CreditCardIcon, tint: "bg-gold-100 text-gold-700" },
 };
 
 const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });

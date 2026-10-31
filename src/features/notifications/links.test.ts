@@ -36,6 +36,57 @@ describe("noticeHref", () => {
   });
 });
 
+describe("card_charge_failed", () => {
+  const failed: Notice = {
+    ...base,
+    kind: "card_charge_failed",
+    sourceType: "payment",
+    sourceId: "pay-1",
+    payload: {
+      source_type: "occurrence",
+      source_id: "occ-1",
+      amount_minor: 500,
+      failure_code: null,
+    },
+  };
+
+  it("opens the item's handover screen, from the payment's source", () => {
+    expect(noticeHref(failed, "parent")).toBe(routes.parentHandover("c1", "allowance", "occ-1"));
+    const gift = { ...failed, payload: { ...failed.payload, source_type: "parent_gift" } };
+    expect(noticeHref(gift, "parent")).toBe(routes.parentHandover("c1", "gift", "occ-1"));
+  });
+
+  it("falls back to the parent's Home when the payment's item can't be found", () => {
+    expect(noticeHref({ ...failed, payload: {} }, "parent")).toBe(routes.parent);
+    expect(
+      noticeHref({ ...failed, payload: { source_type: "request", source_id: "x" } }, "parent"),
+    ).toBe(routes.parent);
+  });
+
+  it("tells the parent to hand it over another way (null failure code: generic copy)", () => {
+    const { title, detail } = noticeText(failed, "parent", "GBP");
+    expect(`${title}. ${detail}`).toBe(
+      "Card payment for Maya's allowance didn't go through. Hand it over another way.",
+    );
+  });
+
+  it("names the reason when there is one, and says gift for a gift", () => {
+    const n = {
+      ...failed,
+      payload: { ...failed.payload, source_type: "parent_gift", failure_code: "expired_card" },
+    };
+    expect(noticeText(n, "parent", "GBP")).toEqual({
+      title: "Card payment for Maya's gift didn't go through",
+      detail: "The card has expired. Hand it over another way.",
+    });
+  });
+
+  it("ignores a failure code it doesn't know", () => {
+    const n = { ...failed, payload: { ...failed.payload, failure_code: "bogus" } };
+    expect(noticeText(n, "parent", "GBP").detail).toBe("Hand it over another way.");
+  });
+});
+
 describe("noticeText", () => {
   it("child allowance due", () => {
     expect(noticeText(base, "child", "GBP")).toEqual({
