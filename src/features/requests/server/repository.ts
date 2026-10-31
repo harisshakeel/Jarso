@@ -95,16 +95,31 @@ function toRequest(row: {
   };
 }
 
-/** A child's requests, newest first. */
+/**
+ * A child's requests, newest first: every open one (they still reserve money, so none may be
+ * hidden) plus the most recent closed ones up to the limit.
+ */
 export async function listRequestsFor(db: Client, childId: string): Promise<SavingsRequest[]> {
-  const { data, error } = await db
-    .from("requests")
-    .select(COLUMNS)
-    .eq("child_id", childId)
-    .order("occurred_at", { ascending: false })
-    .limit(LIST_LIMIT);
-  if (error) throw toAppError(error, "Failed to load your requests");
-  return data.map(toRequest);
+  const [open, closed] = await Promise.all([
+    db
+      .from("requests")
+      .select(COLUMNS)
+      .eq("child_id", childId)
+      .in("status", ["pending", "approved"])
+      .order("occurred_at", { ascending: false }),
+    db
+      .from("requests")
+      .select(COLUMNS)
+      .eq("child_id", childId)
+      .not("status", "in", "(pending,approved)")
+      .order("occurred_at", { ascending: false })
+      .limit(LIST_LIMIT),
+  ]);
+  if (open.error) throw toAppError(open.error, "Failed to load your requests");
+  if (closed.error) throw toAppError(closed.error, "Failed to load your requests");
+  return [...open.data, ...closed.data]
+    .sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at))
+    .map(toRequest);
 }
 
 /** What a parent has to act on: pending and approved withdrawals, pending deposits. */
