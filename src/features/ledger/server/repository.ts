@@ -25,6 +25,8 @@ export type LedgerRow = {
   sourceType: string;
   sourceId: string | null;
   occurredAt: string;
+  /** How the money was handed over: card for a card payment, cash for everything else. */
+  method: "cash" | "card";
 };
 
 export type OccurrenceAmounts = { id: string; amountMinor: number; shortfallMinor: number };
@@ -61,6 +63,7 @@ export async function listLedgerRows(
     sourceType: row.source_type,
     sourceId: row.source_id,
     occurredAt: row.occurred_at,
+    method: row.method === "card" ? "card" : "cash",
   }));
 }
 

@@ -103,6 +103,7 @@ export function HistoryList({
                         : null}
                       {day(item.occurredOn)}
                       {item.undone ? " · Undone" : ""}
+                      {item.paidByCard ? " · Paid by card" : ""}
                     </span>
                   </div>
                   <div className="flex items-baseline gap-2">

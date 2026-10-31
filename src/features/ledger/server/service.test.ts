@@ -30,6 +30,7 @@ const row = (over: Partial<Awaited<ReturnType<typeof repo.listLedgerRows>>[numbe
   sourceType: "occurrence",
   sourceId: "occ-1",
   occurredAt: "2026-10-26T09:00:00Z",
+  method: "cash" as const,
   ...over,
 });
 
@@ -82,7 +83,21 @@ describe("getHistory", () => {
         undone: false,
         entryId: null,
         canUndo: false,
+        paidByCard: false,
       },
+    ]);
+  });
+
+  it("marks a handover paid by card, and leaves a cash one unmarked", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      row({ id: "c1", amountMinor: 300, method: "card", sourceId: "occ-2" }),
+      row({ id: "c2", jar: "save", amountMinor: 200, method: "card", sourceId: "occ-2" }),
+      row({ id: "r1", amountMinor: 500, occurredAt: "2026-10-20T09:00:00Z" }),
+    ]);
+    const items = await getHistory(childId);
+    expect(items.map((i) => [i.id, i.amountMinor, i.paidByCard])).toEqual([
+      ["occ-2", 500, true],
+      ["occ-1", 500, false],
     ]);
   });
 
@@ -214,6 +229,7 @@ describe("getHistory purchases", () => {
         undone: false,
         entryId: "p1",
         canUndo: true,
+        paidByCard: false,
       },
     ]);
   });

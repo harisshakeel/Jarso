@@ -15,6 +15,7 @@ const purchase = (over: Partial<HistoryItem> = {}): HistoryItem => ({
   undone: false,
   entryId: "p1",
   canUndo: true,
+  paidByCard: false,
   ...over,
 });
 
@@ -54,5 +55,20 @@ describe("HistoryList jar moves", () => {
     render(<HistoryList items={[move("deposit")]} currency="GBP" showMinor="always" />);
     expect(screen.getByText(/Spend → Save/)).toBeInTheDocument();
     expect(screen.queryByText(/[+−]£3/)).not.toBeInTheDocument();
+  });
+});
+
+describe("HistoryList paid by card", () => {
+  const allowance = (paidByCard: boolean): HistoryItem =>
+    purchase({ id: "a1", kind: "allowance", label: "Allowance", canUndo: false, paidByCard });
+
+  it("adds Paid by card to a handover paid by card", () => {
+    render(<HistoryList items={[allowance(true)]} currency="GBP" />);
+    expect(screen.getByText(/· Paid by card/)).toBeInTheDocument();
+  });
+
+  it("adds nothing to a cash handover", () => {
+    render(<HistoryList items={[allowance(false)]} currency="GBP" />);
+    expect(screen.queryByText(/Paid by card/)).not.toBeInTheDocument();
   });
 });

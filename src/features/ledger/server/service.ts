@@ -50,6 +50,7 @@ type Group = {
   label: string;
   amount: number;
   at: string;
+  paidByCard: boolean;
 };
 
 /** One group per source (its Spend and Save rows), in row order (newest first). */
@@ -61,14 +62,17 @@ function groupBySource(rows: LedgerRow[]): Group[] {
     const key = `${row.sourceType}:${row.sourceId}`;
     const signed = row.direction === "in" ? row.amountMinor : -row.amountMinor;
     const group = groups.get(key);
-    if (group) group.amount += signed;
-    else {
+    if (group) {
+      group.amount += signed;
+      group.paidByCard ||= row.method === "card";
+    } else {
       groups.set(key, {
         kind,
         sourceId: row.sourceId,
         label: row.label ?? (kind === "gift" ? "Gift" : "Allowance"),
         amount: signed,
         at: row.occurredAt,
+        paidByCard: row.method === "card",
       });
     }
   }
@@ -88,6 +92,7 @@ function purchaseItem(row: LedgerRow, timezone: string, now: number): HistoryIte
     undone,
     entryId: row.id,
     canUndo: !undone && now - Date.parse(row.occurredAt) < UNDO_WINDOW_MS,
+    paidByCard: false,
     at: row.occurredAt,
   };
 }
@@ -118,6 +123,7 @@ function requestItems(rows: LedgerRow[], timezone: string): (HistoryItem & { at:
       undone: false,
       entryId: null,
       canUndo: false,
+      paidByCard: false,
       at: row.occurredAt,
     });
   }
@@ -165,6 +171,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
         undone: false,
         entryId: null,
         canUndo: false,
+        paidByCard: group.paidByCard,
         at: group.at,
       };
     }),
@@ -180,6 +187,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
       undone: false,
       entryId: null,
       canUndo: false,
+      paidByCard: false,
       at: occurrence.closedAt,
     })),
   ];

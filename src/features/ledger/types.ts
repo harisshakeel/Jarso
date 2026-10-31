@@ -10,7 +10,8 @@ export type Jars = { spend: number; save: number };
  * A purchase's `amountMinor` is the positive amount spent (the kind says it went out). `entryId`
  * is the purchase entry, for the undo button; `undone` is true once it was reversed; `canUndo` is
  * decided on the server (a purchase, not undone, under 24 h old). A withdrawal or deposit is one
- * line for its out/in pair; `amountMinor` is the amount moved.
+ * line for its out/in pair; `amountMinor` is the amount moved. `paidByCard` is true for an
+ * allowance or gift the parent handed over by card.
  */
 export type HistoryItem = {
   id: string;
@@ -22,4 +23,5 @@ export type HistoryItem = {
   undone: boolean;
   entryId: string | null;
   canUndo: boolean;
+  paidByCard: boolean;
 };
