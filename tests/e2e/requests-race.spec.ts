@@ -24,11 +24,21 @@ const authUserIds: string[] = [];
 
 const parentEmail = `e2e-reqrace-${run}@example.com`;
 
-async function signedIn(email: string): Promise<SupabaseClient> {
-  if (!local) throw new Error("unreachable");
-  const client = createClient(local.url, local.publishableKey, options);
-  const { error } = await client.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(`Sign-in failed: ${error.message}`);
+/** One sign-in per user: local auth rate-limits password sign-ins, and the races fire many calls. */
+const signedInClients = new Map<string, Promise<SupabaseClient>>();
+
+function signedIn(email: string): Promise<SupabaseClient> {
+  let client = signedInClients.get(email);
+  if (!client) {
+    client = (async () => {
+      if (!local) throw new Error("unreachable");
+      const c = createClient(local.url, local.publishableKey, options);
+      const { error } = await c.auth.signInWithPassword({ email, password });
+      if (error) throw new Error(`Sign-in failed: ${error.message}`);
+      return c;
+    })();
+    signedInClients.set(email, client);
+  }
   return client;
 }
 
