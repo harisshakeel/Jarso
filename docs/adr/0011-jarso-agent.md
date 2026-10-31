@@ -29,4 +29,4 @@ Kept from ADR 0010: the two switches, the screens, scrubbing, no refusal fallbac
 - The eval gate gains a fourth condition: every data case looks up what it needs and shows the fixture child's real figures (`evals/guide/fixture-tools.ts`). The model change and the new prompt need a fresh eval run before real families.
 - Adding a tool means a spec, a runner over a feature service, status and parent copy, tests, and eval cases; refs keep working unchanged.
 - Every child has Jarso unless a parent turned it off, including children added before this change.
-- Next: the savings goal (FR02) and a `get_goal` tool, then structured, parent-visible memory.
+- Built since: `get_goal` and `get_requests` (#44); structured, parent-visible memory (`guide_memories`, the `remember` tool, 20 facts for 90 days, forgettable by child and parent, written only on an on-topic turn after the scrub and a personal-details check).

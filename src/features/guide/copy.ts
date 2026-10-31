@@ -35,6 +35,7 @@ export const guideCopy = {
     plan_saving: "Working out a saving plan…",
     get_goal: "Checking your goal…",
     get_requests: "Checking your requests…",
+    remember: "Remembering that…",
   },
   /** What the parent sees Jarso looked at, per reply (by tool name). */
   checked: {
@@ -46,6 +47,22 @@ export const guideCopy = {
     plan_saving: "saving plan",
     get_goal: "goal",
     get_requests: "requests",
+    remember: "memory",
+  },
+  /** Under a reply that kept a fact, so the child always knows what Jarso remembers. */
+  remembered: "Jarso will remember:",
+  memories: {
+    title: "What Jarso remembers",
+    intro: "Short notes Jarso keeps so it can pick up where you left off. Delete any you like.",
+    empty:
+      "Nothing yet. When you tell Jarso what you like or what you're saving for, it can remember.",
+    forget: "Forget",
+    kinds: {
+      interest: "Likes",
+      thinking_about: "Thinking about",
+      finds_tricky: "Finds tricky",
+      prefers: "Prefers",
+    },
   },
   newChat: "Start a new chat",
   chatFull: "This chat is full. Start a new chat to keep going.",

@@ -35,6 +35,7 @@ vi.mock("./repository", () => ({
 // The real runners read through other features' services; here the toolbox is a stand-in that
 // answers get_jars like the real one does.
 vi.mock("./tools", () => ({ createTurnTools: vi.fn() }));
+vi.mock("./memory", () => ({ listMemories: vi.fn(async () => []), deleteMemory: vi.fn() }));
 
 const family = await import("@/features/family/server");
 const config = await import("./config");
@@ -472,6 +473,7 @@ describe("askGuide retries", () => {
         check: null,
         helplines: [],
         lookedAt: ["jars"],
+        remembered: [],
       },
       turnsLeft: 11,
     });

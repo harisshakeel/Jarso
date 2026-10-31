@@ -23,6 +23,7 @@ const data: AskGuideResult = {
     check: null,
     helplines: [],
     lookedAt: ["jars"],
+    remembered: [],
   },
 };
 

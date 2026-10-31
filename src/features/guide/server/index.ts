@@ -6,6 +6,7 @@ export {
   getGuideAccess,
   getGuideState,
   getGuideTranscript,
+  getMemories,
   isGuideConfigured,
   listGuideChats,
   prepareGuideTurn,

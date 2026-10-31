@@ -18,6 +18,8 @@ const NO_INPUT = {
 /** Look-ups per turn, across every round (the database keeps at most this many per reply). */
 export const MAX_TOOL_CALLS = 6;
 
+export const memoryKindList = ["interest", "thinking_about", "finds_tricky", "prefers"] as const;
+
 export const periods = ["latest", "this_week", "last_week", "this_month", "last_month"] as const;
 export type Period = (typeof periods)[number];
 
@@ -65,6 +67,27 @@ export const toolSpecs = [
     inputSchema: NO_INPUT,
   },
   {
+    name: "remember",
+    description:
+      "Keeps one short fact about the child for next time, so you can pick up where you left off: an interest (football, drawing), something they are thinking about saving for, something they find tricky, or how they like to be helped (prefers). Use it only when the child tells you something like that themselves. Never remember an amount, a balance, a goal figure or anything personal (names, places, school, family). At most 12 words. The child and their parent can see and delete every fact.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: {
+          type: "string",
+          enum: [...memoryKindList],
+          description: "interest, thinking_about, finds_tricky or prefers.",
+        },
+        text: {
+          type: "string",
+          description: "The fact in a few plain words, like 'Likes football examples'.",
+        },
+      },
+      required: ["kind", "text"],
+      additionalProperties: false,
+    },
+  },
+  {
     name: "plan_saving",
     description:
       "Compares a price with the child's money: whether Spend covers it right now, how far Save is from it, and how many allowances it would take if they put the same amount in Save from each one. Use it for questions like can I afford this or how much more do I need for something that is not their goal (for their goal, use get_goal). Use only a price the child told you; if they did not give one, ask for it instead of calling this. save_each is what they plan to put in Save from each allowance; use null if they have not said.",
@@ -110,6 +133,10 @@ export const toolInputs = {
   get_learning: z.strictObject({}),
   get_goal: z.strictObject({}),
   get_requests: z.strictObject({}),
+  remember: z.strictObject({
+    kind: z.enum(memoryKindList),
+    text: z.string().trim().min(1).max(140),
+  }),
   plan_saving: z.strictObject({
     price: z.string().max(20),
     save_each: z.string().max(20).nullable(),

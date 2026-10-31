@@ -18,8 +18,10 @@ import {
   parseMoney,
   startOfWeek,
 } from "@/lib";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { guideCopy } from "../copy";
 import { addFact, type Facts } from "./facts";
+import { remember } from "./memory";
 import type { TurnTools } from "./provider";
 import { looksUnsafe } from "./safety-net";
 import { scrub } from "./scrub";
@@ -70,6 +72,13 @@ function showDate(isoDate: string): string {
     timeZone: "UTC",
   }).format(new Date(`${isoDate}T00:00:00Z`));
 }
+
+/**
+ * A memory must be about how to help, never who the child is. Names, places, school, family and
+ * contact details are refused here on top of the scrub; the prompt says the same.
+ */
+const PERSONAL_IN_MEMORY =
+  /\b(my|their|the)\s+(name|address|school|teacher|mum|mom|dad|brother|sister|birthday|age|phone|email|street|town|city)\b|\b(lives?|live) (at|in|on)\b|\b(called|named)\b|\b\d{1,3}\s+[A-Z][a-z]+ (road|street|avenue|lane|close|drive)\b|\b(years? old|yrs? old)\b|(£|\$|€|₹)\s?\d|\b\d+(\.\d+)?\s?(pounds|dollars|euros|rupees)\b/i;
 
 /** Labels that read like instructions to the model. They never pass the input screen. */
 const INSTRUCTION_LIKE =
@@ -328,6 +337,19 @@ const runners: { [N in ToolName]: Run<N> } = {
       }),
       more_not_shown: Math.max(0, requests.length - shown.length),
     };
+  },
+
+  async remember({ kind, text }, { childId }) {
+    const clean = cleanLabel(text);
+    if (clean === "(label not shown)" || PERSONAL_IN_MEMORY.test(clean)) {
+      return {
+        error:
+          "Not remembered: Jarso keeps only how to help (interests, what they're saving for, what's tricky, how they like help), never amounts or personal details.",
+      };
+    }
+    // The child's own id, from the session; the admin client only writes through guide_remember.
+    await remember(createAdminClient(), { childId, kind, text: clean });
+    return { remembered: clean, note: "The child and their parent can see and delete this." };
   },
 
   async plan_saving({ price, save_each }, { childId, currency }, fact) {
