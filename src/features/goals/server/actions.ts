@@ -21,7 +21,8 @@ export const archiveGoalAction = createAction(goalIdSchema, async ({ goalId }) =
   revalidatePath(routes.child);
 });
 
+// No revalidate: refreshing Home would replace the goal-reached moment the child is looking at.
+// The next visit reads celebrated_at fresh.
 export const markCelebratedAction = createAction(goalIdSchema, async ({ goalId }) => {
   await markCelebrated(goalId);
-  revalidatePath(routes.child);
 });

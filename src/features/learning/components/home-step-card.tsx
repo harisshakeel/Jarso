@@ -4,7 +4,7 @@ import { type ComponentProps, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui";
 import { GoalSheet, markCelebratedAction } from "@/features/goals";
 import { TakeOutSheet } from "@/features/requests";
-import { formatMoney } from "@/lib";
+import { formatMoney, logger } from "@/lib";
 import type { HomeStep } from "../home-step";
 import { NextStepCard } from "./next-step-card";
 
@@ -104,7 +104,12 @@ function GoalReached({
   useEffect(() => {
     if (marked.current) return;
     marked.current = true;
-    void markCelebratedAction(null, { goalId });
+    // Best effort: if it fails (offline), the moment simply shows again next visit.
+    markCelebratedAction(null, { goalId }).catch((error: unknown) => {
+      logger.warn("Could not save the goal moment", {
+        error: error instanceof Error ? error.name : "unknown",
+      });
+    });
   }, [goalId]);
   return (
     <>
