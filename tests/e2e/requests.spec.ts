@@ -27,10 +27,10 @@ const saveJar = () => child.getByRole("region", { name: "Save jar" });
 const spendJar = () => child.getByRole("region", { name: "Spend jar" });
 const history = () => child.getByRole("region", { name: "History" });
 
-/** Opens a Save sheet from Home, fills the amount and submits. Returns the open sheet. */
+/** Opens a Save sheet from Move my money, fills the amount and submits. Returns the open sheet. */
 async function ask(button: "Take out" | "Put in", amount: string, submit: "Ask" | "Put in") {
-  await child.goto("/child");
-  await child.getByRole("button", { name: button, exact: true }).click();
+  await child.goto("/child/requests");
+  await child.getByRole("button", { name: new RegExp(button) }).click();
   const sheet = child.getByRole("dialog");
   await sheet.getByLabel("Amount").fill(amount);
   await sheet.getByRole("button", { name: submit, exact: true }).click();

@@ -369,7 +369,7 @@ test("another family's parent can't open this child's learning", async ({ browse
   await other.getByRole("button", { name: "Create family" }).click();
   await expect(other).toHaveURL(at("/parent"));
   await other.goto(`/parent/children/${childId}/learning`);
-  await expect(other.getByRole("heading", { name: "Page not found" })).toBeVisible();
+  await expect(other.getByRole("heading", { name: "That page rolled away." })).toBeVisible();
   await expect(other.getByText("Kai's learning")).toHaveCount(0);
   await other.context().close();
 });
