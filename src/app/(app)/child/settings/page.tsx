@@ -7,16 +7,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { routes } from "@/config";
 import { SignOutButton } from "@/features/auth";
 import { getChildNickname, requireRole } from "@/features/family/server";
+import { MemoryList } from "@/features/guide";
+import { getGuideState, getMemories } from "@/features/guide/server";
 
 export const metadata: Metadata = { title: "Settings" };
 
 const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
 
 async function ChildSettings() {
-  await requireRole("child", routes.childSettings);
-  const nickname = await getChildNickname();
+  const { user } = await requireRole("child", routes.childSettings);
+  // Memories show whenever any exist, even with Jarso off: the child can always forget them.
+  const [nickname, guide, memories] = await Promise.all([
+    getChildNickname(),
+    getGuideState(user.id),
+    getMemories(user.id),
+  ]);
   return (
     <>
+      {guide.available || memories.length > 0 ? (
+        <div className="rise-in">
+          <MemoryList memories={memories} whose="you" />
+        </div>
+      ) : null}
       <Card className="rise-in">
         <CardHeader>
           <CardTitle className="text-h2">You</CardTitle>

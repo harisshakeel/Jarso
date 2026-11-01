@@ -29,6 +29,7 @@ const answer: AskGuideResult = {
     check: null,
     helplines: [],
     lookedAt: ["jars"],
+    remembered: [],
   },
 };
 

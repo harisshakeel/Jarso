@@ -228,6 +228,7 @@ alter table public.notifications drop constraint notifications_kind_check;
 alter table public.notifications add constraint notifications_kind_check check (kind in (
   'limit_exceeded', 'withdrawal_requested', 'withdrawal_decided',
   'deposit_requested', 'deposit_decided',
+  'emergency_requested', 'emergency_decided',
   'allowance_due', 'handover_reminder',
   'card_charge_failed'
 ));

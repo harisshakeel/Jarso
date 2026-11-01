@@ -18,9 +18,9 @@ export function JarsoNotice() {
       </h2>
       <p>
         Your child can ask Jarso money questions. When they ask, it looks at their own jars,
-        allowance, purchases and learning to answer. Their messages, and what Jarso looks up, are
-        sent to Anthropic (Claude) to get answers. You can read every chat, and turn Jarso off at
-        any time on your child's page.{" "}
+        allowance, purchases, goal, requests and learning to answer. Their messages, and what Jarso
+        looks up, are sent to Anthropic (Claude) to get answers. You can read every chat, and turn
+        Jarso off at any time on your child's page.{" "}
         <Link
           href={routes.safety}
           className="font-semibold text-primary underline underline-offset-4"

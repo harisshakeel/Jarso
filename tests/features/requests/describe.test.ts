@@ -11,7 +11,7 @@ describe("statusLabel", () => {
     rejected: "Not approved",
     cancelled: "Cancelled",
   };
-  const kinds: RequestKind[] = ["withdrawal", "deposit"];
+  const kinds: RequestKind[] = ["withdrawal", "deposit", "emergency"];
   it.each(kinds.flatMap((kind) => requestStatuses.map((status) => [kind, status] as const)))(
     "%s %s",
     (kind, status) => {

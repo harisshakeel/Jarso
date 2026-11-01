@@ -44,6 +44,8 @@ export const setGuideAccessSchema = z.object({
   enabled: z.boolean(),
 });
 
+export const forgetMemorySchema = z.object({ memoryId: z.uuid("We couldn't find that.") });
+
 export const rateGuideMessageSchema = z.object({
   messageId: z.uuid(),
   rating: z.union([z.literal(1), z.literal(-1)]),

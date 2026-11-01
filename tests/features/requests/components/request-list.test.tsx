@@ -37,16 +37,20 @@ describe("RequestList", () => {
           request({ id: "2", status: "approved" }),
           request({ id: "3", status: "handed_over" }),
           request({ id: "4", kind: "deposit", status: "confirmed" }),
+          request({ id: "7", kind: "emergency", status: "pending", reason: "School trip" }),
           request({ id: "5", status: "rejected" }),
           request({ id: "6", status: "cancelled" }),
         ]}
       />,
     );
-    for (const label of ["Waiting", "Approved", "Not approved", "Cancelled"]) {
+    for (const label of ["Approved", "Not approved", "Cancelled"]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.getAllByText("Done")).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: /^Cancel/ })).toHaveLength(1);
+    // The take-out and the extra-money ask are both waiting.
+    expect(screen.getAllByText("Waiting")).toHaveLength(2);
+    expect(screen.getByText(/^Extra/)).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^Cancel/ })).toHaveLength(2);
   });
 
   it("cancels a waiting request and refreshes", async () => {

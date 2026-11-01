@@ -3,6 +3,7 @@ import { cache } from "react";
 import { assertRole, assertSelfOrParentOf, getFamily } from "@/features/family/server";
 import { AppError, addDays, familyToday, localDateOf, startOfWeek } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
+import { isComeback } from "../comeback";
 import { checkIn, findMission, findReviewItem, missions, reviewPool } from "../content";
 import { gradeStep } from "../grade";
 import {
@@ -43,13 +44,14 @@ export const getLearningOverview = cache(async (childId: string): Promise<Learni
   const db = await createClient();
   const { timezone, today } = await familyClock();
   const weekStart = startOfWeek(today);
-  const [attempts, skills, reviews, checkInResult, activity] = await Promise.all([
+  const [attempts, skills, reviews, checkInResult, activity, lastActivity] = await Promise.all([
     repo.listAttempts(db, childId),
     repo.listSkillProgress(db, childId),
     repo.listReviewItems(db, childId),
     repo.findCheckIn(db, childId),
     // A day of slack either side of the week covers every timezone; the count filters by date.
     repo.listActivity(db, childId, `${addDays(weekStart, -1)}T00:00:00Z`),
+    repo.findLastActivity(db, childId),
   ]);
   const completedAttempts = attempts.filter((a) => a.status === "completed");
   const results = await repo.listStepResults(
@@ -85,7 +87,13 @@ export const getLearningOverview = cache(async (childId: string): Promise<Learni
     checkIn: checkInResult,
     practiceDue,
     daysThisWeek: daysLearnedThisWeek(activity, timezone, today),
-    nextStep: chooseNextStep(journey, checkInResult !== null, practiceDue),
+    lastLearnedOn: lastActivity ? localDateOf(lastActivity, timezone) : null,
+    nextStep: chooseNextStep(
+      journey,
+      checkInResult !== null,
+      practiceDue,
+      isComeback(lastActivity ? localDateOf(lastActivity, timezone) : null, today),
+    ),
     completed,
   };
 });

@@ -9,6 +9,7 @@ export {
   missions,
   missionTopicKey,
   reservedMissionKeys,
+  reviewPool,
   topics,
 } from "../content";
 export {

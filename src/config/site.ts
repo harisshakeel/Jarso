@@ -41,12 +41,15 @@ export const sharedOpenGraph = {
 export const publicPages = [
   { path: "/", updated: "2026-10-30", priority: 1 },
   { path: "/safety", updated: "2026-10-30", priority: 0.6 },
+  { path: "/privacy", updated: "2026-10-31", priority: 0.5 },
 ] as const;
 
 export const routes = {
   home: "/",
   /** Public: how the AI guide keeps children safe (spec §5, G3). */
   safety: "/safety" as Route,
+  /** Public: what Jarso keeps about a family and why (ADR 0008). */
+  privacy: "/privacy" as Route,
   login: "/login",
   signup: "/signup",
   dashboard: "/dashboard",
@@ -77,6 +80,9 @@ export const routes = {
   childDiary: "/child/diary" as Route,
   /** Learn: the seven-day journey (FR06). */
   childLearn: "/child/learn" as Route,
+  /** The weekly review (FR11) and its one fresh question. */
+  childWeek: "/child/learn/week" as Route,
+  childWeekQuestion: "/child/learn/week/question" as Route,
   childMission: (missionKey: string) => `/child/learn/${missionKey}` as Route,
   childCheckIn: "/child/learn/check-in" as Route,
   childPractice: "/child/learn/practice" as Route,

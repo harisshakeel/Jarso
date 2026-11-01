@@ -24,6 +24,7 @@ const result = {
     check: null,
     helplines: [],
     lookedAt: ["jars"],
+    remembered: [],
   },
 };
 

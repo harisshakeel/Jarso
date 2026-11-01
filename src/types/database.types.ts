@@ -351,6 +351,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"guide_memories": {
+                  Row: {
+                    "child_id": string,"created_at": string,"expires_at": string,"family_id": string,"id": string,"kind": string,"text": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"created_at"?: string,"expires_at"?: string,"family_id": string,"id"?: string,"kind": string,"text": string
+                  }
+                  Update: {
+                    "child_id"?: string,"created_at"?: string,"expires_at"?: string,"family_id"?: string,"id"?: string,"kind"?: string,"text"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "guide_memories_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "guide_memories_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"guide_messages": {
                   Row: {
                     "child_id": string,"client_message_id": string | null,"conversation_id": string,"created_at": string,"flagged": boolean,"id": string,"latency_ms": number | null,"main_cache_read_tokens": number,"main_cache_write_tokens": number,"main_input_tokens": number,"main_output_tokens": number,"model": string | null,"rating": number | null,"role": string,"route": string | null,"screen_input_tokens": number,"screen_output_tokens": number,"text": string,"text_blanked_at": string | null,"tool_calls": Json | null
@@ -547,14 +573,14 @@ isOneToOne: false
                   ]
                 },"notifications": {
                   Row: {
-                    "child_id": string,"created_at": string,"family_id": string,"id": string,"kind": string,"payload": NonNullable<Json>,"read_at": string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key": string | null
+                    "child_id": string,"created_at": string,"family_id": string,"id": string,"kind": string,"payload": NonNullable<Json>,"pushed_at": string | null,"read_at": string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "child_id": string,"created_at"?: string,"family_id": string,"id"?: string,"kind": string,"payload"?: NonNullable<Json>,"read_at"?: string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key"?: string | null
+                    "child_id": string,"created_at"?: string,"family_id": string,"id"?: string,"kind": string,"payload"?: NonNullable<Json>,"pushed_at"?: string | null,"read_at"?: string | null,"recipient_id": string,"source_id": string,"source_type": string,"window_key"?: string | null
                   }
                   Update: {
-                    "child_id"?: string,"created_at"?: string,"family_id"?: string,"id"?: string,"kind"?: string,"payload"?: NonNullable<Json>,"read_at"?: string | null,"recipient_id"?: string,"source_id"?: string,"source_type"?: string,"window_key"?: string | null
+                    "child_id"?: string,"created_at"?: string,"family_id"?: string,"id"?: string,"kind"?: string,"payload"?: NonNullable<Json>,"pushed_at"?: string | null,"read_at"?: string | null,"recipient_id"?: string,"source_id"?: string,"source_type"?: string,"window_key"?: string | null
                   }
                   Relationships: [
                     {
@@ -761,6 +787,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"push_subscriptions": {
+                  Row: {
+                    "auth": string,"created_at": string,"endpoint": string,"id": string,"last_used_at": string,"p256dh": string,"profile_id": string,"user_agent": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "auth": string,"created_at"?: string,"endpoint": string,"id"?: string,"last_used_at"?: string,"p256dh": string,"profile_id": string,"user_agent"?: string | null
+                  }
+                  Update: {
+                    "auth"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"last_used_at"?: string,"p256dh"?: string,"profile_id"?: string,"user_agent"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_subscriptions_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"requests": {
                   Row: {
                     "amount_minor": number,"auto": boolean,"child_id": string,"completed_at": string | null,"completed_by": string | null,"created_at": string,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"family_id": string,"id": string,"idempotency_key": string,"kind": string,"occurred_at": string,"reason": string | null,"status": string,"updated_at": string
@@ -924,6 +970,11 @@ isOneToOne: false
 "change_allowance":
 { Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
                            },
+"claim_unpushed_notifications":
+{ Args: { "p_limit"?: number }; Returns: {
+              "child_id": string,"child_name": string,"created_at": string,"currency": string,"id": string,"kind": string,"payload": Json,"recipient_id": string,"recipient_role": string,"source_id": string,"source_type": string
+            }[]
+                           },
 "clear_auto_charge_by":
 { Args: { "p_parent_id": string,"p_provider": string }; Returns: undefined
                            },
@@ -950,6 +1001,9 @@ isOneToOne: false
                            },
 "create_deposit":
 { Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string }; Returns: Json
+                           },
+"create_emergency":
+{ Args: { "p_amount_minor": number,"p_child_id": string,"p_idempotency_key": string,"p_reason": string }; Returns: Json
                            },
 "create_family":
 { Args: { "p_currency": string,"p_timezone": string }; Returns: string
@@ -1012,6 +1066,9 @@ isOneToOne: false
                            },
 "guide_record_turn":
 { Args: { "p_child_id": string,"p_child_text": string,"p_client_message_id"?: string,"p_conversation_id": string,"p_flagged": boolean,"p_latency_ms": number,"p_model": string,"p_reply_role": string,"p_reply_text": string,"p_route": string,"p_tool_calls"?: Json,"p_usage": Json }; Returns: string
+                           },
+"guide_remember":
+{ Args: { "p_child_id": string,"p_kind": string,"p_text": string }; Returns: string
                            },
 "guide_start_conversation":
 { Args: { "p_child_id": string,"p_context_key": string,"p_entry": string }; Returns: string
@@ -1151,6 +1208,17 @@ isOneToOne: false
                            },
 "post_request":
 { Args: { "p_actor": string,"p_request_id": string }; Returns: string
+                           },
+"push_subscribe":
+{ Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string,"p_user_agent"?: string }; Returns: string
+                           },
+"push_subscriptions_for":
+{ Args: { "p_recipient_ids": (string)[] }; Returns: {
+              "auth": string,"endpoint": string,"id": string,"p256dh": string,"profile_id": string
+            }[]
+                           },
+"push_unsubscribe":
+{ Args: { "p_endpoint": string }; Returns: boolean
                            },
 "rate_guide_message":
 { Args: { "p_message_id": string,"p_rating": number }; Returns: undefined

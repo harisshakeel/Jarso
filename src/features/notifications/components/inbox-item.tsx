@@ -26,6 +26,8 @@ const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
   deposit_requested: { icon: PiggyBankIcon, tint: "bg-secondary text-ink-2" },
   withdrawal_decided: { icon: CheckCircle2Icon, tint: "bg-teal-100 text-teal-800" },
   deposit_decided: { icon: CheckCircle2Icon, tint: "bg-teal-100 text-teal-800" },
+  emergency_requested: { icon: HandCoinsIcon, tint: "bg-gold-100 text-gold-700" },
+  emergency_decided: { icon: CheckCircle2Icon, tint: "bg-teal-100 text-teal-800" },
   // Informational, like a limit notice: never red (design.md §2.4).
   card_charge_failed: { icon: CreditCardIcon, tint: "bg-gold-100 text-gold-700" },
 };

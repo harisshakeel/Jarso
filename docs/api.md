@@ -9,7 +9,7 @@
 
 Both must stay thin and call the feature **service**.
 
-Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. The one cron route today is `/api/cron/payments/auto-charge`, because charging a card needs app code (ADR 0012). More arrive with email delivery in the final demo.
+Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. Two cron routes exist today, because their work needs app code: `/api/cron/payments/auto-charge` (charging a card, ADR 0012 card handover) and `/api/cron/push` (sending web push, ADR 0012 web push). Both take the same `CRON_SECRET`. More arrive with email delivery in the final demo.
 
 ## Server Actions
 
@@ -57,6 +57,7 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | POST | `/api/v1/guide/turns` | child | One message to Jarso, streamed as NDJSON (`askGuideSchema`) |
 | POST | `/api/v1/payments/webhooks/[provider]` | provider signature | A payment provider's signed event (ADR 0012) |
 | GET, POST | `/api/cron/payments/auto-charge` | `Authorization: Bearer <CRON_SECRET>` | Charge every due item with auto charge on |
+| GET | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Daily web push sweep (ADR 0012); 404 when the secret is unset |
 
 ### `POST /api/v1/outbox`
 

@@ -16,8 +16,10 @@ import { getLearningOverview } from "@/features/learning/server";
 import { JarShelf } from "@/features/ledger";
 import { takeOutLimit } from "@/features/requests";
 import { getAvailability, listRequests } from "@/features/requests/server";
+import { showsOnHome, WeekCard } from "@/features/review";
+import { getWeeklyReview } from "@/features/review/server";
 import { getChildRules } from "@/features/rules/server";
-import { fallback, logger } from "@/lib";
+import { fallback, familyToday, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -53,13 +55,16 @@ async function ChildHome() {
         href={routes.childRequests}
         className="-mt-3 inline-flex min-h-11 w-fit items-center justify-self-center rounded-full px-2 font-semibold text-primary text-sm underline-offset-4 hover:underline"
       >
-        See your Save requests
+        See your requests
       </Link>
       <ChildAllowanceCard
         schedule={schedule}
         dueTotalMinor={due.totalMinor}
         currency={family.currency}
       />
+      <Suspense fallback={null}>
+        <HomeWeek childId={user.id} currency={family.currency} timezone={family.timezone} />
+      </Suspense>
       <Suspense fallback={<div aria-hidden className="shimmer h-24 rounded-xl bg-muted" />}>
         <HomeSkills childId={user.id} />
       </Suspense>
@@ -158,6 +163,30 @@ async function HomeShelf({
   }
 }
 
+/**
+ * "Your week" (FR11) from Friday to Monday, when the week is nearly in or just over. The full
+ * review is always at /child/learn/week. Hides itself if it can't load.
+ */
+async function HomeWeek({
+  childId,
+  currency,
+  timezone,
+}: {
+  childId: string;
+  currency: string;
+  timezone: string;
+}) {
+  if (!showsOnHome(familyToday(timezone))) return null;
+  try {
+    const review = await getWeeklyReview(childId);
+    return <WeekCard review={review} currency={currency} compact />;
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Weekly review unavailable on child home", { error: errorName(error) });
+    return null;
+  }
+}
+
 /** Skills learned, outside the jars (invariant 11). Hides itself if learning can't load. */
 async function HomeSkills({ childId }: { childId: string }) {
   try {
@@ -175,7 +204,10 @@ async function HomeSkills({ childId }: { childId: string }) {
  * turns stream from /api/v1/guide/turns, so this page needs no long maxDuration.
  */
 async function HomeJarso({ childId, hasAllowance }: { childId: string; hasAllowance: boolean }) {
-  const guide = await getGuideState(childId);
+  const [guide, goal] = await Promise.all([
+    getGuideState(childId),
+    fallback(getGoalView(childId), null, "Goal for Ask Jarso"),
+  ]);
   if (!guide.available) return null;
   const { suggestions } = guideCopy;
   return (
@@ -185,7 +217,7 @@ async function HomeJarso({ childId, hasAllowance }: { childId: string; hasAllowa
         suggestions.jars,
         suggestions.spent,
         hasAllowance ? suggestions.allowance : suggestions.learning,
-        suggestions.saving,
+        goal ? suggestions.goal : suggestions.saving,
       ]}
     />
   );

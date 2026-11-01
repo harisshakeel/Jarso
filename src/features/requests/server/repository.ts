@@ -10,6 +10,7 @@ import {
   type DecideDepositResult,
   type DecideWithdrawalResult,
   type DepositResult,
+  type EmergencyResult,
   type RequestKind,
   type RequestStatus,
   requestStatuses,
@@ -81,12 +82,13 @@ function toRequest(row: {
   occurred_at: string;
 }): SavingsRequest {
   const status = requestStatuses.find((s) => s === row.status);
-  if ((row.kind !== "withdrawal" && row.kind !== "deposit") || !status) {
+  const kind = (["withdrawal", "deposit", "emergency"] as const).find((k) => k === row.kind);
+  if (!kind || !status) {
     throw unexpected("Failed to load your requests", row);
   }
   return {
     id: row.id,
-    kind: row.kind as RequestKind,
+    kind: kind as RequestKind,
     status: status as RequestStatus,
     amountMinor: Number(row.amount_minor),
     reason: row.reason,
@@ -122,14 +124,14 @@ export async function listRequestsFor(db: Client, childId: string): Promise<Savi
     .map(toRequest);
 }
 
-/** What a parent has to act on: pending and approved withdrawals, pending deposits. */
+/** What a parent has to act on: pending and approved withdrawals and emergencies, pending deposits. */
 export async function listOpenRequests(db: Client, childId: string): Promise<SavingsRequest[]> {
   const { data, error } = await db
     .from("requests")
     .select(COLUMNS)
     .eq("child_id", childId)
     .or(
-      "and(kind.eq.withdrawal,status.in.(pending,approved)),and(kind.eq.deposit,status.eq.pending)",
+      "and(kind.in.(withdrawal,emergency),status.in.(pending,approved)),and(kind.eq.deposit,status.eq.pending)",
     )
     .order("occurred_at", { ascending: true })
     .limit(LIST_LIMIT);
@@ -180,6 +182,28 @@ export async function callCreateWithdrawal(
       capMinor: Number(r.cap_minor ?? 0),
       usedMinor: Number(r.used_minor ?? 0),
     };
+  }
+  throw unexpected("Failed to send your request", r);
+}
+
+export async function callCreateEmergency(
+  db: Client,
+  input: { childId: string; amountMinor: number; reason: string; idempotencyKey: string },
+): Promise<EmergencyResult> {
+  const { data, error } = await db.rpc("create_emergency", {
+    p_child_id: input.childId,
+    p_amount_minor: input.amountMinor,
+    p_reason: input.reason,
+    p_idempotency_key: input.idempotencyKey,
+  });
+  if (error) throw toAppError(error, "Failed to send your request");
+  const r = data as Json;
+  if (r?.status === "pending" && typeof r.request_id === "string") {
+    return { status: "pending", requestId: r.request_id };
+  }
+  // A retried key whose request has since moved on: the ask was already sent.
+  if (typeof r?.status === "string" && typeof r.request_id === "string") {
+    return { status: "already_sent", requestId: r.request_id };
   }
   throw unexpected("Failed to send your request", r);
 }

@@ -30,6 +30,11 @@ type JarShelfProps = {
 function requestChip(request: SavingsRequest, money: (minor: number) => string): string {
   const amount = money(request.amountMinor);
   if (request.kind === "deposit") return `${amount} to Save · give it to your parent`;
+  if (request.kind === "emergency") {
+    return request.status === "approved"
+      ? `${amount} extra · your parent said yes`
+      : `${amount} extra asked · waiting for your parent`;
+  }
   return request.status === "approved"
     ? `${amount} from Save · your parent said yes`
     : `${amount} asked from Save · waiting for your parent`;
@@ -54,10 +59,16 @@ export function JarShelf({
     rules.filter((rule) => kinds.includes(rule.kind)).map((r) => describeRuleForChild(r, currency));
 
   const { spendMinor, saveMinor, reservedSaveMinor } = availability;
+  // FR05: with an unreached goal, the Save sheets ask the child to predict the effect first.
+  const predict =
+    goal && !goal.progress.reached
+      ? { goal: goal.goal, saveMinor, reservedMinor: reservedSaveMinor }
+      : undefined;
   const countedMinor = Math.max(saveMinor - reservedSaveMinor, 0);
   const shared = jarCapacity({ spendMinor, saveMinor, allowanceMinor, currency });
   const saveCapacity = goal ? goal.goal.targetMinor : shared;
-  const deposits = openRequests.filter((r) => r.kind === "deposit");
+  // Deposits and emergencies touch Spend; withdrawals touch Save.
+  const spendSide = openRequests.filter((r) => r.kind !== "withdrawal");
   const withdrawals = openRequests.filter((r) => r.kind === "withdrawal");
 
   return (
@@ -76,7 +87,7 @@ export function JarShelf({
           <h2 className="font-bold text-h3 text-primary">Spend</h2>
           <p className="money font-extrabold text-money-l">{money(spendMinor)}</p>
           <p className="text-ink-2 text-sm">Cash you have</p>
-          {deposits.map((r) => (
+          {spendSide.map((r) => (
             <p key={r.id} className="text-ink-2 text-sm">
               {requestChip(r, money)}
             </p>
@@ -87,6 +98,7 @@ export function JarShelf({
               currency={currency}
               availableSpendMinor={availability.availableSpendMinor}
               ruleLines={ruleLines(["deposit_auto_confirm"])}
+              predict={predict}
             />
           </div>
         </section>
@@ -115,6 +127,7 @@ export function JarShelf({
               currency={currency}
               limitMinor={takeOutLimit(availability)}
               ruleLines={ruleLines(["withdrawal_cap", "withdrawal_auto_approve"])}
+              predict={predict}
             />
             <GoalSheet
               goal={goal?.goal ?? null}

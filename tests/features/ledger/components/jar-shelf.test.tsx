@@ -128,11 +128,17 @@ describe("JarShelf", () => {
         request({}),
         request({ id: "r2", status: "approved", amountMinor: 200 }),
         request({ id: "r3", kind: "deposit", amountMinor: 300 }),
+        request({ id: "r4", kind: "emergency", amountMinor: 400, reason: "School trip" }),
+        request({ id: "r5", kind: "emergency", status: "approved", amountMinor: 600 }),
       ],
     });
     expect(screen.getByText("£5 asked from Save · waiting for your parent")).toBeInTheDocument();
     expect(screen.getByText("£2 from Save · your parent said yes")).toBeInTheDocument();
     expect(screen.getByText("£3 to Save · give it to your parent")).toBeInTheDocument();
+    // Extra money is new money for Spend, so it sits under the Spend jar.
+    const spend = screen.getByRole("region", { name: "Spend jar" });
+    expect(spend).toHaveTextContent("£4 extra asked · waiting for your parent");
+    expect(spend).toHaveTextContent("£6 extra · your parent said yes");
   });
 
   it("explains the jar drawing in words", () => {

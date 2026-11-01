@@ -27,6 +27,9 @@ export const metadata: Metadata = {
   creator: siteConfig.name,
   publisher: siteConfig.name,
   formatDetection: { telephone: false, email: false, address: false },
+  // App install (FR16): manifest.ts beside this file, and a home-screen app on iOS.
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: siteConfig.name, statusBarStyle: "default" },
   openGraph: { ...sharedOpenGraph, description: siteConfig.description },
   twitter: { card: "summary_large_image" },
 };

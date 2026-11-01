@@ -2,6 +2,7 @@
 
 import {
   BotIcon,
+  BrainIcon,
   CircleCheckIcon,
   PhoneIcon,
   ScanSearchIcon,
@@ -41,6 +42,12 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
         <p className="flex items-center gap-1.5 text-ink-2 text-sm">
           <ScanSearchIcon aria-hidden className="size-4 shrink-0" />
           Looked at: {reply.lookedAt.join(", ")}
+        </p>
+      ) : null}
+      {reply.remembered.length > 0 ? (
+        <p className="flex items-center gap-1.5 text-ink-2 text-sm">
+          <BrainIcon aria-hidden className="size-4 shrink-0" />
+          {guideCopy.remembered} {reply.remembered.join("; ")}
         </p>
       ) : null}
       {reply.helplines.length > 0 ? (

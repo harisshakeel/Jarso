@@ -12,8 +12,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui";
+import { type Goal, PredictStep } from "@/features/goals";
 import { newId, runOnline } from "@/features/offline";
-import { type ActionState, formatMoney, idle } from "@/lib";
+import { type ActionState, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
 import { overCapMessage } from "../describe";
 import { createWithdrawalAction } from "../server/actions";
 import type { WithdrawalResult } from "../types";
@@ -26,10 +27,22 @@ type TakeOutSheetProps = {
   ruleLines?: string[];
   /** A different button to open the sheet, e.g. "Ask to use my savings" when a goal is reached. */
   trigger?: { label: string; variant?: "outline" | "keycap-gold" };
+  /** With a goal, the child predicts what the take-out does to it before asking (FR05). */
+  predict?: {
+    goal: Pick<Goal, "name" | "emoji" | "targetMinor" | "planMinor">;
+    saveMinor: number;
+    reservedMinor: number;
+  };
 };
 
 /** "Take out" on the Save jar: ask a parent for money from Save. */
-export function TakeOutSheet({ currency, limitMinor, ruleLines = [], trigger }: TakeOutSheetProps) {
+export function TakeOutSheet({
+  currency,
+  limitMinor,
+  ruleLines = [],
+  trigger,
+  predict,
+}: TakeOutSheetProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   // Refresh only once the sheet closes, so the screen behind it can't change while it is open.
@@ -60,6 +73,7 @@ export function TakeOutSheet({ currency, limitMinor, ruleLines = [], trigger }: 
           currency={currency}
           limitMinor={limitMinor}
           ruleLines={ruleLines}
+          predict={predict}
           onSent={() => {
             sent.current = true;
           }}
@@ -92,7 +106,9 @@ function isSent(result: WithdrawalResult) {
 
 function TakeOutForm({
   currency,
+  limitMinor,
   ruleLines,
+  predict,
   onSent,
   onDone,
 }: TakeOutSheetProps & { ruleLines: string[]; onSent: () => void; onDone: () => void }) {
@@ -140,6 +156,18 @@ function TakeOutForm({
         onValueChange={setAmount}
         errors={fieldErrors?.amount}
       />
+      {predict ? (
+        <PredictStep
+          move="take_out"
+          amountMinor={parseMoney(amount, currency)}
+          goal={predict.goal}
+          saveMinor={predict.saveMinor}
+          reservedMinor={predict.reservedMinor}
+          currency={currency}
+          maxMinor={limitMinor}
+          onTryAmount={(minor) => setAmount(toMajorString(minor, currency))}
+        />
+      ) : null}
       <Field
         name="reason"
         label="What's it for?"

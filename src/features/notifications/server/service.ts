@@ -1,12 +1,15 @@
 import "server-only";
 import { assertUser } from "@/features/auth/server";
 import { createClient } from "@/lib/supabase/server";
-import type { Notice, NoticeKind, NoticePage } from "../types";
+import type { Notice, NoticeKind, NoticePage, PushSubscriptionInput } from "../types";
 import {
   encodeCursor,
   fetchUnreadCount,
   listNoticeRows,
   listUnreadRows,
+  ownsSubscription,
+  removeSubscription,
+  saveSubscription,
   setRead,
 } from "./repository";
 
@@ -40,4 +43,44 @@ export async function markRead(ids: string[] | null): Promise<number> {
 export async function listUnreadNotices(kinds: NoticeKind[]): Promise<Notice[]> {
   await assertUser();
   return listUnreadRows(await createClient(), kinds, 20);
+}
+
+/**
+ * Web push (FR16): keeps this browser's subscription for the caller. The user agent is cut to a
+ * family (e.g. "Chrome on Android") before it is stored, enough to recognise a device later.
+ */
+export async function subscribePush(
+  input: PushSubscriptionInput,
+  userAgent: string | null,
+): Promise<void> {
+  await assertUser();
+  await saveSubscription(await createClient(), input, describeAgent(userAgent));
+}
+
+/**
+ * On a browser two accounts share, the browser's subscription may belong to the other account
+ * (`push_subscribe` moves an endpoint to its latest subscriber). The switch shows "on" only
+ * when the signed-in account owns it.
+ */
+export async function ownsPushEndpoint(endpoint: string): Promise<{ owned: boolean }> {
+  await assertUser();
+  return { owned: await ownsSubscription(await createClient(), endpoint) };
+}
+
+export async function unsubscribePush(endpoint: string): Promise<{ removed: boolean }> {
+  await assertUser();
+  return { removed: await removeSubscription(await createClient(), endpoint) };
+}
+
+const BROWSERS = ["Edg", "OPR", "SamsungBrowser", "Firefox", "Chrome", "Safari"] as const;
+const DEVICES = ["Android", "iPhone", "iPad", "Windows", "Macintosh", "Linux"] as const;
+
+/** "Chrome on Android" from a user agent string, or null. Never the raw string. */
+export function describeAgent(userAgent: string | null): string | null {
+  if (!userAgent) return null;
+  const browser = BROWSERS.find((b) => userAgent.includes(b));
+  const device = DEVICES.find((d) => userAgent.includes(d));
+  if (!browser && !device) return null;
+  const name = browser === "Edg" ? "Edge" : browser === "OPR" ? "Opera" : browser;
+  return [name, device].filter(Boolean).join(" on ");
 }

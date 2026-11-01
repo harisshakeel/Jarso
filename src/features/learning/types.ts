@@ -49,6 +49,8 @@ export type SkillProgress = {
   correctWithHints: number;
   reasonsCorrect: number;
   reviewsPassed: number;
+  /** When the row last changed; a level only ever goes up, so this dates the last step up. */
+  updatedAt?: string;
 };
 
 export type ReviewItem = { skillKey: SkillKey; box: number; dueOn: string };
@@ -74,6 +76,8 @@ export type NextStep =
   | { kind: "resume"; missionKey: string; title: string }
   | { kind: "check-in" }
   | { kind: "practice"; count: number }
+  /** FR12: back after a few days away, one small question eases the child in. */
+  | { kind: "comeback" }
   | { kind: "mission"; missionKey: string; title: string; day: number }
   | { kind: "done" };
 
@@ -84,6 +88,8 @@ export type LearningOverview = {
   checkIn: CheckInResult | null;
   practiceDue: number;
   daysThisWeek: number;
+  /** The family-local day of the most recent learning, or null before any. */
+  lastLearnedOn: string | null;
   nextStep: NextStep;
   /** Completed attempts, newest first, with their first-try and hint counts. */
   completed: {

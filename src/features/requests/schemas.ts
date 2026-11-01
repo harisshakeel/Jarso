@@ -20,6 +20,20 @@ export const withdrawalSchema = (currency: string) =>
     })
     .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));
 
+/** Asking for extra money (FR15). The reason is required: it is what the parent decides on. */
+export const emergencySchema = (currency: string) =>
+  z
+    .object({
+      amount: moneySchema(currency),
+      reason: z
+        .string()
+        .trim()
+        .min(1, "Say what it's for.")
+        .max(MAX_TEXT, `Keep it to ${MAX_TEXT} characters.`),
+      idempotencyKey: z.uuid(),
+    })
+    .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));
+
 /** Putting money into Save. */
 export const depositSchema = (currency: string) =>
   z

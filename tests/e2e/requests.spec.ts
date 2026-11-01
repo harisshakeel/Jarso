@@ -3,7 +3,10 @@ import { expect, type Page, test } from "@playwright/test";
 import { completeParentProfile, readFamilyCode } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
-/** Savings withdrawals and deposits, against the LOCAL Supabase stack (see playwright.config.ts). */
+/**
+ * Savings withdrawals and deposits, and emergency funds (FR15), against the LOCAL Supabase stack
+ * (see playwright.config.ts).
+ */
 
 const local = loadLocalSupabase();
 test.skip(!local, "Local Supabase is not running: start it with `pnpm db:start`.");
@@ -178,6 +181,41 @@ test("with auto-confirm a week 500, a 200 put-in lands in Save at once", async (
   await expect(sheet.getByRole("status").first()).toHaveText("Added to Save");
   await sheet.getByRole("button", { name: "Done" }).click();
   await expect(saveJar()).toContainText("US$2,000");
+});
+
+test("child asks for extra money, parent approves and hands it over into Spend", async () => {
+  await child.goto("/child/requests");
+  await child.getByRole("button", { name: "Ask for extra" }).click();
+  const sheet = child.getByRole("dialog");
+  await sheet.getByLabel("Amount").fill("150");
+  await sheet.getByLabel("What's it for?").fill("School trip");
+  await sheet.getByRole("button", { name: "Ask", exact: true }).click();
+  await expect(sheet.getByRole("status").first()).toHaveText("Sent to your parent");
+  await sheet.getByRole("button", { name: "Done" }).click();
+  await expect(child.getByText(/Extra/).first()).toBeVisible();
+
+  await parent.goto("/parent");
+  const item = parent
+    .getByRole("listitem")
+    .filter({ hasText: "Sam asks for US$150.00 extra: School trip" });
+  await item.getByRole("button", { name: "Approve" }).click();
+  const handover = parent
+    .getByRole("listitem")
+    .filter({ hasText: "Hand over US$150.00 extra to Sam" });
+  await handover.getByRole("button", { name: "Confirm" }).click();
+  await expect(handover).toHaveCount(0);
+
+  await parent.goto("/parent/inbox");
+  await expect(parent.getByText("Sam asked for extra money").first()).toBeVisible();
+  await child.goto("/child/inbox");
+  await expect(child.getByText("Your parent said yes to extra money").first()).toBeVisible();
+
+  // Spend: 1500 after the take-out, less the 300 and 200 put into Save, plus 150 extra. Save stays.
+  await child.goto("/child");
+  await expect(spendJar()).toContainText("US$1,150");
+  await expect(saveJar()).toContainText("US$2,000");
+  await child.goto("/child/diary");
+  await expect(history().getByText("Extra money").first()).toBeVisible();
 });
 
 test("asking for more than is available shows what can be taken out", async () => {

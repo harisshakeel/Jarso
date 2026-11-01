@@ -17,6 +17,7 @@ import type {
   DecideDepositResult,
   DecideWithdrawalResult,
   DepositResult,
+  EmergencyResult,
   SavingsRequest,
   WithdrawalResult,
 } from "../types";
@@ -24,6 +25,7 @@ import {
   callCancel,
   callComplete,
   callCreateDeposit,
+  callCreateEmergency,
   callCreateWithdrawal,
   callDecideDeposit,
   callDecideWithdrawal,
@@ -85,6 +87,21 @@ export async function createWithdrawal(input: {
   });
 }
 
+/** The child asks for extra money (FR15). Always pending: a parent decides on the reason. */
+export async function createEmergency(input: {
+  amountMinor: number;
+  reason: string;
+  idempotencyKey: string;
+}): Promise<EmergencyResult> {
+  const { user } = await assertRole("child");
+  return callCreateEmergency(await createClient(), {
+    childId: user.id,
+    amountMinor: input.amountMinor,
+    reason: input.reason,
+    idempotencyKey: input.idempotencyKey,
+  });
+}
+
 export async function createDeposit(input: {
   amountMinor: number;
   idempotencyKey: string;
@@ -97,6 +114,7 @@ export async function createDeposit(input: {
   });
 }
 
+/** Approves or rejects a pending withdrawal or emergency ask (the same database function). */
 export async function decideWithdrawal(input: {
   requestId: string;
   approve: boolean;
@@ -122,7 +140,7 @@ export async function rejectDeposit(input: {
   });
 }
 
-/** Hands an approved withdrawal over or confirms a pending deposit. `already_completed` is a success. */
+/** Hands over an approved withdrawal or emergency, or confirms a pending deposit. `already_completed` is a success. */
 export async function completeRequest(input: {
   requestId: string;
   idempotencyKey: string;

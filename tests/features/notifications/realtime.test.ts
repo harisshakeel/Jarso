@@ -15,6 +15,7 @@ const row = {
   payload: { amount_minor: 300 },
   created_at: "2026-10-31T09:00:00Z",
   read_at: null,
+  pushed_at: null,
 };
 
 describe("rowToNotice", () => {

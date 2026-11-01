@@ -8,6 +8,7 @@ import {
   recordPractice,
   recordStep,
 } from "@/features/learning/server";
+import { pushAfterNotices } from "@/features/notifications/server";
 import { AppError } from "@/lib";
 import { json, withApi } from "@/lib/api";
 import { type OutboxRequest, outboxRequestSchema } from "./schema";
@@ -36,6 +37,7 @@ async function run(request: OutboxRequest, currency: string) {
       if (result.status === "not_enough_spend") {
         throw new AppError("CONFLICT", notEnoughSpendMessage(result.freeMinor, currency));
       }
+      pushAfterNotices();
       return result;
     }
     case "practice":

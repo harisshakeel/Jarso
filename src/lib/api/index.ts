@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { clientEnv } from "@/config";
@@ -63,6 +64,8 @@ export function withApi<Args extends unknown[]>(
       if (request instanceof Request && !options.crossOrigin) assertSameOrigin(request);
       return await handler(...args);
     } catch (error) {
+      // Next's own signals (a prerender bailing out on `request.headers`, redirects) must pass.
+      unstable_rethrow(error);
       return toErrorResponse(error);
     }
   };

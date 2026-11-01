@@ -8,7 +8,7 @@ Production runs on Vercel, database and auth on Supabase. Both are in Tokyo so e
 | Production URL | https://jarso.vercel.app |
 | Function region | `hnd1` (pinned in `vercel.json`) |
 | Supabase project | `sbnakvwvaymzypwmpqzv`, region `ap-northeast-1` |
-| Health check | https://jarso.vercel.app/api/health → `{"data":{"status":"ok"}}` |
+| Health check | https://jarso.vercel.app/api/health → `{"data":{"status":"ok"}}`; `?deep=1` also asks the database and answers 503 when it does not reply (point the uptime monitor here) |
 
 ## Environment variables
 
@@ -32,7 +32,10 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `RAZORPAY_KEY_ID` | `rzp_test_…` (sensitive) | same | Razorpay is on when all three Razorpay keys are set. Test mode only: a live key id fails validation. INR families only. |
 | `RAZORPAY_KEY_SECRET` | test key secret (sensitive) | same | Server only. |
 | `RAZORPAY_WEBHOOK_SECRET` | the secret you type into the dashboard webhook (sensitive) | same | Razorpay chooses no format; use a long random value. |
-| `CRON_SECRET` | `<cron secret ≥16 chars>` (sensitive) | same | Bearer secret for `/api/cron/payments/auto-charge`. Unset: the route is 404. Vercel Cron sends it as `Authorization: Bearer …` on its own. |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | set | unset | Web push (ADR 0012). Public by design: the browser gets it as the `applicationServerKey`. Unset hides the push switch. |
+| `VAPID_PRIVATE_KEY` | set (sensitive) | unset | Web push. Server only; read only by `features/notifications/server/push.ts`. Make the pair once with `pnpm exec web-push generate-vapid-keys` and paste each value into the dashboard, never a command line. |
+| `VAPID_SUBJECT` | `mailto:<contact>` | — | Optional contact the push services may use; defaults to the app URL. |
+| `CRON_SECRET` | `<cron secret ≥16 chars>` (sensitive) | same | Bearer secret for both cron routes, `/api/cron/payments/auto-charge` and `/api/cron/push`. Unset: both routes are 404. Vercel Cron sends it as `Authorization: Bearer …` on its own. Any 16+ character random string. |
 
 To change a value from a terminal: `printf '<value>' | vercel env add NAME production --force` (pipe it; never type a key into a command line). To take a Supabase key straight from the CLI, pass `--reveal` and pipe the one key into Vercel so it never appears on screen or in a log:
 
@@ -146,6 +149,7 @@ Runbook step: Supabase → Authentication → Sessions → Refresh token reuse i
 
 ```bash
 curl -s https://jarso.vercel.app/api/health            # {"data":{"status":"ok"}}
+curl -s https://jarso.vercel.app/api/health?deep=1     # {"data":{"status":"ok","database":"ok"}}
 curl -sI https://jarso.vercel.app/dashboard | head -1   # 307 to /login?next=%2Fdashboard when signed out
 vercel inspect <deployment-url>                         # status, aliases, per-function region
 ```
@@ -158,7 +162,8 @@ Vercel → Deployments → previous Ready deployment → "Promote to Production"
 
 ## Limits that matter (Hobby plan)
 
-- Serverless function duration is capped; set `maxDuration` on routes that stream (the future guide) and keep cron jobs chunked.
+- Serverless function duration is capped; set `maxDuration` on routes that stream (the guide) and keep cron jobs chunked.
+- Cron jobs run at most once a day, so `vercel.json` schedules the push sweep daily (01:30 UTC). Requests, decisions and purchases push right after the action regardless; only the hourly allowance reminders wait for the sweep. On a Pro plan shorten the schedule; or have `pg_cron` + `pg_net` call the route hourly (ADR 0012).
 - One concurrent build; a push during a build queues.
 - Preview deployments may be behind Vercel Authentication (Deployment Protection). Production is public.
 

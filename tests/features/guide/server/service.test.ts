@@ -35,6 +35,10 @@ vi.mock("@/features/guide/server/repository", () => ({
 // The real runners read through other features' services; here the toolbox is a stand-in that
 // answers get_jars like the real one does.
 vi.mock("@/features/guide/server/tools", () => ({ createTurnTools: vi.fn() }));
+vi.mock("@/features/guide/server/memory", () => ({
+  listMemories: vi.fn(async () => []),
+  deleteMemory: vi.fn(),
+}));
 
 const family = await import("@/features/family/server");
 const config = await import("@/features/guide/server/config");
@@ -72,6 +76,7 @@ beforeEach(() => {
       specs: [],
       facts,
       calls,
+      remembered: [],
       run: async (name) => {
         calls.push({ name: name as "get_jars", input: {} });
         onStatus?.(guideCopy.status.get_jars);
@@ -472,6 +477,7 @@ describe("askGuide retries", () => {
         check: null,
         helplines: [],
         lookedAt: ["jars"],
+        remembered: [],
       },
       turnsLeft: 11,
     });

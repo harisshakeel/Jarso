@@ -57,6 +57,19 @@ describe("ParentRequestItems", () => {
     expect(screen.getByRole("button", { name: "Didn't hand it over" })).toBeInTheDocument();
   });
 
+  it("offers Approve and Not now for an emergency ask, with its reason", () => {
+    show(request({ kind: "emergency", reason: "School trip" }));
+    expect(screen.getByText("Maya asks for £5.00 extra: School trip")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Not now" })).toBeInTheDocument();
+  });
+
+  it("offers Confirm for an approved emergency, naming it as extra", () => {
+    show(request({ kind: "emergency", status: "approved" }));
+    expect(screen.getByText("Hand over £5.00 extra to Maya")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
+  });
+
   it("offers Confirm and Didn't get it for a pending deposit", () => {
     show(request({ kind: "deposit", reason: null }));
     expect(screen.getByText("Maya gave you £5.00?")).toBeInTheDocument();

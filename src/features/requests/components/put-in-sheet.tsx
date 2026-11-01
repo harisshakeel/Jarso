@@ -12,8 +12,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui";
+import { type Goal, PredictStep } from "@/features/goals";
 import { newId, runOnline } from "@/features/offline";
-import { type ActionState, formatMoney, idle } from "@/lib";
+import { type ActionState, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
 import { createDepositAction } from "../server/actions";
 import type { DepositResult } from "../types";
 
@@ -23,10 +24,21 @@ type PutInSheetProps = {
   availableSpendMinor: number;
   /** The child's active rules for putting money in, in plain words. */
   ruleLines?: string[];
+  /** With a goal, the child predicts what the put-in does to it before sending (FR05). */
+  predict?: {
+    goal: Pick<Goal, "name" | "emoji" | "targetMinor" | "planMinor">;
+    saveMinor: number;
+    reservedMinor: number;
+  };
 };
 
 /** "Put in" on the Save jar: move money from Spend into Save. */
-export function PutInSheet({ currency, availableSpendMinor, ruleLines = [] }: PutInSheetProps) {
+export function PutInSheet({
+  currency,
+  availableSpendMinor,
+  ruleLines = [],
+  predict,
+}: PutInSheetProps) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -44,6 +56,7 @@ export function PutInSheet({ currency, availableSpendMinor, ruleLines = [] }: Pu
           currency={currency}
           availableSpendMinor={availableSpendMinor}
           ruleLines={ruleLines}
+          predict={predict}
           onDone={() => setOpen(false)}
         />
       </SheetContent>
@@ -67,7 +80,9 @@ export function depositMessage(result: DepositResult, currency: string): string 
 
 function PutInForm({
   currency,
+  availableSpendMinor,
   ruleLines,
+  predict,
   onDone,
 }: PutInSheetProps & { ruleLines: string[]; onDone: () => void }) {
   const router = useRouter();
@@ -111,6 +126,18 @@ function PutInForm({
         onValueChange={setAmount}
         errors={fieldErrors?.amount}
       />
+      {predict ? (
+        <PredictStep
+          move="put_in"
+          amountMinor={parseMoney(amount, currency)}
+          goal={predict.goal}
+          saveMinor={predict.saveMinor}
+          reservedMinor={predict.reservedMinor}
+          currency={currency}
+          maxMinor={availableSpendMinor}
+          onTryAmount={(minor) => setAmount(toMajorString(minor, currency))}
+        />
+      ) : null}
       {state?.ok ? (
         <p role="status" className="rounded-lg bg-muted px-3.5 py-2.5 text-ink-2 text-sm">
           {depositMessage(state.data, currency)}

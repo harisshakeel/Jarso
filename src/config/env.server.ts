@@ -1,6 +1,10 @@
 import "server-only";
 import { z } from "zod";
 
+/** A host can leave a variable set but empty; that means unset, not "a 0-character secret". */
+const blankAsUnset = <T extends z.ZodType>(inner: T) =>
+  z.preprocess((value) => (value === "" ? undefined : value), inner);
+
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   SUPABASE_SECRET_KEY: z.string().min(1).optional(),
@@ -46,10 +50,17 @@ const schema = z.object({
   RAZORPAY_KEY_SECRET: z.string().min(1).optional(),
   /** The secret set on the test-mode dashboard webhook (Razorpay chooses no format). */
   RAZORPAY_WEBHOOK_SECRET: z.string().min(1).optional(),
-  /** Bearer secret for the cron routes (Vercel Cron and pg_net). Unset: the routes are 404. */
-  CRON_SECRET: z.string().min(16).optional(),
   /** Set by Vercel: "production", "preview" or "development". */
   VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
+  /** Web push (FR16): the VAPID private key. Push is skipped unless this and the public key are set. */
+  VAPID_PRIVATE_KEY: blankAsUnset(z.string().min(1).optional()),
+  /** VAPID contact, a mailto: or https: URL push services can reach; defaults to the app's host. */
+  VAPID_SUBJECT: blankAsUnset(z.string().min(1).optional()),
+  /**
+   * Bearer secret for the cron routes (payments auto charge via Vercel Cron and pg_net, web push
+   * sweep). Unset: the routes are 404.
+   */
+  CRON_SECRET: blankAsUnset(z.string().min(16).optional()),
 });
 
 const parsed = schema.safeParse(process.env);

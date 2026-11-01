@@ -42,7 +42,7 @@ const sections: { heading: string; body: string[] }[] = [
   {
     heading: "What it can see",
     body: [
-      "When a child asks about their own money or learning, Jarso looks it up: their Spend and Save jars, their allowance, the money they received and the purchases they recorded, the money rules their parent set, and their learning progress. It looks only when asked, only at that child's own details, and only what the question needs.",
+      "When a child asks about their own money or learning, Jarso looks it up: their Spend and Save jars, their allowance, the money they received and the purchases they recorded, their savings goal, their requests to take money out of Save or put it in, the money rules their parent set, and their learning progress. It looks only when asked, only at that child's own details, and only what the question needs.",
       "It cannot see other children's money, a parent's planned gifts or anything outside Jarso, and it cannot move money or change anything.",
       "Figures about a child's own money come from the app, not from the AI: the AI writes a placeholder and the app fills in the real amount, and a reply with a figure the app didn't look up is held back. The parent sees what Jarso looked at for every reply.",
     ],

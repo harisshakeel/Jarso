@@ -1,4 +1,4 @@
-import { BookOpenIcon, ChevronRightIcon } from "lucide-react";
+import { BookOpenIcon, CalendarCheckIcon, ChevronRightIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -27,6 +27,16 @@ async function LearnContent() {
         <p className="text-ink-2">{weeklyRhythmLine(overview.daysThisWeek)}</p>
       </header>
       {showNext ? <NextStepCard step={overview.nextStep} /> : null}
+      <Link
+        href={routes.childWeek}
+        className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-hairline bg-card px-4 py-3 font-semibold hover:bg-muted"
+      >
+        <span className="flex items-center gap-2">
+          <CalendarCheckIcon aria-hidden className="size-5 text-primary" />
+          Your week
+        </span>
+        <ChevronRightIcon aria-hidden className="size-5" />
+      </Link>
       <PathMap journey={overview.journey} />
       <section aria-labelledby="topics-heading" className="grid gap-3">
         <h2 id="topics-heading" className="text-h3">

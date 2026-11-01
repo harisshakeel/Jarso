@@ -21,6 +21,13 @@ function describeStep(step: NextStep): { heading: string; body: string; href: Ro
         href: routes.childCheckIn,
         cta: "Start",
       };
+    case "comeback":
+      return {
+        heading: "Welcome back. One quick question?",
+        body: "A fresh example of something you learned. About a minute.",
+        href: routes.childWeekQuestion,
+        cta: "Let's go",
+      };
     case "practice":
       return {
         heading: "Practice time. About a minute.",

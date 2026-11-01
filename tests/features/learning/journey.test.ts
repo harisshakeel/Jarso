@@ -120,6 +120,17 @@ describe("chooseNextStep", () => {
     });
   });
 
+  it("offers one comeback question after days away, once a mission is done, before practice", () => {
+    const notStarted = buildJourney(
+      missions,
+      [{ missionKey: "m1", status: "completed", completedAt: "2026-10-20T18:00:00Z" }],
+      "UTC",
+    );
+    expect(chooseNextStep(notStarted, true, 2, true)).toEqual({ kind: "comeback" });
+    // Nothing learned yet: there is nothing to come back to, so the usual order holds.
+    expect(chooseNextStep(fresh, true, 0, true)).toMatchObject({ kind: "mission" });
+  });
+
   it("is done when every mission is done and nothing is due", () => {
     const all = buildJourney(
       missions,

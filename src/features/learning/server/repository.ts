@@ -115,7 +115,7 @@ export async function listSkillProgress(db: Client, childId: string): Promise<Sk
   const { data, error } = await db
     .from("skill_progress")
     .select(
-      "skill_key, level, first_try_correct, correct_with_hints, reasons_correct, reviews_passed",
+      "skill_key, level, first_try_correct, correct_with_hints, reasons_correct, reviews_passed, updated_at",
     )
     .eq("child_id", childId);
   if (error) throw toAppError(error, "Failed to load skills");
@@ -130,6 +130,7 @@ export async function listSkillProgress(db: Client, childId: string): Promise<Sk
         correctWithHints: row.correct_with_hints,
         reasonsCorrect: row.reasons_correct,
         reviewsPassed: row.reviews_passed,
+        updatedAt: row.updated_at,
       },
     ];
   });
@@ -189,6 +190,31 @@ export async function listActivity(
   if (steps.error) throw toAppError(steps.error, "Failed to load learning days");
   if (practice.error) throw toAppError(practice.error, "Failed to load learning days");
   return [...steps.data, ...practice.data].map((row) => row.answered_at);
+}
+
+/** The most recent learning instant (a step or a practice answer), or null before any. */
+export async function findLastActivity(db: Client, childId: string): Promise<string | null> {
+  const [steps, practice] = await Promise.all([
+    db
+      .from("step_results")
+      .select("answered_at")
+      .eq("child_id", childId)
+      .order("answered_at", { ascending: false })
+      .limit(1),
+    db
+      .from("practice_results")
+      .select("answered_at")
+      .eq("child_id", childId)
+      .order("answered_at", { ascending: false })
+      .limit(1),
+  ]);
+  if (steps.error) throw toAppError(steps.error, "Failed to load learning days");
+  if (practice.error) throw toAppError(practice.error, "Failed to load learning days");
+  const latest = [steps.data[0]?.answered_at, practice.data[0]?.answered_at]
+    .filter((at): at is string => typeof at === "string")
+    .sort()
+    .at(-1);
+  return latest ?? null;
 }
 
 export async function findCheckIn(db: Client, childId: string): Promise<CheckInResult | null> {

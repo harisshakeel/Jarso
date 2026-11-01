@@ -66,9 +66,12 @@ export function chooseNextStep(
   journey: readonly JourneyMission[],
   checkInDone: boolean,
   practiceDue: number,
+  comeback = false,
 ): NextStep {
   const resume = journey.find((m) => m.inProgress && m.status === "current");
   if (resume) return { kind: "resume", missionKey: resume.key, title: resume.title };
+  // After days away, one small question before the next mission; never a backlog.
+  if (comeback && journey.some((m) => m.status === "done")) return { kind: "comeback" };
   if (practiceDue > 0) return { kind: "practice", count: practiceDue };
   const current = journey.find((m) => m.status === "current");
   const started = journey.some((m) => m.status === "done");

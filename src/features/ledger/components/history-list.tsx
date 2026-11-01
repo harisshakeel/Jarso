@@ -17,10 +17,11 @@ type HistoryListProps = {
   renderAction?: (item: HistoryItem) => ReactNode;
 };
 
-/** A request moves money between jars. It is not income, so no sign and no "in". */
-const MOVE: Record<"withdrawal" | "deposit", string> = {
+/** A request's line note. A move is not income, so no sign and no "in"; extra money is new. */
+const MOVE: Record<"withdrawal" | "deposit" | "extra", string> = {
   withdrawal: "Save → Spend",
   deposit: "Spend → Save",
+  extra: "Extra money",
 };
 
 /** `YYYY-MM-DD` as "2 Nov", without shifting the day. */
@@ -98,7 +99,9 @@ export function HistoryList({
                       )}
                     </span>
                     <span className="text-ink-2 text-sm">
-                      {item.kind === "withdrawal" || item.kind === "deposit"
+                      {item.kind === "withdrawal" ||
+                      item.kind === "deposit" ||
+                      item.kind === "extra"
                         ? `${MOVE[item.kind]} · `
                         : null}
                       {day(item.occurredOn)}

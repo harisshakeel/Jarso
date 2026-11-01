@@ -24,8 +24,8 @@ export interface Toolbox {
   run(name: string, input: unknown): Promise<{ content: string; isError: boolean }>;
 }
 
-/** A turn's toolbox as the pipeline holds it: it reads back what was looked up. */
-export type TurnTools = Toolbox & { facts: Facts; calls: ToolCall[] };
+/** A turn's toolbox as the pipeline holds it: it reads back what was looked up and kept. */
+export type TurnTools = Toolbox & { facts: Facts; calls: ToolCall[]; remembered: string[] };
 
 export const mainReplySchema = z.object({
   reply: z.string(),

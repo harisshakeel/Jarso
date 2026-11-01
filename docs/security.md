@@ -23,7 +23,9 @@ The Supabase **project URL** and its project ref are not secrets; they ship to e
 | `RAZORPAY_KEY_SECRET` | Vercel env vars (sensitive) | `src/lib/payments/razorpay/` only (ADR 0013) |
 | `RAZORPAY_WEBHOOK_SECRET` | Vercel env vars (sensitive); the same value typed into the Razorpay test dashboard webhook | the Razorpay webhook verification in `src/lib/payments/razorpay/` |
 | `STRIPE_WEBHOOK_SECRET` (`whsec_…`) | Vercel env vars (sensitive). A separate value for `stripe listen` in `.env.local` | the Stripe webhook verification in `src/lib/payments/stripe/` |
-| `CRON_SECRET` | Vercel env vars (sensitive), and the same value in Supabase Vault as `cron_secret` | `/api/cron/payments/auto-charge`; pg_cron reads the Vault copy through `trigger_auto_charge` |
+| `CRON_SECRET` | Vercel env vars (sensitive), and the same value in Supabase Vault as `cron_secret`; Vercel sends it as the cron request's bearer token | `/api/cron/payments/auto-charge` and `app/api/cron/push/route.ts`; pg_cron reads the Vault copy through `trigger_auto_charge` |
+| `VAPID_PRIVATE_KEY` | Vercel env vars (Production, sensitive) | `features/notifications/server/push.ts` only |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Host env vars (public: it is the `applicationServerKey` every browser receives) | the push toggle and the dispatcher |
 | Supabase access token, project DB password | CI repository secrets | migration job |
 | Local copies | `.env.local` (gitignored) | `pnpm dev` |
 

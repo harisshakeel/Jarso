@@ -17,3 +17,4 @@ Short records of significant decisions. Copy `0000-template.md`, increment the n
 | [0011](./0011-jarso-agent.md) | Jarso, the agent: read-only look-ups of the child's own data, figures the app fills in | Accepted |
 | [0012](./0012-card-handover-payment-providers.md) | Card handover through payment providers: one interface, Stripe test mode first | Accepted; partly superseded by 0013 |
 | [0013](./0013-several-payment-providers-razorpay.md) | Several payment providers at once, and Razorpay | Accepted |
+| [0012](./0012-web-push.md) | Web push from the notice row itself, with no delivery table | Accepted |

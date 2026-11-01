@@ -61,7 +61,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | `diary` | FR04 | UI over `ledger` entries: add, correct, undo. |
 | `learning` ✅ | FR06, FR08, FR10 | Missions, topics, spaced review, check-in, progress (separate from money). Content as JSON (ADR 0009). |
 | `reviews` | FR11, FR12 | Weekly summary, next-step recommendation, resume state. |
-| `notifications` | FR16 | In-app inbox in the first milestone: due badge, handover reminders, limit, new-request and decision notices, no push needed; web push + PWA later in pilot. Sent after commit; failure never affects records. |
+| `notifications` | FR16 | In-app inbox: due badge, handover reminders, limit, new-request and decision notices, no push needed. Web push is an at-most-once copy of the inbox row (`pushed_at`, ADR 0012) for browsers that said yes; the app installs from its manifest. Sent after commit; failure never affects records. |
 | `payments` | FR01 | Card handover and auto charge over `@/lib/payments`: pay by card, saved card, webhook state machine, auto-charge run. Never posts to the ledger itself; `apply_payment` does (ADR 0012). |
 | `guide` ✅ | FR07, FR09 | AI chat via the Claude API; server-only; screened pipeline, rate limits, budget, safety handling, parent switch and transcripts (ADR 0010). |
 

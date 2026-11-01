@@ -286,6 +286,58 @@ test("a due review shows up as practice, then nothing is due", async () => {
   await expect(child.getByRole("heading", { name: "All caught up." })).toBeVisible();
 });
 
+test("your week sums the week and asks one fresh question", async () => {
+  await child.goto("/child/learn");
+  await child.getByRole("link", { name: "Your week" }).click();
+  await expect(child).toHaveURL(at("/child/learn/week"));
+  const week = child.getByRole("region", { name: /^\d+ \w+ to \d+ \w+$/ });
+  await expect(week.getByText("Received")).toBeVisible();
+  await expect(week.getByText("Still due")).toBeVisible();
+  // The child has learned a skill, so the review can show understanding and ask about it.
+  await expect(week.getByText(/You showed you can|Worth another look/)).toBeVisible();
+  await child.getByRole("link", { name: "One fresh question" }).click();
+  await expect(child).toHaveURL(at("/child/learn/week/question"));
+  await expect(child.getByText("Question 1 of 1")).toBeVisible();
+  await answerAnything(child);
+  await check(child);
+  if (await child.getByRole("button", { name: "Try again" }).isVisible()) {
+    await child.getByRole("button", { name: "Try again" }).click();
+    const labels = await stepCard(child).locator("label").all();
+    if (labels[1]) await labels[1].click();
+    await check(child);
+  }
+  await next(child);
+  await expect(
+    child.getByRole("heading", { name: "Practice done. Nicely kept fresh." }),
+  ).toBeVisible();
+  await child.getByRole("link", { name: "Back to your week" }).click();
+  await expect(child).toHaveURL(at("/child/learn/week"));
+});
+
+test("after days away, home offers one quick question instead of the next mission", async () => {
+  if (!local) return;
+  const admin = createClient(local.url, local.secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  // Every learning answer happened a week ago; nothing is due for practice.
+  const longAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  for (const table of ["step_results", "practice_results"] as const) {
+    const { error } = await admin
+      .from(table)
+      .update({ answered_at: longAgo })
+      .eq("child_id", childId);
+    expect(error).toBeNull();
+  }
+  await child.goto("/child");
+  await expect(
+    child.getByRole("heading", { name: "Welcome back. One quick question?" }),
+  ).toBeVisible();
+  // No streak talk, no counting the days away.
+  await expect(child.getByText(/missed|streak|days? away/i)).toHaveCount(0);
+  await child.getByRole("link", { name: "Let's go" }).click();
+  await expect(child).toHaveURL(at("/child/learn/week/question"));
+});
+
 test("the parent sees learning apart from money", async () => {
   await parent.goto(`/parent/children/${childId}`);
   await expect(parent.getByRole("region", { name: "Learning" })).toContainText(
