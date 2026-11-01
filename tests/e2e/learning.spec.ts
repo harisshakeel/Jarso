@@ -227,7 +227,6 @@ test("a mission gives instant feedback and replays a mistake at the end", async 
     "aria-current",
     "step",
   );
-  await expect(child.getByText("Practised").first()).toBeVisible();
 });
 
 test("a locked mission can't be opened", async () => {

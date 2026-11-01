@@ -66,7 +66,7 @@ async function ChildSettings() {
 
 export default function ChildSettingsPage() {
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-6">
+    <div className="mx-auto grid w-full max-w-4xl gap-6">
       <h1 className="text-h1">Me</h1>
       <Suspense
         fallback={

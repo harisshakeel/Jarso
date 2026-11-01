@@ -72,27 +72,29 @@ async function ParentHome() {
   });
 
   return (
-    <>
-      <div className="rise-in">
-        <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
-          <NeedsYouSection reads={reads} notices={notices} currency={family.currency} />
-        </Suspense>
-      </div>
-      <div className="rise-in" style={rise(1)}>
-        <Suspense fallback={null}>
-          <RequestsSection reads={reads} currency={family.currency} />
-        </Suspense>
-      </div>
-      <div className="rise-in" style={rise(1)}>
-        <Suspense fallback={null}>
-          <NoticesSection notices={notices} currency={family.currency} />
-        </Suspense>
+    <div className="grid gap-6 lg:grid-cols-[3fr_2fr] lg:items-start lg:gap-10">
+      <div className="grid gap-6">
+        <div className="rise-in">
+          <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
+            <NeedsYouSection reads={reads} notices={notices} currency={family.currency} />
+          </Suspense>
+        </div>
+        <div className="rise-in" style={rise(1)}>
+          <Suspense fallback={null}>
+            <RequestsSection reads={reads} currency={family.currency} />
+          </Suspense>
+        </div>
+        <div className="rise-in" style={rise(1)}>
+          <Suspense fallback={null}>
+            <NoticesSection notices={notices} currency={family.currency} />
+          </Suspense>
+        </div>
       </div>
       <section aria-labelledby="children-title" className="rise-in grid gap-3" style={rise(2)}>
         <h2 id="children-title" className="text-h2">
           Children
         </h2>
-        <ul className="grid gap-4 md:grid-cols-2">
+        <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
           {reads.map((read) => (
             <li key={read.child.id}>
               <Suspense fallback={<div aria-hidden className="shimmer h-36 rounded-xl bg-muted" />}>
@@ -103,7 +105,7 @@ async function ParentHome() {
           <li>
             <Link
               href={routes.parentNewChild}
-              className="flex min-h-36 h-full items-center justify-center gap-2 rounded-xl border-2 border-hairline-strong border-dashed px-4 font-semibold text-primary hover:bg-card"
+              className="flex h-full min-h-36 items-center justify-center gap-2 rounded-xl border-2 border-hairline-strong border-dashed px-4 font-semibold text-primary hover:bg-card"
             >
               <PlusIcon aria-hidden className="size-5" />
               Add a child
@@ -111,7 +113,7 @@ async function ParentHome() {
           </li>
         </ul>
       </section>
-    </>
+    </div>
   );
 }
 
@@ -224,7 +226,7 @@ function HomeSkeleton() {
 
 export default function ParentHomePage() {
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-6">
+    <div className="mx-auto grid w-full max-w-6xl gap-6">
       <h1 className="text-h1">Your family</h1>
       <Suspense
         fallback={

@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui";
 import { routes, siteConfig } from "@/config";
 import { cn } from "@/lib";
 import { landingCopy } from "../copy";
-import { GetStartedMenu } from "./get-started-menu";
+import { SessionNav } from "./session-nav";
 
 /**
  * Spec §3.0. Sticky, blurred paper header: the mark, Safety from 640 px, the one Get started
@@ -29,7 +29,7 @@ export function LandingHeader() {
         >
           {nav.safety}
         </Link>
-        <GetStartedMenu />
+        <SessionNav />
         <ThemeSwitch />
       </div>
     </header>

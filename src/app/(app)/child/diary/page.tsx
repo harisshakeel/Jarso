@@ -26,53 +26,61 @@ async function Diary({ searchParams }: PageProps<"/child/diary">) {
   return (
     <>
       <h1 className="rise-in text-h1">Diary</h1>
-      {jars ? (
-        <section aria-label="Spend jar" className="text-lg">
-          You have{" "}
-          <span className="money font-extrabold">
-            {formatMoney(jars.spend, family.currency, { showMinor: "nonzero" })}
-          </span>{" "}
-          in Spend.
-        </section>
-      ) : null}
-      <PurchaseSheet currency={family.currency} userId={user.id} />
-      <PendingPurchases userId={user.id} currency={family.currency} />
-      <HistoryList
-        items={page.items}
-        currency={family.currency}
-        renderAction={(item) =>
-          item.canUndo && item.entryId ? (
-            <UndoButton entryId={item.entryId} label={item.label} />
-          ) : null
-        }
-      />
-      {before || page.olderBefore ? (
-        <nav aria-label="Diary pages" className="flex flex-wrap justify-between gap-3">
-          {before ? (
-            <Link
-              href={routes.childDiary}
-              className={buttonVariants({ variant: "outline", size: "lg" })}
-            >
-              Back to newest
-            </Link>
+      <div className="grid gap-6 lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-10">
+        <div className="grid gap-6 lg:sticky lg:top-20">
+          {jars ? (
+            <section aria-label="Spend jar" className="text-lg">
+              You have{" "}
+              <span className="money font-extrabold">
+                {formatMoney(jars.spend, family.currency, { showMinor: "nonzero" })}
+              </span>{" "}
+              in Spend.
+            </section>
           ) : null}
-          {page.olderBefore ? (
-            <Link
-              href={`${routes.childDiary}?before=${encodeURIComponent(page.olderBefore)}` as Route}
-              className={buttonVariants({ variant: "outline", size: "lg" })}
-            >
-              Show older
-            </Link>
+          <PurchaseSheet currency={family.currency} userId={user.id} />
+          <PendingPurchases userId={user.id} currency={family.currency} />
+        </div>
+        <div className="grid gap-6">
+          <HistoryList
+            items={page.items}
+            currency={family.currency}
+            renderAction={(item) =>
+              item.canUndo && item.entryId ? (
+                <UndoButton entryId={item.entryId} label={item.label} />
+              ) : null
+            }
+          />
+          {before || page.olderBefore ? (
+            <nav aria-label="Diary pages" className="flex flex-wrap justify-between gap-3">
+              {before ? (
+                <Link
+                  href={routes.childDiary}
+                  className={buttonVariants({ variant: "outline", size: "lg" })}
+                >
+                  Back to newest
+                </Link>
+              ) : null}
+              {page.olderBefore ? (
+                <Link
+                  href={
+                    `${routes.childDiary}?before=${encodeURIComponent(page.olderBefore)}` as Route
+                  }
+                  className={buttonVariants({ variant: "outline", size: "lg" })}
+                >
+                  Show older
+                </Link>
+              ) : null}
+            </nav>
           ) : null}
-        </nav>
-      ) : null}
+        </div>
+      </div>
     </>
   );
 }
 
 export default function DiaryPage(props: PageProps<"/child/diary">) {
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-6">
+    <div className="mx-auto grid w-full max-w-6xl gap-6">
       <Suspense
         fallback={
           <SlowFallback>

@@ -34,10 +34,14 @@ export default function HomePage() {
       <main className="flex flex-1 flex-col overflow-x-clip">
         <Hero />
         <HowItWorks />
-        <GuideSection />
-        <FamilyView />
-        <LitStatement />
-        <YourTurn />
+        {/* The jar's outline travels down the left margin here (jar-thread.tsx): keep the words
+            clear of it at every width. The variable is unset with reduced motion. */}
+        <div className="pl-[calc(var(--thread-width,0px)+0.5rem)]">
+          <GuideSection />
+          <FamilyView />
+          <LitStatement />
+          <YourTurn />
+        </div>
       </main>
       <LandingFooter />
     </>

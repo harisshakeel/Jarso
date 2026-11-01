@@ -83,3 +83,37 @@ export function FloatingChip({
     </span>
   );
 }
+
+/**
+ * A stage the visitor plays rather than watches (How it works): real controls, a short instruction
+ * above them, and a done state. Unlike DemoStage, nothing here is hidden from assistive tech.
+ */
+export function LiveStage({
+  label,
+  hint,
+  done,
+  children,
+  className,
+}: {
+  label: string;
+  /** One line telling the visitor what to do; swapped for the done line once finished. */
+  hint: string;
+  done: boolean;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section aria-label={label} className={cn("relative mx-auto w-full max-w-md", className)}>
+      <p
+        role="status"
+        className={cn(
+          "mb-3 text-center font-semibold",
+          done ? "text-teal-800 dark:text-teal-100" : "text-ink-2",
+        )}
+      >
+        {hint}
+      </p>
+      <div className="grid gap-3">{children}</div>
+    </section>
+  );
+}

@@ -163,7 +163,7 @@ function SettingsSkeleton() {
 
 export default function ParentSettingsPage({ searchParams }: Props) {
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-6">
+    <div className="mx-auto grid w-full max-w-4xl gap-6">
       <h1 className="text-h1">Settings</h1>
       <Suspense
         fallback={
