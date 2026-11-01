@@ -31,6 +31,13 @@ const row = (over: Partial<Awaited<ReturnType<typeof repo.listLedgerRows>>[numbe
   sourceId: "occ-1",
   occurredAt: "2026-10-26T09:00:00Z",
   method: "cash" as const,
+  category: null,
+  correctsEntryId: null,
+  replaced: false,
+  windowFrom: null,
+  prevAmountMinor: null,
+  prevCategory: null,
+  prevLabel: null,
   ...over,
 });
 
@@ -84,6 +91,10 @@ describe("getHistory", () => {
         entryId: null,
         canUndo: false,
         paidByCard: false,
+        category: null,
+        jar: null,
+        canFix: false,
+        fixedFrom: null,
       },
     ]);
   });
@@ -229,6 +240,7 @@ describe("getHistory purchases", () => {
       sourceType: "diary",
       sourceId: null,
       occurredAt: hoursAgo(2),
+      windowFrom: over.occurredAt ?? hoursAgo(2),
       ...over,
     });
 
@@ -252,6 +264,10 @@ describe("getHistory purchases", () => {
         entryId: "p1",
         canUndo: true,
         paidByCard: false,
+        category: null,
+        jar: null,
+        canFix: true,
+        fixedFrom: null,
       },
     ]);
   });
@@ -297,6 +313,101 @@ describe("getHistory purchases", () => {
     vi.mocked(repo.listLedgerRows).mockResolvedValue([purchase({ label: null })]);
     const [item] = await getHistory(childId);
     expect(item?.label).toBe("Purchase");
+  });
+
+  it("shows a fix chain of three as one line that says what it was", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      purchase({
+        id: "p3",
+        amountMinor: 450,
+        category: "food",
+        correctsEntryId: "p2",
+        prevAmountMinor: 500,
+        prevCategory: "other",
+        prevLabel: "Snak",
+        windowFrom: hoursAgo(5),
+      }),
+      purchase({
+        id: "p2",
+        reversed: true,
+        replaced: true,
+        correctsEntryId: "p1",
+        windowFrom: hoursAgo(5),
+      }),
+      purchase({ id: "p1", reversed: true, replaced: true, windowFrom: hoursAgo(5) }),
+    ]);
+    const items = await getHistory(childId);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      id: "p3",
+      undone: false,
+      category: "food",
+      canUndo: true,
+      canFix: true,
+      fixedFrom: { amountMinor: 500, category: "other", label: "Snak" },
+    });
+  });
+
+  it("shows a diary gift as money received into its jar", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      row({
+        id: "r1",
+        kind: "gift_in",
+        jar: "save",
+        amountMinor: 700,
+        label: "Birthday",
+        sourceType: "diary",
+        sourceId: null,
+        category: "gift",
+        occurredAt: hoursAgo(2),
+        windowFrom: hoursAgo(2),
+      }),
+    ]);
+    const [item] = await getHistory(childId);
+    expect(item).toMatchObject({
+      kind: "received",
+      jar: "save",
+      amountMinor: 700,
+      category: "gift",
+      entryId: "r1",
+      canUndo: true,
+      canFix: true,
+    });
+  });
+
+  it("does not show a gift_in that is not from the diary", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      row({ id: "x", kind: "gift_in", sourceType: "other", sourceId: null, amountMinor: 100 }),
+    ]);
+    expect(await getHistory(childId)).toEqual([]);
+  });
+
+  it("counts the windows from the chain root: fix open, undo closed after 6 days", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      purchase({ occurredAt: hoursAgo(6 * 24), windowFrom: hoursAgo(6 * 24) }),
+    ]);
+    const [item] = await getHistory(childId);
+    expect(item).toMatchObject({ canUndo: false, canFix: true });
+  });
+
+  it("counts the undo window from the root, not from the line's own date", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      purchase({ occurredAt: hoursAgo(6 * 24), windowFrom: hoursAgo(1) }),
+    ]);
+    const [item] = await getHistory(childId);
+    expect(item).toMatchObject({ canUndo: true, canFix: true });
+  });
+
+  it("closes the fix window after 7 days and gives an undone line no fix", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([
+      purchase({ id: "old", occurredAt: hoursAgo(8 * 24), windowFrom: hoursAgo(8 * 24) }),
+      purchase({ id: "undone", reversed: true }),
+    ]);
+    const items = await getHistory(childId);
+    expect(items.map((i) => [i.id, i.canFix])).toEqual([
+      ["undone", false],
+      ["old", false],
+    ]);
   });
 
   it("gives existing lines no undo", async () => {

@@ -18,6 +18,8 @@ const ROW_LIMIT = HISTORY_LIMIT * 2;
 
 /** A purchase can be undone for this long after it happened. */
 const UNDO_WINDOW_MS = 24 * 60 * 60 * 1000;
+/** A purchase or received line can be fixed for this long. */
+const FIX_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SOURCE_KIND: Record<string, "allowance" | "gift"> = {
   occurrence: "allowance",
@@ -79,20 +81,40 @@ function groupBySource(rows: LedgerRow[]): Group[] {
   return [...groups.values()];
 }
 
-/** One purchase entry as its own line; its reversal row never shows, `reversed` marks it undone. */
-function purchaseItem(row: LedgerRow, timezone: string, now: number): HistoryItem & { at: string } {
+type Timed = HistoryItem & { at: string };
+
+/**
+ * One diary entry (a purchase, or money received) as its own line. Its reversal row never shows.
+ * A fix replaces the old line: that one is dropped, and the new one says what it was.
+ * Windows count from the chain root, so a fix does not extend the undo time.
+ */
+function diaryItem(row: LedgerRow, timezone: string, now: number): Timed | null {
+  if (row.replaced) return null;
+  const received = row.kind === "gift_in";
   const undone = row.reversed;
+  const age = row.windowFrom ? now - Date.parse(row.windowFrom) : Number.POSITIVE_INFINITY;
   return {
     id: row.id,
-    kind: "purchase",
+    kind: received ? "received" : "purchase",
     amountMinor: row.amountMinor,
     dueMinor: null,
-    label: row.label ?? "Purchase",
+    label: row.label ?? (received ? "Money received" : "Purchase"),
     occurredOn: localDate(row.occurredAt, timezone),
     undone,
     entryId: row.id,
-    canUndo: !undone && now - Date.parse(row.occurredAt) < UNDO_WINDOW_MS,
+    canUndo: !undone && age < UNDO_WINDOW_MS,
     paidByCard: false,
+    category: row.category,
+    jar: received ? row.jar : null,
+    canFix: !undone && age < FIX_WINDOW_MS,
+    fixedFrom:
+      row.correctsEntryId && row.prevAmountMinor !== null
+        ? {
+            amountMinor: row.prevAmountMinor,
+            category: row.prevCategory,
+            label: row.prevLabel ?? "",
+          }
+        : null,
     at: row.occurredAt,
   };
 }
@@ -109,9 +131,9 @@ const REQUEST_KIND: Record<string, "withdrawal" | "deposit" | "extra"> = {
  * One line per request: a move's out/in pair is the same amount, so the first row stands for
  * both; an emergency grant (FR15) is a single row.
  */
-function requestItems(rows: LedgerRow[], timezone: string): (HistoryItem & { at: string })[] {
+function requestItems(rows: LedgerRow[], timezone: string): Timed[] {
   const seen = new Set<string>();
-  const items: (HistoryItem & { at: string })[] = [];
+  const items: Timed[] = [];
   for (const row of rows) {
     const kind = REQUEST_KIND[row.kind];
     if (row.sourceType !== "request" || !kind || !row.sourceId || seen.has(row.sourceId)) continue;
@@ -128,6 +150,10 @@ function requestItems(rows: LedgerRow[], timezone: string): (HistoryItem & { at:
       entryId: null,
       canUndo: false,
       paidByCard: false,
+      category: null,
+      jar: null,
+      canFix: false,
+      fixedFrom: null,
       at: row.occurredAt,
     });
   }
@@ -162,7 +188,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
     (await listOccurrenceAmounts(db, occurrenceIds)).map((o) => [o.id, o] as const),
   );
 
-  const items: (HistoryItem & { at: string })[] = [
+  const items: Timed[] = [
     ...groups.map((group) => {
       const occurrence = group.kind === "allowance" ? amounts.get(group.sourceId) : undefined;
       return {
@@ -176,10 +202,19 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
         entryId: null,
         canUndo: false,
         paidByCard: group.paidByCard,
+        category: null,
+        jar: null,
+        canFix: false,
+        fixedFrom: null,
         at: group.at,
       };
     }),
-    ...rows.filter((row) => row.kind === "purchase").map((row) => purchaseItem(row, timezone, now)),
+    ...rows
+      .filter(
+        (row) => row.kind === "purchase" || (row.kind === "gift_in" && row.sourceType === "diary"),
+      )
+      .map((row) => diaryItem(row, timezone, now))
+      .filter((item): item is Timed => item !== null),
     ...requestItems(rows, timezone),
     ...closed.map((occurrence) => ({
       id: occurrence.id,
@@ -192,6 +227,10 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
       entryId: null,
       canUndo: false,
       paidByCard: false,
+      category: null,
+      jar: null,
+      canFix: false,
+      fixedFrom: null,
       at: occurrence.closedAt,
     })),
   ];
@@ -215,4 +254,18 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
 /** The newest page of history, for previews. */
 export async function getHistory(childId: string): Promise<HistoryItem[]> {
   return (await getHistoryPage(childId)).items;
+}
+
+/** Every history item back to the week's start: more pages only when the newest page stops inside the week. */
+export async function getHistorySince(childId: string, weekStart: string): Promise<HistoryItem[]> {
+  const items: HistoryItem[] = [];
+  let before: string | undefined;
+  for (let page = 0; page < 10; page++) {
+    const result = await getHistoryPage(childId, before);
+    items.push(...result.items);
+    const oldest = result.items.at(-1);
+    if (!result.olderBefore || !oldest || oldest.occurredOn < weekStart) break;
+    before = result.olderBefore;
+  }
+  return items;
 }

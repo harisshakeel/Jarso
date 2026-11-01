@@ -18,6 +18,10 @@ const items = (count: number): HistoryItem[] =>
     entryId: null,
     canUndo: false,
     paidByCard: false,
+    category: null,
+    jar: null,
+    canFix: false,
+    fixedFrom: null,
   }));
 
 const href = "/parent/children/c1/history" as Route;
