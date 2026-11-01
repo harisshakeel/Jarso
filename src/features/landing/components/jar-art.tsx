@@ -1,34 +1,12 @@
+import { JAR_OUTLINE_D, JAR_PILE } from "@/components/brand";
 import { cn } from "@/lib";
-import { JAR_OUTLINE_D } from "../jar-outline";
 
 // The jar from the mark, redrawn as SVG so its parts can move (design.md §1, §7: tints of the jar
 // are new drawings, never filters on the PNG). Artwork units are 512 × 512 with the jar centred
 // on (256, 256); `jarPoint` maps an artwork point into the scene.
 
-/**
- * Where coins rest inside a jar, filled in this order from the bottom. The upper rows keep to the
- * right of the neck's curl; eighteen coins fill the jar to about four fifths.
- */
-export const PILE: readonly (readonly [number, number])[] = [
-  [200, 368],
-  [306, 372],
-  [200, 346],
-  [300, 344],
-  [178, 320],
-  [262, 316],
-  [334, 312],
-  [220, 290],
-  [304, 286],
-  [186, 262],
-  [282, 262],
-  [232, 240],
-  [330, 238],
-  [282, 216],
-  [220, 214],
-  [334, 212],
-  [256, 192],
-  [316, 190],
-];
+/** The mark's coin pile (components/brand/jar-outline.ts), in the order coins land. */
+export const PILE = JAR_PILE;
 
 export function jarPoint(
   [lx, ly]: readonly [number, number],

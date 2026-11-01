@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { JAR_OUTLINE_LENGTH, JAR_SEGMENTS } from "../jar-outline";
+import { JAR_OUTLINE_LENGTH, JAR_SEGMENTS } from "@/components/brand";
 import { clamp01, easeInOut, lerp, segment } from "../motion";
 import { JAR, UNWIND_START } from "./hero-scene";
 

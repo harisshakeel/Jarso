@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { JAR_OUTLINE_D, jarOutlinePoints } from "@/features/landing/jar-outline";
+import { JAR_OUTLINE_D, jarOutlinePoints } from "@/components/brand/jar-outline";
 
 describe("jar outline", () => {
   it("is the mark's stroke, from the top-left curl to the top of the right side", () => {
