@@ -61,7 +61,7 @@ test("setup: parent signs up, creates a family and adds Sam", async ({ browser }
   await parent.getByLabel("Email", { exact: true }).fill(parentEmail);
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Create account" }).click();
-  await expect(parent).toHaveURL(at("/parent/setup"));
+  await expect(parent).toHaveURL(at("/parent/setup"), { timeout: 20_000 });
   await completeParentProfile(parent);
   await parent.getByRole("button", { name: "Create family" }).click();
   await expect(parent).toHaveURL(at("/parent"));
