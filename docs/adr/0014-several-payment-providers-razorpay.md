@@ -1,13 +1,13 @@
-# 0013. Several payment providers at once, and Razorpay
+# 0014. Several payment providers at once, and Razorpay
 
 - Status: Accepted
 - Date: 2026-11-01
 
 ## Context
 
-ADR 0012 shipped card handover with one provider per deployment, chosen by `PAYMENTS_PROVIDER`. The product owner wants Razorpay added and wants the parent to choose which provider pays, with several running side by side. Razorpay must support both paying now and a saved card for auto charge. Same limits as before: a test-mode showcase, no real money. Design: `docs/superpowers/specs/2026-11-01-multi-provider-razorpay-design.md`.
+ADR 0013 shipped card handover with one provider per deployment, chosen by `PAYMENTS_PROVIDER`. The product owner wants Razorpay added and wants the parent to choose which provider pays, with several running side by side. Razorpay must support both paying now and a saved card for auto charge. Same limits as before: a test-mode showcase, no real money. Design: `docs/superpowers/specs/2026-11-01-multi-provider-razorpay-design.md`.
 
-ADR 0012 also said adding a provider needs no migration. That was wrong: `provider` columns carry a check constraint listing the known providers, so each new provider widens it.
+ADR 0013 also said adding a provider needs no migration. That was wrong: `provider` columns carry a check constraint listing the known providers, so each new provider widens it.
 
 ## Decision
 
@@ -37,4 +37,4 @@ ADR 0012 also said adding a provider needs no migration. That was wrong: `provid
   - Charges above 15,000 rupees need extra cardholder authentication; the token's maximum is 15,000.
   - The 1 rupee save-card authorisation is captured and not refunded.
 - Three more secrets join the rotation runbook in `docs/security.md`.
-- Real money still needs the decisions ADR 0012 lists.
+- Real money still needs the decisions ADR 0013 lists.

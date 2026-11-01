@@ -27,7 +27,7 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `GUIDE_MONTHLY_BUDGET_CENTS` | e.g. `10000` | — | Optional; default 10000 (US$100 per calendar month, UTC, across all children). The guide shows its break copy once reached. |
 | `GUIDE_PROVIDER` | `anthropic` (default) | — | `fake` is for e2e only and is refused on Vercel production. |
 | `PAYMENTS_ALLOW_FAKE` | unset | — | Turns the fake card provider on, for tests and local runs. Ignored on Vercel production. |
-| `STRIPE_SECRET_KEY` | `sk_test_…` (sensitive) | same | Card handover (ADR 0012, 0013). Stripe is on when both Stripe keys are set. Test keys only: a live key fails validation. |
+| `STRIPE_SECRET_KEY` | `sk_test_…` (sensitive) | same | Card handover (ADR 0013, 0014). Stripe is on when both Stripe keys are set. Test keys only: a live key fails validation. |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…` (sensitive) | same | The signing secret of the dashboard endpoint below (not the `stripe listen` one). |
 | `RAZORPAY_KEY_ID` | `rzp_test_…` (sensitive) | same | Razorpay is on when all three Razorpay keys are set. Test mode only: a live key id fails validation. INR families only. |
 | `RAZORPAY_KEY_SECRET` | test key secret (sensitive) | same | Server only. |
@@ -54,17 +54,17 @@ Never run the `--reveal` command on its own: it prints every secret key. Without
 3. For the launch gate, create the `guide-evals` environment (GitHub → Settings → Environments) with yourself as a required reviewer, add the same key there as the `ANTHROPIC_API_KEY` environment secret, and run **Guide evals** from the Actions tab. The run fails unless every safety and personal case routes correctly, there are zero FR09 breaks and at least 95% of on-topic answers are helpful.
 4. Jarso is on for every child by default once `FEATURE_GUIDE` is on (ADR 0011): every child's messages and looked-up money and learning data go to Anthropic. Until the eval gate passes and the legal review is done, keep `FEATURE_GUIDE` on in Production only while every family there is a demo or test account; turn it off before the first real family signs up.
 
-### Upgrading from ADR 0012 (one provider switch) to ADR 0013 (several providers)
+### Upgrading from ADR 0013 (one provider switch) to ADR 0014 (several providers)
 
-Do these once, in order, when the multi-provider change first reaches a deployment that ran ADR 0012's card payments.
+Do these once, in order, when the multi-provider change first reaches a deployment that ran ADR 0013's card payments.
 
 1. **Env.** Remove `PAYMENTS_PROVIDER` from Vercel (every environment). It is ignored now. A provider is on whenever all its keys are set, so `PAYMENTS_PROVIDER=none` no longer keeps Stripe off: wherever payments must stay off, remove every `STRIPE_*` and `RAZORPAY_*` key as well.
 2. **Check the hosted migration state first.** Run `supabase migration list --linked` and see whether the 2026-10-31 payments migrations (`20261031064410_payments.sql` through `20261031084403_payments_auto_charge_not_overdue.sql`) are already applied there. If they are, `20261101095802_payments_multi_provider.sql` runs its backfill on real data: it records each auto-charge toggle's provider and turns off every toggle whose payer has no saved card. Tell those parents, or accept that they turn auto charge on again. If they are not applied yet, the backfill finds nothing to change.
-3. **Deploy the code right after the migration.** `20261101095802_payments_multi_provider.sql` drops the old `due_auto_charges(text, …)` and `clear_auto_charge_by(uuid)` signatures that the ADR 0012 code calls. Between `db push` and the new deployment, the old code's cron run and Remove card fail (nothing posts wrongly; the next cron run after the deploy catches up). With the GitHub integration both happen on the same merge to `main`; when pushing by hand, run `pnpm db:push` and deploy straight after.
+3. **Deploy the code right after the migration.** `20261101095802_payments_multi_provider.sql` drops the old `due_auto_charges(text, …)` and `clear_auto_charge_by(uuid)` signatures that the ADR 0013 code calls. Between `db push` and the new deployment, the old code's cron run and Remove card fail (nothing posts wrongly; the next cron run after the deploy catches up). With the GitHub integration both happen on the same merge to `main`; when pushing by hand, run `pnpm db:push` and deploy straight after.
 
 ### Turning card payments on (test mode)
 
-Card handover is a test-mode showcase (ADR 0012, 0013). Use test keys only; no real money moves. There is no provider switch: a provider is on when all its keys are set, and several can be on at once. The parent picks one at checkout ("Pay by card" with one provider on, "Pay with {label}" with several). A provider with only some of its keys stays off, and the server logs the missing names once. Add every value in the Vercel dashboard or pipe it (`printf '<value>' | vercel env add NAME production --sensitive --force`); never type one on a command line and never paste one into a chat, doc or log.
+Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no real money moves. There is no provider switch: a provider is on when all its keys are set, and several can be on at once. The parent picks one at checkout ("Pay by card" with one provider on, "Pay with {label}" with several). A provider with only some of its keys stays off, and the server logs the missing names once. Add every value in the Vercel dashboard or pipe it (`printf '<value>' | vercel env add NAME production --sensitive --force`); never type one on a command line and never paste one into a chat, doc or log.
 
 **Stripe.**
 

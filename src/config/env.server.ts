@@ -29,7 +29,7 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
-  // Card handover (ADR 0013). Each provider is on when all its keys are set; several can be on
+  // Card handover (ADR 0014). Each provider is on when all its keys are set; several can be on
   // at once and the parent picks one. The fake is for tests and local runs: it needs
   // PAYMENTS_ALLOW_FAKE and is never on Vercel production.
   PAYMENTS_ALLOW_FAKE: z

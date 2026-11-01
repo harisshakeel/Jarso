@@ -15,7 +15,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Allowance | Parent-set amount + frequency (weekly/monthly/quarterly/annual). |
 | Due allowance | One scheduled occurrence, created automatically, awaiting handover. Shows a due badge. Not balance. |
 | Handover confirmation | Parent's one-screen record of cash given to the child (→ Spend) and amount kept as savings (→ Save). The only way allowance reaches a balance. |
-| Card handover | A second way for the parent to hand over a due allowance or gift: pay the full amount by card through a payment provider (Stripe or Razorpay, test mode; the parent picks one, and several can be on at once). Posts the same ledger rows as cash, with `method = card`. A test-mode showcase; real payments are not in the pilot (ADR 0012). |
+| Card handover | A second way for the parent to hand over a due allowance or gift: pay the full amount by card through a payment provider (Stripe or Razorpay, test mode; the parent picks one, and several can be on at once). Posts the same ledger rows as cash, with `method = card`. A test-mode showcase; real payments are not in the pilot (ADR 0013). |
 | Payment | One card payment for one due occurrence or gift: `pending` → `requires_action` → `succeeded`, or `failed` / `canceled` / `expired`; `succeeded_unapplied` when the card payment landed after the item was already handed over, closed or cancelled (nothing posts). |
 | Auto charge | A per-schedule and per-gift toggle. When an item falls due after the toggle was turned on, Jarso charges the parent's saved card once, at the provider the toggle recorded (a parent holds one saved card per provider). A failed attempt leaves the item due and notifies the parent; there is no retry. |
 | Gift (from a parent) | One-time extra money the parent initiates, optionally dated in the future, with a note. Hidden from the child until handed over, then shown in history. Posts as `parent_gift_in` on handover confirmation. No shortfall. |
@@ -62,7 +62,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | `learning` ✅ | FR06, FR08, FR10 | Missions, topics, spaced review, check-in, progress (separate from money). Content as JSON (ADR 0009). |
 | `reviews` | FR11, FR12 | Weekly summary, next-step recommendation, resume state. |
 | `notifications` | FR16 | In-app inbox: due badge, handover reminders, limit, new-request and decision notices, no push needed. Web push is an at-most-once copy of the inbox row (`pushed_at`, ADR 0012) for browsers that said yes; the app installs from its manifest. Sent after commit; failure never affects records. |
-| `payments` | FR01 | Card handover and auto charge over `@/lib/payments`: pay by card, saved card, webhook state machine, auto-charge run. Never posts to the ledger itself; `apply_payment` does (ADR 0012). |
+| `payments` | FR01 | Card handover and auto charge over `@/lib/payments`: pay by card, saved card, webhook state machine, auto-charge run. Never posts to the ledger itself; `apply_payment` does (ADR 0013). |
 | `guide` ✅ | FR07, FR09 | AI chat via the Claude API; server-only; screened pipeline, rate limits, budget, safety handling, parent switch and transcripts (ADR 0010). |
 
 ## Invariants (enforce in DB + services, test them)

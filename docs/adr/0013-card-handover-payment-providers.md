@@ -1,6 +1,6 @@
-# 0012. Card handover through payment providers: one interface, Stripe test mode first
+# 0013. Card handover through payment providers: one interface, Stripe test mode first
 
-- Status: Accepted; partly superseded by 0013 (provider selection, `PAYMENTS_PROVIDER`, adding a provider needs a migration for the provider check)
+- Status: Accepted; partly superseded by 0014 (provider selection, `PAYMENTS_PROVIDER`, adding a provider needs a migration for the provider check)
 - Date: 2026-10-31
 
 ## Context

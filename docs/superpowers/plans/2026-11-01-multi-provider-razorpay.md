@@ -1,6 +1,6 @@
 # Several card providers at once, and Razorpay — Implementation Plan
 
-Spec: `docs/superpowers/specs/2026-11-01-multi-provider-razorpay-design.md` (binding). Background: `docs/superpowers/specs/2026-10-31-stripe-card-handover-design.md`, `docs/adr/0012-card-handover-payment-providers.md`.
+Spec: `docs/superpowers/specs/2026-11-01-multi-provider-razorpay-design.md` (binding). Background: `docs/superpowers/specs/2026-10-31-stripe-card-handover-design.md`, `docs/adr/0013-card-handover-payment-providers.md`.
 
 ## Global Constraints
 
@@ -84,7 +84,7 @@ Steps:
 
 ### Task 6: Security tooling and docs
 
-Spec §8, §11. Files: `.gitleaks.toml`, `scripts/check-secrets.sh`, `.claude/hooks/extract-log.py` (redaction patterns for `rzp_test_…`/`rzp_live_…`), `docs/adr/0013-several-payment-providers-razorpay.md` (from `docs/adr/0000-template.md`), `docs/adr/0012-…md` status line, `docs/adr/README.md`, `docs/deploy.md`, `docs/api.md`, `docs/architecture.md`, `docs/database.md`, `docs/testing.md`, `docs/security.md`, `docs/fr-audit.md`, `docs/domain.md` if it names a single provider.
+Spec §8, §11. Files: `.gitleaks.toml`, `scripts/check-secrets.sh`, `.claude/hooks/extract-log.py` (redaction patterns for `rzp_test_…`/`rzp_live_…`), `docs/adr/0014-several-payment-providers-razorpay.md` (from `docs/adr/0000-template.md`), `docs/adr/0013-…md` status line, `docs/adr/README.md`, `docs/deploy.md`, `docs/api.md`, `docs/architecture.md`, `docs/database.md`, `docs/testing.md`, `docs/security.md`, `docs/fr-audit.md`, `docs/domain.md` if it names a single provider.
 
 Steps:
 - [ ] Add the secret patterns; prove each with a throwaway string piped through the scanner (do not write a real-looking key into a tracked file).

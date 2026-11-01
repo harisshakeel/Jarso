@@ -49,7 +49,7 @@ External dependencies and what happens when each is down:
 | pg_cron | due allowances, reminders, retention jobs | Occurrences generate late, never twice; next run catches up. |
 | Email provider | invitation email (notices by email deferred: no sending domain) | Invitation code still shows on screen. |
 | Browser push | inbox events, opt-in per browser (ADR 0012 web push) | Inbox is the record by design (FR16); a failed send is logged by status and not retried. |
-| Payment providers (Stripe, Razorpay, test mode; several can be on) | Card handover and auto charge (ADR 0012 card handover, 0013) | Card actions say they are unavailable; cash handover is unchanged; a due item stays due; webhooks are retried by the provider. |
+| Payment providers (Stripe, Razorpay, test mode; several can be on) | Card handover and auto charge (ADR 0013 card handover, 0014) | Card actions say they are unavailable; cash handover is unchanged; a due item stays due; webhooks are retried by the provider. |
 | Claude API | Jarso's answers and look-ups (ADR 0010, 0011) | Friendly fallback copy ("Jarso is taking a break"); a circuit breaker after 5 failures a minute; topic material still available. |
 | Vercel | hosting | Status page; nothing to do in-app. |
 
@@ -115,12 +115,12 @@ src/
 │   ├── learning/     ✅ missions, topics, hints, spaced review, check-in, skill progress (ADR 0009)
 │   ├── review/       ✅ weekly review (FR11) built in code from the week's history, goal, skills and review pool
 │   ├── notifications/   inbox, web push (subscriptions, dispatcher, toggle), invitation email adapter
-│   ├── payments/        card handover and auto charge: pay by card, saved card, webhook state machine, auto-charge run (ADR 0012)
+│   ├── payments/        card handover and auto charge: pay by card, saved card, webhook state machine, auto-charge run (ADR 0013)
 │   └── guide/        ✅ Jarso: Claude-backed guide with read-only look-ups and FR09 boundaries (ADR 0010, 0011)
 ├── components/ui/      shadcn primitives + brand components (JarsoMark, JarIllustration, Money, StatusChip)
 ├── config/             routes, site, env (Zod-validated), feature flags
 ├── lib/                errors, logger, createAction, api helpers, supabase clients, money formatting
-│   └── payments/       server-only provider layer: PaymentProvider interface, registry (a provider is on when its keys are set), Stripe, Razorpay and fake adapters (ADR 0012, 0013)
+│   └── payments/       server-only provider layer: PaymentProvider interface, registry (a provider is on when its keys are set), Stripe, Razorpay and fake adapters (ADR 0013, 0014)
 ├── content/            missions and topics as versioned JSON (see 5.3)
 └── types/              generated database types
 supabase/migrations/    schema, RLS, functions, cron registrations
@@ -544,7 +544,7 @@ pending ──(parent approves)──► approved ──(parent confirms hand ov
 
 Withdrawal cap is checked against `available_save` at `pending` and again inside `complete_request`; deposits are checked against the Spend balance the same way, and never take Spend below zero even when overspending is allowed. `complete_request` is the only transition that writes to the ledger, and it is idempotent on the request id.
 
-### 7.5 Card handover (ADR 0012, 0013)
+### 7.5 Card handover (ADR 0013, 0014)
 
 A second way to hand over, next to cash, for due allowances and gifts. Test-mode showcase; providers sit behind `@/lib/payments`. Several can be on at once (Stripe, Razorpay, fake); the parent picks one at checkout, and a saved card and each auto-charge toggle belong to one provider.
 
@@ -662,7 +662,7 @@ Modules per milestone. The delivery order, demo by demo, is in `roadmap.md`.
 | --- | --- | --- | --- |
 | **First milestone** (FR13, FR01, FR03, FR14 purchases + deposits + withdrawals, FR16 inbox) | `family`, `allowance`, `ledger`, `jars` (read), `diary` (purchases), `requests` (withdrawal, deposit), `limits`, `notifications` (inbox + email), demo clock | families, family_members, invitations, child_credentials, child_settings, allowance_schedules/occurrences, ledger_entries, requests, spending_limits, notifications, notification_deliveries, job_runs; functions `create_child_account`, `accept_invitation`, `verify_child_pin`, `generate_due_occurrences`, `confirm_handover`, `record_entry`, `evaluate_limits`, `complete_request`, `family_now`, `send_handover_reminders` | parent: onboarding with child switcher, family, allowance setup, home with due + requests, handover sheet, limits and overspend toggle, demo clock, inbox; child: sign-in, home, jars, record purchase, request withdrawal or deposit, inbox |
 | **Rest of pilot** (FR02, FR04–FR06, FR08, FR10–FR12, FR15, push, install) | `goals`, `diary` full, `learning`, `review`, `requests` (emergency), `notifications` (push), manifest + service worker | goals, mission_progress, review_items, weekly_reviews, push_subscriptions, `reverse_entry`, review jobs | goal, diary, missions, topics, weekly review, emergency request, settings |
-| **Test-mode showcase** (FR01; ADR 0012) | `payments`, `@/lib/payments` | payment_customers, payment_setups, payments, payment_webhook_events, auto-charge columns on allowance_schedules and parent_gifts, `ledger_entries.method` | Pay by card, saved card, auto-charge toggle |
+| **Test-mode showcase** (FR01; ADR 0013) | `payments`, `@/lib/payments` | payment_customers, payment_setups, payments, payment_webhook_events, auto-charge columns on allowance_schedules and parent_gifts, `ledger_entries.method` | Pay by card, saved card, auto-charge toggle |
 | **Pilot, behind a flag** (FR07, FR09; ADR 0010, 0011) | `guide` | guide_access (consent version), guide_conversations, guide_messages (look-ups), usage_counters (rate limits); reads jars, allowance, history, rules and learning through their services | Ask Jarso on the child's Home (status lines streamed, replies screened, not streamed), guide sheet, parent transcripts and switch, `/safety` |
 
 ## 15. Decisions and assumptions

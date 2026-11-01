@@ -1,7 +1,7 @@
 # Several card providers at once, and Razorpay — design
 
 - Date: 2026-11-01
-- Builds on: `2026-10-31-stripe-card-handover-design.md` and ADR 0012. Everything there still holds unless this document changes it.
+- Builds on: `2026-10-31-stripe-card-handover-design.md` and ADR 0013. Everything there still holds unless this document changes it.
 - Status: decided with the product owner (routing, auto-charge card, phone handling below).
 
 ## 1. Intent
@@ -127,4 +127,4 @@ Webhook mapping (anything else → null, including `payment.captured`). `notes` 
 
 ## 11. Docs
 
-ADR 0013 (several providers at once; Razorpay; corrects ADR 0012's "no migration" claim and its `PAYMENTS_PROVIDER` decision; 0012 gets a "Partly superseded by 0013" status), `docs/deploy.md` (env table, Razorpay dashboard webhook with events `payment_link.paid`, `payment_link.expired`, `payment_link.cancelled`, `order.paid`, `payment.failed`; enabling recurring), `docs/api.md` (return route), `docs/architecture.md`, `docs/database.md`, `docs/testing.md`, `docs/security.md`, `docs/fr-audit.md`, `.env.example`, `playwright.config.ts`.
+ADR 0014 (several providers at once; Razorpay; corrects ADR 0013's "no migration" claim and its `PAYMENTS_PROVIDER` decision; 0013 gets a "Partly superseded by 0014" status), `docs/deploy.md` (env table, Razorpay dashboard webhook with events `payment_link.paid`, `payment_link.expired`, `payment_link.cancelled`, `order.paid`, `payment.failed`; enabling recurring), `docs/api.md` (return route), `docs/architecture.md`, `docs/database.md`, `docs/testing.md`, `docs/security.md`, `docs/fr-audit.md`, `.env.example`, `playwright.config.ts`.

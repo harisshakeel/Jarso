@@ -17,7 +17,7 @@ Dates to be set. Tracks run in parallel; an arrow means "after".
 | FR | Requirement | Demo 1 (now) | Demo 2 | Final demo |
 | --- | --- | --- | --- | --- |
 | FR13 | Family accounts and onboarding | Built | — | Email confirmation back on, slice 1 fixes |
-| FR01 | Allowance schedule and handover | Built, except the reminder | Handover reminder; card handover and auto charge, Stripe and Razorpay test-mode showcase (ADR 0012, 0013) | — |
+| FR01 | Allowance schedule and handover | Built, except the reminder | Handover reminder; card handover and auto charge, Stripe and Razorpay test-mode showcase (ADR 0013, 0014) | — |
 | FR03 | Spend and Save jars | Balances, split at handover, history | Deposits and withdrawals between jars; effect on the goal | — |
 | FR04 | Money diary | Purchases and undo | Diary tab with history and Undo | Money received, corrections |
 | FR14 | Purchases, limits, deposits, withdrawals | Purchases, overspend rule, money rules, limit notice rows | Deposits, withdrawals, reservations, cap, auto-approve, auto-confirm | — |
@@ -130,7 +130,7 @@ The three tracks can run in parallel.
 ## Not in the pilot
 
 - Child split planning (FR03): the parent decides the split at handover, by decision.
-- Real payments. Card handover through Stripe and Razorpay test mode is a showcase only (ADR 0012, 0013): no live keys, no real money, until a separate decision and legal review.
+- Real payments. Card handover through Stripe and Razorpay test mode is a showcase only (ADR 0013, 0014): no live keys, no real money, until a separate decision and legal review.
 - Native apps, bank connections, live fund tracking and investments (`REQUIREMENTS.md`, later versions).
 
 ## How we work
