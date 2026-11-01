@@ -293,21 +293,21 @@ select is(
 -- ---------------------------------------------------------------------------
 -- Family B: auto charge on since yesterday, but the payer has no saved method.
 update public.allowance_schedules
-set auto_charge = true, auto_charge_by = :'pb'::uuid, auto_charge_since = now() - interval '1 day'
+set auto_charge = true, auto_charge_by = :'pb'::uuid, auto_charge_since = now() - interval '1 day', auto_charge_provider = 'fake'
 where id = :'s2'::uuid;
 insert into public.payment_customers (parent_id, provider, customer_ref)
 values (:'pb'::uuid, 'fake', 'cus_b');
 
 set local role service_role;
 select is(
-  (select string_agg(source_id::text, ',' order by source_id) from public.due_auto_charges('fake')),
+  (select string_agg(source_id::text, ',' order by source_id) from public.due_auto_charges(array['fake'])),
   :'o8', 'only the occurrence due on or after auto_charge_since is due (not o7, not family B without a card)');
 select is(
   (select payer_id::text || ':' || amount_minor || ':' || currency || ':' || customer_ref || ':' || method_ref
-   from public.due_auto_charges('fake') where source_id = :'o8'::uuid),
+   from public.due_auto_charges(array['fake']) where source_id = :'o8'::uuid),
   format('%s:500:GBP:cus_a:pm_a', :'pa'), 'due row carries the payer, amount and saved card');
 select is(
-  (select count(*)::int from public.due_auto_charges('stripe')),
+  (select count(*)::int from public.due_auto_charges(array['stripe'])),
   0, 'nothing is due for a provider the payer has no card with');
 reset role;
 
@@ -315,7 +315,7 @@ reset role;
 update public.parent_gifts set give_on = :'today'::date where id = :'g3'::uuid;
 set local role service_role;
 select is(
-  (select count(*)::int from public.due_auto_charges('fake') where source_id = :'g3'::uuid and source_type = 'parent_gift'),
+  (select count(*)::int from public.due_auto_charges(array['fake']) where source_id = :'g3'::uuid and source_type = 'parent_gift'),
   1, 'a due auto-charge gift is included');
 reset role;
 
@@ -329,7 +329,7 @@ values (:'fa'::uuid, :'c1'::uuid, :'pa'::uuid, 'fake', 'occurrence', :'o8'::uuid
 update public.payment_customers set method_ref = 'pm_b' where parent_id = :'pb'::uuid;
 set local role service_role;
 select is(
-  (select string_agg(source_id::text, ',' order by source_id) from public.due_auto_charges('fake')),
+  (select string_agg(source_id::text, ',' order by source_id) from public.due_auto_charges(array['fake'])),
   :'o9', 'auto and live payments exclude their sources; a saved card includes family B');
 reset role;
 
@@ -406,7 +406,7 @@ select is(
    from public.allowance_schedules where id = :'s1'::uuid),
   'false:null:null', 'auto charge off clears all three columns');
 set local role service_role;
-select public.clear_auto_charge_by(:'pa'::uuid);
+select public.clear_auto_charge_by(:'pa'::uuid, 'fake');
 reset role;
 select is(
   (select auto_charge from public.parent_gifts where id = :'g3'::uuid),
@@ -481,7 +481,7 @@ select throws_ok(
   format($$update public.payments set status = 'succeeded' where id = %L$$, :'pm1'),
   '42501', null, 'authenticated cannot update payments');
 select throws_ok(
-  $$select * from public.due_auto_charges('fake')$$,
+  $$select * from public.due_auto_charges(array['fake'])$$,
   '42501', null, 'authenticated cannot execute due_auto_charges');
 
 select tests.authenticate_as(:'pb'::uuid);
