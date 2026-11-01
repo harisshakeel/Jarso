@@ -37,7 +37,7 @@ export type ScheduleRow = {
   anchorOn: string;
   pausedThrough: string | null;
   pauseMessage: string | null;
-} & AutoChargeColumns;
+};
 
 /** A pending gift as stored; the service turns `autoChargeBy` into `autoChargeMine`. */
 export type GiftRecord = Omit<Gift, "autoChargeMine"> & { autoChargeBy: string | null };
@@ -90,9 +90,7 @@ function oneOf<const T extends string>(value: string, allowed: readonly T[], fal
 export async function findLatestSchedule(db: Client, childId: string): Promise<ScheduleRow | null> {
   const { data, error } = await db
     .from("allowance_schedules")
-    .select(
-      "id, amount_minor, frequency, status, anchor_on, paused_through, pause_message, auto_charge, auto_charge_provider, auto_charge_by",
-    )
+    .select("id, amount_minor, frequency, status, anchor_on, paused_through, pause_message")
     .eq("child_id", childId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -107,8 +105,22 @@ export async function findLatestSchedule(db: Client, childId: string): Promise<S
     anchorOn: data.anchor_on,
     pausedThrough: data.paused_through,
     pauseMessage: data.pause_message,
-    ...autoChargeColumns(data),
   };
+}
+
+/**
+ * The schedule's auto-charge state (allowance_schedule_auto_charge). The columns are hidden from
+ * signed-in users, so this is the only read; it raises JA403 unless the caller is a parent.
+ */
+export async function fetchScheduleAutoCharge(
+  db: Client,
+  scheduleId: string,
+): Promise<AutoChargeColumns> {
+  const { data, error } = await db
+    .rpc("allowance_schedule_auto_charge", { p_schedule_id: scheduleId })
+    .single();
+  if (error) throw toAppError(error, "Failed to load auto charge");
+  return autoChargeColumns(data);
 }
 
 export async function fetchNextDueOn(db: Client, scheduleId: string): Promise<string | null> {

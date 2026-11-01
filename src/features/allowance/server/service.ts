@@ -28,6 +28,7 @@ import {
   confirmGiftHandover,
   confirmOccurrenceHandover,
   fetchNextDueOn,
+  fetchScheduleAutoCharge,
   findGift,
   findLatestAllowanceSplit,
   findLatestGiftSplit,
@@ -121,18 +122,19 @@ export async function getSchedule(childId: string): Promise<Schedule | null> {
   const row = await findLatestSchedule(db, childId);
   if (!row) return null;
   const nextDueOn = row.status === "stopped" ? null : await fetchNextDueOn(db, row.id);
-  const { autoChargeBy, ...schedule } = row;
-  // Payment state is the parent's: the child never sees whether a card pays their allowance.
+  // Payment state is the parent's: the child never sees whether a card pays their allowance,
+  // and the database hides those columns from them.
   if (user.id === childId) {
     return {
-      ...schedule,
+      ...row,
       autoCharge: false,
       autoChargeProvider: null,
       autoChargeMine: false,
       nextDueOn,
     };
   }
-  return { ...schedule, autoChargeMine: autoChargeBy === user.id, nextDueOn };
+  const { autoChargeBy, ...autoCharge } = await fetchScheduleAutoCharge(db, row.id);
+  return { ...row, ...autoCharge, autoChargeMine: autoChargeBy === user.id, nextDueOn };
 }
 
 /**

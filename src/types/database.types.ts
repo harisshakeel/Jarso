@@ -1878,6 +1878,14 @@ export type Database = {
         Args: { p_schedule_id: string }
         Returns: string
       }
+      allowance_schedule_auto_charge: {
+        Args: { p_schedule_id: string }
+        Returns: {
+          auto_charge: boolean
+          auto_charge_by: string
+          auto_charge_provider: string
+        }[]
+      }
       apply_payment: { Args: { p_payment_id: string }; Returns: string }
       archive_goal: { Args: { p_goal_id: string }; Returns: undefined }
       arm_auto_charge: {
