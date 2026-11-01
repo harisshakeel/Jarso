@@ -8,7 +8,8 @@ import { getFamilyContext } from "@/features/allowance/server";
 import { PendingPurchases, PurchaseSheet, UndoButton } from "@/features/diary";
 import { requireRole } from "@/features/family/server";
 import { HistoryList, historyParamsSchema } from "@/features/ledger";
-import { getHistoryPage } from "@/features/ledger/server";
+import { getHistoryPage, getJars } from "@/features/ledger/server";
+import { fallback, formatMoney } from "@/lib";
 
 export const metadata: Metadata = { title: "Diary" };
 
@@ -16,10 +17,24 @@ export const metadata: Metadata = { title: "Diary" };
 async function Diary({ searchParams }: PageProps<"/child/diary">) {
   const { user } = await requireRole("child", routes.childDiary);
   const { before } = historyParamsSchema.parse(await searchParams);
-  const [family, page] = await Promise.all([getFamilyContext(), getHistoryPage(user.id, before)]);
+  const [family, page, jars] = await Promise.all([
+    getFamilyContext(),
+    getHistoryPage(user.id, before),
+    // A nice extra: if the balance fails, purchases, history and Undo still work.
+    fallback(getJars(user.id), null, "Jars on the diary"),
+  ]);
   return (
     <>
       <h1 className="rise-in text-h1">Diary</h1>
+      {jars ? (
+        <section aria-label="Spend jar" className="text-lg">
+          You have{" "}
+          <span className="money font-extrabold">
+            {formatMoney(jars.spend, family.currency, { showMinor: "nonzero" })}
+          </span>{" "}
+          in Spend.
+        </section>
+      ) : null}
       <PurchaseSheet currency={family.currency} userId={user.id} />
       <PendingPurchases userId={user.id} currency={family.currency} />
       <HistoryList

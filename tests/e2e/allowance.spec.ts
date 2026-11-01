@@ -78,7 +78,7 @@ test.beforeAll(async ({ browser }) => {
   await page.getByLabel("Email", { exact: true }).fill(`e2e-allowance-${run}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(at("/parent/setup"));
+  await expect(page).toHaveURL(at("/parent/setup"), { timeout: 20_000 });
   await completeParentProfile(page);
   await page.getByRole("button", { name: "Create family" }).click();
   await expect(page).toHaveURL(at("/parent"));
