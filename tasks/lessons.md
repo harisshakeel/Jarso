@@ -13,3 +13,7 @@ Patterns learned from corrections. Review at session start.
 - Supabase-js `getClaims()` calls `Date.now()`; with Partial Prefetching, read the session after `await connection()`.
 - GoTrue admin `createUser` writes `app_metadata` after the insert; DB triggers must handle the follow-up UPDATE.
 - Never commit until the user explicitly says so — not docs, not per-task SDD commits. Leave work uncommitted and ask.
+- Use a provider's official SDK (e.g. `razorpay`, `stripe`) for integrations, not hand-rolled REST calls.
+- Unit tests live in `tests/` mirroring `src/`, never colocated.
+- Webhook mapping must only trust fields the server set (references, order notes); payment notes are browser-settable.
+- Before pushing migrations to the hosted project, `supabase migration list --linked` and check main's migrations for redefined constraints/functions the branch also redefines.
