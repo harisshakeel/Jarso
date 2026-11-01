@@ -339,6 +339,7 @@ test("after days away, home offers one quick question instead of the next missio
 
 test("the parent sees learning apart from money", async () => {
   await parent.goto(`/parent/children/${childId}`);
+  await parent.getByRole("tab", { name: "Learning" }).click();
   await expect(parent.getByRole("region", { name: "Learning" })).toContainText(
     "1 of 7 missions done.",
   );
