@@ -23,6 +23,26 @@ description = "Anthropic API key"
 regex = '''sk-ant-[A-Za-z0-9_-]{12,}'''
 keywords = ["sk-ant-"]
 
+# Rules use non-capturing groups: gitleaks takes the first capture group as the secret, so a
+# group would hide the key from the allowlist below.
+[[rules]]
+id = "stripe-api-key"
+description = "Stripe secret or restricted API key"
+regex = '''\b(?:sk|rk)_(?:test|live)_[A-Za-z0-9]{16,}'''
+keywords = ["sk_test_", "sk_live_", "rk_test_", "rk_live_"]
+
+[[rules]]
+id = "stripe-webhook-secret"
+description = "Stripe webhook signing secret"
+regex = '''\bwhsec_[A-Za-z0-9]{16,}'''
+keywords = ["whsec_"]
+
+[[rules]]
+id = "razorpay-key-id"
+description = "Razorpay API key id (test or live)"
+regex = '''\brzp_(?:test|live)_[A-Za-z0-9]{14,}'''
+keywords = ["rzp_test_", "rzp_live_"]
+
 [[rules]]
 id = "resend-api-key"
 description = "Resend API key (invitation email)"
@@ -35,7 +55,8 @@ description = "Web push VAPID private key (no prefix: matched by its variable na
 regex = '''(?i)private[ _-]?key[A-Z0-9_]*["']?\s*[:=]\s*["']?[A-Za-z0-9_-]{40,}|(?i)private key:\s*\r?\n\s*[A-Za-z0-9_-]{40,}'''
 keywords = ["private_key", "privatekey", "private key", "VAPID_PRIVATE_KEY"]
 
-[[allowlists]]
+# gitleaks 8.24 (what gitleaks-action@v3 installs) only reads the singular [allowlist] table.
+[allowlist]
 description = "Placeholders, fixtures and lockfile hashes"
 paths = ['''\.env\.example$''', '''pnpm-lock\.yaml$''']
 regexes = [
@@ -44,5 +65,7 @@ regexes = [
   '''[?&]key=\[REDACTED\]''',
   '''ci-placeholder''',
   '''test-publishable-key''',
+  '''rzp_(test|live)_X{14,}''',
+  '''test-cron-secret-0123456789''',
   '''db password leaked in message''',
 ]

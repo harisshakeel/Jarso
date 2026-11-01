@@ -29,6 +29,13 @@ REDACTIONS: List[Tuple[re.Pattern, str]] = [
     # Anthropic, OpenAI, Stripe
     (re.compile(r'sk-ant-' + _SECRET_CHARS + r'{12,}'), 'sk-ant-[REDACTED]'),
     (re.compile(r'sk-(?:proj-|live_|test_)' + _SECRET_CHARS + r'{12,}'), 'sk-[REDACTED]'),
+    (re.compile(r'\b((?:sk|rk)_(?:test|live)_)[A-Za-z0-9]{16,}'), r'\1[REDACTED]'),
+    (re.compile(r'\bwhsec_[A-Za-z0-9]{16,}'), 'whsec_[REDACTED]'),
+    # Razorpay key ids (test and live)
+    (re.compile(r'\b(rzp_(?:test|live)_)[A-Za-z0-9]{14,}'), r'\1[REDACTED]'),
+    # Indian mobile numbers (Razorpay save card asks parents for one; Next's dev server prints
+    # server action args). 10 digits from 6-9, optional +91/91 prefix, not part of a longer number.
+    (re.compile(r'(?<!\d)(?:\+?91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}(?!\d)'), '[PHONE REDACTED]'),
     # Resend (invitation email)
     (re.compile(r'\bre_[A-Za-z0-9_]{20,}'), 're_[REDACTED]'),
     # GitHub tokens

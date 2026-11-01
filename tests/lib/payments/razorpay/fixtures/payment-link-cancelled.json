@@ -1,0 +1,26 @@
+{
+  "entity": "event",
+  "account_id": "acc_TEST123",
+  "event": "payment_link.cancelled",
+  "contains": ["payment_link"],
+  "payload": {
+    "payment_link": {
+      "entity": {
+        "id": "plink_TEST123",
+        "entity": "payment_link",
+        "amount": 50000,
+        "amount_paid": 0,
+        "currency": "INR",
+        "accept_partial": false,
+        "description": "Pocket money",
+        "reference_id": "pay-1",
+        "short_url": "https://rzp.io/i/TEST123",
+        "status": "cancelled",
+        "notes": { "source": "dashboard" },
+        "created_at": 1793520000,
+        "expire_by": 1793521860
+      }
+    }
+  },
+  "created_at": 1793520600
+}

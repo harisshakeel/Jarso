@@ -24,6 +24,7 @@ import {
 } from "@/components/ui";
 import { routes } from "@/config";
 import { runOnline } from "@/features/offline";
+import { type CardPaymentState, PayByCard } from "@/features/payments";
 import { type ActionState, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
 import { cashForSaved, checkSplit, formatDay, shareOf, splitAtShare } from "../describe";
 import { confirmHandoverAction, markNotGivenAction } from "../server/actions";
@@ -45,6 +46,8 @@ type HandoverFormProps = {
   hasPrevious?: boolean;
   /** The child's own goal plan, shown as a note; it never changes the prefill. */
   goalNote?: string | null;
+  /** Card payment state for this item; null or absent when card payments are off. */
+  card?: CardPaymentState | null;
 };
 
 const MONEY_ERROR = "Enter an amount like 5 or 5.50.";
@@ -62,6 +65,7 @@ export function HandoverForm({
   prefill,
   hasPrevious = false,
   goalNote = null,
+  card = null,
 }: HandoverFormProps) {
   const router = useRouter();
   const isAllowance = kind === "allowance";
@@ -220,6 +224,22 @@ export function HandoverForm({
         >
           Confirm I handed it over
         </Button>
+        {card ? (
+          <PayByCard
+            childId={childId}
+            kind={kind}
+            id={id}
+            amountMinor={amountMinor}
+            currency={currency}
+            split={
+              valid && cashMinor !== null && savedMinor !== null
+                ? { cash: cashMinor, saved: savedMinor }
+                : null
+            }
+            state={card}
+            disabled={pending || notGivenPending}
+          />
+        ) : null}
         {isAllowance ? (
           <NotGivenButton
             id={id}

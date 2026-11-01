@@ -1,0 +1,13 @@
+{
+  "id": "evt_7",
+  "object": "event",
+  "type": "payment_intent.requires_action",
+  "livemode": false,
+  "data": {
+    "object": {
+      "id": "pi_test_3",
+      "object": "payment_intent",
+      "metadata": { "paymentId": "pay-6" }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "plink_TEST123",
+  "entity": "payment_link",
+  "amount": 50000,
+  "currency": "INR",
+  "accept_partial": false,
+  "description": "Pocket money",
+  "reference_id": "pay-1",
+  "short_url": "https://rzp.io/i/TEST123",
+  "status": "created",
+  "notes": [],
+  "created_at": 1793520000,
+  "expire_by": 1793521860
+}

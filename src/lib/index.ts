@@ -8,5 +8,7 @@ export * from "./errors";
 export * from "./fallback";
 export * from "./logger";
 export * from "./money";
+// Provider ids only (client-safe); the provider layer itself is the server-only @/lib/payments.
+export { isPaymentProviderId, PAYMENT_PROVIDER_IDS } from "./payments/types";
 export * from "./timed-fetch";
 export * from "./utils";

@@ -1,0 +1,59 @@
+{
+  "entity": "event",
+  "account_id": "acc_TEST123",
+  "event": "payment_link.paid",
+  "contains": ["payment_link", "order", "payment"],
+  "payload": {
+    "payment_link": {
+      "entity": {
+        "id": "plink_TEST123",
+        "entity": "payment_link",
+        "amount": 50000,
+        "amount_paid": 50000,
+        "currency": "INR",
+        "accept_partial": false,
+        "description": "Pocket money",
+        "reference_id": "pay-1",
+        "order_id": "order_TEST123",
+        "short_url": "https://rzp.io/i/TEST123",
+        "status": "paid",
+        "notes": [],
+        "created_at": 1793520000,
+        "expire_by": 1793521860
+      }
+    },
+    "order": {
+      "entity": {
+        "id": "order_TEST123",
+        "entity": "order",
+        "amount": 50000,
+        "amount_paid": 50000,
+        "amount_due": 0,
+        "currency": "INR",
+        "receipt": "pay-1",
+        "status": "paid",
+        "notes": [],
+        "public_key": "rzp_test_XXXXXXXXXXXXXX",
+        "created_at": 1793520005
+      }
+    },
+    "payment": {
+      "entity": {
+        "id": "pay_TEST123",
+        "entity": "payment",
+        "amount": 50000,
+        "currency": "INR",
+        "status": "captured",
+        "order_id": "order_TEST123",
+        "method": "card",
+        "captured": true,
+        "card": { "id": "card_TEST123", "last4": "1111", "network": "Visa", "type": "credit" },
+        "notes": [],
+        "error_code": null,
+        "error_reason": null,
+        "created_at": 1793520010
+      }
+    }
+  },
+  "created_at": 1793520012
+}

@@ -10,9 +10,10 @@ export type NoticeKind =
   | "emergency_requested"
   | "emergency_decided"
   | "allowance_due"
-  | "handover_reminder";
+  | "handover_reminder"
+  | "card_charge_failed";
 
-export type NoticeSource = "ledger_entry" | "request" | "allowance_occurrence";
+export type NoticeSource = "ledger_entry" | "request" | "allowance_occurrence" | "payment";
 
 export type Notice = {
   id: string;

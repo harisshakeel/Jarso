@@ -1,4 +1,5 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertUser } from "@/features/auth/server";
 import {
   assertParentCanRead,
@@ -9,6 +10,7 @@ import {
 } from "@/features/family/server";
 import { AppError, familyToday, isAppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/types";
 import type {
   DueItem,
   Frequency,
@@ -26,6 +28,7 @@ import {
   confirmGiftHandover,
   confirmOccurrenceHandover,
   fetchNextDueOn,
+  fetchScheduleAutoCharge,
   findGift,
   findLatestAllowanceSplit,
   findLatestGiftSplit,
@@ -114,12 +117,24 @@ async function unlessReached(
 
 /** The child's latest schedule (a stopped one too, so it can say so), or null. Child or parent. */
 export async function getSchedule(childId: string): Promise<Schedule | null> {
-  await assertSelfOrParentOf(childId);
+  const user = await assertSelfOrParentOf(childId);
   const db = await createClient();
   const row = await findLatestSchedule(db, childId);
   if (!row) return null;
   const nextDueOn = row.status === "stopped" ? null : await fetchNextDueOn(db, row.id);
-  return { ...row, nextDueOn };
+  // Payment state is the parent's: the child never sees whether a card pays their allowance,
+  // and the database hides those columns from them.
+  if (user.id === childId) {
+    return {
+      ...row,
+      autoCharge: false,
+      autoChargeProvider: null,
+      autoChargeMine: false,
+      nextDueOn,
+    };
+  }
+  const { autoChargeBy, ...autoCharge } = await fetchScheduleAutoCharge(db, row.id);
+  return { ...row, ...autoCharge, autoChargeMine: autoChargeBy === user.id, nextDueOn };
 }
 
 /**
@@ -141,14 +156,28 @@ export async function listDue(childId: string): Promise<DueItem[]> {
 
 /** Gifts not handed over yet (due and future), soonest first. Parent only. */
 export async function listGifts(childId: string): Promise<Gift[]> {
-  await assertParentCanRead(childId);
-  return listPendingGifts(await createClient(), childId);
+  const user = await assertParentCanRead(childId);
+  const gifts = await listPendingGifts(await createClient(), childId);
+  return gifts.map(({ autoChargeBy, ...gift }) => ({
+    ...gift,
+    autoChargeMine: autoChargeBy === user.id,
+  }));
 }
 
 /** The split of the child's most recent handover (allowance or gift), for the prefill. */
 export async function getLastSplit(childId: string): Promise<Split | null> {
   await assertParentCanRead(childId);
-  const db = await createClient();
+  return getLastSplitWith(await createClient(), childId);
+}
+
+/**
+ * The newer of the child's last allowance and last gift split, read with `db`. No auth: the
+ * caller authorises, or passes the admin client from a trusted job (the auto charge).
+ */
+export async function getLastSplitWith(
+  db: SupabaseClient<Database>,
+  childId: string,
+): Promise<Split | null> {
   const [allowance, gift] = await Promise.all([
     findLatestAllowanceSplit(db, childId),
     findLatestGiftSplit(db, childId),

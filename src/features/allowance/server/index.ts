@@ -10,6 +10,7 @@ export {
   type FamilyContext,
   getFamilyContext,
   getLastSplit,
+  getLastSplitWith,
   getSchedule,
   listDue,
   listDueForChild,
