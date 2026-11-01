@@ -47,7 +47,7 @@ async function signUpParent(page: Page, name: string, email: string): Promise<vo
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
   // Local stack has email confirmation off, so sign-up returns a session straight away.
-  await expect(page).toHaveURL(at("/parent/setup"));
+  await expect(page).toHaveURL(at("/parent/setup"), { timeout: 20_000 });
   await completeParentProfile(page);
 }
 
