@@ -24,10 +24,11 @@ type PendingPurchasesProps = { userId: string; currency: string };
 
 /** The form's own strings, as stored in the outbox payload. */
 function draftOf(item: OutboxItem): PurchaseDraft {
-  const payload = (item.payload ?? {}) as { amount?: unknown; label?: unknown };
+  const payload = (item.payload ?? {}) as { amount?: unknown; label?: unknown; category?: unknown };
   return {
     amount: typeof payload.amount === "string" ? payload.amount : "",
     label: typeof payload.label === "string" ? payload.label : "",
+    category: typeof payload.category === "string" ? payload.category : undefined,
   };
 }
 

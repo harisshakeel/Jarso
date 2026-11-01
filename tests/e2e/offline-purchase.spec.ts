@@ -29,8 +29,9 @@ async function spend(amount: string, label: string): Promise<void> {
   await child.getByRole("button", { name: "Spent something?" }).click();
   const sheet = child.getByRole("dialog");
   await sheet.getByLabel("Amount").fill(amount);
-  await sheet.getByLabel("What for? (optional)").fill(label);
-  await sheet.getByRole("button", { name: "Add it", exact: true }).click();
+  await sheet.getByLabel("Name it (optional)").fill(label);
+  await sheet.getByRole("radio", { name: "Snacks" }).check({ force: true });
+  await sheet.getByRole("button", { name: "Write it down", exact: true }).click();
   await expect(child.getByRole("dialog")).toHaveCount(0);
 }
 
@@ -163,9 +164,10 @@ test("Change it on a refused purchase saves the changed one", async () => {
   await line.getByRole("button", { name: "Change it: Too much" }).click();
   const sheet = child.getByRole("dialog");
   await expect(sheet.getByLabel("Amount")).toHaveValue("500");
-  await expect(sheet.getByLabel("What for? (optional)")).toHaveValue("Too much");
+  await expect(sheet.getByLabel("Name it (optional)")).toHaveValue("Too much");
   await sheet.getByLabel("Amount").fill("10");
-  await sheet.getByRole("button", { name: "Add it", exact: true }).click();
+  await sheet.getByRole("radio", { name: "Snacks" }).check({ force: true });
+  await sheet.getByRole("button", { name: "Write it down", exact: true }).click();
   await expect(child.getByRole("dialog")).toHaveCount(0);
 
   await expect(history().getByText("Too much")).toHaveCount(1);

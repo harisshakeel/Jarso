@@ -51,7 +51,7 @@ export function WeekCard({
   titleAs: Title = "h2",
 }: WeekCardProps) {
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
-  const { money: week, goal, decision, understood, practise, question } = review;
+  const { money: week, goal, topCategory, decision, understood, practise, question } = review;
   return (
     <Card className="shadow-raised">
       <CardContent>
@@ -67,6 +67,9 @@ export function WeekCard({
           </div>
 
           <p className="text-lg">{weekSentence(week, money)}</p>
+          {topCategory ? (
+            <p className="text-ink-2">This week most went on {topCategory.label}.</p>
+          ) : null}
           {week.stillDueMinor > 0 ? (
             <p className="text-ink-2">
               {money(week.stillDueMinor)} of allowance is still on its way from your parent.

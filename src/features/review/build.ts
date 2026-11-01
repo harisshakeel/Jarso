@@ -6,7 +6,7 @@ import {
   type SkillProgress,
   skillOf,
 } from "@/features/learning";
-import type { HistoryItem } from "@/features/ledger";
+import { type HistoryItem, spendingByCategory } from "@/features/ledger";
 import { addDays, formatMoney, startOfWeek } from "@/lib";
 import type { DecisionLine, GoalLine, SkillNote, WeeklyReview, WeekMoney } from "./types";
 
@@ -53,6 +53,7 @@ export function weekMoney(
       case "allowance":
       case "gift":
       case "extra":
+      case "received":
         receivedMinor += item.amountMinor;
         break;
       case "purchase":
@@ -211,12 +212,19 @@ export function freshQuestion(
   );
 }
 
+/** This week's biggest spending category, from the same grouping the Where-it-went card uses. */
+export function topCategory(history: readonly HistoryItem[], today: string) {
+  const top = spendingByCategory(history, today)[0];
+  return top ? { emoji: top.emoji, label: top.label } : null;
+}
+
 export function buildWeeklyReview(input: BuildInput): WeeklyReview {
   const understood = understoodThisWeek(input.skills, input.workedOnThisWeek);
   const practise = worthPractising(input.skills, input.reviews, understood?.skillKey ?? null);
   return {
     money: weekMoney(input.history, input.stillDueMinor, input.today),
     goal: goalLine(input.goal),
+    topCategory: topCategory(input.history, input.today),
     decision: decisionLine(input.history, input.goal, input.currency, input.today),
     understood,
     practise,

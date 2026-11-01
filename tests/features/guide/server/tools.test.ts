@@ -130,6 +130,35 @@ describe("get_money_history", () => {
     expect(data.complete).toBe(true);
   });
 
+  it("carries the category label and names money received", async () => {
+    vi.mocked(ledger.getHistoryPage).mockResolvedValue({
+      items: [
+        item({ amountMinor: 120, category: "snacks" }),
+        item({ kind: "received", amountMinor: 2000, category: "birthday" }),
+      ] as never,
+      olderBefore: null,
+    });
+    const { data } = await call("get_money_history", { period: "this_week" });
+    expect(data.lines[0].category).toBe("Snacks");
+    expect(data.lines[1].what).toBe("money received");
+    expect(data.lines[1].category).toBe("Birthday");
+  });
+
+  it("counts money received as money in and names an undone one by its kind", async () => {
+    vi.mocked(ledger.getHistoryPage).mockResolvedValue({
+      items: [
+        item({ kind: "received", amountMinor: 2000, category: "birthday" }),
+        item({ kind: "received", amountMinor: 500, category: "job", undone: true }),
+        item({ amountMinor: 100, undone: true }),
+      ] as never,
+      olderBefore: null,
+    });
+    const { data } = await call("get_money_history", { period: "this_week" });
+    expect(data.money_in.value).toBe("£20");
+    expect(data.lines[1].what).toBe("money received (undone)");
+    expect(data.lines[2].what).toBe("purchase (undone)");
+  });
+
   it("says when older history wasn't read", async () => {
     vi.mocked(ledger.getHistoryPage).mockResolvedValue({
       items: [item({ occurredOn: "2026-10-20" })] as never,

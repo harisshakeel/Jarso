@@ -15,9 +15,24 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui";
+import { SPEND_CATEGORIES } from "@/features/ledger";
 import { newId, offlineCopy, removeOutboxItem, submitToOutbox } from "@/features/offline";
 import type { FieldErrors } from "@/lib";
 import { purchaseSchema } from "../schemas";
+import { CategoryChips } from "./category-chips";
+
+/** The name field's hint follows the chip: a snack asks "What snack?". */
+const NAME_HINTS: Record<string, string> = {
+  snacks: "What snack?",
+  games: "What game?",
+  clothes: "What clothes?",
+  going_out: "Where did you go?",
+  gift_for_someone: "What gift?",
+  school: "What for school?",
+  travel: "Where to?",
+  apps: "Which app?",
+};
+const DEFAULT_NAME_HINT = "What was it?";
 
 type PurchaseSheetProps = { currency: string; userId: string };
 
@@ -42,7 +57,7 @@ export function PurchaseSheet({
 }
 
 /** What the form starts with when a purchase is being changed. */
-export type PurchaseDraft = { amount: string; label: string };
+export type PurchaseDraft = { amount: string; label: string; category?: string };
 
 type PurchaseSheetContentProps = PurchaseSheetProps & {
   /** Prefills the fields ("Change it" on a purchase that needs a look). */
@@ -81,12 +96,18 @@ function PurchaseForm({
   const [idempotencyKey] = useState(newId);
   const [amount, setAmount] = useState(initial?.amount ?? "");
   const [label, setLabel] = useState(initial?.label ?? "");
+  // No chip is pre-picked for a new purchase: the child says what it was for. A purchase
+  // saved before categories existed has none, so it starts unpicked too.
+  const [category, setCategory] = useState<string | null>(
+    SPEND_CATEGORIES.some((c) => c.key === initial?.category) ? (initial?.category ?? null) : null,
+  );
 
   const [state, action, pending] = useActionState(
     async (_prev: FormState, formData: FormData): Promise<FormState> => {
       // Exactly what the online form posted: the route parses it with this same schema.
       const payload = {
         amount: String(formData.get("amount") ?? ""),
+        category: String(formData.get("category") ?? ""),
         label: String(formData.get("label") ?? ""),
         idempotencyKey,
       };
@@ -129,9 +150,16 @@ function PurchaseForm({
         onValueChange={setAmount}
         errors={state?.fieldErrors?.amount}
       />
+      <CategoryChips
+        options={SPEND_CATEGORIES}
+        value={category}
+        onChange={setCategory}
+        legend="What was it for?"
+      />
       <Field
         name="label"
-        label="What for? (optional)"
+        label="Name it (optional)"
+        placeholder={(category && NAME_HINTS[category]) || DEFAULT_NAME_HINT}
         autoComplete="off"
         maxLength={60}
         value={label}
@@ -144,9 +172,14 @@ function PurchaseForm({
           {state.notice}
         </p>
       ) : null}
-      <Button type="submit" size="lg" className="w-full" loading={pending}>
-        Add it
-      </Button>
+      <div className="grid gap-2">
+        <Button type="submit" size="lg" className="w-full" loading={pending} disabled={!category}>
+          Write it down
+        </Button>
+        {category ? null : (
+          <p className="text-center text-muted-foreground">Pick what it was for</p>
+        )}
+      </div>
     </form>
   );
 }

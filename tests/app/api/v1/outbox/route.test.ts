@@ -72,9 +72,17 @@ describe("POST /api/v1/outbox", () => {
       amountMinor: 250,
       label: "Snack",
       idempotencyKey: uuid,
+      category: "other",
       occurredAt: ago(5 * MINUTE),
     });
     expect(pushAfterNotices).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a queued category, and a purchase queued before categories posts as other", async () => {
+    await post(purchase({ payload: { amount: "2.50", category: "games", idempotencyKey: uuid } }));
+    expect(recordPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ category: "games" }));
+    await post(purchase({ payload: { amount: "2.50", idempotencyKey: uuid } }));
+    expect(recordPurchase).toHaveBeenLastCalledWith(expect.objectContaining({ category: "other" }));
   });
 
   it("ignores a client occurredAt, so a clock 1 h fast records at the server's now", async () => {

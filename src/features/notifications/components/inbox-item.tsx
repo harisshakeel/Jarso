@@ -9,6 +9,7 @@ import {
   CreditCardIcon,
   HandCoinsIcon,
   type LucideIcon,
+  PencilIcon,
   PiggyBankIcon,
 } from "lucide-react";
 import type { Route } from "next";
@@ -30,6 +31,8 @@ const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
   emergency_decided: { icon: CheckCircle2Icon, tint: "bg-teal-100 text-teal-800" },
   // Informational, like a limit notice: never red (design.md §2.4).
   card_charge_failed: { icon: CreditCardIcon, tint: "bg-gold-100 text-gold-700" },
+  money_received: { icon: HandCoinsIcon, tint: "bg-teal-100 text-teal-800" },
+  entry_corrected: { icon: PencilIcon, tint: "bg-secondary text-ink-2" },
 };
 
 const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });

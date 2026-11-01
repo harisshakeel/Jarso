@@ -916,7 +916,9 @@ export type Database = {
       ledger_entries: {
         Row: {
           amount_minor: number
+          category: string | null
           child_id: string
+          corrects_entry_id: string | null
           created_at: string
           created_by: string | null
           direction: string
@@ -935,7 +937,9 @@ export type Database = {
         }
         Insert: {
           amount_minor: number
+          category?: string | null
           child_id: string
+          corrects_entry_id?: string | null
           created_at?: string
           created_by?: string | null
           direction: string
@@ -954,7 +958,9 @@ export type Database = {
         }
         Update: {
           amount_minor?: number
+          category?: string | null
           child_id?: string
+          corrects_entry_id?: string | null
           created_at?: string
           created_by?: string | null
           direction?: string
@@ -977,6 +983,13 @@ export type Database = {
             columns: ["child_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_corrects_entry_id_fkey"
+            columns: ["corrects_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
             referencedColumns: ["id"]
           },
           {
@@ -1981,6 +1994,27 @@ export type Database = {
         }
         Returns: string
       }
+      correct_diary_entry: {
+        Args: {
+          p_amount_minor: number
+          p_category: string
+          p_entry_id: string
+          p_idempotency_key: string
+          p_label: string
+        }
+        Returns: Json
+      }
+      correct_diary_entry_at: {
+        Args: {
+          p_amount_minor: number
+          p_category: string
+          p_entry_id: string
+          p_idempotency_key: string
+          p_label: string
+          p_now: string
+        }
+        Returns: Json
+      }
       create_allowance: {
         Args: {
           p_amount_minor: number
@@ -2047,6 +2081,36 @@ export type Database = {
       decide_withdrawal: {
         Args: { p_approve: boolean; p_note: string; p_request_id: string }
         Returns: string
+      }
+      diary_chain_root: {
+        Args: { p_entry_id: string }
+        Returns: {
+          amount_minor: number
+          category: string | null
+          child_id: string
+          corrects_entry_id: string | null
+          created_at: string
+          created_by: string | null
+          direction: string
+          family_id: string
+          id: string
+          idempotency_key: string
+          jar: string
+          kind: string
+          label: string | null
+          method: string
+          mode: string
+          occurred_at: string
+          reverses_entry_id: string | null
+          source_id: string | null
+          source_type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ledger_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       due_auto_charges: {
         Args: { p_limit?: number; p_now?: string; p_providers: string[] }
@@ -2156,10 +2220,22 @@ export type Database = {
           note: string
         }[]
       }
+      list_entry_versions: {
+        Args: { p_entry_id: string }
+        Returns: {
+          amount_minor: number
+          category: string
+          created_at: string
+          id: string
+          label: string
+        }[]
+      }
       list_ledger_history: {
         Args: { p_before?: string; p_child_id: string; p_limit?: number }
         Returns: {
           amount_minor: number
+          category: string
+          corrects_entry_id: string
           direction: string
           id: string
           jar: string
@@ -2167,10 +2243,15 @@ export type Database = {
           label: string
           method: string
           occurred_at: string
+          prev_amount_minor: number
+          prev_category: string
+          prev_label: string
+          replaced: boolean
           reversed: boolean
           reverses_entry_id: string
           source_id: string
           source_type: string
+          window_from: string
         }[]
       }
       list_my_invitations: {
@@ -2322,6 +2403,29 @@ export type Database = {
         Args: { p_message_id: string; p_rating: number }
         Returns: undefined
       }
+      record_money_received: {
+        Args: {
+          p_amount_minor: number
+          p_category: string
+          p_child_id: string
+          p_idempotency_key: string
+          p_jar: string
+          p_label: string
+        }
+        Returns: Json
+      }
+      record_money_received_at: {
+        Args: {
+          p_amount_minor: number
+          p_category: string
+          p_child_id: string
+          p_idempotency_key: string
+          p_jar: string
+          p_label: string
+          p_now: string
+        }
+        Returns: Json
+      }
       record_practice_result: {
         Args: {
           p_correct: boolean
@@ -2336,6 +2440,7 @@ export type Database = {
       record_purchase: {
         Args: {
           p_amount_minor: number
+          p_category?: string
           p_child_id: string
           p_idempotency_key: string
           p_label: string
@@ -2346,6 +2451,7 @@ export type Database = {
       record_purchase_at: {
         Args: {
           p_amount_minor: number
+          p_category?: string
           p_child_id: string
           p_idempotency_key: string
           p_label: string
@@ -2445,11 +2551,12 @@ export type Database = {
       }
       stop_allowance: { Args: { p_schedule_id: string }; Returns: string }
       trigger_auto_charge: { Args: never; Returns: undefined }
-      undo_purchase: { Args: { p_entry_id: string }; Returns: string }
-      undo_purchase_at: {
+      undo_diary_entry: { Args: { p_entry_id: string }; Returns: string }
+      undo_diary_entry_at: {
         Args: { p_entry_id: string; p_now: string }
         Returns: string
       }
+      undo_purchase: { Args: { p_entry_id: string }; Returns: string }
       unread_notification_count: { Args: never; Returns: number }
       update_family_timezone: {
         Args: { p_timezone: string }

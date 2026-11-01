@@ -27,6 +27,17 @@ export type LedgerRow = {
   occurredAt: string;
   /** How the money was handed over: card for a card payment, cash for everything else. */
   method: "cash" | "card";
+  category: string | null;
+  /** The earlier line this one replaced (a fix), or null. */
+  correctsEntryId: string | null;
+  /** True when a later fix replaced this row. */
+  replaced: boolean;
+  /** The chain root's created_at: undo and fix windows count from here. */
+  windowFrom: string | null;
+  /** Values of the line `correctsEntryId` points at. */
+  prevAmountMinor: number | null;
+  prevCategory: string | null;
+  prevLabel: string | null;
 };
 
 export type OccurrenceAmounts = { id: string; amountMinor: number; shortfallMinor: number };
@@ -64,6 +75,13 @@ export async function listLedgerRows(
     sourceId: row.source_id,
     occurredAt: row.occurred_at,
     method: row.method === "card" ? "card" : "cash",
+    category: row.category ?? null,
+    correctsEntryId: row.corrects_entry_id ?? null,
+    replaced: row.replaced === true,
+    windowFrom: row.window_from ?? null,
+    prevAmountMinor: row.prev_amount_minor == null ? null : Number(row.prev_amount_minor),
+    prevCategory: row.prev_category ?? null,
+    prevLabel: row.prev_label ?? null,
   }));
 }
 

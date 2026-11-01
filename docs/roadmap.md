@@ -19,7 +19,7 @@ Dates to be set. Tracks run in parallel; an arrow means "after".
 | FR13 | Family accounts and onboarding | Built | — | Email confirmation back on, slice 1 fixes |
 | FR01 | Allowance schedule and handover | Built, except the reminder | Handover reminder; card handover and auto charge, Stripe and Razorpay test-mode showcase (ADR 0013, 0014) | — |
 | FR03 | Spend and Save jars | Balances, split at handover, history | Deposits and withdrawals between jars; effect on the goal | — |
-| FR04 | Money diary | Purchases and undo | Diary tab with history and Undo | Money received, corrections |
+| FR04 | Money diary | Purchases and undo | Diary tab with history and Undo | Money received, corrections (built in Diary complete) |
 | FR14 | Purchases, limits, deposits, withdrawals | Purchases, overspend rule, money rules, limit notice rows | Deposits, withdrawals, reservations, cap, auto-approve, auto-confirm | — |
 | FR06 | Interactive daily learning | Built | — | — |
 | FR08 | Related learning material | Built | — | — |
@@ -102,8 +102,8 @@ Three tracks run side by side: Jarso (7, then 3 and 8), money (1, then 2), and d
 | Track | Slice | FRs | Size |
 | --- | --- | --- | --- |
 | Money | **Emergency funds** on the request machinery from Demo 2. Built: the grant lands in Spend (decided 2026-10-31). | FR15 | S |
-| Money | **Diary complete.** Money received from other sources, traceable corrections, a diary screen. | FR04 | M |
-| Money | **Predict before deciding.** Built: a guess, the real answer and a what-if slider before take-outs, put-ins and plan changes; the purchase hook waits for the diary. | FR05 | M |
+| Money | **Diary complete.** Built: money received from other sources, a category on every line, traceable fixes (a chain of lines, the first line's 24-hour undo and 7-day fix windows), a "Where your money went" card. | FR04 | M |
+| Money | **Predict before deciding.** Built: a guess, the real answer and a what-if slider before take-outs, put-ins and plan changes; the purchase hook can now be built, the diary being done. | FR05 | M |
 | Learning | **Weekly review**, as a card on the dashboard. Built (`features/review`): received, spent, saved, still due and goal progress; how one decision changed the plan; a skill shown and one worth practising; a fresh question from the review pool. | FR11 | M |
 | Learning | **Comeback task.** Built: after three days away, Home offers one fresh question before the next mission. | FR12 | S |
 | Platform | **Web push and app install.** Built (ADR 0012): a per-browser switch on both inboxes, each notice pushed once from its own row after the action or by the daily `/api/cron/push` sweep, a manifest and service worker for install; everything works with the keys unset. Email for notices stays deferred until a sending domain exists. | FR16 | M |
