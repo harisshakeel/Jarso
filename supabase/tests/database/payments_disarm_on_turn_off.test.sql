@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(9);
+select plan(10);
 
 -- Turning auto charge off clears a pending save-card session's arm, so its webhook
 -- (arm_auto_charge_for_setup) saves the card without turning the toggle back on.
@@ -20,7 +20,8 @@ returning id as s1 \gset
 insert into public.payment_customers (parent_id, provider, customer_ref, method_ref, card_brand, card_last4)
 values (:'pa'::uuid, 'fake', 'cus_a', 'pm_a', 'visa', '4242');
 
--- A session that would turn the schedule on, a finished one with the same arm, and one with none.
+-- A session that would turn the schedule on, a finished one with the same arm, one with none,
+-- and a failed one (Razorpay can still complete it when Checkout retries the order).
 insert into public.payment_setups (parent_id, provider, arm_type, arm_id)
 values (:'pa'::uuid, 'fake', 'allowance_schedule', :'s1'::uuid)
 returning id as open_setup \gset
@@ -30,6 +31,9 @@ returning id as done_setup \gset
 insert into public.payment_setups (parent_id, provider)
 values (:'pa'::uuid, 'fake')
 returning id as plain_setup \gset
+insert into public.payment_setups (parent_id, provider, status, arm_type, arm_id)
+values (:'pa'::uuid, 'fake', 'failed', 'allowance_schedule', :'s1'::uuid)
+returning id as failed_setup \gset
 
 select tests.authenticate_as(:'pa'::uuid);
 select throws_ok(
@@ -43,6 +47,9 @@ select tests.clear_auth();
 select is(
   (select arm_type from public.payment_setups where id = :'open_setup'::uuid)::text,
   null::text, 'turning off clears the open session''s arm');
+select is(
+  (select arm_type from public.payment_setups where id = :'failed_setup'::uuid)::text,
+  null::text, 'turning off clears a failed session''s arm too');
 select is(
   (select arm_type from public.payment_setups where id = :'done_setup'::uuid),
   'allowance_schedule', 'a finished session keeps its arm');
