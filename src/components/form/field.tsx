@@ -29,7 +29,7 @@ export function Field({ name, label, description, errors, ...props }: FieldProps
         {...props}
       />
       {description ? (
-        <p id={descriptionId} className="text-muted-foreground text-sm">
+        <p id={descriptionId} className="text-muted-foreground">
           {description}
         </p>
       ) : null}
@@ -42,8 +42,8 @@ export function Field({ name, label, description, errors, ...props }: FieldProps
 export function FieldError({ id, errors }: { id?: string; errors?: string[] }) {
   if (!errors?.length) return null;
   return (
-    <p id={id} className="flex items-start gap-1.5 text-destructive text-sm">
-      <CircleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+    <p id={id} className="flex items-start gap-1.5 text-destructive">
+      <CircleAlertIcon aria-hidden className="mt-1 size-4 shrink-0" />
       {errors[0]}
     </p>
   );
@@ -65,14 +65,14 @@ export function FormError({
   if (!text) return null;
   if (error?.code === "UNAVAILABLE") {
     return (
-      <p role="status" className="text-ink-2 text-sm">
+      <p role="status" className="text-ink-2">
         {text}
       </p>
     );
   }
   return (
-    <p role="alert" className="flex items-start gap-1.5 text-destructive text-sm">
-      <CircleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+    <p role="alert" className="flex items-start gap-1.5 text-destructive">
+      <CircleAlertIcon aria-hidden className="mt-1 size-4 shrink-0" />
       {text}
     </p>
   );

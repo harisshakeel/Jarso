@@ -6,7 +6,7 @@ import { getFamily, requireRole } from "@/features/family/server";
 import { InboxList, inboxParamsSchema, PushToggle } from "@/features/notifications";
 import { listNotices } from "@/features/notifications/server";
 
-export const metadata: Metadata = { title: "Inbox" };
+export const metadata: Metadata = { title: "News" };
 
 type Props = PageProps<"/child/inbox">;
 
@@ -19,7 +19,7 @@ async function InboxContent({ searchParams }: Pick<Props, "searchParams">) {
     : null;
   return (
     <>
-      <h1 className="text-balance text-display">Inbox</h1>
+      <h1 className="text-balance text-display">News</h1>
       <PushToggle />
       <InboxList
         items={page.items}

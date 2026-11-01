@@ -1,7 +1,7 @@
 import { formatMoney } from "@/lib";
 import type { CapPeriod, RequestKind, RequestStatus } from "./types";
 
-export type StatusLabel = "Waiting" | "Approved" | "Done" | "Not approved" | "Cancelled";
+export type StatusLabel = "Waiting" | "Said yes" | "Done" | "Not now" | "Cancelled";
 
 /** The chip a request shows. A confirmed deposit and a handed-over withdrawal are both "Done". */
 export function statusLabel(_kind: RequestKind, status: RequestStatus): StatusLabel {
@@ -9,18 +9,18 @@ export function statusLabel(_kind: RequestKind, status: RequestStatus): StatusLa
     case "pending":
       return "Waiting";
     case "approved":
-      return "Approved";
+      return "Said yes";
     case "handed_over":
     case "confirmed":
       return "Done";
     case "rejected":
-      return "Not approved";
+      return "Not now";
     case "cancelled":
       return "Cancelled";
   }
 }
 
-const PER: Record<CapPeriod, string> = { item: "per time", week: "a week", month: "a month" };
+const PER: Record<CapPeriod, string> = { item: "each time", week: "a week", month: "a month" };
 
 /** Why a withdrawal went over a cap, in the child's words. */
 export function overCapMessage(

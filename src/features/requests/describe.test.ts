@@ -5,10 +5,10 @@ import { type RequestKind, type RequestStatus, requestStatuses } from "./types";
 describe("statusLabel", () => {
   const expected: Record<RequestStatus, string> = {
     pending: "Waiting",
-    approved: "Approved",
+    approved: "Said yes",
     handed_over: "Done",
     confirmed: "Done",
-    rejected: "Not approved",
+    rejected: "Not now",
     cancelled: "Cancelled",
   };
   const kinds: RequestKind[] = ["withdrawal", "deposit", "emergency"];
@@ -28,6 +28,6 @@ describe("overCapMessage", () => {
   });
 
   it("drops the second sentence when nothing is used (a per-time cap)", () => {
-    expect(overCapMessage("item", 500, 0, "GBP")).toBe("You can take out up to £5 per time.");
+    expect(overCapMessage("item", 500, 0, "GBP")).toBe("You can take out up to £5 each time.");
   });
 });

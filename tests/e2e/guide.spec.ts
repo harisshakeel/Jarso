@@ -123,7 +123,7 @@ test("an idea gets an answer with topics and a check", async () => {
   const panel = jarso(child);
   await askJarso(child, "What is saving?");
   await expect(panel.getByText(/Saving means keeping some money for later/)).toBeVisible();
-  await expect(panel.getByRole("link", { name: "Saving toward a goal" })).toBeVisible();
+  await expect(panel.getByRole("link", { name: "Saving up for something" })).toBeVisible();
   await panel.getByRole("button", { name: "Save", exact: true }).click();
   await expect(panel.getByText(/That's it\. A goal counts only what's in Save\./)).toBeVisible();
   const helpful = panel.getByRole("button", { name: "Helpful", exact: true }).last();

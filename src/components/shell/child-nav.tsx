@@ -5,15 +5,15 @@ import { routes } from "@/config";
 import { BottomNav, type BottomNavItem } from "./bottom-nav";
 
 // Icons are components, which can't cross the server → client boundary, so the tabs live here.
-// design.md §5: Home · Diary · Learn · Inbox. Home is the jars, so there is no Jars tab.
+// design.md §5: Home · Diary · Learn · News. Home is the jars, so there is no Jars tab.
 const items: BottomNavItem[] = [
   { href: routes.child, label: "Home", icon: HomeIcon },
   { href: routes.childDiary, label: "Diary", icon: NotebookPenIcon },
   { href: routes.childLearn, label: "Learn", icon: GraduationCapIcon },
-  { href: routes.childInbox, label: "Inbox", icon: InboxIcon },
+  { href: routes.childInbox, label: "News", icon: InboxIcon },
 ];
 
-/** The child's tab bar. `unread` badges the Inbox tab. */
+/** The child's tab bar. `unread` badges the News tab. */
 export function ChildNav({ unread }: { unread?: number }) {
   return (
     <BottomNav

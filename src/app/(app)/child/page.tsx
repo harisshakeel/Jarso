@@ -55,7 +55,7 @@ async function ChildHome() {
         href={routes.childRequests}
         className="-mt-3 inline-flex min-h-11 w-fit items-center justify-self-center rounded-full px-2 font-semibold text-primary text-sm underline-offset-4 hover:underline"
       >
-        See your requests
+        Move my money
       </Link>
       <ChildAllowanceCard
         schedule={schedule}

@@ -99,7 +99,7 @@ describe("askGuide", () => {
     });
     expect(result).toMatchObject({ conversationId: "convo-1", turnsLeft: 11 });
     expect(result.reply).toMatchObject({ role: "guide", route: "on_topic", messageId: "reply-1" });
-    expect(result.reply.topics).toEqual([{ key: "saving-goal", title: "Saving toward a goal" }]);
+    expect(result.reply.topics).toEqual([{ key: "saving-goal", title: "Saving up for something" }]);
     expect(repo.recordTurn).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({

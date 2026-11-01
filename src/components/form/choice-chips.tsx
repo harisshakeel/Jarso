@@ -25,7 +25,7 @@ export function ChoiceChips({
 }: ChoiceChipsProps) {
   return (
     <fieldset className={cn("grid gap-2", className)}>
-      <legend className="mb-2 font-semibold text-sm">{legend}</legend>
+      <legend className="mb-2 font-semibold">{legend}</legend>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => (
           <label key={option.value} className="relative cursor-pointer">

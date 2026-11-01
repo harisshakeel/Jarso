@@ -144,7 +144,7 @@ function PurchaseForm({
         </p>
       ) : null}
       <Button type="submit" size="lg" className="w-full" loading={pending}>
-        Save
+        Add it
       </Button>
     </form>
   );

@@ -1,7 +1,7 @@
 import { formatMoney } from "@/lib";
 import type { MoneyRule, Period } from "./types";
 
-const PER: Record<Period, string> = { item: "per time", week: "a week", month: "a month" };
+const PER: Record<Period, string> = { item: "each time", week: "a week", month: "a month" };
 
 const money = (minor: number, currency: string) =>
   formatMoney(minor, currency, { showMinor: "nonzero" });
@@ -34,7 +34,7 @@ export function describeRuleForChild(rule: MoneyRule, currency: string): string 
     case "withdrawal_auto_approve":
       return `You can take out up to ${amount} ${per} without asking`;
     case "deposit_auto_confirm":
-      return `Deposits up to ${amount} ${per} go straight into Save`;
+      return `Money you put in up to ${amount} ${per} goes straight into Save`;
   }
 }
 

@@ -10,7 +10,7 @@ import { getAvailability, listRequests } from "@/features/requests/server";
 import { getChildRules } from "@/features/rules/server";
 import { fallback } from "@/lib";
 
-export const metadata: Metadata = { title: "Requests" };
+export const metadata: Metadata = { title: "Move my money" };
 
 async function RequestsContent() {
   const { user } = await requireRole("child", routes.childRequests);
@@ -23,7 +23,7 @@ async function RequestsContent() {
   ]);
   return (
     <>
-      <h1 className="text-balance text-display">Requests</h1>
+      <h1 className="text-balance text-display">Move my money</h1>
       <RequestActions
         availability={availability}
         currency={family.currency}

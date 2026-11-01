@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AppHeader, InboxRefresh } from "@/components/shell";
 import { routes } from "@/config";
-import { SignOutButton } from "@/features/auth";
 import { OfflineBanner } from "@/features/offline";
 import { ProfileGate } from "./profile-gate";
 
@@ -19,7 +18,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col has-data-[slot=bottom-nav]:pb-[calc(4rem+env(safe-area-inset-bottom))] lg:has-data-[slot=bottom-nav]:pb-0 lg:has-data-[slot=bottom-nav]:pl-24">
-      <AppHeader homeHref={routes.dashboard} action={<SignOutButton />} />
+      <AppHeader homeHref={routes.dashboard} />
       <OfflineBanner />
       <Suspense fallback={null}>
         <InboxRefresh />

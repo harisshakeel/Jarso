@@ -43,7 +43,7 @@ describe("RequestList", () => {
         ]}
       />,
     );
-    for (const label of ["Approved", "Not approved", "Cancelled"]) {
+    for (const label of ["Said yes", "Not now", "Cancelled"]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.getAllByText("Done")).toHaveLength(2);

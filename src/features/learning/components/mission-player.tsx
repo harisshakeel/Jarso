@@ -90,14 +90,6 @@ function isSummary(data: unknown): data is Summary {
   return [answerable, firstTry, hints].every((n) => Number.isInteger(n));
 }
 
-function isCheckInResult(data: unknown): data is { correctCount: number } {
-  return (
-    !!data &&
-    typeof data === "object" &&
-    Number.isInteger((data as Record<string, unknown>).correctCount)
-  );
-}
-
 function failureText(result: { error: { code: string; message: string } }): string {
   return result.error.code === "INTERNAL" ? SAVE_FAILED : result.error.message;
 }
@@ -240,16 +232,10 @@ export function MissionPlayer(props: MissionPlayerProps) {
             setError(saved.problem);
             return;
           }
-          // Waiting to send (or an odd reply): the device graded the same answers, so it counts.
-          const known = isCheckInResult(saved.data)
-            ? saved.data.correctCount
-            : allResults.filter((r) => r.correct).length;
+          // The intro promised no score, so the finish never counts the answers back.
           setFinishText({
             heading: "Thanks. That helps pick where you start.",
-            body:
-              known > 0
-                ? `You already knew ${known} of 5. Mission 1 is a quick warm-up.`
-                : "Mission 1 starts with the basics.",
+            body: "Mission 1 is ready for you.",
           });
           setStage("finished");
         });
