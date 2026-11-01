@@ -50,7 +50,7 @@ External dependencies and what happens when each is down:
 | pg_cron | due allowances, reminders, retention jobs | Occurrences generate late, never twice; next run catches up. |
 | Email provider | parent reminders, request notices | Inbox still has the item; delivery rows retry with backoff and dead-letter after 5 attempts. |
 | Browser push (later) | same events, opt-in | Inbox is the fallback by design (FR16). |
-| Payment provider (Stripe, test mode) | Card handover and auto charge (ADR 0012) | Card actions say they are unavailable; cash handover is unchanged; a due item stays due; webhooks are retried by the provider. |
+| Payment providers (Stripe, Razorpay, test mode; several can be on) | Card handover and auto charge (ADR 0012, 0013) | Card actions say they are unavailable; cash handover is unchanged; a due item stays due; webhooks are retried by the provider. |
 | Claude API | Jarso's answers and look-ups (ADR 0010, 0011) | Friendly fallback copy ("Jarso is taking a break"); a circuit breaker after 5 failures a minute; topic material still available. |
 | Vercel | hosting | Status page; nothing to do in-app. |
 
@@ -96,6 +96,7 @@ src/
 │   ├── api/
 │   │   ├── health/               # shallow + deep health
 │   │   ├── cron/payments/auto-charge/  # CRON_SECRET-guarded auto charge (pg_cron via pg_net, Vercel Cron fallback)
+│   │   ├── v1/payments/…         # webhooks/[provider] (signature-guarded) and razorpay/return (cross-origin form post, redirect only)
 │   │   ├── cron/[job]/           # CRON_SECRET-guarded triggers (fallback to pg_cron)
 │   │   ├── hooks/notifications/  # database webhook receiver
 │   │   └── v1/…                  # versioned API for non-UI callers
@@ -121,7 +122,7 @@ src/
 ├── components/ui/      shadcn primitives + brand components (JarsoMark, JarIllustration, Money, StatusChip)
 ├── config/             routes, site, env (Zod-validated), feature flags
 ├── lib/                errors, logger, createAction, api helpers, supabase clients, money formatting
-│   └── payments/       server-only provider layer: PaymentProvider interface, registry, Stripe and fake adapters (ADR 0012)
+│   └── payments/       server-only provider layer: PaymentProvider interface, registry (a provider is on when its keys are set), Stripe, Razorpay and fake adapters (ADR 0012, 0013)
 ├── content/            missions and topics as versioned JSON (see 5.3)
 └── types/              generated database types
 supabase/migrations/    schema, RLS, functions, cron registrations
@@ -552,20 +553,22 @@ pending ──(parent approves)──► approved ──(parent confirms hand ov
 
 Withdrawal cap is checked against `available_save` at `pending` and again inside `complete_request`; deposits are checked against the Spend balance the same way, and never take Spend below zero even when overspending is allowed. `complete_request` is the only transition that writes to the ledger, and it is idempotent on the request id.
 
-### 7.5 Card handover (ADR 0012)
+### 7.5 Card handover (ADR 0012, 0013)
 
-A second way to hand over, next to cash, for due allowances and gifts. Test-mode showcase; the provider sits behind `@/lib/payments`.
+A second way to hand over, next to cash, for due allowances and gifts. Test-mode showcase; providers sit behind `@/lib/payments`. Several can be on at once (Stripe, Razorpay, fake); the parent picks one at checkout, and a saved card and each auto-charge toggle belong to one provider.
 
 ```
-parent taps Pay by card ──► startCardPayment: insert/reuse a pending `payments` row, ensureCustomer, createHostedPayment ──► redirect to the provider
+parent taps Pay by card / Pay with {label} ──► startCardPayment(provider): insert/reuse a pending `payments` row, ensureCustomer, createHostedPayment ──► redirect to the provider
 provider ──signed event──► POST /api/v1/payments/webhooks/[provider] ──► parseWebhook ──► handleProviderEvent
 handleProviderEvent ──► status machine (forward only) ──► apply_payment(payment): lock payment, source, child's ledger lock
                           ├─ source still due: ledger rows (method = card), source confirmed, payment succeeded
                           └─ source already handed over / closed / cancelled: payment succeeded_unapplied, no ledger rows
-auto charge: pg_cron :09 ─► /api/cron/payments/auto-charge ─► due_auto_charges ─► claim (one auto row per source) ─► chargeSaved
+auto charge: pg_cron :09 ─► /api/cron/payments/auto-charge ─► due_auto_charges(providers on) ─► claim (one auto row per source) ─► chargeSaved on the item's provider
              amount the card can't charge (currency or minimum) ─► claimed, then failed at once (no provider call)
              failed or expired ─► payment failed, item stays due, parent gets card_charge_failed
 ```
+
+Razorpay's save-card flow: `/parent/payments/razorpay` opens Razorpay Checkout; Checkout posts to `/api/v1/payments/razorpay/return`, which only redirects; the `order.paid` webhook saves the card. A Razorpay auto charge stays `pending` until its webhook, up to 72 h (each provider's `autoChargeSettleMinutes` sets when the stale sweep expires it). Starting a manual payment with another provider cancels the parent's still-`pending` checkout with the first.
 
 The redirect back from the provider never posts money; a `?card=cancelled` return cancels the parent's abandoned checkout for the item. Duplicate or late events are no-ops (status machine and `payment_webhook_events`). Cash after a pending card still works; whichever takes the source lock first posts.
 

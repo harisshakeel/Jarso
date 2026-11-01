@@ -26,9 +26,12 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `GUIDE_DAILY_BUDGET_CENTS` | e.g. `1000` | — | Optional; default 1000 (US$10 a day across all children). The guide shows its break copy once reached. |
 | `GUIDE_MONTHLY_BUDGET_CENTS` | e.g. `10000` | — | Optional; default 10000 (US$100 per calendar month, UTC, across all children). The guide shows its break copy once reached. |
 | `GUIDE_PROVIDER` | `anthropic` (default) | — | `fake` is for e2e only and is refused on Vercel production. |
-| `PAYMENTS_PROVIDER` | `none` (default) or `stripe` | `none` or `stripe` | Card handover (ADR 0012). `none` switches payments off. `fake` is for tests and local runs: it needs `PAYMENTS_ALLOW_FAKE=true` and is refused on Vercel production. |
-| `STRIPE_SECRET_KEY` | `sk_test_…` (sensitive) | same | Required when `PAYMENTS_PROVIDER=stripe`. Test keys only: a live key fails validation. |
-| `STRIPE_WEBHOOK_SECRET` | `whsec_…` (sensitive) | same | Required when `PAYMENTS_PROVIDER=stripe`. The signing secret of the dashboard endpoint below (not the `stripe listen` one). |
+| `PAYMENTS_ALLOW_FAKE` | unset | — | Turns the fake card provider on, for tests and local runs. Ignored on Vercel production. |
+| `STRIPE_SECRET_KEY` | `sk_test_…` (sensitive) | same | Card handover (ADR 0012, 0013). Stripe is on when both Stripe keys are set. Test keys only: a live key fails validation. |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_…` (sensitive) | same | The signing secret of the dashboard endpoint below (not the `stripe listen` one). |
+| `RAZORPAY_KEY_ID` | `rzp_test_…` (sensitive) | same | Razorpay is on when all three Razorpay keys are set. Test mode only: a live key id fails validation. INR families only. |
+| `RAZORPAY_KEY_SECRET` | test key secret (sensitive) | same | Server only. |
+| `RAZORPAY_WEBHOOK_SECRET` | the secret you type into the dashboard webhook (sensitive) | same | Razorpay chooses no format; use a long random value. |
 | `CRON_SECRET` | `<cron secret ≥16 chars>` (sensitive) | same | Bearer secret for `/api/cron/payments/auto-charge`. Unset: the route is 404. Vercel Cron sends it as `Authorization: Bearer …` on its own. |
 
 To change a value from a terminal: `printf '<value>' | vercel env add NAME production --force` (pipe it; never type a key into a command line). To take a Supabase key straight from the CLI, pass `--reveal` and pipe the one key into Vercel so it never appears on screen or in a log:
@@ -48,11 +51,13 @@ Never run the `--reveal` command on its own: it prints every secret key. Without
 3. For the launch gate, create the `guide-evals` environment (GitHub → Settings → Environments) with yourself as a required reviewer, add the same key there as the `ANTHROPIC_API_KEY` environment secret, and run **Guide evals** from the Actions tab. The run fails unless every safety and personal case routes correctly, there are zero FR09 breaks and at least 95% of on-topic answers are helpful.
 4. Jarso is on for every child by default once `FEATURE_GUIDE` is on (ADR 0011): every child's messages and looked-up money and learning data go to Anthropic. Until the eval gate passes and the legal review is done, keep `FEATURE_GUIDE` on in Production only while every family there is a demo or test account; turn it off before the first real family signs up.
 
-### Turning card payments on (Stripe test mode)
+### Turning card payments on (test mode)
 
-Card handover is a test-mode showcase (ADR 0012). Use Stripe test keys only; no real money moves. Add every value in the Vercel dashboard or pipe it (`printf '<value>' | vercel env add NAME production --sensitive --force`); never type one on a command line and never paste one into a chat, doc or log.
+Card handover is a test-mode showcase (ADR 0012, 0013). Use test keys only; no real money moves. There is no provider switch: a provider is on when all its keys are set, and several can be on at once. The parent picks one at checkout ("Pay by card" with one provider on, "Pay with {label}" with several). A provider with only some of its keys stays off, and the server logs the missing names once. Add every value in the Vercel dashboard or pipe it (`printf '<value>' | vercel env add NAME production --sensitive --force`); never type one on a command line and never paste one into a chat, doc or log.
 
-1. In the Stripe dashboard (test mode), copy the secret key (`sk_test_…`). Set `STRIPE_SECRET_KEY` and `PAYMENTS_PROVIDER=stripe`.
+**Stripe.**
+
+1. In the Stripe dashboard (test mode), copy the secret key (`sk_test_…`) into `STRIPE_SECRET_KEY`.
 2. Developers → Webhooks → Add endpoint: URL `https://jarso.vercel.app/api/v1/payments/webhooks/stripe`, API version `2026-10-28.endive`, and these events:
    - `checkout.session.completed`
    - `checkout.session.async_payment_succeeded`
@@ -63,8 +68,24 @@ Card handover is a test-mode showcase (ADR 0012). Use Stripe test keys only; no 
    - `payment_intent.requires_action`
 
    Copy the endpoint's signing secret (`whsec_…`) into `STRIPE_WEBHOOK_SECRET`.
-3. Generate a cron secret of at least 16 characters (for example `openssl rand -hex 32`, piped straight into Vercel) and set it as `CRON_SECRET`. Redeploy.
-4. Create the two Vault secrets so the hourly pg_cron job `charge-due-cards` (minute 9, via pg_net) can call the route. In Supabase → Project Settings → Vault, or the SQL editor:
+
+**Razorpay (test mode, INR).**
+
+1. In the Razorpay dashboard, switch to Test Mode. Account & Settings → API keys → generate a test key. Set `RAZORPAY_KEY_ID` (`rzp_test_…`) and `RAZORPAY_KEY_SECRET`.
+2. Account & Settings → Webhooks → Add new webhook: URL `https://jarso.vercel.app/api/v1/payments/webhooks/razorpay`, a long random secret (also set as `RAZORPAY_WEBHOOK_SECRET`), and these events:
+   - `payment_link.paid`
+   - `payment_link.expired`
+   - `payment_link.cancelled`
+   - `order.paid`
+   - `payment.captured`
+   - `payment.failed`
+3. Recurring payments on cards must be enabled on the account. Ask Razorpay support; without it, saving a card works but the auto charge fails.
+4. Razorpay shows only for families whose currency is INR (minimum 1 rupee). Pay now opens a card-only Payment Link. Save card opens Razorpay Checkout on `/parent/payments/razorpay` and charges 1 rupee, which is captured and not refunded. Checkout collects the parent's phone and email; Jarso stores neither. Test-mode card tokens last 3 days, so a saved card stops working after that. A repeat debit settles about 36 h after the charge starts, so an auto-charged item stays "card payment in progress" for up to 72 h before it is marked expired.
+
+**Both.**
+
+1. Generate a cron secret of at least 16 characters (for example `openssl rand -hex 32`, piped straight into Vercel) and set it as `CRON_SECRET`. Redeploy.
+2. Create the two Vault secrets so the hourly pg_cron job `charge-due-cards` (minute 9, via pg_net) can call the route. In Supabase → Project Settings → Vault, or the SQL editor:
 
    ```sql
    select vault.create_secret('https://jarso.vercel.app', 'app_url');
@@ -72,10 +93,10 @@ Card handover is a test-mode showcase (ADR 0012). Use Stripe test keys only; no 
    ```
 
    `cron_secret` must equal the app's `CRON_SECRET`. Until both exist the job does nothing, so local runs and CI are unaffected. Create them by hand in each environment; they are never in a migration. After rotating `CRON_SECRET`, update the Vault secret too (`docs/security.md`).
-5. `vercel.json` already has a daily fallback cron (`30 3 * * *`) on the same route. It works once `CRON_SECRET` is set. Hobby allows daily crons only, which is why pg_cron is the primary.
-6. Check: `curl -s -o /dev/null -w '%{http_code}' https://jarso.vercel.app/api/cron/payments/auto-charge` is `401` with payments on (a `404` means `CRON_SECRET` is unset or payments are off). A webhook with a bad signature returns `400`.
+3. `vercel.json` already has a daily fallback cron (`30 3 * * *`) on the same route. It works once `CRON_SECRET` is set. Hobby allows daily crons only, which is why pg_cron is the primary.
+4. Check: `curl -s -o /dev/null -w '%{http_code}' https://jarso.vercel.app/api/cron/payments/auto-charge` is `401` with payments on (a `404` means `CRON_SECRET` is unset or no provider is on). A webhook with a bad signature returns `400`.
 
-**Local development with Stripe.** Set `PAYMENTS_PROVIDER=stripe`, a test `STRIPE_SECRET_KEY` and `CRON_SECRET` in `.env.local`. Run `stripe listen --forward-to localhost:3000/api/v1/payments/webhooks/stripe`; it prints a local `whsec_…`, which goes in `.env.local` as `STRIPE_WEBHOOK_SECRET` (a different value from the dashboard endpoint's). `stripe trigger …` sends sample events. Without Stripe, use `PAYMENTS_PROVIDER=fake` with `PAYMENTS_ALLOW_FAKE=true`; its hosted page is `/dev/payments/fake`.
+**Local development.** Put the test keys of the providers you want and `CRON_SECRET` in `.env.local`. For Stripe, run `stripe listen --forward-to localhost:3000/api/v1/payments/webhooks/stripe`; it prints a local `whsec_…`, which goes in `.env.local` as `STRIPE_WEBHOOK_SECRET` (a different value from the dashboard endpoint's). `stripe trigger …` sends sample events. For Razorpay, the webhook needs a public URL (a tunnel to `localhost:3000`) registered in the test dashboard; without one the payment is made but never posts. Without any provider, set `PAYMENTS_ALLOW_FAKE=true`; its hosted page is `/dev/payments/fake`.
 
 **Stripe test cards** (any future expiry, any CVC, any postcode):
 
@@ -86,7 +107,7 @@ Card handover is a test-mode showcase (ADR 0012). Use Stripe test keys only; no 
 | `4000 0027 6000 3184` | Always needs authentication |
 | `4000 0000 0000 9995` | Insufficient funds |
 
-**Manual pass against real Stripe test mode** (not run by the agent; it needs real test keys). Run it once per deployment after the steps above, with `stripe listen` for local runs:
+**Manual pass against real test mode** (not run by the agent; it needs real test keys). Run it once per deployment and per provider after the steps above, with `stripe listen` for local Stripe runs. With several providers on, the buttons read "Pay with Stripe" and so on; pick the provider under test:
 
 - [ ] Family with a due allowance. On the handover screen, tap Pay by card, pay with `4242 4242 4242 4242`. The jars fill, history says "Paid by card", the allowance is no longer due.
 - [ ] Open Pay by card, then hand over cash before paying. Pay on the Stripe page afterwards: nothing posts again and the screen shows the refund note.
@@ -95,7 +116,9 @@ Card handover is a test-mode showcase (ADR 0012). Use Stripe test keys only; no 
 - [ ] Remove the card in Settings, turn auto charge on again and save `4242 4242 4242 4242` this time. With another item due, the cron run charges it once and the jars fill. A second run does nothing.
 - [ ] Remove the card: auto charge turns off for everything that parent set.
 - [ ] A child account sees "paid by card" on the history line and nothing else about payments.
-- [ ] Stripe dashboard → Webhooks: the endpoint shows 2xx for each event.
+- [ ] Stripe dashboard → Webhooks (or Razorpay dashboard → Webhooks): the endpoint shows 2xx for each event.
+- [ ] Razorpay only (INR family, test mode): pay now opens a card-only Payment Link and the jars fill after the webhook. Save a card on `/parent/payments/razorpay` (one of the test cards in Razorpay's documentation); closing Checkout returns to the allowance screen with nothing saved, completing it shows the card (brand, last 4). An auto charge shows "card payment in progress" and resolves by webhook, up to about 36 h later.
+- [ ] Two providers on: with Stripe's card saved and auto charge on, save a Razorpay card too. Removing one card turns off only the toggles that use it.
 
 ## Supabase auth settings for production
 
