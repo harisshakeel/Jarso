@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(76);
+select plan(77);
 
 -- Fixtures: PA owns family A (UTC) with children C1 and C2; PB owns family B (Asia/Kolkata) with C3.
 select tests.create_user('pa@example.com') as pa \gset
@@ -42,7 +42,7 @@ select throws_ok(
   format($$select public.record_purchase_at(%L, 100, null, 'kt', now() - interval '1 day')$$, :'c2'),
   '42501', null, 'record_purchase_at is not granted');
 select throws_ok(format($$select public.evaluate_spend_limits(%L)$$, :'seed1'), '42501', null, 'evaluate_spend_limits is not granted');
-select throws_ok(format($$select public.undo_purchase_at(%L, now())$$, :'seed1'), '42501', null, 'undo_purchase_at is not granted');
+select throws_ok(format($$select public.undo_diary_entry_at(%L, now())$$, :'seed1'), '42501', null, 'undo_diary_entry_at is not granted');
 select tests.clear_auth();
 set local role anon;
 select throws_ok(format($$select public.record_purchase(%L, 100, null, 'ka')$$, :'c1'), '42501', null, 'anon cannot record a purchase');
@@ -131,13 +131,16 @@ select throws_ok(format($$select public.undo_purchase(%L)$$, :'e4'), 'JA403', nu
 select tests.clear_auth();
 update public.family_members set status = 'approved' where profile_id = :'c1'::uuid;
 
--- 25 hours old: too late. Called as postgres with the child's claims.
+-- The 24 hours count from when the purchase was written (created_at), not its occurred_at,
+-- so one synced late keeps its full undo time. Called as postgres with the child's claims.
 select tests.clear_auth();
 select set_config('request.jwt.claims', jsonb_build_object('sub', :'c1', 'role', 'authenticated')::text, true);
 select (public.record_purchase_at(:'c1'::uuid, 50, null, 'old', now() - interval '25 hours'))->>'entry_id' as eold \gset
-select tests.authenticate_as(:'c1'::uuid);
-select is(public.undo_purchase(:'eold'::uuid), 'too_late', 'undo after 24 hours is too_late');
+select is(public.undo_diary_entry_at(:'eold'::uuid, now() + interval '24 hours 1 second'), 'too_late',
+  'undo more than 24 hours after the purchase was written is too_late');
 select is((select count(*)::int from public.ledger_entries where reverses_entry_id = :'eold'::uuid), 0, 'too_late posts nothing');
+select tests.authenticate_as(:'c1'::uuid);
+select is(public.undo_purchase(:'eold'::uuid), 'undone', 'a purchase written now with a 25-hour-old time can still be undone');
 
 -- ---------------------------------------------------------------------------
 -- Spending limits (C2, family A in UTC)
@@ -238,7 +241,7 @@ select is(
 
 -- Undone purchases do not count toward the window.
 select (public.record_purchase_at(:'c3'::uuid, 400, null, 'w3', '2026-02-10 12:00+05:30'))->>'entry_id' as ew3 \gset
-select is(public.undo_purchase_at(:'ew3'::uuid, '2026-02-10 13:00+05:30'), 'undone', 'undo within the window');
+select is(public.undo_diary_entry_at(:'ew3'::uuid, '2026-02-10 13:00+05:30'), 'undone', 'undo within the window');
 select is(
   (public.record_purchase_at(:'c3'::uuid, 300, null, 'w4', '2026-02-10 14:00+05:30'))->>'notices',
   '0', 'an undone purchase does not count toward the limit');
