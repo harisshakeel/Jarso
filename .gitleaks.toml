@@ -36,6 +36,12 @@ regex = '''\bwhsec_[A-Za-z0-9]{16,}'''
 keywords = ["whsec_"]
 
 [[rules]]
+id = "razorpay-key-id"
+description = "Razorpay API key id (test or live)"
+regex = '''\brzp_(test|live)_[A-Za-z0-9]{14,}'''
+keywords = ["rzp_test_", "rzp_live_"]
+
+[[rules]]
 id = "resend-api-key"
 description = "Resend API key (invitation email)"
 regex = '''\bre_[A-Za-z0-9_]{20,}'''
@@ -50,5 +56,6 @@ regexes = [
   '''[?&]key=\[REDACTED\]''',
   '''ci-placeholder''',
   '''test-publishable-key''',
+  '''rzp_(test|live)_X{14,}''',
   '''db password leaked in message''',
 ]

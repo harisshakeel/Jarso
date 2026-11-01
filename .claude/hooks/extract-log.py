@@ -31,6 +31,8 @@ REDACTIONS: List[Tuple[re.Pattern, str]] = [
     (re.compile(r'sk-(?:proj-|live_|test_)' + _SECRET_CHARS + r'{12,}'), 'sk-[REDACTED]'),
     (re.compile(r'\b((?:sk|rk)_(?:test|live)_)[A-Za-z0-9]{16,}'), r'\1[REDACTED]'),
     (re.compile(r'\bwhsec_[A-Za-z0-9]{16,}'), 'whsec_[REDACTED]'),
+    # Razorpay key ids (test and live)
+    (re.compile(r'\b(rzp_(?:test|live)_)[A-Za-z0-9]{14,}'), r'\1[REDACTED]'),
     # Resend (invitation email)
     (re.compile(r'\bre_[A-Za-z0-9_]{20,}'), 're_[REDACTED]'),
     # GitHub tokens
