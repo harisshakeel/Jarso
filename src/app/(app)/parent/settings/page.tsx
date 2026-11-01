@@ -90,7 +90,7 @@ async function ParentSettings({ searchParams }: Props) {
       {savedCards.length > 0 ? (
         <Section
           index={2}
-          title={paymentCopy.savedCardTitle(savedCards.length)}
+          title={paymentCopy.savedCardTitle(savedCards)}
           description={paymentCopy.testMode}
         >
           <SavedCards cards={savedCards} />

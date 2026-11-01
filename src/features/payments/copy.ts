@@ -1,4 +1,4 @@
-import type { FailureCode } from "./types";
+import type { FailureCode, SavedCard } from "./types";
 
 /** Parent-facing copy for card payments. The child never sees any of it. */
 export const paymentCopy = {
@@ -40,7 +40,9 @@ export const paymentCopy = {
   cardAt: (card: string, label: string) => `${card}, ${label}`,
   charges: (card: string) => `Charges ${card}.`,
   chargesOther: (label: string) => `Charges a card saved with ${label}.`,
-  savedCardTitle: (count: number) => (count > 1 ? "Saved cards" : "Saved card"),
+  /** Singular only for exactly one saved card; providers listed with no card don't count. */
+  savedCardTitle: (cards: readonly SavedCard[]) =>
+    cards.filter((entry) => entry.card !== null).length === 1 ? "Saved card" : "Saved cards",
   notNow: "Not now",
   contactTitle: (label: string) => `Save a card with ${label}`,
   phoneHelp: (label: string) =>
