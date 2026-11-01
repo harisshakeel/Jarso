@@ -37,19 +37,24 @@ const schema = z.object({
     .default("false")
     .transform((value) => value === "true"),
   /** Test mode only: a live key is refused. */
-  STRIPE_SECRET_KEY: z
-    .string()
-    .regex(/^(sk|rk)_test_/, "Use a Stripe test-mode key (sk_test_… or rk_test_…)")
-    .optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
+  // Blank counts as unset, so clearing a key turns its provider off instead of failing boot.
+  STRIPE_SECRET_KEY: blankAsUnset(
+    z
+      .string()
+      .regex(/^(sk|rk)_test_/, "Use a Stripe test-mode key (sk_test_… or rk_test_…)")
+      .optional(),
+  ),
+  STRIPE_WEBHOOK_SECRET: blankAsUnset(z.string().startsWith("whsec_").optional()),
   /** Test mode only: a live key id is refused. */
-  RAZORPAY_KEY_ID: z
-    .string()
-    .regex(/^rzp_test_/, "Use a Razorpay test-mode key id (rzp_test_…)")
-    .optional(),
-  RAZORPAY_KEY_SECRET: z.string().min(1).optional(),
+  RAZORPAY_KEY_ID: blankAsUnset(
+    z
+      .string()
+      .regex(/^rzp_test_/, "Use a Razorpay test-mode key id (rzp_test_…)")
+      .optional(),
+  ),
+  RAZORPAY_KEY_SECRET: blankAsUnset(z.string().min(1).optional()),
   /** The secret set on the test-mode dashboard webhook (Razorpay chooses no format). */
-  RAZORPAY_WEBHOOK_SECRET: z.string().min(1).optional(),
+  RAZORPAY_WEBHOOK_SECRET: blankAsUnset(z.string().min(1).optional()),
   /** Set by Vercel: "production", "preview" or "development". */
   VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
   /** Web push (FR16): the VAPID private key. Push is skipped unless this and the public key are set. */
