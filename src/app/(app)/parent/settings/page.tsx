@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
 import { Suspense } from "react";
@@ -51,6 +52,14 @@ async function ParentSettings({ searchParams }: Props) {
         }. That can't change once the family exists.`}
       >
         <FamilySettingsForm timezone={family.timezone} />
+        <p>
+          <Link
+            href={routes.invite}
+            className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            Accept a child's invitation
+          </Link>
+        </p>
       </Section>
     </>
   );

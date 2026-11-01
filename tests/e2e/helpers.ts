@@ -60,7 +60,7 @@ export async function completeParentProfile(
   page: Page,
   details: { dateOfBirth?: string; country?: string; gender?: string } = {},
 ): Promise<void> {
-  const dialog = page.getByRole("alertdialog", { name: "Finish your profile" });
+  const dialog = page.getByRole("alertdialog", { name: "One more thing." });
   await expect(dialog).toBeVisible();
   await dialog
     .getByLabel("Date of birth", { exact: true })

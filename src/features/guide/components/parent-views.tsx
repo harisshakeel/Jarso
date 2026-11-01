@@ -46,11 +46,11 @@ export function GuideCard({
             <BotIcon aria-hidden className="size-5" />
             Jarso, the AI helper
           </h2>
-          <GuideSwitch childId={childId} nickname={nickname} enabled={enabled} />
+          <GuideSwitch childId={childId} nickname={nickname} enabled={enabled} detail="short" />
           {flagged > 0 ? (
-            <p className="flex items-center gap-2 font-semibold text-destructive">
+            <p className="flex items-center gap-2 font-semibold text-gold-700 dark:text-gold-200">
               <FlagIcon aria-hidden className="size-4" />
-              {flagged === 1 ? "1 chat needs a look." : `${flagged} chats need a look.`}
+              {flagged === 1 ? "1 chat is worth a look." : `${flagged} chats are worth a look.`}
             </p>
           ) : null}
           <Link
@@ -85,21 +85,21 @@ export function ChatList({
             href={hrefFor(chat.id)}
             className={cn(
               "grid gap-1 rounded-xl border bg-card px-4 py-3 hover:bg-muted",
-              chat.flagged ? "border-destructive" : "border-hairline",
+              chat.flagged ? "border-gold bg-gold-100/40 dark:bg-gold-900/30" : "border-hairline",
             )}
           >
             <span className="flex items-center justify-between gap-2">
               <span className="font-semibold">{chat.label}</span>
-              <span className="text-ink-2 text-sm">{formatWhen(chat.lastMessageAt, timezone)}</span>
+              <span className="text-ink-2">{formatWhen(chat.lastMessageAt, timezone)}</span>
             </span>
             {chat.flagged ? (
-              <span className="flex items-center gap-1 font-semibold text-destructive text-sm">
+              <span className="flex items-center gap-1 font-semibold text-gold-700 dark:text-gold-200">
                 <FlagIcon aria-hidden className="size-4" />
-                Needs a look
+                Worth a look
               </span>
             ) : null}
             <span className="line-clamp-2 text-ink-2">{chat.preview}</span>
-            <span className="text-ink-2 text-xs">
+            <span className="text-ink-2">
               {chat.turns} {chat.turns === 1 ? "question" : "questions"}
             </span>
           </Link>
@@ -123,9 +123,12 @@ const ROUTE_NOTES: Partial<Record<NonNullable<TranscriptMessage["route"]>, strin
 export function Transcript({
   messages,
   timezone,
+  nickname = "Your child",
 }: {
   messages: TranscriptMessage[];
   timezone: string;
+  /** The child's name on their bubbles; "Your child" when unknown. */
+  nickname?: string;
 }) {
   return (
     <ol className="grid gap-3" aria-label="Chat">
@@ -139,9 +142,9 @@ export function Transcript({
               : "mr-8 bg-card shadow-rest",
           )}
         >
-          <span className="font-semibold text-ink-2 text-xs">
+          <span className="font-semibold text-ink-2 text-sm">
             {message.role === "child"
-              ? "Your child"
+              ? nickname
               : message.role === "guide"
                 ? "Jarso (AI)"
                 : "Jarso (set reply)"}
@@ -152,7 +155,7 @@ export function Transcript({
             {message.text}
           </p>
           {message.lookedAt.length > 0 ? (
-            <span className="flex items-center gap-1 text-ink-2 text-sm">
+            <span className="flex items-center gap-1 text-ink-2">
               <ScanSearchIcon aria-hidden className="size-4" />
               Looked at: {message.lookedAt.join(", ")}
             </span>
@@ -160,7 +163,7 @@ export function Transcript({
           {message.route && ROUTE_NOTES[message.route] ? (
             <span
               className={cn(
-                "flex items-center gap-1 text-sm",
+                "flex items-center gap-1",
                 message.flagged ? "font-semibold text-gold-700 dark:text-gold-200" : "text-ink-2",
               )}
             >
@@ -169,7 +172,7 @@ export function Transcript({
             </span>
           ) : null}
           {message.rating ? (
-            <span className="flex items-center gap-1 text-ink-2 text-sm">
+            <span className="flex items-center gap-1 text-ink-2">
               {message.rating === 1 ? (
                 <ThumbsUpIcon aria-hidden className="size-4" />
               ) : (

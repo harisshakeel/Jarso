@@ -40,7 +40,7 @@ test("a new parent is blocked until the profile is complete", async ({ browser }
   const page = await newActor(browser);
   await signUp(page, `e2e-profile-${run}@example.com`);
 
-  const dialog = page.getByRole("alertdialog", { name: "Finish your profile" });
+  const dialog = page.getByRole("alertdialog", { name: "One more thing." });
   await expect(dialog).toBeVisible();
   // The page behind is hidden from interaction while the dialog is open.
   await expect(page.getByRole("button", { name: "Create family" })).toHaveCount(0);
@@ -80,7 +80,7 @@ test("a parent can sign out from the dialog without completing it", async ({ bro
   const page = await newActor(browser);
   await signUp(page, `e2e-profile-out-${run}@example.com`);
 
-  const dialog = page.getByRole("alertdialog", { name: "Finish your profile" });
+  const dialog = page.getByRole("alertdialog", { name: "One more thing." });
   await dialog.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(at("/login"));
 
@@ -123,7 +123,7 @@ test("a parent with children who never completed the profile sees the dialog, no
   const { error } = await admin.from("parent_details").delete().eq("profile_id", userId);
   expect(error).toBeNull();
 
-  const dialog = page.getByRole("alertdialog", { name: "Finish your profile" });
+  const dialog = page.getByRole("alertdialog", { name: "One more thing." });
   for (const path of ["/parent", childPath]) {
     await page.goto(path);
     await expect(dialog).toBeVisible();
