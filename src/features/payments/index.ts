@@ -1,6 +1,7 @@
 // Public, client-safe API of the payments feature. Server-only API: "@/features/payments/server".
 export * from "./components";
 export * from "./copy";
+export { pickAutoChargeCard } from "./pick";
 export * from "./schemas";
 export {
   cancelCardPaymentAction,

@@ -1,7 +1,7 @@
 import "server-only";
 
 export { FAKE_METHODS, FAKE_SIGNATURE_HEADER, signFakeWebhook } from "./fake";
-export { getPaymentProvider, getPaymentProviderById, paymentProviderName } from "./registry";
+export { getPaymentProviderById, getPaymentProviders, paymentsEnabled } from "./registry";
 export type {
   CardSummary,
   FailureCode,

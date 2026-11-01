@@ -15,7 +15,7 @@ import {
 } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 import { paymentCopy, SavedCardPanel } from "@/features/payments";
-import { getSavedCard, paymentsEnabled } from "@/features/payments/server";
+import { getSavedCards, paymentsEnabled } from "@/features/payments/server";
 import { DisplayNameForm, ParentDetailsForm } from "@/features/profiles";
 import { getParentDetails, getProfile } from "@/features/profiles/server";
 
@@ -32,14 +32,16 @@ async function ParentSettings({ searchParams }: Props) {
   const { user, membership } = await requireRole("parent", routes.parentSettings);
   if (!membership) redirect(routes.parentSetup);
   const cardPayments = paymentsEnabled();
-  const [family, children, profile, details, card] = await Promise.all([
+  const [family, children, profile, details, savedCards] = await Promise.all([
     getFamily(),
     listChildren(),
     getProfile(user.id),
     getParentDetails(user.id),
-    cardPayments ? getSavedCard() : null,
+    cardPayments ? getSavedCards() : [],
   ]);
   if (!family) redirect(routes.parentSetup);
+  // Interim: one panel (Task 3 shows one per provider). A saved card first, else the first provider.
+  const saved = savedCards.find((entry) => entry.card !== null) ?? savedCards[0];
   const { tab } = paramsSchema.parse(await searchParams);
 
   const familyTab = (
@@ -85,9 +87,9 @@ async function ParentSettings({ searchParams }: Props) {
         </Section>
       ) : null}
 
-      {cardPayments ? (
+      {saved ? (
         <Section index={2} title="Saved card" description={paymentCopy.testMode}>
-          <SavedCardPanel card={card} />
+          <SavedCardPanel provider={saved.provider} card={saved.card} />
         </Section>
       ) : null}
     </>

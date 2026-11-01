@@ -5,6 +5,7 @@ import {
   cardReturnParamsSchema,
   fakeCheckoutParamsSchema,
   fakeCheckoutSchema,
+  removeSavedCardSchema,
 } from "@/features/payments/schemas";
 
 const id = "0b7e8f40-9d1a-4b2c-8e3f-1a2b3c4d5e6f";
@@ -14,15 +15,20 @@ function messages(result: { success: boolean; error?: { issues: { message: strin
 }
 
 describe("cardPaymentSchema", () => {
-  const valid = { kind: "allowance", id, cash: "3.00", saved: "2.00" };
+  const valid = { kind: "allowance", id, provider: "stripe", cash: "3.00", saved: "2.00" };
 
   it("parses the split to minor units", () => {
     expect(cardPaymentSchema("GBP", 500).parse(valid)).toEqual({
       kind: "allowance",
       id,
+      provider: "stripe",
       cashMinor: 300,
       savedMinor: 200,
     });
+  });
+
+  it.each([undefined, "paypal", ""])("refuses a missing or unknown provider: %s", (provider) => {
+    expect(cardPaymentSchema("GBP", 500).safeParse({ ...valid, provider }).success).toBe(false);
   });
 
   it("refuses a split that doesn't add up to the full amount", () => {
@@ -55,12 +61,28 @@ describe("cardPaymentSchema", () => {
 });
 
 describe("autoChargeSchema", () => {
-  const valid = { type: "allowance_schedule", id, on: "true", returnTo: "/parent/children/x" };
+  const valid = {
+    type: "allowance_schedule",
+    id,
+    on: "true",
+    provider: "razorpay",
+    returnTo: "/parent/children/x",
+  };
 
   it("reads a form's on flag", () => {
     expect(autoChargeSchema.parse(valid)).toEqual({ ...valid, on: true });
     expect(autoChargeSchema.parse({ ...valid, on: "false" }).on).toBe(false);
     expect(autoChargeSchema.parse({ ...valid, on: true }).on).toBe(true);
+  });
+
+  it("needs a provider to turn on, but not to turn off", () => {
+    const { provider: _, ...noProvider } = valid;
+    expect(autoChargeSchema.safeParse(noProvider).success).toBe(false);
+    expect(autoChargeSchema.parse({ ...noProvider, on: "false" })).toEqual({
+      ...noProvider,
+      on: false,
+    });
+    expect(autoChargeSchema.safeParse({ ...valid, provider: "paypal" }).success).toBe(false);
   });
 
   it("accepts a path with a query", () => {
@@ -141,5 +163,13 @@ describe("fakeCheckoutSchema", () => {
   it("refuses an off-site return", () => {
     const off = { ...base, mode: "payment", outcome: "pay", success: "https://evil.example" };
     expect(schema.safeParse(off).success).toBe(false);
+  });
+});
+
+describe("removeSavedCardSchema", () => {
+  it("takes a known provider only", () => {
+    expect(removeSavedCardSchema.parse({ provider: "fake" })).toEqual({ provider: "fake" });
+    expect(removeSavedCardSchema.safeParse({}).success).toBe(false);
+    expect(removeSavedCardSchema.safeParse({ provider: "paypal" }).success).toBe(false);
   });
 });

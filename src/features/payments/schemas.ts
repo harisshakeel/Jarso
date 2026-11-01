@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { moneySchema } from "@/lib";
 import { paymentCopy } from "./copy";
+import type { PaymentProviderId } from "./types";
+
+/** A card provider the parent chose (it must also be on: the service checks). */
+export const paymentProviderSchema = z.enum(["stripe", "razorpay", "fake"] satisfies [
+  PaymentProviderId,
+  ...PaymentProviderId[],
+]);
 
 /**
  * Pay by card: the same money parsing as the cash handover. The card always pays the item's
@@ -12,6 +19,7 @@ export const cardPaymentSchema = (currency: string, amountMinor?: number) =>
     .object({
       kind: z.enum(["allowance", "gift"]),
       id: z.uuid("We couldn't find that."),
+      provider: paymentProviderSchema,
       cash: moneySchema(currency, { allowZero: true }),
       saved: moneySchema(currency, { allowZero: true }),
     })
@@ -40,12 +48,22 @@ const flag = z.union([
   z.enum(["true", "false"]).transform((value) => value === "true"),
 ]);
 
-export const autoChargeSchema = z.object({
-  type: z.enum(["allowance_schedule", "parent_gift"]),
-  id: z.uuid("We couldn't find that."),
-  on: flag,
-  returnTo: returnToSchema,
-});
+/** Turning on names the provider whose saved card to charge; turning off needs none. */
+export const autoChargeSchema = z
+  .object({
+    type: z.enum(["allowance_schedule", "parent_gift"]),
+    id: z.uuid("We couldn't find that."),
+    on: flag,
+    provider: paymentProviderSchema.optional(),
+    returnTo: returnToSchema,
+  })
+  .refine((value) => !value.on || value.provider !== undefined, {
+    message: paymentCopy.chooseProvider,
+    path: ["provider"],
+  });
+
+/** Remove the parent's saved card at one provider. */
+export const removeSavedCardSchema = z.object({ provider: paymentProviderSchema });
 
 /** Cancel the parent's abandoned checkout for one item, on the return from the hosted page. */
 export const cancelCardPaymentSchema = z.object({
@@ -66,6 +84,7 @@ export const cardReturnParamsSchema = z.object({
 
 export type CardPaymentInput = z.infer<ReturnType<typeof cardPaymentSchema>>;
 export type AutoChargeInput = z.infer<typeof autoChargeSchema>;
+export type RemoveSavedCardInput = z.infer<typeof removeSavedCardSchema>;
 
 /** A query value: the first one when the key repeats. */
 const single = <S extends z.ZodType>(schema: S) =>

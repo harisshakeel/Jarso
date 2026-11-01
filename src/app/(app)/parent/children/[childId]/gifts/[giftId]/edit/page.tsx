@@ -5,7 +5,7 @@ import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { CancelGiftForm, GiftForm } from "@/features/allowance";
 import { listGifts } from "@/features/allowance/server";
-import { AutoChargeToggle } from "@/features/payments";
+import { AutoChargeToggle, pickAutoChargeCard } from "@/features/payments";
 import { getAutoChargeCard } from "@/features/payments/server";
 import { loadChild } from "../../../load-child";
 import { FormSkeleton, PageShell } from "../../../page-shell";
@@ -22,7 +22,9 @@ async function EditGiftContent({
     childId,
     routes.parentGiftEdit(childId, giftId),
   );
-  const [gifts, autoCharge] = await Promise.all([listGifts(childId), getAutoChargeCard()]);
+  const [gifts, autoChargeCards] = await Promise.all([listGifts(childId), getAutoChargeCard()]);
+  // Interim: one toggle, one provider (Task 3 lets the parent choose).
+  const autoCharge = pickAutoChargeCard(autoChargeCards);
   const gift = gifts.find((g) => g.id === giftId);
   const title = `Gift for ${child.nickname}`;
   const back = { href: routes.parentChild(childId), label: child.nickname };
@@ -54,6 +56,7 @@ async function EditGiftContent({
         <AutoChargeToggle
           target={{ type: "parent_gift", id: gift.id }}
           on={gift.autoCharge}
+          provider={autoCharge.provider}
           cardSaved={autoCharge.cardSaved}
           // Auto charge never back-charges, so a gift whose day has passed can't use it.
           unavailable={autoCharge.unavailableReason ?? (gift.giveOn < today ? "overdue" : null)}

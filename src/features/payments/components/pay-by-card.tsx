@@ -44,15 +44,19 @@ export function PayByCard({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<{ code: string; message: string }>();
 
-  if (state.unavailableReason === "off") return null;
+  // Interim (Task 3 replaces with one button per provider): pay with the first provider that
+  // can take this amount, else show the first one's reason. None listed: payments are off.
+  const choice = state.providers.find((p) => p.available) ?? state.providers[0];
+  if (!choice) return null;
+  const provider = choice.id;
 
   const fullAmount = split !== null && split.cash + split.saved === amountMinor;
   // An auto charge in flight has no page to go back to; a manual one reopens its page.
   const blocked = state.pending !== null && state.pending.redirectUrl === null;
   const reason =
-    state.unavailableReason === "too_small"
+    choice.unavailableReason === "too_small"
       ? paymentCopy.tooSmall
-      : state.unavailableReason === "unsupported_currency"
+      : choice.unavailableReason === "unsupported_currency"
         ? paymentCopy.unsupportedCurrency
         : null;
   const helpId = `pay-by-card-${childId}-${id}`;
@@ -65,6 +69,7 @@ export function PayByCard({
         startCardPaymentAction(null, {
           kind,
           id,
+          provider,
           cash: toMajorString(split.cash, currency),
           saved: toMajorString(split.saved, currency),
         }),
@@ -85,7 +90,7 @@ export function PayByCard({
         variant="outline"
         size="lg"
         loading={pending}
-        disabled={disabled || !state.available || blocked || !fullAmount}
+        disabled={disabled || !choice.available || blocked || !fullAmount}
         aria-describedby={helpId}
         onClick={pay}
       >

@@ -25,9 +25,9 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
-  // Card handover (payments design §6.2). "none" turns payments off; "fake" is for tests and
-  // needs PAYMENTS_ALLOW_FAKE, never on Vercel production.
-  PAYMENTS_PROVIDER: z.enum(["none", "stripe", "fake"]).default("none"),
+  // Card handover (ADR 0013). Each provider is on when all its keys are set; several can be on
+  // at once and the parent picks one. The fake is for tests and local runs: it needs
+  // PAYMENTS_ALLOW_FAKE and is never on Vercel production.
   PAYMENTS_ALLOW_FAKE: z
     .enum(["true", "false"])
     .default("false")
@@ -38,6 +38,14 @@ const schema = z.object({
     .regex(/^(sk|rk)_test_/, "Use a Stripe test-mode key (sk_test_… or rk_test_…)")
     .optional(),
   STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
+  /** Test mode only: a live key id is refused. */
+  RAZORPAY_KEY_ID: z
+    .string()
+    .regex(/^rzp_test_/, "Use a Razorpay test-mode key id (rzp_test_…)")
+    .optional(),
+  RAZORPAY_KEY_SECRET: z.string().min(1).optional(),
+  /** The secret set on the test-mode dashboard webhook (Razorpay chooses no format). */
+  RAZORPAY_WEBHOOK_SECRET: z.string().min(1).optional(),
   /** Bearer secret for the cron routes (Vercel Cron and pg_net). Unset: the routes are 404. */
   CRON_SECRET: z.string().min(16).optional(),
   /** Set by Vercel: "production", "preview" or "development". */

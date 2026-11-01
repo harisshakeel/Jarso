@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppError } from "@/lib";
+import type { PaymentProvider } from "@/lib/payments";
 import { createFakePaymentProvider } from "@/lib/payments/fake";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
@@ -12,7 +13,11 @@ vi.mock("@/features/family/server", () => ({
   getFamily: vi.fn(),
   listChildren: vi.fn(),
 }));
-vi.mock("@/lib/payments", () => ({ getPaymentProvider: vi.fn() }));
+vi.mock("@/lib/payments", () => ({
+  getPaymentProviders: vi.fn(),
+  getPaymentProviderById: vi.fn(),
+  paymentsEnabled: vi.fn(),
+}));
 vi.mock("@/features/payments/server/repository", () => ({
   cancelPayment: vi.fn(),
   clearAutoChargeBy: vi.fn(),
@@ -66,13 +71,28 @@ const savedCustomer = {
 };
 
 let provider: ReturnType<typeof createFakePaymentProvider>;
+/** The providers on for this test (the registry, mocked). */
+let on: PaymentProvider[];
+
+/** A second provider, built from the fake, for tests with several on. */
+const otherProvider = (over: Partial<PaymentProvider> = {}): PaymentProvider => ({
+  ...createFakePaymentProvider({ hostedUrl: `${APP}/dev/payments/fake` }),
+  id: "stripe",
+  label: "Stripe",
+  ...over,
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(NOW);
   provider = createFakePaymentProvider({ hostedUrl: `${APP}/dev/payments/fake` });
-  vi.mocked(payments.getPaymentProvider).mockReturnValue(provider);
+  on = [provider];
+  vi.mocked(payments.getPaymentProviders).mockImplementation(() => on);
+  vi.mocked(payments.getPaymentProviderById).mockImplementation(
+    (id) => on.find((p) => p.id === id) ?? null,
+  );
+  vi.mocked(payments.paymentsEnabled).mockImplementation(() => on.length > 0);
   vi.mocked(auth.assertUser).mockResolvedValue(parent);
   vi.mocked(family.assertParentOf).mockResolvedValue(parent);
   vi.mocked(family.assertParentCanRead).mockResolvedValue(parent);
@@ -98,10 +118,13 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const pay = (over: Partial<{ cashMinor: number; savedMinor: number }> = {}) =>
+const pay = (
+  over: Partial<{ cashMinor: number; savedMinor: number; provider: PaymentProvider["id"] }> = {},
+) =>
   service.startCardPayment({
     kind: "allowance",
     id: occurrenceId,
+    provider: "fake",
     cashMinor: 300,
     savedMinor: 200,
     ...over,
@@ -165,7 +188,13 @@ describe("startCardPayment", () => {
     });
     const hosted = vi.spyOn(provider, "createHostedPayment");
 
-    await service.startCardPayment({ kind: "gift", id: "gift-1", cashMinor: 500, savedMinor: 0 });
+    await service.startCardPayment({
+      kind: "gift",
+      id: "gift-1",
+      provider: "fake",
+      cashMinor: 500,
+      savedMinor: 0,
+    });
 
     expect(repo.findPaymentSource).toHaveBeenCalledWith(USER, {
       type: "parent_gift",
@@ -184,6 +213,7 @@ describe("startCardPayment", () => {
     vi.mocked(repo.findLivePayment).mockResolvedValue({
       id: "pay-1",
       trigger: "manual",
+      provider: "fake" as const,
       status: "pending",
       payerId: parent.id,
       expiresAt: new Date(NOW.getTime() + 30 * MIN).toISOString(),
@@ -205,6 +235,7 @@ describe("startCardPayment", () => {
     vi.mocked(repo.findLivePayment).mockResolvedValue({
       id: "pay-1",
       trigger: "manual",
+      provider: "fake" as const,
       status: "pending",
       payerId: parent.id,
       expiresAt: new Date(NOW.getTime() + 20 * MIN).toISOString(),
@@ -227,6 +258,7 @@ describe("startCardPayment", () => {
     vi.mocked(repo.findLivePayment).mockResolvedValue({
       id: "pay-old",
       trigger: "manual",
+      provider: "fake" as const,
       status: "pending",
       payerId: parent.id,
       expiresAt: new Date(NOW.getTime() - MIN).toISOString(),
@@ -248,6 +280,7 @@ describe("startCardPayment", () => {
     vi.mocked(repo.findLivePayment).mockResolvedValue({
       id: "pay-auto",
       trigger: "auto",
+      provider: "fake" as const,
       status: "pending",
       payerId: parent.id,
       expiresAt: null,
@@ -264,6 +297,7 @@ describe("startCardPayment", () => {
       .mockResolvedValueOnce({
         id: "pay-other",
         trigger: "manual",
+        provider: "fake" as const,
         status: "pending",
         payerId: parent.id,
         expiresAt: new Date(NOW.getTime() + 30 * MIN).toISOString(),
@@ -306,7 +340,13 @@ describe("startCardPayment", () => {
       dueOn: "2026-11-05",
     });
     await rejects(
-      service.startCardPayment({ kind: "gift", id: "gift-1", cashMinor: 500, savedMinor: 0 }),
+      service.startCardPayment({
+        kind: "gift",
+        id: "gift-1",
+        provider: "fake",
+        cashMinor: 500,
+        savedMinor: 0,
+      }),
       "CONFLICT",
     );
   });
@@ -331,11 +371,107 @@ describe("startCardPayment", () => {
   });
 });
 
+describe("startCardPayment: choosing a provider", () => {
+  const live = {
+    id: "pay-a",
+    trigger: "manual" as const,
+    status: "pending" as const,
+    provider: "stripe" as const,
+    payerId: parent.id,
+    expiresAt: new Date(NOW.getTime() + 20 * MIN).toISOString(),
+    redirectUrl: "https://checkout.example/a",
+  };
+
+  it.each([
+    ["a provider that is not on", "stripe" as const],
+    ["an unknown provider", "nope" as PaymentProvider["id"]],
+  ])("refuses %s with NOT_FOUND", async (_name, id) => {
+    await rejects(pay({ provider: id }), "NOT_FOUND");
+    expect(repo.findPaymentSource).not.toHaveBeenCalled();
+    expect(repo.insertPayment).not.toHaveBeenCalled();
+  });
+
+  it("opens the chosen provider's checkout when several are on", async () => {
+    const stripe = otherProvider();
+    on = [stripe, provider];
+    const fakeHosted = vi.spyOn(provider, "createHostedPayment");
+    const stripeHosted = vi.spyOn(stripe, "createHostedPayment");
+
+    await pay({ provider: "stripe" });
+
+    expect(repo.insertPayment).toHaveBeenCalledWith(
+      ADMIN,
+      expect.objectContaining({ provider: "stripe" }),
+    );
+    expect(repo.findCustomer).toHaveBeenCalledWith(USER, parent.id, "stripe");
+    expect(stripeHosted).toHaveBeenCalledTimes(1);
+    expect(fakeHosted).not.toHaveBeenCalled();
+  });
+
+  it("cancels another provider's live checkout, then opens the chosen one (D7)", async () => {
+    on = [otherProvider(), provider];
+    vi.mocked(repo.findLivePayment).mockResolvedValueOnce(live).mockResolvedValue(null);
+
+    const { redirectUrl } = await pay({ provider: "fake" });
+
+    expect(repo.cancelPayment).toHaveBeenCalledWith(ADMIN, "pay-a");
+    expect(vi.mocked(repo.cancelPayment).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(repo.insertPayment).mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(repo.setPendingSplit).not.toHaveBeenCalled();
+    expect(repo.insertPayment).toHaveBeenCalledWith(
+      ADMIN,
+      expect.objectContaining({ provider: "fake" }),
+    );
+    expect(redirectUrl).toContain("pay-1");
+  });
+
+  it("reuses the same provider's live checkout", async () => {
+    on = [otherProvider(), provider];
+    vi.mocked(repo.findLivePayment).mockResolvedValue(live);
+
+    expect((await pay({ provider: "stripe" })).redirectUrl).toBe(live.redirectUrl);
+    expect(repo.cancelPayment).not.toHaveBeenCalled();
+    expect(repo.insertPayment).not.toHaveBeenCalled();
+  });
+
+  it("is a CONFLICT while an auto charge is in flight, whatever its provider", async () => {
+    on = [otherProvider(), provider];
+    vi.mocked(repo.findLivePayment).mockResolvedValue({
+      ...live,
+      trigger: "auto",
+      redirectUrl: null,
+    });
+
+    await rejects(pay({ provider: "fake" }), "CONFLICT");
+    expect(repo.cancelPayment).not.toHaveBeenCalled();
+    expect(repo.insertPayment).not.toHaveBeenCalled();
+  });
+
+  it("is a CONFLICT while another provider's checkout waits on the bank", async () => {
+    on = [otherProvider(), provider];
+    vi.mocked(repo.findLivePayment).mockResolvedValue({ ...live, status: "requires_action" });
+
+    await rejects(pay({ provider: "fake" }), "CONFLICT");
+    expect(repo.cancelPayment).not.toHaveBeenCalled();
+  });
+
+  it("does not cancel the winner of a parallel click that chose another provider", async () => {
+    on = [otherProvider(), provider];
+    vi.mocked(repo.insertPayment).mockResolvedValue(null);
+    vi.mocked(repo.findLivePayment).mockResolvedValueOnce(null).mockResolvedValueOnce(live);
+
+    await rejects(pay({ provider: "fake" }), "CONFLICT");
+    expect(repo.cancelPayment).not.toHaveBeenCalled();
+  });
+});
+
 describe("cancelCardPayment", () => {
   const source = { type: "occurrence" as const, id: occurrenceId };
   const live = {
     id: "pay-1",
     trigger: "manual" as const,
+    provider: "fake" as const,
     status: "pending" as const,
     payerId: parent.id,
     expiresAt: new Date(NOW.getTime() + 20 * MIN).toISOString(),
@@ -388,16 +524,15 @@ describe("cancelCardPayment", () => {
 
 describe("payments off", () => {
   beforeEach(() => {
-    vi.mocked(payments.getPaymentProvider).mockReturnValue(null);
-  });
-
-  it("paymentsEnabled is false", () => {
-    expect(service.paymentsEnabled()).toBe(false);
+    on = [];
   });
 
   it.each<[string, () => Promise<unknown>]>([
     ["startCardPayment", () => pay()],
-    ["startCardSetup", () => service.startCardSetup({ arm: null, returnTo: "/parent" })],
+    [
+      "startCardSetup",
+      () => service.startCardSetup({ provider: "fake", arm: null, returnTo: "/parent" }),
+    ],
     [
       "setAutoCharge",
       () =>
@@ -405,10 +540,11 @@ describe("payments off", () => {
           type: "allowance_schedule",
           id: scheduleId,
           on: true,
+          provider: "fake",
           returnTo: "/parent",
         }),
     ],
-    ["removeSavedCard", () => service.removeSavedCard()],
+    ["removeSavedCard", () => service.removeSavedCard({ provider: "fake" })],
     [
       "cancelCardPayment",
       () => service.cancelCardPayment(childId, { type: "occurrence", id: occurrenceId }),
@@ -419,11 +555,12 @@ describe("payments off", () => {
     expect(repo.insertSetup).not.toHaveBeenCalled();
   });
 
-  it("getCardPaymentState says off and getSavedCard is null", async () => {
+  it("getCardPaymentState lists no providers and getSavedCards is empty", async () => {
     expect(
       await service.getCardPaymentState(childId, { type: "occurrence", id: occurrenceId }),
-    ).toEqual({ available: false, unavailableReason: "off", pending: null, lastOutcome: null });
-    expect(await service.getSavedCard()).toBeNull();
+    ).toEqual({ providers: [], pending: null, lastOutcome: null });
+    expect(family.assertParentCanRead).toHaveBeenCalledWith(childId);
+    expect(await service.getSavedCards()).toEqual([]);
   });
 
   it("getAutoChargeCard is null, so no toggle renders", async () => {
@@ -431,13 +568,45 @@ describe("payments off", () => {
   });
 });
 
+describe("a provider that is not on", () => {
+  it.each<[string, () => Promise<unknown>]>([
+    [
+      "startCardSetup",
+      () => service.startCardSetup({ provider: "stripe", arm: null, returnTo: "/parent" }),
+    ],
+    [
+      "setAutoCharge on",
+      () =>
+        service.setAutoCharge({
+          type: "allowance_schedule",
+          id: scheduleId,
+          on: true,
+          provider: "stripe",
+          returnTo: "/parent",
+        }),
+    ],
+    ["removeSavedCard", () => service.removeSavedCard({ provider: "stripe" })],
+  ])("%s throws NOT_FOUND", async (_name, run) => {
+    await rejects(run(), "NOT_FOUND");
+    expect(repo.insertSetup).not.toHaveBeenCalled();
+    expect(repo.setAutoChargeFor).not.toHaveBeenCalled();
+    expect(repo.clearAutoChargeBy).not.toHaveBeenCalled();
+  });
+});
+
 describe("setAutoCharge", () => {
-  const on = { type: "allowance_schedule" as const, id: scheduleId, on: true, returnTo: "/parent" };
+  const turnOn = {
+    type: "allowance_schedule" as const,
+    id: scheduleId,
+    on: true,
+    provider: "fake" as const,
+    returnTo: "/parent",
+  };
 
   it("with no saved card, starts a save-card session that arms the toggle", async () => {
     const setup = vi.spyOn(provider, "createHostedSetup");
 
-    const { redirectUrl } = await service.setAutoCharge(on);
+    const { redirectUrl } = await service.setAutoCharge(turnOn);
 
     expect(family.assertParentOf).toHaveBeenCalledWith(childId);
     expect(repo.insertSetup).toHaveBeenCalledWith(ADMIN, {
@@ -460,7 +629,7 @@ describe("setAutoCharge", () => {
   it("with a saved card, turns the toggle on through set_auto_charge", async () => {
     vi.mocked(repo.findCustomer).mockResolvedValue(savedCustomer);
 
-    expect(await service.setAutoCharge(on)).toEqual({ redirectUrl: null });
+    expect(await service.setAutoCharge(turnOn)).toEqual({ redirectUrl: null });
     expect(repo.setAutoChargeFor).toHaveBeenCalledWith(
       USER,
       { type: "allowance_schedule", id: scheduleId },
@@ -470,35 +639,65 @@ describe("setAutoCharge", () => {
     expect(repo.insertSetup).not.toHaveBeenCalled();
   });
 
+  it("uses the chosen provider's saved card when several are on", async () => {
+    on = [otherProvider(), provider];
+    vi.mocked(repo.findCustomer).mockImplementation(async (_db, _parent, id) =>
+      id === "stripe" ? savedCustomer : customer,
+    );
+
+    expect(await service.setAutoCharge({ ...turnOn, provider: "stripe" })).toEqual({
+      redirectUrl: null,
+    });
+    expect(repo.findCustomer).toHaveBeenCalledWith(USER, parent.id, "stripe");
+    expect(repo.setAutoChargeFor).toHaveBeenCalledWith(
+      USER,
+      { type: "allowance_schedule", id: scheduleId },
+      true,
+      "stripe",
+    );
+  });
+
+  it("refuses to turn on without a provider", async () => {
+    await rejects(service.setAutoCharge({ ...turnOn, provider: undefined }), "VALIDATION");
+    expect(repo.setAutoChargeFor).not.toHaveBeenCalled();
+  });
+
   it("falls back to saving a card when the card went away meanwhile", async () => {
     vi.mocked(repo.findCustomer).mockResolvedValue(savedCustomer);
     vi.mocked(repo.setAutoChargeFor).mockResolvedValue("no_card");
 
-    const { redirectUrl } = await service.setAutoCharge(on);
+    const { redirectUrl } = await service.setAutoCharge(turnOn);
     expect(redirectUrl).not.toBeNull();
     expect(repo.insertSetup).toHaveBeenCalled();
   });
 
-  it("turning off needs no card", async () => {
-    expect(await service.setAutoCharge({ ...on, on: false })).toEqual({ redirectUrl: null });
+  it("turning off needs no card and no provider", async () => {
+    expect(await service.setAutoCharge({ ...turnOn, on: false, provider: undefined })).toEqual({
+      redirectUrl: null,
+    });
+    expect(repo.findCustomer).not.toHaveBeenCalled();
     expect(repo.setAutoChargeFor).toHaveBeenCalledWith(
       USER,
       { type: "allowance_schedule", id: scheduleId },
       false,
-      "fake",
+      null,
     );
   });
 
   it("refuses a target the caller can't see", async () => {
     vi.mocked(repo.findAutoChargeTargetChildId).mockResolvedValue(null);
-    await rejects(service.setAutoCharge(on), "FORBIDDEN");
+    await rejects(service.setAutoCharge(turnOn), "FORBIDDEN");
   });
 });
 
 describe("startCardSetup", () => {
   it("keeps the return path's query", async () => {
     const setup = vi.spyOn(provider, "createHostedSetup");
-    await service.startCardSetup({ arm: null, returnTo: "/parent/settings?tab=card" });
+    await service.startCardSetup({
+      provider: "fake",
+      arm: null,
+      returnTo: "/parent/settings?tab=card",
+    });
     expect(repo.insertSetup).toHaveBeenCalledWith(ADMIN, {
       parentId: parent.id,
       provider: "fake",
@@ -512,9 +711,24 @@ describe("startCardSetup", () => {
     );
   });
 
+  it("saves the card with the chosen provider", async () => {
+    const stripe = otherProvider();
+    on = [stripe, provider];
+    const setup = vi.spyOn(stripe, "createHostedSetup");
+
+    await service.startCardSetup({ provider: "stripe", arm: null, returnTo: "/parent" });
+
+    expect(repo.insertSetup).toHaveBeenCalledWith(ADMIN, {
+      parentId: parent.id,
+      provider: "stripe",
+      arm: null,
+    });
+    expect(setup).toHaveBeenCalledTimes(1);
+  });
+
   it("refuses a return path off the app", async () => {
     await rejects(
-      service.startCardSetup({ arm: null, returnTo: "//evil.example/x" }),
+      service.startCardSetup({ provider: "fake", arm: null, returnTo: "//evil.example/x" }),
       "VALIDATION",
     );
   });
@@ -523,78 +737,129 @@ describe("startCardSetup", () => {
     vi.spyOn(provider, "createHostedSetup").mockRejectedValue(
       new AppError("UNAVAILABLE", "Card payments aren't available right now."),
     );
-    await rejects(service.startCardSetup({ arm: null, returnTo: "/parent" }), "UNAVAILABLE");
+    await rejects(
+      service.startCardSetup({ provider: "fake", arm: null, returnTo: "/parent" }),
+      "UNAVAILABLE",
+    );
     expect(repo.failSetup).toHaveBeenCalledWith(ADMIN, "setup-1");
   });
 });
 
-describe("saved card", () => {
-  it("getSavedCard returns brand and last 4", async () => {
-    vi.mocked(repo.findCustomer).mockResolvedValue(savedCustomer);
-    expect(await service.getSavedCard()).toEqual({ brand: "visa", last4: "4242" });
+describe("saved cards", () => {
+  it("getSavedCards lists every provider that is on, with its card or null", async () => {
+    on = [otherProvider(), provider];
+    vi.mocked(repo.findCustomer).mockImplementation(async (_db, _parent, id) =>
+      id === "stripe" ? savedCustomer : null,
+    );
+
+    expect(await service.getSavedCards()).toEqual([
+      { provider: "stripe", label: "Stripe", card: { brand: "visa", last4: "4242" } },
+      { provider: "fake", label: "Test card", card: null },
+    ]);
+    expect(auth.assertUser).toHaveBeenCalled();
+    expect(repo.findCustomer).toHaveBeenCalledWith(USER, parent.id, "stripe");
     expect(repo.findCustomer).toHaveBeenCalledWith(USER, parent.id, "fake");
   });
 
-  it("getSavedCard is null without a saved method", async () => {
-    expect(await service.getSavedCard()).toBeNull();
+  it("getAutoChargeCard says, per provider, whether the parent has a saved card", async () => {
+    on = [otherProvider(), provider];
+    vi.mocked(repo.findCustomer).mockImplementation(async (_db, _parent, id) =>
+      id === "fake" ? savedCustomer : customer,
+    );
+
+    expect(await service.getAutoChargeCard()).toEqual([
+      { provider: "stripe", label: "Stripe", cardSaved: false, unavailableReason: null },
+      { provider: "fake", label: "Test card", cardSaved: true, unavailableReason: null },
+    ]);
   });
 
-  it("getAutoChargeCard says whether the parent has a saved card", async () => {
-    expect(await service.getAutoChargeCard()).toEqual({
-      cardSaved: false,
-      unavailableReason: null,
-    });
-    vi.mocked(repo.findCustomer).mockResolvedValue(savedCustomer);
-    expect(await service.getAutoChargeCard()).toEqual({ cardSaved: true, unavailableReason: null });
-  });
-
-  it("getAutoChargeCard says unsupported_currency when the card can't charge the family's currency", async () => {
+  it("getAutoChargeCard says unsupported_currency for a provider that can't charge the family's currency", async () => {
+    on = [otherProvider({ minimumChargeMinor: (c) => (c === "JPY" ? null : 1) }), provider];
     vi.mocked(family.getFamily).mockResolvedValue({
       id: "fam-1",
       code: "ABC234",
       currency: "JPY",
       timezone: "UTC",
     });
-    vi.spyOn(provider, "minimumChargeMinor").mockImplementation((currency) =>
-      currency === "JPY" ? null : 1,
-    );
-    expect(await service.getAutoChargeCard()).toEqual({
-      cardSaved: false,
-      unavailableReason: "unsupported_currency",
-    });
+
+    expect(await service.getAutoChargeCard()).toEqual([
+      {
+        provider: "stripe",
+        label: "Stripe",
+        cardSaved: false,
+        unavailableReason: "unsupported_currency",
+      },
+      { provider: "fake", label: "Test card", cardSaved: false, unavailableReason: null },
+    ]);
   });
 
-  it("removeSavedCard detaches, clears the method and every toggle the parent set", async () => {
+  it("removeSavedCard detaches, clears the method and the toggles using that provider", async () => {
     vi.mocked(repo.findCustomer).mockResolvedValue(savedCustomer);
     const detach = vi.spyOn(provider, "detachMethod");
 
-    await service.removeSavedCard();
+    await service.removeSavedCard({ provider: "fake" });
 
     expect(family.assertRole).toHaveBeenCalledWith("parent");
+    expect(repo.findCustomer).toHaveBeenCalledWith(USER, parent.id, "fake");
     expect(detach).toHaveBeenCalledWith("fake_pm_ok");
     expect(repo.clearSavedCard).toHaveBeenCalledWith(ADMIN, parent.id, "fake");
-    expect(repo.clearAutoChargeBy).toHaveBeenCalledWith(ADMIN, parent.id);
+    expect(repo.clearAutoChargeBy).toHaveBeenCalledWith(ADMIN, parent.id, "fake");
   });
 
-  it("removeSavedCard with no card still turns toggles off and detaches nothing", async () => {
+  it("removeSavedCard touches only the chosen provider when several are on", async () => {
+    const stripe = otherProvider();
+    on = [stripe, provider];
+    vi.mocked(repo.findCustomer).mockResolvedValue(savedCustomer);
+    const fakeDetach = vi.spyOn(provider, "detachMethod");
+    const stripeDetach = vi.spyOn(stripe, "detachMethod");
+
+    await service.removeSavedCard({ provider: "stripe" });
+
+    expect(stripeDetach).toHaveBeenCalledTimes(1);
+    expect(fakeDetach).not.toHaveBeenCalled();
+    expect(repo.clearSavedCard).toHaveBeenCalledWith(ADMIN, parent.id, "stripe");
+    expect(repo.clearAutoChargeBy).toHaveBeenCalledTimes(1);
+    expect(repo.clearAutoChargeBy).toHaveBeenCalledWith(ADMIN, parent.id, "stripe");
+  });
+
+  it("removeSavedCard with no card still turns that provider's toggles off and detaches nothing", async () => {
     const detach = vi.spyOn(provider, "detachMethod");
-    await service.removeSavedCard();
+    await service.removeSavedCard({ provider: "fake" });
     expect(detach).not.toHaveBeenCalled();
-    expect(repo.clearAutoChargeBy).toHaveBeenCalledWith(ADMIN, parent.id);
+    expect(repo.clearSavedCard).not.toHaveBeenCalled();
+    expect(repo.clearAutoChargeBy).toHaveBeenCalledWith(ADMIN, parent.id, "fake");
   });
 });
 
 describe("getCardPaymentState", () => {
   const source = { type: "occurrence" as const, id: occurrenceId };
+  const fakeEntry = {
+    id: "fake",
+    label: "Test card",
+    available: true,
+    unavailableReason: null,
+  };
 
-  it("is available for a due item with nothing in flight", async () => {
+  it("lists the provider as available for a due item with nothing in flight", async () => {
     expect(await service.getCardPaymentState(childId, source)).toEqual({
-      available: true,
-      unavailableReason: null,
+      providers: [fakeEntry],
       pending: null,
       lastOutcome: null,
     });
     expect(family.assertParentCanRead).toHaveBeenCalledWith(childId);
+  });
+
+  it("lists every provider that is on, each with its own reason", async () => {
+    on = [otherProvider({ minimumChargeMinor: (c) => (c === "GBP" ? null : 1) }), provider];
+    expect((await service.getCardPaymentState(childId, source)).providers).toEqual([
+      {
+        id: "stripe",
+        label: "Stripe",
+        available: false,
+        unavailableReason: "unsupported_currency",
+      },
+      fakeEntry,
+    ]);
   });
 
   it("says unsupported_currency for JPY", async () => {
@@ -607,30 +872,31 @@ describe("getCardPaymentState", () => {
     vi.spyOn(provider, "minimumChargeMinor").mockImplementation((currency) =>
       currency === "JPY" ? null : 1,
     );
-    expect(await service.getCardPaymentState(childId, source)).toMatchObject({
-      available: false,
-      unavailableReason: "unsupported_currency",
-    });
+    expect((await service.getCardPaymentState(childId, source)).providers).toEqual([
+      { ...fakeEntry, available: false, unavailableReason: "unsupported_currency" },
+    ]);
   });
 
   it("says too_small below the minimum", async () => {
     vi.spyOn(provider, "minimumChargeMinor").mockReturnValue(1000);
-    expect(await service.getCardPaymentState(childId, source)).toMatchObject({
-      available: false,
-      unavailableReason: "too_small",
-    });
+    expect((await service.getCardPaymentState(childId, source)).providers).toEqual([
+      { ...fakeEntry, available: false, unavailableReason: "too_small" },
+    ]);
   });
 
-  it("shows a live payment as pending with its URL", async () => {
+  it("shows a live payment as pending with its provider and URL", async () => {
+    on = [otherProvider(), provider];
     vi.mocked(repo.findLivePayment).mockResolvedValue({
       id: "pay-1",
       trigger: "manual",
+      provider: "stripe",
       status: "pending",
       payerId: parent.id,
       expiresAt: new Date(NOW.getTime() + 5 * MIN).toISOString(),
       redirectUrl: "https://checkout.example/1",
     });
     expect((await service.getCardPaymentState(childId, source)).pending).toEqual({
+      provider: "stripe",
       redirectUrl: "https://checkout.example/1",
     });
   });
@@ -639,6 +905,7 @@ describe("getCardPaymentState", () => {
     vi.mocked(repo.findLivePayment).mockResolvedValue({
       id: "pay-1",
       trigger: "manual",
+      provider: "fake",
       status: "pending",
       payerId: parent.id,
       expiresAt: new Date(NOW.getTime() - MIN).toISOString(),

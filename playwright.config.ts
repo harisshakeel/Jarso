@@ -29,8 +29,8 @@ const serverEnv: Record<string, string> = {
   FEATURE_GUIDE: "true",
   GUIDE_PROVIDER: "fake",
   GUIDE_ALLOW_FAKE: "true",
-  // Card payments run on the fake provider and its hosted page; no Stripe calls, no keys.
-  PAYMENTS_PROVIDER: "fake",
+  // Card payments run on the fake provider and its hosted page; no Stripe or Razorpay calls, no
+  // keys (a provider is on only when its keys are set).
   PAYMENTS_ALLOW_FAKE: "true",
   CRON_SECRET: E2E_CRON_SECRET,
 };

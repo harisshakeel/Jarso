@@ -3,7 +3,7 @@ import { serverEnv } from "@/config/env.server";
 import { runAutoCharges } from "@/features/payments/server";
 import { AppError } from "@/lib";
 import { json, withApi } from "@/lib/api";
-import { paymentProviderName } from "@/lib/payments";
+import { paymentsEnabled } from "@/lib/payments";
 
 export const maxDuration = 60;
 
@@ -21,7 +21,7 @@ function authorized(header: string | null, secret: string): boolean {
  */
 const handler = withApi(async (req: Request) => {
   const secret = serverEnv.CRON_SECRET;
-  if (!secret || paymentProviderName() === null) throw new AppError("NOT_FOUND", "Not found");
+  if (!secret || !paymentsEnabled()) throw new AppError("NOT_FOUND", "Not found");
   if (!authorized(req.headers.get("authorization"), secret)) {
     throw new AppError("UNAUTHORIZED", "Unauthorized");
   }

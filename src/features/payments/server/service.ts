@@ -9,12 +9,24 @@ import {
   listChildren,
 } from "@/features/family/server";
 import { AppError, familyToday, logger } from "@/lib";
-import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
+import {
+  getPaymentProviderById,
+  getPaymentProviders,
+  type PaymentProvider,
+  type PaymentProviderId,
+  paymentsEnabled,
+} from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { paymentCopy } from "../copy";
 import { returnToSchema } from "../schemas";
-import type { AutoChargeTarget, CardPaymentState, CardSummary, PaymentSource } from "../types";
+import type {
+  AutoChargeCard,
+  AutoChargeTarget,
+  CardPaymentState,
+  PaymentSource,
+  SavedCard,
+} from "../types";
 import {
   cancelPayment,
   clearAutoChargeBy,
@@ -53,13 +65,9 @@ import {
 const CHECKOUT_MINUTES = 31;
 const FORBIDDEN = "You can't do that.";
 
-export function paymentsEnabled(): boolean {
-  return getPaymentProvider() !== null;
-}
-
-/** The active provider, or NOT_FOUND: with payments off the entry points don't exist. */
-function requireProvider(): PaymentProvider {
-  const provider = getPaymentProvider();
+/** The chosen provider when it is on, else NOT_FOUND (an off provider has no entry points). */
+function requireProvider(id: PaymentProviderId): PaymentProvider {
+  const provider = getPaymentProviderById(id);
   if (!provider) throw new AppError("NOT_FOUND", paymentCopy.off);
   return provider;
 }
@@ -140,15 +148,19 @@ async function readableSource(childId: string, source: PaymentSource): Promise<S
 // Reads
 // ---------------------------------------------------------------------------
 
-/** What the handover screen shows about paying this item by card. Parent only. */
+/**
+ * What the handover screen shows about paying this item by card, per provider that is on (none:
+ * payments are off). A provider that can't charge the family's currency is still listed, with
+ * its reason. `pending` names the provider of the live attempt. Parent only.
+ */
 export async function getCardPaymentState(
   childId: string,
   source: PaymentSource,
 ): Promise<CardPaymentState> {
-  const provider = getPaymentProvider();
-  if (!provider) {
+  const providers = getPaymentProviders();
+  if (providers.length === 0) {
     await assertParentCanRead(childId);
-    return { available: false, unavailableReason: "off", pending: null, lastOutcome: null };
+    return { providers: [], pending: null, lastOutcome: null };
   }
   const row = await readableSource(childId, source);
   const db = await createClient();
@@ -157,38 +169,56 @@ export async function getCardPaymentState(
     findLivePayment(db, source),
     findLatestPayment(db, source),
   ]);
-  const reason = unavailableFor(provider, family.currency, row.amountMinor);
-  const pending = live && unexpired(live, Date.now()) ? { redirectUrl: live.redirectUrl } : null;
-  const lastOutcome = pending ? null : outcomeOf(latest);
-  return { available: reason === null, unavailableReason: reason, pending, lastOutcome };
+  const pending =
+    live && unexpired(live, Date.now())
+      ? { provider: live.provider, redirectUrl: live.redirectUrl }
+      : null;
+  return {
+    providers: providers.map((provider) => {
+      const reason = unavailableFor(provider, family.currency, row.amountMinor);
+      return {
+        id: provider.id,
+        label: provider.label,
+        available: reason === null,
+        unavailableReason: reason,
+      };
+    }),
+    pending,
+    lastOutcome: pending ? null : outcomeOf(latest),
+  };
 }
 
-/** The signed-in parent's saved card at the active provider, or null. */
-export async function getSavedCard(): Promise<CardSummary | null> {
-  const provider = getPaymentProvider();
+/** The signed-in parent's saved card at each provider that is on (card null when none). */
+export async function getSavedCards(): Promise<SavedCard[]> {
   const user = await assertUser();
-  if (!provider) return null;
-  const customer = await findCustomer(await createClient(), user.id, provider.id);
-  return customer?.card ?? null;
+  const providers = getPaymentProviders();
+  if (providers.length === 0) return [];
+  const db = await createClient();
+  return Promise.all(
+    providers.map(async (provider) => ({
+      provider: provider.id,
+      label: provider.label,
+      card: (await findCustomer(db, user.id, provider.id))?.card ?? null,
+    })),
+  );
 }
 
 /**
- * What an auto-charge toggle needs: null with payments off (no toggle renders), else whether the
- * signed-in parent has a saved card (without one, turning on saves a card first) and whether a
- * card can charge the family's currency at all (when not, the toggle is hidden with the reason).
+ * What an auto-charge toggle needs, per provider that is on: null with payments off (no toggle
+ * renders), else whether the signed-in parent has a saved card there (without one, turning on
+ * saves a card first) and whether that provider can charge the family's currency at all.
  */
-export async function getAutoChargeCard(): Promise<{
-  cardSaved: boolean;
-  unavailableReason: "unsupported_currency" | null;
-} | null> {
-  const provider = getPaymentProvider();
-  if (!provider) return null;
-  const [card, family] = await Promise.all([getSavedCard(), familyOrThrow()]);
-  return {
-    cardSaved: card !== null,
+export async function getAutoChargeCard(): Promise<AutoChargeCard[] | null> {
+  const providers = getPaymentProviders();
+  if (providers.length === 0) return null;
+  const [cards, family] = await Promise.all([getSavedCards(), familyOrThrow()]);
+  return providers.map((provider) => ({
+    provider: provider.id,
+    label: provider.label,
+    cardSaved: cards.some((saved) => saved.provider === provider.id && saved.card !== null),
     unavailableReason:
       provider.minimumChargeMinor(family.currency) === null ? "unsupported_currency" : null,
-  };
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -196,17 +226,19 @@ export async function getAutoChargeCard(): Promise<{
 // ---------------------------------------------------------------------------
 
 /**
- * Opens a hosted checkout for the item's full amount and returns its URL. A second call while
- * the first checkout is live returns the same URL; a live one past its expiry is marked expired
- * and replaced. Nothing is posted here: the webhook posts on success.
+ * Opens a hosted checkout at the chosen provider for the item's full amount and returns its URL.
+ * A second call while the first checkout is live returns the same URL when it is the same
+ * provider; another provider's live checkout is cancelled first (D7). A live one past its expiry
+ * is marked expired and replaced. Nothing is posted here: the webhook posts on success.
  */
 export async function startCardPayment(input: {
   kind: "allowance" | "gift";
   id: string;
+  provider: PaymentProviderId;
   cashMinor: number;
   savedMinor: number;
 }): Promise<{ redirectUrl: string }> {
-  const provider = requireProvider();
+  const provider = requireProvider(input.provider);
   const source: PaymentSource = {
     type: input.kind === "allowance" ? "occurrence" : "parent_gift",
     id: input.id,
@@ -235,7 +267,7 @@ export async function startCardPayment(input: {
 
   const admin = createAdminClient();
   const split = { cashMinor: input.cashMinor, savedMinor: input.savedMinor };
-  const reused = await reuseLive(db, admin, source, split);
+  const reused = await reuseLive(db, admin, source, split, provider.id, true);
   if (reused) return { redirectUrl: reused };
 
   const customerRef = await ensureCustomerRef(provider, parent);
@@ -255,8 +287,9 @@ export async function startCardPayment(input: {
     expiresAt: expiresAt.toISOString(),
   });
   if (!paymentId) {
-    // A parallel click inserted first: send this one to the same checkout.
-    const winner = await reuseLive(db, admin, source, split);
+    // A parallel click inserted first: send this one to the same checkout. Never cancel the
+    // winner, even when it chose another provider.
+    const winner = await reuseLive(db, admin, source, split, provider.id, false);
     if (winner) return { redirectUrl: winner };
     throw new AppError("CONFLICT", paymentCopy.inProgress);
   }
@@ -296,16 +329,19 @@ export async function startCardPayment(input: {
 }
 
 /**
- * The live payment's checkout URL when it can be reused, with its split changed to this
- * request's (the split is ours: the provider only sees the full amount). Past its expiry it is
- * marked expired (null: start a new one). A live one with no URL (an auto charge in flight, or a
- * manual one still opening) is a CONFLICT.
+ * The live payment's checkout URL when it can be reused (same provider), with its split changed
+ * to this request's (the split is ours: the provider only sees the full amount). Past its expiry
+ * it is marked expired (null: start a new one). Another provider's open manual checkout is
+ * cancelled when `switchProvider` (null: start a new one; D7). Anything else live (an auto charge
+ * in flight, a manual one still opening or waiting on the bank) is a CONFLICT.
  */
 async function reuseLive(
   db: Awaited<ReturnType<typeof createClient>>,
   admin: ReturnType<typeof createAdminClient>,
   source: PaymentSource,
   split: { cashMinor: number; savedMinor: number },
+  providerId: PaymentProviderId,
+  switchProvider: boolean,
 ): Promise<string | null> {
   const live = await findLivePayment(db, source);
   if (!live) return null;
@@ -314,8 +350,20 @@ async function reuseLive(
     return null;
   }
   if (live.trigger === "manual" && live.redirectUrl) {
-    await setPendingSplit(admin, live.id, split);
-    return live.redirectUrl;
+    if (live.provider === providerId) {
+      await setPendingSplit(admin, live.id, split);
+      return live.redirectUrl;
+    }
+    // If it still completes at the old provider, apply_payment posts it or marks it unapplied.
+    if (switchProvider && live.status === "pending") {
+      await cancelPayment(admin, live.id);
+      logger.info("Card payment cancelled to switch provider", {
+        paymentId: live.id,
+        from: live.provider,
+        to: providerId,
+      });
+      return null;
+    }
   }
   throw new AppError("CONFLICT", paymentCopy.inProgress);
 }
@@ -327,7 +375,7 @@ async function reuseLive(
  * anyway: apply_payment accepts a success on a canceled row.
  */
 export async function cancelCardPayment(childId: string, source: PaymentSource): Promise<void> {
-  requireProvider();
+  if (!paymentsEnabled()) throw new AppError("NOT_FOUND", paymentCopy.off);
   const parent = await assertParentOf(childId);
   const db = await createClient();
   const row = await findPaymentSource(db, source);
@@ -353,14 +401,15 @@ async function assertParentOfTarget(target: AutoChargeTarget) {
 }
 
 /**
- * Opens a hosted save-card page. With `arm`, the webhook turns that auto-charge toggle on once
- * the card is saved (arm_auto_charge re-checks the parent then).
+ * Opens the chosen provider's hosted save-card page. With `arm`, the webhook turns that
+ * auto-charge toggle on once the card is saved (arm_auto_charge re-checks the parent then).
  */
 export async function startCardSetup(input: {
+  provider: PaymentProviderId;
   arm: AutoChargeTarget | null;
   returnTo: string;
 }): Promise<{ redirectUrl: string }> {
-  const provider = requireProvider();
+  const provider = requireProvider(input.provider);
   const parent = input.arm
     ? await assertParentOfTarget(input.arm)
     : (await assertRole("parent")).user;
@@ -396,24 +445,25 @@ async function openSetup(
 }
 
 /**
- * Turns auto charge on or off. On with no saved card returns a save-card URL instead; the
- * toggle turns on when the card is saved.
+ * Turns auto charge on (charging the chosen provider's saved card) or off (no provider needed).
+ * On with no saved card there returns a save-card URL instead; the toggle turns on when the card
+ * is saved.
  */
 export async function setAutoCharge(
-  input: AutoChargeTarget & { on: boolean; returnTo: string },
+  input: AutoChargeTarget & { on: boolean; provider?: PaymentProviderId; returnTo: string },
 ): Promise<{ redirectUrl: string | null }> {
-  const provider = requireProvider();
+  if (!input.on) return turnAutoChargeOff({ type: input.type, id: input.id });
+  if (!input.provider) throw new AppError("VALIDATION", paymentCopy.chooseProvider);
+  const provider = requireProvider(input.provider);
   const target: AutoChargeTarget = { type: input.type, id: input.id };
   const parent = await assertParentOfTarget(target);
   const db = await createClient();
 
-  if (input.on) {
-    const customer = await findCustomer(db, parent.id, provider.id);
-    if (!customer?.methodRef) return openSetup(provider, parent, target, input.returnTo);
-  }
+  const customer = await findCustomer(db, parent.id, provider.id);
+  if (!customer?.methodRef) return openSetup(provider, parent, target, input.returnTo);
   let result: "ok" | "no_card";
   try {
-    result = await setAutoChargeFor(db, target, input.on, provider.id);
+    result = await setAutoChargeFor(db, target, true, provider.id);
   } catch (error) {
     if (error instanceof AppError && error.code === "CONFLICT") {
       throw new AppError("CONFLICT", paymentCopy.nothingToCharge, { cause: error });
@@ -425,9 +475,19 @@ export async function setAutoCharge(
   return { redirectUrl: null };
 }
 
-/** Detaches the saved card, forgets it, and turns off every auto-charge toggle the parent set. */
-export async function removeSavedCard(): Promise<void> {
-  const provider = requireProvider();
+async function turnAutoChargeOff(target: AutoChargeTarget): Promise<{ redirectUrl: null }> {
+  if (!paymentsEnabled()) throw new AppError("NOT_FOUND", paymentCopy.off);
+  await assertParentOfTarget(target);
+  await setAutoChargeFor(await createClient(), target, false, null);
+  return { redirectUrl: null };
+}
+
+/**
+ * Detaches the parent's saved card at the chosen provider, forgets it, and turns off the
+ * auto-charge toggles they set that charge it (toggles on other providers' cards stay on).
+ */
+export async function removeSavedCard(input: { provider: PaymentProviderId }): Promise<void> {
+  const provider = requireProvider(input.provider);
   const { user } = await assertRole("parent");
   const customer = await findCustomer(await createClient(), user.id, provider.id);
   const admin = createAdminClient();
@@ -435,5 +495,5 @@ export async function removeSavedCard(): Promise<void> {
     await provider.detachMethod(customer.methodRef);
     await clearSavedCard(admin, user.id, provider.id);
   }
-  await clearAutoChargeBy(admin, user.id);
+  await clearAutoChargeBy(admin, user.id, provider.id);
 }

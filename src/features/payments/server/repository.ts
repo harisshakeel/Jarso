@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { toAppError } from "@/lib";
+import { AppError, toAppError } from "@/lib";
 import type { PaymentProviderId } from "@/lib/payments";
 import type { Database } from "@/types";
 import { isStoredStatus, type StoredStatus } from "../status";
@@ -16,6 +16,14 @@ type Client = SupabaseClient<Database>;
  */
 
 const UNIQUE_VIOLATION = "23505";
+const providerIds: readonly PaymentProviderId[] = ["stripe", "razorpay", "fake"];
+
+/** A stored provider name (the column's check allows only these). */
+function asProviderId(value: string): PaymentProviderId {
+  const id = providerIds.find((known) => known === value);
+  if (!id) throw new AppError("INTERNAL", "Unknown payment provider", { cause: value });
+  return id;
+}
 const failureCodes: readonly FailureCode[] = [
   "declined",
   "insufficient_funds",
@@ -37,6 +45,8 @@ export type SourceRow = PaymentSource & {
 export type LivePayment = {
   id: string;
   trigger: "manual" | "auto";
+  /** The provider this attempt went to. */
+  provider: PaymentProviderId;
   status: "pending" | "requires_action";
   payerId: string | null;
   expiresAt: string | null;
@@ -99,7 +109,7 @@ export async function findLivePayment(
 ): Promise<LivePayment | null> {
   const { data, error } = await db
     .from("payments")
-    .select("id, trigger, status, payer_id, expires_at, redirect_url")
+    .select("id, trigger, provider, status, payer_id, expires_at, redirect_url")
     .eq("source_type", source.type)
     .eq("source_id", source.id)
     .in("status", ["pending", "requires_action"])
@@ -111,6 +121,7 @@ export async function findLivePayment(
   return {
     id: data.id,
     trigger: data.trigger === "auto" ? "auto" : "manual",
+    provider: asProviderId(data.provider),
     status: data.status === "requires_action" ? "requires_action" : "pending",
     payerId: data.payer_id,
     expiresAt: data.expires_at,
@@ -284,9 +295,16 @@ export async function clearSavedCard(
   if (error) throw toAppError(error, "Failed to remove your card");
 }
 
-/** Turns off every auto-charge toggle the parent set. */
-export async function clearAutoChargeBy(admin: Client, parentId: string): Promise<void> {
-  const { error } = await admin.rpc("clear_auto_charge_by", { p_parent_id: parentId });
+/** Turns off every auto-charge toggle the parent set that charges this provider's card. */
+export async function clearAutoChargeBy(
+  admin: Client,
+  parentId: string,
+  provider: PaymentProviderId,
+): Promise<void> {
+  const { error } = await admin.rpc("clear_auto_charge_by", {
+    p_parent_id: parentId,
+    p_provider: provider,
+  });
   if (error) throw toAppError(error, "Failed to turn off auto charge");
 }
 
@@ -348,19 +366,21 @@ export async function findAutoChargeTargetChildId(
 
 /**
  * set_auto_charge as the signed-in parent. `no_card` when turning on finds no saved card at the
- * provider (JA409 "Save a card first"); any other refusal throws.
+ * provider (JA409 "Save a card first"); any other refusal throws. `provider` is null only when
+ * turning off: write_auto_charge then clears the toggle's provider and ignores the argument.
  */
 export async function setAutoChargeFor(
   db: Client,
   target: AutoChargeTarget,
   on: boolean,
-  provider: PaymentProviderId,
+  provider: PaymentProviderId | null,
 ): Promise<"ok" | "no_card"> {
   const { error } = await db.rpc("set_auto_charge", {
     p_target_type: target.type,
     p_target_id: target.id,
     p_on: on,
-    p_provider: provider,
+    // The generated Args type says string, but the SQL takes null (off needs no provider).
+    p_provider: provider as string,
   });
   if (error?.code === "JA409" && error.message === "Save a card first") return "no_card";
   if (error) throw toAppError(error, "Failed to change auto charge");
@@ -551,17 +571,22 @@ export type DueAutoCharge = {
   currency: string;
   customerRef: string;
   methodRef: string;
+  /** The provider whose saved card the toggle charges. */
+  provider: PaymentProviderId;
 };
 
-/** Due items with auto charge on and nothing claimed yet, oldest first (due_auto_charges). */
+/**
+ * Due items with auto charge on at one of these providers and nothing claimed yet, oldest first
+ * (due_auto_charges). A toggle on a provider not in the list is left out.
+ */
 export async function listDueAutoCharges(
   admin: Client,
-  provider: PaymentProviderId,
+  providers: readonly PaymentProviderId[],
   now: Date,
   limit: number,
 ): Promise<DueAutoCharge[]> {
   const { data, error } = await admin.rpc("due_auto_charges", {
-    p_provider: provider,
+    p_providers: [...providers],
     p_now: now.toISOString(),
     p_limit: limit,
   });
@@ -578,6 +603,7 @@ export async function listDueAutoCharges(
             currency: row.currency,
             customerRef: row.customer_ref,
             methodRef: row.method_ref,
+            provider: asProviderId(row.provider),
           },
         ]
       : [],

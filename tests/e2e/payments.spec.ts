@@ -11,7 +11,7 @@ import {
 import { assertLocalUrl, loadLocalSupabase } from "./local-supabase";
 
 /**
- * Card handover with the fake payment provider (PAYMENTS_PROVIDER=fake in playwright.config.ts)
+ * Card handover with the fake payment provider (PAYMENTS_ALLOW_FAKE=true in playwright.config.ts)
  * against LOCAL Supabase. Families are built through the API; the card journeys run in the
  * browser through the fake hosted checkout at /dev/payments/fake.
  */

@@ -11,6 +11,8 @@ import type { PaymentProvider } from "@/lib/payments/types";
 
 type Adapter = {
   name: string;
+  /** A currency this adapter charges, used for every call in the suite. */
+  currency: string;
   make: () => PaymentProvider;
   signedSucceeded: (paymentId: string) => { body: string; headers: Headers };
 };
@@ -19,6 +21,7 @@ const WEBHOOK_SECRET = "whsec_contract";
 
 const fake: Adapter = {
   name: "fake",
+  currency: "GBP",
   make: () => createFakePaymentProvider({ hostedUrl: "https://app.test/dev/payments/fake" }),
   signedSucceeded: (paymentId) => {
     const body = JSON.stringify({
@@ -40,6 +43,7 @@ vi.spyOn(stripeClient.checkout.sessions, "create").mockResolvedValue({
 
 const stripe: Adapter = {
   name: "stripe",
+  currency: "GBP",
   make: () =>
     createStripePaymentProvider({
       secretKey: "sk_test_dummy",
@@ -65,8 +69,14 @@ const stripe: Adapter = {
 describe.each([fake, stripe])("payment provider contract: $name", (adapter) => {
   const provider = adapter.make();
 
-  it("has a positive integer minimum charge for GBP", () => {
-    const min = provider.minimumChargeMinor("GBP");
+  it("has a label and a positive settle window", () => {
+    expect(provider.label).not.toBe("");
+    expect(Number.isInteger(provider.autoChargeSettleMinutes)).toBe(true);
+    expect(provider.autoChargeSettleMinutes).toBeGreaterThan(0);
+  });
+
+  it("has a positive integer minimum charge for its test currency", () => {
+    const min = provider.minimumChargeMinor(adapter.currency);
     expect(Number.isInteger(min)).toBe(true);
     expect(min).toBeGreaterThan(0);
   });
@@ -75,7 +85,7 @@ describe.each([fake, stripe])("payment provider contract: $name", (adapter) => {
     const result = await provider.createHostedPayment({
       paymentId: "pay-c",
       amountMinor: 1000,
-      currency: "GBP",
+      currency: adapter.currency,
       customerRef: "cus_c",
       description: "Pocket money",
       successUrl: "https://app.test/ok",

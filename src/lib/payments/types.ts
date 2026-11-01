@@ -1,4 +1,4 @@
-export type PaymentProviderId = "stripe" | "fake";
+export type PaymentProviderId = "stripe" | "razorpay" | "fake";
 export type PaymentStatus =
   | "pending"
   | "requires_action"
@@ -28,6 +28,14 @@ export type ProviderEvent =
 
 export interface PaymentProvider {
   readonly id: PaymentProviderId;
+  /** Name shown to the parent when more than one provider is on ("Pay with Stripe"). */
+  readonly label: string;
+  /**
+   * How long an off-session (auto) charge may stay pending before the stale sweep expires it.
+   * Stripe settles in seconds; a provider that must notify the cardholder before debiting needs
+   * longer, or a charge still on its way would be reported as failed.
+   */
+  readonly autoChargeSettleMinutes: number;
   /** Smallest amount the provider will charge, in minor units. Null when the currency is unsupported. */
   minimumChargeMinor(currency: string): number | null;
   ensureCustomer(i: { parentId: string; email: string | null }): Promise<{ customerRef: string }>;

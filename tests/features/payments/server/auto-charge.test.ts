@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppError } from "@/lib";
-import { FAKE_METHODS } from "@/lib/payments";
+import { FAKE_METHODS, type PaymentProvider } from "@/lib/payments";
 import { createFakePaymentProvider } from "@/lib/payments/fake";
 
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn(() => ({ kind: "admin" })) }));
 vi.mock("@/lib/payments", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/payments")>()),
-  getPaymentProvider: vi.fn(),
+  getPaymentProviders: vi.fn(),
+  getPaymentProviderById: vi.fn(),
 }));
 vi.mock("@/features/allowance/server", () => ({ getLastSplitWith: vi.fn() }));
 vi.mock("@/features/payments/server/repository", () => ({
@@ -38,14 +39,21 @@ const due = (id: string, methodRef: string = FAKE_METHODS.ok, amountMinor = 1000
   currency: "GBP",
   customerRef: "fake_cus_1",
   methodRef,
+  provider: "fake" as const,
 });
 
 let provider: ReturnType<typeof createFakePaymentProvider>;
+/** The providers on for this test (the registry, mocked). */
+let on: PaymentProvider[];
 
 beforeEach(() => {
   vi.clearAllMocks();
   provider = createFakePaymentProvider({ hostedUrl: "http://localhost:3000/dev/payments/fake" });
-  vi.mocked(payments.getPaymentProvider).mockReturnValue(provider);
+  on = [provider];
+  vi.mocked(payments.getPaymentProviders).mockImplementation(() => on);
+  vi.mocked(payments.getPaymentProviderById).mockImplementation(
+    (id) => on.find((p) => p.id === id) ?? null,
+  );
   vi.mocked(repo.listStaleLivePaymentIds).mockResolvedValue([]);
   vi.mocked(repo.listDueAutoCharges).mockResolvedValue([]);
   vi.mocked(allowance.getLastSplitWith).mockResolvedValue(null);
@@ -56,7 +64,7 @@ beforeEach(() => {
 
 describe("runAutoCharges", () => {
   it("does nothing with payments off", async () => {
-    vi.mocked(payments.getPaymentProvider).mockReturnValue(null);
+    on = [];
     expect(await runAutoCharges(NOW)).toEqual({
       attempted: 0,
       succeeded: 0,
@@ -77,7 +85,7 @@ describe("runAutoCharges", () => {
 
     await runAutoCharges(NOW);
 
-    expect(repo.listDueAutoCharges).toHaveBeenCalledWith(ADMIN, "fake", NOW, expect.any(Number));
+    expect(repo.listDueAutoCharges).toHaveBeenCalledWith(ADMIN, ["fake"], NOW, expect.any(Number));
     expect(allowance.getLastSplitWith).toHaveBeenCalledWith(ADMIN, CHILD);
     expect(repo.insertPayment).toHaveBeenCalledTimes(2);
     const expiresAt = new Date(NOW.getTime() + 30 * 60_000).toISOString();
@@ -101,6 +109,68 @@ describe("runAutoCharges", () => {
       ADMIN,
       expect.objectContaining({ amountMinor: 500, cashMinor: 500, savedMinor: 0, expiresAt }),
     );
+  });
+
+  it("charges each item with its own provider and its settle window", async () => {
+    const slow: PaymentProvider = {
+      ...createFakePaymentProvider({ hostedUrl: "http://localhost:3000/dev/payments/fake" }),
+      id: "razorpay",
+      label: "Razorpay",
+      autoChargeSettleMinutes: 4320,
+    };
+    on = [provider, slow];
+    vi.mocked(repo.listDueAutoCharges).mockResolvedValue([
+      due("o1"),
+      { ...due("o2"), provider: "razorpay", customerRef: "cust_1", methodRef: "m_2" },
+    ]);
+    const fakeCharge = vi.spyOn(provider, "chargeSaved");
+    const slowCharge = vi.spyOn(slow, "chargeSaved").mockResolvedValue({
+      providerRef: "order_2",
+      status: "pending",
+    });
+
+    expect(await runAutoCharges(NOW)).toEqual({
+      attempted: 2,
+      succeeded: 1,
+      failed: 0,
+      skipped: 0,
+    });
+
+    expect(repo.listDueAutoCharges).toHaveBeenCalledWith(
+      ADMIN,
+      ["fake", "razorpay"],
+      NOW,
+      expect.any(Number),
+    );
+    expect(repo.insertPayment).toHaveBeenCalledWith(
+      ADMIN,
+      expect.objectContaining({
+        source: { type: "occurrence", id: "o1" },
+        provider: "fake",
+        expiresAt: new Date(NOW.getTime() + 30 * 60_000).toISOString(),
+      }),
+    );
+    expect(repo.insertPayment).toHaveBeenCalledWith(
+      ADMIN,
+      expect.objectContaining({
+        source: { type: "occurrence", id: "o2" },
+        provider: "razorpay",
+        expiresAt: new Date(NOW.getTime() + 4320 * 60_000).toISOString(),
+      }),
+    );
+    expect(fakeCharge).toHaveBeenCalledTimes(1);
+    expect(fakeCharge).toHaveBeenCalledWith(expect.objectContaining({ paymentId: "pay-o1" }));
+    expect(slowCharge).toHaveBeenCalledTimes(1);
+    expect(slowCharge).toHaveBeenCalledWith(
+      expect.objectContaining({ paymentId: "pay-o2", customerRef: "cust_1", methodRef: "m_2" }),
+    );
+  });
+
+  it("skips an item whose provider is not on, without claiming it", async () => {
+    vi.mocked(repo.listDueAutoCharges).mockResolvedValue([{ ...due("o1"), provider: "stripe" }]);
+
+    expect(await runAutoCharges(NOW)).toMatchObject({ attempted: 0, skipped: 1 });
+    expect(repo.insertPayment).not.toHaveBeenCalled();
   });
 
   it("posts a synchronous success through apply_payment and stores the provider ref", async () => {

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FAKE_SIGNATURE_HEADER, type ProviderEvent, signFakeWebhook } from "@/lib/payments";
 
 vi.mock("@/config/env.server", () => ({
-  serverEnv: { PAYMENTS_PROVIDER: "fake", PAYMENTS_ALLOW_FAKE: true },
+  serverEnv: { PAYMENTS_ALLOW_FAKE: true },
 }));
 
 const PAYMENT_ID = "6f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f";

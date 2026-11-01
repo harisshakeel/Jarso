@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { clientEnv } from "@/config";
 import { FakeCheckout, fakeCheckoutParamsSchema } from "@/features/payments";
-import { paymentProviderName } from "@/lib/payments";
+import { getPaymentProviderById } from "@/lib/payments";
 
 export const metadata: Metadata = { title: "Fake checkout", robots: { index: false } };
 
@@ -14,7 +14,7 @@ async function FakeCheckoutContent({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = await searchParams;
-  if (paymentProviderName() !== "fake") notFound();
+  if (!getPaymentProviderById("fake")) notFound();
   const parsed = fakeCheckoutParamsSchema(clientEnv.NEXT_PUBLIC_APP_URL).safeParse(query);
   if (!parsed.success) notFound();
   return <FakeCheckout params={parsed.data} />;

@@ -19,7 +19,7 @@ const target = { type: "allowance_schedule" as const, id: "00000000-0000-4000-80
 
 describe("AutoChargeToggle", () => {
   it("reflects the current value", () => {
-    render(<AutoChargeToggle target={target} on cardSaved />);
+    render(<AutoChargeToggle provider="fake" target={target} on cardSaved />);
     expect(screen.getByRole("switch", { name: "Auto charge" })).toHaveAttribute(
       "aria-checked",
       "true",
@@ -27,10 +27,12 @@ describe("AutoChargeToggle", () => {
   });
 
   it("follows a new value from the server", () => {
-    const { rerender } = render(<AutoChargeToggle target={target} on={false} cardSaved />);
+    const { rerender } = render(
+      <AutoChargeToggle provider="fake" target={target} on={false} cardSaved />,
+    );
     const toggle = screen.getByRole("switch", { name: "Auto charge" });
     expect(toggle).toHaveAttribute("aria-checked", "false");
-    rerender(<AutoChargeToggle target={target} on cardSaved />);
+    rerender(<AutoChargeToggle provider="fake" target={target} on cardSaved />);
     expect(screen.getByRole("switch", { name: "Auto charge" })).toHaveAttribute(
       "aria-checked",
       "true",
@@ -39,7 +41,7 @@ describe("AutoChargeToggle", () => {
 
   it("shows the mandate before saving a card, then sends the parent to save one", async () => {
     setAutoChargeAction.mockResolvedValue({ ok: true, data: undefined });
-    render(<AutoChargeToggle target={target} on={false} cardSaved={false} />);
+    render(<AutoChargeToggle provider="fake" target={target} on={false} cardSaved={false} />);
     expect(screen.queryByText(MANDATE)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("switch", { name: "Auto charge" }));
@@ -51,6 +53,7 @@ describe("AutoChargeToggle", () => {
       expect(setAutoChargeAction).toHaveBeenCalledWith(null, {
         ...target,
         on: true,
+        provider: "fake",
         returnTo: "/parent/children/c1/allowance",
       }),
     );
@@ -58,12 +61,13 @@ describe("AutoChargeToggle", () => {
 
   it("turns on straight away with a saved card", async () => {
     setAutoChargeAction.mockResolvedValue({ ok: true, data: undefined });
-    render(<AutoChargeToggle target={target} on={false} cardSaved />);
+    render(<AutoChargeToggle provider="fake" target={target} on={false} cardSaved />);
     fireEvent.click(screen.getByRole("switch", { name: "Auto charge" }));
     await waitFor(() =>
       expect(setAutoChargeAction).toHaveBeenCalledWith(null, {
         ...target,
         on: true,
+        provider: "fake",
         returnTo: "/parent/children/c1/allowance",
       }),
     );
@@ -79,6 +83,7 @@ describe("AutoChargeToggle", () => {
   ] as const)("hides the switch and says why when %s", (reason, text) => {
     render(
       <AutoChargeToggle
+        provider="fake"
         target={{ type: "parent_gift", id: target.id }}
         on={false}
         cardSaved
@@ -95,7 +100,7 @@ describe("AutoChargeToggle", () => {
       ok: false,
       error: { code: "CONFLICT", message: "There's nothing left to charge for this." },
     });
-    render(<AutoChargeToggle target={target} on cardSaved />);
+    render(<AutoChargeToggle provider="fake" target={target} on cardSaved />);
     fireEvent.click(screen.getByRole("switch", { name: "Auto charge" }));
     expect(await screen.findByText("There's nothing left to charge for this.")).toBeVisible();
     expect(screen.getByRole("switch", { name: "Auto charge" })).toHaveAttribute(

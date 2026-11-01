@@ -5,11 +5,11 @@ const SECRET = "test-cron-secret-0123456789";
 
 const state = vi.hoisted(() => ({
   env: { CRON_SECRET: undefined as string | undefined },
-  provider: "fake" as "fake" | null,
+  enabled: true,
 }));
 
 vi.mock("@/config/env.server", () => ({ serverEnv: state.env }));
-vi.mock("@/lib/payments", () => ({ paymentProviderName: () => state.provider }));
+vi.mock("@/lib/payments", () => ({ paymentsEnabled: () => state.enabled }));
 vi.mock("@/features/payments/server", () => ({ runAutoCharges: vi.fn() }));
 
 const payments = await import("@/features/payments/server");
@@ -29,7 +29,7 @@ const call = (handler: typeof GET, method: string, authorization?: string) =>
 beforeEach(() => {
   vi.clearAllMocks();
   state.env.CRON_SECRET = SECRET;
-  state.provider = "fake";
+  state.enabled = true;
   vi.mocked(payments.runAutoCharges).mockResolvedValue(COUNTS);
 });
 
@@ -42,7 +42,7 @@ describe("cron auto charge route", () => {
   });
 
   it("is not found with payments off", async () => {
-    state.provider = null;
+    state.enabled = false;
     const res = await call(GET, "GET", `Bearer ${SECRET}`);
     expect(res.status).toBe(404);
     expect(payments.runAutoCharges).not.toHaveBeenCalled();

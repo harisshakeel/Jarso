@@ -39,6 +39,8 @@ export function createStripePaymentProvider(opts: {
 
   return {
     id: "stripe",
+    label: "Stripe",
+    autoChargeSettleMinutes: 30,
 
     minimumChargeMinor: stripeMinimumChargeMinor,
 

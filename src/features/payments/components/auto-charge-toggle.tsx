@@ -19,13 +19,15 @@ import {
 import { runOnline } from "@/features/offline";
 import { paymentCopy } from "../copy";
 import { setAutoChargeAction } from "../server/actions";
-import type { AutoChargeTarget } from "../types";
+import type { AutoChargeTarget, PaymentProviderId } from "../types";
 
 type AutoChargeToggleProps = {
   target: AutoChargeTarget;
   /** The schedule's or gift's current `auto_charge`. */
   on: boolean;
-  /** Whether the parent has a saved card. Without one, turning on saves a card first. */
+  /** The provider whose saved card turning on charges (or saves a card with). */
+  provider: PaymentProviderId;
+  /** Whether the parent has a saved card there. Without one, turning on saves a card first. */
   cardSaved: boolean;
   /**
    * Why auto charge can't work here, shown instead of the switch: a card can't charge the
@@ -57,7 +59,7 @@ export function AutoChargeToggle(props: AutoChargeToggleProps) {
   return <AutoChargeSwitch {...props} />;
 }
 
-function AutoChargeSwitch({ target, on, cardSaved }: AutoChargeToggleProps) {
+function AutoChargeSwitch({ target, on, provider, cardSaved }: AutoChargeToggleProps) {
   const returnTo = usePathname();
   const labelId = useId();
   const [checked, setChecked] = useState(on);
@@ -75,7 +77,7 @@ function AutoChargeSwitch({ target, on, cardSaved }: AutoChargeToggleProps) {
     setError(undefined);
     startTransition(async () => {
       const result = await runOnline(() =>
-        setAutoChargeAction(null, { ...target, on: next, returnTo }),
+        setAutoChargeAction(null, { ...target, on: next, provider, returnTo }),
       );
       // A card-saving result redirects to the provider. After an await, updates leave the
       // transition unless wrapped again (see rule-row.tsx).

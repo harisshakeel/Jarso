@@ -82,7 +82,11 @@ describe("HandoverForm", () => {
         dueOn="2026-11-02"
         note={null}
         prefill={{ cash: 500, saved: 0 }}
-        card={{ available: true, unavailableReason: null, pending: null, lastOutcome: null }}
+        card={{
+          providers: [{ id: "fake", label: "Test card", available: true, unavailableReason: null }],
+          pending: null,
+          lastOutcome: null,
+        }}
       />,
     );
     expect(screen.getByRole("button", { name: "Pay by card" })).toBeEnabled();

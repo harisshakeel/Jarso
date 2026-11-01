@@ -22,7 +22,7 @@ const BUTTONS = {
 } as const;
 
 /**
- * Stand-in for the provider's hosted checkout when PAYMENTS_PROVIDER=fake (dev and e2e only).
+ * Stand-in for the provider's hosted checkout when the fake provider is on (dev and e2e only).
  * Each button sends the event the provider would, then returns to the app with a full page load,
  * as a real hosted page on another site does (a soft navigation would keep the old page's client
  * state). `params`, not spread props: `ref` is reserved in React.

@@ -11,6 +11,7 @@ export const paymentCopy = {
   inProgress: "A card payment is already in progress. Give it a minute and try again.",
   badReturn: "Something went wrong. Please try again.",
   nothingToCharge: "There's nothing left to charge for this.",
+  chooseProvider: "Choose which card to charge.",
   allowanceFor: (nickname: string) => `Allowance for ${nickname}`,
   giftFor: (nickname: string) => `Gift for ${nickname}`,
   mandate:
@@ -37,7 +38,7 @@ export const paymentCopy = {
   removeCard: "Remove card",
   removeTitle: "Remove this card?",
   removeDetail:
-    "Auto charge turns off everywhere you turned it on. You can still pay by card when you hand over.",
+    "Auto charge turns off everywhere it uses this card. You can still pay by card when you hand over.",
   removed: "Card removed.",
   testMode: "Test mode. No real money moves.",
   cardEnding: (brand: string, last4: string) =>

@@ -2,7 +2,7 @@ import "server-only";
 import { prefillSplit } from "@/features/allowance";
 import { getLastSplitWith } from "@/features/allowance/server";
 import { isAppError, logger } from "@/lib";
-import { getPaymentProvider, type PaymentProvider } from "@/lib/payments";
+import { getPaymentProviderById, getPaymentProviders, type PaymentProvider } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { paymentCopy } from "../copy";
 import {
@@ -28,11 +28,10 @@ export type AutoChargeResult = {
 
 /** Items per run; the job runs hourly, so anything left over goes next hour. */
 const BATCH = 50;
-/** An auto row that never settles (lost webhook, outage) stops blocking the item after this. */
-const AUTO_EXPIRY_MINUTES = 30;
 
 /**
- * Trusted cron job (no user): charges each due item with auto charge on, once. First expires live
+ * Trusted cron job (no user): charges each due item with auto charge on, once, with the saved card
+ * of the provider its toggle names (only providers that are on are selected). First expires live
  * payments past their expiry so they stop blocking selection. Each item is claimed by inserting
  * its `auto` payment (the one-auto-per-source index makes overlapping runs skip it), then the
  * saved card is charged (an amount the card can't charge, in a currency with no minimum or below
@@ -43,8 +42,9 @@ const AUTO_EXPIRY_MINUTES = 30;
  */
 export async function runAutoCharges(now: Date = new Date()): Promise<AutoChargeResult> {
   const result: AutoChargeResult = { attempted: 0, succeeded: 0, failed: 0, skipped: 0 };
-  const provider = getPaymentProvider();
-  if (!provider) return result;
+  const providers = getPaymentProviders();
+  if (providers.length === 0) return result;
+  const providerIds = providers.map((provider) => provider.id);
   const admin = createAdminClient();
 
   for (const id of await listStaleLivePaymentIds(admin, now)) {
@@ -55,9 +55,11 @@ export async function runAutoCharges(now: Date = new Date()): Promise<AutoCharge
     }
   }
 
-  const due = await listDueAutoCharges(admin, provider.id, now, BATCH);
+  const due = await listDueAutoCharges(admin, providerIds, now, BATCH);
   for (const item of due) {
-    const outcome = await chargeOne(admin, provider, item, now);
+    const provider = getPaymentProviderById(item.provider);
+    // due_auto_charges only returns the providers asked for, so this is a safety net.
+    const outcome = provider ? await chargeOne(admin, provider, item, now) : "skipped";
     if (outcome === "skipped") {
       result.skipped += 1;
       continue;
@@ -66,7 +68,7 @@ export async function runAutoCharges(now: Date = new Date()): Promise<AutoCharge
     if (outcome === "succeeded") result.succeeded += 1;
     if (outcome === "failed") result.failed += 1;
   }
-  logger.info("Auto charge run finished", { provider: provider.id, ...result });
+  logger.info("Auto charge run finished", { providers: providerIds, ...result });
   return result;
 }
 
@@ -76,7 +78,7 @@ async function chargeOne(
   item: DueAutoCharge,
   now: Date,
 ): Promise<Outcome> {
-  const log = { sourceType: item.source.type, sourceId: item.source.id };
+  const log = { sourceType: item.source.type, sourceId: item.source.id, provider: provider.id };
   const minimum = provider.minimumChargeMinor(item.currency);
   const chargeable = minimum !== null && item.amountMinor >= minimum;
 
@@ -95,7 +97,8 @@ async function chargeOne(
       savedMinor: split.saved,
       trigger: "auto",
       status: "pending",
-      expiresAt: new Date(now.getTime() + AUTO_EXPIRY_MINUTES * 60_000).toISOString(),
+      // An auto row that never settles (lost webhook, outage) stops blocking the item after this.
+      expiresAt: new Date(now.getTime() + provider.autoChargeSettleMinutes * 60_000).toISOString(),
     });
   } catch (cause) {
     logger.error("Auto charge could not claim an item", { ...log, cause });

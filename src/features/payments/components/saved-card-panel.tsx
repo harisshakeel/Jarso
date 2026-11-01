@@ -18,13 +18,20 @@ import {
 import { runOnline } from "@/features/offline";
 import { paymentCopy } from "../copy";
 import { removeSavedCardAction } from "../server/actions";
-import type { CardSummary } from "../types";
+import type { CardSummary, PaymentProviderId } from "../types";
 
 /**
  * The parent's saved card in settings (spec §6.8): brand and last 4, and Remove, which also turns
  * off every auto charge they set. Cards are only saved by turning auto charge on.
  */
-export function SavedCardPanel({ card }: { card: CardSummary | null }) {
+export function SavedCardPanel({
+  provider,
+  card,
+}: {
+  /** The provider the card is saved with (Remove detaches it there only). */
+  provider: PaymentProviderId;
+  card: CardSummary | null;
+}) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<{ code: string; message: string }>();
@@ -32,7 +39,7 @@ export function SavedCardPanel({ card }: { card: CardSummary | null }) {
   function remove() {
     setError(undefined);
     startTransition(async () => {
-      const result = await runOnline(() => removeSavedCardAction(null, {}));
+      const result = await runOnline(() => removeSavedCardAction(null, { provider }));
       // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
       startTransition(() => {
         if (result.ok) {

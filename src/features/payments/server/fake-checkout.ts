@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { clientEnv } from "@/config";
 import { AppError, createAction } from "@/lib";
-import { FAKE_METHODS, type ProviderEvent, paymentProviderName } from "@/lib/payments";
+import { FAKE_METHODS, getPaymentProviderById, type ProviderEvent } from "@/lib/payments";
 import { type FakeCheckoutInput, fakeCheckoutSchema } from "../schemas";
 import { handleProviderEvent } from "./webhooks";
 
@@ -40,7 +40,7 @@ function eventFor(input: FakeCheckoutInput): ProviderEvent {
  */
 export const completeFakeCheckoutAction = createAction(
   () => {
-    if (paymentProviderName() !== "fake") throw new AppError("NOT_FOUND", "Not found");
+    if (!getPaymentProviderById("fake")) throw new AppError("NOT_FOUND", "Not found");
     return fakeCheckoutSchema(clientEnv.NEXT_PUBLIC_APP_URL);
   },
   async (input): Promise<{ returnTo: string }> => {
