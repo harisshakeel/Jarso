@@ -34,10 +34,11 @@ async function spend(amount: string, label: string): Promise<void> {
   const sheet = child.getByRole("dialog");
   // A fresh form every time: nothing is left over from the last purchase.
   await expect(sheet.getByLabel("Amount")).toHaveValue("");
-  await expect(sheet.getByLabel("What for? (optional)")).toHaveValue("");
+  await expect(sheet.getByLabel("Name it (optional)")).toHaveValue("");
   await sheet.getByLabel("Amount").fill(amount);
-  await sheet.getByLabel("What for? (optional)").fill(label);
-  await sheet.getByRole("button", { name: "Add it", exact: true }).click();
+  await sheet.getByLabel("Name it (optional)").fill(label);
+  await sheet.getByRole("radio", { name: "Snacks" }).check({ force: true });
+  await sheet.getByRole("button", { name: "Write it down", exact: true }).click();
 }
 
 test.beforeAll(async ({ browser }) => {
@@ -172,7 +173,8 @@ test("with overspend on, a purchase can take Spend below zero", async () => {
 
 test("child undoes the last purchase and Spend is restored", async () => {
   const line = history().getByRole("listitem").filter({ hasText: "Game" });
-  await line.getByRole("button", { name: "Undo Game" }).click();
+  await line.getByRole("button", { name: "Details for Game" }).click();
+  await child.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(line.getByText(/Undone/)).toBeVisible();
   await toHome();
   await expect(spendJar()).toContainText("US$400");
