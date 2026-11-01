@@ -52,7 +52,7 @@ export function ChildOverviewCard({
       ]
         .filter(Boolean)
         .join(" · ")
-    : "No goal yet";
+    : "Not saving for anything yet";
   return (
     <Card className="relative transition-shadow hover:shadow-raised">
       <div className="grid gap-3 px-(--card-spacing)">
@@ -86,8 +86,9 @@ export function ChildOverviewCard({
               capacityMinor={capacityMinor}
               filledMinor={spendMinor}
             />
-            <p className="text-sm">
-              Spend <span className="money font-bold">{money(spendMinor)}</span>
+            <p className="grid">
+              <span className="text-ink-2">Spend</span>
+              <span className="money font-bold text-money">{money(spendMinor)}</span>
             </p>
           </div>
           <div className="grid justify-items-center gap-1 text-center">
@@ -99,13 +100,14 @@ export function ChildOverviewCard({
               reservedMinor={reservedMinor}
               goal={goal ? { emoji: goal.emoji } : null}
             />
-            <p className="text-sm">
-              Save <span className="money font-bold">{money(saveMinor)}</span>
+            <p className="grid">
+              <span className="text-ink-2">Save</span>
+              <span className="money font-bold text-money">{money(saveMinor)}</span>
             </p>
           </div>
         </div>
-        <p className="text-sm">{goalLine}</p>
-        <p className="text-ink-2 text-sm">{describeAllowanceState(schedule)}</p>
+        <p>{goalLine}</p>
+        <p className="text-ink-2">{describeAllowanceState(schedule)}</p>
       </div>
     </Card>
   );

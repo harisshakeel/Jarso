@@ -7,6 +7,7 @@ import { z } from "zod";
 import { AmountField, Field, FormError } from "@/components/form";
 import {
   Button,
+  coinToast,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -119,7 +120,7 @@ function PurchaseForm({
       switch (result.status) {
         case "sent":
           await onSaved?.();
-          toast.success("Saved. Nice one.");
+          coinToast("Saved. Nice one.");
           onDone();
           router.refresh();
           return null;

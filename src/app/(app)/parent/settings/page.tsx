@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
 import { Suspense } from "react";
 import { z } from "zod";
 import { PageTabs, SlowFallback } from "@/components/shell";
-import { ThemeSwitch } from "@/components/theme";
+import { ThemeChoice } from "@/components/theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { routes } from "@/config";
 import { SignOutButton } from "@/features/auth";
@@ -16,6 +17,7 @@ import {
   isCurrency,
 } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
+import { PushToggle } from "@/features/notifications";
 import { paymentCopy, SavedCards } from "@/features/payments";
 import { getSavedCards, paymentsEnabled } from "@/features/payments/server";
 import { DisplayNameForm, ParentDetailsForm } from "@/features/profiles";
@@ -55,6 +57,14 @@ async function ParentSettings({ searchParams }: Props) {
         }. That can't change once the family exists.`}
       >
         <FamilySettingsForm timezone={family.timezone} />
+        <p>
+          <Link
+            href={routes.invite}
+            className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            Accept a child's invitation
+          </Link>
+        </p>
       </Section>
     </>
   );
@@ -97,8 +107,9 @@ async function ParentSettings({ searchParams }: Props) {
         </Section>
       ) : null}
       <Section index={3} title="Looks" description="Light, dark, or follow your device.">
-        <ThemeSwitch />
+        <ThemeChoice />
       </Section>
+      <PushToggle />
       <Section index={4} title="Done for now?" description="Sign out of Jarso on this device.">
         <SignOutButton />
       </Section>
@@ -152,7 +163,7 @@ function SettingsSkeleton() {
 
 export default function ParentSettingsPage({ searchParams }: Props) {
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-6">
+    <div className="mx-auto grid w-full max-w-4xl gap-6">
       <h1 className="text-h1">Settings</h1>
       <Suspense
         fallback={

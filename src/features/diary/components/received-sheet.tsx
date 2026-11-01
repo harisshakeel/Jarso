@@ -2,11 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
-import { toast } from "sonner";
 import { z } from "zod";
 import { AmountField, ChoiceChips, Field, FormError } from "@/components/form";
 import {
   Button,
+  coinToast,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -78,7 +78,7 @@ function ReceivedForm({ currency, onDone }: { currency: string; onDone: () => vo
         recordMoneyReceivedAction(null, payload as Parameters<typeof recordMoneyReceivedAction>[1]),
       );
       if (result.ok) {
-        toast.success("Saved. Nice one.");
+        coinToast("Saved. Nice one.");
         onDone();
         router.refresh();
         return null;

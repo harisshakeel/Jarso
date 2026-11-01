@@ -142,6 +142,17 @@ export function summaryLine(summary: {
   return `${summary.firstTry} of ${summary.answerable} first try. ${hints}`;
 }
 
+/**
+ * The child's finish line: praise for thinking, in words, never a score (the parent's page keeps
+ * `summaryLine`). Every step first time, most of it, or getting there: all three are good.
+ */
+export function praiseLine(summary: { answerable: number; firstTry: number }): string {
+  if (summary.answerable === 0) return "Nicely done.";
+  if (summary.firstTry === summary.answerable) return "Every one first time. Great thinking.";
+  if (summary.firstTry * 2 >= summary.answerable) return "Most of it first time. Good thinking.";
+  return "You got there. That's what counts.";
+}
+
 export const PRACTICE_SET_SIZE = 5;
 
 /**

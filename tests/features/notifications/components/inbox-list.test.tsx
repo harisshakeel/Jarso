@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { InboxList } from "@/features/notifications/components/inbox-list";
+import { groupNotices, InboxList } from "@/features/notifications/components/inbox-list";
 import type { Notice } from "@/features/notifications/types";
 
 const push = vi.fn();
@@ -72,5 +72,22 @@ describe("InboxList", () => {
     fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     expect(toastError.mock.calls[0]?.[0]).toMatch(/offline/i);
+  });
+});
+
+describe("groupNotices", () => {
+  const at = (hoursAgo: number, id: string): Notice => ({
+    ...notice,
+    id,
+    createdAt: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
+  });
+  it("splits notices into today, this week and older, dropping empty groups", () => {
+    const groups = groupNotices([at(1, "a"), at(3 * 24, "b"), at(20 * 24, "c")]);
+    expect(groups.map((g) => [g.label, g.items.map((n) => n.id)])).toEqual([
+      ["Today", ["a"]],
+      ["This week", ["b"]],
+      ["Older", ["c"]],
+    ]);
+    expect(groupNotices([at(2, "a")]).map((g) => g.label)).toEqual(["Today"]);
   });
 });

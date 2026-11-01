@@ -19,8 +19,8 @@ async function InboxContent({ searchParams }: Pick<Props, "searchParams">) {
     : null;
   return (
     <>
-      <h1 className="text-balance text-display">Inbox</h1>
-      <PushToggle />
+      <h1 className="text-balance text-h1">Inbox</h1>
+      <PushToggle hideWhenOn />
       <InboxList
         items={page.items}
         currency={family?.currency ?? "USD"}
@@ -43,7 +43,7 @@ function InboxSkeleton() {
 
 export default function ParentInboxPage({ searchParams }: Props) {
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-6">
+    <div className="mx-auto grid w-full max-w-3xl gap-6">
       <Suspense
         fallback={
           <SlowFallback>

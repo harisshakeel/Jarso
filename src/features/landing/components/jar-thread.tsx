@@ -108,8 +108,11 @@ export function JarThread({ progress }: { progress: number }) {
         return;
       }
 
-      // One thickness everywhere: the hero jar's stroke.
-      const width = 64 * JAR.scale * heroCtm.a;
+      // One thickness everywhere: the hero jar's stroke. On phones and tablets (the route line
+      // beside the stacked steps) it is capped so it stays a line in the gutter, never a bar
+      // over the words.
+      const scaled = 64 * JAR.scale * heroCtm.a;
+      const width = target.dataset.threadTarget === "mobile" ? Math.min(scaled, 8) : scaled;
       root.style.setProperty("--thread-width", `${width.toFixed(2)}px`);
 
       const viewport = window.innerHeight;

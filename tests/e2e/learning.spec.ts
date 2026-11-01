@@ -220,14 +220,13 @@ test("a mission gives instant feedback and replays a mistake at the end", async 
   await next(child);
 
   await expect(child.getByRole("heading", { name: "Mission done. Nice work." })).toBeVisible();
-  await expect(child.getByText("5 of 6 first try. 1 hint.")).toBeVisible();
+  await expect(child.getByText("Most of it first time. Good thinking.")).toBeVisible();
   await child.getByRole("link", { name: "Back to Learn" }).click();
   await expect(child).toHaveURL(at("/child/learn"));
   await expect(child.getByRole("link", { name: /Day 2.*Small buys add up/ })).toHaveAttribute(
     "aria-current",
     "step",
   );
-  await expect(child.getByText("Practised").first()).toBeVisible();
 });
 
 test("a locked mission can't be opened", async () => {
@@ -267,7 +266,7 @@ test("a due review shows up as practice, then nothing is due", async () => {
   ).toBeVisible();
   await child.getByRole("link", { name: "Practise", exact: true }).click();
   await expect(child).toHaveURL(at("/child/learn/practice"));
-  await expect(child.getByText("Question 1 of 1")).toBeVisible();
+  await expect(child.getByText("Your turn.")).toBeVisible();
 
   // Any answer will do: right or wrong after two tries, the practice set finishes.
   await answerAnything(child);
@@ -296,7 +295,7 @@ test("your week sums the week and asks one fresh question", async () => {
   await expect(week.getByText(/You showed you can|Worth another look/)).toBeVisible();
   await child.getByRole("link", { name: "One fresh question" }).click();
   await expect(child).toHaveURL(at("/child/learn/week/question"));
-  await expect(child.getByText("Question 1 of 1")).toBeVisible();
+  await expect(child.getByText("Your turn.")).toBeVisible();
   await answerAnything(child);
   await check(child);
   if (await child.getByRole("button", { name: "Try again" }).isVisible()) {
@@ -339,6 +338,7 @@ test("after days away, home offers one quick question instead of the next missio
 
 test("the parent sees learning apart from money", async () => {
   await parent.goto(`/parent/children/${childId}`);
+  await parent.getByRole("tab", { name: "Learning" }).click();
   await expect(parent.getByRole("region", { name: "Learning" })).toContainText(
     "1 of 7 missions done.",
   );

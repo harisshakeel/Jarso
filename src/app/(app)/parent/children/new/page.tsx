@@ -15,9 +15,9 @@ async function GuardedAddChildForm() {
   if (!membership) redirect(routes.parentSetup);
   return (
     <div className="grid gap-6">
+      <AddChildForm />
       {/* Jarso is on by default (ADR 0011): the parent is told before the child exists. */}
       {isGuideConfigured() ? <JarsoNotice /> : null}
-      <AddChildForm />
     </div>
   );
 }

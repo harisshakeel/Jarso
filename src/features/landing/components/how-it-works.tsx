@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib";
 import { landingCopy } from "../copy";
 import { useInView } from "../hooks/use-in-view";
+import { useReducedMotion } from "../hooks/use-reduced-motion";
 import { GoalDemo } from "./demos/goal-demo";
 import { HandoverDemo } from "./demos/handover-demo";
 import { MissionDemo } from "./demos/mission-demo";
@@ -13,11 +14,17 @@ import { TwoBeat } from "./two-beat";
 const demos = [HandoverDemo, PurchaseDemo, GoalDemo, MissionDemo] as const;
 const numeral = (index: number) => String(index + 1).padStart(2, "0");
 
-function Step({ index, onActive }: { index: number; onActive: (index: number) => void }) {
+function Step({
+  index,
+  onActive,
+  onDone,
+}: {
+  index: number;
+  onActive: (index: number) => void;
+  onDone: (index: number) => void;
+}) {
   const step = useRef<HTMLLIElement>(null);
-  const stage = useRef<HTMLDivElement>(null);
   const centred = useInView(step, { threshold: 0, rootMargin: "-45% 0px -45% 0px" });
-  const play = useInView(stage, { threshold: 0.5 });
   const copy = landingCopy.how.steps[index];
   const Demo = demos[index];
 
@@ -29,6 +36,7 @@ function Step({ index, onActive }: { index: number; onActive: (index: number) =>
   return (
     <li
       ref={step}
+      data-step={index}
       className="relative grid gap-8 py-14 pl-5 sm:pl-6 lg:min-h-[80svh] lg:grid-cols-[5fr_6fr] lg:items-center lg:gap-16 lg:py-16 lg:pl-0"
     >
       <span
@@ -48,8 +56,8 @@ function Step({ index, onActive }: { index: number; onActive: (index: number) =>
         </h3>
         <p className="text-ink-2 text-lg">{copy.line}</p>
       </div>
-      <div ref={stage} className="rounded-[2rem] bg-muted/70 p-4 sm:p-8">
-        <Demo play={play} />
+      <div className="rounded-[2rem] bg-muted/70 p-4 sm:p-8">
+        <Demo onDone={() => onDone(index)} />
       </div>
     </li>
   );
@@ -58,12 +66,51 @@ function Step({ index, onActive }: { index: number; onActive: (index: number) =>
 /**
  * Spec §3.2. Four steps, each most of a screen on desktop beside a sticky rail of outlined numerals
  * (the active one fills in, a coin marks it on the line); on phones they stack along a route line.
- * Either line is where the hero jar's unwound outline arrives. Each demo plays when it is
- * half in view and replays on the way back.
+ * Either line is where the hero jar's unwound outline arrives. Each step is a small piece of the
+ * app to play, and the page waits on a step until it is played: scrolling down past an unfinished
+ * step is held while it is on screen, scrolling back up always works. Reduced motion, the
+ * keyboard and assistive tech get the plain flow with nothing held.
  */
 export function HowItWorks() {
   const [active, setActive] = useState(0);
+  const [done, setDone] = useState<boolean[]>(() => landingCopy.how.steps.map(() => false));
+  const reduced = useReducedMotion();
   const { how } = landingCopy;
+  const holding = !reduced && !done[active];
+
+  useEffect(() => {
+    if (!holding) return;
+    // The step on stage: hold only while most of it is on screen, so nothing jams elsewhere.
+    const onStage = () => {
+      const element = document.querySelector<HTMLElement>(`[data-step="${active}"]`);
+      if (!element) return false;
+      const rect = element.getBoundingClientRect();
+      const viewport = window.innerHeight;
+      return rect.top <= viewport * 0.35 && rect.bottom >= viewport * 0.65;
+    };
+    let touchY = 0;
+    const onWheel = (event: WheelEvent) => {
+      if (event.deltaY > 0 && onStage()) event.preventDefault();
+    };
+    const onTouchStart = (event: TouchEvent) => {
+      touchY = event.touches[0]?.clientY ?? 0;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      const y = event.touches[0]?.clientY ?? touchY;
+      if (y < touchY - 2 && onStage() && event.cancelable) event.preventDefault();
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [holding, active]);
+
+  const finish = (index: number) =>
+    setDone((current) => current.map((value, i) => (i === index ? true : value)));
 
   return (
     <section
@@ -111,7 +158,7 @@ export function HowItWorks() {
           className="absolute inset-y-0 -left-4 w-[var(--thread-width,0.625rem)] rounded-full bg-teal-600 data-[thread=travelling]:opacity-0 sm:-left-6 lg:hidden dark:bg-teal-300"
         />
         {how.steps.map((step, index) => (
-          <Step key={step.line} index={index} onActive={setActive} />
+          <Step key={step.line} index={index} onActive={setActive} onDone={finish} />
         ))}
       </ol>
     </section>

@@ -21,7 +21,26 @@ type InboxListProps = {
   moreHref?: Route | null;
 };
 
-/** The inbox, newest first. Opening a row saves it as read, then goes to the record. */
+const DAY = 24 * 60 * 60 * 1000;
+
+export type NoticeGroup = { label: "Today" | "This week" | "Older"; items: Notice[] };
+
+/** Splits notices (newest first) into Today, This week and Older, keeping the order; empty groups are left out. */
+export function groupNotices(items: Notice[], now = Date.now()): NoticeGroup[] {
+  const groups: NoticeGroup[] = [
+    { label: "Today", items: [] },
+    { label: "This week", items: [] },
+    { label: "Older", items: [] },
+  ];
+  for (const notice of items) {
+    const age = now - new Date(notice.createdAt).getTime();
+    const group = age < DAY ? groups[0] : age < 7 * DAY ? groups[1] : groups[2];
+    group?.items.push(notice);
+  }
+  return groups.filter((group) => group.items.length > 0);
+}
+
+/** The inbox, newest first and grouped by day. Opening a row saves it as read, then goes to the record. */
 export function InboxList({ items, currency, viewer, moreHref }: InboxListProps) {
   const open = useOpenNotice();
   const [pending, startTransition] = useTransition();
@@ -52,22 +71,27 @@ export function InboxList({ items, currency, viewer, moreHref }: InboxListProps)
           </Button>
         </div>
       ) : null}
-      <ul className="grid gap-2">
-        {items.map((notice) => {
-          const { title, detail } = noticeText(notice, viewer, currency);
-          return (
-            <li key={notice.id}>
-              <InboxItem
-                notice={notice}
-                href={noticeHref(notice, viewer)}
-                title={title}
-                detail={detail}
-                onOpen={open}
-              />
-            </li>
-          );
-        })}
-      </ul>
+      {groupNotices(items).map((group) => (
+        <section key={group.label} aria-label={group.label} className="grid gap-2">
+          <h2 className="eyebrow">{group.label}</h2>
+          <ul className="grid gap-2">
+            {group.items.map((notice) => {
+              const { title, detail } = noticeText(notice, viewer, currency);
+              return (
+                <li key={notice.id}>
+                  <InboxItem
+                    notice={notice}
+                    href={noticeHref(notice, viewer)}
+                    title={title}
+                    detail={detail}
+                    onOpen={open}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
       {moreHref ? (
         <Link href={moreHref} className={buttonVariants({ variant: "outline" })}>
           Show more

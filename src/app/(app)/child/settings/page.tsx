@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
-import { ThemeSwitch } from "@/components/theme";
+import { ThemeChoice } from "@/components/theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { routes } from "@/config";
 import { SignOutButton } from "@/features/auth";
 import { getChildNickname, requireRole } from "@/features/family/server";
 import { MemoryList } from "@/features/guide";
 import { getGuideState, getMemories } from "@/features/guide/server";
+import { PushToggle } from "@/features/notifications";
 
 export const metadata: Metadata = { title: "Me" };
 
@@ -44,9 +45,10 @@ async function ChildSettings() {
           <CardDescription>Light, dark, or follow your device.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ThemeSwitch />
+          <ThemeChoice />
         </CardContent>
       </Card>
+      <PushToggle />
       <Card className="rise-in" style={rise(2)}>
         <CardHeader>
           <CardTitle className="text-h2">Done for now?</CardTitle>
@@ -64,7 +66,7 @@ async function ChildSettings() {
 
 export default function ChildSettingsPage() {
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-6">
+    <div className="mx-auto grid w-full max-w-4xl gap-6">
       <h1 className="text-h1">Me</h1>
       <Suspense
         fallback={

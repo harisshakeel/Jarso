@@ -63,7 +63,12 @@ describe("ReceivedSheet", () => {
       label: "From Gran",
     });
     expect(input.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Saved. Nice one."));
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        "Saved. Nice one.",
+        expect.objectContaining({ icon: expect.anything() }),
+      ),
+    );
   });
 
   it("sends nothing offline and says so", async () => {

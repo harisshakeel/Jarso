@@ -24,15 +24,19 @@ async function RequestsContent() {
   return (
     <>
       <h1 className="text-balance text-display">Move my money</h1>
-      <RequestActions
-        availability={availability}
-        currency={family.currency}
-        rules={rules.rules}
-        goal={goal}
-      />
-      {/* Extra money (FR15) is new money, so it sits apart from the Save moves. */}
-      <AskExtraSheet currency={family.currency} />
-      <RequestList requests={requests} currency={family.currency} timeZone={family.timezone} />
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-10">
+        <div className="grid gap-6">
+          <RequestActions
+            availability={availability}
+            currency={family.currency}
+            rules={rules.rules}
+            goal={goal}
+          />
+          {/* Extra money (FR15) is new money, so it sits apart from the Save moves. */}
+          <AskExtraSheet currency={family.currency} />
+        </div>
+        <RequestList requests={requests} currency={family.currency} timeZone={family.timezone} />
+      </div>
     </>
   );
 }
@@ -48,7 +52,7 @@ function RequestsSkeleton() {
 
 export default function ChildRequestsPage() {
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-6">
+    <div className="mx-auto grid w-full max-w-6xl gap-6">
       <Suspense
         fallback={
           <SlowFallback>

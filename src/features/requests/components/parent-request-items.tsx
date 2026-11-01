@@ -39,7 +39,7 @@ export function ParentRequestItems({ items, currency }: ParentRequestItemsProps)
   if (items.length === 0) return null;
   return (
     <section aria-labelledby="save-requests-title" className="grid gap-3">
-      <h2 id="save-requests-title" className="eyebrow">
+      <h2 id="save-requests-title" className="text-h2">
         Requests
       </h2>
       <Card size="sm" className="shadow-raised">

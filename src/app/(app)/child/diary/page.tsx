@@ -32,55 +32,65 @@ async function Diary({ searchParams }: PageProps<"/child/diary">) {
   return (
     <>
       <h1 className="rise-in text-h1">Diary</h1>
-      {jars ? (
-        <section aria-label="Spend jar" className="text-lg">
-          You have{" "}
-          <span className="money font-extrabold">
-            {formatMoney(jars.spend, family.currency, { showMinor: "nonzero" })}
-          </span>{" "}
-          in Spend.
-        </section>
-      ) : null}
-      {week ? <WhereItWentCard view={whereItWent(week, family.today, family.currency)} /> : null}
-      <PurchaseSheet currency={family.currency} userId={user.id} />
-      <ReceivedSheet currency={family.currency} />
-      <PendingPurchases userId={user.id} currency={family.currency} />
-      <HistoryList
-        items={page.items}
-        currency={family.currency}
-        renderAction={(item) =>
-          (item.canFix || item.canUndo || item.fixedFrom) && item.entryId ? (
-            <EntryDetail item={item} currency={family.currency} />
-          ) : null
-        }
-      />
-      {before || page.olderBefore ? (
-        <nav aria-label="Diary pages" className="flex flex-wrap justify-between gap-3">
-          {before ? (
-            <Link
-              href={routes.childDiary}
-              className={buttonVariants({ variant: "outline", size: "lg" })}
-            >
-              Back to newest
-            </Link>
+      <div className="grid gap-6 lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-10">
+        <div className="grid gap-6 lg:sticky lg:top-20">
+          {jars ? (
+            <section aria-label="Spend jar" className="text-lg">
+              You have{" "}
+              <span className="money font-extrabold">
+                {formatMoney(jars.spend, family.currency, { showMinor: "nonzero" })}
+              </span>{" "}
+              in Spend.
+            </section>
           ) : null}
-          {page.olderBefore ? (
-            <Link
-              href={`${routes.childDiary}?before=${encodeURIComponent(page.olderBefore)}` as Route}
-              className={buttonVariants({ variant: "outline", size: "lg" })}
-            >
-              Show older
-            </Link>
+          {week ? (
+            <WhereItWentCard view={whereItWent(week, family.today, family.currency)} />
           ) : null}
-        </nav>
-      ) : null}
+          <PurchaseSheet currency={family.currency} userId={user.id} />
+          <ReceivedSheet currency={family.currency} />
+          <PendingPurchases userId={user.id} currency={family.currency} />
+        </div>
+        <div className="grid gap-6">
+          <HistoryList
+            items={page.items}
+            currency={family.currency}
+            renderAction={(item) =>
+              (item.canFix || item.canUndo || item.fixedFrom) && item.entryId ? (
+                <EntryDetail item={item} currency={family.currency} />
+              ) : null
+            }
+          />
+          {before || page.olderBefore ? (
+            <nav aria-label="Diary pages" className="flex flex-wrap justify-between gap-3">
+              {before ? (
+                <Link
+                  href={routes.childDiary}
+                  className={buttonVariants({ variant: "outline", size: "lg" })}
+                >
+                  Back to newest
+                </Link>
+              ) : null}
+              {page.olderBefore ? (
+                <Link
+                  href={
+                    `${routes.childDiary}?before=${encodeURIComponent(page.olderBefore)}` as Route
+                  }
+                  className={buttonVariants({ variant: "outline", size: "lg" })}
+                >
+                  Show older
+                </Link>
+              ) : null}
+            </nav>
+          ) : null}
+        </div>
+      </div>
     </>
   );
 }
 
 export default function DiaryPage(props: PageProps<"/child/diary">) {
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-6">
+    <div className="mx-auto grid w-full max-w-6xl gap-6">
       <Suspense
         fallback={
           <SlowFallback>

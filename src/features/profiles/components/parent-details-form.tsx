@@ -84,7 +84,9 @@ export function ParentDetailsForm({
             id="country"
             className="w-full"
             aria-invalid={fieldErrors?.country?.length ? true : undefined}
-            aria-describedby={fieldErrors?.country?.length ? "country-error" : undefined}
+            aria-describedby={
+              fieldErrors?.country?.length ? "country-hint country-error" : "country-hint"
+            }
           >
             <SelectValue placeholder="Choose your country" />
           </SelectTrigger>
@@ -96,6 +98,9 @@ export function ParentDetailsForm({
             ))}
           </SelectContent>
         </Select>
+        <p id="country-hint" className="text-muted-foreground">
+          So Jarso shows the right helplines and money for where you live.
+        </p>
         <FieldError id="country-error" errors={fieldErrors?.country} />
       </div>
 
@@ -111,7 +116,9 @@ export function ParentDetailsForm({
             id="gender"
             className="w-full"
             aria-invalid={fieldErrors?.gender?.length ? true : undefined}
-            aria-describedby={fieldErrors?.gender?.length ? "gender-error" : undefined}
+            aria-describedby={
+              fieldErrors?.gender?.length ? "gender-hint gender-error" : "gender-hint"
+            }
           >
             <SelectValue placeholder="Choose an option" />
           </SelectTrigger>
@@ -123,6 +130,9 @@ export function ParentDetailsForm({
             ))}
           </SelectContent>
         </Select>
+        <p id="gender-hint" className="text-muted-foreground">
+          Helps us see who the pilot reached. "Prefer not to say" is fine.
+        </p>
         <FieldError id="gender-error" errors={fieldErrors?.gender} />
       </div>
 

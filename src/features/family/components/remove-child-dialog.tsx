@@ -38,9 +38,7 @@ export function RemoveChildDialog({ child }: { child: ChildSummary }) {
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger
-        render={<Button variant="ghost" size="sm" className="text-destructive" />}
-      >
+      <AlertDialogTrigger render={<Button variant="ghost" />}>
         Remove<span className="sr-only"> {child.nickname}</span>
       </AlertDialogTrigger>
       <AlertDialogContent>

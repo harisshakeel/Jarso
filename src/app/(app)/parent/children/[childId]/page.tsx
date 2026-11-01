@@ -1,9 +1,10 @@
-import { PlusIcon } from "lucide-react";
+import { GiftIcon, ScaleIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
-import { SlowFallback } from "@/components/shell";
+import { z } from "zod";
+import { PageTabs, SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import {
   DueList,
@@ -29,8 +30,20 @@ export const metadata: Metadata = { title: "Your child" };
 
 const back = { href: routes.parent, label: "Your family" };
 
-async function ChildContent({ params }: { params: Promise<{ childId: string }> }) {
-  const { childId } = await params;
+const tabValues = ["money", "learning", "jarso"] as const;
+const paramsSchema = z.object({ tab: z.enum(tabValues).catch("money") });
+
+type Props = PageProps<"/parent/children/[childId]">;
+
+/**
+ * One child, in three tabs so nothing stacks eight deep: Money (jars, what needs you, the
+ * allowance, rules and gifts, the recent story), Learning, and Jarso.
+ */
+async function ChildContent({ params, searchParams }: Props) {
+  const [{ childId }, { tab }] = await Promise.all([
+    params,
+    searchParams.then((sp) => paramsSchema.parse(sp)),
+  ]);
   const { child, currency, today } = await loadChild(childId, routes.parentChild(childId));
   const [jars, due, schedule, gifts] = await Promise.all([
     getJars(childId),
@@ -40,48 +53,71 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
   ]);
   const upcoming = upcomingGifts(gifts, today);
 
-  return (
-    <PageShell title={child.nickname} back={back} wide>
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-        <div className="grid gap-6">
-          <Jars
-            jars={jars}
-            currency={currency}
-            showMinor="always"
-            allowanceMinor={runningSchedule(schedule)?.amountMinor ?? null}
-          />
-          <Suspense fallback={null}>
-            <ChildRequests childId={childId} nickname={child.nickname} currency={currency} />
-          </Suspense>
-          <DueList childId={childId} items={due} currency={currency} />
-          <ParentAllowanceCard childId={childId} schedule={schedule} currency={currency} />
+  const moneyTab = (
+    <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      <div className="grid gap-6">
+        <Jars
+          jars={jars}
+          currency={currency}
+          showMinor="always"
+          allowanceMinor={runningSchedule(schedule)?.amountMinor ?? null}
+        />
+        <Suspense fallback={null}>
+          <ChildRequests childId={childId} nickname={child.nickname} currency={currency} />
+        </Suspense>
+        <DueList childId={childId} items={due} currency={currency} />
+        <ParentAllowanceCard childId={childId} schedule={schedule} currency={currency} />
+        <div className="grid gap-3 sm:grid-cols-2">
           <Link
             href={routes.parentRules(childId)}
-            className="inline-flex min-h-11 w-fit items-center rounded-full px-2 font-semibold text-primary underline-offset-4 hover:underline"
+            className="flex min-h-11 items-center gap-3 rounded-xl border border-hairline bg-card px-4 py-3 font-semibold hover:bg-muted"
           >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+              <ScaleIcon aria-hidden className="size-5" />
+            </span>
             Money rules
           </Link>
-          <div className="grid gap-3">
-            <GiftList childId={childId} gifts={upcoming} currency={currency} />
-            <Link
-              href={routes.parentGiftNew(childId)}
-              className="inline-flex min-h-11 w-fit items-center gap-1 rounded-full px-2 font-semibold text-primary underline-offset-4 hover:underline"
-            >
-              <PlusIcon aria-hidden className="size-5" />
-              Give a gift
-            </Link>
-          </div>
-          <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
-            <ChildLearning childId={childId} nickname={child.nickname} />
-          </Suspense>
-          <Suspense fallback={null}>
-            <ChildGuide childId={childId} nickname={child.nickname} />
-          </Suspense>
+          <Link
+            href={routes.parentGiftNew(childId)}
+            className="flex min-h-11 items-center gap-3 rounded-xl border border-hairline bg-card px-4 py-3 font-semibold hover:bg-muted"
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
+              <GiftIcon aria-hidden className="size-5" />
+            </span>
+            Give a gift
+          </Link>
         </div>
-        <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
-          <ChildHistory childId={childId} currency={currency} />
-        </Suspense>
+        <GiftList childId={childId} gifts={upcoming} currency={currency} />
       </div>
+      <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
+        <ChildHistory childId={childId} nickname={child.nickname} currency={currency} />
+      </Suspense>
+    </div>
+  );
+
+  const learningTab = (
+    <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
+      <ChildLearning childId={childId} nickname={child.nickname} />
+    </Suspense>
+  );
+
+  const jarsoTab = (
+    <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
+      <ChildGuide childId={childId} nickname={child.nickname} />
+    </Suspense>
+  );
+
+  return (
+    <PageShell title={child.nickname} back={back} wide>
+      <PageTabs
+        label={`${child.nickname}'s sections`}
+        defaultValue={tab}
+        tabs={[
+          { value: "money", label: "Money", content: moneyTab },
+          { value: "learning", label: "Learning", content: learningTab },
+          { value: "jarso", label: "Jarso", content: jarsoTab },
+        ]}
+      />
     </PageShell>
   );
 }
@@ -137,7 +173,11 @@ async function ChildLearning({ childId, nickname }: { childId: string; nickname:
 async function ChildGuide({ childId, nickname }: { childId: string; nickname: string }) {
   try {
     const access = await getGuideAccess(childId);
-    if (!access.configured) return null;
+    if (!access.configured) {
+      return (
+        <p className="text-ink-2">Jarso, the AI helper, is not switched on for this app yet.</p>
+      );
+    }
     const flagged = await countFlaggedChats(childId);
     return (
       <GuideCard
@@ -157,21 +197,42 @@ async function ChildGuide({ childId, nickname }: { childId: string; nickname: st
   }
 }
 
-/** The newest few history lines as the parent sees them (exact amounts). */
-async function ChildHistory({ childId, currency }: { childId: string; currency: string }) {
-  const history = await getHistory(childId);
-  return (
-    <RecentHistory
-      items={history}
-      currency={currency}
-      skippedLabel="Not given"
-      showMinor="always"
-      seeAllHref={routes.parentChildHistory(childId)}
-    />
-  );
+/** The newest few history lines as the parent sees them (exact amounts). Fails calmly. */
+async function ChildHistory({
+  childId,
+  nickname,
+  currency,
+}: {
+  childId: string;
+  nickname: string;
+  currency: string;
+}) {
+  try {
+    const history = await getHistory(childId);
+    return (
+      <RecentHistory
+        items={history}
+        currency={currency}
+        skippedLabel="Not given"
+        showMinor="always"
+        emptyLine={`${nickname}'s money story starts here.`}
+        seeAllHref={routes.parentChildHistory(childId)}
+      />
+    );
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("History unavailable on the child page", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    return (
+      <p role="status" className="rounded-xl bg-muted p-4 text-ink-2">
+        We couldn't load the history just now. Refresh to try again.
+      </p>
+    );
+  }
 }
 
-export default function ChildPage({ params }: PageProps<"/parent/children/[childId]">) {
+export default function ChildPage(props: Props) {
   return (
     <Suspense
       fallback={
@@ -182,7 +243,7 @@ export default function ChildPage({ params }: PageProps<"/parent/children/[child
         </PageShell>
       }
     >
-      <ChildContent params={params} />
+      <ChildContent {...props} />
     </Suspense>
   );
 }
