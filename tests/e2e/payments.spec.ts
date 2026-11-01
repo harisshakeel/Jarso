@@ -102,6 +102,10 @@ async function occurrenceStatus(id: string): Promise<string> {
   return data.status;
 }
 
+// A developer's env may turn Stripe on beside the fake: then the buttons name their provider.
+const PAY_WITH_FAKE = /^(Pay by card|Pay with Test card)$/;
+const SAVE_WITH_FAKE = /^(Save a card|Save with Test card)$/;
+
 const handoverPath = (childId: string, id: string) =>
   `/parent/children/${childId}/handover/allowance/${id}`;
 const onFakeCheckout = (url: URL) => url.pathname === "/dev/payments/fake";
@@ -117,7 +121,7 @@ async function turnOnAutoCharge(
   const toggle = page.getByRole("switch", { name: "Auto charge" });
   await expect(toggle).toHaveAttribute("aria-checked", "false");
   await toggle.click();
-  await page.getByRole("button", { name: "Save a card" }).click();
+  await page.getByRole("button", { name: SAVE_WITH_FAKE }).click();
   await expect(page).toHaveURL(onFakeCheckout);
   await page.getByRole("button", { name: card }).click();
   await expect(page).toHaveURL((url) => url.pathname === `/parent/children/${childId}/allowance`);
@@ -166,7 +170,7 @@ test("pay by card on the handover screen fills the jars", async () => {
   const before = await jars(payer, childId);
 
   await page.goto(handoverPath(childId, id));
-  await page.getByRole("button", { name: "Pay by card" }).click();
+  await page.getByRole("button", { name: PAY_WITH_FAKE }).click();
   await expect(page).toHaveURL(onFakeCheckout);
   await page.getByRole("button", { name: "Pay", exact: true }).click();
   await expect(page).toHaveURL((url) => url.pathname === handoverPath(childId, id));
@@ -185,7 +189,7 @@ test("backing out of the checkout cancels it, so the item isn't left in progress
   const id = await dueOccurrence(payer, childId);
 
   await page.goto(handoverPath(childId, id));
-  await page.getByRole("button", { name: "Pay by card" }).click();
+  await page.getByRole("button", { name: PAY_WITH_FAKE }).click();
   await expect(page).toHaveURL(onFakeCheckout);
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
 
@@ -206,7 +210,7 @@ test("backing out of the checkout cancels it, so the item isn't left in progress
     })
     .toBe("canceled");
   await expect(page.getByText("Card payment in progress")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Pay by card" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: PAY_WITH_FAKE })).toBeEnabled();
   expect(await occurrenceStatus(id)).toBe("due");
 });
 
@@ -217,7 +221,7 @@ test("a card payment finished after a cash handover posts nothing and says so", 
   const before = await jars(payer, childId);
 
   await page.goto(handoverPath(childId, id));
-  await page.getByRole("button", { name: "Pay by card" }).click();
+  await page.getByRole("button", { name: PAY_WITH_FAKE }).click();
   await expect(page).toHaveURL(onFakeCheckout);
   const checkout = page.url();
 

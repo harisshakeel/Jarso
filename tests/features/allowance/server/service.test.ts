@@ -48,6 +48,8 @@ const gift = {
   note: null,
   status: "pending" as const,
   autoCharge: false,
+  autoChargeProvider: null,
+  autoChargeBy: null,
 };
 const conflict = () => toAppError({ code: "JA409", message: "Allowance has stopped" }, "x");
 
@@ -468,6 +470,8 @@ describe("getSchedule", () => {
       pausedThrough: null,
       pauseMessage: null,
       autoCharge: false,
+      autoChargeProvider: null,
+      autoChargeBy: null,
     });
 
     await expect(service.getSchedule(childId)).resolves.toMatchObject({
@@ -488,10 +492,43 @@ describe("getSchedule", () => {
       pausedThrough: null,
       pauseMessage: null,
       autoCharge: true,
+      autoChargeProvider: "stripe",
+      autoChargeBy: "parent-1",
     });
     vi.mocked(family.assertSelfOrParentOf).mockResolvedValue({ id: "parent-1", email: null });
-    await expect(service.getSchedule(childId)).resolves.toMatchObject({ autoCharge: true });
+    await expect(service.getSchedule(childId)).resolves.toMatchObject({
+      autoCharge: true,
+      autoChargeProvider: "stripe",
+      autoChargeMine: true,
+    });
+    vi.mocked(family.assertSelfOrParentOf).mockResolvedValue({ id: "parent-2", email: null });
+    await expect(service.getSchedule(childId)).resolves.toMatchObject({
+      autoChargeProvider: "stripe",
+      autoChargeMine: false,
+    });
     vi.mocked(family.assertSelfOrParentOf).mockResolvedValue({ id: childId, email: null });
-    await expect(service.getSchedule(childId)).resolves.toMatchObject({ autoCharge: false });
+    const forChild = await service.getSchedule(childId);
+    expect(forChild).toMatchObject({
+      autoCharge: false,
+      autoChargeProvider: null,
+      autoChargeMine: false,
+    });
+    expect(forChild).not.toHaveProperty("autoChargeBy");
+  });
+});
+
+describe("listGifts", () => {
+  it("says which provider pays a gift and whether the viewer set it", async () => {
+    const { childId: _, ...pending } = gift;
+    vi.mocked(repo.listPendingGifts).mockResolvedValue([
+      { ...pending, autoCharge: true, autoChargeProvider: "fake", autoChargeBy: "parent-1" },
+      { ...pending, id: "gift-2", autoCharge: true, autoChargeProvider: "fake", autoChargeBy: "x" },
+    ]);
+    const gifts = await service.listGifts(childId);
+    expect(gifts.map((g) => [g.id, g.autoChargeProvider, g.autoChargeMine])).toEqual([
+      ["gift-1", "fake", true],
+      ["gift-2", "fake", false],
+    ]);
+    expect(gifts[0]).not.toHaveProperty("autoChargeBy");
   });
 });

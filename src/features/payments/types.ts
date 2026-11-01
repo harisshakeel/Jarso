@@ -42,6 +42,8 @@ export type AutoChargeCard = {
   label: string;
   /** Whether the parent has a saved card there. Without one, turning on saves a card first. */
   cardSaved: boolean;
+  /** That saved card's brand and last 4 (null when none), so the toggle can name it. */
+  card: CardSummary | null;
   /** Set when this provider can't charge the family's currency at all. */
   unavailableReason: "unsupported_currency" | null;
 };

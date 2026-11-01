@@ -121,9 +121,18 @@ export async function getSchedule(childId: string): Promise<Schedule | null> {
   const row = await findLatestSchedule(db, childId);
   if (!row) return null;
   const nextDueOn = row.status === "stopped" ? null : await fetchNextDueOn(db, row.id);
+  const { autoChargeBy, ...schedule } = row;
   // Payment state is the parent's: the child never sees whether a card pays their allowance.
-  const autoCharge = user.id === childId ? false : row.autoCharge;
-  return { ...row, autoCharge, nextDueOn };
+  if (user.id === childId) {
+    return {
+      ...schedule,
+      autoCharge: false,
+      autoChargeProvider: null,
+      autoChargeMine: false,
+      nextDueOn,
+    };
+  }
+  return { ...schedule, autoChargeMine: autoChargeBy === user.id, nextDueOn };
 }
 
 /**
@@ -145,8 +154,12 @@ export async function listDue(childId: string): Promise<DueItem[]> {
 
 /** Gifts not handed over yet (due and future), soonest first. Parent only. */
 export async function listGifts(childId: string): Promise<Gift[]> {
-  await assertParentCanRead(childId);
-  return listPendingGifts(await createClient(), childId);
+  const user = await assertParentCanRead(childId);
+  const gifts = await listPendingGifts(await createClient(), childId);
+  return gifts.map(({ autoChargeBy, ...gift }) => ({
+    ...gift,
+    autoChargeMine: autoChargeBy === user.id,
+  }));
 }
 
 /** The split of the child's most recent handover (allowance or gift), for the prefill. */

@@ -141,6 +141,8 @@ describe("describeAllowanceState", () => {
     pausedThrough: null,
     pauseMessage: null,
     autoCharge: false,
+    autoChargeProvider: null,
+    autoChargeMine: false,
   };
 
   it("reads the next date, pause, stop and none", () => {

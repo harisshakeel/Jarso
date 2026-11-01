@@ -18,11 +18,11 @@ import {
 import { runOnline } from "@/features/offline";
 import { paymentCopy } from "../copy";
 import { removeSavedCardAction } from "../server/actions";
-import type { CardSummary, PaymentProviderId } from "../types";
+import type { CardSummary, PaymentProviderId, SavedCard } from "../types";
 
 /**
- * The parent's saved card in settings (spec §6.8): brand and last 4, and Remove, which also turns
- * off every auto charge they set. Cards are only saved by turning auto charge on.
+ * The parent's saved card at one provider in settings (spec §6.8): brand and last 4, and Remove,
+ * which also turns off every auto charge that uses it. Cards are only saved by turning auto charge on.
  */
 export function SavedCardPanel({
   provider,
@@ -80,4 +80,20 @@ export function SavedCardPanel({
       </AlertDialog>
     </div>
   );
+}
+
+/**
+ * The parent's saved cards in settings, one panel per provider that is on (multi-provider spec
+ * §6). Each panel is titled with its provider only when there is more than one.
+ */
+export function SavedCards({ cards }: { cards: readonly SavedCard[] }) {
+  const [only] = cards;
+  if (only && cards.length === 1)
+    return <SavedCardPanel provider={only.provider} card={only.card} />;
+  return cards.map((saved) => (
+    <section key={saved.provider} className="grid gap-2">
+      <h3 className="font-bold">{saved.label}</h3>
+      <SavedCardPanel provider={saved.provider} card={saved.card} />
+    </section>
+  ));
 }

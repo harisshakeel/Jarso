@@ -27,6 +27,8 @@ const schedule = {
   pausedThrough: null,
   pauseMessage: null,
   autoCharge: false,
+  autoChargeProvider: null,
+  autoChargeMine: false,
 };
 
 const item = (overrides: Record<string, unknown>) => ({

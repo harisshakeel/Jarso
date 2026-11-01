@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { routes } from "@/config";
 import { AllowanceForm, AllowanceSummary, runningSchedule } from "@/features/allowance";
 import { getSchedule } from "@/features/allowance/server";
-import { AutoChargeToggle, paymentCopy, pickAutoChargeCard } from "@/features/payments";
+import { AutoChargeToggle, paymentCopy } from "@/features/payments";
 import { getAutoChargeCard } from "@/features/payments/server";
 import { loadChild } from "../load-child";
 import { FormSkeleton, PageShell } from "../page-shell";
@@ -18,8 +18,6 @@ async function AllowanceContent({ params }: { params: Promise<{ childId: string 
     getSchedule(childId),
     getAutoChargeCard(),
   ]);
-  // Interim: one toggle, one provider (Task 3 lets the parent choose).
-  const autoCharge = pickAutoChargeCard(autoChargeCards);
   const running = runningSchedule(schedule);
 
   return (
@@ -36,20 +34,22 @@ async function AllowanceContent({ params }: { params: Promise<{ childId: string 
             today={today}
             schedule={running}
           />
-          {autoCharge ? (
+          {autoChargeCards ? (
             <AutoChargeToggle
               target={{ type: "allowance_schedule", id: running.id }}
               on={running.autoCharge}
-              provider={autoCharge.provider}
-              cardSaved={autoCharge.cardSaved}
-              unavailable={autoCharge.unavailableReason}
+              provider={running.autoChargeProvider}
+              mine={running.autoChargeMine}
+              cards={autoChargeCards}
             />
           ) : null}
         </>
       ) : (
         <>
           <AllowanceForm childId={childId} currency={currency} today={today} />
-          {autoCharge ? <p className="text-ink-2 text-sm">{paymentCopy.autoChargeLater}</p> : null}
+          {autoChargeCards ? (
+            <p className="text-ink-2 text-sm">{paymentCopy.autoChargeLater}</p>
+          ) : null}
         </>
       )}
     </PageShell>

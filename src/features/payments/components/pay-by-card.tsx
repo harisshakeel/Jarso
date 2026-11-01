@@ -8,7 +8,7 @@ import { runOnline } from "@/features/offline";
 import { toMajorString } from "@/lib";
 import { paymentCopy } from "../copy";
 import { startCardPaymentAction } from "../server/actions";
-import type { CardPaymentState } from "../types";
+import type { CardPaymentState, PaymentProviderId } from "../types";
 import { PaymentStatusNote } from "./payment-status-note";
 
 type PayByCardProps = {
@@ -26,10 +26,13 @@ type PayByCardProps = {
 };
 
 /**
- * Pay by card on the handover screen, beside the cash button (spec §6.5). The card always pays the
- * full amount with the split as set; the action sends the parent to the provider's hosted page.
- * Shows the payment state above the button. Renders nothing when card payments are off. Parents
- * only.
+ * Pay by card on the handover screen, beside the cash button (spec §6.5). One button per provider
+ * that can take this amount: "Pay by card" when there is one, "Pay with {label}" when there are
+ * several (multi-provider spec D2). With none, one disabled "Pay by card" says why. The card
+ * always pays the full amount with the split as set; the action sends the parent to the chosen
+ * provider's hosted page. A provider whose checkout is open reopens it; another provider replaces
+ * it (D7). Shows the payment state above the buttons. Renders nothing when card payments are off.
+ * Parents only.
  */
 export function PayByCard({
   childId,
@@ -42,28 +45,27 @@ export function PayByCard({
   disabled = false,
 }: PayByCardProps) {
   const [pending, startTransition] = useTransition();
+  const [paying, setPaying] = useState<PaymentProviderId>();
   const [error, setError] = useState<{ code: string; message: string }>();
 
-  // Interim (Task 3 replaces with one button per provider): pay with the first provider that
-  // can take this amount, else show the first one's reason. None listed: payments are off.
-  const choice = state.providers.find((p) => p.available) ?? state.providers[0];
-  if (!choice) return null;
-  const provider = choice.id;
-
+  if (state.providers.length === 0) return null;
+  const available = state.providers.filter((p) => p.available);
   const fullAmount = split !== null && split.cash + split.saved === amountMinor;
   // An auto charge in flight has no page to go back to; a manual one reopens its page.
   const blocked = state.pending !== null && state.pending.redirectUrl === null;
+  // No provider can pay: "too small" when one could charge the currency, else the currency.
   const reason =
-    choice.unavailableReason === "too_small"
-      ? paymentCopy.tooSmall
-      : choice.unavailableReason === "unsupported_currency"
-        ? paymentCopy.unsupportedCurrency
-        : null;
+    available.length > 0
+      ? null
+      : state.providers.some((p) => p.unavailableReason === "too_small")
+        ? paymentCopy.tooSmall
+        : paymentCopy.unsupportedCurrency;
   const helpId = `pay-by-card-${childId}-${id}`;
 
-  function pay() {
+  function pay(provider: PaymentProviderId) {
     if (!split) return;
     setError(undefined);
+    setPaying(provider);
     startTransition(async () => {
       const result = await runOnline(() =>
         startCardPaymentAction(null, {
@@ -82,21 +84,32 @@ export function PayByCard({
     });
   }
 
+  const buttons =
+    available.length > 0
+      ? available.map((p) => ({
+          id: p.id,
+          label: available.length === 1 ? paymentCopy.payByCard : paymentCopy.payWith(p.label),
+        }))
+      : [{ id: null, label: paymentCopy.payByCard }];
+
   return (
     <div className="grid gap-3">
       <PaymentStatusNote state={state} />
-      <Button
-        type="button"
-        variant="outline"
-        size="lg"
-        loading={pending}
-        disabled={disabled || !choice.available || blocked || !fullAmount}
-        aria-describedby={helpId}
-        onClick={pay}
-      >
-        <CreditCardIcon aria-hidden />
-        {paymentCopy.payByCard}
-      </Button>
+      {buttons.map((button) => (
+        <Button
+          key={button.id ?? "none"}
+          type="button"
+          variant="outline"
+          size="lg"
+          loading={pending && paying === button.id}
+          disabled={disabled || button.id === null || blocked || !fullAmount || pending}
+          aria-describedby={helpId}
+          onClick={() => button.id && pay(button.id)}
+        >
+          <CreditCardIcon aria-hidden />
+          {button.label}
+        </Button>
+      ))}
       <p id={helpId} className="text-center text-ink-2 text-sm">
         {reason ?? paymentCopy.fullAmount}
       </p>

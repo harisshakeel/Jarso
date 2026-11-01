@@ -768,8 +768,20 @@ describe("saved cards", () => {
     );
 
     expect(await service.getAutoChargeCard()).toEqual([
-      { provider: "stripe", label: "Stripe", cardSaved: false, unavailableReason: null },
-      { provider: "fake", label: "Test card", cardSaved: true, unavailableReason: null },
+      {
+        provider: "stripe",
+        label: "Stripe",
+        cardSaved: false,
+        card: null,
+        unavailableReason: null,
+      },
+      {
+        provider: "fake",
+        label: "Test card",
+        cardSaved: true,
+        card: { brand: "visa", last4: "4242" },
+        unavailableReason: null,
+      },
     ]);
   });
 
@@ -787,9 +799,16 @@ describe("saved cards", () => {
         provider: "stripe",
         label: "Stripe",
         cardSaved: false,
+        card: null,
         unavailableReason: "unsupported_currency",
       },
-      { provider: "fake", label: "Test card", cardSaved: false, unavailableReason: null },
+      {
+        provider: "fake",
+        label: "Test card",
+        cardSaved: false,
+        card: null,
+        unavailableReason: null,
+      },
     ]);
   });
 

@@ -14,7 +14,7 @@ import {
   isCurrency,
 } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
-import { paymentCopy, SavedCardPanel } from "@/features/payments";
+import { paymentCopy, SavedCards } from "@/features/payments";
 import { getSavedCards, paymentsEnabled } from "@/features/payments/server";
 import { DisplayNameForm, ParentDetailsForm } from "@/features/profiles";
 import { getParentDetails, getProfile } from "@/features/profiles/server";
@@ -40,8 +40,6 @@ async function ParentSettings({ searchParams }: Props) {
     cardPayments ? getSavedCards() : [],
   ]);
   if (!family) redirect(routes.parentSetup);
-  // Interim: one panel (Task 3 shows one per provider). A saved card first, else the first provider.
-  const saved = savedCards.find((entry) => entry.card !== null) ?? savedCards[0];
   const { tab } = paramsSchema.parse(await searchParams);
 
   const familyTab = (
@@ -87,9 +85,13 @@ async function ParentSettings({ searchParams }: Props) {
         </Section>
       ) : null}
 
-      {saved ? (
-        <Section index={2} title="Saved card" description={paymentCopy.testMode}>
-          <SavedCardPanel provider={saved.provider} card={saved.card} />
+      {savedCards.length > 0 ? (
+        <Section
+          index={2}
+          title={paymentCopy.savedCardTitle(savedCards.length)}
+          description={paymentCopy.testMode}
+        >
+          <SavedCards cards={savedCards} />
         </Section>
       ) : null}
     </>

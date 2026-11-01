@@ -205,20 +205,24 @@ export async function getSavedCards(): Promise<SavedCard[]> {
 
 /**
  * What an auto-charge toggle needs, per provider that is on: null with payments off (no toggle
- * renders), else whether the signed-in parent has a saved card there (without one, turning on
- * saves a card first) and whether that provider can charge the family's currency at all.
+ * renders), else the signed-in parent's saved card there, if any (without one, turning on saves
+ * a card first), and whether that provider can charge the family's currency at all.
  */
 export async function getAutoChargeCard(): Promise<AutoChargeCard[] | null> {
   const providers = getPaymentProviders();
   if (providers.length === 0) return null;
   const [cards, family] = await Promise.all([getSavedCards(), familyOrThrow()]);
-  return providers.map((provider) => ({
-    provider: provider.id,
-    label: provider.label,
-    cardSaved: cards.some((saved) => saved.provider === provider.id && saved.card !== null),
-    unavailableReason:
-      provider.minimumChargeMinor(family.currency) === null ? "unsupported_currency" : null,
-  }));
+  return providers.map((provider) => {
+    const card = cards.find((saved) => saved.provider === provider.id)?.card ?? null;
+    return {
+      provider: provider.id,
+      label: provider.label,
+      cardSaved: card !== null,
+      card,
+      unavailableReason:
+        provider.minimumChargeMinor(family.currency) === null ? "unsupported_currency" : null,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------

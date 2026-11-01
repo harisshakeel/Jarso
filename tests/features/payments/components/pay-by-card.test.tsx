@@ -69,19 +69,37 @@ describe("PayByCard", () => {
     expect(screen.getByText("Too small to pay by card")).toBeInTheDocument();
   });
 
-  it("pays with the first provider that can take the amount", async () => {
+  const stripe = { id: "stripe" as const, label: "Stripe" };
+  const razorpay = { id: "razorpay" as const, label: "Razorpay" };
+
+  it("offers one button per provider that can pay, named after it", async () => {
     startCardPaymentAction.mockResolvedValue({ ok: true, data: undefined });
     renderPay({
       providers: [
-        {
-          id: "razorpay",
-          label: "Razorpay",
-          available: false,
-          unavailableReason: "unsupported_currency",
-        },
+        { ...stripe, available: true, unavailableReason: null },
         { ...fake, available: true, unavailableReason: null },
       ],
     });
+    expect(screen.queryByRole("button", { name: "Pay by card" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pay with Stripe" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Pay with Test card" }));
+    await waitFor(() =>
+      expect(startCardPaymentAction).toHaveBeenCalledWith(
+        null,
+        expect.objectContaining({ provider: "fake" }),
+      ),
+    );
+  });
+
+  it("hides a provider that can't charge the family's currency", async () => {
+    startCardPaymentAction.mockResolvedValue({ ok: true, data: undefined });
+    renderPay({
+      providers: [
+        { ...razorpay, available: false, unavailableReason: "unsupported_currency" },
+        { ...fake, available: true, unavailableReason: null },
+      ],
+    });
+    expect(screen.getAllByRole("button")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Pay by card" }));
     await waitFor(() =>
       expect(startCardPaymentAction).toHaveBeenCalledWith(
@@ -89,6 +107,60 @@ describe("PayByCard", () => {
         expect.objectContaining({ provider: "fake" }),
       ),
     );
+  });
+
+  it("shows one disabled button with the reason when no provider can pay", () => {
+    renderPay({
+      providers: [
+        { ...razorpay, available: false, unavailableReason: "unsupported_currency" },
+        { ...fake, available: false, unavailableReason: "too_small" },
+      ],
+    });
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Pay by card" })).toBeDisabled();
+    expect(screen.getByText("Too small to pay by card")).toBeInTheDocument();
+  });
+
+  it("says the currency isn't supported when no provider can charge it", () => {
+    renderPay({
+      providers: [{ ...razorpay, available: false, unavailableReason: "unsupported_currency" }],
+    });
+    expect(screen.getByRole("button", { name: "Pay by card" })).toBeDisabled();
+    expect(
+      screen.getByText("Card payments don't work in your family's currency yet."),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps every provider's button working while a checkout page is open", async () => {
+    startCardPaymentAction.mockResolvedValue({ ok: true, data: undefined });
+    renderPay({
+      providers: [
+        { ...stripe, available: true, unavailableReason: null },
+        { ...fake, available: true, unavailableReason: null },
+      ],
+      pending: { provider: "fake", redirectUrl: "https://checkout.example/p" },
+    });
+    expect(screen.getByRole("button", { name: "Pay with Test card" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Pay with Stripe" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Pay with Stripe" }));
+    await waitFor(() =>
+      expect(startCardPaymentAction).toHaveBeenCalledWith(
+        null,
+        expect.objectContaining({ provider: "stripe" }),
+      ),
+    );
+  });
+
+  it("blocks every provider while an auto charge is in flight", () => {
+    renderPay({
+      providers: [
+        { ...stripe, available: true, unavailableReason: null },
+        { ...fake, available: true, unavailableReason: null },
+      ],
+      pending: { provider: "stripe", redirectUrl: null },
+    });
+    expect(screen.getByRole("button", { name: "Pay with Stripe" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Pay with Test card" })).toBeDisabled();
   });
 
   it("is disabled while the split doesn't add up to the full amount", () => {

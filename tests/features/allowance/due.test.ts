@@ -52,6 +52,8 @@ const schedule = (status: Schedule["status"]): Schedule => ({
   pausedThrough: null,
   pauseMessage: null,
   autoCharge: false,
+  autoChargeProvider: null,
+  autoChargeMine: false,
 });
 
 describe("runningSchedule", () => {
@@ -74,6 +76,8 @@ describe("upcomingGifts", () => {
     note: null,
     status: "pending",
     autoCharge: false,
+    autoChargeProvider: null,
+    autoChargeMine: false,
   });
 
   it("keeps only gifts dated after the family's today (due ones are in the due list)", () => {

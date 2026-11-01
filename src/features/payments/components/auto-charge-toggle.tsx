@@ -19,30 +19,32 @@ import {
 import { runOnline } from "@/features/offline";
 import { paymentCopy } from "../copy";
 import { setAutoChargeAction } from "../server/actions";
-import type { AutoChargeTarget, PaymentProviderId } from "../types";
+import type { AutoChargeCard, AutoChargeTarget, PaymentProviderId } from "../types";
 
 type AutoChargeToggleProps = {
   target: AutoChargeTarget;
   /** The schedule's or gift's current `auto_charge`. */
   on: boolean;
-  /** The provider whose saved card turning on charges (or saves a card with). */
-  provider: PaymentProviderId;
-  /** Whether the parent has a saved card there. Without one, turning on saves a card first. */
-  cardSaved: boolean;
-  /**
-   * Why auto charge can't work here, shown instead of the switch: a card can't charge the
-   * family's currency, or a gift's day has already passed (auto charge never back-charges).
-   */
-  unavailable?: "unsupported_currency" | "overdue" | null;
+  /** The provider whose saved card pays while on (`auto_charge_provider`); null when off. */
+  provider: PaymentProviderId | null;
+  /** The signed-in parent turned it on, so the card is theirs and can be named. */
+  mine: boolean;
+  /** Every provider that is on, with the parent's saved card there (`getAutoChargeCard`). */
+  cards: readonly AutoChargeCard[];
+  /** A gift's day has already passed: auto charge never back-charges, so it can't be used. */
+  unavailable?: "overdue" | null;
 };
 
 /**
- * Auto charge for one allowance schedule or gift (spec §6.5). With a saved card it switches
- * straight away. Without one, the parent first reads the mandate, then goes to the provider's
- * page to save a card; the toggle turns on once the card is saved. Parents only.
+ * Auto charge for one allowance schedule or gift (spec §6.5, multi-provider spec §6). Turning on
+ * with exactly one saved card uses it straight away; with several, the parent picks one. With
+ * none, the parent first reads the mandate (and picks a provider when several are on), then goes
+ * to the provider's page to save a card; the toggle turns on once the card is saved. While on,
+ * with several providers on, it names the card it charges. Parents only.
  */
 export function AutoChargeToggle(props: AutoChargeToggleProps) {
-  if (props.unavailable) {
+  const usable = props.cards.filter((card) => card.unavailableReason === null);
+  if (props.unavailable === "overdue" || usable.length === 0) {
     return (
       <Card className="rise-in">
         <CardContent className="grid gap-1">
@@ -56,10 +58,20 @@ export function AutoChargeToggle(props: AutoChargeToggleProps) {
       </Card>
     );
   }
-  return <AutoChargeSwitch {...props} />;
+  return <AutoChargeSwitch {...props} usable={usable} />;
 }
 
-function AutoChargeSwitch({ target, on, provider, cardSaved }: AutoChargeToggleProps) {
+/** What the parent is asked before auto charge turns on, if anything. */
+type Question = { kind: "choose"; options: AutoChargeCard[] } | { kind: "save" };
+
+function AutoChargeSwitch({
+  target,
+  on,
+  provider,
+  mine,
+  cards,
+  usable,
+}: AutoChargeToggleProps & { usable: AutoChargeCard[] }) {
   const returnTo = usePathname();
   const labelId = useId();
   const [checked, setChecked] = useState(on);
@@ -69,36 +81,68 @@ function AutoChargeSwitch({ target, on, provider, cardSaved }: AutoChargeToggleP
     setShownOn(on);
     setChecked(on);
   }
-  const [askToSave, setAskToSave] = useState(false);
+  // The question stays set while the dialog closes, so its text doesn't change mid-animation.
+  const [question, setQuestion] = useState<Question>({ kind: "save" });
+  const [asking, setAsking] = useState(false);
+  const [saving, setSaving] = useState<PaymentProviderId>();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<{ code: string; message: string }>();
 
-  function save(next: boolean) {
+  /** Turns on with `using` (its saved card, or saving one there first), or turns off. */
+  function save(next: boolean, using?: PaymentProviderId) {
     setError(undefined);
+    setSaving(using);
     startTransition(async () => {
       const result = await runOnline(() =>
-        setAutoChargeAction(null, { ...target, on: next, provider, returnTo }),
+        setAutoChargeAction(
+          null,
+          next
+            ? { ...target, on: true, provider: using, returnTo }
+            : { ...target, on: false, returnTo },
+        ),
       );
       // A card-saving result redirects to the provider. After an await, updates leave the
       // transition unless wrapped again (see rule-row.tsx).
       startTransition(() => {
+        setAsking(false);
         if (result.ok) return;
         setChecked(!next);
-        setAskToSave(false);
         setError(result.error);
       });
     });
   }
 
   function toggle(next: boolean) {
-    if (next && !cardSaved) {
-      setError(undefined);
-      setAskToSave(true);
+    if (!next) {
+      setChecked(false);
+      save(false);
       return;
     }
-    setChecked(next);
-    save(next);
+    const saved = usable.filter((card) => card.card !== null);
+    const [only] = saved;
+    if (only && saved.length === 1) {
+      setChecked(true);
+      save(true, only.provider);
+      return;
+    }
+    setError(undefined);
+    setQuestion(saved.length > 1 ? { kind: "choose", options: saved } : { kind: "save" });
+    setAsking(true);
   }
+
+  // Name the card only when there is more than one it could be (several providers on).
+  const current = cards.find((card) => card.provider === provider);
+  const named =
+    on && cards.length > 1 && current
+      ? mine && current.card
+        ? paymentCopy.charges(
+            paymentCopy.cardAt(
+              paymentCopy.cardEnding(current.card.brand, current.card.last4),
+              current.label,
+            ),
+          )
+        : paymentCopy.chargesOther(current.label)
+      : null;
 
   return (
     <Card className="rise-in">
@@ -120,20 +164,43 @@ function AutoChargeSwitch({ target, on, provider, cardSaved }: AutoChargeToggleP
             : paymentCopy.autoChargeGift}{" "}
           {paymentCopy.testMode}
         </p>
+        {named ? <p className="font-semibold text-sm">{named}</p> : null}
         <FormError error={error} />
       </CardContent>
 
-      <AlertDialog open={askToSave} onOpenChange={(open) => !pending && setAskToSave(open)}>
+      <AlertDialog open={asking} onOpenChange={(open) => !pending && setAsking(open)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{paymentCopy.saveCardTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{paymentCopy.mandate}</AlertDialogDescription>
+            <AlertDialogTitle>
+              {question.kind === "choose" ? paymentCopy.chooseCardTitle : paymentCopy.saveCardTitle}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {question.kind === "choose" ? paymentCopy.chooseCardDetail : paymentCopy.mandate}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={pending}>{paymentCopy.notNow}</AlertDialogCancel>
-            <Button loading={pending} onClick={() => save(true)}>
-              {paymentCopy.saveCard}
-            </Button>
+            {(question.kind === "choose" ? question.options : usable).map((option) => (
+              <Button
+                key={option.provider}
+                loading={pending && saving === option.provider}
+                disabled={pending}
+                onClick={() => {
+                  // A saved card turns on straight away; saving one first waits for the provider.
+                  if (question.kind === "choose") setChecked(true);
+                  save(true, option.provider);
+                }}
+              >
+                {question.kind === "choose" && option.card
+                  ? paymentCopy.cardAt(
+                      paymentCopy.cardEnding(option.card.brand, option.card.last4),
+                      option.label,
+                    )
+                  : usable.length === 1
+                    ? paymentCopy.saveCard
+                    : paymentCopy.saveWith(option.label)}
+              </Button>
+            ))}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
