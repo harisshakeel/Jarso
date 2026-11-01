@@ -42,7 +42,6 @@ async function TopicContent({ params, searchParams }: Props) {
         {back.label}
       </Link>
       <header className="grid gap-1">
-        <p className="eyebrow">Topic</p>
         <h1 className="text-balance text-h1">{topic.title}</h1>
       </header>
       <TopicView topic={topic} currency={family.currency} />
@@ -57,7 +56,7 @@ async function TopicContent({ params, searchParams }: Props) {
       ) : null}
       <section aria-labelledby="topic-practice" className="grid gap-3">
         <h2 id="topic-practice" className="text-h3">
-          Try one
+          Have a go.
         </h2>
         <MissionPlayer
           mode={{ kind: "topic" }}

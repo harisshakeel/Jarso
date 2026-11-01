@@ -6,6 +6,7 @@ import {
   chooseNextStep,
   daysLearnedThisWeek,
   pickPracticeItems,
+  praiseLine,
   resumePosition,
   summaryLine,
   weeklyRhythmLine,
@@ -240,5 +241,21 @@ describe("daysLearnedThisWeek", () => {
     expect(days).toBe(3);
     expect(weeklyRhythmLine(2)).toBe("You learned on 2 days this week.");
     expect(weeklyRhythmLine(0)).toMatch(/A new week/);
+  });
+});
+
+describe("praiseLine", () => {
+  it("praises thinking in words, never a count", () => {
+    expect(praiseLine({ answerable: 4, firstTry: 4 })).toBe(
+      "Every one first time. Great thinking.",
+    );
+    expect(praiseLine({ answerable: 6, firstTry: 5 })).toBe(
+      "Most of it first time. Good thinking.",
+    );
+    expect(praiseLine({ answerable: 4, firstTry: 2 })).toBe(
+      "Most of it first time. Good thinking.",
+    );
+    expect(praiseLine({ answerable: 5, firstTry: 1 })).toBe("You got there. That's what counts.");
+    expect(praiseLine({ answerable: 0, firstTry: 0 })).toBe("Nicely done.");
   });
 });
