@@ -19,7 +19,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { paymentCopy } from "../copy";
-import { returnToSchema } from "../schemas";
+import { phoneSchema, returnToSchema } from "../schemas";
 import type {
   AutoChargeCard,
   AutoChargeTarget,
@@ -102,6 +102,32 @@ async function ensureCustomerRef(
     customerRef,
   });
   return customerRef;
+}
+
+/** The phone a save-card request may carry. */
+type ContactInput = { phone?: string };
+
+/**
+ * The contact a provider that needs one gets when a card is saved there (undefined for the
+ * others): the account email and the tidied phone. Never an email from the request: the
+ * provider finds its customer by email and phone, so a typed email could reach another parent's
+ * customer and their saved cards. VALIDATION when the account has no email, or with a field
+ * error when the phone is missing or malformed. Neither value is stored or logged.
+ */
+function setupContact(
+  provider: PaymentProvider,
+  parent: { email: string | null },
+  input: ContactInput,
+): { email: string; phone: string } | undefined {
+  if (!provider.setupNeedsContact) return undefined;
+  if (!parent.email) throw new AppError("VALIDATION", paymentCopy.noAccountEmail(provider.label));
+  const phone = phoneSchema.safeParse(input.phone);
+  if (!phone.success) {
+    throw new AppError("VALIDATION", "Please fix the highlighted fields.", {
+      fieldErrors: { phone: phone.error.issues.map((issue) => issue.message) },
+    });
+  }
+  return { email: parent.email, phone: phone.data };
 }
 
 /** An absolute URL on this app for an in-app path, with `card=<state>` added to its query. */
@@ -244,6 +270,7 @@ export async function getAutoChargeCard(): Promise<AutoChargeCard[] | null> {
       cardSaved: card !== null,
       card,
       unavailableReason: chargesCurrency(provider, family.currency) ? null : "unsupported_currency",
+      needsPhone: provider.setupNeedsContact,
     };
   });
 }
@@ -438,18 +465,21 @@ async function assertParentOfTarget(target: AutoChargeTarget) {
 /**
  * Opens the chosen provider's hosted save-card page. With `arm`, the webhook turns that
  * auto-charge toggle on once the card is saved (arm_auto_charge re-checks the parent then).
+ * A provider that needs the parent's contact gets `phone` and the account email (`setupContact`).
  */
-export async function startCardSetup(input: {
-  provider: PaymentProviderId;
-  arm: AutoChargeTarget | null;
-  returnTo: string;
-}): Promise<{ redirectUrl: string }> {
+export async function startCardSetup(
+  input: {
+    provider: PaymentProviderId;
+    arm: AutoChargeTarget | null;
+    returnTo: string;
+  } & ContactInput,
+): Promise<{ redirectUrl: string }> {
   const provider = requireProvider(input.provider);
   const parent = input.arm
     ? await assertParentOfTarget(input.arm)
     : (await assertRole("parent")).user;
   await assertChargesFamilyCurrency(provider);
-  return openSetup(provider, parent, input.arm, input.returnTo);
+  return openSetup(provider, parent, input.arm, input.returnTo, input);
 }
 
 async function openSetup(
@@ -457,16 +487,25 @@ async function openSetup(
   parent: { id: string; email: string | null },
   arm: AutoChargeTarget | null,
   returnTo: string,
+  contactInput: ContactInput,
 ): Promise<{ redirectUrl: string }> {
   const successUrl = appUrl(returnTo, "saved");
   const cancelUrl = appUrl(returnTo, "cancelled");
+  // Checked before anything is created, so a missing phone leaves no customer or setup behind.
+  const contact = setupContact(provider, parent, contactInput);
   const customerRef = await ensureCustomerRef(provider, parent);
   const admin = createAdminClient();
   const setupId = await insertSetup(admin, { parentId: parent.id, provider: provider.id, arm });
 
   let hosted: { redirectUrl: string; providerRef: string };
   try {
-    hosted = await provider.createHostedSetup({ setupId, customerRef, successUrl, cancelUrl });
+    hosted = await provider.createHostedSetup({
+      setupId,
+      customerRef,
+      successUrl,
+      cancelUrl,
+      ...(contact ? { contact } : {}),
+    });
   } catch (error) {
     try {
       await failSetup(admin, setupId);
@@ -482,11 +521,15 @@ async function openSetup(
 
 /**
  * Turns auto charge on (charging the chosen provider's saved card) or off (no provider needed).
- * On with no saved card there returns a save-card URL instead; the toggle turns on when the card
- * is saved.
+ * On with no saved card there returns a save-card URL instead (with the parent's contact when
+ * that provider needs it); the toggle turns on when the card is saved.
  */
 export async function setAutoCharge(
-  input: AutoChargeTarget & { on: boolean; provider?: PaymentProviderId; returnTo: string },
+  input: AutoChargeTarget & {
+    on: boolean;
+    provider?: PaymentProviderId;
+    returnTo: string;
+  } & ContactInput,
 ): Promise<{ redirectUrl: string | null }> {
   if (!input.on) return turnAutoChargeOff({ type: input.type, id: input.id });
   if (!input.provider) throw new AppError("VALIDATION", paymentCopy.chooseProvider);
@@ -497,7 +540,7 @@ export async function setAutoCharge(
   const db = await createClient();
 
   const customer = await findCustomer(db, parent.id, provider.id);
-  if (!customer?.methodRef) return openSetup(provider, parent, target, input.returnTo);
+  if (!customer?.methodRef) return openSetup(provider, parent, target, input.returnTo, input);
   let result: "ok" | "no_card";
   try {
     result = await setAutoChargeFor(db, target, true, provider.id);
@@ -508,7 +551,7 @@ export async function setAutoCharge(
     throw error;
   }
   // The card was removed between the read and the write.
-  if (result === "no_card") return openSetup(provider, parent, target, input.returnTo);
+  if (result === "no_card") return openSetup(provider, parent, target, input.returnTo, input);
   return { redirectUrl: null };
 }
 

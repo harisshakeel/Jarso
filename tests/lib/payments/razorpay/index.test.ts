@@ -32,6 +32,7 @@ const sdkError = (statusCode: number, error: Record<string, unknown>) => ({ stat
 function setup() {
   const client = new Razorpay({ key_id: KEY_ID, key_secret: KEY_SECRET });
   const createCustomer = vi.spyOn(client.customers, "create");
+  const editCustomer = vi.spyOn(client.customers, "edit");
   const createLink = vi.spyOn(client.paymentLink, "create");
   const createOrder = vi.spyOn(client.orders, "create");
   const fetchOrder = vi.spyOn(client.orders, "fetch");
@@ -49,6 +50,7 @@ function setup() {
     client,
     provider,
     createCustomer,
+    editCustomer,
     createLink,
     createOrder,
     fetchOrder,
@@ -86,6 +88,10 @@ describe("razorpay provider basics", () => {
     expect(provider.autoChargeSettleMinutes).toBe(4320);
   });
 
+  it("needs the parent's email and phone to save a card", () => {
+    expect(setup().provider.setupNeedsContact).toBe(true);
+  });
+
   it("charges INR only", () => {
     const { provider } = setup();
     expect(provider.minimumChargeMinor("INR")).toBe(100);
@@ -108,7 +114,8 @@ describe("razorpay ensureCustomer", () => {
       {
         name: "Jarso parent",
         email: "parent@example.com",
-        fail_existing: 0,
+        // A string: Razorpay ignores the number 0 and refuses an existing customer.
+        fail_existing: "0",
         notes: { parentId: "parent-1" },
       },
     ]);
@@ -226,15 +233,27 @@ describe("razorpay createHostedPayment", () => {
 });
 
 describe("razorpay createHostedSetup", () => {
+  const PHONE = "+919000000000";
+  const EMAIL = "parent@example.com";
   const setupInput = {
     setupId: "set-1",
-    customerRef: "cust_TEST123",
+    // Jarso's stored customer, which may have no phone: the order uses the contact customer.
+    customerRef: "cust_STORED1",
     successUrl: "https://app.test/parent/settings?card=saved",
     cancelUrl: "https://app.test/parent/settings?card=cancelled",
+    contact: { email: EMAIL, phone: PHONE },
   };
+  const VALIDATION = { code: "VALIDATION" };
+  /** The customer Razorpay finds or creates for the parent's email and phone. */
+  const contactCustomer = { ...customerCreated, id: "cust_CONTACT1", contact: PHONE };
+
+  /** Every logger call so far, as one string, to check the phone and email never reach it. */
+  const logged = () =>
+    JSON.stringify([log.error.mock.calls, log.warn.mock.calls, log.info.mock.calls]);
 
   it("creates a card token order and sends the parent to Jarso's save-card page", async () => {
-    const { provider, createOrder } = setup();
+    const { provider, createOrder, createCustomer } = setup();
+    createCustomer.mockResolvedValue(contactCustomer as never);
     createOrder.mockResolvedValue(orderCreated as never);
     const result = await provider.createHostedSetup(setupInput);
 
@@ -242,7 +261,7 @@ describe("razorpay createHostedSetup", () => {
       {
         amount: 100,
         currency: "INR",
-        customer_id: "cust_TEST123",
+        customer_id: "cust_CONTACT1",
         method: "card",
         payment_capture: true,
         receipt: "set-1",
@@ -255,7 +274,7 @@ describe("razorpay createHostedSetup", () => {
     expect(`${url.origin}${url.pathname}`).toBe("https://app.test/parent/payments/razorpay");
     expect(Object.fromEntries(url.searchParams)).toEqual({
       order: "order_TESTSETUP1",
-      customer: "cust_TEST123",
+      customer: "cust_CONTACT1",
       success: setupInput.successUrl,
       cancel: setupInput.cancelUrl,
     });
@@ -263,10 +282,87 @@ describe("razorpay createHostedSetup", () => {
     expect(result.redirectUrl).toContain(
       "success=https%3A%2F%2Fapp.test%2Fparent%2Fsettings%3Fcard%3Dsaved",
     );
+    // The phone and email go to Razorpay only: never into Jarso's URL.
+    expect(result.redirectUrl).not.toContain("9000000000");
+    expect(result.redirectUrl).not.toContain("example.com");
   });
 
-  it("treats a 4xx as UNAVAILABLE", async () => {
-    const { provider, createOrder } = setup();
+  it("finds or creates the customer with the parent's email and phone before the order", async () => {
+    const { provider, createOrder, createCustomer, editCustomer } = setup();
+    createCustomer.mockResolvedValue(contactCustomer as never);
+    createOrder.mockResolvedValue(orderCreated as never);
+    await provider.createHostedSetup(setupInput);
+
+    // fail_existing must be the string "0": Razorpay ignores the number and refuses a repeat.
+    expect(createCustomer.mock.calls).toEqual([
+      [{ name: "Jarso parent", email: EMAIL, contact: PHONE, fail_existing: "0" }],
+    ]);
+    expect(createCustomer.mock.invocationCallOrder[0]).toBeLessThan(
+      createOrder.mock.invocationCallOrder[0] as number,
+    );
+    // Editing would fail when another customer already has this email and phone.
+    expect(editCustomer).not.toHaveBeenCalled();
+  });
+
+  it("treats a customer without an id as UNAVAILABLE", async () => {
+    const { provider, createOrder, createCustomer } = setup();
+    createCustomer.mockResolvedValue({} as never);
+    await expect(provider.createHostedSetup(setupInput)).rejects.toMatchObject(UNAVAILABLE);
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it("refuses to save a card without the parent's email and phone", async () => {
+    const { provider, createOrder, createCustomer, editCustomer } = setup();
+    const { contact: _contact, ...withoutContact } = setupInput;
+    await expect(provider.createHostedSetup(withoutContact)).rejects.toMatchObject(VALIDATION);
+    expect(createCustomer).not.toHaveBeenCalled();
+    expect(editCustomer).not.toHaveBeenCalled();
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["contact", "phone"],
+    ["email", "email"],
+  ])("turns a 400 on the customer's %s into a VALIDATION on %s", async (field, key) => {
+    const { provider, createOrder, createCustomer } = setup();
+    createCustomer.mockRejectedValue(
+      sdkError(400, {
+        code: "BAD_REQUEST_ERROR",
+        description: `The ${field} ${PHONE} ${EMAIL} is invalid.`,
+        reason: "input_validation_failed",
+        field,
+      }),
+    );
+    const error = await provider.createHostedSetup(setupInput).catch((e: unknown) => e);
+    expect(error).toMatchObject(VALIDATION);
+    const fieldErrors = (error as { fieldErrors?: Record<string, string[]> }).fieldErrors;
+    expect(Object.keys(fieldErrors ?? {})).toEqual([key]);
+    expect(fieldErrors?.[key]?.[0]).toMatch(/\S/);
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(logged()).not.toContain("9000000000");
+    expect(logged()).not.toContain(EMAIL);
+  });
+
+  it.each([
+    ["a 5xx", sdkError(500, { code: "SERVER_ERROR" })],
+    [
+      "an unexpected 'already exists'",
+      sdkError(400, {
+        code: "BAD_REQUEST_ERROR",
+        description: "Customer already exists for the merchant",
+        reason: "input_validation_failed",
+      }),
+    ],
+  ])("treats %s on the customer as UNAVAILABLE", async (_name, cause) => {
+    const { provider, createOrder, createCustomer } = setup();
+    createCustomer.mockRejectedValue(cause);
+    await expect(provider.createHostedSetup(setupInput)).rejects.toMatchObject(UNAVAILABLE);
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it("treats a 4xx on the order as UNAVAILABLE", async () => {
+    const { provider, createOrder, createCustomer } = setup();
+    createCustomer.mockResolvedValue(contactCustomer as never);
     createOrder.mockRejectedValue(
       sdkError(400, { code: "BAD_REQUEST_ERROR", reason: "input_validation_failed" }),
     );
@@ -274,7 +370,8 @@ describe("razorpay createHostedSetup", () => {
   });
 
   it("treats an order without an id as UNAVAILABLE", async () => {
-    const { provider, createOrder } = setup();
+    const { provider, createOrder, createCustomer } = setup();
+    createCustomer.mockResolvedValue(contactCustomer as never);
     createOrder.mockResolvedValue({} as never);
     await expect(provider.createHostedSetup(setupInput)).rejects.toMatchObject(UNAVAILABLE);
   });
@@ -330,14 +427,12 @@ describe("razorpay chargeSaved", () => {
     ]);
   });
 
-  it("charges the customer the card was saved under, warning with ids only", async () => {
+  it("charges the customer the card was saved under, which is usually not Jarso's stored one", async () => {
     const { provider, createRecurring } = charging();
     await provider.chargeSaved({ ...chargeInput, customerRef: "cust_OTHER1" });
     expect(createRecurring.mock.calls[0]?.[0]).toMatchObject({ customer_id: "cust_TEST123" });
-    expect(log.warn).toHaveBeenCalledTimes(1);
-    const logged = JSON.stringify(log.warn.mock.calls[0]);
-    expect(logged).not.toContain("parent@example.com");
-    expect(logged).not.toContain("9999999999");
+    // Expected since the save-card customer is found by email and phone: not worth a warning.
+    expect(log.warn).not.toHaveBeenCalled();
   });
 
   it("reports a declined recurring payment as failed with the mapped reason", async () => {

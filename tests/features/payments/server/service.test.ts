@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { paymentCopy } from "@/features/payments/copy";
-import { AppError } from "@/lib";
+import { AppError, logger } from "@/lib";
 import type { PaymentProvider } from "@/lib/payments";
 import { createFakePaymentProvider } from "@/lib/payments/fake";
 
@@ -800,6 +800,174 @@ describe("startCardSetup", () => {
   });
 });
 
+describe("saving a card with a provider that needs the parent's email and phone", () => {
+  const PHONE = "+919000000000";
+  let razorpay: PaymentProvider;
+  const arm = { type: "allowance_schedule" as const, id: scheduleId };
+  const start = (over: { phone?: string } = {}) =>
+    service.startCardSetup({ provider: "razorpay", arm: null, returnTo: "/parent", ...over });
+  const noEmail = () => {
+    const parentWithoutEmail = { ...parent, email: null };
+    vi.mocked(family.assertRole).mockResolvedValue({ user: parentWithoutEmail, membership: null });
+    vi.mocked(family.assertParentOf).mockResolvedValue(parentWithoutEmail);
+    vi.mocked(auth.assertUser).mockResolvedValue(parentWithoutEmail);
+  };
+  /** The field errors of the AppError `work` rejects with (VALIDATION). */
+  const fieldErrorsOf = async (work: Promise<unknown>) => {
+    const error = await work.then(
+      () => null,
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).code).toBe("VALIDATION");
+    return (error as AppError).fieldErrors ?? {};
+  };
+
+  beforeEach(() => {
+    vi.mocked(family.getFamily).mockResolvedValue({
+      id: "fam-1",
+      code: "ABC234",
+      currency: "INR",
+      timezone: "UTC",
+    });
+    razorpay = otherProvider({ id: "razorpay", label: "Razorpay", setupNeedsContact: true });
+    on = [razorpay, provider];
+  });
+
+  it("passes the account email and the tidied phone to the provider", async () => {
+    const setup = vi.spyOn(razorpay, "createHostedSetup");
+    await start({ phone: " +91 (900) 000-0000 " });
+    expect(setup).toHaveBeenCalledWith(
+      expect.objectContaining({ contact: { email: parent.email, phone: PHONE } }),
+    );
+  });
+
+  it("refuses to save a card when the account has no email, before opening anything", async () => {
+    noEmail();
+    const setup = vi.spyOn(razorpay, "createHostedSetup");
+    await rejects(start({ phone: PHONE }), "VALIDATION", paymentCopy.noAccountEmail("Razorpay"));
+    expect(repo.insertSetup).not.toHaveBeenCalled();
+    expect(repo.insertCustomer).not.toHaveBeenCalled();
+    expect(setup).not.toHaveBeenCalled();
+  });
+
+  it("ignores any email sent with the request: only the account email is used", async () => {
+    const setup = vi.spyOn(razorpay, "createHostedSetup");
+    await service.startCardSetup({
+      provider: "razorpay",
+      arm: null,
+      returnTo: "/parent",
+      phone: PHONE,
+      email: "other@example.com",
+    } as Parameters<typeof service.startCardSetup>[0]);
+    expect(setup).toHaveBeenCalledWith(
+      expect.objectContaining({ contact: { email: parent.email, phone: PHONE } }),
+    );
+  });
+
+  it("asks for the phone when none is sent, before opening anything", async () => {
+    const setup = vi.spyOn(razorpay, "createHostedSetup");
+    expect(Object.keys(await fieldErrorsOf(start()))).toEqual(["phone"]);
+    expect(repo.insertSetup).not.toHaveBeenCalled();
+    expect(repo.insertCustomer).not.toHaveBeenCalled();
+    expect(setup).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "12345",
+    "9000000000000000",
+    "+9190000000000000",
+    "+91 900-ABC-0000",
+    "++919000000000",
+    "91+9000000000",
+  ])("refuses the phone %s", async (phone) => {
+    expect(Object.keys(await fieldErrorsOf(start({ phone })))).toEqual(["phone"]);
+    expect(repo.insertSetup).not.toHaveBeenCalled();
+  });
+
+  it.each(["12345678", "+12345678901234", "+123456789012345", "(020) 7946-0000"])(
+    "accepts the phone %s",
+    async (phone) => {
+      const setup = vi.spyOn(razorpay, "createHostedSetup");
+      await start({ phone });
+      expect(setup).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("sends no contact to a provider that doesn't need it", async () => {
+    const setup = vi.spyOn(provider, "createHostedSetup");
+    await service.startCardSetup({ provider: "fake", arm: null, returnTo: "/parent" });
+    await service.startCardSetup({
+      provider: "fake",
+      arm: null,
+      returnTo: "/parent",
+      phone: PHONE,
+    });
+    expect(setup).toHaveBeenCalledTimes(2);
+    for (const [input] of setup.mock.calls) expect(input).not.toHaveProperty("contact");
+  });
+
+  it("setAutoCharge passes the contact on when it has to save a card first", async () => {
+    const setup = vi.spyOn(razorpay, "createHostedSetup");
+    await service.setAutoCharge({
+      ...arm,
+      on: true,
+      provider: "razorpay",
+      returnTo: "/parent",
+      phone: PHONE,
+    });
+    expect(setup).toHaveBeenCalledWith(
+      expect.objectContaining({ contact: { email: parent.email, phone: PHONE } }),
+    );
+  });
+
+  it("setAutoCharge asks for the phone when it has to save a card first", async () => {
+    const errors = await fieldErrorsOf(
+      service.setAutoCharge({ ...arm, on: true, provider: "razorpay", returnTo: "/parent" }),
+    );
+    expect(Object.keys(errors)).toEqual(["phone"]);
+    expect(repo.setAutoChargeFor).not.toHaveBeenCalled();
+  });
+
+  it("setAutoCharge needs no phone when a card is already saved there", async () => {
+    vi.mocked(repo.findCustomer).mockResolvedValue({ ...savedCustomer, customerRef: "cust_1" });
+    expect(
+      await service.setAutoCharge({ ...arm, on: true, provider: "razorpay", returnTo: "/parent" }),
+    ).toEqual({ redirectUrl: null });
+  });
+
+  it("never logs the phone or the email", async () => {
+    const info = vi.spyOn(logger, "info");
+    const warn = vi.spyOn(logger, "warn");
+    const error = vi.spyOn(logger, "error");
+    await start({ phone: PHONE });
+    vi.spyOn(razorpay, "createHostedSetup").mockRejectedValue(
+      new AppError("UNAVAILABLE", "Card payments aren't available right now."),
+    );
+    vi.mocked(repo.failSetup).mockRejectedValue(new Error("db down"));
+    await rejects(start({ phone: PHONE }), "UNAVAILABLE");
+    await rejects(start({ phone: "12" }), "VALIDATION");
+
+    expect(info).toHaveBeenCalled();
+    expect(error).toHaveBeenCalled();
+    const logged = JSON.stringify([info.mock.calls, warn.mock.calls, error.mock.calls]);
+    expect(logged).not.toContain("9000000000");
+    expect(logged).not.toContain(parent.email);
+  });
+
+  it("getAutoChargeCard says which provider needs the phone", async () => {
+    vi.mocked(repo.findCustomer).mockResolvedValue(null);
+    const flags = (await service.getAutoChargeCard())?.map(({ provider, needsPhone }) => ({
+      provider,
+      needsPhone,
+    }));
+    expect(flags).toEqual([
+      { provider: "razorpay", needsPhone: true },
+      { provider: "fake", needsPhone: false },
+    ]);
+  });
+});
+
 describe("saved cards", () => {
   it("getSavedCards lists every provider that is on, with its card or null", async () => {
     on = [otherProvider(), provider];
@@ -857,6 +1025,7 @@ describe("saved cards", () => {
         cardSaved: false,
         card: null,
         unavailableReason: null,
+        needsPhone: false,
       },
       {
         provider: "fake",
@@ -864,6 +1033,7 @@ describe("saved cards", () => {
         cardSaved: true,
         card: { brand: "visa", last4: "4242" },
         unavailableReason: null,
+        needsPhone: false,
       },
     ]);
   });
@@ -884,6 +1054,7 @@ describe("saved cards", () => {
         cardSaved: false,
         card: null,
         unavailableReason: "unsupported_currency",
+        needsPhone: false,
       },
       {
         provider: "fake",
@@ -891,6 +1062,7 @@ describe("saved cards", () => {
         cardSaved: false,
         card: null,
         unavailableReason: null,
+        needsPhone: false,
       },
     ]);
   });

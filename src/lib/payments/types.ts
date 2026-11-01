@@ -43,6 +43,12 @@ export interface PaymentProvider {
    * longer, or a charge still on its way would be reported as failed.
    */
   readonly autoChargeSettleMinutes: number;
+  /**
+   * Saving a card needs the parent's email and phone (Razorpay refuses a recurring card token
+   * otherwise). The caller asks the parent and passes them as `createHostedSetup`'s `contact`;
+   * Jarso never stores either.
+   */
+  readonly setupNeedsContact: boolean;
   /** Smallest amount the provider will charge, in minor units. Null when the currency is unsupported. */
   minimumChargeMinor(currency: string): number | null;
   ensureCustomer(i: { parentId: string; email: string | null }): Promise<{ customerRef: string }>;
@@ -61,6 +67,8 @@ export interface PaymentProvider {
     customerRef: string;
     successUrl: string;
     cancelUrl: string;
+    /** Required when `setupNeedsContact`, ignored otherwise. Sent to the provider, never kept. */
+    contact?: { email: string; phone: string };
   }): Promise<{ redirectUrl: string; providerRef: string }>;
   chargeSaved(i: {
     paymentId: string;

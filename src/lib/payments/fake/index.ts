@@ -41,6 +41,7 @@ export function createFakePaymentProvider(opts: { hostedUrl: string }): PaymentP
     id: "fake",
     label: "Test card",
     autoChargeSettleMinutes: 30,
+    setupNeedsContact: false,
 
     minimumChargeMinor: (currency) => (/^[A-Z]{3}$/.test(currency) ? 1 : null),
 

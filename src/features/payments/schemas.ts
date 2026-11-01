@@ -38,13 +38,42 @@ export const returnToSchema = z
   .max(512)
   .regex(/^\/(?![/\\])[^\\]*$/, "Something went wrong. Please try again.");
 
+/** An empty form field counts as not sent. */
+const blankAsMissing = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+
+/**
+ * A mobile number for a provider that needs one to save a card: spaces, dashes and brackets are
+ * dropped, a leading + is kept, then 8 to 15 digits. Sent to the provider only; Jarso never
+ * stores or logs it.
+ */
+export const phoneSchema = z.preprocess(
+  blankAsMissing,
+  z
+    .string({ error: paymentCopy.phoneRequired })
+    .transform((value) => value.replace(/[\s\-()]/g, ""))
+    .pipe(
+      z
+        .string()
+        .max(16, paymentCopy.phoneInvalid)
+        .regex(/^\+?\d{8,15}$/, paymentCopy.phoneInvalid),
+    ),
+);
+
+/** The phone a save-card request may carry (the service decides whether it is needed). */
+const phoneInput = z.preprocess(blankAsMissing, z.string().max(64).optional());
+
 /** A form posts "true" / "false"; a plain object may pass a boolean. */
 const flag = z.union([
   z.boolean(),
   z.enum(["true", "false"]).transform((value) => value === "true"),
 ]);
 
-/** Turning on names the provider whose saved card to charge; turning off needs none. */
+/**
+ * Turning on names the provider whose saved card to charge; turning off needs none. When turning
+ * on has to save a card with a provider that needs the parent's contact, `phone` comes along;
+ * the service checks it.
+ */
 export const autoChargeSchema = z
   .object({
     type: z.enum(["allowance_schedule", "parent_gift"]),
@@ -52,6 +81,7 @@ export const autoChargeSchema = z
     on: flag,
     provider: paymentProviderSchema.optional(),
     returnTo: returnToSchema,
+    phone: phoneInput,
   })
   .refine((value) => !value.on || value.provider !== undefined, {
     message: paymentCopy.chooseProvider,

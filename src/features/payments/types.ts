@@ -46,4 +46,6 @@ export type AutoChargeCard = {
   card: CardSummary | null;
   /** Set when this provider can't charge the family's currency at all. */
   unavailableReason: "unsupported_currency" | null;
+  /** Saving a card here needs the parent's mobile number (sent to the provider, never kept). */
+  needsPhone: boolean;
 };

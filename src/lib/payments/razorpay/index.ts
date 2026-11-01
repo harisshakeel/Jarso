@@ -40,7 +40,7 @@ const CARD_ONLY = {
 /** What the SDK throws for an HTTP error response (see razorpay/dist/api.js normalizeError). */
 type RazorpaySdkError = {
   statusCode: number | string;
-  error?: { code?: string; description?: string; reason?: string };
+  error?: { code?: string; description?: string; reason?: string; field?: string };
 };
 
 function isRazorpaySdkError(cause: unknown): cause is RazorpaySdkError {
@@ -103,6 +103,64 @@ async function call<T>(op: string, run: () => Promise<T>): Promise<T> {
   }
 }
 
+/** The input field a refused customer email or phone maps to, and its plain copy. */
+const CONTACT_FIELDS: Record<string, { key: "phone" | "email"; message: string }> = {
+  contact: {
+    key: "phone",
+    message: "Razorpay didn't accept that mobile number. Check it and try again.",
+  },
+  email: { key: "email", message: "Razorpay didn't accept that email. Check it and try again." },
+};
+
+/**
+ * Razorpay ignores the number 0 (the SDK's type) for `fail_existing` and answers "Customer
+ * already exists for the merchant"; only the string "0" makes it hand back the existing customer.
+ */
+const RETURN_EXISTING = "0" as unknown as 0;
+
+/**
+ * The Razorpay customer with the parent's email and phone, found or created: a card token order
+ * is refused until its customer has both. Matching is by email and phone, so local, preview and
+ * production (one shared test account) get the same customer for the same parent. Neither value
+ * is kept or logged: a 400 naming one of them becomes VALIDATION on that field (logged by code,
+ * reason and field name only, since the description can echo the value); anything else, the
+ * unexpected "already exists" included, is UNAVAILABLE.
+ */
+async function customerWithContact(
+  client: Razorpay,
+  contact: { email: string; phone: string },
+): Promise<string> {
+  let customer: { id?: string };
+  try {
+    customer = await withDeadline(() =>
+      client.customers.create({
+        name: "Jarso parent",
+        email: contact.email,
+        contact: contact.phone,
+        fail_existing: RETURN_EXISTING,
+      }),
+    );
+  } catch (cause) {
+    const field =
+      isRazorpaySdkError(cause) && Number(cause.statusCode) === 400
+        ? CONTACT_FIELDS[cause.error?.field ?? ""]
+        : undefined;
+    if (!field || !isRazorpaySdkError(cause)) throw toAppError("customers.create", cause);
+    logger.warn("razorpay refused the customer's contact details", {
+      op: "customers.create",
+      code: cause.error?.code,
+      reason: cause.error?.reason,
+      field: cause.error?.field,
+    });
+    throw new AppError("VALIDATION", field.message, {
+      fieldErrors: { [field.key]: [field.message] },
+      cause: { status: 400, code: cause.error?.code, field: cause.error?.field },
+    });
+  }
+  if (!customer?.id) throw unavailable(new Error("Razorpay customer has no id"));
+  return customer.id;
+}
+
 const is4xx = (cause: unknown): cause is RazorpaySdkError =>
   isRazorpaySdkError(cause) && Number(cause.statusCode) >= 400 && Number(cause.statusCode) < 500;
 
@@ -145,16 +203,19 @@ export function createRazorpayPaymentProvider(opts: {
     label: "Razorpay",
     // The bank notifies the cardholder about 36 h before a repeat debit (spec D4).
     autoChargeSettleMinutes: 4320,
+    // A card token order fails ("contact/email field is required for recurring") until the
+    // customer has both (spec D6).
+    setupNeedsContact: true,
 
     minimumChargeMinor: razorpayMinimumChargeMinor,
 
     async ensureCustomer({ parentId, email }) {
-      // fail_existing 0 hands back the existing customer instead of erroring.
+      // fail_existing "0" hands back the existing customer instead of erroring.
       const customer = await call("customers.create", () =>
         client.customers.create({
           name: "Jarso parent",
           ...(email ? { email } : {}),
-          fail_existing: 0,
+          fail_existing: RETURN_EXISTING,
           notes: { parentId },
         }),
       );
@@ -188,16 +249,25 @@ export function createRazorpayPaymentProvider(opts: {
 
     /**
      * An order with a card token, paid in Razorpay Checkout on Jarso's save-card page (spec D6).
-     * The ₹1 authorisation is captured in test mode and not refunded.
+     * The ₹1 authorisation is captured in test mode and not refunded. The order is for the
+     * customer with the parent's email and phone (found or created), not `customerRef`, which
+     * may have neither: Razorpay refuses the order without them. The saved card's methodRef
+     * carries that customer's id (from the webhook's payment), so charges use it.
      */
     async createHostedSetup(i) {
+      if (!i.contact) {
+        throw new AppError("VALIDATION", "Enter your mobile number to save a card.", {
+          fieldErrors: { phone: ["Enter your mobile number to save a card."] },
+        });
+      }
+      const customerId = await customerWithContact(client, i.contact);
       // The SDK types `expire_at` as required; the API defaults it, so Jarso sends none.
       const token = { max_amount: TOKEN_MAX_AMOUNT_MINOR, frequency: "as_presented" };
       const order = await call("orders.create", () =>
         client.orders.create({
           amount: SETUP_AMOUNT_MINOR,
           currency: "INR",
-          customer_id: i.customerRef,
+          customer_id: customerId,
           method: "card",
           payment_capture: true,
           receipt: i.setupId,
@@ -208,7 +278,7 @@ export function createRazorpayPaymentProvider(opts: {
       if (!order?.id) throw unavailable(new Error("Razorpay order has no id"));
       const url = new URL(opts.checkoutUrl);
       url.searchParams.set("order", order.id);
-      url.searchParams.set("customer", i.customerRef);
+      url.searchParams.set("customer", customerId);
       url.searchParams.set("success", i.successUrl);
       url.searchParams.set("cancel", i.cancelUrl);
       return { redirectUrl: url.toString(), providerRef: order.id };
@@ -225,13 +295,8 @@ export function createRazorpayPaymentProvider(opts: {
         logger.error("razorpay saved card reference is malformed", { paymentId: i.paymentId });
         throw unavailable();
       }
-      if (i.customerRef !== ref.customerId) {
-        logger.warn("razorpay saved card belongs to another customer; charging its own", {
-          paymentId: i.paymentId,
-          customerRef: i.customerRef,
-          cardCustomerRef: ref.customerId,
-        });
-      }
+      // The card is charged on its own customer (the one with the parent's email and phone that
+      // saved it), which is usually not `customerRef`: createHostedSetup finds or creates it.
 
       const auth = await call("payments.fetch", () => client.payments.fetch(ref.authPaymentId));
       const email = auth?.email;

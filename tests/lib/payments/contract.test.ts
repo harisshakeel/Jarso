@@ -16,6 +16,8 @@ type Adapter = {
   name: string;
   /** A currency this adapter charges, used for every call in the suite. */
   currency: string;
+  /** Whether saving a card needs the parent's email and phone. */
+  setupNeedsContact: boolean;
   make: () => PaymentProvider;
   signedSucceeded: (paymentId: string) => { body: string; headers: Headers };
 };
@@ -25,6 +27,7 @@ const WEBHOOK_SECRET = "whsec_contract";
 const fake: Adapter = {
   name: "fake",
   currency: "GBP",
+  setupNeedsContact: false,
   make: () => createFakePaymentProvider({ hostedUrl: "https://app.test/dev/payments/fake" }),
   signedSucceeded: (paymentId) => {
     const body = JSON.stringify({
@@ -47,6 +50,7 @@ vi.spyOn(stripeClient.checkout.sessions, "create").mockResolvedValue({
 const stripe: Adapter = {
   name: "stripe",
   currency: "GBP",
+  setupNeedsContact: false,
   make: () =>
     createStripePaymentProvider({
       secretKey: "sk_test_dummy",
@@ -81,6 +85,7 @@ vi.spyOn(razorpayClient.paymentLink, "create").mockResolvedValue({
 const razorpay: Adapter = {
   name: "razorpay",
   currency: "INR",
+  setupNeedsContact: true,
   make: () =>
     createRazorpayPaymentProvider({
       keyId: "rzp_test_XXXXXXXXXXXXXX",
@@ -111,6 +116,10 @@ describe.each([fake, stripe, razorpay])("payment provider contract: $name", (ada
     expect(provider.label).not.toBe("");
     expect(Number.isInteger(provider.autoChargeSettleMinutes)).toBe(true);
     expect(provider.autoChargeSettleMinutes).toBeGreaterThan(0);
+  });
+
+  it("says whether saving a card needs the parent's email and phone", () => {
+    expect(provider.setupNeedsContact).toBe(adapter.setupNeedsContact);
   });
 
   it("has a positive integer minimum charge for its test currency", () => {

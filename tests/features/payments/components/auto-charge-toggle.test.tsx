@@ -27,13 +27,19 @@ const card = (
   label: string,
   saved: AutoChargeCard["card"] = null,
   unavailableReason: AutoChargeCard["unavailableReason"] = null,
+  needsPhone = false,
 ): AutoChargeCard => ({
   provider,
   label,
   cardSaved: saved !== null,
   card: saved,
   unavailableReason,
+  needsPhone,
 });
+
+/** Razorpay with no card saved: saving one first asks for the parent's phone. */
+const razorpay = () => card("razorpay", "Razorpay", null, null, true);
+const PHONE_HELP = "Razorpay needs your mobile number to save a card. Jarso doesn't keep it.";
 
 type Props = ComponentProps<typeof AutoChargeToggle>;
 function renderToggle(props: Partial<Props> = {}) {
@@ -155,6 +161,83 @@ describe("AutoChargeToggle", () => {
         .getAllByRole("button")
         .map((button) => button.textContent),
     ).toEqual(["Save with Stripe", "Save with Razorpay", "Not now"]);
+  });
+
+  it("asks for the mobile number before saving a card with a provider that needs it", async () => {
+    setAutoChargeAction.mockResolvedValue({ ok: true, data: undefined });
+    renderToggle({ cards: [razorpay()] });
+    fireEvent.click(toggle());
+    await screen.findByText(MANDATE);
+    expect(screen.queryByLabelText("Mobile number")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save a card" }));
+    const phone = await screen.findByLabelText("Mobile number");
+    expect(phone).toHaveAttribute("type", "tel");
+    expect(phone).toHaveAttribute("autocomplete", "tel");
+    expect(phone).toHaveAttribute("inputmode", "tel");
+    expect(screen.getByText(PHONE_HELP)).toBeVisible();
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+    expect(setAutoChargeAction).not.toHaveBeenCalled();
+
+    fireEvent.change(phone, { target: { value: "+91 90000 00000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await waitFor(() =>
+      expect(setAutoChargeAction).toHaveBeenCalledWith(null, {
+        ...target,
+        on: true,
+        provider: "razorpay",
+        returnTo,
+        phone: "+91 90000 00000",
+      }),
+    );
+  });
+
+  it("moves focus to the mobile number field when it appears", async () => {
+    renderToggle({ cards: [card("stripe", "Stripe"), razorpay()] });
+    fireEvent.click(toggle());
+    fireEvent.click(await screen.findByRole("button", { name: "Save with Razorpay" }));
+    const phone = await screen.findByLabelText("Mobile number");
+    await waitFor(() => expect(phone).toHaveFocus());
+  });
+
+  it("doesn't ask for a phone for a provider that doesn't need one", async () => {
+    setAutoChargeAction.mockResolvedValue({ ok: true, data: undefined });
+    renderToggle({ cards: [card("stripe", "Stripe"), razorpay()] });
+    fireEvent.click(toggle());
+    fireEvent.click(await screen.findByRole("button", { name: "Save with Stripe" }));
+    await waitFor(() =>
+      expect(setAutoChargeAction).toHaveBeenCalledWith(null, {
+        ...target,
+        on: true,
+        provider: "stripe",
+        returnTo,
+      }),
+    );
+    expect(screen.queryByLabelText("Mobile number")).not.toBeInTheDocument();
+  });
+
+  it("shows a refused phone next to the field and keeps the form open", async () => {
+    setAutoChargeAction.mockResolvedValue({
+      ok: false,
+      error: {
+        code: "VALIDATION",
+        message: "Please fix the highlighted fields.",
+        fieldErrors: { phone: ["Enter a mobile number with 8 to 15 digits."] },
+      },
+    });
+    renderToggle({ cards: [razorpay()] });
+    fireEvent.click(toggle());
+    fireEvent.click(await screen.findByRole("button", { name: "Save a card" }));
+    fireEvent.change(await screen.findByLabelText("Mobile number"), { target: { value: "12" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(await screen.findByText("Enter a mobile number with 8 to 15 digits.")).toBeVisible();
+    expect(screen.getByLabelText("Mobile number")).toHaveAttribute("aria-invalid", "true");
+    // The switch sits behind the open dialog, so it is hidden from the accessibility tree.
+    expect(screen.getByRole("switch", { name: "Auto charge", hidden: true })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
   });
 
   it("names the card it uses when several providers are on", () => {
