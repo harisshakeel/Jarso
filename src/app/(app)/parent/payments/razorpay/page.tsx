@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { clientEnv, routes } from "@/config";
 import { requireRole } from "@/features/family/server";
 import { RazorpayCheckout, razorpayCheckoutParamsSchema } from "@/features/payments";
-import { getRazorpayCheckoutConfig } from "@/features/payments/server";
+import { getRazorpayCheckoutFor } from "@/features/payments/server";
 
 export const metadata: Metadata = { title: "Save a card", robots: { index: false } };
 
@@ -13,16 +13,19 @@ const RETURN_PATH = "/api/v1/payments/razorpay/return";
 
 type Props = { searchParams: PageProps<"/parent/payments/razorpay">["searchParams"] };
 
-/** Parent only, and only with Razorpay on; checked per request, after the query. */
+/**
+ * Parent only, with Razorpay on, and only for the parent's own pending save-card order; checked
+ * per request, after the query.
+ */
 async function RazorpayCheckoutContent({ searchParams }: Props) {
   const query = await searchParams;
   await requireRole("parent", routes.parent);
-  const config = getRazorpayCheckoutConfig();
-  if (!config) notFound();
   const appUrl = clientEnv.NEXT_PUBLIC_APP_URL;
   const parsed = razorpayCheckoutParamsSchema(appUrl).safeParse(query);
   if (!parsed.success) notFound();
   const { order, customer, success, cancel } = parsed.data;
+  const config = await getRazorpayCheckoutFor(order);
+  if (!config) notFound();
 
   const callback = new URL(RETURN_PATH, appUrl);
   callback.searchParams.set("success", success);

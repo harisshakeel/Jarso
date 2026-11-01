@@ -338,6 +338,23 @@ export async function setSetupProviderRef(
   if (error) throw toAppError(error, "Failed to start saving your card");
 }
 
+/** Whether `parentId` has a pending save-card session at `provider` for `providerRef`. */
+export async function hasPendingSetup(
+  db: Client,
+  row: { parentId: string; provider: PaymentProviderId; providerRef: string },
+): Promise<boolean> {
+  const { data, error } = await db
+    .from("payment_setups")
+    .select("id")
+    .eq("parent_id", row.parentId)
+    .eq("provider", row.provider)
+    .eq("provider_ref", row.providerRef)
+    .eq("status", "pending")
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load the card setup");
+  return data !== null;
+}
+
 /** Pending → failed (or expired). Any other status is left alone. */
 export async function failSetup(
   admin: Client,

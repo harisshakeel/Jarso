@@ -559,7 +559,7 @@ auto charge: pg_cron :09 ─► /api/cron/payments/auto-charge ─► due_auto_c
              failed or expired ─► payment failed, item stays due, parent gets card_charge_failed
 ```
 
-Razorpay's save-card flow: `/parent/payments/razorpay` opens Razorpay Checkout; Checkout posts to `/api/v1/payments/razorpay/return`, which only redirects; the `order.paid` webhook saves the card. A Razorpay auto charge stays `pending` until its webhook, up to 72 h (each provider's `autoChargeSettleMinutes` sets when the stale sweep expires it). Starting a manual payment with another provider cancels the item's still-`pending` checkout (with a page) at the first provider, whichever parent started it.
+Razorpay's save-card flow: `/parent/payments/razorpay` opens Razorpay Checkout, only for an order that is the signed-in parent's own pending `payment_setups` row (else 404), so a shared link can't save someone's card to another account; Checkout posts to `/api/v1/payments/razorpay/return`, which only redirects; the `order.paid` webhook saves the card. A Razorpay auto charge stays `pending` until its webhook, up to 72 h (each provider's `autoChargeSettleMinutes` sets when the stale sweep expires it). Starting a manual payment with another provider cancels the item's still-`pending` checkout (with a page) at the first provider, whichever parent started it.
 
 The redirect back from the provider never posts money; a `?card=cancelled` return cancels the parent's abandoned checkout for the item. Duplicate or late events are no-ops (status machine and `payment_webhook_events`). Cash after a pending card still works; whichever takes the source lock first posts.
 
