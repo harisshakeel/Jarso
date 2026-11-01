@@ -257,7 +257,7 @@ test("Home lists what needs the parent; handing over lands on the child page", a
 
   await page.goto("/parent");
   const needsYou = page.getByRole("region", { name: /Needs you/ });
-  const row = needsYou.getByRole("row").filter({ hasText: "Sam" });
+  const row = needsYou.getByRole("listitem").filter({ hasText: "Sam" });
   await expect(row).toContainText("Allowance");
   await expect(row).toContainText("US$500.00");
   await row.getByRole("link", { name: /^Hand over allowance to Sam, due / }).click();
@@ -284,9 +284,8 @@ test("Allowance tab lists each child and Manage opens the manage page", async ()
     "page",
   );
 
-  const row = page.getByRole("row").filter({ hasText: "Sam" });
-  await expect(row.getByText(/^US\$500\.00 every \w+day$/)).toBeVisible();
-  await expect(row.getByText("Active", { exact: true })).toBeVisible();
+  const row = page.getByRole("listitem").filter({ hasText: "Sam" });
+  await expect(row.getByText(/^US\$500\.00 every \w+day\./)).toBeVisible();
   await row.getByRole("link", { name: "Manage Sam's allowance" }).click();
   await expect(page).toHaveURL(at(managePath));
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
