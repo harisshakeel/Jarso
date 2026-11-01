@@ -22,6 +22,7 @@ vi.mock("@/features/allowance/server/repository", () => ({
   findLatestAllowanceSplit: vi.fn(),
   findLatestGiftSplit: vi.fn(),
   findLatestSchedule: vi.fn(),
+  fetchScheduleAutoCharge: vi.fn(),
   findOccurrenceChildId: vi.fn(),
   findScheduleChildId: vi.fn(),
   findScheduleState: vi.fn(),
@@ -469,6 +470,8 @@ describe("getSchedule", () => {
       anchorOn: "2026-11-01",
       pausedThrough: null,
       pauseMessage: null,
+    });
+    vi.mocked(repo.fetchScheduleAutoCharge).mockResolvedValue({
       autoCharge: false,
       autoChargeProvider: null,
       autoChargeBy: null,
@@ -491,6 +494,8 @@ describe("getSchedule", () => {
       anchorOn: "2026-11-01",
       pausedThrough: null,
       pauseMessage: null,
+    });
+    vi.mocked(repo.fetchScheduleAutoCharge).mockResolvedValue({
       autoCharge: true,
       autoChargeProvider: "stripe",
       autoChargeBy: "parent-1",
@@ -514,6 +519,8 @@ describe("getSchedule", () => {
       autoChargeMine: false,
     });
     expect(forChild).not.toHaveProperty("autoChargeBy");
+    // The child's read never asks for auto charge: the database would refuse it.
+    expect(repo.fetchScheduleAutoCharge).toHaveBeenCalledTimes(2);
   });
 });
 
