@@ -144,6 +144,10 @@ function AutoChargeSwitch({
         : paymentCopy.chargesOther(current.label)
       : null;
 
+  const choices = question.kind === "choose" ? question.options : usable;
+  const stacked = choices.length > 1;
+  const cancel = <AlertDialogCancel disabled={pending}>{paymentCopy.notNow}</AlertDialogCancel>;
+
   return (
     <Card className="rise-in">
       <CardContent className="grid gap-3">
@@ -178,9 +182,11 @@ function AutoChargeSwitch({
               {question.kind === "choose" ? paymentCopy.chooseCardDetail : paymentCopy.mandate}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>{paymentCopy.notNow}</AlertDialogCancel>
-            {(question.kind === "choose" ? question.options : usable).map((option) => (
+          {/* Several choices don't fit one row: stack them full width, in provider order, with
+              "Not now" last. One choice keeps the usual footer (Cancel beside the action). */}
+          <AlertDialogFooter className={stacked ? "flex-col sm:flex-col" : undefined}>
+            {stacked ? null : cancel}
+            {choices.map((option) => (
               <Button
                 key={option.provider}
                 loading={pending && saving === option.provider}
@@ -201,6 +207,7 @@ function AutoChargeSwitch({
                     : paymentCopy.saveWith(option.label)}
               </Button>
             ))}
+            {stacked ? cancel : null}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AutoChargeToggle } from "@/features/payments/components/auto-charge-toggle";
@@ -142,6 +142,19 @@ describe("AutoChargeToggle", () => {
         returnTo,
       }),
     );
+  });
+
+  it("stacks several choices in provider order with Not now last", async () => {
+    renderToggle({ cards: [card("stripe", "Stripe"), card("razorpay", "Razorpay")] });
+    fireEvent.click(toggle());
+    await screen.findByText(MANDATE);
+    const footer = screen.getByRole("button", { name: "Not now" }).parentElement;
+    expect(footer).toHaveClass("flex-col", "sm:flex-col");
+    expect(
+      within(footer as HTMLElement)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["Save with Stripe", "Save with Razorpay", "Not now"]);
   });
 
   it("names the card it uses when several providers are on", () => {
