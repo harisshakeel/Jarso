@@ -4,6 +4,7 @@ import { getSchedule, listDueForChild } from "@/features/allowance/server";
 import { getGoalView } from "@/features/goals/server";
 import { type NextStep, skillLevelLabels, skills } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
+import { categoryOf } from "@/features/ledger";
 import { getHistoryPage, type HistoryPage } from "@/features/ledger/server";
 import type { RequestStatus } from "@/features/requests";
 import { getAvailability, listRequests } from "@/features/requests/server";
@@ -140,6 +141,7 @@ const HISTORY_KIND: Record<string, string> = {
   withdrawal: "taken out of Save into Spend (not new money)",
   deposit: "put from Spend into Save (not new money)",
   extra: "extra money from their parent, into Spend",
+  received: "money received",
 };
 
 function nextStepText(step: NextStep): string {
@@ -229,7 +231,7 @@ const runners: { [N in ToolName]: Run<N> } = {
       if (item.kind === "purchase") {
         spent += item.amountMinor;
         purchases += 1;
-      } else if (item.kind === "allowance" || item.kind === "gift") {
+      } else if (item.kind === "allowance" || item.kind === "gift" || item.kind === "received") {
         moneyIn += item.amountMinor;
       }
     }
@@ -237,8 +239,14 @@ const runners: { [N in ToolName]: Run<N> } = {
       const n = index + 1;
       return {
         date: fact(`history.${n}.date`, showDate(item.occurredOn)),
-        what: item.undone ? "purchase (undone)" : (HISTORY_KIND[item.kind] ?? item.kind),
+        what: item.undone
+          ? `${item.kind === "received" ? "money received" : "purchase"} (undone)`
+          : (HISTORY_KIND[item.kind] ?? item.kind),
         label: cleanLabel(item.label),
+        category:
+          item.kind === "purchase" || item.kind === "received"
+            ? categoryOf(item.category, item.kind).label
+            : null,
         amount:
           item.amountMinor === null
             ? null
