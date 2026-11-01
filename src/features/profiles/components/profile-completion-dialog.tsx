@@ -21,9 +21,9 @@ export function ProfileCompletionDialog() {
     <AlertDialog open onOpenChange={() => {}}>
       <AlertDialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <AlertDialogHeader>
-          <AlertDialogTitle>Finish your profile</AlertDialogTitle>
+          <AlertDialogTitle>One more thing.</AlertDialogTitle>
           <AlertDialogDescription>
-            We need a few details about you before you carry on. Only you can see them.
+            Tell us a bit about you. Only you can see it, and it never shows to your child.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <ParentDetailsForm

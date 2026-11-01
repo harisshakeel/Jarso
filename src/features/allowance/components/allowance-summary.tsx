@@ -72,9 +72,9 @@ export function AllowanceSummary({
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Link
             href={routes.parentAllowanceEdit(childId)}
-            className={buttonVariants({ variant: "secondary", size: "lg" })}
+            className={buttonVariants({ size: "lg" })}
           >
-            Change amount or how often
+            Change
           </Link>
           {paused ? (
             <ResumeButton scheduleId={schedule.id} />

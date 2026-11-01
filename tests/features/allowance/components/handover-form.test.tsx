@@ -64,7 +64,7 @@ describe("HandoverForm", () => {
     fireEvent.change(spend, { target: { value: "3" } });
     fireEvent.change(save, { target: { value: "1" } });
     expect(spend.value).toBe("3");
-    expect(screen.getByRole("status")).toHaveTextContent("will be noted as short");
+    expect(screen.getByRole("status")).toHaveTextContent("less than was due");
   });
 
   it("offers Pay by card beside the cash button only with a card state", () => {
@@ -97,6 +97,6 @@ describe("HandoverForm", () => {
   it("shows no shortfall for a gift given in full or in part", () => {
     const { spend } = renderForm("gift");
     fireEvent.change(spend, { target: { value: "1" } });
-    expect(screen.queryByText(/noted as short/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/less than was due/)).not.toBeInTheDocument();
   });
 });

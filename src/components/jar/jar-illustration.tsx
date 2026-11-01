@@ -1,4 +1,6 @@
-import { useId } from "react";
+"use client";
+
+import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib";
 
 type JarIllustrationProps = {
@@ -40,6 +42,14 @@ export function JarIllustration({
   const hatchId = `${id}-hatch`;
   const capacity = Math.max(capacityMinor, 1);
   const fill = round(Math.min(Math.max(filledMinor, 0) / capacity, 1));
+  // Money arriving (a handover confirmed, a put-in landing) drops two coins into the jar once
+  // (design.md §8). The first paint and money leaving draw nothing extra.
+  const previous = useRef(filledMinor);
+  const [drop, setDrop] = useState(0);
+  useEffect(() => {
+    if (filledMinor > previous.current) setDrop((n) => n + 1);
+    previous.current = filledMinor;
+  }, [filledMinor]);
   const reserved = round(Math.min(Math.max(reservedMinor, 0) / capacity, 1 - fill));
   const fillHeight = fill * INNER_HEIGHT;
   const reservedHeight = reserved * INNER_HEIGHT;
@@ -92,6 +102,24 @@ export function JarIllustration({
           />
         ) : null}
       </g>
+      {drop > 0 ? (
+        <g key={drop} data-coins aria-hidden>
+          {[78, 122].map((cx, index) => (
+            <circle
+              key={cx}
+              cx={cx}
+              cy={INNER.bottom - fillHeight - 10}
+              r="11"
+              className={cn(
+                "fill-gold stroke-gold-700 motion-reduce:hidden",
+                "motion-safe:animate-[coin-drop_500ms_var(--ease-brand)_both]",
+              )}
+              style={{ animationDelay: `${index * 80}ms` }}
+              strokeWidth="3"
+            />
+          ))}
+        </g>
+      ) : null}
       <rect x="34" y="14" width="132" height="26" rx="13" className="fill-cyan-300" />
       <path
         d="M62 44 C62 60 30 62 30 96 V180 Q30 206 56 206 H144 Q170 206 170 180 V48"

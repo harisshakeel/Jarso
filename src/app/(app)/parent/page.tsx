@@ -100,25 +100,16 @@ async function ParentHome() {
               </Suspense>
             </li>
           ))}
+          <li>
+            <Link
+              href={routes.parentNewChild}
+              className="flex min-h-36 h-full items-center justify-center gap-2 rounded-xl border-2 border-hairline-strong border-dashed px-4 font-semibold text-primary hover:bg-card"
+            >
+              <PlusIcon aria-hidden className="size-5" />
+              Add a child
+            </Link>
+          </li>
         </ul>
-        <p className="flex flex-wrap items-center text-sm">
-          <Link
-            href={routes.parentNewChild}
-            className="inline-flex min-h-11 items-center gap-1 font-semibold text-primary underline-offset-4 hover:underline"
-          >
-            <PlusIcon aria-hidden className="size-4" />
-            Add a child
-          </Link>
-          <span aria-hidden className="px-2 text-muted-foreground">
-            ·
-          </span>
-          <Link
-            href={routes.invite}
-            className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline"
-          >
-            Accept an invitation
-          </Link>
-        </p>
       </section>
     </>
   );

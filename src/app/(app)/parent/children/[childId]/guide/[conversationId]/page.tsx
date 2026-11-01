@@ -31,7 +31,7 @@ async function ChatContent({
       }
       back={{ href: routes.parentChildGuide(childId), label: `${child.nickname}'s chats` }}
     >
-      <Transcript messages={chat.messages} timezone={timezone} />
+      <Transcript messages={chat.messages} timezone={timezone} nickname={child.nickname} />
     </PageShell>
   );
 }

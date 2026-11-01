@@ -123,7 +123,7 @@ test("parent sets up a weekly allowance and sees the summary", async () => {
 test("parent changes the amount", async () => {
   await page.getByRole("link", { name: "Manage", exact: true }).click();
   await expect(page).toHaveURL(at(managePath));
-  await page.getByRole("link", { name: "Change amount or how often" }).click();
+  await page.getByRole("link", { name: "Change", exact: true }).click();
   await expect(page).toHaveURL(at(`${managePath}/edit`));
   await page.getByLabel("Amount").fill("600");
   await page.getByRole("button", { name: "Save allowance" }).click();
@@ -238,9 +238,7 @@ test("parent marks a due allowance as not given", async () => {
   await page.reload();
   const due = page.getByRole("region", { name: "Due now" });
   await due.getByRole("link", { name: /^Allowance/ }).click();
-  await expect(
-    page.getByText("Gave less? Enter what you gave. The rest is noted as short."),
-  ).toBeVisible();
+  await expect(page.getByText("Gave less? Enter what you gave.")).toBeVisible();
   await page.getByRole("button", { name: "Mark as not given" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Mark as not given" }).click();
 

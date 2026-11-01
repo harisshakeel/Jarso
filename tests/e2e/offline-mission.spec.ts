@@ -134,7 +134,7 @@ test("finish a started mission offline, results arrive in order after reconnect"
 
   // Every step right first time: no replay, and the finish screen is built on the device.
   await expect(child.getByRole("heading", { name: "Mission done. Nice work." })).toBeVisible();
-  await expect(child.getByText("6 of 6 first try. No hints.")).toBeVisible();
+  await expect(child.getByText("Every one first time. Great thinking.")).toBeVisible();
   await expect(child.getByText("Saved on this device.")).toBeVisible();
   expect(sent).toEqual([]);
 

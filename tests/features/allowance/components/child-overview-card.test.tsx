@@ -34,7 +34,7 @@ describe("ChildOverviewCard", () => {
 
   it("says when there is no goal", () => {
     render(<ChildOverviewCard {...base} goal={null} />);
-    expect(screen.getByText("No goal yet")).toBeInTheDocument();
+    expect(screen.getByText("Not saving for anything yet")).toBeInTheDocument();
   });
 
   it("draws both jars and writes both balances", () => {

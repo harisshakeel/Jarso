@@ -19,6 +19,7 @@ import {
   buttonVariants,
   Card,
   CardContent,
+  coinToast,
   Slider,
 } from "@/components/ui";
 import { routes } from "@/config";
@@ -81,9 +82,8 @@ export function HandoverForm({
       setDirty(false);
       const result = await runOnline(() => confirmHandoverAction(null, formData));
       if (result.ok) {
-        toast.success(
-          result.data === "confirmed" ? `Handed over to ${nickname}.` : "Already handled.",
-        );
+        if (result.data === "confirmed") coinToast(`Handed over to ${nickname}.`);
+        else toast.success("Already handled.");
         router.push(routes.parentChild(childId));
       }
       return result;
@@ -191,23 +191,22 @@ export function HandoverForm({
               errors={savedError ? [savedError] : undefined}
             />
           </div>
-          <p className="text-ink-2 text-sm">
+          <p className="text-ink-2">
             {hasPrevious
               ? "Same split as last time. Drag or type to change."
               : "Drag or type to change."}
           </p>
-          {goalNote ? <p className="text-ink-2 text-sm">{goalNote}</p> : null}
+          {goalNote ? <p className="text-ink-2">{goalNote}</p> : null}
           <FieldError errors={totalError ? [totalError] : undefined} />
           {short > 0 ? (
-            <p role="status" className="text-ink-2 text-sm">
-              <span className="money font-bold">{formatMoney(short, currency)}</span> will be noted
-              as short
+            <p role="status" className="text-ink-2">
+              {nickname} gets{" "}
+              <span className="money font-bold">{formatMoney(amountMinor - short, currency)}</span>{" "}
+              this time, <span className="money font-bold">{formatMoney(short, currency)}</span>{" "}
+              less than was due.
             </p>
-          ) : null}
-          {isAllowance ? (
-            <p className="text-ink-2 text-sm">
-              Gave less? Enter what you gave. The rest is noted as short.
-            </p>
+          ) : isAllowance ? (
+            <p className="text-ink-2">Gave less? Enter what you gave.</p>
           ) : null}
         </CardContent>
       </Card>

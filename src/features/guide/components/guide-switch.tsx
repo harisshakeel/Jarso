@@ -17,10 +17,13 @@ export function GuideSwitch({
   childId,
   nickname,
   enabled,
+  detail = "full",
 }: {
   childId: string;
   nickname: string;
   enabled: boolean;
+  /** "short": one sentence and the link, for the child page; "full": the whole explanation. */
+  detail?: "full" | "short";
 }) {
   const [on, setOn] = useState(enabled);
   const [error, setError] = useState<{ code: string; message: string } | undefined>();
@@ -70,23 +73,36 @@ export function GuideSwitch({
           <span className="sr-only">{on ? "On" : "Off"}</span>
         </button>
       </div>
-      <p className="text-ink-2 text-sm">
-        Jarso is an AI helper made with Anthropic's Claude. It answers {nickname}'s money questions,
-        gives hints in missions, and, when {nickname} asks, looks at their own jars, allowance,
-        purchases, goal, requests and learning to answer. It can't see anyone else's money or your
-        planned gifts, and it can't move money. It never asks for personal details, never recommends
-        products or tells them to buy anything, and points them to help if they seem unsafe.
-        Messages, and what Jarso looks up for them, are sent to Anthropic to get answers. Chats are
-        kept here for 30 days and you can read every one, with what Jarso looked at, except a
-        message that needed a safety response, which isn't kept. It's on unless you turn it off, and
-        you can turn it off or back on at any time.{" "}
-        <Link
-          href={routes.safety}
-          className="font-semibold text-primary underline underline-offset-4"
-        >
-          How Jarso keeps children safe
-        </Link>
-      </p>
+      {detail === "short" ? (
+        <p className="text-ink-2">
+          An AI helper for {nickname}'s money questions. It sees only {nickname}'s own jars and
+          learning, never moves money, and you can read every chat.{" "}
+          <Link
+            href={routes.safety}
+            className="font-semibold text-primary underline underline-offset-4"
+          >
+            What Jarso can and can't do
+          </Link>
+        </p>
+      ) : (
+        <p className="text-ink-2">
+          Jarso is an AI helper made with Anthropic's Claude. It answers {nickname}'s money
+          questions, gives hints in missions, and, when {nickname} asks, looks at their own jars,
+          allowance, purchases, goal, requests and learning to answer. It can't see anyone else's
+          money or your planned gifts, and it can't move money. It never asks for personal details,
+          never recommends products or tells them to buy anything, and points them to help if they
+          seem unsafe. Messages, and what Jarso looks up for them, are sent to Anthropic to get
+          answers. Chats are kept here for 30 days and you can read every one, with what Jarso
+          looked at, except a message that needed a safety response, which isn't kept. It's on
+          unless you turn it off, and you can turn it off or back on at any time.{" "}
+          <Link
+            href={routes.safety}
+            className="font-semibold text-primary underline underline-offset-4"
+          >
+            How Jarso keeps children safe
+          </Link>
+        </p>
+      )}
       <FormError error={error} />
     </div>
   );

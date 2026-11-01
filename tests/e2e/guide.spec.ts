@@ -94,13 +94,14 @@ test.afterAll(async () => {
 });
 
 test("Jarso is on by default, and the parent sees how to turn it off", async () => {
+  await parent.getByRole("tab", { name: "Jarso" }).click();
   const toggle = parent.getByRole("switch", { name: "Jarso for Remi" });
   await expect(toggle).toHaveAttribute("aria-checked", "true");
   // The child's page only: Next keeps the add-child page (with its notice) hidden in the DOM.
   const card = parent.getByRole("region", { name: "Jarso, the AI helper", exact: true });
-  await expect(card.getByText(/made with Anthropic's Claude/)).toBeVisible();
-  await expect(card.getByText(/looks at their own jars, allowance/)).toBeVisible();
-  await expect(card.getByText(/on unless you turn it off/)).toBeVisible();
+  await expect(card.getByText(/An AI helper for Remi's money questions/)).toBeVisible();
+  await expect(card.getByText(/sees only Remi's own jars and learning/)).toBeVisible();
+  await expect(card.getByRole("link", { name: "What Jarso can and can't do" })).toBeVisible();
   await expect(child.getByRole("heading", { name: /Five quick questions/ })).toBeVisible();
   await expect(jarso(child)).toBeVisible();
 });
@@ -163,12 +164,13 @@ test("Help me in a mission gives a hint, not the answer", async () => {
 
 test("the parent reads chats flagged first, with what Jarso looked at", async () => {
   await parent.goto(childBase);
-  await expect(parent.getByText("1 chat needs a look.")).toBeVisible();
+  await parent.getByRole("tab", { name: "Jarso" }).click();
+  await expect(parent.getByText("1 chat is worth a look.")).toBeVisible();
   await parent.getByRole("link", { name: "Read Remi's chats" }).click();
   await expect(parent).toHaveURL(at(`${childBase}/guide`));
   const chats = parent.getByRole("list", { name: "Chats" }).getByRole("link");
   await expect(chats).toHaveCount(3);
-  await expect(chats.first()).toContainText("Needs a look");
+  await expect(chats.first()).toContainText("Worth a look");
   await chats.first().click();
   await expect(parent).toHaveURL(new RegExp(`${childBase}/guide/[0-9a-f-]+$`));
   const transcript = parent.getByRole("list", { name: "Chat" });
@@ -184,6 +186,7 @@ test("the parent reads chats flagged first, with what Jarso looked at", async ()
 
 test("turning Jarso off hides it from the child", async () => {
   await parent.goto(childBase);
+  await parent.getByRole("tab", { name: "Jarso" }).click();
   const toggle = parent.getByRole("switch", { name: "Jarso for Remi" });
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-checked", "false");

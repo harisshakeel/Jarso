@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleCheckIcon } from "lucide-react";
 import { type ComponentProps, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui";
 import { GoalSheet, markCelebratedAction } from "@/features/goals";
@@ -113,6 +114,7 @@ function GoalReached({
   }, [goalId]);
   return (
     <>
+      <GoalBadge />
       <h2 id="home-step-heading" className="text-h3">
         {title}
       </h2>
@@ -125,5 +127,28 @@ function GoalReached({
         />
       </div>
     </>
+  );
+}
+
+/** Goal reached (design.md §8): the gold ring closes and the badge scales in, once. */
+function GoalBadge() {
+  return (
+    <div aria-hidden className="relative grid size-20 place-items-center">
+      <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90" aria-hidden>
+        <circle cx="50" cy="50" r="44" fill="none" strokeWidth="8" className="stroke-muted" />
+        <circle
+          cx="50"
+          cy="50"
+          r="44"
+          fill="none"
+          strokeWidth="8"
+          strokeLinecap="round"
+          pathLength={100}
+          strokeDasharray="100"
+          className="stroke-gold motion-safe:animate-[ring-close_600ms_var(--ease-brand)_both]"
+        />
+      </svg>
+      <CircleCheckIcon className="size-10 text-primary motion-safe:animate-[badge-in_600ms_var(--ease-brand)_both]" />
+    </div>
   );
 }

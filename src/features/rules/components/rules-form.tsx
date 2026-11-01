@@ -1,10 +1,8 @@
 import { Card, CardContent } from "@/components/ui";
 import { summarise } from "../describe";
-import type { ChildRules, Period, RuleKind } from "../types";
+import type { ChildRules, RuleKind } from "../types";
 import { OverspendSwitch } from "./overspend-switch";
-import { RuleRow } from "./rule-row";
-
-const SPEND_PERIODS: Period[] = ["item", "week", "month"];
+import { RuleGroup } from "./rule-group";
 
 type RulesFormProps = {
   childId: string;
@@ -21,58 +19,29 @@ function spendingSummary(rules: ChildRules, nickname: string): string {
     : "No spending limits yet";
 }
 
-/** A few rows of one kind of rule, one per period, under a small heading. */
-function RuleGroup({
-  kind,
-  childId,
-  nickname,
-  currency,
-  rules,
-}: {
-  kind: RuleKind;
-  childId: string;
-  nickname: string;
-  currency: string;
-  rules: ChildRules;
-}) {
-  return (
-    <div className="grid gap-4">
-      {SPEND_PERIODS.map((period) => (
-        <RuleRow
-          key={period}
-          childId={childId}
-          nickname={nickname}
-          currency={currency}
-          kind={kind}
-          period={period}
-          rule={rules.rules.find((r) => r.kind === kind && r.period === period)}
-        />
-      ))}
-    </div>
-  );
-}
-
-/** The money rules for a child: spending, taking money out of Save, putting money in. */
+/**
+ * The money rules for a child as sentences, grouped by what they are about: spending, taking
+ * money out of Save, putting money in. Each group lists the rules that exist and offers one
+ * button to add another, so an empty page is three friendly sentences, not a grid of switches.
+ */
 export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps) {
+  const of = (kind: RuleKind) => rules.rules.filter((rule) => rule.kind === kind);
+  const shared = { childId, nickname, currency };
   return (
     <Card className="rise-in">
-      <CardContent className="grid gap-6">
+      <CardContent className="grid gap-8">
         <fieldset aria-labelledby="spending-heading" className="grid min-w-0 gap-4">
           <h2 id="spending-heading" className="text-h3">
             Spending
           </h2>
           <p className="text-ink-2">{spendingSummary(rules, nickname)}</p>
-          {SPEND_PERIODS.map((period) => (
-            <RuleRow
-              key={period}
-              childId={childId}
-              nickname={nickname}
-              currency={currency}
-              kind="spend_limit"
-              period={period}
-              rule={rules.rules.find((r) => r.kind === "spend_limit" && r.period === period)}
-            />
-          ))}
+          <RuleGroup
+            {...shared}
+            kind="spend_limit"
+            rules={of("spend_limit")}
+            addLabel="Add a spending limit"
+            emptyLine={`Add one to get a note when ${nickname} spends more than an amount.`}
+          />
           <OverspendSwitch
             childId={childId}
             nickname={nickname}
@@ -84,20 +53,30 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
             Taking money out of Save
           </h2>
           <p className="text-ink-2">{summarise(rules.rules, "withdrawal", currency)}</p>
-          <RuleGroup
-            kind="withdrawal_cap"
-            childId={childId}
-            nickname={nickname}
-            currency={currency}
-            rules={rules}
-          />
-          <RuleGroup
-            kind="withdrawal_auto_approve"
-            childId={childId}
-            nickname={nickname}
-            currency={currency}
-            rules={rules}
-          />
+          <section aria-labelledby="cap-heading" className="grid gap-3">
+            <h3 id="cap-heading" className="font-semibold">
+              How much can {nickname} take out?
+            </h3>
+            <RuleGroup
+              {...shared}
+              kind="withdrawal_cap"
+              rules={of("withdrawal_cap")}
+              addLabel="Add a limit"
+              emptyLine="No limit: any amount can be asked for."
+            />
+          </section>
+          <section aria-labelledby="auto-heading" className="grid gap-3">
+            <h3 id="auto-heading" className="font-semibold">
+              What can {nickname} take out without asking?
+            </h3>
+            <RuleGroup
+              {...shared}
+              kind="withdrawal_auto_approve"
+              rules={of("withdrawal_auto_approve")}
+              addLabel={`Let ${nickname} take out without asking`}
+              emptyLine="Nothing yet: every take-out waits for your yes."
+            />
+          </section>
         </fieldset>
         <fieldset aria-labelledby="put-in-heading" className="grid min-w-0 gap-4">
           <h2 id="put-in-heading" className="text-h3">
@@ -105,13 +84,16 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
           </h2>
           <p className="text-ink-2">{summarise(rules.rules, "deposit", currency)}</p>
           <RuleGroup
+            {...shared}
             kind="deposit_auto_confirm"
-            childId={childId}
-            nickname={nickname}
-            currency={currency}
-            rules={rules}
+            rules={of("deposit_auto_confirm")}
+            addLabel="Let put-ins count before I confirm"
+            emptyLine={`Every put-in waits until you say you have the cash from ${nickname}.`}
           />
-          <p className="text-ink-2 text-sm">Deposits will count before you get the cash</p>
+          <p className="text-ink-2">
+            Money {nickname} puts in under a rule counts in Save straight away, before you have the
+            cash.
+          </p>
         </fieldset>
       </CardContent>
     </Card>

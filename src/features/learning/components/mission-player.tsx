@@ -23,7 +23,7 @@ import {
 } from "@/features/offline";
 import { cn } from "@/lib";
 import { describeAnswer, gradeStep } from "../grade";
-import { attemptSummary, resumePosition, summaryLine } from "../journey";
+import { attemptSummary, praiseLine, resumePosition } from "../journey";
 import { startMissionAction } from "../server/actions";
 import { bodyFor, type Draft, draftToAnswer, emptyDraft } from "../steps";
 import { renderText } from "../text";
@@ -209,7 +209,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
       const right = allResults.filter((r) => r.correct && r.tries === 1).length;
       setFinishText({
         heading: "Practice done. Nicely kept fresh.",
-        body: `${right} of ${allResults.length} first try.`,
+        body: praiseLine({ answerable: allResults.length, firstTry: right }),
       });
       setStage("finished");
       return;
@@ -253,7 +253,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
           return;
         }
         const summary = isSummary(saved.data) ? saved.data : attemptSummary(allResults);
-        setFinishText({ heading: "Mission done. Nice work.", body: summaryLine(summary) });
+        setFinishText({ heading: "Mission done. Nice work.", body: praiseLine(summary) });
         setStage("finished");
       });
     });
@@ -421,7 +421,9 @@ export function MissionPlayer(props: MissionPlayerProps) {
       ? `One more look: ${index - replayStart + 1} of ${queue.length - replayStart}`
       : mode.kind === "mission"
         ? `Step ${stepIndex + 1} of ${mainTotal}`
-        : `Question ${index + 1} of ${queue.length}`;
+        : queue.length === 1
+          ? "Your turn."
+          : `Question ${index + 1} of ${queue.length}`;
 
   return (
     <div className="grid gap-4">

@@ -170,7 +170,7 @@ describe("MissionPlayer", () => {
     await waitFor(() =>
       expect(screen.getByRole("heading", { name: "Mission done. Nice work." })).toBeInTheDocument(),
     );
-    expect(screen.getByText("1 of 2 first try. 1 hint.")).toBeInTheDocument();
+    expect(screen.getByText("Most of it first time. Good thinking.")).toBeInTheDocument();
     // Steps go into the outbox before the completion, so the server gets them in order.
     expect(submitted().map((s) => s.kind)).toEqual(["step", "step", "step", "completeMission"]);
     expect(submitted().every((s) => s.userId === USER_ID)).toBe(true);
@@ -207,7 +207,7 @@ describe("MissionPlayer", () => {
     await waitFor(() =>
       expect(screen.getByRole("heading", { name: "Mission done. Nice work." })).toBeInTheDocument(),
     );
-    expect(screen.getByText("2 of 2 first try. 1 hint.")).toBeInTheDocument();
+    expect(screen.getByText("Every one first time. Great thinking.")).toBeInTheDocument();
     expect(submitted().map((s) => s.kind)).toEqual(["step", "step", "completeMission"]);
   });
 
@@ -226,7 +226,7 @@ describe("MissionPlayer", () => {
     await waitFor(() =>
       expect(screen.getByRole("heading", { name: "Mission done. Nice work." })).toBeInTheDocument(),
     );
-    expect(screen.getByText("2 of 2 first try. No hints.")).toBeInTheDocument();
+    expect(screen.getByText("Every one first time. Great thinking.")).toBeInTheDocument();
   });
 
   it("falls back to the device's own count when a check-in reply has an unexpected shape", async () => {
