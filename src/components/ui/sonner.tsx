@@ -2,13 +2,14 @@
 
 import {
   CircleCheckIcon,
+  CoinsIcon,
   InfoIcon,
   Loader2Icon,
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { Toaster as Sonner, type ToasterProps } from "sonner";
+import { Toaster as Sonner, type ToasterProps, toast } from "sonner";
 
 /** Clears the bottom tab bar (64 px + safe area) with an 8 px gap (design.md §5, §6). */
 const aboveTabBar = "calc(4rem + env(safe-area-inset-bottom) + 8px)";
@@ -52,5 +53,21 @@ const Toaster = ({ ...props }: ToasterProps) => {
     />
   );
 };
+
+/**
+ * A toast for a money moment (design.md §8): the same shape as success, with a gold coin that
+ * does one flip. Reduced motion shows the coin still.
+ */
+export function coinToast(message: string, options?: Parameters<typeof toast>[1]) {
+  return toast(message, {
+    ...options,
+    icon: (
+      <CoinsIcon
+        aria-hidden
+        className="size-5 text-gold-text motion-safe:animate-[coin-flip_500ms_var(--ease-brand)_both]"
+      />
+    ),
+  });
+}
 
 export { Toaster };

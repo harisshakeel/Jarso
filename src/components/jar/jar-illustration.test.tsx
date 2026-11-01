@@ -27,6 +27,20 @@ describe("JarIllustration", () => {
     expect(container.querySelector("[data-reserved]")).toHaveAttribute("data-ratio", "0.2");
   });
 
+  it("drops coins only when money arrives, never on first paint or when it leaves", () => {
+    const { container, rerender } = render(
+      <JarIllustration jar="spend" capacityMinor={1000} filledMinor={300} />,
+    );
+    expect(container.querySelector("[data-coins]")).toBeNull();
+    rerender(<JarIllustration jar="spend" capacityMinor={1000} filledMinor={500} />);
+    expect(container.querySelector("[data-coins]")).not.toBeNull();
+    expect(container.querySelectorAll("[data-coins] circle")).toHaveLength(2);
+    const { container: falling } = render(
+      <JarIllustration jar="spend" capacityMinor={1000} filledMinor={500} />,
+    );
+    expect(falling.querySelector("[data-coins]")).toBeNull();
+  });
+
   it("draws the goal line only with a goal", () => {
     const { container, rerender } = render(
       <JarIllustration jar="save" capacityMinor={4500} filledMinor={0} goal={null} />,

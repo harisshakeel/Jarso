@@ -19,6 +19,7 @@ import {
   buttonVariants,
   Card,
   CardContent,
+  coinToast,
   Slider,
 } from "@/components/ui";
 import { routes } from "@/config";
@@ -77,9 +78,8 @@ export function HandoverForm({
       setDirty(false);
       const result = await runOnline(() => confirmHandoverAction(null, formData));
       if (result.ok) {
-        toast.success(
-          result.data === "confirmed" ? `Handed over to ${nickname}.` : "Already handled.",
-        );
+        if (result.data === "confirmed") coinToast(`Handed over to ${nickname}.`);
+        else toast.success("Already handled.");
         router.push(routes.parentChild(childId));
       }
       return result;

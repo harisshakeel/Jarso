@@ -80,7 +80,11 @@ describe("PurchaseSheet", () => {
     openSheet();
     await save("7.50");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(toast.success).toHaveBeenCalledWith("Saved. Nice one.");
+    // A money moment: the coin toast, with its flipping coin icon.
+    expect(toast).toHaveBeenCalledWith(
+      "Saved. Nice one.",
+      expect.objectContaining({ icon: expect.anything() }),
+    );
     expect(refresh).toHaveBeenCalled();
   });
 
