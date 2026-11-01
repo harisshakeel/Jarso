@@ -122,7 +122,7 @@ export function GiftForm({
           href={routes.parentChild(childId)}
           className={buttonVariants({ variant: "outline", size: "lg" })}
         >
-          Cancel
+          Back
         </Link>
         <Button type="submit" size="lg" loading={pending} disabled={!initial && !idempotencyKey}>
           Save gift

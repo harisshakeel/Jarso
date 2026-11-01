@@ -20,7 +20,7 @@ async function InboxContent({ searchParams }: Pick<Props, "searchParams">) {
   return (
     <>
       <h1 className="text-balance text-h1">Inbox</h1>
-      <PushToggle />
+      <PushToggle hideWhenOn />
       <InboxList
         items={page.items}
         currency={family?.currency ?? "USD"}

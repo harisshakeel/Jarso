@@ -40,7 +40,7 @@ const COPY: Record<State, string> = {
  * Web push (FR16): one switch for this browser. Hidden when the deployment has no push key.
  * The subscription lives in the browser; the server only keeps a copy to send to.
  */
-export function PushToggle() {
+export function PushToggle({ hideWhenOn = false }: { hideWhenOn?: boolean }) {
   const publicKey = clientEnv.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const [state, setState] = useState<State>("checking");
   const [pending, startTransition] = useTransition();
@@ -79,6 +79,8 @@ export function PushToggle() {
   }, []);
 
   if (!publicKey) return null;
+  // The inbox offers pings until they are on; after that the switch lives in Settings.
+  if (hideWhenOn && state === "on") return null;
 
   function turnOn(key: string) {
     startTransition(async () => {

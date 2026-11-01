@@ -5,7 +5,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Suspense } from "react";
 import { z } from "zod";
 import { PageTabs, SlowFallback } from "@/components/shell";
-import { ThemeSwitch } from "@/components/theme";
+import { ThemeChoice } from "@/components/theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { routes } from "@/config";
 import { SignOutButton } from "@/features/auth";
@@ -17,6 +17,7 @@ import {
   isCurrency,
 } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
+import { PushToggle } from "@/features/notifications";
 import { paymentCopy, SavedCards } from "@/features/payments";
 import { getSavedCards, paymentsEnabled } from "@/features/payments/server";
 import { DisplayNameForm, ParentDetailsForm } from "@/features/profiles";
@@ -106,8 +107,9 @@ async function ParentSettings({ searchParams }: Props) {
         </Section>
       ) : null}
       <Section index={3} title="Looks" description="Light, dark, or follow your device.">
-        <ThemeSwitch />
+        <ThemeChoice />
       </Section>
+      <PushToggle />
       <Section index={4} title="Done for now?" description="Sign out of Jarso on this device.">
         <SignOutButton />
       </Section>

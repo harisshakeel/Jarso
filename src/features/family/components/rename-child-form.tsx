@@ -22,7 +22,7 @@ export function RenameChildForm({ child }: { child: ChildSummary }) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button variant="outline" size="sm" />}>
+      <SheetTrigger render={<Button variant="outline" />}>
         Rename<span className="sr-only"> {child.nickname}</span>
       </SheetTrigger>
       <SheetContent side="bottom" className="sm:mx-auto sm:w-full sm:max-w-lg">
