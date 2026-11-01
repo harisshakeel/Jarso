@@ -3,8 +3,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui";
 import { routes } from "@/config";
-import { HistoryList, historyParamsSchema } from "@/features/ledger";
-import { getHistoryPage } from "@/features/ledger/server";
+import { HistoryList, historyParamsSchema, WhereItWentCard, whereItWent } from "@/features/ledger";
+import { getHistoryPage, getHistorySince } from "@/features/ledger/server";
+import { startOfWeek } from "@/lib";
 import { loadChild } from "../load-child";
 import { FormSkeleton, PageShell } from "../page-shell";
 
@@ -15,14 +16,18 @@ type Props = PageProps<"/parent/children/[childId]/history">;
 async function HistoryContent({ params, searchParams }: Props) {
   const { childId } = await params;
   const { before } = historyParamsSchema.parse(await searchParams);
-  const { child, currency } = await loadChild(childId, routes.parentChildHistory(childId));
-  const { items, olderBefore } = await getHistoryPage(childId, before);
+  const { child, currency, today } = await loadChild(childId, routes.parentChildHistory(childId));
+  const [{ items, olderBefore }, week] = await Promise.all([
+    getHistoryPage(childId, before),
+    getHistorySince(childId, startOfWeek(today)),
+  ]);
   const path = routes.parentChildHistory(childId);
   return (
     <PageShell
       title={`${child.nickname}'s history`}
       back={{ href: routes.parentChild(childId), label: child.nickname }}
     >
+      <WhereItWentCard view={whereItWent(week, today, currency, { showMinor: "always" })} />
       <HistoryList
         items={items}
         currency={currency}

@@ -5,11 +5,11 @@ import { SlowFallback } from "@/components/shell";
 import { buttonVariants } from "@/components/ui";
 import { routes } from "@/config";
 import { getFamilyContext } from "@/features/allowance/server";
-import { PendingPurchases, PurchaseSheet, UndoButton } from "@/features/diary";
+import { EntryDetail, PendingPurchases, PurchaseSheet, ReceivedSheet } from "@/features/diary";
 import { requireRole } from "@/features/family/server";
-import { HistoryList, historyParamsSchema } from "@/features/ledger";
-import { getHistoryPage, getJars } from "@/features/ledger/server";
-import { fallback, formatMoney } from "@/lib";
+import { HistoryList, historyParamsSchema, WhereItWentCard, whereItWent } from "@/features/ledger";
+import { getHistoryPage, getHistorySince, getJars } from "@/features/ledger/server";
+import { fallback, formatMoney, startOfWeek } from "@/lib";
 
 export const metadata: Metadata = { title: "Diary" };
 
@@ -23,6 +23,12 @@ async function Diary({ searchParams }: PageProps<"/child/diary">) {
     // A nice extra: if the balance fails, purchases, history and Undo still work.
     fallback(getJars(user.id), null, "Jars on the diary"),
   ]);
+  // Also a nice extra: the card is skipped if this week's lines fail to load.
+  const week = await fallback(
+    getHistorySince(user.id, startOfWeek(family.today)),
+    null,
+    "Where your money went",
+  );
   return (
     <>
       <h1 className="rise-in text-h1">Diary</h1>
@@ -35,14 +41,16 @@ async function Diary({ searchParams }: PageProps<"/child/diary">) {
           in Spend.
         </section>
       ) : null}
+      {week ? <WhereItWentCard view={whereItWent(week, family.today, family.currency)} /> : null}
       <PurchaseSheet currency={family.currency} userId={user.id} />
+      <ReceivedSheet currency={family.currency} />
       <PendingPurchases userId={user.id} currency={family.currency} />
       <HistoryList
         items={page.items}
         currency={family.currency}
         renderAction={(item) =>
-          item.canUndo && item.entryId ? (
-            <UndoButton entryId={item.entryId} label={item.label} />
+          (item.canFix || item.canUndo || item.fixedFrom) && item.entryId ? (
+            <EntryDetail item={item} currency={family.currency} />
           ) : null
         }
       />
