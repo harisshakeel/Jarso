@@ -37,7 +37,7 @@ async function spend(amount: string, label: string): Promise<void> {
   await expect(sheet.getByLabel("What for? (optional)")).toHaveValue("");
   await sheet.getByLabel("Amount").fill(amount);
   await sheet.getByLabel("What for? (optional)").fill(label);
-  await sheet.getByRole("button", { name: "Save", exact: true }).click();
+  await sheet.getByRole("button", { name: "Add it", exact: true }).click();
 }
 
 test.beforeAll(async ({ browser }) => {
@@ -106,7 +106,7 @@ test("parent hands over 1000 to Spend and sets a week spend limit of 500", async
   const spending = parent.getByRole("group", { name: "Spending" });
   await spending.getByRole("switch", { name: "A week", exact: true }).click();
   await spending.getByLabel("A week limit").fill("500");
-  await spending.getByRole("button", { name: "Save", exact: true }).click();
+  await spending.getByRole("button", { name: "Add it", exact: true }).click();
   await expect(parent.getByText("Tell me when Sam spends more than US$500 a week")).toBeVisible();
   await parent.reload();
   await expect(parent.getByText("Tell me when Sam spends more than US$500 a week")).toBeVisible();

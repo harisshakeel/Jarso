@@ -32,8 +32,8 @@ const COPY: Record<State, string> = {
   unsupported:
     "This browser can't show notifications. Installing Jarso from the browser menu may help.",
   blocked: "Notifications are blocked for Jarso in your browser settings.",
-  off: "Get a ping when something new lands in your inbox, even when Jarso is closed.",
-  on: "This device gets a ping when something new lands in your inbox.",
+  off: "Get a ping when something new arrives, even when Jarso is closed.",
+  on: "This device gets a ping when something new arrives.",
 };
 
 /**

@@ -105,7 +105,7 @@ test("rename offline keeps the typed nickname and saves once back online", async
 });
 
 test("sign out offline shows the warning and keeps the user signed in", async () => {
-  await parent.goto(childBase);
+  await parent.goto("/parent/settings?tab=you");
   await parentContext.setOffline(true);
   await parent.getByRole("button", { name: "Sign out" }).click();
   await expect(
@@ -114,11 +114,11 @@ test("sign out offline shows the warning and keeps the user signed in", async ()
       .filter({ has: parent.getByRole("button", { name: "Sign out" }) })
       .getByText(OFFLINE),
   ).toBeVisible();
-  await expect(parent).toHaveURL(at(childBase));
+  await expect(parent).toHaveURL(at("/parent/settings"));
 
   await parentContext.setOffline(false);
   await parent.reload();
-  await expect(parent).toHaveURL(at(childBase));
+  await expect(parent).toHaveURL(at("/parent/settings"));
   await expect(parent.getByRole("button", { name: "Sign out" })).toBeVisible();
 
   await parent.getByRole("button", { name: "Sign out" }).click();

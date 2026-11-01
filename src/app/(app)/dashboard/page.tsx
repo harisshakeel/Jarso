@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { BrandSplash, SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { requireRole } from "@/features/family/server";
 
@@ -17,7 +18,13 @@ async function RoleRedirect(): Promise<null> {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
+    <Suspense
+      fallback={
+        <SlowFallback>
+          <BrandSplash />
+        </SlowFallback>
+      }
+    >
       <RoleRedirect />
     </Suspense>
   );

@@ -47,7 +47,7 @@ async function save(amount: string, label?: string, calls = 1) {
   fireEvent.change(screen.getByLabelText("Amount"), { target: { value: amount } });
   if (label)
     fireEvent.change(screen.getByLabelText("What for? (optional)"), { target: { value: label } });
-  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add it" }));
   await waitFor(() => expect(submitToOutbox).toHaveBeenCalledTimes(calls));
 }
 
@@ -133,7 +133,7 @@ describe("PurchaseSheet", () => {
 
   it("asks for an amount before saving anything", async () => {
     openSheet();
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add it" }));
     // The field exists before the action answers, so wait on the attribute, not the element.
     await waitFor(() =>
       expect(screen.getByLabelText("Amount")).toHaveAttribute("aria-invalid", "true"),

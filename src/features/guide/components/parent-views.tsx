@@ -110,13 +110,13 @@ export function ChatList({
 }
 
 const ROUTE_NOTES: Partial<Record<NonNullable<TranscriptMessage["route"]>, string>> = {
-  off_topic: "Off topic: redirected",
-  personal_info: "Personal details: not kept",
-  safety: "Safety response with helplines",
-  unsafe: "Refused: unsafe request",
-  jailbreak: "Refused: tried to change the rules",
-  blocked_output: "Reply held back by the safety check",
-  unavailable: "Jarso unavailable",
+  off_topic: "Jarso steered back to money",
+  personal_info: "Personal details were not kept",
+  safety: "Jarso showed the helplines",
+  unsafe: "Jarso said no to this",
+  jailbreak: "Jarso stayed Jarso",
+  blocked_output: "Jarso's reply was held back",
+  unavailable: "Jarso was not available",
 };
 
 /** One chat as the parent reads it. Messages that got a safety response stay private. */
@@ -161,7 +161,7 @@ export function Transcript({
             <span
               className={cn(
                 "flex items-center gap-1 text-sm",
-                message.flagged ? "font-semibold text-destructive" : "text-ink-2",
+                message.flagged ? "font-semibold text-gold-700 dark:text-gold-200" : "text-ink-2",
               )}
             >
               {message.flagged ? <FlagIcon aria-hidden className="size-4" /> : null}

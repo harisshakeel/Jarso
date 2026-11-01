@@ -66,12 +66,12 @@ export function StatusChip({ status, label, className }: StatusChipProps) {
       data-slot="status-chip"
       data-status={status}
       className={cn(
-        "inline-flex h-6 w-fit shrink-0 items-center gap-1 rounded-full border border-transparent px-2.5 font-semibold text-xs whitespace-nowrap",
+        "inline-flex h-7 w-fit shrink-0 items-center gap-1 rounded-full border border-transparent px-2.5 font-semibold text-sm whitespace-nowrap",
         tone,
         className,
       )}
     >
-      <Icon aria-hidden className="size-3.5" strokeWidth={2.25} />
+      <Icon aria-hidden className="size-4" strokeWidth={2.25} />
       {label ?? fallback}
     </span>
   );
