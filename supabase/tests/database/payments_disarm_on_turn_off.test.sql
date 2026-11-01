@@ -66,7 +66,7 @@ select is(public.arm_auto_charge_for_setup(:'open_setup'::uuid), true,
   'the webhook arms a session whose arm is still set');
 reset role;
 select is(
-  (select format('%s:%s:%s', auto_charge, auto_charge_by, auto_charge_provider)
+  (select format('%s:%s:%s', auto_charge::text, auto_charge_by, auto_charge_provider)
    from public.allowance_schedules where id = :'s1'::uuid),
   format('true:%s:fake', :'pa'), 'it is on for the setup''s parent at its provider');
 
