@@ -47,7 +47,7 @@ function StateNote({ schedule }: { schedule: Schedule | null }) {
 /** Every child's allowance at a glance (the Allowance tab): one card per child at every width. */
 export function AllowanceOverview({ rows, currency }: AllowanceOverviewProps) {
   return (
-    <ul className="grid gap-4 md:grid-cols-2">
+    <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {rows.map((row) => {
         const manage = runningSchedule(row.schedule) !== null;
         return (

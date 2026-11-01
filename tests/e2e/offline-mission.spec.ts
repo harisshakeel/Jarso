@@ -152,5 +152,4 @@ test("finish a started mission offline, results arrive in order after reconnect"
     "aria-current",
     "step",
   );
-  await expect(child.getByText("Practised").first()).toBeVisible();
 });

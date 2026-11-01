@@ -43,7 +43,7 @@ function InboxSkeleton() {
 
 export default function ParentInboxPage({ searchParams }: Props) {
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-6">
+    <div className="mx-auto grid w-full max-w-3xl gap-6">
       <Suspense
         fallback={
           <SlowFallback>

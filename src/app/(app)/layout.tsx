@@ -18,12 +18,14 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col has-data-[slot=bottom-nav]:pb-[calc(4rem+env(safe-area-inset-bottom))] lg:has-data-[slot=bottom-nav]:pb-0 lg:has-data-[slot=bottom-nav]:pl-24">
-      <AppHeader homeHref={routes.dashboard} />
+      <AppHeader homeHref={routes.home} />
       <OfflineBanner />
       <Suspense fallback={null}>
         <InboxRefresh />
       </Suspense>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
+        {children}
+      </main>
       <Suspense fallback={null}>
         <ProfileGate />
       </Suspense>

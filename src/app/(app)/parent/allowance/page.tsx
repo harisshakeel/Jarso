@@ -32,7 +32,7 @@ async function OverviewContent() {
 
 export default function AllowanceOverviewPage() {
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-6">
+    <div className="mx-auto grid w-full max-w-6xl gap-6">
       <h1 className="text-h1">Allowance</h1>
       <Suspense
         fallback={

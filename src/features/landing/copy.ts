@@ -8,6 +8,7 @@ export const landingCopy = {
     safety: "Safety",
     privacy: "Privacy",
     start: "Get started",
+    dashboard: "Dashboard",
     parents: "Parents",
     logIn: "Log in",
     setUp: "Set up your family",

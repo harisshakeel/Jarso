@@ -37,25 +37,35 @@ async function ChildHome() {
   return (
     <>
       <h1 className="rise-in text-balance text-display">{nickname ? `Hi, ${nickname}!` : "Hi!"}</h1>
-      <Suspense fallback={<div aria-hidden className="shimmer h-96 rounded-xl bg-muted" />}>
-        <HomeShelf
-          childId={user.id}
-          currency={family.currency}
-          allowanceMinor={allowanceMinor}
-          dueMinor={due.totalMinor}
-        />
-      </Suspense>
-      <div className="grid justify-items-center gap-3">
-        <PurchaseSheet currency={family.currency} userId={user.id} variant="keycap-gold" />
-        <AllowanceLine schedule={schedule} currency={family.currency} />
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-10">
+        <div className="grid gap-6">
+          <Suspense fallback={<div aria-hidden className="shimmer h-96 rounded-xl bg-muted" />}>
+            <HomeShelf
+              childId={user.id}
+              currency={family.currency}
+              allowanceMinor={allowanceMinor}
+              dueMinor={due.totalMinor}
+            />
+          </Suspense>
+          <div className="grid justify-items-center gap-3">
+            <PurchaseSheet currency={family.currency} userId={user.id} variant="keycap-gold" />
+            <AllowanceLine schedule={schedule} currency={family.currency} />
+          </div>
+        </div>
+        <div className="grid gap-6">
+          <PendingPurchases userId={user.id} currency={family.currency} />
+          <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
+            <HomeStep
+              childId={user.id}
+              currency={family.currency}
+              allowanceMinor={allowanceMinor}
+            />
+          </Suspense>
+          <Suspense fallback={null}>
+            <HomeJarso childId={user.id} hasAllowance={allowanceMinor !== null} />
+          </Suspense>
+        </div>
       </div>
-      <PendingPurchases userId={user.id} currency={family.currency} />
-      <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
-        <HomeStep childId={user.id} currency={family.currency} allowanceMinor={allowanceMinor} />
-      </Suspense>
-      <Suspense fallback={null}>
-        <HomeJarso childId={user.id} hasAllowance={allowanceMinor !== null} />
-      </Suspense>
     </>
   );
 }
@@ -190,7 +200,7 @@ function HomeSkeleton() {
 
 export default function ChildHomePage() {
   return (
-    <div className="mx-auto grid w-full max-w-2xl gap-6">
+    <div className="mx-auto grid w-full max-w-6xl gap-6">
       <Suspense
         fallback={
           <SlowFallback>
