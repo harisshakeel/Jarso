@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useId, useRef, useState } from "react";
+import { JAR_OUTLINE_D } from "@/components/brand";
 import { cn } from "@/lib";
 
 type JarIllustrationProps = {
@@ -13,20 +14,45 @@ type JarIllustrationProps = {
   reservedMinor?: number;
   /** With a goal, the top of the jar is the goal line. */
   goal?: { emoji: string } | null;
-  /** Money that is due, drawn as a dashed coin above the lid, never inside the jar. */
+  /** Money that is due, drawn as a dashed coin beside the lid, never inside the jar. */
   dueCoin?: string | null;
   size?: "sm" | "lg";
 };
 
-// Inside of the jar in the drawing's coordinates (design.md §7, drawn from the mark).
-const INNER = { x: 40, top: 52, width: 120, bottom: 198 };
+// The mark's artwork is 512 × 512 (components/brand/jar-outline.ts). The stroke is 64 wide, so the
+// inside of the jar starts 32 in from the outline; the top of a full jar sits where the left wall
+// has straightened out under its curl, leaving the lid clear.
+const INNER = { x: 120, top: 176, width: 266, bottom: 386 };
 const INNER_HEIGHT = INNER.bottom - INNER.top;
+const LID = { x: 96, y: 58, width: 262, height: 62 };
+const LID_COIN = { x: 414, y: 88 };
 
 const round = (value: number) => Math.round(value * 1000) / 1000;
 
+/** A coin as the mark draws it: gold on a teal rim. */
+function Coin({
+  x,
+  y,
+  className,
+  style,
+}: {
+  x: number;
+  y: number;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <g transform={`translate(${x} ${y})`} className={className} style={style}>
+      <ellipse cy={7} rx={50} ry={18} className="fill-teal-800" />
+      <ellipse rx={50} ry={18} className="fill-gold" />
+    </g>
+  );
+}
+
 /**
- * The jar from the Jarso mark: a cyan lid, a teal outline, and a fill that rises to the share
- * of `capacityMinor`. Decorative only: every amount is also written next to it in text.
+ * The jar from the Jarso mark, drawn from the mark's own geometry: its cyan lid, its one teal
+ * stroke, and a fill that rises to the share of `capacityMinor`. Decorative only: every amount is
+ * also written next to it in text.
  */
 export function JarIllustration({
   jar,
@@ -59,7 +85,7 @@ export function JarIllustration({
   return (
     <svg
       aria-hidden="true"
-      viewBox="-20 -24 240 250"
+      viewBox="24 40 464 420"
       className={cn(size === "lg" ? "h-56 w-auto" : "h-28 w-auto", "overflow-visible")}
     >
       <defs>
@@ -69,13 +95,13 @@ export function JarIllustration({
         {reserved > 0 ? (
           <pattern
             id={hatchId}
-            width="8"
-            height="8"
+            width="16"
+            height="16"
             patternUnits="userSpaceOnUse"
             patternTransform="rotate(45)"
           >
-            <rect width="8" height="8" className="fill-gold/30" />
-            <rect width="3" height="8" className="fill-gold-400" />
+            <rect width="16" height="16" className="fill-gold/30" />
+            <rect width="6" height="16" className="fill-gold-400" />
           </pattern>
         ) : null}
       </defs>
@@ -104,42 +130,48 @@ export function JarIllustration({
       </g>
       {drop > 0 ? (
         <g key={drop} data-coins aria-hidden>
-          {[78, 122].map((cx, index) => (
-            <circle
-              key={cx}
-              cx={cx}
-              cy={INNER.bottom - fillHeight - 10}
-              r="11"
+          {[200, 312].map((x, index) => (
+            <Coin
+              key={x}
+              x={x}
+              y={INNER.bottom - fillHeight - 22}
               className={cn(
-                "fill-gold stroke-gold-700 motion-reduce:hidden",
+                "motion-reduce:hidden",
                 "motion-safe:animate-[coin-drop_500ms_var(--ease-brand)_both]",
               )}
               style={{ animationDelay: `${index * 80}ms` }}
-              strokeWidth="3"
             />
           ))}
         </g>
       ) : null}
-      <rect x="34" y="14" width="132" height="26" rx="13" className="fill-cyan-300" />
       <path
-        d="M62 44 C62 60 30 62 30 96 V180 Q30 206 56 206 H144 Q170 206 170 180 V48"
+        d={JAR_OUTLINE_D}
         fill="none"
-        strokeWidth="16"
+        strokeWidth="64"
         strokeLinecap="round"
+        strokeLinejoin="round"
         className="stroke-teal-600 dark:stroke-teal-300"
+      />
+      <rect
+        x={LID.x}
+        y={LID.y}
+        width={LID.width}
+        height={LID.height}
+        rx={LID.height / 2}
+        className="fill-cyan-300"
       />
       {goal ? (
         <g data-goal-line>
           <line
-            x1="22"
-            y1={INNER.top + 6}
-            x2="178"
-            y2={INNER.top + 6}
-            strokeWidth="2.5"
-            strokeDasharray="6 5"
+            x1={INNER.x - 40}
+            y1={INNER.top + 10}
+            x2={INNER.x + INNER.width + 40}
+            y2={INNER.top + 10}
+            strokeWidth="5"
+            strokeDasharray="12 10"
             className="stroke-foreground"
           />
-          <text x="-16" y={INNER.top + 12} fontSize="20">
+          <text x={INNER.x - 96} y={INNER.top + 26} fontSize="44">
             {goal.emoji}
           </text>
         </g>
@@ -147,20 +179,20 @@ export function JarIllustration({
       {dueCoin ? (
         <g data-due-coin>
           <ellipse
-            cx="190"
-            cy="0"
-            rx="26"
-            ry="14"
+            cx={LID_COIN.x}
+            cy={LID_COIN.y}
+            rx="50"
+            ry="24"
             fill="none"
-            strokeWidth="2.5"
-            strokeDasharray="5 4"
+            strokeWidth="5"
+            strokeDasharray="10 8"
             className="stroke-cyan-700 dark:stroke-cyan-300"
           />
           <text
-            x="190"
-            y="5"
+            x={LID_COIN.x}
+            y={LID_COIN.y + 8}
             textAnchor="middle"
-            fontSize="13"
+            fontSize="24"
             fontWeight="800"
             className="fill-cyan-700 dark:fill-cyan-300"
           >

@@ -1,4 +1,5 @@
-// The jar's outline, the one stroke of the mark (design.md §1), as geometry. The drawn jar
+// The jar's outline, the one stroke of the mark (design.md §1), as geometry. The app's jars
+// (`components/jar`), the landing's drawn jar
 // (`jar-art.tsx`) and the thread that unwinds it into the How it works line (`jar-thread.tsx`)
 // share it. Artwork units are 512 × 512 with the jar centred on (256, 256).
 
