@@ -2,6 +2,7 @@ import { clientEnv } from "@/config";
 import { serverEnv } from "@/config/env.server";
 import { logger } from "../logger";
 import { createFakePaymentProvider } from "./fake";
+import { createRazorpayPaymentProvider } from "./razorpay";
 import { createStripePaymentProvider } from "./stripe";
 import type { PaymentProvider, PaymentProviderId } from "./types";
 
@@ -30,6 +31,21 @@ function entries(): Entry[] {
         createStripePaymentProvider({
           secretKey: serverEnv.STRIPE_SECRET_KEY ?? "",
           webhookSecret: serverEnv.STRIPE_WEBHOOK_SECRET ?? "",
+        }),
+    },
+    {
+      id: "razorpay",
+      keys: {
+        RAZORPAY_KEY_ID: serverEnv.RAZORPAY_KEY_ID,
+        RAZORPAY_KEY_SECRET: serverEnv.RAZORPAY_KEY_SECRET,
+        RAZORPAY_WEBHOOK_SECRET: serverEnv.RAZORPAY_WEBHOOK_SECRET,
+      },
+      create: () =>
+        createRazorpayPaymentProvider({
+          keyId: serverEnv.RAZORPAY_KEY_ID ?? "",
+          keySecret: serverEnv.RAZORPAY_KEY_SECRET ?? "",
+          webhookSecret: serverEnv.RAZORPAY_WEBHOOK_SECRET ?? "",
+          checkoutUrl: `${clientEnv.NEXT_PUBLIC_APP_URL}/parent/payments/razorpay`,
         }),
     },
     {

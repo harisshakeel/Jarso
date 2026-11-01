@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
-import type { PaymentProviderId } from "@/lib/payments";
+import { isPaymentProviderId, type PaymentProviderId } from "@/lib/payments";
 import type { Database } from "@/types";
 import {
   type DueItem,
@@ -57,13 +57,12 @@ function asGiftStatus(value: string): GiftStatus {
   return value === "given" || value === "cancelled" ? value : "pending";
 }
 
-const providerIds: readonly PaymentProviderId[] = ["stripe", "razorpay", "fake"];
-
 function asProviderId(value: string | null): PaymentProviderId | null {
   if (value === null) return null;
-  const id = providerIds.find((known) => known === value);
-  if (!id) throw new AppError("INTERNAL", "Failed to load auto charge", { cause: { value } });
-  return id;
+  if (!isPaymentProviderId(value)) {
+    throw new AppError("INTERNAL", "Failed to load auto charge", { cause: { value } });
+  }
+  return value;
 }
 
 function autoChargeColumns(row: {

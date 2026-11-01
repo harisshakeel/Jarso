@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
-import type { PaymentProviderId } from "@/lib/payments";
+import { isPaymentProviderId, type PaymentProviderId } from "@/lib/payments";
 import type { Database } from "@/types";
 import { isStoredStatus, type StoredStatus } from "../status";
 import type { AutoChargeTarget, CardSummary, FailureCode, PaymentSource } from "../types";
@@ -16,13 +16,12 @@ type Client = SupabaseClient<Database>;
  */
 
 const UNIQUE_VIOLATION = "23505";
-const providerIds: readonly PaymentProviderId[] = ["stripe", "razorpay", "fake"];
-
 /** A stored provider name (the column's check allows only these). */
 function asProviderId(value: string): PaymentProviderId {
-  const id = providerIds.find((known) => known === value);
-  if (!id) throw new AppError("INTERNAL", "Unknown payment provider", { cause: value });
-  return id;
+  if (!isPaymentProviderId(value)) {
+    throw new AppError("INTERNAL", "Unknown payment provider", { cause: value });
+  }
+  return value;
 }
 const failureCodes: readonly FailureCode[] = [
   "declined",

@@ -70,7 +70,7 @@ Registry (`src/lib/payments/registry.ts`) exports `getPaymentProviders(): readon
 
 ## 7. Razorpay adapter (`src/lib/payments/razorpay/`)
 
-Plain `fetch` to `https://api.razorpay.com/v1`, HTTP Basic auth (`key_id:key_secret`), `AbortSignal.timeout(8000)`, no automatic retries (Razorpay has no idempotency header). Network errors and 5xx become `AppError("UNAVAILABLE", "Card payments aren't available right now. You can still hand over cash.")` (same copy as Stripe). Razorpay types and ids never leave the folder. The factory takes `{ keyId, keySecret, webhookSecret, checkoutUrl, fetch? }`. `checkoutUrl` is `${NEXT_PUBLIC_APP_URL}/parent/payments/razorpay`.
+The official Razorpay Node SDK (`razorpay`, exact version pinned), injected as an optional `client` for tests like the Stripe adapter; requests time out at about 8 s; no automatic retries (Razorpay has no idempotency header). The table below names the REST endpoints; call them through the matching SDK methods (`customers.create`, `paymentLink.create`, `orders.create`, `payments.fetch`, `payments.createRecurringPayment`, `customers.deleteToken`). Network errors and 5xx become `AppError("UNAVAILABLE", "Card payments aren't available right now. You can still hand over cash.")` (same copy as Stripe). Razorpay types and ids never leave the folder. The factory takes `{ keyId, keySecret, webhookSecret, checkoutUrl, client? }`. `checkoutUrl` is `${NEXT_PUBLIC_APP_URL}/parent/payments/razorpay`.
 
 | Method | Razorpay call |
 |---|---|
@@ -120,7 +120,7 @@ Webhook mapping (anything else → null). `notes` can arrive as `[]`; treat it a
 
 - Unit tests live in `tests/` mirroring `src/` (see `docs/testing.md`).
 - Contract suite (`tests/lib/payments/contract.test.ts`) runs for fake, stripe and razorpay, each with its own test currency (GBP, GBP, INR).
-- Razorpay: request shape per method against a mocked `fetch`, signature accept/reject, every mapping row, failure-code mapping, `notes: []`.
+- Razorpay: arguments passed to each SDK method on an injected client stub, signature accept/reject, every mapping row, failure-code mapping, `notes: []`.
 - Registry: on/off per key set, several on at once, partial keys warn once, fake gates.
 - Domain: provider choice, D7 switching, per-provider saved cards, toggle provider, auto charge uses each item's provider and settle window.
 - e2e `payments.spec.ts` keeps passing with only the fake on; button names handle "Pay by card" or "Pay with Test card".

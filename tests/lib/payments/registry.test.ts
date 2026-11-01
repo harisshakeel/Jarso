@@ -15,6 +15,11 @@ async function load(env: Env) {
 }
 
 const stripeKeys = { STRIPE_SECRET_KEY: "sk_test_x", STRIPE_WEBHOOK_SECRET: "whsec_x" };
+const razorpayKeys = {
+  RAZORPAY_KEY_ID: "rzp_test_XXXXXXXXXXXXXX",
+  RAZORPAY_KEY_SECRET: "rzp-secret-x",
+  RAZORPAY_WEBHOOK_SECRET: "rzp-whsec-x",
+};
 const fakeOn = { PAYMENTS_ALLOW_FAKE: true };
 const ids = (r: Awaited<ReturnType<typeof load>>) => r.getPaymentProviders().map((p) => p.id);
 
@@ -66,6 +71,33 @@ describe("payment provider registry", () => {
     expect(r.getPaymentProviderById("fake")?.id).toBe("fake");
     expect(r.getPaymentProviderById("razorpay")).toBeNull();
     expect(r.getPaymentProviderById("nope")).toBeNull();
+  });
+
+  it("turns razorpay on when all three of its keys are set", async () => {
+    const r = await load(razorpayKeys);
+    expect(ids(r)).toEqual(["razorpay"]);
+    expect(r.getPaymentProviderById("razorpay")?.label).toBe("Razorpay");
+    expect(r.getPaymentProviderById("razorpay")?.autoChargeSettleMinutes).toBe(4320);
+  });
+
+  it("keeps razorpay off without its keys", async () => {
+    const r = await load(stripeKeys);
+    expect(r.getPaymentProviderById("razorpay")).toBeNull();
+  });
+
+  it("keeps razorpay off with a missing key and warns, naming keys not values", async () => {
+    const { RAZORPAY_WEBHOOK_SECRET: _, ...partial } = razorpayKeys;
+    const r = await load(partial);
+    expect(ids(r)).toEqual([]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toMatch(/razorpay/i);
+    expect(JSON.stringify(warn.mock.calls[0])).toContain("RAZORPAY_WEBHOOK_SECRET");
+    expect(JSON.stringify(warn.mock.calls[0])).not.toContain("rzp-secret-x");
+  });
+
+  it("runs every provider together in order stripe, razorpay, fake", async () => {
+    const r = await load({ ...stripeKeys, ...razorpayKeys, ...fakeOn });
+    expect(ids(r)).toEqual(["stripe", "razorpay", "fake"]);
   });
 
   it("creates the provider list once per server instance", async () => {

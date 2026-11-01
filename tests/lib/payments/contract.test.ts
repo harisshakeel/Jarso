@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { createHmac } from "node:crypto";
+import Razorpay from "razorpay";
 import Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -6,6 +8,7 @@ import {
   FAKE_SIGNATURE_HEADER,
   signFakeWebhook,
 } from "@/lib/payments/fake";
+import { createRazorpayPaymentProvider } from "@/lib/payments/razorpay";
 import { createStripePaymentProvider } from "@/lib/payments/stripe";
 import type { PaymentProvider } from "@/lib/payments/types";
 
@@ -66,7 +69,42 @@ const stripe: Adapter = {
   },
 };
 
-describe.each([fake, stripe])("payment provider contract: $name", (adapter) => {
+const razorpayClient = new Razorpay({
+  key_id: "rzp_test_XXXXXXXXXXXXXX",
+  key_secret: "rzp-secret-contract",
+});
+vi.spyOn(razorpayClient.paymentLink, "create").mockResolvedValue({
+  id: "plink_TEST123",
+  short_url: "https://rzp.io/i/TEST123",
+} as never);
+
+const razorpay: Adapter = {
+  name: "razorpay",
+  currency: "INR",
+  make: () =>
+    createRazorpayPaymentProvider({
+      keyId: "rzp_test_XXXXXXXXXXXXXX",
+      keySecret: "rzp-secret-contract",
+      webhookSecret: WEBHOOK_SECRET,
+      checkoutUrl: "https://app.test/parent/payments/razorpay",
+      client: razorpayClient,
+    }),
+  signedSucceeded: (paymentId) => {
+    const body = JSON.stringify({
+      entity: "event",
+      event: "payment_link.paid",
+      contains: ["payment_link"],
+      payload: { payment_link: { entity: { id: "plink_c", reference_id: paymentId, notes: [] } } },
+    });
+    const signature = createHmac("sha256", WEBHOOK_SECRET).update(body).digest("hex");
+    return {
+      body,
+      headers: new Headers({ "x-razorpay-signature": signature, "x-razorpay-event-id": "evt_c" }),
+    };
+  },
+};
+
+describe.each([fake, stripe, razorpay])("payment provider contract: $name", (adapter) => {
   const provider = adapter.make();
 
   it("has a label and a positive settle window", () => {

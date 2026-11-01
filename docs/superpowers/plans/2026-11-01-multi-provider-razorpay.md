@@ -59,7 +59,7 @@ Steps:
 ### Task 4: Razorpay adapter — pay now, customers, webhooks
 
 Spec §7 (rows `minimumChargeMinor`, `ensureCustomer`, `createHostedPayment`, `parseWebhook`; webhook rows `payment_link.*`; failure mapping), D5. Files:
-- Create `src/lib/payments/razorpay/{index,http,currencies,map-event}.ts`. `createHostedSetup`, `chargeSaved`, `detachMethod` throw `AppError("UNAVAILABLE", …)` with the standard copy for now (Task 5 replaces them).
+- Add the `razorpay` SDK (exact version pinned). Create `src/lib/payments/razorpay/{index,currencies,map-event}.ts`. `createHostedSetup`, `chargeSaved`, `detachMethod` throw `AppError("UNAVAILABLE", …)` with the standard copy for now (Task 5 replaces them).
 - Register in `src/lib/payments/registry.ts` (between stripe and fake; keys `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`; `checkoutUrl` per spec §7).
 - Tests: `tests/lib/payments/razorpay/{index,map-event,currencies}.test.ts`, fixtures in `tests/lib/payments/razorpay/fixtures/*.json` (trimmed real-shape payloads), add razorpay (INR) to `tests/lib/payments/contract.test.ts`, registry test for razorpay on/off.
 

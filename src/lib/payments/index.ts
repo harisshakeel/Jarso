@@ -10,3 +10,4 @@ export type {
   PaymentStatus,
   ProviderEvent,
 } from "./types";
+export { isPaymentProviderId, PAYMENT_PROVIDER_IDS } from "./types";

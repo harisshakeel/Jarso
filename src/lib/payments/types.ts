@@ -1,4 +1,11 @@
-export type PaymentProviderId = "stripe" | "razorpay" | "fake";
+/** Every provider Jarso knows, in display order. The database's provider checks match this list. */
+export const PAYMENT_PROVIDER_IDS = ["stripe", "razorpay", "fake"] as const;
+export type PaymentProviderId = (typeof PAYMENT_PROVIDER_IDS)[number];
+
+export function isPaymentProviderId(value: string): value is PaymentProviderId {
+  return (PAYMENT_PROVIDER_IDS as readonly string[]).includes(value);
+}
+
 export type PaymentStatus =
   | "pending"
   | "requires_action"

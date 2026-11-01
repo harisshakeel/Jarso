@@ -43,7 +43,7 @@ Every module exposes its public API through an `index.ts` barrel. Import from th
 | `@/features/<f>/server` | services, DAL (`import "server-only"`) | ❌ server only |
 | `@/components/ui` | shadcn primitives | ✅ |
 | `@/components/form` | `Field`, `FieldError`, `FormError` (design.md §6 Forms) | ✅ |
-| `@/lib` | errors, logger, `createAction`, `cn` | ✅ |
+| `@/lib` | errors, logger, `createAction`, `cn`, payment provider ids (`PAYMENT_PROVIDER_IDS`, `isPaymentProviderId`) | ✅ |
 | `@/lib/api` | Route Handler helpers | ❌ server only |
 | `@/lib/payments` | Payment provider interface, registry, adapters (ADR 0012) | ❌ server only |
 | `@/config` | `routes`, `siteConfig`, `clientEnv` | ✅ |

@@ -1,13 +1,9 @@
 import { z } from "zod";
-import { moneySchema } from "@/lib";
+import { moneySchema, PAYMENT_PROVIDER_IDS } from "@/lib";
 import { paymentCopy } from "./copy";
-import type { PaymentProviderId } from "./types";
 
 /** A card provider the parent chose (it must also be on: the service checks). */
-export const paymentProviderSchema = z.enum(["stripe", "razorpay", "fake"] satisfies [
-  PaymentProviderId,
-  ...PaymentProviderId[],
-]);
+export const paymentProviderSchema = z.enum(PAYMENT_PROVIDER_IDS);
 
 /**
  * Pay by card: the same money parsing as the cash handover. The card always pays the item's
