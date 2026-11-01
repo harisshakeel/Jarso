@@ -34,9 +34,10 @@ export default function HomePage() {
       <main className="flex flex-1 flex-col overflow-x-clip">
         <Hero />
         <HowItWorks />
-        {/* The jar's outline travels down the left margin here (jar-thread.tsx): keep the words
-            clear of it at every width. The variable is unset with reduced motion. */}
-        <div className="pl-[calc(var(--thread-width,0px)+0.5rem)]">
+        {/* The jar's outline travels down the left margin here (jar-thread.tsx). The sections
+            keep their own 1rem gutter; when the thread is thicker than that (wide screens), the
+            words move over by the difference. Unset with reduced motion. */}
+        <div className="pl-[max(0px,calc(var(--thread-width,0px)-0.5rem))]">
           <GuideSection />
           <FamilyView />
           <LitStatement />

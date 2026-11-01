@@ -1,10 +1,9 @@
 "use client";
 
-import { CheckIcon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib";
 import { landingCopy } from "../copy";
+import { useInView } from "../hooks/use-in-view";
 import { useReducedMotion } from "../hooks/use-reduced-motion";
 import { GoalDemo } from "./demos/goal-demo";
 import { HandoverDemo } from "./demos/handover-demo";
@@ -14,55 +13,91 @@ import { TwoBeat } from "./two-beat";
 
 const demos = [HandoverDemo, PurchaseDemo, GoalDemo, MissionDemo] as const;
 const numeral = (index: number) => String(index + 1).padStart(2, "0");
-/** The header's height: the stage pins just under it. */
-const HEADER = 56;
-/** How long a finished step stays on screen before the next one slides in. */
-const LINGER_MS = 900;
+
+function Step({
+  index,
+  onActive,
+  onDone,
+}: {
+  index: number;
+  onActive: (index: number) => void;
+  onDone: (index: number) => void;
+}) {
+  const step = useRef<HTMLLIElement>(null);
+  const centred = useInView(step, { threshold: 0, rootMargin: "-45% 0px -45% 0px" });
+  const copy = landingCopy.how.steps[index];
+  const Demo = demos[index];
+
+  useEffect(() => {
+    if (centred) onActive(index);
+  }, [centred, index, onActive]);
+
+  if (!copy || !Demo) return null;
+  return (
+    <li
+      ref={step}
+      data-step={index}
+      className="relative grid gap-8 py-14 pl-5 sm:pl-6 lg:min-h-[80svh] lg:grid-cols-[5fr_6fr] lg:items-center lg:gap-16 lg:py-16 lg:pl-0"
+    >
+      <span
+        aria-hidden
+        className="absolute top-[4.25rem] left-[calc(var(--thread-width,0.625rem)/2-1rem)] h-[calc(var(--thread-width,0.625rem)*0.36)] w-[calc(var(--thread-width,0.625rem)*0.84)] -translate-x-1/2 rounded-full bg-gold shadow-[0_calc(var(--thread-width,0.625rem)*0.08)_0_var(--color-teal-800)] sm:left-[calc(var(--thread-width,0.625rem)/2-1.5rem)] lg:hidden"
+      />
+      <div className="grid content-start gap-3">
+        <p
+          aria-hidden
+          className="font-extrabold text-6xl text-transparent leading-none [-webkit-text-stroke:1.5px_var(--color-muted-foreground)] lg:hidden"
+        >
+          {numeral(index)}
+        </p>
+        <p className="eyebrow">{copy.who}</p>
+        <h3 className="text-balance font-extrabold text-4xl leading-[1.05] tracking-[-0.03em] sm:text-5xl">
+          <TwoBeat beats={copy.title} />
+        </h3>
+        <p className="text-ink-2 text-lg">{copy.line}</p>
+      </div>
+      <div className="rounded-[2rem] bg-muted/70 p-4 sm:p-8">
+        <Demo onDone={() => onDone(index)} />
+      </div>
+    </li>
+  );
+}
 
 /**
- * Spec §3.2, played rather than watched. Four steps on one stage that pins to the screen: each is a
- * small piece of the app to use (hand over, record, save, answer), and finishing one brings the
- * next. While the stage is pinned and the steps are not all done, scrolling on is held, with a
- * visible Skip. Keyboard scrolling, reduced motion and assistive tech get the plain flow: nothing
- * is held, and the steps are still playable in order.
+ * Spec §3.2. Four steps, each most of a screen on desktop beside a sticky rail of outlined numerals
+ * (the active one fills in, a coin marks it on the line); on phones they stack along a route line.
+ * Either line is where the hero jar's unwound outline arrives. Each step is a small piece of the
+ * app to play, and the page waits on a step until it is played: scrolling down past an unfinished
+ * step is held while it is on screen, scrolling back up always works. Reduced motion, the
+ * keyboard and assistive tech get the plain flow with nothing held.
  */
 export function HowItWorks() {
-  const { how } = landingCopy;
-  const reduced = useReducedMotion();
-  const section = useRef<HTMLElement>(null);
   const [active, setActive] = useState(0);
-  const [finished, setFinished] = useState<boolean[]>(() => how.steps.map(() => false));
-  const [released, setReleased] = useState(false);
-  const allDone = finished.every(Boolean);
-  const holds = !reduced && !released && !allDone;
+  const [done, setDone] = useState<boolean[]>(() => landingCopy.how.steps.map(() => false));
+  const reduced = useReducedMotion();
+  const { how } = landingCopy;
+  const holding = !reduced && !done[active];
 
-  const finish = useCallback((index: number) => {
-    setFinished((current) => current.map((value, i) => (i === index ? true : value)));
-    window.setTimeout(() => {
-      setActive((current) => (current === index ? Math.min(index + 1, demos.length - 1) : current));
-    }, LINGER_MS);
-  }, []);
-
-  // Hold the page on the stage while it is pinned and unfinished: wheel and touch scrolling
-  // down is swallowed; scrolling up always works, and so do the keyboard and Skip.
   useEffect(() => {
-    if (!holds) return;
-    const element = section.current;
-    if (!element) return;
-    const pinned = () => {
+    if (!holding) return;
+    // The step on stage: hold only while most of it is on screen, so nothing jams elsewhere.
+    const onStage = () => {
+      const element = document.querySelector<HTMLElement>(`[data-step="${active}"]`);
+      if (!element) return false;
       const rect = element.getBoundingClientRect();
-      return rect.top <= HEADER + 1 && rect.bottom >= window.innerHeight - 1;
+      const viewport = window.innerHeight;
+      return rect.top <= viewport * 0.35 && rect.bottom >= viewport * 0.65;
     };
     let touchY = 0;
     const onWheel = (event: WheelEvent) => {
-      if (event.deltaY > 0 && pinned()) event.preventDefault();
+      if (event.deltaY > 0 && onStage()) event.preventDefault();
     };
     const onTouchStart = (event: TouchEvent) => {
       touchY = event.touches[0]?.clientY ?? 0;
     };
     const onTouchMove = (event: TouchEvent) => {
       const y = event.touches[0]?.clientY ?? touchY;
-      if (y < touchY && pinned() && event.cancelable) event.preventDefault();
+      if (y < touchY - 2 && onStage() && event.cancelable) event.preventDefault();
     };
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -72,22 +107,16 @@ export function HowItWorks() {
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
     };
-  }, [holds]);
+  }, [holding, active]);
 
-  const copy = how.steps[active];
-  const Demo = demos[active];
+  const finish = (index: number) =>
+    setDone((current) => current.map((value, i) => (i === index ? true : value)));
 
   return (
     <section
-      ref={section}
       id="how"
       aria-labelledby="how-title"
-      className={cn(
-        "relative mx-auto w-full max-w-6xl scroll-mt-14 px-4 sm:px-6",
-        "lg:grid lg:grid-cols-[9rem_1fr] lg:gap-10",
-        !reduced && "min-h-[calc(100svh-3.5rem)] pt-6 lg:pt-8",
-        reduced && "pt-20 lg:pt-10",
-      )}
+      className="mx-auto w-full max-w-6xl scroll-mt-14 px-4 pt-20 sm:px-6 lg:grid lg:grid-cols-[9rem_1fr] lg:gap-10 lg:pt-10"
     >
       <h2 id="how-title" className="eyebrow lg:col-span-2">
         {how.eyebrow}
@@ -113,9 +142,7 @@ export function HowItWorks() {
                   "font-extrabold text-5xl leading-tight transition-colors duration-300",
                   index === active
                     ? "text-primary"
-                    : finished[index]
-                      ? "text-teal-300 dark:text-teal-700"
-                      : "text-transparent [-webkit-text-stroke:1.5px_var(--color-muted-foreground)]",
+                    : "text-transparent [-webkit-text-stroke:1.5px_var(--color-muted-foreground)]",
                 )}
               >
                 {numeral(index)}
@@ -124,69 +151,16 @@ export function HowItWorks() {
           </ol>
         </div>
       </div>
-
-      <div className="relative mt-4 lg:mt-0">
+      <ol className="relative mt-4 lg:mt-0">
         <span
           aria-hidden
           data-thread-target="mobile"
           className="absolute inset-y-0 -left-4 w-[var(--thread-width,0.625rem)] rounded-full bg-teal-600 data-[thread=travelling]:opacity-0 sm:-left-6 lg:hidden dark:bg-teal-300"
         />
-        {/* The step list: one on stage at a time, each in its own live region so a screen reader
-            hears the change of step. */}
-        <ol aria-label="Steps" className="flex gap-2 pb-4">
-          {how.steps.map((step, index) => (
-            <li key={step.line} className="flex-1">
-              <button
-                type="button"
-                aria-current={index === active ? "step" : undefined}
-                aria-label={`Step ${index + 1}: ${step.title.join(" ")}${finished[index] ? ", done" : ""}`}
-                disabled={index > active && !finished[index]}
-                onClick={() => setActive(index)}
-                className={cn(
-                  "flex h-2.5 w-full items-center justify-center rounded-full transition-colors",
-                  index === active ? "bg-primary" : finished[index] ? "bg-teal-300" : "bg-muted",
-                )}
-              />
-            </li>
-          ))}
-        </ol>
-        {copy && Demo ? (
-          <div
-            key={active}
-            className="grid gap-6 motion-safe:animate-[rise-in_250ms_var(--ease-brand)_both] lg:grid-cols-[5fr_6fr] lg:items-center lg:gap-16"
-          >
-            <div className="grid content-start gap-3">
-              <p
-                aria-hidden
-                className="font-extrabold text-6xl text-transparent leading-none [-webkit-text-stroke:1.5px_var(--color-muted-foreground)] lg:hidden"
-              >
-                {numeral(active)}
-              </p>
-              <p className="eyebrow">{copy.who}</p>
-              <h3 className="text-balance font-extrabold text-3xl leading-[1.05] tracking-[-0.03em] sm:text-5xl">
-                <TwoBeat beats={copy.title} />
-              </h3>
-              <p className="text-ink-2 text-lg">{copy.line}</p>
-              {finished[active] ? (
-                <p className="flex items-center gap-2 font-semibold text-teal-800 dark:text-teal-100">
-                  <CheckIcon aria-hidden className="size-5" />
-                  {active === demos.length - 1 ? "That's how Jarso works." : "Done. Next one…"}
-                </p>
-              ) : null}
-            </div>
-            <div className="rounded-[2rem] bg-muted/70 p-4 sm:p-8">
-              <Demo onDone={() => finish(active)} />
-            </div>
-          </div>
-        ) : null}
-        {holds ? (
-          <div className="mt-6 flex justify-center">
-            <Button type="button" variant="ghost" onClick={() => setReleased(true)}>
-              Skip the tour
-            </Button>
-          </div>
-        ) : null}
-      </div>
+        {how.steps.map((step, index) => (
+          <Step key={step.line} index={index} onActive={setActive} onDone={finish} />
+        ))}
+      </ol>
     </section>
   );
 }
