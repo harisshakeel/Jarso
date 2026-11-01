@@ -145,7 +145,7 @@ test("with auto-approve per time 300, a 200 take-out is approved at once", async
     "Taking money out of Save",
     3,
     "300",
-    "Sam can take out up to US$300 per time without asking me",
+    "Sam can take out up to US$300 each time without asking me",
   );
   const sheet = await ask("Take out", "200", "Ask");
   await expect(sheet.getByRole("status").first()).toHaveText(
