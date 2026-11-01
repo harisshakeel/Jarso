@@ -1,4 +1,4 @@
-# Functional requirements audit — 2026-10-30 (learning and guide)
+# Functional requirements audit — 2026-10-31
 
 State of `main` after the slice 2 checkpoint (#18–#27) plus the learning track (#28), the AI money guide (#29) and purchases and money rules (#30), and of the hosted database, against `REQUIREMENTS.md` and the first-milestone spec (`docs/superpowers/specs/2026-10-28-first-milestone-design.md`). Verified from the source tree, migrations, tests, CI runs and the hosted catalog, not from PR descriptions.
 
@@ -71,6 +71,33 @@ Thirteen of thirteen are met on `main` once PR B merges.
 | --- | --- |
 | pgTAP assertions | 456 |
 | Playwright e2e tests | 32, in 9 spec files |
+
+## Who built what
+
+Two people, one repository, squash-merged pull requests; the PR author is the person who built it. Haris's PRs were written with Claude Code, and each session's prompts and replies are in `.claude-logs/`. Numbers are pull requests.
+
+| Area | Built by | Pull requests |
+| --- | --- | --- |
+| Scaffold, CI, requirements and the first-milestone plan | Pratyush | #1 scaffold, #7 requirements, #9 plan and pilot decisions; Haris: #14 hosted auth config, #36 roadmap |
+| FR13 family accounts and onboarding | Pratyush, then Haris | Pratyush: #10 family and onboarding, #12 invitations list, #13, #22; Haris: #15 sign-in logging, #16 parent settings (rename, PIN reset, child removal), #17 parent details (ADR 0008) |
+| FR01 allowance and handover | Pratyush, fixes by Haris | Pratyush: #18 allowance, gifts and handover, #19 parent home and allowance tab; Haris: #23, #24, #25 |
+| FR03 Spend and Save jars | Pratyush, fixes by Haris | Pratyush: #18 split at handover, #40 money between jars, #42 jar Home; Haris: #23 |
+| FR04 money diary | Pratyush | #30 purchases, money rules and overspending, #31, #42 Diary tab; money received and corrections: in progress |
+| FR14 purchases, limits, deposits, withdrawals | Pratyush | #30 purchases and limits, #40 savings withdrawals and deposits |
+| FR02 personal savings goal | Pratyush; Jarso and prediction by Haris | Pratyush: #41 goal; Haris: #44 Jarso reads the goal, #46 predict before deciding |
+| FR06, FR08, FR10 learning, topics, progress | Haris | #28 seven-day missions, topics, practice and progress |
+| FR07, FR09 AI money guide and its boundaries | Haris | #29 guide on Claude with screens, parent switch and evals, #32 monthly cap, #38 Ask Jarso agent (ADR 0011), #39 on by default, #44 goal and requests tools, #47 memory |
+| FR05 predict before deciding | Haris | #46, #48 |
+| FR11 weekly review, FR12 return experience | Haris | #28 next step on Home, #46 weekly review and comeback task, #48 |
+| FR15 emergency funds | Haris | #45 |
+| FR16 notifications | Pratyush (inbox), Haris (push and install) | Pratyush: #37 in-app inbox and handover reminders, #43 live inbox over Realtime; Haris: #49 web push and app install (ADR 0012), #51 |
+| Offline and slow networks (device outbox) | Pratyush | #33 |
+| Theme, brand, landing page and SEO | Pratyush (theme), Haris (brand, landing) | Pratyush: #12, #20 light/dark toggle; Haris: #26 dark wordmark, #34 landing page with SEO and sitemap, #35 hero |
+| Hosted deploy and migration history | Pratyush | #21 |
+| Pilot readiness: privacy notice, deep health, pilot measures | Haris | #50, #52 |
+| Checkpoint audits and this document | Haris | #27, #36, #52 |
+
+Dependabot's five action bumps (#2–#6) are the only other merges.
 
 ## Cross-cutting, built
 
