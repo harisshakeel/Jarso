@@ -188,19 +188,42 @@ export async function getCardPaymentState(
   };
 }
 
-/** The signed-in parent's saved card at each provider that is on (card null when none). */
-export async function getSavedCards(): Promise<SavedCard[]> {
-  const user = await assertUser();
-  const providers = getPaymentProviders();
-  if (providers.length === 0) return [];
+/** The parent's saved card (or null) at each of these providers. */
+async function savedCardsAt(
+  parentId: string,
+  providers: readonly PaymentProvider[],
+): Promise<SavedCard[]> {
   const db = await createClient();
   return Promise.all(
     providers.map(async (provider) => ({
       provider: provider.id,
       label: provider.label,
-      card: (await findCustomer(db, user.id, provider.id))?.card ?? null,
+      card: (await findCustomer(db, parentId, provider.id))?.card ?? null,
     })),
   );
+}
+
+/** Whether this provider can charge the family's currency at all. */
+const chargesCurrency = (provider: PaymentProvider, currency: string) =>
+  provider.minimumChargeMinor(currency) !== null;
+
+/**
+ * The signed-in parent's saved card at each provider that is on (card null when none). A
+ * provider that can't charge the family's currency is left out unless a card is saved there,
+ * so it can still be removed. Empty without a family.
+ */
+export async function getSavedCards(): Promise<SavedCard[]> {
+  const user = await assertUser();
+  const providers = getPaymentProviders();
+  if (providers.length === 0) return [];
+  const family = await getFamily();
+  if (!family) return [];
+  const cards = await savedCardsAt(user.id, providers);
+  return providers.flatMap((provider, i) => {
+    const saved = cards[i];
+    const shown = saved && (saved.card !== null || chargesCurrency(provider, family.currency));
+    return shown ? [saved] : [];
+  });
 }
 
 /**
@@ -211,18 +234,26 @@ export async function getSavedCards(): Promise<SavedCard[]> {
 export async function getAutoChargeCard(): Promise<AutoChargeCard[] | null> {
   const providers = getPaymentProviders();
   if (providers.length === 0) return null;
-  const [cards, family] = await Promise.all([getSavedCards(), familyOrThrow()]);
-  return providers.map((provider) => {
-    const card = cards.find((saved) => saved.provider === provider.id)?.card ?? null;
+  const user = await assertUser();
+  const [cards, family] = await Promise.all([savedCardsAt(user.id, providers), familyOrThrow()]);
+  return providers.map((provider, i) => {
+    const card = cards[i]?.card ?? null;
     return {
       provider: provider.id,
       label: provider.label,
       cardSaved: card !== null,
       card,
-      unavailableReason:
-        provider.minimumChargeMinor(family.currency) === null ? "unsupported_currency" : null,
+      unavailableReason: chargesCurrency(provider, family.currency) ? null : "unsupported_currency",
     };
   });
+}
+
+/** VALIDATION when this provider can't charge the family's currency at all. */
+async function assertChargesFamilyCurrency(provider: PaymentProvider): Promise<void> {
+  const family = await familyOrThrow();
+  if (!chargesCurrency(provider, family.currency)) {
+    throw new AppError("VALIDATION", paymentCopy.unsupportedCurrency);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -417,6 +448,7 @@ export async function startCardSetup(input: {
   const parent = input.arm
     ? await assertParentOfTarget(input.arm)
     : (await assertRole("parent")).user;
+  await assertChargesFamilyCurrency(provider);
   return openSetup(provider, parent, input.arm, input.returnTo);
 }
 
@@ -461,6 +493,7 @@ export async function setAutoCharge(
   const provider = requireProvider(input.provider);
   const target: AutoChargeTarget = { type: input.type, id: input.id };
   const parent = await assertParentOfTarget(target);
+  await assertChargesFamilyCurrency(provider);
   const db = await createClient();
 
   const customer = await findCustomer(db, parent.id, provider.id);

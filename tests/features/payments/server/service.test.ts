@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { paymentCopy } from "@/features/payments/copy";
 import { AppError } from "@/lib";
 import type { PaymentProvider } from "@/lib/payments";
 import { createFakePaymentProvider } from "@/lib/payments/fake";
@@ -69,6 +70,16 @@ const savedCustomer = {
   methodRef: "fake_pm_ok",
   card: { brand: "visa", last4: "4242" },
 };
+
+/** The family's currency becomes JPY, which a provider built with `noJpy` can't charge. */
+const familyInJpy = () =>
+  vi.mocked(family.getFamily).mockResolvedValue({
+    id: "fam-1",
+    code: "ABC234",
+    currency: "JPY",
+    timezone: "UTC",
+  });
+const noJpy = { minimumChargeMinor: (c: string) => (c === "JPY" ? null : 1) };
 
 let provider: ReturnType<typeof createFakePaymentProvider>;
 /** The providers on for this test (the registry, mocked). */
@@ -688,6 +699,32 @@ describe("setAutoCharge", () => {
     vi.mocked(repo.findAutoChargeTargetChildId).mockResolvedValue(null);
     await rejects(service.setAutoCharge(turnOn), "FORBIDDEN");
   });
+
+  it.each([
+    ["no saved card", customer],
+    ["a saved card", savedCustomer],
+  ])("refuses a provider that can't charge the family's currency (%s)", async (_n, saved) => {
+    on = [otherProvider(noJpy), provider];
+    familyInJpy();
+    vi.mocked(repo.findCustomer).mockResolvedValue(saved);
+
+    await rejects(
+      service.setAutoCharge({ ...turnOn, provider: "stripe" }),
+      "VALIDATION",
+      paymentCopy.unsupportedCurrency,
+    );
+    expect(repo.insertSetup).not.toHaveBeenCalled();
+    expect(repo.setAutoChargeFor).not.toHaveBeenCalled();
+  });
+
+  it("still turns off a provider that can't charge the family's currency", async () => {
+    on = [otherProvider(noJpy)];
+    familyInJpy();
+    expect(await service.setAutoCharge({ ...turnOn, on: false, provider: undefined })).toEqual({
+      redirectUrl: null,
+    });
+    expect(repo.setAutoChargeFor).toHaveBeenCalledWith(USER, expect.anything(), false, null);
+  });
 });
 
 describe("startCardSetup", () => {
@@ -743,6 +780,24 @@ describe("startCardSetup", () => {
     );
     expect(repo.failSetup).toHaveBeenCalledWith(ADMIN, "setup-1");
   });
+
+  it.each([
+    ["without", null],
+    ["with", { type: "allowance_schedule" as const, id: scheduleId }],
+  ])("refuses a provider that can't charge the family's currency (%s arming)", async (_n, arm) => {
+    const stripe = otherProvider(noJpy);
+    on = [stripe, provider];
+    familyInJpy();
+    const setup = vi.spyOn(stripe, "createHostedSetup");
+
+    await rejects(
+      service.startCardSetup({ provider: "stripe", arm, returnTo: "/parent" }),
+      "VALIDATION",
+      paymentCopy.unsupportedCurrency,
+    );
+    expect(repo.insertSetup).not.toHaveBeenCalled();
+    expect(setup).not.toHaveBeenCalled();
+  });
 });
 
 describe("saved cards", () => {
@@ -759,6 +814,34 @@ describe("saved cards", () => {
     expect(auth.assertUser).toHaveBeenCalled();
     expect(repo.findCustomer).toHaveBeenCalledWith(USER, parent.id, "stripe");
     expect(repo.findCustomer).toHaveBeenCalledWith(USER, parent.id, "fake");
+  });
+
+  it("getSavedCards hides a provider that can't charge the family's currency", async () => {
+    on = [otherProvider(noJpy), provider];
+    familyInJpy();
+    vi.mocked(repo.findCustomer).mockResolvedValue(null);
+
+    expect(await service.getSavedCards()).toEqual([
+      { provider: "fake", label: "Test card", card: null },
+    ]);
+  });
+
+  it("getSavedCards keeps such a provider while a card is saved there, so it can be removed", async () => {
+    on = [otherProvider(noJpy), provider];
+    familyInJpy();
+    vi.mocked(repo.findCustomer).mockImplementation(async (_db, _parent, id) =>
+      id === "stripe" ? savedCustomer : null,
+    );
+
+    expect(await service.getSavedCards()).toEqual([
+      { provider: "stripe", label: "Stripe", card: { brand: "visa", last4: "4242" } },
+      { provider: "fake", label: "Test card", card: null },
+    ]);
+  });
+
+  it("getSavedCards is empty without a family", async () => {
+    vi.mocked(family.getFamily).mockResolvedValue(null);
+    expect(await service.getSavedCards()).toEqual([]);
   });
 
   it("getAutoChargeCard says, per provider, whether the parent has a saved card", async () => {
