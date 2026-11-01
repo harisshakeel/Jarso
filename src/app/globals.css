@@ -298,6 +298,13 @@
   }
 }
 
+/* A text caret blinking in a demo field (landing, How it works). */
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
 /* Jar fill after money arrives (design.md §8): two coins drop into the jar once, 500 ms. */
 @keyframes coin-drop {
   from {

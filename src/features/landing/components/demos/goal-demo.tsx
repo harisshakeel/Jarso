@@ -1,27 +1,24 @@
-"use client";
-
-import { useState } from "react";
-import { Button } from "@/components/ui";
-import { DemoCard, LiveStage, pounds } from "./demo-parts";
+import { beat, DemoCard, KeycapPicture, pounds, ScrollStage, scrollHint } from "./demo-parts";
 
 const GOAL = 40;
 const BEFORE = 18;
 const WEEK = 4;
 
-/** Step 03, playable: add this week's £4 and watch the goal move. */
-export function GoalDemo({ onDone }: { onDone: () => void }) {
-  const [done, setDone] = useState(false);
-  const saved = done ? BEFORE + WEEK : BEFORE;
+/**
+ * Step 03, played by scrolling: the week's £4 button is pressed and the ring fills from £18 to
+ * £22 of the £40 goal.
+ */
+export function GoalDemo({ progress }: { progress: number }) {
+  const pressed = progress >= 0.22 && progress < 0.36;
+  const fill = beat(progress, 0.36, 0.9);
+  const saved = BEFORE + WEEK * fill;
+  const added = progress >= 0.36;
 
   return (
-    <LiveStage
+    <ScrollStage
       label="A savings goal"
-      hint={
-        done
-          ? "Closer. About five more allowances to go."
-          : "Tap to add this week's £4 to the goal."
-      }
-      done={done}
+      hint={scrollHint(progress, "Closer. About five more allowances to go.")}
+      done={progress >= 1}
     >
       <DemoCard className="grid justify-items-center gap-4 py-6 text-center sm:py-8">
         <div className="grid gap-1">
@@ -47,7 +44,7 @@ export function GoalDemo({ onDone }: { onDone: () => void }) {
               strokeLinecap="round"
               pathLength={100}
               strokeDasharray={`${(saved / GOAL) * 100} 100`}
-              className="stroke-gold transition-[stroke-dasharray] duration-700 ease-[var(--ease-brand)]"
+              className="stroke-gold"
             />
           </svg>
           <div className="absolute inset-0 grid place-content-center">
@@ -55,19 +52,10 @@ export function GoalDemo({ onDone }: { onDone: () => void }) {
             <p className="text-ink-2">of {pounds(GOAL)}</p>
           </div>
         </div>
-        <Button
-          type="button"
-          variant="keycap-gold"
-          size="lg"
-          disabled={done}
-          onClick={() => {
-            setDone(true);
-            onDone();
-          }}
-        >
-          {done ? `+${pounds(WEEK)} saved` : `Add this week's ${pounds(WEEK)}`}
-        </Button>
+        <KeycapPicture gold pressed={pressed}>
+          {added ? `+${pounds(WEEK)} saved` : `Add this week's ${pounds(WEEK)}`}
+        </KeycapPicture>
       </DemoCard>
-    </LiveStage>
+    </ScrollStage>
   );
 }
