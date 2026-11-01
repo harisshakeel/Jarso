@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "BAD_REQUEST_ERROR",
+    "description": "An existing reference id has been passed.",
+    "source": "business",
+    "step": "payment_initiation",
+    "reason": "input_validation_failed",
+    "field": "reference_id",
+    "metadata": {}
+  }
+}

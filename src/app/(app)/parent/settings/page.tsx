@@ -16,6 +16,8 @@ import {
   isCurrency,
 } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
+import { paymentCopy, SavedCards } from "@/features/payments";
+import { getSavedCards, paymentsEnabled } from "@/features/payments/server";
 import { DisplayNameForm, ParentDetailsForm } from "@/features/profiles";
 import { getParentDetails, getProfile } from "@/features/profiles/server";
 
@@ -31,11 +33,13 @@ type Props = { searchParams: PageProps<"/parent/settings">["searchParams"] };
 async function ParentSettings({ searchParams }: Props) {
   const { user, membership } = await requireRole("parent", routes.parentSettings);
   if (!membership) redirect(routes.parentSetup);
-  const [family, children, profile, details] = await Promise.all([
+  const cardPayments = paymentsEnabled();
+  const [family, children, profile, details, savedCards] = await Promise.all([
     getFamily(),
     listChildren(),
     getProfile(user.id),
     getParentDetails(user.id),
+    cardPayments ? getSavedCards() : [],
   ]);
   if (!family) redirect(routes.parentSetup);
   const { tab } = paramsSchema.parse(await searchParams);
@@ -82,10 +86,20 @@ async function ParentSettings({ searchParams }: Props) {
           />
         </Section>
       ) : null}
-      <Section index={2} title="Looks" description="Light, dark, or follow your device.">
+
+      {savedCards.length > 0 ? (
+        <Section
+          index={2}
+          title={paymentCopy.savedCardTitle(savedCards)}
+          description={paymentCopy.testMode}
+        >
+          <SavedCards cards={savedCards} />
+        </Section>
+      ) : null}
+      <Section index={3} title="Looks" description="Light, dark, or follow your device.">
         <ThemeSwitch />
       </Section>
-      <Section index={3} title="Done for now?" description="Sign out of Jarso on this device.">
+      <Section index={4} title="Done for now?" description="Sign out of Jarso on this device.">
         <SignOutButton />
       </Section>
     </>

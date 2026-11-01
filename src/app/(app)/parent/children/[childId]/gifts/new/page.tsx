@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { routes } from "@/config";
 import { GiftForm } from "@/features/allowance";
+import { paymentCopy } from "@/features/payments";
+import { paymentsEnabled } from "@/features/payments/server";
 import { loadChild } from "../../load-child";
 import { FormSkeleton, PageShell } from "../../page-shell";
 
@@ -30,6 +32,9 @@ async function NewGiftContent({
         today={today}
         defaultAmount={typeof amount === "string" ? amount : undefined}
       />
+      {paymentsEnabled() ? (
+        <p className="text-ink-2 text-sm">{paymentCopy.autoChargeLater}</p>
+      ) : null}
     </PageShell>
   );
 }

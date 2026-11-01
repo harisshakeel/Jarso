@@ -1,0 +1,13 @@
+{
+  "id": "order_TESTSETUP1",
+  "entity": "order",
+  "amount": 100,
+  "amount_paid": 0,
+  "amount_due": 100,
+  "currency": "INR",
+  "receipt": "set-1",
+  "status": "created",
+  "attempts": 0,
+  "notes": { "jarsoSetup": "set-1" },
+  "created_at": 1793520005
+}

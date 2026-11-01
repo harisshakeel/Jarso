@@ -30,7 +30,7 @@ pnpm db:migration <name> # new migration → then pnpm db:reset && pnpm db:types
 
 1. **Feature modules.** Domain code lives in `src/features/<name>/` (`components/`, `schemas.ts`, `types.ts`, `server/{actions,service,repository}.ts`). `src/app` only routes and composes.
 2. **Index barrels.** Every module exposes an `index.ts`. Cross-module imports go through the barrel (`@/features/auth`, `@/lib`, `@/components/ui`, `@/config`, `@/types`) — never deep paths into another module. Inside a module use relative imports.
-3. **Never mix server and client in a barrel.** Server-only API lives in `features/<f>/server/index.ts` beginning with `import "server-only"`. Direct-import exceptions: `@/lib/supabase/{client,server,admin,proxy}`, `@/config/env.server`.
+3. **Never mix server and client in a barrel.** Server-only API lives in `features/<f>/server/index.ts` beginning with `import "server-only"`. Direct-import exceptions: `@/lib/supabase/{client,server,admin,proxy}`, `@/lib/payments`, `@/config/env.server`.
 4. **Layering:** route/action → service → repository → Supabase. Only repositories touch table/column names. No business logic in `app/`.
 5. **Auth:** call `requireUser()` (pages) or `assertUser()` (actions/APIs) from `@/features/auth/server`. Proxy redirects are optimistic only. Never use `getSession()` on the server.
 6. **Cache Components are on.** Anything reading cookies/headers/searchParams/Supabase-server renders inside `<Suspense>`. Don't await the session at a layout's top level.

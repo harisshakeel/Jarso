@@ -1,3 +1,5 @@
+import type { PaymentProviderId } from "@/lib/payments";
+
 export const frequencies = ["weekly", "monthly", "quarterly", "annual"] as const;
 export type Frequency = (typeof frequencies)[number];
 
@@ -15,6 +17,12 @@ export type Schedule = {
   nextDueOn: string | null;
   pausedThrough: string | null;
   pauseMessage: string | null;
+  /** Card auto charge is on for this schedule. Always false for the child. */
+  autoCharge: boolean;
+  /** The provider whose saved card pays; null when off. Always null for the child. */
+  autoChargeProvider: PaymentProviderId | null;
+  /** The signed-in parent turned auto charge on (it charges their card). False for the child. */
+  autoChargeMine: boolean;
 };
 
 /** Something waiting for the parent to hand over (parents only: it includes gifts). */
@@ -37,6 +45,12 @@ export type Gift = {
   giveOn: string;
   note: string | null;
   status: GiftStatus;
+  /** Card auto charge is on for this gift. */
+  autoCharge: boolean;
+  /** The provider whose saved card pays; null when off. */
+  autoChargeProvider: PaymentProviderId | null;
+  /** The signed-in parent turned auto charge on (it charges their card). */
+  autoChargeMine: boolean;
 };
 
 /** How a handover was split: cash to Spend, the rest kept as Save. Minor units. */

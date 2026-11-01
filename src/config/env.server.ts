@@ -1,9 +1,12 @@
 import "server-only";
 import { z } from "zod";
 
-/** A host can leave a variable set but empty; that means unset, not "a 0-character secret". */
+/** A host can leave a variable set but blank (or spaces); that means unset, not a secret. */
 const blankAsUnset = <T extends z.ZodType>(inner: T) =>
-  z.preprocess((value) => (value === "" ? undefined : value), inner);
+  z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    inner,
+  );
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -29,13 +32,42 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  // Card handover (ADR 0014). Each provider is on when all its keys are set; several can be on
+  // at once and the parent picks one. The fake is for tests and local runs: it needs
+  // PAYMENTS_ALLOW_FAKE and is never on Vercel production.
+  PAYMENTS_ALLOW_FAKE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  /** Test mode only: a live key is refused. */
+  // Blank counts as unset, so clearing a key turns its provider off instead of failing boot.
+  STRIPE_SECRET_KEY: blankAsUnset(
+    z
+      .string()
+      .regex(/^(sk|rk)_test_/, "Use a Stripe test-mode key (sk_test_… or rk_test_…)")
+      .optional(),
+  ),
+  STRIPE_WEBHOOK_SECRET: blankAsUnset(z.string().startsWith("whsec_").optional()),
+  /** Test mode only: a live key id is refused. */
+  RAZORPAY_KEY_ID: blankAsUnset(
+    z
+      .string()
+      .regex(/^rzp_test_/, "Use a Razorpay test-mode key id (rzp_test_…)")
+      .optional(),
+  ),
+  RAZORPAY_KEY_SECRET: blankAsUnset(z.string().min(1).optional()),
+  /** The secret set on the test-mode dashboard webhook (Razorpay chooses no format). */
+  RAZORPAY_WEBHOOK_SECRET: blankAsUnset(z.string().min(1).optional()),
   /** Set by Vercel: "production", "preview" or "development". */
   VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
   /** Web push (FR16): the VAPID private key. Push is skipped unless this and the public key are set. */
   VAPID_PRIVATE_KEY: blankAsUnset(z.string().min(1).optional()),
   /** VAPID contact, a mailto: or https: URL push services can reach; defaults to the app's host. */
   VAPID_SUBJECT: blankAsUnset(z.string().min(1).optional()),
-  /** Shared secret the cron route expects as a Bearer token; unset means the route is off. */
+  /**
+   * Bearer secret for the cron routes (payments auto charge via Vercel Cron and pg_net, web push
+   * sweep). Unset: the routes are 404.
+   */
   CRON_SECRET: blankAsUnset(z.string().min(16).optional()),
 });
 

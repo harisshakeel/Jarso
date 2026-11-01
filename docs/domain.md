@@ -15,6 +15,9 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Allowance | Parent-set amount + frequency (weekly/monthly/quarterly/annual). |
 | Due allowance | One scheduled occurrence, created automatically, awaiting handover. Shows a due badge. Not balance. |
 | Handover confirmation | Parent's one-screen record of cash given to the child (→ Spend) and amount kept as savings (→ Save). The only way allowance reaches a balance. |
+| Card handover | A second way for the parent to hand over a due allowance or gift: pay the full amount by card through a payment provider (Stripe or Razorpay, test mode; the parent picks one, and several can be on at once). Posts the same ledger rows as cash, with `method = card`. A test-mode showcase; real payments are not in the pilot (ADR 0013). |
+| Payment | One card payment for one due occurrence or gift: `pending` → `requires_action` → `succeeded`, or `failed` / `canceled` / `expired`; `succeeded_unapplied` when the card payment landed after the item was already handed over, closed or cancelled (nothing posts). |
+| Auto charge | A per-schedule and per-gift toggle. When an item falls due after the toggle was turned on, Jarso charges the parent's saved card once, at the provider the toggle recorded (a parent holds one saved card per provider). A failed attempt leaves the item due and notifies the parent; there is no retry. |
 | Gift (from a parent) | One-time extra money the parent initiates, optionally dated in the future, with a note. Hidden from the child until handed over, then shown in history. Posts as `parent_gift_in` on handover confirmation. No shortfall. |
 | Gift (from others) | Money the child records receiving from other sources (FR04). Child-recorded, counts immediately, kind `gift_in`. Not the same as a parent gift. |
 | Paused / stopped allowance | Paused: no period falling in the pause becomes due, and skipped periods are not paid later; resumes after a set date or when the parent resumes it. Stopped: schedule ended for good. Occurrences already due stay due in both cases. The child sees the state and the parent's optional message. |
@@ -59,6 +62,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | `learning` ✅ | FR06, FR08, FR10 | Missions, topics, spaced review, check-in, progress (separate from money). Content as JSON (ADR 0009). |
 | `reviews` | FR11, FR12 | Weekly summary, next-step recommendation, resume state. |
 | `notifications` | FR16 | In-app inbox: due badge, handover reminders, limit, new-request and decision notices, no push needed. Web push is an at-most-once copy of the inbox row (`pushed_at`, ADR 0012) for browsers that said yes; the app installs from its manifest. Sent after commit; failure never affects records. |
+| `payments` | FR01 | Card handover and auto charge over `@/lib/payments`: pay by card, saved card, webhook state machine, auto-charge run. Never posts to the ledger itself; `apply_payment` does (ADR 0013). |
 | `guide` ✅ | FR07, FR09 | AI chat via the Claude API; server-only; screened pipeline, rate limits, budget, safety handling, parent switch and transcripts (ADR 0010). |
 
 ## Invariants (enforce in DB + services, test them)
@@ -81,3 +85,4 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 16. Child-initiated onboarding stores only a nickname and the parent's email until the parent approves.
 17. A pending parent gift is invisible to the child: no row, count, total or date reaches a child session. Enforced by RLS (`parent_gifts` is readable by parents only) and by keeping parent-only aggregates out of child reach. A given gift reaches the child only as its ledger rows, labelled with the note.
 18. The guide never asks for personal or account information, recommends investments, products or shops, or tells the child to buy something (FR09). Enforced by its prompt, an input screen, an output screen and fixed copy, and tested by the eval gate (ADR 0010).
+19. A card payment posts to the ledger at most once, through the same source lock as a cash handover, and only on a success the provider itself reports: a verified webhook event, or the provider's authenticated response to the server's own auto-charge request (`chargeSaved`). Never from the browser's success redirect. The success redirect, a retried or out-of-order webhook, a double click and an auto charge racing a manual payment cannot post twice. An item gets at most one automatic charge attempt. The child never sees card details, payment state or a failed charge.

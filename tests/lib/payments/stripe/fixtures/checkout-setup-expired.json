@@ -1,0 +1,14 @@
+{
+  "id": "evt_4",
+  "object": "event",
+  "type": "checkout.session.expired",
+  "livemode": false,
+  "data": {
+    "object": {
+      "id": "cs_test_sexp",
+      "object": "checkout.session",
+      "mode": "setup",
+      "client_reference_id": "setup-4"
+    }
+  }
+}

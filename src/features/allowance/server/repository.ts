@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
+import { isPaymentProviderId, type PaymentProviderId } from "@/lib/payments";
 import type { Database } from "@/types";
 import {
   type DueItem,
@@ -21,6 +22,13 @@ type Client = SupabaseClient<Database>;
  * no auth decisions; `db` is the user's server client, so RLS and the functions' own checks apply.
  */
 
+/** Who turned auto charge on and whose provider's card it charges (both null when off). */
+type AutoChargeColumns = {
+  autoCharge: boolean;
+  autoChargeProvider: PaymentProviderId | null;
+  autoChargeBy: string | null;
+};
+
 export type ScheduleRow = {
   id: string;
   amountMinor: number;
@@ -29,9 +37,11 @@ export type ScheduleRow = {
   anchorOn: string;
   pausedThrough: string | null;
   pauseMessage: string | null;
-};
+} & AutoChargeColumns;
 
-export type GiftRow = Gift & { childId: string };
+/** A pending gift as stored; the service turns `autoChargeBy` into `autoChargeMine`. */
+export type GiftRecord = Omit<Gift, "autoChargeMine"> & { autoChargeBy: string | null };
+export type GiftRow = GiftRecord & { childId: string };
 export type LatestSplit = Split & { at: string };
 
 function asFrequency(value: string): Frequency {
@@ -47,6 +57,26 @@ function asGiftStatus(value: string): GiftStatus {
   return value === "given" || value === "cancelled" ? value : "pending";
 }
 
+function asProviderId(value: string | null): PaymentProviderId | null {
+  if (value === null) return null;
+  if (!isPaymentProviderId(value)) {
+    throw new AppError("INTERNAL", "Failed to load auto charge", { cause: { value } });
+  }
+  return value;
+}
+
+function autoChargeColumns(row: {
+  auto_charge: boolean;
+  auto_charge_provider: string | null;
+  auto_charge_by: string | null;
+}): AutoChargeColumns {
+  return {
+    autoCharge: row.auto_charge,
+    autoChargeProvider: asProviderId(row.auto_charge_provider),
+    autoChargeBy: row.auto_charge_by,
+  };
+}
+
 function oneOf<const T extends string>(value: string, allowed: readonly T[], fallback: string): T {
   if ((allowed as readonly string[]).includes(value)) return value as T;
   throw new AppError("INTERNAL", fallback, { cause: { result: value } });
@@ -60,7 +90,9 @@ function oneOf<const T extends string>(value: string, allowed: readonly T[], fal
 export async function findLatestSchedule(db: Client, childId: string): Promise<ScheduleRow | null> {
   const { data, error } = await db
     .from("allowance_schedules")
-    .select("id, amount_minor, frequency, status, anchor_on, paused_through, pause_message")
+    .select(
+      "id, amount_minor, frequency, status, anchor_on, paused_through, pause_message, auto_charge, auto_charge_provider, auto_charge_by",
+    )
     .eq("child_id", childId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -75,6 +107,7 @@ export async function findLatestSchedule(db: Client, childId: string): Promise<S
     anchorOn: data.anchor_on,
     pausedThrough: data.paused_through,
     pauseMessage: data.pause_message,
+    ...autoChargeColumns(data),
   };
 }
 
@@ -127,7 +160,9 @@ export async function findOccurrenceChildId(
 export async function findGift(db: Client, giftId: string): Promise<GiftRow | null> {
   const { data, error } = await db
     .from("parent_gifts")
-    .select("id, child_id, amount_minor, give_on, note, status")
+    .select(
+      "id, child_id, amount_minor, give_on, note, status, auto_charge, auto_charge_provider, auto_charge_by",
+    )
     .eq("id", giftId)
     .maybeSingle();
   if (error) throw toAppError(error, "Failed to load gift");
@@ -139,14 +174,17 @@ export async function findGift(db: Client, giftId: string): Promise<GiftRow | nu
     giveOn: data.give_on,
     note: data.note,
     status: asGiftStatus(data.status),
+    ...autoChargeColumns(data),
   };
 }
 
 /** Pending gifts (due and future), soonest first. */
-export async function listPendingGifts(db: Client, childId: string): Promise<Gift[]> {
+export async function listPendingGifts(db: Client, childId: string): Promise<GiftRecord[]> {
   const { data, error } = await db
     .from("parent_gifts")
-    .select("id, amount_minor, give_on, note, status")
+    .select(
+      "id, amount_minor, give_on, note, status, auto_charge, auto_charge_provider, auto_charge_by",
+    )
     .eq("child_id", childId)
     .eq("status", "pending")
     .order("give_on", { ascending: true })
@@ -158,6 +196,7 @@ export async function listPendingGifts(db: Client, childId: string): Promise<Gif
     giveOn: row.give_on,
     note: row.note,
     status: asGiftStatus(row.status),
+    ...autoChargeColumns(row),
   }));
 }
 

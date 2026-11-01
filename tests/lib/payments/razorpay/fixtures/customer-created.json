@@ -1,0 +1,10 @@
+{
+  "id": "cust_TEST123",
+  "entity": "customer",
+  "name": "Jarso parent",
+  "email": "parent@example.com",
+  "contact": null,
+  "gstin": null,
+  "notes": { "parentId": "parent-1" },
+  "created_at": 1793520000
+}

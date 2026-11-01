@@ -1,0 +1,14 @@
+{
+  "id": "evt_3",
+  "object": "event",
+  "type": "checkout.session.expired",
+  "livemode": false,
+  "data": {
+    "object": {
+      "id": "cs_test_exp",
+      "object": "checkout.session",
+      "mode": "payment",
+      "client_reference_id": "pay-3"
+    }
+  }
+}

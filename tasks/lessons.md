@@ -12,3 +12,10 @@ Patterns learned from corrections. Review at session start.
 - `.env.local` points at the HOSTED Supabase project. Never run the app, spikes or smoke tests with it; force local URL/keys in the process env (see playwright.config.ts).
 - Supabase-js `getClaims()` calls `Date.now()`; with Partial Prefetching, read the session after `await connection()`.
 - GoTrue admin `createUser` writes `app_metadata` after the insert; DB triggers must handle the follow-up UPDATE.
+- Never commit until the user explicitly says so — not docs, not per-task SDD commits. Leave work uncommitted and ask.
+- Use a provider's official SDK (e.g. `razorpay`, `stripe`) for integrations, not hand-rolled REST calls.
+- Unit tests live in `tests/` mirroring `src/`, never colocated.
+- Webhook mapping must only trust fields the server set (references, order notes); payment notes are browser-settable.
+- Before pushing migrations to the hosted project, `supabase migration list --linked` and check main's migrations for redefined constraints/functions the branch also redefines.
+- Probe a payment provider's test mode early (a throwaway script with the test keys, never printing them) before building on documented assumptions: Razorpay rejects recurring card orders unless the customer already has email and phone, which the docs research missed.
+- Razorpay `fail_existing` must be the string "0"; the SDK type says number and Razorpay ignores numeric 0.

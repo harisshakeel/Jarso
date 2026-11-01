@@ -31,7 +31,7 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`
 | Services | verb + noun | `getProfile`, `updateProfile` |
 | Repository fns | `find…`, `insert…`, `update…ById`, `delete…` | `findProfileById` |
 | Migrations | `supabase migration new <snake_case>` | `create_profiles` |
-| Tests | colocated `*.test.ts(x)`; e2e in `tests/e2e/*.spec.ts` | `schemas.test.ts` |
+| Tests | `tests/**/*.test.ts(x)` mirroring the `src/` path; e2e in `tests/e2e/*.spec.ts` | `tests/features/goals/schemas.test.ts` |
 
 ## Index barrels (required)
 
@@ -43,8 +43,9 @@ Every module exposes its public API through an `index.ts` barrel. Import from th
 | `@/features/<f>/server` | services, DAL (`import "server-only"`) | ❌ server only |
 | `@/components/ui` | shadcn primitives | ✅ |
 | `@/components/form` | `Field`, `FieldError`, `FormError` (design.md §6 Forms) | ✅ |
-| `@/lib` | errors, logger, `createAction`, `cn` | ✅ |
+| `@/lib` | errors, logger, `createAction`, `cn`, payment provider ids (`PAYMENT_PROVIDER_IDS`, `isPaymentProviderId`) | ✅ |
 | `@/lib/api` | Route Handler helpers | ❌ server only |
+| `@/lib/payments` | Payment provider interface, registry, adapters (ADR 0013) | ❌ server only |
 | `@/config` | `routes`, `siteConfig`, `clientEnv` | ✅ |
 | `@/types` | generated DB types | ✅ (types only) |
 
@@ -53,15 +54,16 @@ Rules:
 1. **Never mix server-only and client-safe exports in one barrel.** Server-only goes in `server/index.ts`, which starts with `import "server-only"`.
 2. **Inside a module, use relative imports** (`./service`, `../schemas`) — never import your own barrel (causes cycles).
 3. **Across modules, use the barrel** (`@/features/auth`, `@/lib`), never a deep path like `@/features/auth/components/sign-in-form`.
-4. **Exceptions — environment entry points:** `@/lib/supabase/{client,server,admin,proxy}` and `@/config/env.server` are imported directly. They're intentionally separate so the wrong client can't be pulled into the wrong runtime.
+4. **Exceptions — environment entry points:** `@/lib/supabase/{client,server,admin,proxy}`, `@/lib/payments` and `@/config/env.server` are imported directly. They're intentionally separate so the wrong client can't be pulled into the wrong runtime.
 5. Prefer `export *` for files you fully own; use named re-exports (`export { a, b } from`) when you want to hide internals (e.g. `server/actions`).
 6. After `pnpm dlx shadcn add <x>`, add `export * from "./<x>";` to `src/components/ui/index.ts`.
+7. **Tests are exempt from the barrel rule.** Unit tests under `tests/` may import a module's internals by deep `@/` path (`@/features/goals/server/service`), since they test units the barrel doesn't export. Rules 2 and 3 apply to production code in `src/`.
 
 ## Server vs client
 
 - Default to Server Components. Add `"use client"` only for interactivity/state/browser APIs, as low in the tree as possible.
 - Fetch data in Server Components (pages/sections) and pass plain props to presentational components.
-- Never import `@/features/*/server`, `@/lib/api`, `@/lib/supabase/server|admin`, or `@/config/env.server` from a `"use client"` file.
+- Never import `@/features/*/server`, `@/lib/api`, `@/lib/payments`, `@/lib/supabase/server|admin`, or `@/config/env.server` from a `"use client"` file.
 
 ## Errors
 

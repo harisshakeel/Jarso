@@ -134,6 +134,7 @@ export function HistoryList({
                       <span className="truncate text-ink-2">
                         {subline}
                         {item.undone ? " · Undone" : ""}
+                        {item.paidByCard ? " · Paid by card" : ""}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">

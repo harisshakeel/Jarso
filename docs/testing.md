@@ -2,7 +2,7 @@
 
 | Layer | Tool | Location | Command |
 | --- | --- | --- | --- |
-| Unit / component | Vitest + Testing Library (jsdom) | colocated `src/**/*.test.ts(x)` | `pnpm test` / `pnpm test:watch` |
+| Unit / component | Vitest + Testing Library (jsdom) | `tests/**/*.test.ts(x)`, mirroring the `src/` path (`src/features/x/schemas.ts` → `tests/features/x/schemas.test.ts`) | `pnpm test` / `pnpm test:watch` |
 | End-to-end | Playwright (Chromium) | `tests/e2e/*.spec.ts` | `pnpm test:e2e` |
 | DB | pgTAP (`pnpm db:test`), plus `supabase db reset` + `supabase db lint` | `supabase/tests/database/*.test.sql`; migrations in `supabase/migrations` | CI `migrations` job |
 
@@ -16,6 +16,8 @@
 ## Notes
 
 - `tests/setup.ts` mocks `server-only` and loads jest-dom matchers. Public env vars are stubbed in `vitest.config.mts`.
+- Unit tests live under `tests/`, not next to the source. They import the code under test by `@/` alias, including deep paths into a module's internals (`@/features/<f>/server/service`), and mock by the same specifier (`vi.mock("@/features/<f>/server/repository")`). Test-only helpers and fixtures sit beside the tests that use them (`tests/features/offline/outbox/test-utils.ts`, `tests/lib/payments/stripe/fixtures/`).
+- Payments unit tests: `tests/lib/payments/` (the shared adapter contract suite `contract.test.ts` runs for fake, Stripe and Razorpay, each with its own test currency; adapter tests with injected SDK client stubs under `stripe/` and `razorpay/`; `registry.test.ts` for which providers are on) and `tests/features/payments/` (domain, schemas, status machine). pgTAP: `supabase/tests/database/payments.test.sql`.
 - Mock Supabase at the repository boundary when unit-testing services.
 - `pnpm test:e2e` builds and starts the app on port 3200. First run: `pnpm exec playwright install chromium`.
 
@@ -38,6 +40,7 @@ E2E never talks to the hosted project. Run `pnpm db:start`, then `pnpm test:e2e`
 | `requests` | `tests/e2e/requests.spec.ts` | Local Supabase. Savings withdrawals and deposits through the screens: ask, approve and hand over, auto-approve and auto-confirm rules, a week cap, asking for more than is available |
 | `requests-race` | `tests/e2e/requests-race.spec.ts` | Local Supabase, no browser. Five parallel `complete_request` calls hand a withdrawal over once (2 ledger rows); five parallel `create_withdrawal` calls with one key make one request; two approved 500 take-outs against 1000 Save both hand over in parallel, but with Save dropped to 700 neither posts (both `over_available`, nothing partial, Save stays 700); a deposit confirms while a purchase races for the held Spend; `decide_withdrawal` refuses when reserved exceeds Save (a single-call check on a forced state) |
 | `guide` | `tests/e2e/guide.spec.ts` | Local Supabase, fake provider (`FEATURE_GUIDE=true`, `GUIDE_PROVIDER=fake` in `playwright.config.ts`). On by default (the parent's switch starts on), the intro card, a look-up of the child's own jars, an answer with topic links and a check, a safety reply with helplines, an off-topic redirect, "Help me" in a mission, the parent's flagged-first transcript with the private safety message, switching off |
+| `payments` | `tests/e2e/payments.spec.ts` | Local Supabase, fake provider only (`PAYMENTS_ALLOW_FAKE=true`, `CRON_SECRET` in `playwright.config.ts`; no Stripe or Razorpay keys, so the button reads "Pay by card" or "Pay with Test card" and the spec accepts either). Pay by card on the handover screen through the fake hosted page at `/dev/payments/fake` (jars filled, "Paid by card" in history); a card payment finished after a cash handover posts nothing and shows the refund note; auto charge with a saved card that works fills the jars on the cron run; a declining card leaves the allowance due and sends the parent a "didn't go through" notice |
 | `learning` | `tests/e2e/learning.spec.ts` | Local Supabase. Check-in, a full mission with a mistake replayed at the end, leaving and resuming, a locked mission, a topic page with the way back, a due review as practice (made due through the admin client), the parent's learning page and another family kept out |
 
 **How the keys get in, without printing them.** `playwright.config.ts` calls `loadLocalSupabase()` (`tests/e2e/local-supabase.ts`), which runs `pnpm exec supabase status -o json` with stderr dropped, parses stdout in memory and refuses any host other than `127.0.0.1`/`localhost`. It has to run in the config, not `globalSetup`, because Playwright starts the webServer first. The values go to `webServer.env` for both `pnpm build` and `pnpm start`; workers reuse them through a process env var. Never `console.log` them and never run `supabase status` in a way that shows its output.

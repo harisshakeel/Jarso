@@ -1,0 +1,15 @@
+{
+  "id": "evt_async_ok",
+  "object": "event",
+  "type": "checkout.session.async_payment_succeeded",
+  "livemode": false,
+  "data": {
+    "object": {
+      "id": "cs_test_pay",
+      "object": "checkout.session",
+      "mode": "payment",
+      "payment_status": "paid",
+      "client_reference_id": "pay-1"
+    }
+  }
+}
