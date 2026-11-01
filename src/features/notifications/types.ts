@@ -11,7 +11,9 @@ export type NoticeKind =
   | "emergency_decided"
   | "allowance_due"
   | "handover_reminder"
-  | "card_charge_failed";
+  | "card_charge_failed"
+  | "money_received"
+  | "entry_corrected";
 
 export type NoticeSource = "ledger_entry" | "request" | "allowance_occurrence" | "payment";
 

@@ -88,6 +88,38 @@ describe("card_charge_failed", () => {
 });
 
 describe("noticeText", () => {
+  it("parent money received", () => {
+    const n = {
+      ...base,
+      childName: "Aria",
+      kind: "money_received" as const,
+      sourceType: "ledger_entry" as const,
+      payload: { amount_minor: 2000, category: "birthday", jar: "spend" },
+    };
+    expect(noticeText(n, "parent", "GBP")).toEqual({
+      title: "Aria wrote down £20 from Birthday",
+      detail: "Added to Spend.",
+    });
+    expect(
+      noticeText({ ...n, payload: { ...n.payload, jar: "save" } }, "parent", "GBP").detail,
+    ).toBe("Added to Save.");
+  });
+  it("parent entry corrected", () => {
+    const n = {
+      ...base,
+      childName: "Aria",
+      kind: "entry_corrected" as const,
+      sourceType: "ledger_entry" as const,
+      payload: { kind: "purchase", old_amount_minor: 500, amount_minor: 350 },
+    };
+    expect(noticeText(n, "parent", "GBP")).toEqual({
+      title: "Aria fixed a purchase",
+      detail: "£5 → £3.50",
+    });
+    expect(
+      noticeText({ ...n, payload: { ...n.payload, kind: "gift_in" } }, "parent", "GBP").title,
+    ).toBe("Aria fixed money they got");
+  });
   it("child allowance due", () => {
     expect(noticeText(base, "child", "GBP")).toEqual({
       title: "Your £5 allowance is due",

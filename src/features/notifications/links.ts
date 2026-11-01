@@ -1,5 +1,6 @@
 import type { Route } from "next";
 import { routes } from "@/config";
+import { categoryOf } from "@/features/ledger";
 import { type FailureCode, failureCopy } from "@/features/payments";
 import { formatMoney } from "@/lib";
 import type { Notice } from "./types";
@@ -144,6 +145,26 @@ export function noticeText(
       return {
         title: `Card payment for ${name}'s ${what} didn't go through`,
         detail: reason ? `${reason} Hand it over another way.` : "Hand it over another way.",
+      };
+    }
+    case "money_received": {
+      const from = categoryOf(
+        typeof notice.payload.category === "string" ? notice.payload.category : null,
+        "received",
+      ).label;
+      return {
+        title: `${name} wrote down ${amount ?? "money"} from ${from}`,
+        detail: notice.payload.jar === "save" ? "Added to Save." : "Added to Spend.",
+      };
+    }
+    case "entry_corrected": {
+      const old = money("old_amount_minor");
+      return {
+        title:
+          notice.payload.kind === "gift_in"
+            ? `${name} fixed money they got`
+            : `${name} fixed a purchase`,
+        detail: old && amount ? `${old} → ${amount}` : "Take a look.",
       };
     }
     default:
