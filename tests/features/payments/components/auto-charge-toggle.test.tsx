@@ -294,6 +294,26 @@ describe("AutoChargeToggle", () => {
     ).toBeVisible();
   });
 
+  it("keeps the switch of an overdue gift that is on, so it can be turned off", async () => {
+    setAutoChargeAction.mockResolvedValue({ ok: true, data: { redirectUrl: null } });
+    renderToggle({
+      target: { type: "parent_gift", id: target.id },
+      unavailable: "overdue",
+      on: true,
+      provider: "fake",
+      mine: true,
+    });
+    fireEvent.click(toggle());
+    await waitFor(() =>
+      expect(setAutoChargeAction).toHaveBeenCalledWith(null, {
+        type: "parent_gift",
+        id: target.id,
+        on: false,
+        returnTo,
+      }),
+    );
+  });
+
   it("goes back and shows the error when turning off fails", async () => {
     setAutoChargeAction.mockResolvedValue({
       ok: false,

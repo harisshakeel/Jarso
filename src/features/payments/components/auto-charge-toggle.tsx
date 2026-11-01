@@ -31,7 +31,10 @@ type AutoChargeToggleProps = {
   mine: boolean;
   /** Every provider that is on, with the parent's saved card there (`getAutoChargeCard`). */
   cards: readonly AutoChargeCard[];
-  /** A gift's day has already passed: auto charge never back-charges, so it can't be used. */
+  /**
+   * A gift's day has already passed: auto charge never back-charges, so it can't be turned on.
+   * One already on still shows its switch, so the parent can turn it off.
+   */
   unavailable?: "overdue" | null;
 };
 
@@ -46,7 +49,8 @@ type AutoChargeToggleProps = {
  */
 export function AutoChargeToggle(props: AutoChargeToggleProps) {
   const usable = props.cards.filter((card) => card.unavailableReason === null);
-  if (props.unavailable === "overdue" || usable.length === 0) {
+  const blocked = props.unavailable === "overdue" || usable.length === 0;
+  if (blocked && !props.on) {
     return (
       <Card className="rise-in">
         <CardContent className="grid gap-1">
@@ -60,7 +64,7 @@ export function AutoChargeToggle(props: AutoChargeToggleProps) {
       </Card>
     );
   }
-  return <AutoChargeSwitch {...props} usable={usable} />;
+  return <AutoChargeSwitch {...props} usable={usable} blocked={blocked} />;
 }
 
 /** What the parent is asked before auto charge turns on, if anything. */
@@ -85,7 +89,8 @@ function AutoChargeSwitch({
   mine,
   cards,
   usable,
-}: AutoChargeToggleProps & { usable: AutoChargeCard[] }) {
+  blocked,
+}: AutoChargeToggleProps & { usable: AutoChargeCard[]; blocked: boolean }) {
   const returnTo = usePathname();
   const labelId = useId();
   const [checked, setChecked] = useState(on);
@@ -153,6 +158,8 @@ function AutoChargeSwitch({
   }
 
   function toggle(next: boolean) {
+    // On but no longer allowed (an overdue gift): it can only be turned off.
+    if (next && blocked) return;
     if (!next) {
       setChecked(false);
       save(false);
