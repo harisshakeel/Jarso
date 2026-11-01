@@ -2,7 +2,7 @@
 
 | Layer | Tool | Location | Command |
 | --- | --- | --- | --- |
-| Unit / component | Vitest + Testing Library (jsdom) | colocated `src/**/*.test.ts(x)` | `pnpm test` / `pnpm test:watch` |
+| Unit / component | Vitest + Testing Library (jsdom) | `tests/**/*.test.ts(x)`, mirroring the `src/` path (`src/features/x/schemas.ts` → `tests/features/x/schemas.test.ts`) | `pnpm test` / `pnpm test:watch` |
 | End-to-end | Playwright (Chromium) | `tests/e2e/*.spec.ts` | `pnpm test:e2e` |
 | DB | pgTAP (`pnpm db:test`), plus `supabase db reset` + `supabase db lint` | `supabase/tests/database/*.test.sql`; migrations in `supabase/migrations` | CI `migrations` job |
 
@@ -16,6 +16,7 @@
 ## Notes
 
 - `tests/setup.ts` mocks `server-only` and loads jest-dom matchers. Public env vars are stubbed in `vitest.config.mts`.
+- Unit tests live under `tests/`, not next to the source. They import the code under test by `@/` alias, including deep paths into a module's internals (`@/features/<f>/server/service`), and mock by the same specifier (`vi.mock("@/features/<f>/server/repository")`). Test-only helpers and fixtures sit beside the tests that use them (`tests/features/offline/outbox/test-utils.ts`, `tests/lib/payments/stripe/fixtures/`).
 - Mock Supabase at the repository boundary when unit-testing services.
 - `pnpm test:e2e` builds and starts the app on port 3200. First run: `pnpm exec playwright install chromium`.
 

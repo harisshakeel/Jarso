@@ -1,0 +1,98 @@
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { HandoverForm } from "@/features/allowance/components/handover-form";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
+vi.mock("@/features/allowance/server/actions", () => ({
+  confirmHandoverAction: vi.fn(),
+  markNotGivenAction: vi.fn(),
+}));
+
+afterEach(cleanup);
+
+function renderForm(kind: "allowance" | "gift" = "allowance") {
+  render(
+    <HandoverForm
+      kind={kind}
+      id="occ-1"
+      childId="child-1"
+      nickname="Sam"
+      currency="GBP"
+      amountMinor={500}
+      dueOn="2026-11-02"
+      note={null}
+      prefill={{ cash: 500, saved: 0 }}
+    />,
+  );
+  return {
+    spend: screen.getByLabelText("Spend (cash to Sam)") as HTMLInputElement,
+    save: screen.getByLabelText("Save (you keep)") as HTMLInputElement,
+  };
+}
+
+describe("HandoverForm", () => {
+  it("shows the child's goal plan as a note and keeps the prefill", () => {
+    render(
+      <HandoverForm
+        kind="allowance"
+        id="occ-1"
+        childId="child-1"
+        nickname="Sam"
+        currency="GBP"
+        amountMinor={500}
+        dueOn="2026-11-02"
+        note={null}
+        prefill={{ cash: 500, saved: 0 }}
+        goalNote="Sam plans to save £4 each time toward ⚽ Football boots"
+      />,
+    );
+    expect(
+      screen.getByText("Sam plans to save £4 each time toward ⚽ Football boots"),
+    ).toBeInTheDocument();
+    expect((screen.getByLabelText("Save (you keep)") as HTMLInputElement).value).toBe("0.00");
+  });
+
+  it("fills Spend with the rest when only Save is typed", () => {
+    const { spend, save } = renderForm();
+    fireEvent.change(save, { target: { value: "2" } });
+    expect(spend.value).toBe("3.00");
+  });
+
+  it("keeps a Spend amount the parent typed when they then type Save", () => {
+    const { spend, save } = renderForm();
+    fireEvent.change(spend, { target: { value: "3" } });
+    fireEvent.change(save, { target: { value: "1" } });
+    expect(spend.value).toBe("3");
+    expect(screen.getByRole("status")).toHaveTextContent("will be noted as short");
+  });
+
+  it("offers Pay by card beside the cash button only with a card state", () => {
+    renderForm();
+    expect(screen.queryByRole("button", { name: "Pay by card" })).not.toBeInTheDocument();
+    cleanup();
+    render(
+      <HandoverForm
+        kind="allowance"
+        id="occ-1"
+        childId="child-1"
+        nickname="Sam"
+        currency="GBP"
+        amountMinor={500}
+        dueOn="2026-11-02"
+        note={null}
+        prefill={{ cash: 500, saved: 0 }}
+        card={{ available: true, unavailableReason: null, pending: null, lastOutcome: null }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Pay by card" })).toBeEnabled();
+    fireEvent.change(screen.getByLabelText("Spend (cash to Sam)"), { target: { value: "1" } });
+    expect(screen.getByRole("button", { name: "Pay by card" })).toBeDisabled();
+  });
+
+  it("shows no shortfall for a gift given in full or in part", () => {
+    const { spend } = renderForm("gift");
+    fireEvent.change(spend, { target: { value: "1" } });
+    expect(screen.queryByText(/noted as short/)).not.toBeInTheDocument();
+  });
+});

@@ -27,7 +27,7 @@ The failures that matter most: money posting twice (webhook retry, double click,
   2. Add `<id>` to `ProviderId` and one line in `src/lib/payments/registry.ts`.
   3. Add its env vars to `env.server.ts` and `.env.example`, required only when `PAYMENTS_PROVIDER=<id>`.
   4. Point the provider's webhooks at `/api/v1/payments/webhooks/<id>`.
-  5. Run the shared adapter contract suite (`src/lib/payments/contract.test.ts`) and the domain tests, which use `fake`.
+  5. Run the shared adapter contract suite (`tests/lib/payments/contract.test.ts`) and the domain tests, which use `fake`.
 - Cash handover does not depend on the provider. If Stripe is down, card actions say so plainly and cash still works.
 - Card always pays the item's full amount (no shortfall). Currencies Stripe treats as zero-decimal are unsupported until needed. A saved card per parent, one provider at a time.
 - Real money needs more than a key swap: a new decision to leave test mode, live-mode webhooks, refunds and disputes, a legal review of the mandate wording for off-session charges, and the pilot's parental verification. Out of scope here.

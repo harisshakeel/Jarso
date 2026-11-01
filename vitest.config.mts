@@ -19,7 +19,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: ["tests/**/*.test.{ts,tsx}"],
     css: false,
     env: {
       NEXT_PUBLIC_APP_URL: "http://localhost:3000",

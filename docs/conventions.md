@@ -31,7 +31,7 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`
 | Services | verb + noun | `getProfile`, `updateProfile` |
 | Repository fns | `find…`, `insert…`, `update…ById`, `delete…` | `findProfileById` |
 | Migrations | `supabase migration new <snake_case>` | `create_profiles` |
-| Tests | colocated `*.test.ts(x)`; e2e in `tests/e2e/*.spec.ts` | `schemas.test.ts` |
+| Tests | `tests/**/*.test.ts(x)` mirroring the `src/` path; e2e in `tests/e2e/*.spec.ts` | `tests/features/goals/schemas.test.ts` |
 
 ## Index barrels (required)
 
@@ -57,6 +57,7 @@ Rules:
 4. **Exceptions — environment entry points:** `@/lib/supabase/{client,server,admin,proxy}`, `@/lib/payments` and `@/config/env.server` are imported directly. They're intentionally separate so the wrong client can't be pulled into the wrong runtime.
 5. Prefer `export *` for files you fully own; use named re-exports (`export { a, b } from`) when you want to hide internals (e.g. `server/actions`).
 6. After `pnpm dlx shadcn add <x>`, add `export * from "./<x>";` to `src/components/ui/index.ts`.
+7. **Tests are exempt from the barrel rule.** Unit tests under `tests/` may import a module's internals by deep `@/` path (`@/features/goals/server/service`), since they test units the barrel doesn't export. Rules 2 and 3 apply to production code in `src/`.
 
 ## Server vs client
 
