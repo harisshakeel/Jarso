@@ -14,6 +14,9 @@ type PaymentLinkEntity = {
 
 type OrderEntity = { id: string; public_key?: string; notes?: Notes };
 
+/** An order as `orders.fetch` returns it, trimmed to what Jarso reads. */
+export type RazorpayOrder = OrderEntity;
+
 type PaymentEntity = {
   id?: string;
   order_id?: string | null;
@@ -126,13 +129,29 @@ function mapSetup(event: RazorpayEvent, eventId: string, setupId: string): Provi
 }
 
 /**
- * Maps a verified Razorpay event to ours, or null for events Jarso does not act on. A Payment
- * Link is matched by the paymentId sent as its `reference_id`; a save-card order by its
- * `jarsoSetup` note; an auto charge by its `jarsoCharge` note (on the order and the payment).
- * Failed attempts without a `jarsoCharge` note (pay now, save card) are ignored: the parent can
- * try again on the same page.
+ * The order to fetch before mapping a `payment.failed`: its notes, which only Jarso's server
+ * sets, name the Jarso payment. Null for every other event.
  */
-export function mapRazorpayEvent(event: RazorpayEvent, eventId: string): ProviderEvent | null {
+export function failedPaymentOrderToFetch(event: RazorpayEvent): string | null {
+  if (event.event !== "payment.failed") return null;
+  const orderId = event.payload?.payment?.entity?.order_id;
+  return nonEmpty(orderId) ? orderId : null;
+}
+
+/**
+ * Maps a verified Razorpay event to ours, or null for events Jarso does not act on. Only
+ * server-set fields pick what an event settles: a Payment Link's `reference_id`, a save-card
+ * order's `jarsoSetup` note, an auto charge order's `jarsoCharge` note. Payment notes are never
+ * read for that: Checkout lets the browser set them. So an auto charge succeeds from `order.paid`
+ * only (`payment.captured` is ignored), and `payment.failed` needs its order, fetched by the
+ * caller (`failedPaymentOrderToFetch`). A failed attempt whose order has no `jarsoCharge` note
+ * (pay now, save card) is ignored: the parent can try again on the same page.
+ */
+export function mapRazorpayEvent(
+  event: RazorpayEvent,
+  eventId: string,
+  fetched: { order?: RazorpayOrder } = {},
+): ProviderEvent | null {
   const linkStatus = Object.hasOwn(LINK_STATUS, event.event) ? LINK_STATUS[event.event] : undefined;
   if (linkStatus) {
     const link = event.payload?.payment_link?.entity;
@@ -155,19 +174,12 @@ export function mapRazorpayEvent(event: RazorpayEvent, eventId: string): Provide
     return { kind: "payment", eventId, paymentId, providerRef: order.id, status: "succeeded" };
   }
 
-  if (event.event === "payment.captured" || event.event === "payment.failed") {
+  if (event.event === "payment.failed") {
     const payment = event.payload?.payment?.entity;
-    const paymentId = note(payment?.notes, "jarsoCharge");
-    if (!payment || !paymentId || !nonEmpty(payment.order_id)) return null;
-    if (event.event === "payment.captured") {
-      return {
-        kind: "payment",
-        eventId,
-        paymentId,
-        providerRef: payment.order_id,
-        status: "succeeded",
-      };
-    }
+    const order = fetched.order;
+    if (!payment || !nonEmpty(payment.order_id) || order?.id !== payment.order_id) return null;
+    const paymentId = note(order.notes, "jarsoCharge");
+    if (!paymentId) return null;
     return {
       kind: "payment",
       eventId,

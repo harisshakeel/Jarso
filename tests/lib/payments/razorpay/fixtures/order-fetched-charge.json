@@ -1,0 +1,13 @@
+{
+  "id": "order_TESTCHARGE1",
+  "entity": "order",
+  "amount": 50000,
+  "amount_paid": 0,
+  "amount_due": 50000,
+  "currency": "INR",
+  "receipt": "pay-9",
+  "status": "attempted",
+  "attempts": 1,
+  "notes": { "jarsoCharge": "pay-9" },
+  "created_at": 1793520005
+}

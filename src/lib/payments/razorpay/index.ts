@@ -7,10 +7,12 @@ import { logger } from "../../logger";
 import type { PaymentProvider } from "../types";
 import { razorpayMinimumChargeMinor } from "./currencies";
 import {
+  failedPaymentOrderToFetch,
   isLiveModeEvent,
   mapRazorpayEvent,
   mapRazorpayFailureCode,
   type RazorpayEvent,
+  type RazorpayOrder,
   setupCardToFetch,
 } from "./map-event";
 
@@ -334,6 +336,13 @@ export function createRazorpayPaymentProvider(opts: {
         );
         const entity = event.payload.payment?.entity;
         if (entity) entity.card = (payment as { card?: typeof entity.card }).card ?? null;
+      }
+      const failedOrder = failedPaymentOrderToFetch(event);
+      if (failedOrder) {
+        // The order's notes (server-set) name the Jarso payment, never the payment's own notes.
+        // Failing here answers 5xx, so Razorpay retries.
+        const order = await call("orders.fetch", () => client.orders.fetch(failedOrder));
+        return mapRazorpayEvent(event, eventId, { order: order as RazorpayOrder });
       }
       return mapRazorpayEvent(event, eventId);
     },

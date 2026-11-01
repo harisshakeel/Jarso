@@ -82,7 +82,7 @@ The official Razorpay Node SDK (`razorpay`, exact version pinned), injected as a
 | `detachMethod` | `DELETE /customers/<customer_id>/tokens/<token_id>`. A 400 whose description says the id does not exist is success. |
 | `parseWebhook` | Verify `x-razorpay-signature` = hex HMAC-SHA256 of the raw body with the webhook secret (timing-safe). `eventId` = header `x-razorpay-event-id`. Missing or bad either → VALIDATION. If `payload.order.entity.public_key` or `payload.payment_link.entity`'s order `public_key` starts with `rzp_live_` → VALIDATION. Mapping below. |
 
-Webhook mapping (anything else → null). `notes` can arrive as `[]`; treat it as empty.
+Webhook mapping (anything else → null, including `payment.captured`). `notes` can arrive as `[]`; treat it as empty. Only server-set fields pick which Jarso payment or setup an event settles: `payment_link.reference_id` and order notes. Payment notes are browser-settable and never used for that.
 
 | Event | Maps to |
 |---|---|
@@ -90,8 +90,7 @@ Webhook mapping (anything else → null). `notes` can arrive as `[]`; treat it a
 | `payment_link.expired` / `payment_link.cancelled` | payment `expired` / `canceled`, same ids. |
 | `order.paid` with `order.notes.jarsoSetup` | `setup`: `setupId`, `methodRef = customer_id:token_id:payment id` from `payload.payment.entity`, `card = { brand: card.network lower-cased, last4: card.last4 }`. When the payment has no `token_id` or `customer_id` → `setup_failed` (`failed`). When the payment has no `card` object, fetch `GET /payments/<id>?expand[]=card`. |
 | `order.paid` with `order.notes.jarsoCharge` | payment `succeeded`, `providerRef = order id`. |
-| `payment.captured` with `payment.notes.jarsoCharge` | payment `succeeded`, `providerRef = payment.order_id`. |
-| `payment.failed` with `payment.notes.jarsoCharge` | payment `failed`, `providerRef = payment.order_id`, `failureCode` from `error_reason`. Failed attempts on a Payment Link or in the save-card Checkout carry no `jarsoCharge` and are ignored: the parent can try again on the same page. |
+| `payment.failed` for a payment whose order carries `notes.jarsoCharge` | payment `failed`, `providerRef = payment.order_id`, `failureCode` from `error_reason`. The adapter fetches the order (`orders.fetch(payment.order_id)`) and reads `jarsoCharge` from the **order's** notes, which only the server sets; `payment.notes` is never trusted, because Checkout lets the browser set payment notes. Failed attempts on a Payment Link or in the save-card Checkout have no such order and are ignored: the parent can try again on the same page. |
 
 `error_reason` → `FailureCode`: `card_declined`, `payment_declined`, `debit_declined`, `payment_risk_check_failed`, `debit_instrument_blocked` → `declined`; `insufficient_funds`, `insufficient_fund` → `insufficient_funds`; `authentication_failed`, `incorrect_otp`, `otp_expired`, `otp_attempts_exceeded` → `authentication_required`; `card_expired`, `incorrect_card_expiry_date` → `expired_card`; anything else → `other`.
 
@@ -128,4 +127,4 @@ Webhook mapping (anything else → null). `notes` can arrive as `[]`; treat it a
 
 ## 11. Docs
 
-ADR 0013 (several providers at once; Razorpay; corrects ADR 0012's "no migration" claim and its `PAYMENTS_PROVIDER` decision; 0012 gets a "Partly superseded by 0013" status), `docs/deploy.md` (env table, Razorpay dashboard webhook with events `payment_link.paid`, `payment_link.expired`, `payment_link.cancelled`, `order.paid`, `payment.captured`, `payment.failed`; enabling recurring), `docs/api.md` (return route), `docs/architecture.md`, `docs/database.md`, `docs/testing.md`, `docs/security.md`, `docs/fr-audit.md`, `.env.example`, `playwright.config.ts`.
+ADR 0013 (several providers at once; Razorpay; corrects ADR 0012's "no migration" claim and its `PAYMENTS_PROVIDER` decision; 0012 gets a "Partly superseded by 0013" status), `docs/deploy.md` (env table, Razorpay dashboard webhook with events `payment_link.paid`, `payment_link.expired`, `payment_link.cancelled`, `order.paid`, `payment.failed`; enabling recurring), `docs/api.md` (return route), `docs/architecture.md`, `docs/database.md`, `docs/testing.md`, `docs/security.md`, `docs/fr-audit.md`, `.env.example`, `playwright.config.ts`.

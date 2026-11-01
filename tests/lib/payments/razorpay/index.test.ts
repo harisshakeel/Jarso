@@ -6,7 +6,10 @@ import { createRazorpayPaymentProvider } from "@/lib/payments/razorpay/index";
 import customerCreated from "./fixtures/customer-created.json";
 import duplicateReference from "./fixtures/error-duplicate-reference.json";
 import orderCreated from "./fixtures/order-created.json";
+import orderFetchedCharge from "./fixtures/order-fetched-charge.json";
 import orderPaidSetup from "./fixtures/order-paid-setup.json";
+import paymentCapturedCharge from "./fixtures/payment-captured-charge.json";
+import paymentFailedCharge from "./fixtures/payment-failed-charge.json";
 import paymentFetched from "./fixtures/payment-fetched.json";
 import paymentLinkCreated from "./fixtures/payment-link-created.json";
 import paymentLinkExpired from "./fixtures/payment-link-expired.json";
@@ -31,6 +34,7 @@ function setup() {
   const createCustomer = vi.spyOn(client.customers, "create");
   const createLink = vi.spyOn(client.paymentLink, "create");
   const createOrder = vi.spyOn(client.orders, "create");
+  const fetchOrder = vi.spyOn(client.orders, "fetch");
   const fetchPayment = vi.spyOn(client.payments, "fetch");
   const createRecurring = vi.spyOn(client.payments, "createRecurringPayment");
   const deleteToken = vi.spyOn(client.customers, "deleteToken");
@@ -47,6 +51,7 @@ function setup() {
     createCustomer,
     createLink,
     createOrder,
+    fetchOrder,
     fetchPayment,
     createRecurring,
     deleteToken,
@@ -584,6 +589,50 @@ describe("razorpay parseWebhook", () => {
     delete (event.payload.payment.entity as Partial<typeof event.payload.payment.entity>).card;
     const body = JSON.stringify(event);
     await expect(provider.parseWebhook(body, headersFor(body))).rejects.toMatchObject(UNAVAILABLE);
+  });
+
+  it("settles a failed auto charge named by its fetched order's notes", async () => {
+    const { provider, fetchOrder } = setup();
+    fetchOrder.mockResolvedValue(orderFetchedCharge as never);
+    const body = JSON.stringify(paymentFailedCharge);
+    expect(await provider.parseWebhook(body, headersFor(body))).toEqual({
+      kind: "payment",
+      eventId: "evt_TEST123",
+      paymentId: "pay-9",
+      providerRef: "order_TESTCHARGE1",
+      status: "failed",
+      failureCode: "declined",
+    });
+    expect(fetchOrder.mock.calls).toEqual([["order_TESTCHARGE1"]]);
+  });
+
+  it("ignores a failed payment whose notes name a payment its order does not", async () => {
+    const { provider, fetchOrder } = setup();
+    // A browser-set note on a Payment Link or save-card attempt: the order has no jarsoCharge.
+    fetchOrder.mockResolvedValue({ ...orderCreated, id: "order_TESTCHARGE1" } as never);
+    const body = JSON.stringify(paymentFailedCharge);
+    expect(await provider.parseWebhook(body, headersFor(body))).toBeNull();
+  });
+
+  it("lets the provider retry when the order fetch fails", async () => {
+    const { provider, fetchOrder } = setup();
+    fetchOrder.mockRejectedValue(sdkError(503, { code: "SERVER_ERROR" }));
+    const body = JSON.stringify(paymentFailedCharge);
+    await expect(provider.parseWebhook(body, headersFor(body))).rejects.toMatchObject(UNAVAILABLE);
+    expect(log.error.mock.calls[0]?.[1]).toEqual({
+      op: "orders.fetch",
+      status: 503,
+      code: "SERVER_ERROR",
+      reason: undefined,
+    });
+  });
+
+  it("ignores payment.captured, even with a jarsoCharge payment note", async () => {
+    const { provider, fetchOrder } = setup();
+    fetchOrder.mockResolvedValue(orderFetchedCharge as never);
+    const body = JSON.stringify(paymentCapturedCharge);
+    expect(await provider.parseWebhook(body, headersFor(body))).toBeNull();
+    expect(fetchOrder).not.toHaveBeenCalled();
   });
 
   it("returns null for an event it does not act on", async () => {

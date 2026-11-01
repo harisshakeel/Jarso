@@ -1,12 +1,15 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
+  failedPaymentOrderToFetch,
   isLiveModeEvent,
   mapRazorpayEvent,
   mapRazorpayFailureCode,
   type RazorpayEvent,
+  type RazorpayOrder,
   setupCardToFetch,
 } from "@/lib/payments/razorpay/map-event";
+import orderFetchedCharge from "./fixtures/order-fetched-charge.json";
 import orderPaidCharge from "./fixtures/order-paid-charge.json";
 import orderPaidSetup from "./fixtures/order-paid-setup.json";
 import paymentCapturedCharge from "./fixtures/payment-captured-charge.json";
@@ -16,6 +19,9 @@ import paymentLinkExpired from "./fixtures/payment-link-expired.json";
 import paymentLinkPaid from "./fixtures/payment-link-paid.json";
 
 const asEvent = (fixture: unknown) => structuredClone(fixture) as RazorpayEvent;
+/** The charge order as `orders.fetch` returns it: Jarso set its notes server-side. */
+const chargeOrder = () => structuredClone(orderFetchedCharge) as RazorpayOrder;
+const note = (notes: unknown) => (notes as Record<string, string>).jarsoCharge;
 
 describe("mapRazorpayEvent", () => {
   it("maps payment_link.paid to a succeeded payment", () => {
@@ -129,18 +135,17 @@ describe("mapRazorpayEvent for saved cards", () => {
     expect(mapRazorpayEvent(event, "evt_6")).toBeNull();
   });
 
-  it("maps payment.captured for an auto charge to a succeeded payment", () => {
-    expect(mapRazorpayEvent(asEvent(paymentCapturedCharge), "evt_7")).toEqual({
-      kind: "payment",
-      eventId: "evt_7",
-      paymentId: "pay-9",
-      providerRef: "order_TESTCHARGE1",
-      status: "succeeded",
-    });
+  it("ignores payment.captured: auto charges settle from order.paid only", () => {
+    expect(mapRazorpayEvent(asEvent(paymentCapturedCharge), "evt_7")).toBeNull();
+    expect(
+      mapRazorpayEvent(asEvent(paymentCapturedCharge), "evt_7", { order: chargeOrder() }),
+    ).toBeNull();
   });
 
-  it("maps payment.failed for an auto charge to a failed payment with its reason", () => {
-    expect(mapRazorpayEvent(asEvent(paymentFailedCharge), "evt_8")).toEqual({
+  it("maps payment.failed to a failed payment named by the fetched order's notes", () => {
+    expect(
+      mapRazorpayEvent(asEvent(paymentFailedCharge), "evt_8", { order: chargeOrder() }),
+    ).toEqual({
       kind: "payment",
       eventId: "evt_8",
       paymentId: "pay-9",
@@ -150,19 +155,58 @@ describe("mapRazorpayEvent for saved cards", () => {
     });
   });
 
+  it("names the payment from the order's notes, never the payment's", () => {
+    const event = asEvent(paymentFailedCharge);
+    payment(event).notes = { jarsoCharge: "someone-elses-payment" };
+    expect(mapRazorpayEvent(event, "evt_8", { order: chargeOrder() })).toMatchObject({
+      paymentId: "pay-9",
+    });
+  });
+
+  it("ignores payment.failed whose order was not fetched", () => {
+    expect(mapRazorpayEvent(asEvent(paymentFailedCharge), "evt_8")).toBeNull();
+  });
+
   it.each([
     ["payment.captured", paymentCapturedCharge],
     ["payment.failed", paymentFailedCharge],
-  ])("ignores %s without a jarsoCharge note (pay now or save card)", (_name, fixture) => {
+  ])("ignores %s with forged payment notes when the order has no jarsoCharge", (_n, fixture) => {
     const event = asEvent(fixture);
-    payment(event).notes = [];
-    expect(mapRazorpayEvent(event, "evt_9")).toBeNull();
+    expect(note(payment(event).notes)).toBe("pay-9");
+    const order = { ...chargeOrder(), notes: [] as unknown[] };
+    expect(mapRazorpayEvent(event, "evt_9", { order })).toBeNull();
+    expect(
+      mapRazorpayEvent(event, "evt_9", { order: { ...order, notes: { other: "x" } } }),
+    ).toBeNull();
+  });
+
+  it("ignores payment.failed when the fetched order is a different order", () => {
+    const order = { ...chargeOrder(), id: "order_OTHER" };
+    expect(mapRazorpayEvent(asEvent(paymentFailedCharge), "evt_9", { order })).toBeNull();
   });
 
   it("ignores a charge payment without an order id", () => {
     const event = asEvent(paymentFailedCharge);
     delete payment(event).order_id;
-    expect(mapRazorpayEvent(event, "evt_9")).toBeNull();
+    expect(mapRazorpayEvent(event, "evt_9", { order: chargeOrder() })).toBeNull();
+  });
+});
+
+describe("failedPaymentOrderToFetch", () => {
+  it("names the order of a failed payment", () => {
+    expect(failedPaymentOrderToFetch(asEvent(paymentFailedCharge))).toBe("order_TESTCHARGE1");
+  });
+
+  it("is null for a failed payment without an order id", () => {
+    const event = asEvent(paymentFailedCharge);
+    delete event.payload.payment?.entity.order_id;
+    expect(failedPaymentOrderToFetch(event)).toBeNull();
+  });
+
+  it("is null for other events, payment.captured among them", () => {
+    expect(failedPaymentOrderToFetch(asEvent(paymentCapturedCharge))).toBeNull();
+    expect(failedPaymentOrderToFetch(asEvent(orderPaidCharge))).toBeNull();
+    expect(failedPaymentOrderToFetch(asEvent(paymentLinkPaid))).toBeNull();
   });
 });
 
