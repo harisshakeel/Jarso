@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib";
 import { landingCopy } from "../copy";
 import { useInView } from "../hooks/use-in-view";
@@ -14,14 +14,21 @@ import { TwoBeat } from "./two-beat";
 const demos = [HandoverDemo, PurchaseDemo, GoalDemo, MissionDemo] as const;
 const numeral = (index: number) => String(index + 1).padStart(2, "0");
 
-function Step({
+/** How much scrolling (in px) plays one step from start to finish. */
+const BUDGET = 900;
+/** How long the page is kept still while a step is centred or the next one is brought in. */
+const SNAP_MS = 900;
+/** Finger travel counts for more than wheel travel, so a swipe or two plays a step. */
+const TOUCH_GAIN = 1.6;
+
+const Step = memo(function Step({
   index,
+  progress,
   onActive,
-  onDone,
 }: {
   index: number;
+  progress: number;
   onActive: (index: number) => void;
-  onDone: (index: number) => void;
 }) {
   const step = useRef<HTMLLIElement>(null);
   const centred = useInView(step, { threshold: 0, rootMargin: "-45% 0px -45% 0px" });
@@ -57,47 +64,86 @@ function Step({
         <p className="text-ink-2 text-lg">{copy.line}</p>
       </div>
       <div className="rounded-[2rem] bg-muted/70 p-4 sm:p-8">
-        <Demo onDone={() => onDone(index)} />
+        <Demo progress={progress} />
       </div>
     </li>
   );
-}
+});
 
 /**
  * Spec §3.2. Four steps, each most of a screen on desktop beside a sticky rail of outlined numerals
  * (the active one fills in, a coin marks it on the line); on phones they stack along a route line.
- * Either line is where the hero jar's unwound outline arrives. Each step is a small piece of the
- * app to play, and the page waits on a step until it is played: scrolling down past an unfinished
- * step is held while it is on screen, scrolling back up always works. Reduced motion, the
- * keyboard and assistive tech get the plain flow with nothing held.
+ * Either line is where the hero jar's unwound outline arrives.
+ *
+ * Each step is a picture of the app that the scroll plays: once a step is on stage, scrolling down
+ * no longer moves the page but types, slides and presses inside the picture, about a screen's
+ * worth of scrolling per step. Scrolling back up mid-way rewinds it. When the step is played
+ * through, the page carries on to the next one by itself. Reduced motion shows every step
+ * finished and holds nothing; the keyboard and assistive tech always get the plain flow.
  */
 export function HowItWorks() {
-  const [active, setActive] = useState(0);
-  const [done, setDone] = useState<boolean[]>(() => landingCopy.how.steps.map(() => false));
-  const reduced = useReducedMotion();
   const { how } = landingCopy;
-  const holding = !reduced && !done[active];
+  const reduced = useReducedMotion();
+  const [active, setActive] = useState(0);
+  const [progress, setProgress] = useState<number[]>(() => how.steps.map(() => 0));
+  const state = useRef({
+    active: 0,
+    progress: how.steps.map(() => 0),
+    lockUntil: 0,
+    touchY: 0,
+    frame: 0,
+  });
+  state.current.active = active;
 
   useEffect(() => {
-    if (!holding) return;
-    // The step on stage: hold only while most of it is on screen, so nothing jams elsewhere.
-    const onStage = () => {
-      const element = document.querySelector<HTMLElement>(`[data-step="${active}"]`);
-      if (!element) return false;
+    if (reduced) return;
+    const s = state.current;
+    const stepAt = (index: number) => document.querySelector<HTMLElement>(`[data-step="${index}"]`);
+    // On stage: most of the step is on screen, so nothing is ever held somewhere else on the page.
+    const onStage = (element: HTMLElement) => {
       const rect = element.getBoundingClientRect();
       const viewport = window.innerHeight;
-      return rect.top <= viewport * 0.35 && rect.bottom >= viewport * 0.65;
+      return rect.top <= viewport * 0.3 && rect.bottom >= viewport * 0.6;
     };
-    let touchY = 0;
+    const snapTo = (element: HTMLElement) => {
+      s.lockUntil = performance.now() + SNAP_MS;
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+    const flush = () => {
+      s.frame = 0;
+      setProgress([...s.progress]);
+    };
+    /** Takes `delta` px of scrolling; true when the page should stay still. */
+    const take = (delta: number): boolean => {
+      if (performance.now() < s.lockUntil) return true;
+      const index = s.active;
+      const element = stepAt(index);
+      if (!element) return false;
+      const at = s.progress[index] ?? 0;
+      if (at >= 1 || !onStage(element)) return false;
+      if (delta <= 0 && at <= 0) return false;
+      if (at <= 0) snapTo(element);
+      const next = Math.min(1, Math.max(0, at + delta / BUDGET));
+      s.progress[index] = next;
+      if (!s.frame) s.frame = requestAnimationFrame(flush);
+      if (next >= 1) {
+        const following = stepAt(index + 1);
+        if (following) snapTo(following);
+      }
+      return true;
+    };
     const onWheel = (event: WheelEvent) => {
-      if (event.deltaY > 0 && onStage()) event.preventDefault();
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+      if (take(event.deltaY * unit)) event.preventDefault();
     };
     const onTouchStart = (event: TouchEvent) => {
-      touchY = event.touches[0]?.clientY ?? 0;
+      s.touchY = event.touches[0]?.clientY ?? 0;
     };
     const onTouchMove = (event: TouchEvent) => {
-      const y = event.touches[0]?.clientY ?? touchY;
-      if (y < touchY - 2 && onStage() && event.cancelable) event.preventDefault();
+      const y = event.touches[0]?.clientY ?? s.touchY;
+      const delta = (s.touchY - y) * TOUCH_GAIN;
+      s.touchY = y;
+      if (take(delta) && event.cancelable) event.preventDefault();
     };
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -106,11 +152,9 @@ export function HowItWorks() {
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
+      if (s.frame) cancelAnimationFrame(s.frame);
     };
-  }, [holding, active]);
-
-  const finish = (index: number) =>
-    setDone((current) => current.map((value, i) => (i === index ? true : value)));
+  }, [reduced]);
 
   return (
     <section
@@ -158,7 +202,12 @@ export function HowItWorks() {
           className="absolute inset-y-0 -left-4 w-[var(--thread-width,0.625rem)] rounded-full bg-teal-600 data-[thread=travelling]:opacity-0 sm:-left-6 lg:hidden dark:bg-teal-300"
         />
         {how.steps.map((step, index) => (
-          <Step key={step.line} index={index} onActive={setActive} onDone={finish} />
+          <Step
+            key={step.line}
+            index={index}
+            progress={reduced ? 1 : (progress[index] ?? 0)}
+            onActive={setActive}
+          />
         ))}
       </ol>
     </section>
