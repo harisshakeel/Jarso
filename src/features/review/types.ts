@@ -4,7 +4,7 @@ import type { AnswerableStep, SkillKey, SkillLevel } from "@/features/learning";
 export type WeekMoney = {
   weekStart: string;
   weekEnd: string;
-  /** Allowances, gifts and extra money that reached the jars. */
+  /** Allowances, gifts, extra money and money the child wrote down that reached the jars. */
   receivedMinor: number;
   /** Purchases, less any undone. */
   spentMinor: number;
@@ -36,6 +36,8 @@ export type SkillNote = { skillKey: SkillKey; label: string; level: SkillLevel }
 export type WeeklyReview = {
   money: WeekMoney;
   goal: GoalLine;
+  /** The category most of this week's spending went on, or null when nothing was spent. */
+  topCategory: { emoji: string; label: string } | null;
   decision: DecisionLine | null;
   /** A skill that moved up this week, if any. */
   understood: SkillNote | null;

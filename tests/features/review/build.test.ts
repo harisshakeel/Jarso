@@ -26,6 +26,10 @@ const item = (over: Partial<HistoryItem>): HistoryItem => ({
   entryId: null,
   canUndo: false,
   paidByCard: false,
+  category: null,
+  jar: null,
+  canFix: false,
+  fixedFrom: null,
   ...over,
 });
 
@@ -88,6 +92,37 @@ describe("weekMoney", () => {
       savedMinor: 300,
       stillDueMinor: 1000,
     });
+  });
+});
+
+describe("received money and top category", () => {
+  it("weekMoney counts a received item", () => {
+    const money = weekMoney([item({ kind: "received", amountMinor: 2000 })], 0, today);
+    expect(money.receivedMinor).toBe(2000);
+  });
+  const input = (history: HistoryItem[]) => ({
+    today,
+    currency: "GBP",
+    history,
+    stillDueMinor: 0,
+    goal: null as never,
+    skills: [],
+    workedOnThisWeek: [],
+    reviews: [],
+    pool: [],
+    recentItemKeys: [],
+  });
+  it("topCategory is null when nothing was spent", () => {
+    expect(buildWeeklyReview(input([])).topCategory).toBeNull();
+  });
+  it("topCategory is the biggest category this week", () => {
+    const review = buildWeeklyReview(
+      input([
+        item({ amountMinor: 100, category: "games" }),
+        item({ amountMinor: 400, category: "snacks" }),
+      ]),
+    );
+    expect(review.topCategory?.label).toBe("Snacks");
   });
 });
 
