@@ -24,6 +24,11 @@ describe("serverEnv payment keys", () => {
     for (const name of PAYMENT_KEYS) expect(env[name]).toBeUndefined();
   });
 
+  it("treats whitespace-only keys as unset", async () => {
+    const env = await load(Object.fromEntries(PAYMENT_KEYS.map((name) => [name, "  "])));
+    for (const name of PAYMENT_KEYS) expect(env[name]).toBeUndefined();
+  });
+
   it("still refuses a live Razorpay key id", async () => {
     await expect(load({ RAZORPAY_KEY_ID: "rzp_live_XXXXXXXXXXXXXX" })).rejects.toThrow(
       /Razorpay test-mode key id/,

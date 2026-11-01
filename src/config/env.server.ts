@@ -1,9 +1,12 @@
 import "server-only";
 import { z } from "zod";
 
-/** A host can leave a variable set but empty; that means unset, not "a 0-character secret". */
+/** A host can leave a variable set but blank (or spaces); that means unset, not a secret. */
 const blankAsUnset = <T extends z.ZodType>(inner: T) =>
-  z.preprocess((value) => (value === "" ? undefined : value), inner);
+  z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    inner,
+  );
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
