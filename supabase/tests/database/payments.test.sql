@@ -256,6 +256,7 @@ select tests.authenticate_as(:'pa'::uuid);
 select lives_ok(
   format($$select public.set_auto_charge('allowance_schedule', %L, true, 'fake')$$, :'s1'),
   'parent with a card turns auto charge on');
+select tests.clear_auth();
 select is(
   (select auto_charge::text || ':' || auto_charge_by::text || ':' || (auto_charge_since = now())::text
    from public.allowance_schedules where id = :'s1'::uuid),
