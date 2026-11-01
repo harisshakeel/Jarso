@@ -37,18 +37,21 @@ async function ask(button: "Take out" | "Put in", amount: string, submit: "Ask" 
   return sheet;
 }
 
-/**
- * Switches one rule on and saves its amount. Rule rows are in a fixed order inside their section:
- * item, week, month (the take-out section lists the cap rows, then auto-approve).
- */
-async function setRule(section: string, index: number, amount: string, sentence: string) {
+/** Adds one rule: its "Add" button in the section, a period chip, an amount, Save. */
+async function setRule(
+  section: string,
+  add: string | RegExp,
+  period: "Each time" | "A week" | "A month",
+  amount: string,
+  sentence: string,
+) {
   await parent.goto(`${childBase}/rules`);
-  const row = parent.getByRole("group", { name: section }).locator("form").nth(index);
-  await row.getByRole("switch").click();
-  await expect(row.getByRole("switch")).toBeChecked();
-  await row.getByLabel(/limit$/).fill(amount);
-  await row.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(row.getByText(sentence)).toBeVisible();
+  const group = parent.getByRole("group", { name: section });
+  await group.getByRole("button", { name: add }).click();
+  await group.getByRole("radio", { name: period }).check({ force: true });
+  await group.getByLabel("Amount").fill(amount);
+  await group.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(group.getByText(sentence)).toBeVisible();
 }
 
 test.beforeAll(async ({ browser }) => {
@@ -143,7 +146,8 @@ test("child takes out 500, parent approves and confirms the handover", async () 
 test("with auto-approve per time 300, a 200 take-out is approved at once", async () => {
   await setRule(
     "Taking money out of Save",
-    3,
+    "Let Sam take out without asking",
+    "Each time",
     "300",
     "Sam can take out up to US$300 each time without asking me",
   );
@@ -172,7 +176,8 @@ test("child puts in 300 and the parent confirms it", async () => {
 test("with auto-confirm a week 500, a 200 put-in lands in Save at once", async () => {
   await setRule(
     "Putting money into Save",
-    1,
+    "Let put-ins count before I confirm",
+    "A week",
     "500",
     "Add deposits up to US$500 a week without me confirming",
   );
@@ -226,7 +231,13 @@ test("asking for more than is available shows what can be taken out", async () =
 });
 
 test("with a week cap of 400, asking for 300 more shows the cap message", async () => {
-  await setRule("Taking money out of Save", 1, "400", "Sam can take out at most US$400 a week");
+  await setRule(
+    "Taking money out of Save",
+    "Add a limit",
+    "A week",
+    "400",
+    "Sam can take out at most US$400 a week",
+  );
   // The 500 handed over and the 200 approved earlier all count this week.
   const sheet = await ask("Take out", "300", "Ask");
   await expect(sheet.getByRole("status").first()).toHaveText(
