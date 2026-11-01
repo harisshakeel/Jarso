@@ -1,23 +1,25 @@
-"use client";
-
-import { useState } from "react";
 import { StatusChip } from "@/components/brand";
-import { Button } from "@/components/ui";
-import { DemoCard, LiveStage, pounds } from "./demo-parts";
+import { beat, DemoCard, KeycapPicture, pounds, ScrollStage, scrollHint } from "./demo-parts";
 
 const DUE = 10;
+const SPLIT = 40;
 
-/** Step 01, playable: drag the split, then hand over. */
-export function HandoverDemo({ onDone }: { onDone: () => void }) {
-  const [saveShare, setSaveShare] = useState(40);
-  const [done, setDone] = useState(false);
+/**
+ * Step 01, played by scrolling: the split slides to 40% Save, then Hand over is pressed and the
+ * allowance is handed over.
+ */
+export function HandoverDemo({ progress }: { progress: number }) {
+  const slide = beat(progress, 0, 0.5);
+  const saveShare = Math.round((slide * SPLIT) / 10) * 10;
+  const pressed = progress >= 0.56 && progress < 0.72;
+  const done = progress >= 0.72;
   const save = Math.round((DUE * saveShare) / 100);
 
   return (
-    <LiveStage
+    <ScrollStage
       label="Hand over a £10 allowance"
-      hint={done ? "Handed over. Jarso keeps the record." : "Drag the split, then tap Hand over."}
-      done={done}
+      hint={scrollHint(progress, "Handed over. Jarso keeps the record.")}
+      done={progress >= 1}
     >
       <DemoCard className="grid gap-1">
         <div className="flex items-center gap-2">
@@ -34,19 +36,13 @@ export function HandoverDemo({ onDone }: { onDone: () => void }) {
           />
           <div className="bg-gold-300 transition-[width]" style={{ width: `${saveShare}%` }} />
         </div>
-        <label className="grid gap-1">
-          <span className="sr-only">Share kept in Save</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={10}
-            value={saveShare}
-            disabled={done}
-            onChange={(event) => setSaveShare(Number(event.target.value))}
-            className="h-11 w-full accent-[var(--color-primary)]"
+        <div className="relative h-8">
+          <span className="absolute inset-x-3 top-1/2 h-2 -translate-y-1/2 rounded-full bg-muted" />
+          <span
+            className="absolute top-1/2 size-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-primary bg-card shadow-raised transition-[left]"
+            style={{ left: `calc(0.75rem + ${saveShare / 100} * (100% - 1.5rem))` }}
           />
-        </label>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl bg-teal-100 p-3 text-teal-800 dark:bg-teal-900 dark:text-teal-100">
             <p className="font-semibold">Spend (cash)</p>
@@ -57,20 +53,10 @@ export function HandoverDemo({ onDone }: { onDone: () => void }) {
             <p className="money font-extrabold text-2xl">{pounds(save)}</p>
           </div>
         </div>
-        <Button
-          type="button"
-          variant="keycap-gold"
-          size="lg"
-          className="w-full"
-          disabled={done}
-          onClick={() => {
-            setDone(true);
-            onDone();
-          }}
-        >
+        <KeycapPicture gold pressed={pressed} className="w-full">
           {done ? "Handed over" : "Hand over"}
-        </Button>
+        </KeycapPicture>
       </DemoCard>
-    </LiveStage>
+    </ScrollStage>
   );
 }
