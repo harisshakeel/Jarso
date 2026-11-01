@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type GoalView, goalProgress } from "@/features/goals";
 import { JarShelf } from "@/features/ledger/components/jar-shelf";
@@ -96,7 +96,11 @@ describe("JarShelf", () => {
     shelf();
     expect(screen.getByText("⚽ Football boots, £45.")).toBeInTheDocument();
     expect(screen.getByText("£19 to go · about 5 more allowances at £4 each")).toBeInTheDocument();
+    // The actions wait in the jar's tray until the jar is tapped.
+    expect(screen.queryByRole("button", { name: "Change my goal" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
     expect(screen.getByRole("button", { name: "Change my goal" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Take out" })).toBeInTheDocument();
   });
 
   it("asks for a plan when there is none", () => {
@@ -114,7 +118,18 @@ describe("JarShelf", () => {
 
   it("offers a goal when there is none", () => {
     shelf({ goal: null });
+    fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
     expect(screen.getByRole("button", { name: "Set a goal" })).toBeInTheDocument();
+  });
+
+  it("opens one tray at a time and explains only what the drawing shows", () => {
+    shelf({ goal: null, availability: { ...availability, reservedSaveMinor: 0 } });
+    expect(screen.queryByRole("list", { name: "What the jars show" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Spend/ }));
+    expect(screen.getByRole("button", { name: "Put in" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
+    expect(screen.queryByRole("button", { name: "Put in" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Take out" })).toBeInTheDocument();
   });
 
   it("shows money that is due outside the jars", () => {

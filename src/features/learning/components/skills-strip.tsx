@@ -7,7 +7,14 @@ import type { SkillProgress } from "../types";
  * What the child has learned, as counts that only go up (no day grid, no streaks). Learning
  * stays outside the jars: it is never tied to money (invariant 11).
  */
-export function SkillsStrip({ skills }: { skills: SkillProgress[] }) {
+export function SkillsStrip({
+  skills,
+  showLink = true,
+}: {
+  skills: SkillProgress[];
+  /** Off on Learn itself, where the strip already is "all". */
+  showLink?: boolean;
+}) {
   const started = skills
     .filter((s) => s.level > 0)
     .sort((a, b) => b.level - a.level)
@@ -22,12 +29,14 @@ export function SkillsStrip({ skills }: { skills: SkillProgress[] }) {
         <h2 id="skills-heading" className="eyebrow">
           What I've learned
         </h2>
-        <Link
-          href={routes.childLearn}
-          className="inline-flex min-h-11 items-center font-semibold text-primary text-sm underline-offset-4 hover:underline"
-        >
-          See all
-        </Link>
+        {showLink ? (
+          <Link
+            href={routes.childLearn}
+            className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            See all
+          </Link>
+        ) : null}
       </div>
       <p className="font-bold">
         {learned === 0
@@ -41,11 +50,11 @@ export function SkillsStrip({ skills }: { skills: SkillProgress[] }) {
               key={s.skillKey}
               className={
                 s.level === 3
-                  ? "rounded-full bg-gold/30 px-3 py-1 font-semibold text-sm"
-                  : "rounded-full bg-muted px-3 py-1 font-semibold text-sm"
+                  ? "rounded-full bg-gold/30 px-3 py-1 font-semibold"
+                  : "rounded-full bg-muted px-3 py-1 font-semibold"
               }
             >
-              {s.label} · {skillLevelLabels[s.level]}
+              {s.label} · <span>{skillLevelLabels[s.level]}</span>
             </li>
           ))}
         </ul>

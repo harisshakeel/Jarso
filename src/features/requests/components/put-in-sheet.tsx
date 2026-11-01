@@ -24,6 +24,8 @@ type PutInSheetProps = {
   availableSpendMinor: number;
   /** The child's active rules for putting money in, in plain words. */
   ruleLines?: string[];
+  /** The button that opens the sheet; "Put in" in outline by default. */
+  trigger?: { label: string; variant?: "outline" | "keycap" | "keycap-gold" };
   /** With a goal, the child predicts what the put-in does to it before sending (FR05). */
   predict?: {
     goal: Pick<Goal, "name" | "emoji" | "targetMinor" | "planMinor">;
@@ -38,12 +40,15 @@ export function PutInSheet({
   availableSpendMinor,
   ruleLines = [],
   predict,
+  trigger,
 }: PutInSheetProps) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button variant="outline" size="lg" className="flex-1" />}>
-        Put in
+      <SheetTrigger
+        render={<Button variant={trigger?.variant ?? "outline"} size="lg" className="flex-1" />}
+      >
+        {trigger?.label ?? "Put in"}
       </SheetTrigger>
       <SheetContent side="bottom" className="sm:mx-auto sm:w-full sm:max-w-lg">
         <SheetHeader>

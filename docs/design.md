@@ -247,7 +247,7 @@ Never: exclamation marks in errors, "oops", shame words, or anything that calls 
 
 Same tokens and components; different hierarchy.
 
-- **Child**: Home opens on the next step, then jar cards with big gold and teal balances, goal ring, missions. Celebration moments exist here only. Fewer words per screen.
+- **Child**: Home opens on the jars (the money first), with one gold keycap under them to record a purchase and the allowance as one line; tapping a jar opens its tray of actions, so the resting shelf is just two jars and two balances. Then the one next step, then Ask Jarso. The week and the skills live on Learn, whose hero is the current mission with the seven days as a row of stops. Celebration moments exist here only. Fewer words per screen.
 - **Parent**: Home opens on what needs them: due handovers, pending requests, limit notices, each with its action inline. The same components as the child, more of them: cards and sentences at every width, never a table or a key-value grid; Small only for timestamps. No celebration animation; a quiet confirmation toast instead.
 
 ## 11. Accessibility

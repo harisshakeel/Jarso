@@ -28,7 +28,7 @@ export function PurchaseSheet({
   currency,
   userId,
   variant = "keycap",
-}: PurchaseSheetProps & { variant?: "keycap" | "outline" }) {
+}: PurchaseSheetProps & { variant?: "keycap" | "keycap-gold" | "outline" }) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
