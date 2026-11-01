@@ -16,6 +16,10 @@ const purchase = (over: Partial<HistoryItem> = {}): HistoryItem => ({
   entryId: "p1",
   canUndo: true,
   paidByCard: false,
+  category: null,
+  jar: null,
+  canFix: false,
+  fixedFrom: null,
   ...over,
 });
 
@@ -127,5 +131,72 @@ describe("HistoryList allowances and misses", () => {
   it("has an empty line the caller can name", () => {
     render(<HistoryList items={[]} currency="GBP" emptyLine="Maya's money story starts here." />);
     expect(screen.getByText("Maya's money story starts here.")).toBeInTheDocument();
+  });
+});
+
+describe("HistoryList categories and fixes", () => {
+  it("shows the category emoji and the Fixed note with what changed", () => {
+    render(
+      <HistoryList
+        items={[
+          purchase({
+            amountMinor: 350,
+            category: "snacks",
+            fixedFrom: { amountMinor: 500, category: "snacks", label: "" },
+          }),
+        ]}
+        currency="GBP"
+        showMinor="always"
+      />,
+    );
+    expect(screen.getByText("🍫")).toBeInTheDocument();
+    expect(screen.getByText(/Fixed · was £5\.00/)).toBeInTheDocument();
+    expect(screen.queryByText(/Fixed · was.*Snacks/)).not.toBeInTheDocument();
+  });
+
+  it("names the old category when only the category changed", () => {
+    render(
+      <HistoryList
+        items={[
+          purchase({
+            category: "games",
+            fixedFrom: { amountMinor: 300, category: "snacks", label: "" },
+          }),
+        ]}
+        currency="GBP"
+        showMinor="always"
+      />,
+    );
+    expect(screen.getByText(/Fixed · was Snacks/)).toBeInTheDocument();
+  });
+
+  it("marks each row relative so a stretched action covers the whole line", () => {
+    render(<HistoryList items={[purchase()]} currency="GBP" />);
+    expect(screen.getByRole("listitem")).toHaveClass("relative");
+  });
+
+  it("says Got and shows the received emoji", () => {
+    render(
+      <HistoryList
+        items={[purchase({ kind: "received", category: "birthday", label: "Nan" })]}
+        currency="GBP"
+      />,
+    );
+    expect(screen.getByText("🎂")).toBeInTheDocument();
+    expect(screen.getByText(/^Got · /)).toBeInTheDocument();
+  });
+
+  it("names the jar money received went into", () => {
+    render(
+      <HistoryList
+        items={[
+          purchase({ id: "a", kind: "received", category: "birthday", jar: "save" }),
+          purchase({ id: "b", kind: "received", category: "job", jar: "spend" }),
+        ]}
+        currency="GBP"
+      />,
+    );
+    expect(screen.getByText(/^Got · into Save · /)).toBeInTheDocument();
+    expect(screen.getByText(/^Got · into Spend · /)).toBeInTheDocument();
   });
 });

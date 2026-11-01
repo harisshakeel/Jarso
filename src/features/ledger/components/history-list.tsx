@@ -11,7 +11,10 @@ import type { ReactNode } from "react";
 import { JarsoMark } from "@/components/brand";
 import { Card, CardContent } from "@/components/ui";
 import { cn, formatMoney } from "@/lib";
+import { categoryOf } from "../categories";
 import type { HistoryItem } from "../types";
+
+const JAR_NAME = { spend: "Spend", save: "Save" } as const;
 
 type ShowMinor = "always" | "nonzero";
 
@@ -37,6 +40,7 @@ const KIND: Record<HistoryItem["kind"], { icon: LucideIcon; tint: string; verb: 
   allowance: { icon: CoinsIcon, tint: "bg-gold-100 text-gold-700", verb: "Came in" },
   gift: { icon: GiftIcon, tint: "bg-gold-100 text-gold-700", verb: "Gift" },
   extra: { icon: HandCoinsIcon, tint: "bg-gold-100 text-gold-700", verb: "Extra money" },
+  received: { icon: HandCoinsIcon, tint: "bg-gold-100 text-gold-700", verb: "Got" },
   purchase: { icon: ShoppingBagIcon, tint: "bg-teal-100 text-teal-800", verb: "Spent" },
   withdrawal: {
     icon: ArrowRightLeftIcon,
@@ -80,6 +84,22 @@ function Amount({
   );
 }
 
+/** "Fixed · was £5.00 · Snacks": only what changed; the old name when nothing else did. */
+function fixedNote(item: HistoryItem, currency: string, showMinor: ShowMinor): string | null {
+  const from = item.fixedFrom;
+  if (!from || (item.kind !== "purchase" && item.kind !== "received")) return null;
+  const kind = item.kind;
+  const parts: string[] = [];
+  if (from.amountMinor !== item.amountMinor) {
+    parts.push(formatMoney(from.amountMinor, currency, { showMinor }));
+  }
+  if (categoryOf(from.category, kind).key !== categoryOf(item.category, kind).key) {
+    parts.push(categoryOf(from.category, kind).label);
+  }
+  if (parts.length === 0 && from.label) parts.push(from.label);
+  return parts.length === 0 ? "Fixed" : `Fixed · was ${parts.join(" · ")}`;
+}
+
 function title(item: HistoryItem, skippedLabel: string): string {
   if (item.kind === "skipped") return skippedLabel;
   if (item.kind === "gift" && item.label !== "Gift") return item.label;
@@ -111,14 +131,19 @@ export function HistoryList({
                 const { icon: Icon, tint, verb } = KIND[item.kind];
                 const subline = [
                   item.kind === "gift" && item.label !== "Gift" ? "Gift" : verb,
+                  item.kind === "received" && item.jar ? `into ${JAR_NAME[item.jar]}` : null,
                   day(item.occurredOn),
                 ]
                   .filter(Boolean)
                   .join(" · ");
+                const fixed = fixedNote(item, currency, showMinor);
                 return (
                   <li
                     key={`${item.kind}-${item.id}`}
-                    className={cn("flex items-center gap-3 py-1", item.undone && "opacity-70")}
+                    className={cn(
+                      "relative flex items-center gap-3 py-1",
+                      item.undone && "opacity-70",
+                    )}
                   >
                     <span
                       aria-hidden
@@ -130,9 +155,15 @@ export function HistoryList({
                       <Icon className="size-5" />
                     </span>
                     <div className="grid min-w-0 flex-1">
-                      <span className="truncate font-semibold">{title(item, skippedLabel)}</span>
+                      <span className="flex min-w-0 items-center gap-1.5 font-semibold">
+                        {item.kind === "purchase" || item.kind === "received" ? (
+                          <span aria-hidden>{categoryOf(item.category, item.kind).emoji}</span>
+                        ) : null}
+                        <span className="truncate">{title(item, skippedLabel)}</span>
+                      </span>
                       <span className="truncate text-ink-2">
                         {subline}
+                        {fixed ? ` · ${fixed}` : ""}
                         {item.undone ? " · Undone" : ""}
                         {item.paidByCard ? " · Paid by card" : ""}
                       </span>
