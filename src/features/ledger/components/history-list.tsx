@@ -1,7 +1,16 @@
-import { GiftIcon } from "lucide-react";
+import {
+  ArrowRightLeftIcon,
+  CalendarXIcon,
+  CoinsIcon,
+  GiftIcon,
+  HandCoinsIcon,
+  type LucideIcon,
+  ShoppingBagIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
+import { JarsoMark } from "@/components/brand";
 import { Card, CardContent } from "@/components/ui";
-import { formatMoney } from "@/lib";
+import { cn, formatMoney } from "@/lib";
 import type { HistoryItem } from "../types";
 
 type ShowMinor = "always" | "nonzero";
@@ -15,13 +24,27 @@ type HistoryListProps = {
   showMinor?: ShowMinor;
   /** Extra control beside a line, e.g. the child's undo button on a purchase. */
   renderAction?: (item: HistoryItem) => ReactNode;
+  /** The empty line; a parent passes the child's name ("Maya's money story starts here."). */
+  emptyLine?: string;
 };
 
-/** A request's line note. A move is not income, so no sign and no "in"; extra money is new. */
-const MOVE: Record<"withdrawal" | "deposit" | "extra", string> = {
-  withdrawal: "Save → Spend",
-  deposit: "Spend → Save",
-  extra: "Extra money",
+/**
+ * Each kind in a word a child would use, with its own tinted icon (design.md §6 inbox pattern):
+ * money that came in is gold, money spent is teal, a move between jars is cyan, a miss is muted.
+ * No signs, no arrows: the words carry the direction.
+ */
+const KIND: Record<HistoryItem["kind"], { icon: LucideIcon; tint: string; verb: string | null }> = {
+  allowance: { icon: CoinsIcon, tint: "bg-gold-100 text-gold-700", verb: "Came in" },
+  gift: { icon: GiftIcon, tint: "bg-gold-100 text-gold-700", verb: "Gift" },
+  extra: { icon: HandCoinsIcon, tint: "bg-gold-100 text-gold-700", verb: "Extra money" },
+  purchase: { icon: ShoppingBagIcon, tint: "bg-teal-100 text-teal-800", verb: "Spent" },
+  withdrawal: {
+    icon: ArrowRightLeftIcon,
+    tint: "bg-cyan-100 text-cyan-700",
+    verb: "Moved from Save to Spend",
+  },
+  deposit: { icon: ArrowRightLeftIcon, tint: "bg-cyan-100 text-cyan-700", verb: "Moved into Save" },
+  skipped: { icon: CalendarXIcon, tint: "bg-muted text-ink-2", verb: null },
 };
 
 /** `YYYY-MM-DD` as "2 Nov", without shifting the day. */
@@ -43,30 +66,34 @@ function Amount({
   showMinor: ShowMinor;
 }) {
   if (item.amountMinor === null) return null;
-  if (item.kind === "purchase") {
-    const spent = formatMoney(item.amountMinor, currency, { showMinor });
-    return (
-      <span className={item.undone ? "money font-bold text-ink-2 line-through" : "money font-bold"}>
-        −{spent}
-      </span>
-    );
-  }
   const given = formatMoney(item.amountMinor, currency, { showMinor });
   // A gentle shortfall: "<given> of <due>".
   const text =
     item.dueMinor === null
       ? given
       : `${given} of ${formatMoney(item.dueMinor, currency, { showMinor })}`;
-  return <span className="money font-bold">{text}</span>;
+  return (
+    <span className={cn("money font-bold", item.undone && "text-ink-2")}>
+      {text}
+      {item.undone ? <span className="sr-only"> (undone)</span> : null}
+    </span>
+  );
 }
 
-/** Allowances, gifts, purchases and skipped ones, newest first. */
+function title(item: HistoryItem, skippedLabel: string): string {
+  if (item.kind === "skipped") return skippedLabel;
+  if (item.kind === "gift" && item.label !== "Gift") return item.label;
+  return item.label;
+}
+
+/** Allowances, gifts, purchases, moves and misses, newest first, as a story rather than a statement. */
 export function HistoryList({
   items,
   currency,
   skippedLabel = "Skipped",
   showMinor = "nonzero",
   renderAction,
+  emptyLine = "Your money story starts here.",
 }: HistoryListProps) {
   return (
     <Card className="shadow-raised">
@@ -74,47 +101,49 @@ export function HistoryList({
         <section aria-label="History" className="grid gap-3">
           <h2 className="text-h3">History</h2>
           {items.length === 0 ? (
-            <p className="text-ink-2">Your money story starts here.</p>
+            <div className="grid justify-items-center gap-2 py-4 text-center">
+              <JarsoMark size={48} />
+              <p className="font-semibold">{emptyLine}</p>
+            </div>
           ) : (
-            <ul className="grid gap-3">
-              {items.map((item) => (
-                <li
-                  key={`${item.kind}-${item.id}`}
-                  className="flex items-baseline justify-between gap-3"
-                >
-                  <div className="grid">
-                    <span>
-                      {item.kind === "gift" ? (
-                        <>
-                          <GiftIcon aria-hidden className="mr-1 inline size-4 align-[-0.125em]" />
-                          Gift
-                          {item.label !== "Gift" ? (
-                            <span className="text-ink-2"> · {item.label}</span>
-                          ) : null}
-                        </>
-                      ) : item.kind === "skipped" ? (
-                        skippedLabel
-                      ) : (
-                        item.label
+            <ul className="grid gap-2">
+              {items.map((item) => {
+                const { icon: Icon, tint, verb } = KIND[item.kind];
+                const subline = [
+                  item.kind === "gift" && item.label !== "Gift" ? "Gift" : verb,
+                  day(item.occurredOn),
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
+                return (
+                  <li
+                    key={`${item.kind}-${item.id}`}
+                    className={cn("flex items-center gap-3 py-1", item.undone && "opacity-70")}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-full",
+                        tint,
                       )}
+                    >
+                      <Icon className="size-5" />
                     </span>
-                    <span className="text-ink-2 text-sm">
-                      {item.kind === "withdrawal" ||
-                      item.kind === "deposit" ||
-                      item.kind === "extra"
-                        ? `${MOVE[item.kind]} · `
-                        : null}
-                      {day(item.occurredOn)}
-                      {item.undone ? " · Undone" : ""}
-                      {item.paidByCard ? " · Paid by card" : ""}
-                    </span>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <Amount item={item} currency={currency} showMinor={showMinor} />
-                    {renderAction?.(item)}
-                  </div>
-                </li>
-              ))}
+                    <div className="grid min-w-0 flex-1">
+                      <span className="truncate font-semibold">{title(item, skippedLabel)}</span>
+                      <span className="truncate text-ink-2">
+                        {subline}
+                        {item.undone ? " · Undone" : ""}
+                        {item.paidByCard ? " · Paid by card" : ""}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Amount item={item} currency={currency} showMinor={showMinor} />
+                      {renderAction?.(item)}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>

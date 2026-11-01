@@ -1,4 +1,4 @@
-import { GiftIcon } from "lucide-react";
+import { GiftIcon, HandCoinsIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge, buttonVariants, Card } from "@/components/ui";
 import { routes } from "@/config";
@@ -17,43 +17,22 @@ type NeedsYouProps = {
 function What({ item }: { item: ChildDueItem }) {
   return (
     <>
-      {item.kind === "gift" ? (
-        <>
-          <GiftIcon aria-hidden className="mr-1 inline size-4 align-[-0.125em]" />
-          Gift
-        </>
-      ) : (
-        "Allowance"
-      )}
+      {item.kind === "gift" ? "Gift" : "Allowance"}
       {item.note ? <span className="font-normal text-ink-2"> · {item.note}</span> : null}
     </>
   );
 }
 
-/** 36 px in the table (design.md §11 allows it in parent tables), 44 px on phones. */
-function HandOverLink({ item, size }: { item: ChildDueItem; size: "sm" | "lg" }) {
-  return (
-    <Link
-      href={routes.parentHandover(item.childId, item.kind, item.id)}
-      aria-label={`Hand over ${item.kind} to ${item.nickname}, due ${formatDay(item.dueOn)}`}
-      className={buttonVariants({ size })}
-    >
-      Hand over
-    </Link>
-  );
-}
-
 /**
  * The first thing on the parent's Home (design.md §5, §10): what is waiting to be handed over,
- * each with its action inline. A table from 768 px, a stacked list below.
+ * one card per item at every width, each with its own action. Never a table.
  */
 export function NeedsYou({ items, currency, otherCount = 0 }: NeedsYouProps) {
   const money = (minor: number) => formatMoney(minor, currency);
-  const key = (item: ChildDueItem) => `${item.kind}-${item.id}`;
   const waiting = items.length + otherCount;
   return (
     <section aria-labelledby="needs-you-title" className="grid gap-3">
-      <h2 id="needs-you-title" className="eyebrow flex items-center gap-2">
+      <h2 id="needs-you-title" className="flex items-center gap-2 text-h2">
         Needs you
         {waiting > 0 ? (
           <Badge variant="count">
@@ -67,66 +46,44 @@ export function NeedsYou({ items, currency, otherCount = 0 }: NeedsYouProps) {
           <p className="px-(--card-spacing) font-semibold">All caught up.</p>
         </Card>
       ) : items.length === 0 ? null : (
-        <Card size="sm" className="shadow-raised">
-          <table className="hidden w-full text-left text-sm md:table">
-            <thead>
-              <tr className="text-muted-foreground text-xs uppercase tracking-[0.08em]">
-                <th scope="col" className="px-(--card-spacing) pb-2 font-semibold">
-                  Child
-                </th>
-                <th scope="col" className="px-2 pb-2 font-semibold">
-                  What
-                </th>
-                <th scope="col" className="px-2 pb-2 font-semibold">
-                  Due
-                </th>
-                <th scope="col" className="px-2 pb-2 text-right font-semibold">
-                  Amount
-                </th>
-                <th scope="col" className="px-(--card-spacing) pb-2">
-                  <span className="sr-only">Action</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-hairline border-hairline border-t">
-              {items.map((item) => (
-                <tr key={key(item)}>
-                  <td className="px-(--card-spacing) py-2 font-bold">{item.nickname}</td>
-                  <td className="px-2 py-2 font-semibold">
-                    <What item={item} />
-                  </td>
-                  <td className="px-2 py-2 text-ink-2">{formatDay(item.dueOn)}</td>
-                  <td className="money px-2 py-2 text-right font-bold">
-                    {money(item.amountMinor)}
-                  </td>
-                  <td className="px-(--card-spacing) py-2 text-right">
-                    <HandOverLink item={item} size="sm" />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <ul className="divide-y divide-hairline md:hidden">
-            {items.map((item) => (
-              <li
-                key={key(item)}
-                className="grid gap-3 px-(--card-spacing) py-3 first:pt-0 last:pb-0"
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0">
-                    <span className="block font-bold">{item.nickname}</span>
-                    <span className="block font-semibold text-sm">
-                      <What item={item} />
-                    </span>
-                    <span className="block text-ink-2 text-sm">Due {formatDay(item.dueOn)}</span>
-                  </span>
-                  <span className="money font-bold">{money(item.amountMinor)}</span>
-                </div>
-                <HandOverLink item={item} size="lg" />
+        <ul className="grid gap-3 md:grid-cols-2">
+          {items.map((item) => {
+            const Icon = item.kind === "gift" ? GiftIcon : HandCoinsIcon;
+            return (
+              <li key={`${item.kind}-${item.id}`}>
+                <Card size="sm" className="h-full shadow-raised">
+                  <div className="grid gap-3 px-(--card-spacing)">
+                    <div className="flex items-start gap-3">
+                      <span
+                        aria-hidden
+                        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300"
+                      >
+                        <Icon className="size-5" />
+                      </span>
+                      <div className="grid min-w-0 flex-1 gap-0.5">
+                        <h3 className="truncate text-h3">{item.nickname}</h3>
+                        <p className="font-semibold">
+                          <What item={item} />
+                        </p>
+                        <p className="text-ink-2">Due {formatDay(item.dueOn)}</p>
+                      </div>
+                      <span className="money font-bold text-money-l">
+                        {money(item.amountMinor)}
+                      </span>
+                    </div>
+                    <Link
+                      href={routes.parentHandover(item.childId, item.kind, item.id)}
+                      aria-label={`Hand over ${item.kind} to ${item.nickname}, due ${formatDay(item.dueOn)}`}
+                      className={buttonVariants({ size: "lg" })}
+                    >
+                      Hand over
+                    </Link>
+                  </div>
+                </Card>
               </li>
-            ))}
-          </ul>
-        </Card>
+            );
+          })}
+        </ul>
       )}
     </section>
   );

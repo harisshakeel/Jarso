@@ -1,7 +1,8 @@
+import { PauseIcon, SquareIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge, buttonVariants, Card } from "@/components/ui";
 import { routes } from "@/config";
-import { cn, formatMoney } from "@/lib";
+import { formatMoney } from "@/lib";
 import { cadenceAfterAmount, formatDay } from "../describe";
 import { runningSchedule } from "../due";
 import type { Schedule } from "../types";
@@ -17,138 +18,70 @@ export type AllowanceOverviewRow = {
 
 type AllowanceOverviewProps = { rows: AllowanceOverviewRow[]; currency: string };
 
-function amountLine(schedule: Schedule | null, currency: string): string {
+/** Two beats: "£5 every Sunday. Next one 2 Nov." or what stands in its place. */
+function line(schedule: Schedule | null, currency: string): string {
   const running = runningSchedule(schedule);
-  if (!running) return "No allowance yet";
-  return `${formatMoney(running.amountMinor, currency)} ${cadenceAfterAmount(running.frequency, running.anchorOn)}`;
+  if (!running) return "No allowance yet.";
+  const amount = `${formatMoney(running.amountMinor, currency)} ${cadenceAfterAmount(running.frequency, running.anchorOn)}.`;
+  return running.nextDueOn ? `${amount} Next one ${formatDay(running.nextDueOn)}.` : amount;
 }
 
-function StatusBadge({ schedule }: { schedule: Schedule | null }) {
-  if (!schedule) return <span className="text-muted-foreground">—</span>;
-  switch (schedule.status) {
-    case "active":
-      return <Badge variant="secondary">Active</Badge>;
-    case "paused":
-      return (
-        <Badge variant="outline">
-          {schedule.pausedThrough ? `Paused until ${formatDay(schedule.pausedThrough)}` : "Paused"}
-        </Badge>
-      );
-    case "stopped":
-      return (
-        <Badge variant="outline" className="text-muted-foreground">
-          Stopped
-        </Badge>
-      );
-  }
-}
-
-function DueBadge({ count }: { count: number }) {
-  if (count === 0) return null;
+/** Only a paused or stopped allowance needs a word; running is the normal state. */
+function StateNote({ schedule }: { schedule: Schedule | null }) {
+  if (!schedule || schedule.status === "active") return null;
+  const paused = schedule.status === "paused";
+  const Icon = paused ? PauseIcon : SquareIcon;
+  const text = paused
+    ? schedule.pausedThrough
+      ? `Paused until ${formatDay(schedule.pausedThrough)}`
+      : "Paused"
+    : "Stopped";
   return (
-    <Badge variant="count">
-      {count}
-      <span className="sr-only"> due</span>
-    </Badge>
+    <p className="flex items-center gap-1 text-ink-2">
+      <Icon aria-hidden className="size-4" />
+      {text}
+    </p>
   );
 }
 
-/** "Manage" for a running allowance, "Set up" otherwise. 36 px in the table, 44 px on phones. */
-function RowAction({ row, size }: { row: AllowanceOverviewRow; size: "sm" | "lg" }) {
-  const manage = runningSchedule(row.schedule) !== null;
-  return (
-    <Link
-      href={routes.parentAllowance(row.childId)}
-      aria-label={`${manage ? "Manage" : "Set up"} ${row.nickname}'s allowance`}
-      className={buttonVariants({ variant: manage ? "secondary" : "default", size })}
-    >
-      {manage ? "Manage" : "Set up"}
-    </Link>
-  );
-}
-
-const nextOf = (schedule: Schedule | null) => {
-  const next = runningSchedule(schedule)?.nextDueOn;
-  return next ? formatDay(next) : "—";
-};
-
-/** Every child's allowance at a glance (the Allowance tab). Table from 768 px, cards below. */
+/** Every child's allowance at a glance (the Allowance tab): one card per child at every width. */
 export function AllowanceOverview({ rows, currency }: AllowanceOverviewProps) {
   return (
-    <>
-      <Card size="sm" className="hidden md:flex">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="text-muted-foreground text-xs uppercase tracking-[0.08em]">
-              <th scope="col" className="px-(--card-spacing) pb-2 font-semibold">
-                Child
-              </th>
-              <th scope="col" className="px-2 pb-2 font-semibold">
-                Allowance
-              </th>
-              <th scope="col" className="px-2 pb-2 font-semibold">
-                Next
-              </th>
-              <th scope="col" className="px-2 pb-2 font-semibold">
-                Status
-              </th>
-              <th scope="col" className="px-2 pb-2 font-semibold">
-                Due
-              </th>
-              <th scope="col" className="px-(--card-spacing) pb-2">
-                <span className="sr-only">Action</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-hairline border-hairline border-t">
-            {rows.map((row) => (
-              <tr key={row.childId}>
-                <td className="px-(--card-spacing) py-2 font-bold">{row.nickname}</td>
-                <td
-                  className={cn(
-                    "money px-2 py-2",
-                    runningSchedule(row.schedule) ? "font-semibold" : "text-ink-2",
-                  )}
-                >
-                  {amountLine(row.schedule, currency)}
-                </td>
-                <td className="px-2 py-2 text-ink-2">{nextOf(row.schedule)}</td>
-                <td className="px-2 py-2">
-                  <StatusBadge schedule={row.schedule} />
-                </td>
-                <td className="px-2 py-2">
-                  <DueBadge count={row.dueCount} />
-                </td>
-                <td className="px-(--card-spacing) py-2 text-right">
-                  <RowAction row={row} size="sm" />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-      <ul className="grid gap-4 md:hidden">
-        {rows.map((row) => (
+    <ul className="grid gap-4 md:grid-cols-2">
+      {rows.map((row) => {
+        const manage = runningSchedule(row.schedule) !== null;
+        return (
           <li key={row.childId}>
-            <Card size="sm">
+            <Card size="sm" className="h-full">
               <div className="grid gap-3 px-(--card-spacing)">
                 <div className="flex items-center gap-2">
-                  <h2 className="min-w-0 flex-1 truncate font-bold text-h3">{row.nickname}</h2>
-                  <DueBadge count={row.dueCount} />
-                  <StatusBadge schedule={row.schedule} />
-                </div>
-                <div className="grid gap-1">
-                  <p className="money font-semibold">{amountLine(row.schedule, currency)}</p>
-                  {runningSchedule(row.schedule)?.nextDueOn ? (
-                    <p className="text-ink-2 text-sm">Next: {nextOf(row.schedule)}</p>
+                  <h2 className="min-w-0 flex-1 truncate text-h3">{row.nickname}</h2>
+                  {row.dueCount > 0 ? (
+                    <Badge variant="count">
+                      {row.dueCount}
+                      <span className="sr-only"> due</span>
+                    </Badge>
                   ) : null}
                 </div>
-                <RowAction row={row} size="lg" />
+                <p className={manage ? "money font-semibold text-lg" : "text-ink-2 text-lg"}>
+                  {line(row.schedule, currency)}
+                </p>
+                <StateNote schedule={row.schedule} />
+                <Link
+                  href={routes.parentAllowance(row.childId)}
+                  aria-label={`${manage ? "Manage" : "Set up"} ${row.nickname}'s allowance`}
+                  className={buttonVariants({
+                    variant: manage ? "secondary" : "default",
+                    size: "lg",
+                  })}
+                >
+                  {manage ? "Manage" : "Set up"}
+                </Link>
               </div>
             </Card>
           </li>
-        ))}
-      </ul>
-    </>
+        );
+      })}
+    </ul>
   );
 }

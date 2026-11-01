@@ -5,7 +5,13 @@ import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
-import { DueList, GiftList, ParentAllowanceCard, upcomingGifts } from "@/features/allowance";
+import {
+  DueList,
+  GiftList,
+  ParentAllowanceCard,
+  runningSchedule,
+  upcomingGifts,
+} from "@/features/allowance";
 import { getSchedule, listDue, listGifts } from "@/features/allowance/server";
 import { GuideCard } from "@/features/guide";
 import { countFlaggedChats, getGuideAccess } from "@/features/guide/server";
@@ -38,7 +44,12 @@ async function ChildContent({ params }: { params: Promise<{ childId: string }> }
     <PageShell title={child.nickname} back={back} wide>
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <div className="grid gap-6">
-          <Jars jars={jars} currency={currency} showMinor="always" />
+          <Jars
+            jars={jars}
+            currency={currency}
+            showMinor="always"
+            allowanceMinor={runningSchedule(schedule)?.amountMinor ?? null}
+          />
           <Suspense fallback={null}>
             <ChildRequests childId={childId} nickname={child.nickname} currency={currency} />
           </Suspense>

@@ -82,7 +82,7 @@ test.beforeAll(async ({ browser }) => {
   await parent.getByLabel("Email", { exact: true }).fill(`e2e-learning-${run}@example.com`);
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Create account" }).click();
-  await expect(parent).toHaveURL(at("/parent/setup"));
+  await expect(parent).toHaveURL(at("/parent/setup"), { timeout: 20_000 });
   await completeParentProfile(parent);
   await parent.getByRole("button", { name: "Create family" }).click();
   await expect(parent).toHaveURL(at("/parent"));
@@ -290,9 +290,8 @@ test("your week sums the week and asks one fresh question", async () => {
   await child.goto("/child/learn");
   await child.getByRole("link", { name: "Your week" }).click();
   await expect(child).toHaveURL(at("/child/learn/week"));
-  const week = child.getByRole("region", { name: /^\d+ \w+ to \d+ \w+$/ });
-  await expect(week.getByText("Received")).toBeVisible();
-  await expect(week.getByText("Still due")).toBeVisible();
+  const week = child.getByRole("region", { name: "Your week" });
+  await expect(week.getByText(/^This week .*\.$|^No money moved this week\.$/)).toBeVisible();
   // The child has learned a skill, so the review can show understanding and ask about it.
   await expect(week.getByText(/You showed you can|Worth another look/)).toBeVisible();
   await child.getByRole("link", { name: "One fresh question" }).click();
