@@ -40,11 +40,33 @@ const CARD_ONLY = {
 /** What the SDK throws for an HTTP error response (see razorpay/dist/api.js normalizeError). */
 type RazorpaySdkError = {
   statusCode: number | string;
-  error?: { code?: string; description?: string; reason?: string; field?: string };
+  error?: {
+    code?: string;
+    description?: string;
+    reason?: string;
+    field?: string;
+    source?: string;
+  };
 };
 
 function isRazorpaySdkError(cause: unknown): cause is RazorpaySdkError {
   return typeof cause === "object" && cause !== null && "statusCode" in cause;
+}
+
+/** Error sources about the merchant account or Razorpay itself, not the customer or their card. */
+const ACCOUNT_SOURCES = new Set(["internal", "razorpay", "business"]);
+
+/**
+ * What to log about a Razorpay error: always its source; its description only when the source is
+ * the account or Razorpay (e.g. a feature not enabled), where it carries no customer data and is
+ * the only clue an operator gets. Dropped anyway if it looks like it echoes an email or a number.
+ */
+function errorDetail(error: RazorpaySdkError["error"]): { source?: string; description?: string } {
+  const source = error?.source;
+  const description = error?.description;
+  if (!source || !ACCOUNT_SOURCES.has(source) || !description) return { source };
+  if (description.includes("@") || /\d{8,}/.test(description)) return { source };
+  return { source, description: description.slice(0, 200) };
 }
 
 function unavailable(cause?: unknown): AppError {
@@ -58,7 +80,8 @@ function unavailable(cause?: unknown): AppError {
 /**
  * Any failure to reach or use Razorpay becomes UNAVAILABLE: network errors and timeouts, 5xx, and
  * the 4xx this adapter can't recover from (a duplicate payment link reference id among them).
- * Logs Razorpay's code and reason only: its description can echo input (an email, an id).
+ * Logs Razorpay's code, reason and source; the description only for account-level errors
+ * (`errorDetail`), since a customer-facing one can echo input (an email, an id).
  */
 function toAppError(op: string, cause: unknown): AppError {
   if (cause instanceof AppError) return cause;
@@ -68,6 +91,7 @@ function toAppError(op: string, cause: unknown): AppError {
       status: Number(cause.statusCode),
       code: cause.error?.code,
       reason: cause.error?.reason,
+      ...errorDetail(cause.error),
     });
     return unavailable({ status: Number(cause.statusCode), code: cause.error?.code });
   }
@@ -346,6 +370,7 @@ export function createRazorpayPaymentProvider(opts: {
           status: Number(cause.statusCode),
           code: cause.error?.code,
           reason: cause.error?.reason,
+          ...errorDetail(cause.error),
         });
         return {
           providerRef: order.id,

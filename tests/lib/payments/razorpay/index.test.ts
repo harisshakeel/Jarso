@@ -461,6 +461,73 @@ describe("razorpay chargeSaved", () => {
     });
   });
 
+  it("logs Razorpay's description when the account refuses the charge", async () => {
+    const { provider, createRecurring } = charging();
+    // What Razorpay answers when recurring payments on cards aren't enabled for the account.
+    createRecurring.mockRejectedValue(
+      sdkError(400, {
+        code: "BAD_REQUEST_ERROR",
+        description: "The requested URL was not found on the server.",
+        source: "internal",
+        reason: "NA",
+      }),
+    );
+    expect(await provider.chargeSaved(chargeInput)).toMatchObject({ status: "failed" });
+    expect(log.warn).toHaveBeenCalledWith(
+      "razorpay recurring payment refused",
+      expect.objectContaining({
+        source: "internal",
+        description: "The requested URL was not found on the server.",
+      }),
+    );
+  });
+
+  it("logs the source but not the description of a customer or card error", async () => {
+    const { provider, createRecurring } = charging();
+    createRecurring.mockRejectedValue(
+      sdkError(400, {
+        code: "BAD_REQUEST_ERROR",
+        description: "Payment declined by the bank",
+        source: "issuer_bank",
+        reason: "card_declined",
+      }),
+    );
+    await provider.chargeSaved(chargeInput);
+    const fields = log.warn.mock.calls[0]?.[1];
+    expect(fields).toMatchObject({ source: "issuer_bank" });
+    expect(fields).not.toHaveProperty("description");
+  });
+
+  it.each([
+    ["an email", "Customer parent@example.com is blocked"],
+    ["a long number", "Contact 9999999999 is not allowed"],
+  ])("drops an account-level description that echoes %s", async (_, description) => {
+    const { provider, createRecurring } = charging();
+    createRecurring.mockRejectedValue(
+      sdkError(400, { code: "BAD_REQUEST_ERROR", description, source: "business" }),
+    );
+    await provider.chargeSaved(chargeInput);
+    const fields = log.warn.mock.calls[0]?.[1];
+    expect(fields).toMatchObject({ source: "business" });
+    expect(fields).not.toHaveProperty("description");
+  });
+
+  it("logs an account-level description on an outage too", async () => {
+    const { provider, createOrder } = charging();
+    createOrder.mockRejectedValue(
+      sdkError(400, {
+        code: "BAD_REQUEST_ERROR",
+        description: "Recurring is not enabled for this merchant",
+        source: "business",
+      }),
+    );
+    await expect(provider.chargeSaved(chargeInput)).rejects.toMatchObject(UNAVAILABLE);
+    expect(log.error).toHaveBeenCalledWith(
+      "razorpay call failed",
+      expect.objectContaining({ description: "Recurring is not enabled for this merchant" }),
+    );
+  });
+
   it("treats a 5xx from the recurring payment as UNAVAILABLE", async () => {
     const { provider, createRecurring } = charging();
     createRecurring.mockRejectedValue(sdkError(502, { code: "SERVER_ERROR" }));
