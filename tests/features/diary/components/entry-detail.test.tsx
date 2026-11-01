@@ -131,6 +131,18 @@ describe("EntryDetail", () => {
     ).toBeInTheDocument();
   });
 
+  it("explains a Save shortfall on a fix with fix words, not undo words", async () => {
+    fix.mockResolvedValue({ ok: true, data: { status: "not_enough_save" } });
+    open(item({ kind: "received", category: "birthday", jar: "save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Fix this" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save the fix" }));
+    expect(
+      await screen.findByText(
+        "Some of your Save is waiting to come out, so this can't be lowered right now.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("explains undoing money received that was already spent", async () => {
     undo.mockResolvedValue({ ok: true, data: "not_enough_spend" });
     open(item({ kind: "received", category: "birthday" }));

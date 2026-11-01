@@ -15,7 +15,7 @@ import {
 import { newId, runOnline } from "@/features/offline";
 import { type FieldErrors, toMajorString } from "@/lib";
 import {
-  notEnoughSaveMessage,
+  notEnoughSaveToFixMessage,
   notEnoughSpendToLowerMessage,
   notEnoughSpendToRaiseMessage,
   notFixableMessage,
@@ -92,7 +92,7 @@ export function FixForm({
                 : notEnoughSpendToRaiseMessage(item.amountMinor ?? 0, outcome.freeMinor, currency),
           };
         case "not_enough_save":
-          return { refused: notEnoughSaveMessage };
+          return { refused: notEnoughSaveToFixMessage };
       }
     },
     null,

@@ -9,6 +9,8 @@ export function notEnoughSpendMessage(freeMinor: number, currency: string): stri
 
 export const notEnoughSaveMessage =
   "Some of your Save is waiting to come out, so this can't be undone right now.";
+export const notEnoughSaveToFixMessage =
+  "Some of your Save is waiting to come out, so this can't be lowered right now.";
 export const notFixableMessage = "This one can't be fixed any more.";
 export const unchangedMessage = "Nothing changed.";
 export const notEnoughSpendToUndoMessage =
