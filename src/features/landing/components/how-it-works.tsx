@@ -15,11 +15,11 @@ const demos = [HandoverDemo, PurchaseDemo, GoalDemo, MissionDemo] as const;
 const numeral = (index: number) => String(index + 1).padStart(2, "0");
 
 /** How much scrolling (in px) plays one step from start to finish. */
-const BUDGET = 900;
+const BUDGET = 420;
 /** How long the page is kept still while a step is centred or the next one is brought in. */
-const SNAP_MS = 900;
+const SNAP_MS = 650;
 /** Finger travel counts for more than wheel travel, so a swipe or two plays a step. */
-const TOUCH_GAIN = 1.6;
+const TOUCH_GAIN = 2;
 
 const Step = memo(function Step({
   index,
