@@ -123,7 +123,7 @@ describe("PendingPurchases", () => {
     fireEvent.click(screen.getByRole("button", { name: "Change it: Comic" }));
     const sheet = screen.getByRole("dialog");
     fireEvent.change(within(sheet).getByLabelText("Amount"), { target: { value: "5" } });
-    fireEvent.click(within(sheet).getByRole("button", { name: "Save" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Add it" }));
     await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(uuid));
     const input = submitToOutbox.mock.calls[0]?.[0] as { idempotencyKey: string };
     expect(input.idempotencyKey).not.toBe(uuid);
@@ -133,7 +133,7 @@ describe("PendingPurchases", () => {
     submitToOutbox.mockResolvedValue({ status: "refused", message: REFUSED });
     show([needsLook()]);
     fireEvent.click(screen.getByRole("button", { name: "Change it: Comic" }));
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Save" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Add it" }));
     await waitFor(() => expect(submitToOutbox).toHaveBeenCalled());
     await screen.findByRole("alert");
     const input = submitToOutbox.mock.calls[0]?.[0] as { idempotencyKey: string };
@@ -169,7 +169,7 @@ describe("PendingPurchases", () => {
       const sheet = await screen.findByRole("dialog");
       expect(within(sheet).getByLabelText("Amount")).toHaveValue("20");
       expect(removeOutboxItem).not.toHaveBeenCalled();
-      fireEvent.click(within(sheet).getByRole("button", { name: "Save" }));
+      fireEvent.click(within(sheet).getByRole("button", { name: "Add it" }));
       await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(uuid));
       const input = submitToOutbox.mock.calls[0]?.[0] as { idempotencyKey: string };
       expect(input.idempotencyKey).not.toBe(uuid);

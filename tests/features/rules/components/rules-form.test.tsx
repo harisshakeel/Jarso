@@ -33,11 +33,11 @@ describe("RulesForm", () => {
     const takeOut = within(screen.getByRole("group", { name: "Taking money out of Save" }));
     const [, autoApprove] = takeOut.getAllByRole("switch", { name: "Per time" });
     expect(autoApprove).toHaveAccessibleDescription(
-      "Sam can take out up to £5 per time without asking me",
+      "Sam can take out up to £5 each time without asking me",
     );
     const amount = takeOut.getByLabelText("Per time limit");
     expect(amount).toHaveAccessibleDescription(
-      "Sam can take out up to £5 per time without asking me",
+      "Sam can take out up to £5 each time without asking me",
     );
   });
 
@@ -54,7 +54,7 @@ describe("RulesForm", () => {
       screen.getByText("Deposits beyond £10 a week wait for you to confirm"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Sam can take out up to £5 per time without asking me"),
+      screen.getByText("Sam can take out up to £5 each time without asking me"),
     ).toBeInTheDocument();
   });
 

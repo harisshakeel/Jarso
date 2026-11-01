@@ -23,7 +23,7 @@ let childBase = "";
 const parentInboxTab = () =>
   parent.getByRole("navigation", { name: "Parent" }).getByRole("link", { name: /Inbox/ });
 const childInboxTab = () =>
-  child.getByRole("navigation", { name: "Child" }).getByRole("link", { name: /Inbox/ });
+  child.getByRole("navigation", { name: "Child" }).getByRole("link", { name: /News/ });
 
 test.beforeAll(async ({ browser }) => {
   const baseURL = test.info().project.use.baseURL;

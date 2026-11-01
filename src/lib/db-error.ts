@@ -15,19 +15,26 @@ const mapped: Record<string, { code: ErrorCode; message: string }> = {
   "22023": { code: "VALIDATION", message: "Please check what you entered and try again." },
 };
 
-/** Maps a Postgres/PostgREST error (custom SQLSTATEs raised by our functions) to a safe AppError. */
+/** What a child or parent reads when the database fails for a reason we did not plan for. */
+export const GENERIC_FAILURE = "Something went wrong. Please try again.";
+
+/**
+ * Maps a Postgres/PostgREST error (custom SQLSTATEs raised by our functions) to a safe AppError.
+ * `context` names the call for the log ("Failed to record the purchase"); the user never reads
+ * it, because "Failed to …" is developer wording (design.md §9).
+ */
 export function toAppError(
   error: { code?: string; message?: string } | null,
-  fallback: string,
+  context: string,
 ): AppError {
   // Own keys only: a code like "__proto__" or "constructor" must not hit Object.prototype.
   const hit = error?.code && Object.hasOwn(mapped, error.code) ? mapped[error.code] : undefined;
   if (hit) return new AppError(hit.code, hit.message, { cause: error });
 
-  // Unexpected database/PostgREST failure: the user sees `fallback`, the log keeps the cause.
+  // Unexpected database/PostgREST failure: the user sees the generic line, the log keeps the cause.
   // Only code and message: Postgres DETAIL/HINT can embed key values (a future unique index on
   // an email or label would put PII in the log).
   // `dbMessage`, not `message`: the production logger spreads context over its own fields.
-  logger.error("Database call failed", { fallback, code: error?.code, dbMessage: error?.message });
-  return new AppError("INTERNAL", fallback, { cause: error });
+  logger.error("Database call failed", { context, code: error?.code, dbMessage: error?.message });
+  return new AppError("INTERNAL", GENERIC_FAILURE, { cause: error });
 }

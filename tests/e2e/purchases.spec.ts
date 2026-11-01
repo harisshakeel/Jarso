@@ -37,7 +37,7 @@ async function spend(amount: string, label: string): Promise<void> {
   await expect(sheet.getByLabel("What for? (optional)")).toHaveValue("");
   await sheet.getByLabel("Amount").fill(amount);
   await sheet.getByLabel("What for? (optional)").fill(label);
-  await sheet.getByRole("button", { name: "Save", exact: true }).click();
+  await sheet.getByRole("button", { name: "Add it", exact: true }).click();
 }
 
 test.beforeAll(async ({ browser }) => {

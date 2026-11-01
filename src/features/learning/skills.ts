@@ -41,12 +41,12 @@ export const skills: readonly Skill[] = [
 export type MissionTopic = TopicKey | "mixed";
 
 export const topicTitles: Record<MissionTopic, string> = {
-  mixed: "Mixed review",
-  spending: "Spending within your balance",
-  splitting: "Splitting an allowance",
-  "saving-goal": "Saving toward a goal",
-  tradeoffs: "Understanding tradeoffs",
-  "changing-plans": "Changing a plan",
+  mixed: "A bit of everything",
+  spending: "What fits in Spend",
+  splitting: "Spend some, save some",
+  "saving-goal": "Saving up for something",
+  tradeoffs: "This or that?",
+  "changing-plans": "When plans change",
 };
 
 export function skillOf(key: string): Skill | undefined {

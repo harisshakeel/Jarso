@@ -11,13 +11,13 @@ const rule = (kind: MoneyRule["kind"], period: MoneyRule["period"], amountMinor:
 describe("describeRule", () => {
   it("says each kind in the parent's voice", () => {
     expect(describeRule(rule("spend_limit", "item", 1000), "Maya", "GBP")).toBe(
-      "Tell me when Maya spends more than £10 per time",
+      "Tell me when Maya spends more than £10 each time",
     );
     expect(describeRule(rule("withdrawal_cap", "month", 3000), "Maya", "GBP")).toBe(
       "Maya can take out at most £30 a month",
     );
     expect(describeRule(rule("withdrawal_auto_approve", "item", 500), "Maya", "GBP")).toBe(
-      "Maya can take out up to £5 per time without asking me",
+      "Maya can take out up to £5 each time without asking me",
     );
     expect(describeRule(rule("deposit_auto_confirm", "week", 1000), "Maya", "GBP")).toBe(
       "Add deposits up to £10 a week without me confirming",
@@ -40,10 +40,10 @@ describe("describeRuleForChild", () => {
       "You can take out at most £30 a month",
     );
     expect(describeRuleForChild(rule("withdrawal_auto_approve", "item", 500), "GBP")).toBe(
-      "You can take out up to £5 per time without asking",
+      "You can take out up to £5 each time without asking",
     );
     expect(describeRuleForChild(rule("deposit_auto_confirm", "week", 1000), "GBP")).toBe(
-      "Deposits up to £10 a week go straight into Save",
+      "Money you put in up to £10 a week goes straight into Save",
     );
   });
 });

@@ -4,8 +4,10 @@ import type { CSSProperties, ReactNode } from "react";
 import { Suspense } from "react";
 import { z } from "zod";
 import { PageTabs, SlowFallback } from "@/components/shell";
+import { ThemeSwitch } from "@/components/theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { routes } from "@/config";
+import { SignOutButton } from "@/features/auth";
 import {
   ChildrenSettingsList,
   currencyLabels,
@@ -94,6 +96,12 @@ async function ParentSettings({ searchParams }: Props) {
           <SavedCards cards={savedCards} />
         </Section>
       ) : null}
+      <Section index={3} title="Looks" description="Light, dark, or follow your device.">
+        <ThemeSwitch />
+      </Section>
+      <Section index={4} title="Done for now?" description="Sign out of Jarso on this device.">
+        <SignOutButton />
+      </Section>
     </>
   );
 

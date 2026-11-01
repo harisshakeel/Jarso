@@ -10,7 +10,7 @@ import { getChildNickname, requireRole } from "@/features/family/server";
 import { MemoryList } from "@/features/guide";
 import { getGuideState, getMemories } from "@/features/guide/server";
 
-export const metadata: Metadata = { title: "Settings" };
+export const metadata: Metadata = { title: "Me" };
 
 const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
 
@@ -65,7 +65,7 @@ async function ChildSettings() {
 export default function ChildSettingsPage() {
   return (
     <div className="mx-auto grid w-full max-w-2xl gap-6">
-      <h1 className="text-h1">Settings</h1>
+      <h1 className="text-h1">Me</h1>
       <Suspense
         fallback={
           <SlowFallback>

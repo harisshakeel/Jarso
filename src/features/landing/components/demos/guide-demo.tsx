@@ -58,7 +58,7 @@ export function GuideDemo({ play }: { play: boolean }) {
                 Looked at: saving plan
               </p>
               <span className="inline-flex min-h-9 w-fit items-center rounded-full border border-hairline-strong px-4 font-semibold text-sm">
-                Saving toward a goal
+                Saving up for something
               </span>
             </div>
           ) : null}

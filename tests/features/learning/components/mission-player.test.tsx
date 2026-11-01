@@ -250,9 +250,7 @@ describe("MissionPlayer", () => {
       });
     }
     await waitFor(() =>
-      expect(
-        screen.getByText("You already knew 1 of 5. Mission 1 is a quick warm-up."),
-      ).toBeInTheDocument(),
+      expect(screen.getByText("Mission 1 is ready for you.")).toBeInTheDocument(),
     );
   });
 
@@ -415,9 +413,7 @@ describe("MissionPlayer", () => {
         screen.getByRole("heading", { name: "Thanks. That helps pick where you start." }),
       ).toBeInTheDocument(),
     );
-    expect(
-      screen.getByText("You already knew 1 of 5. Mission 1 is a quick warm-up."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Mission 1 is ready for you.")).toBeInTheDocument();
     expect(submitted().map((s) => s.kind)).toEqual(["checkIn"]);
     expect(submitted()[0]?.payload).toEqual({
       answers: [
@@ -448,9 +444,7 @@ describe("MissionPlayer", () => {
       });
     }
     await waitFor(() =>
-      expect(
-        screen.getByText("You already knew 2 of 5. Mission 1 is a quick warm-up."),
-      ).toBeInTheDocument(),
+      expect(screen.getByText("Mission 1 is ready for you.")).toBeInTheDocument(),
     );
   });
 

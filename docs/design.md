@@ -127,7 +127,7 @@ Money is set with `font-variant-numeric: tabular-nums lining-nums` so columns of
 | H3 | 20 / 26 | 700 | Card titles |
 | Body | 16 / 24 | 400 | Default. Never smaller for children's reading text |
 | Body strong | 16 / 24 | 700 | Labels, button text |
-| Small | 14 / 20 | 400–600 | Meta, helper text, parent tables |
+| Small | 14 / 20 | 400–600 | Timestamps and meta only. Not for anything a child must read: card and sheet descriptions, field helpers and errors are Body |
 | Caption | 12 / 16 | 600 | Chips, timestamps. Not for instructions |
 | Money XL | 44 / 48 | 800 tabular | Jar balance on jar screen |
 | Money L | 28 / 32 | 700 tabular | Balances on home cards |
@@ -159,11 +159,11 @@ Design at 360 px first, then 768 and 1024. Single column on phones; parent scree
 
 | Child | Parent |
 | --- | --- |
-| Home · Diary · Learn · Inbox | Home · Allowance · Inbox |
+| Home · Diary · Learn · News | Home · Allowance · Inbox |
 
 Tab bar height 64 px plus the safe-area inset, icons 24 px, labels 12 px 600, active tab primary with a filled icon. The Inbox tab shows a count badge in gold with ink text. Family settings live under the parent's Home.
 
-**Header**: 56 px, page title H1 or the mark on Home, one optional action on the right. No hamburger. A one-click light/dark theme toggle sits beside the header's optional action; on pages without a header it sits top-right and scrolls with the page.
+**Header**: 56 px, the mark and name on the left, the settings link on the right, nothing else. No hamburger, no sign out: that lives in Settings ("Done for now?"), so a child never has a destructive button a thumb away from Home. The light/dark toggle lives in Settings ("Looks") and on the signed-out pages.
 
 **Page rhythm**: title, one primary card (balance, due allowance, next step), then lists. The first thing on every Home is the next step (FR12): a mission, a due handover, a pending request.
 
@@ -233,6 +233,11 @@ Warm coach, plain words, second person, short sentences. Parent screens use the 
 | You went over your limit. Your parent has been told. | Limit violation |
 | Try again? Here's a hint. | Incorrect |
 | mission, practice | task, assignment, lesson module |
+| News (child tab), Me (child settings) | Inbox, Settings |
+| Move my money, ask for extra | Requests |
+| Said yes, Not now, Waiting, Done | Approved, Rejected, Pending, Completed |
+| put in, take out, each time | deposit, withdrawal, per time |
+| Something went wrong. Please try again. | Failed to load…, any message written for a developer |
 
 Headlines use the two-beat cadence the reference sites use ("Link in. Notes out.", "Your turn."): "Due today. Hand it over.", "Saved up. Nearly there.", "Three missions. Ten minutes." One idea per beat, a full stop between.
 
@@ -243,7 +248,7 @@ Never: exclamation marks in errors, "oops", shame words, or anything that calls 
 Same tokens and components; different hierarchy.
 
 - **Child**: Home opens on the next step, then jar cards with big gold and teal balances, goal ring, missions. Celebration moments exist here only. Fewer words per screen.
-- **Parent**: Home opens on what needs them: due handovers, pending requests, limit notices, each with its action inline. Denser lists, Small text allowed, tables from 768 px. No celebration animation; a quiet confirmation toast instead.
+- **Parent**: Home opens on what needs them: due handovers, pending requests, limit notices, each with its action inline. The same components as the child, more of them: cards and sentences at every width, never a table or a key-value grid; Small only for timestamps. No celebration animation; a quiet confirmation toast instead.
 
 ## 11. Accessibility
 

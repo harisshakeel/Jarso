@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { SlowFallback } from "@/components/shell";
+import { BrandSplash, SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { requireUser } from "@/features/auth/server";
 import { currentRole } from "@/features/family/server";
@@ -20,7 +20,7 @@ export default function SettingsPage() {
     <Suspense
       fallback={
         <SlowFallback>
-          <div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />
+          <BrandSplash line="One moment…" />
         </SlowFallback>
       }
     >

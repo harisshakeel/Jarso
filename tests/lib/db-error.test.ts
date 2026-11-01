@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toAppError } from "@/lib/db-error";
+import { GENERIC_FAILURE, toAppError } from "@/lib/db-error";
 
 describe("toAppError", () => {
   it.each([
@@ -34,14 +34,20 @@ describe("toAppError", () => {
     (code) => {
       const result = toAppError({ code, message: "raw" }, "f");
       expect(result.code).toBe("INTERNAL");
-      expect(result.message).toBe("f");
+      expect(result.message).toBe(GENERIC_FAILURE);
     },
   );
 
   it("falls back to INTERNAL for unknown codes and null", () => {
     const unknown = toAppError({ code: "XX000", message: "boom" }, "f");
     expect(unknown.code).toBe("INTERNAL");
-    expect(unknown.message).toBe("f");
+    expect(unknown.message).toBe(GENERIC_FAILURE);
     expect(toAppError(null, "f").code).toBe("INTERNAL");
+  });
+
+  it("never shows the developer context for an unknown failure", () => {
+    const result = toAppError({ code: "XX000", message: "raw" }, "Failed to record the purchase");
+    expect(result.message).toBe("Something went wrong. Please try again.");
+    expect(result.message).not.toMatch(/Failed/);
   });
 });
