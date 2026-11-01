@@ -1,7 +1,7 @@
 "use client";
 
 import { type CSSProperties, useEffect, useId, useRef, useState } from "react";
-import { JAR_OUTLINE_D } from "@/components/brand";
+import { JAR_OUTLINE_D, JAR_PILE } from "@/components/brand";
 import { cn } from "@/lib";
 
 type JarIllustrationProps = {
@@ -10,7 +10,7 @@ type JarIllustrationProps = {
   capacityMinor: number;
   /** Money that counts (for Save: Save less what is waiting to come out). */
   filledMinor: number;
-  /** Money waiting to come out, drawn as a hatched band above the fill. */
+  /** Money waiting to come out, drawn as hatched coins on top of the pile. */
   reservedMinor?: number;
   /** With a goal, the top of the jar is the goal line. */
   goal?: { emoji: string } | null;
@@ -19,40 +19,44 @@ type JarIllustrationProps = {
   size?: "sm" | "lg";
 };
 
-// The mark's artwork is 512 × 512 (components/brand/jar-outline.ts). The stroke is 64 wide, so the
-// inside of the jar starts 32 in from the outline; the top of a full jar sits where the left wall
-// has straightened out under its curl, leaving the lid clear.
-const INNER = { x: 120, top: 176, width: 266, bottom: 386 };
-const INNER_HEIGHT = INNER.bottom - INNER.top;
+// The mark's artwork is 512 × 512 (components/brand/jar-outline.ts): a 64-wide stroke, the lid
+// above it, a coin beside the lid, and a pile of coins inside. A full jar is the whole pile.
 const LID = { x: 96, y: 58, width: 262, height: 62 };
 const LID_COIN = { x: 414, y: 88 };
+const PILE_TOP = 176;
+const COINS = JAR_PILE.length;
 
 const round = (value: number) => Math.round(value * 1000) / 1000;
+/** How many coins stand for a share of the jar: none for nothing, at least one for anything. */
+const coinsFor = (share: number, room = COINS) =>
+  share <= 0 ? 0 : Math.min(room, Math.max(1, Math.round(share * COINS)));
 
-/** A coin as the mark draws it: gold on a teal rim. */
+/** A coin as the mark draws it: gold on a teal rim. `fill` swaps the gold for another paint. */
 function Coin({
   x,
   y,
+  fill,
   className,
   style,
 }: {
   x: number;
   y: number;
+  fill?: string;
   className?: string;
   style?: CSSProperties;
 }) {
   return (
     <g transform={`translate(${x} ${y})`} className={className} style={style}>
       <ellipse cy={7} rx={50} ry={18} className="fill-teal-800" />
-      <ellipse rx={50} ry={18} className="fill-gold" />
+      <ellipse rx={50} ry={18} fill={fill} className={fill ? undefined : "fill-gold"} />
     </g>
   );
 }
 
 /**
  * The jar from the Jarso mark, drawn from the mark's own geometry: its cyan lid, its one teal
- * stroke, and a fill that rises to the share of `capacityMinor`. Decorative only: every amount is
- * also written next to it in text.
+ * stroke, and gold coins piling up to the share of `capacityMinor`. Decorative only: every
+ * amount is also written next to it in text.
  */
 export function JarIllustration({
   jar,
@@ -64,11 +68,13 @@ export function JarIllustration({
   size = "lg",
 }: JarIllustrationProps) {
   const id = useId();
-  const clipId = `${id}-inside`;
   const hatchId = `${id}-hatch`;
   const capacity = Math.max(capacityMinor, 1);
   const fill = round(Math.min(Math.max(filledMinor, 0) / capacity, 1));
-  // Money arriving (a handover confirmed, a put-in landing) drops two coins into the jar once
+  const reserved = round(Math.min(Math.max(reservedMinor, 0) / capacity, 1 - fill));
+  const counted = coinsFor(fill);
+  const waiting = coinsFor(reserved, COINS - counted);
+  // Money arriving (a handover confirmed, a put-in landing) drops two coins onto the pile once
   // (design.md §8). The first paint and money leaving draw nothing extra.
   const previous = useRef(filledMinor);
   const [drop, setDrop] = useState(0);
@@ -76,23 +82,17 @@ export function JarIllustration({
     if (filledMinor > previous.current) setDrop((n) => n + 1);
     previous.current = filledMinor;
   }, [filledMinor]);
-  const reserved = round(Math.min(Math.max(reservedMinor, 0) / capacity, 1 - fill));
-  const fillHeight = fill * INNER_HEIGHT;
-  const reservedHeight = reserved * INNER_HEIGHT;
-  const grow =
-    "transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none";
+  const landing = JAR_PILE.slice(Math.max(0, counted - 2), Math.max(2, counted));
 
   return (
     <svg
       aria-hidden="true"
       viewBox="24 40 464 420"
       className={cn(size === "lg" ? "h-56 w-auto" : "h-28 w-auto", "overflow-visible")}
+      data-jar={jar}
     >
-      <defs>
-        <clipPath id={clipId}>
-          <rect x={INNER.x} y={INNER.top} width={INNER.width} height={INNER_HEIGHT} rx="14" />
-        </clipPath>
-        {reserved > 0 ? (
+      {waiting > 0 ? (
+        <defs>
           <pattern
             id={hatchId}
             width="16"
@@ -103,38 +103,27 @@ export function JarIllustration({
             <rect width="16" height="16" className="fill-gold/30" />
             <rect width="6" height="16" className="fill-gold-400" />
           </pattern>
-        ) : null}
-      </defs>
-      <g clipPath={`url(#${clipId})`}>
-        <rect
-          data-fill
-          data-ratio={fill}
-          x={INNER.x}
-          y={INNER.bottom - fillHeight}
-          width={INNER.width}
-          height={fillHeight}
-          className={cn(jar === "spend" ? "fill-teal-500" : "fill-gold", grow)}
-        />
-        {reserved > 0 ? (
-          <rect
-            data-reserved
-            data-ratio={reserved}
-            x={INNER.x}
-            y={INNER.bottom - fillHeight - reservedHeight}
-            width={INNER.width}
-            height={reservedHeight}
-            fill={`url(#${hatchId})`}
-            className={grow}
-          />
-        ) : null}
+        </defs>
+      ) : null}
+      <g data-fill data-ratio={fill}>
+        {JAR_PILE.slice(0, counted).map(([x, y]) => (
+          <Coin key={`${x}-${y}`} x={x} y={y} />
+        ))}
       </g>
+      {reserved > 0 ? (
+        <g data-reserved data-ratio={reserved}>
+          {JAR_PILE.slice(counted, counted + waiting).map(([x, y]) => (
+            <Coin key={`${x}-${y}`} x={x} y={y} fill={`url(#${hatchId})`} />
+          ))}
+        </g>
+      ) : null}
       {drop > 0 ? (
         <g key={drop} data-coins aria-hidden>
-          {[200, 312].map((x, index) => (
+          {landing.map(([x, y], index) => (
             <Coin
-              key={x}
+              key={`${x}-${y}`}
               x={x}
-              y={INNER.bottom - fillHeight - 22}
+              y={y}
               className={cn(
                 "motion-reduce:hidden",
                 "motion-safe:animate-[coin-drop_500ms_var(--ease-brand)_both]",
@@ -163,15 +152,15 @@ export function JarIllustration({
       {goal ? (
         <g data-goal-line>
           <line
-            x1={INNER.x - 40}
-            y1={INNER.top + 10}
-            x2={INNER.x + INNER.width + 40}
-            y2={INNER.top + 10}
+            x1={80}
+            y1={PILE_TOP}
+            x2={426}
+            y2={PILE_TOP}
             strokeWidth="5"
             strokeDasharray="12 10"
             className="stroke-foreground"
           />
-          <text x={INNER.x - 96} y={INNER.top + 26} fontSize="44">
+          <text x={24} y={PILE_TOP + 16} fontSize="44">
             {goal.emoji}
           </text>
         </g>
