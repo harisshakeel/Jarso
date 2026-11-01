@@ -20,7 +20,7 @@
     "db:test": "supabase test db",
     "db:migration": "supabase migration new",
     "db:push": "supabase db push --linked",
-    "db:revert": "supabase migration repair --linked --status reverted",
+    "db:revert": "sh scripts/db-revert.sh",
     "db:types": "supabase gen types typescript --local > src/types/database.types.ts",
     "prepare": "husky",
     "db:types:linked": "supabase gen types typescript --linked > src/types/database.types.ts",
