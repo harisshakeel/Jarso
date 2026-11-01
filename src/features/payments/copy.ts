@@ -49,6 +49,10 @@ export const paymentCopy = {
     "Auto charge turns off everywhere it uses this card. You can still pay by card when you hand over.",
   removed: "Card removed.",
   testMode: "Test mode. No real money moves.",
+  saveCardOpening: "The secure card form opens over this page. Saving a card charges ₹1.",
+  openCardForm: "Open the card form",
+  cardFormFailed: "The card form didn't load. Check your connection and try again.",
+  goBack: "Go back",
   cardEnding: (brand: string, last4: string) =>
     `${brand.charAt(0).toUpperCase()}${brand.slice(1)} ending ${last4}`,
 } as const;

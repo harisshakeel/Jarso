@@ -48,12 +48,19 @@ function toErrorResponse(error: unknown) {
   );
 }
 
-/** Wraps a route handler with the CSRF guard and uniform error → JSON mapping. */
-export function withApi<Args extends unknown[]>(handler: (...args: Args) => Promise<Response>) {
+/**
+ * Wraps a route handler with the CSRF guard and uniform error → JSON mapping. `crossOrigin`
+ * skips the guard, for a route another site must post to (a provider's form post back to Jarso)
+ * that reads no session and changes nothing.
+ */
+export function withApi<Args extends unknown[]>(
+  handler: (...args: Args) => Promise<Response>,
+  options: { crossOrigin?: boolean } = {},
+) {
   return async (...args: Args): Promise<Response> => {
     try {
       const [request] = args;
-      if (request instanceof Request) assertSameOrigin(request);
+      if (request instanceof Request && !options.crossOrigin) assertSameOrigin(request);
       return await handler(...args);
     } catch (error) {
       return toErrorResponse(error);

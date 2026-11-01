@@ -141,3 +141,56 @@ export const fakeCheckoutSchema = (appUrl: string) => {
 
 export type FakeCheckoutParams = z.infer<ReturnType<typeof fakeCheckoutParamsSchema>>;
 export type FakeCheckoutInput = z.infer<ReturnType<typeof fakeCheckoutSchema>>;
+
+/**
+ * A return URL for Razorpay's save-card flow, as an absolute URL on `appUrl`'s origin (Checkout
+ * needs absolute URLs). A path, another origin or another scheme is refused, so neither the
+ * save-card page nor its return route can send someone to another site.
+ */
+const appAbsoluteUrlSchema = (appUrl: string) =>
+  z
+    .string()
+    .max(2048)
+    .transform((value, ctx) => {
+      let url: URL | null = null;
+      try {
+        url = new URL(value);
+      } catch {}
+      const origin = new URL(appUrl).origin;
+      const path = url ? `${url.pathname}${url.search}${url.hash}` : "";
+      if (url?.origin !== origin || !returnToSchema.safeParse(path).success) {
+        ctx.addIssue({ code: "custom", message: paymentCopy.badReturn });
+        return z.NEVER;
+      }
+      return `${origin}${path}`;
+    });
+
+/** `/parent/payments/razorpay?order=…&customer=…&success=…&cancel=…`, as the adapter builds it. */
+export const razorpayCheckoutParamsSchema = (appUrl: string) =>
+  z.object({
+    order: single(z.string().regex(/^order_[A-Za-z0-9]+$/)),
+    customer: single(z.string().regex(/^cust_[A-Za-z0-9]+$/)),
+    success: single(appAbsoluteUrlSchema(appUrl)),
+    cancel: single(appAbsoluteUrlSchema(appUrl)),
+  });
+
+/** The return route's `?success=…&cancel=…`, validated as on the save-card page. */
+export const razorpayReturnUrlsSchema = (appUrl: string) =>
+  z.object({
+    success: single(appAbsoluteUrlSchema(appUrl)),
+    cancel: single(appAbsoluteUrlSchema(appUrl)),
+  });
+
+/**
+ * What Razorpay Checkout posts to the return route: `razorpay_payment_id` on success, `error[…]`
+ * fields on failure. Only whether a payment id came matters; the webhook saves the card.
+ */
+export const razorpayReturnFormSchema = z.object({
+  razorpay_payment_id: z
+    .string()
+    .regex(/^pay_[A-Za-z0-9]+$/)
+    .optional()
+    .catch(undefined),
+});
+
+export type RazorpayCheckoutParams = z.infer<ReturnType<typeof razorpayCheckoutParamsSchema>>;

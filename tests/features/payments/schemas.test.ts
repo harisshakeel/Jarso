@@ -5,6 +5,9 @@ import {
   cardReturnParamsSchema,
   fakeCheckoutParamsSchema,
   fakeCheckoutSchema,
+  razorpayCheckoutParamsSchema,
+  razorpayReturnFormSchema,
+  razorpayReturnUrlsSchema,
   removeSavedCardSchema,
 } from "@/features/payments/schemas";
 
@@ -171,5 +174,84 @@ describe("removeSavedCardSchema", () => {
     expect(removeSavedCardSchema.parse({ provider: "fake" })).toEqual({ provider: "fake" });
     expect(removeSavedCardSchema.safeParse({}).success).toBe(false);
     expect(removeSavedCardSchema.safeParse({ provider: "paypal" }).success).toBe(false);
+  });
+});
+
+describe("razorpayCheckoutParamsSchema", () => {
+  const app = "http://localhost:3200";
+  const params = razorpayCheckoutParamsSchema(app);
+  const query = {
+    order: "order_TEST123",
+    customer: "cust_TEST123",
+    success: `${app}/parent/settings?card=saved`,
+    cancel: `${app}/parent/settings?card=cancelled`,
+  };
+
+  it("accepts Razorpay ids and same-origin absolute return URLs", () => {
+    expect(params.parse(query)).toEqual(query);
+    expect(params.parse({ ...query, order: ["order_TEST123", "order_OTHER1"] })).toMatchObject({
+      order: "order_TEST123",
+    });
+  });
+
+  it.each([
+    "https://evil.example/parent",
+    "//evil.example/parent",
+    "/parent/settings",
+    "/\\evil.example",
+    `${app}//evil.example`,
+    "http://localhost:3201/parent",
+    "javascript:alert(1)",
+    "http://localhost:3200@evil.com",
+  ])("refuses %s as a return URL", (success) => {
+    expect(params.safeParse({ ...query, success }).success).toBe(false);
+    expect(params.safeParse({ ...query, cancel: success }).success).toBe(false);
+  });
+
+  it.each([
+    ["order", "order_"],
+    ["order", "pay_TEST123"],
+    ["order", "order_TEST-1"],
+    ["customer", "cust_TEST123&x=1"],
+    ["customer", "order_TEST123"],
+    ["customer", undefined],
+  ])("refuses %s %s", (key, value) => {
+    expect(params.safeParse({ ...query, [key]: value }).success).toBe(false);
+  });
+});
+
+describe("razorpayReturnUrlsSchema", () => {
+  const app = "http://localhost:3200";
+  const urls = razorpayReturnUrlsSchema(app);
+
+  it("accepts same-origin absolute URLs", () => {
+    const query = { success: `${app}/parent?card=saved`, cancel: `${app}/parent?card=cancelled` };
+    expect(urls.parse(query)).toEqual(query);
+  });
+
+  it.each(["https://evil.example/", "//evil.example", "javascript:alert(1)", "/parent"])(
+    "refuses %s",
+    (cancel) => {
+      expect(urls.safeParse({ success: `${app}/parent`, cancel }).success).toBe(false);
+    },
+  );
+});
+
+describe("razorpayReturnFormSchema", () => {
+  it("reads the payment id Checkout posts on success", () => {
+    expect(
+      razorpayReturnFormSchema.parse({
+        razorpay_payment_id: "pay_TEST123",
+        razorpay_order_id: "order_TEST123",
+        razorpay_signature: "x",
+      }),
+    ).toEqual({ razorpay_payment_id: "pay_TEST123" });
+  });
+
+  it("has no payment id for a failure post or a malformed one", () => {
+    expect(razorpayReturnFormSchema.parse({ "error[code]": "BAD_REQUEST_ERROR" })).toEqual({});
+    expect(razorpayReturnFormSchema.parse({ razorpay_payment_id: "evil value" })).toEqual({
+      razorpay_payment_id: undefined,
+    });
   });
 });

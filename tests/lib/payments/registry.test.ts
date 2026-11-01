@@ -80,6 +80,13 @@ describe("payment provider registry", () => {
     expect(r.getPaymentProviderById("razorpay")?.autoChargeSettleMinutes).toBe(4320);
   });
 
+  it("hands out Razorpay Checkout's key id only while razorpay is on", async () => {
+    expect((await load(razorpayKeys)).razorpayCheckoutKeyId()).toBe("rzp_test_XXXXXXXXXXXXXX");
+    expect((await load({ ...stripeKeys, ...fakeOn })).razorpayCheckoutKeyId()).toBeNull();
+    const partial = { RAZORPAY_KEY_ID: "rzp_test_XXXXXXXXXXXXXX" };
+    expect((await load(partial)).razorpayCheckoutKeyId()).toBeNull();
+  });
+
   it("keeps razorpay off without its keys", async () => {
     const r = await load(stripeKeys);
     expect(r.getPaymentProviderById("razorpay")).toBeNull();

@@ -1,0 +1,30 @@
+{
+  "entity": "event",
+  "account_id": "acc_TEST123",
+  "event": "payment.failed",
+  "contains": ["payment"],
+  "payload": {
+    "payment": {
+      "entity": {
+        "id": "pay_TESTCHARGE1",
+        "entity": "payment",
+        "amount": 50000,
+        "currency": "INR",
+        "status": "failed",
+        "order_id": "order_TESTCHARGE1",
+        "method": "card",
+        "captured": false,
+        "customer_id": "cust_TEST123",
+        "token_id": "token_TEST123",
+        "notes": { "jarsoCharge": "pay-9" },
+        "error_code": "BAD_REQUEST_ERROR",
+        "error_description": "Your payment didn't go through as it was declined by the bank.",
+        "error_source": "bank",
+        "error_step": "payment_authorization",
+        "error_reason": "payment_declined",
+        "created_at": 1793520010
+      }
+    }
+  },
+  "created_at": 1793520012
+}

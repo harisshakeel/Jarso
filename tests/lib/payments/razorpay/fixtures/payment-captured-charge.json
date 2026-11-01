@@ -1,0 +1,27 @@
+{
+  "entity": "event",
+  "account_id": "acc_TEST123",
+  "event": "payment.captured",
+  "contains": ["payment"],
+  "payload": {
+    "payment": {
+      "entity": {
+        "id": "pay_TESTCHARGE1",
+        "entity": "payment",
+        "amount": 50000,
+        "currency": "INR",
+        "status": "captured",
+        "order_id": "order_TESTCHARGE1",
+        "method": "card",
+        "captured": true,
+        "customer_id": "cust_TEST123",
+        "token_id": "token_TEST123",
+        "notes": { "jarsoCharge": "pay-9" },
+        "error_code": null,
+        "error_reason": null,
+        "created_at": 1793520010
+      }
+    }
+  },
+  "created_at": 1793520012
+}

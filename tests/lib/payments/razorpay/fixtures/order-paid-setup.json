@@ -1,0 +1,50 @@
+{
+  "entity": "event",
+  "account_id": "acc_TEST123",
+  "event": "order.paid",
+  "contains": ["payment", "order"],
+  "payload": {
+    "payment": {
+      "entity": {
+        "id": "pay_TESTAUTH1",
+        "entity": "payment",
+        "amount": 100,
+        "currency": "INR",
+        "status": "captured",
+        "order_id": "order_TESTSETUP1",
+        "method": "card",
+        "captured": true,
+        "customer_id": "cust_TEST123",
+        "token_id": "token_TEST123",
+        "recurring": true,
+        "card": {
+          "id": "card_TEST123",
+          "entity": "card",
+          "last4": "1111",
+          "network": "Visa",
+          "type": "credit"
+        },
+        "notes": [],
+        "error_code": null,
+        "error_reason": null,
+        "created_at": 1793520010
+      }
+    },
+    "order": {
+      "entity": {
+        "id": "order_TESTSETUP1",
+        "entity": "order",
+        "amount": 100,
+        "amount_paid": 100,
+        "amount_due": 0,
+        "currency": "INR",
+        "receipt": "set-1",
+        "status": "paid",
+        "notes": { "jarsoSetup": "set-1" },
+        "public_key": "rzp_test_XXXXXXXXXXXXXX",
+        "created_at": 1793520005
+      }
+    }
+  },
+  "created_at": 1793520012
+}

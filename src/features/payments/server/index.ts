@@ -3,6 +3,7 @@ import "server-only";
 
 export { paymentsEnabled } from "@/lib/payments";
 export { type AutoChargeResult, runAutoCharges } from "./auto-charge";
+export { getRazorpayCheckoutConfig } from "./razorpay-checkout";
 export {
   cancelCardPayment,
   getAutoChargeCard,

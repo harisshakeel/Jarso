@@ -1,0 +1,23 @@
+{
+  "id": "pay_TESTAUTH1",
+  "entity": "payment",
+  "amount": 100,
+  "currency": "INR",
+  "status": "captured",
+  "order_id": "order_TESTSETUP1",
+  "method": "card",
+  "captured": true,
+  "email": "parent@example.com",
+  "contact": "9999999999",
+  "customer_id": "cust_TEST123",
+  "token_id": "token_TEST123",
+  "card": {
+    "id": "card_TEST123",
+    "entity": "card",
+    "last4": "1111",
+    "network": "Visa",
+    "type": "credit"
+  },
+  "notes": [],
+  "created_at": 1793520010
+}

@@ -5,6 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRazorpayPaymentProvider } from "@/lib/payments/razorpay/index";
 import customerCreated from "./fixtures/customer-created.json";
 import duplicateReference from "./fixtures/error-duplicate-reference.json";
+import orderCreated from "./fixtures/order-created.json";
+import orderPaidSetup from "./fixtures/order-paid-setup.json";
+import paymentFetched from "./fixtures/payment-fetched.json";
 import paymentLinkCreated from "./fixtures/payment-link-created.json";
 import paymentLinkExpired from "./fixtures/payment-link-expired.json";
 import paymentLinkPaid from "./fixtures/payment-link-paid.json";
@@ -27,6 +30,10 @@ function setup() {
   const client = new Razorpay({ key_id: KEY_ID, key_secret: KEY_SECRET });
   const createCustomer = vi.spyOn(client.customers, "create");
   const createLink = vi.spyOn(client.paymentLink, "create");
+  const createOrder = vi.spyOn(client.orders, "create");
+  const fetchPayment = vi.spyOn(client.payments, "fetch");
+  const createRecurring = vi.spyOn(client.payments, "createRecurringPayment");
+  const deleteToken = vi.spyOn(client.customers, "deleteToken");
   const provider = createRazorpayPaymentProvider({
     keyId: KEY_ID,
     keySecret: KEY_SECRET,
@@ -34,7 +41,16 @@ function setup() {
     checkoutUrl: "https://app.test/parent/payments/razorpay",
     client,
   });
-  return { client, provider, createCustomer, createLink };
+  return {
+    client,
+    provider,
+    createCustomer,
+    createLink,
+    createOrder,
+    fetchPayment,
+    createRecurring,
+    deleteToken,
+  };
 }
 
 const paymentInput = {
@@ -69,31 +85,6 @@ describe("razorpay provider basics", () => {
     const { provider } = setup();
     expect(provider.minimumChargeMinor("INR")).toBe(100);
     expect(provider.minimumChargeMinor("GBP")).toBeNull();
-  });
-
-  it("leaves saved cards to a later version for now", async () => {
-    const { provider, createCustomer, createLink } = setup();
-    await expect(
-      provider.createHostedSetup({
-        setupId: "set-1",
-        customerRef: "cust_1",
-        successUrl: "https://app.test/ok",
-        cancelUrl: "https://app.test/no",
-      }),
-    ).rejects.toMatchObject(UNAVAILABLE);
-    await expect(
-      provider.chargeSaved({
-        paymentId: "pay-1",
-        amountMinor: 500,
-        currency: "INR",
-        customerRef: "cust_1",
-        methodRef: "cust_1:token_1:pay_1",
-        description: "Pocket money",
-      }),
-    ).rejects.toMatchObject(UNAVAILABLE);
-    await expect(provider.detachMethod("cust_1:token_1:pay_1")).rejects.toMatchObject(UNAVAILABLE);
-    expect(createCustomer).not.toHaveBeenCalled();
-    expect(createLink).not.toHaveBeenCalled();
   });
 });
 
@@ -229,6 +220,240 @@ describe("razorpay createHostedPayment", () => {
   });
 });
 
+describe("razorpay createHostedSetup", () => {
+  const setupInput = {
+    setupId: "set-1",
+    customerRef: "cust_TEST123",
+    successUrl: "https://app.test/parent/settings?card=saved",
+    cancelUrl: "https://app.test/parent/settings?card=cancelled",
+  };
+
+  it("creates a card token order and sends the parent to Jarso's save-card page", async () => {
+    const { provider, createOrder } = setup();
+    createOrder.mockResolvedValue(orderCreated as never);
+    const result = await provider.createHostedSetup(setupInput);
+
+    expect(createOrder.mock.calls[0]).toEqual([
+      {
+        amount: 100,
+        currency: "INR",
+        customer_id: "cust_TEST123",
+        method: "card",
+        payment_capture: true,
+        receipt: "set-1",
+        notes: { jarsoSetup: "set-1" },
+        token: { max_amount: 1500000, frequency: "as_presented" },
+      },
+    ]);
+    expect(result.providerRef).toBe("order_TESTSETUP1");
+    const url = new URL(result.redirectUrl);
+    expect(`${url.origin}${url.pathname}`).toBe("https://app.test/parent/payments/razorpay");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      order: "order_TESTSETUP1",
+      customer: "cust_TEST123",
+      success: setupInput.successUrl,
+      cancel: setupInput.cancelUrl,
+    });
+    // Each value is encoded, so the return URLs' own query can't leak into the page's.
+    expect(result.redirectUrl).toContain(
+      "success=https%3A%2F%2Fapp.test%2Fparent%2Fsettings%3Fcard%3Dsaved",
+    );
+  });
+
+  it("treats a 4xx as UNAVAILABLE", async () => {
+    const { provider, createOrder } = setup();
+    createOrder.mockRejectedValue(
+      sdkError(400, { code: "BAD_REQUEST_ERROR", reason: "input_validation_failed" }),
+    );
+    await expect(provider.createHostedSetup(setupInput)).rejects.toMatchObject(UNAVAILABLE);
+  });
+
+  it("treats an order without an id as UNAVAILABLE", async () => {
+    const { provider, createOrder } = setup();
+    createOrder.mockResolvedValue({} as never);
+    await expect(provider.createHostedSetup(setupInput)).rejects.toMatchObject(UNAVAILABLE);
+  });
+});
+
+describe("razorpay chargeSaved", () => {
+  const chargeInput = {
+    paymentId: "pay-9",
+    amountMinor: 50000,
+    currency: "inr",
+    customerRef: "cust_TEST123",
+    methodRef: "cust_TEST123:token_TEST123:pay_TESTAUTH1",
+    description: "Allowance for Sam",
+  };
+  const chargeOrder = { ...orderCreated, id: "order_TESTCHARGE1", amount: 50000 };
+
+  function charging() {
+    const s = setup();
+    s.fetchPayment.mockResolvedValue(paymentFetched as never);
+    s.createOrder.mockResolvedValue(chargeOrder as never);
+    s.createRecurring.mockResolvedValue({ razorpay_payment_id: "pay_TESTCHARGE1" } as never);
+    return s;
+  }
+
+  it("reads the card's contact details, creates an order and starts a recurring payment", async () => {
+    const { provider, fetchPayment, createOrder, createRecurring } = charging();
+    const result = await provider.chargeSaved(chargeInput);
+
+    expect(result).toEqual({ providerRef: "order_TESTCHARGE1", status: "pending" });
+    expect(fetchPayment.mock.calls[0]).toEqual(["pay_TESTAUTH1"]);
+    expect(createOrder.mock.calls[0]).toEqual([
+      {
+        amount: 50000,
+        currency: "INR",
+        payment_capture: true,
+        receipt: "pay-9",
+        notes: { jarsoCharge: "pay-9" },
+      },
+    ]);
+    expect(createRecurring.mock.calls[0]).toEqual([
+      {
+        email: "parent@example.com",
+        contact: "9999999999",
+        amount: 50000,
+        currency: "INR",
+        order_id: "order_TESTCHARGE1",
+        customer_id: "cust_TEST123",
+        token: "token_TEST123",
+        recurring: true,
+        description: "Allowance for Sam",
+        notes: { jarsoCharge: "pay-9" },
+      },
+    ]);
+  });
+
+  it("charges the customer the card was saved under, warning with ids only", async () => {
+    const { provider, createRecurring } = charging();
+    await provider.chargeSaved({ ...chargeInput, customerRef: "cust_OTHER1" });
+    expect(createRecurring.mock.calls[0]?.[0]).toMatchObject({ customer_id: "cust_TEST123" });
+    expect(log.warn).toHaveBeenCalledTimes(1);
+    const logged = JSON.stringify(log.warn.mock.calls[0]);
+    expect(logged).not.toContain("parent@example.com");
+    expect(logged).not.toContain("9999999999");
+  });
+
+  it("reports a declined recurring payment as failed with the mapped reason", async () => {
+    const { provider, createRecurring } = charging();
+    createRecurring.mockRejectedValue(
+      sdkError(400, {
+        code: "BAD_REQUEST_ERROR",
+        description: "Payment declined by the bank",
+        reason: "card_declined",
+      }),
+    );
+    expect(await provider.chargeSaved(chargeInput)).toEqual({
+      providerRef: "order_TESTCHARGE1",
+      status: "failed",
+      failureCode: "declined",
+    });
+    expect(JSON.stringify(log.error.mock.calls)).not.toContain("parent@example.com");
+  });
+
+  it("maps an unknown recurring failure reason to other", async () => {
+    const { provider, createRecurring } = charging();
+    createRecurring.mockRejectedValue(sdkError(400, { code: "BAD_REQUEST_ERROR" }));
+    expect(await provider.chargeSaved(chargeInput)).toMatchObject({
+      status: "failed",
+      failureCode: "other",
+    });
+  });
+
+  it("treats a 5xx from the recurring payment as UNAVAILABLE", async () => {
+    const { provider, createRecurring } = charging();
+    createRecurring.mockRejectedValue(sdkError(502, { code: "SERVER_ERROR" }));
+    await expect(provider.chargeSaved(chargeInput)).rejects.toMatchObject(UNAVAILABLE);
+  });
+
+  it("treats a network failure on the recurring payment as UNAVAILABLE", async () => {
+    const { provider, createRecurring } = charging();
+    createRecurring.mockRejectedValue(new TypeError("Cannot read properties of undefined"));
+    await expect(provider.chargeSaved(chargeInput)).rejects.toMatchObject(UNAVAILABLE);
+  });
+
+  it("treats a 4xx from the payment fetch as UNAVAILABLE without charging", async () => {
+    const { provider, fetchPayment, createOrder, createRecurring } = charging();
+    fetchPayment.mockRejectedValue(
+      sdkError(400, { code: "BAD_REQUEST_ERROR", reason: "input_validation_failed" }),
+    );
+    await expect(provider.chargeSaved(chargeInput)).rejects.toMatchObject(UNAVAILABLE);
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(createRecurring).not.toHaveBeenCalled();
+  });
+
+  it("treats a 4xx from the order as UNAVAILABLE without charging", async () => {
+    const { provider, createOrder, createRecurring } = charging();
+    createOrder.mockRejectedValue(
+      sdkError(400, { code: "BAD_REQUEST_ERROR", description: "Duplicate request" }),
+    );
+    await expect(provider.chargeSaved(chargeInput)).rejects.toMatchObject(UNAVAILABLE);
+    expect(createRecurring).not.toHaveBeenCalled();
+  });
+
+  it("treats a saved card without an email or contact as UNAVAILABLE", async () => {
+    const { provider, fetchPayment, createRecurring } = charging();
+    fetchPayment.mockResolvedValue({ ...paymentFetched, contact: undefined } as never);
+    await expect(provider.chargeSaved(chargeInput)).rejects.toMatchObject(UNAVAILABLE);
+    expect(createRecurring).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "",
+    "cust_TEST123",
+    "cust_TEST123:token_TEST123",
+    "cust_TEST123::pay_TESTAUTH1",
+    "cust_TEST123:token_TEST123:pay_TESTAUTH1:extra",
+  ])("treats a malformed card reference as UNAVAILABLE: %j", async (methodRef) => {
+    const { provider, fetchPayment } = charging();
+    await expect(provider.chargeSaved({ ...chargeInput, methodRef })).rejects.toMatchObject(
+      UNAVAILABLE,
+    );
+    expect(fetchPayment).not.toHaveBeenCalled();
+    expect(log.error).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("razorpay detachMethod", () => {
+  it("deletes the card token from the customer", async () => {
+    const { provider, deleteToken } = setup();
+    deleteToken.mockResolvedValue({ deleted: true } as never);
+    await provider.detachMethod("cust_TEST123:token_TEST123:pay_TESTAUTH1");
+    expect(deleteToken.mock.calls[0]).toEqual(["cust_TEST123", "token_TEST123"]);
+  });
+
+  it("treats a token that no longer exists as removed", async () => {
+    const { provider, deleteToken } = setup();
+    deleteToken.mockRejectedValue(
+      sdkError(400, {
+        code: "BAD_REQUEST_ERROR",
+        description: "The id provided does not exist",
+        reason: "input_validation_failed",
+      }),
+    );
+    await expect(provider.detachMethod("cust_TEST123:token_TEST123:pay_TESTAUTH1")).resolves.toBe(
+      undefined,
+    );
+  });
+
+  it("treats another 4xx as UNAVAILABLE", async () => {
+    const { provider, deleteToken } = setup();
+    deleteToken.mockRejectedValue(
+      sdkError(400, { code: "BAD_REQUEST_ERROR", description: "Something else" }),
+    );
+    await expect(
+      provider.detachMethod("cust_TEST123:token_TEST123:pay_TESTAUTH1"),
+    ).rejects.toMatchObject(UNAVAILABLE);
+  });
+
+  it("treats a malformed card reference as UNAVAILABLE", async () => {
+    const { provider, deleteToken } = setup();
+    await expect(provider.detachMethod("not-a-ref")).rejects.toMatchObject(UNAVAILABLE);
+    expect(deleteToken).not.toHaveBeenCalled();
+  });
+});
+
 describe("razorpay parseWebhook", () => {
   const sign = (body: string, secret = WEBHOOK_SECRET) =>
     createHmac("sha256", secret).update(body).digest("hex");
@@ -320,6 +545,45 @@ describe("razorpay parseWebhook", () => {
       kind: "payment",
       status: "expired",
     });
+  });
+
+  it("maps a saved card without fetching when the event names the card", async () => {
+    const { provider, fetchPayment } = setup();
+    const body = JSON.stringify(orderPaidSetup);
+    expect(await provider.parseWebhook(body, headersFor(body))).toMatchObject({
+      kind: "setup",
+      card: { brand: "visa", last4: "1111" },
+    });
+    expect(fetchPayment).not.toHaveBeenCalled();
+  });
+
+  it("fetches the card when a saved-card event leaves it out", async () => {
+    const { provider, fetchPayment } = setup();
+    fetchPayment.mockResolvedValue({
+      ...paymentFetched,
+      card: { ...paymentFetched.card, network: "MasterCard", last4: "4444" },
+    } as never);
+    const event = structuredClone(orderPaidSetup);
+    delete (event.payload.payment.entity as Partial<typeof event.payload.payment.entity>).card;
+    const body = JSON.stringify(event);
+
+    expect(await provider.parseWebhook(body, headersFor(body))).toEqual({
+      kind: "setup",
+      eventId: "evt_TEST123",
+      setupId: "set-1",
+      methodRef: "cust_TEST123:token_TEST123:pay_TESTAUTH1",
+      card: { brand: "mastercard", last4: "4444" },
+    });
+    expect(fetchPayment.mock.calls[0]).toEqual(["pay_TESTAUTH1", { "expand[]": "card" }]);
+  });
+
+  it("lets the provider retry when the card fetch fails", async () => {
+    const { provider, fetchPayment } = setup();
+    fetchPayment.mockRejectedValue(sdkError(503, { code: "SERVER_ERROR" }));
+    const event = structuredClone(orderPaidSetup);
+    delete (event.payload.payment.entity as Partial<typeof event.payload.payment.entity>).card;
+    const body = JSON.stringify(event);
+    await expect(provider.parseWebhook(body, headersFor(body))).rejects.toMatchObject(UNAVAILABLE);
   });
 
   it("returns null for an event it does not act on", async () => {

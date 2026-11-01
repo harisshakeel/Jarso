@@ -36,3 +36,14 @@ describe("withApi CSRF guard", () => {
     expect(await res.json()).toMatchObject({ error: { code: "FORBIDDEN" } });
   });
 });
+
+describe("withApi cross-origin opt-out", () => {
+  const open = withApi(async (_request: Request) => json({ ok: true }), { crossOrigin: true });
+  const post = (origin: string) =>
+    open(new Request("http://localhost:3000/api/v1/x", { method: "POST", headers: { origin } }));
+
+  it("lets another site post when the route opts out (it reads no cookies, changes nothing)", async () => {
+    expect((await post("https://api.razorpay.com")).status).toBe(200);
+    expect((await post("null")).status).toBe(200);
+  });
+});

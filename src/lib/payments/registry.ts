@@ -99,3 +99,13 @@ export function paymentsEnabled(): boolean {
 export function getPaymentProviderById(id: string): PaymentProvider | null {
   return getPaymentProviders().find((provider) => provider.id === id) ?? null;
 }
+
+/**
+ * The key id Razorpay Checkout opens with, while Razorpay is on, else null. Public by design
+ * (Checkout runs in the browser), but served by the save-card page rather than a NEXT_PUBLIC_
+ * var so it stays with the other Razorpay keys.
+ */
+export function razorpayCheckoutKeyId(): string | null {
+  if (!getPaymentProviderById("razorpay")) return null;
+  return serverEnv.RAZORPAY_KEY_ID ?? null;
+}
