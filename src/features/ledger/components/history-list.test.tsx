@@ -19,14 +19,16 @@ const purchase = (over: Partial<HistoryItem> = {}): HistoryItem => ({
 });
 
 describe("HistoryList purchases", () => {
-  it("shows a purchase as money out", () => {
+  it("shows a purchase with its label, the word Spent and no minus sign", () => {
     render(<HistoryList items={[purchase()]} currency="GBP" showMinor="always" />);
     expect(screen.getByText("Snack")).toBeInTheDocument();
-    expect(screen.getByText("−£3.00")).not.toHaveClass("line-through");
+    expect(screen.getByText(/^Spent · /)).toBeInTheDocument();
+    expect(screen.getByText(/£3\.00/)).toBeInTheDocument();
+    expect(screen.queryByText(/[+−]£3/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Undone/)).not.toBeInTheDocument();
   });
 
-  it("labels an undone purchase and strikes its amount", () => {
+  it("says Undone and fades the line instead of striking the amount", () => {
     render(
       <HistoryList
         items={[purchase({ undone: true, canUndo: false })]}
@@ -34,8 +36,9 @@ describe("HistoryList purchases", () => {
         showMinor="always"
       />,
     );
-    expect(screen.getByText(/Undone/)).toBeInTheDocument();
-    expect(screen.getByText("−£3.00")).toHaveClass("line-through");
+    expect(screen.getByText(/· Undone/)).toBeInTheDocument();
+    expect(screen.getByRole("listitem")).toHaveClass("opacity-70");
+    expect(screen.getByText(/£3\.00/)).not.toHaveClass("line-through");
   });
 });
 
@@ -43,16 +46,17 @@ describe("HistoryList jar moves", () => {
   const move = (kind: "withdrawal" | "deposit"): HistoryItem =>
     purchase({ id: "m1", kind, label: "New bike", canUndo: false, entryId: null });
 
-  it("shows a take-out as a move from Save to Spend, not as money in", () => {
+  it("shows a take-out in words, not as money in and not with an arrow", () => {
     render(<HistoryList items={[move("withdrawal")]} currency="GBP" showMinor="always" />);
-    expect(screen.getByText(/Save → Spend/)).toBeInTheDocument();
+    expect(screen.getByText(/Moved from Save to Spend/)).toBeInTheDocument();
     expect(screen.getByText("£3.00")).toBeInTheDocument();
+    expect(screen.queryByText(/→/)).not.toBeInTheDocument();
     expect(screen.queryByText(/[+−]£3/)).not.toBeInTheDocument();
   });
 
-  it("shows a put-in as a move from Spend to Save", () => {
+  it("shows a put-in as moved into Save", () => {
     render(<HistoryList items={[move("deposit")]} currency="GBP" showMinor="always" />);
-    expect(screen.getByText(/Spend → Save/)).toBeInTheDocument();
+    expect(screen.getByText(/Moved into Save/)).toBeInTheDocument();
     expect(screen.queryByText(/[+−]£3/)).not.toBeInTheDocument();
   });
 
@@ -68,5 +72,44 @@ describe("HistoryList jar moves", () => {
     expect(screen.getByText(/Extra money/)).toBeInTheDocument();
     expect(screen.getByText("School trip")).toBeInTheDocument();
     expect(screen.getByText("£3.00")).toBeInTheDocument();
+  });
+});
+
+describe("HistoryList allowances and misses", () => {
+  it("shows a short handover gently and a miss with the given word", () => {
+    render(
+      <HistoryList
+        items={[
+          purchase({
+            id: "a1",
+            kind: "allowance",
+            label: "Allowance",
+            amountMinor: 400,
+            dueMinor: 500,
+            canUndo: false,
+            entryId: null,
+          }),
+          purchase({
+            id: "s1",
+            kind: "skipped",
+            label: "Allowance",
+            amountMinor: null,
+            canUndo: false,
+            entryId: null,
+          }),
+        ]}
+        currency="GBP"
+        showMinor="always"
+        skippedLabel="Not given"
+      />,
+    );
+    expect(screen.getByText("£4.00 of £5.00")).toBeInTheDocument();
+    expect(screen.getByText(/^Came in · /)).toBeInTheDocument();
+    expect(screen.getByText("Not given")).toBeInTheDocument();
+  });
+
+  it("has an empty line the caller can name", () => {
+    render(<HistoryList items={[]} currency="GBP" emptyLine="Maya's money story starts here." />);
+    expect(screen.getByText("Maya's money story starts here.")).toBeInTheDocument();
   });
 });

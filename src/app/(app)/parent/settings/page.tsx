@@ -43,13 +43,13 @@ async function ParentSettings({ searchParams }: Props) {
   const familyTab = (
     <>
       <FamilyCodeCard code={family.code} raised className="rise-in" />
-      <Section index={1} title="Family" description="Money is kept in the family's currency.">
-        <dl>
-          <dt className="text-muted-foreground text-sm">Currency</dt>
-          <dd className="font-bold">
-            {isCurrency(family.currency) ? currencyLabels[family.currency] : family.currency}
-          </dd>
-        </dl>
+      <Section
+        index={1}
+        title="Family"
+        description={`Money is kept in ${
+          isCurrency(family.currency) ? currencyLabels[family.currency] : family.currency
+        }. That can't change once the family exists.`}
+      >
         <FamilySettingsForm timezone={family.timezone} />
       </Section>
     </>

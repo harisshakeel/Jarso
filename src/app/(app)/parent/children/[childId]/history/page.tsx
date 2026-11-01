@@ -23,7 +23,13 @@ async function HistoryContent({ params, searchParams }: Props) {
       title={`${child.nickname}'s history`}
       back={{ href: routes.parentChild(childId), label: child.nickname }}
     >
-      <HistoryList items={items} currency={currency} skippedLabel="Not given" showMinor="always" />
+      <HistoryList
+        items={items}
+        currency={currency}
+        skippedLabel="Not given"
+        showMinor="always"
+        emptyLine={`${child.nickname}'s money story starts here.`}
+      />
       {before || olderBefore ? (
         <nav aria-label="History pages" className="flex flex-wrap justify-between gap-3">
           {before ? (
