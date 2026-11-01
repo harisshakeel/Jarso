@@ -19,7 +19,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Payment | One card payment for one due occurrence or gift: `pending` → `requires_action` → `succeeded`, or `failed` / `canceled` / `expired`; `succeeded_unapplied` when the card payment landed after the item was already handed over, closed or cancelled (nothing posts). |
 | Auto charge | A per-schedule and per-gift toggle. When an item falls due after the toggle was turned on, Jarso charges the parent's saved card once, at the provider the toggle recorded (a parent holds one saved card per provider). A failed attempt leaves the item due and notifies the parent; there is no retry. |
 | Gift (from a parent) | One-time extra money the parent initiates, optionally dated in the future, with a note. Hidden from the child until handed over, then shown in history. Posts as `parent_gift_in` on handover confirmation. No shortfall. |
-| Gift (from others) | Money the child records receiving from other sources (FR04). Child-recorded, counts immediately, kind `gift_in`. Not the same as a parent gift. |
+| Gift (from others) | Money the child records receiving from other sources (FR04). Child-recorded, counts immediately, kind `gift_in`. Not the same as a parent gift. Its inbox notice to the parents is `money_received` (amount, category, jar). |
 | Paused / stopped allowance | Paused: no period falling in the pause becomes due, and skipped periods are not paid later; resumes after a set date or when the parent resumes it. Stopped: schedule ended for good. Occurrences already due stay due in both cases. The child sees the state and the parent's optional message. |
 | Planned split | *Deferred.* Child's intended Spend/Save split per allowance. In the pilot the parent decides the split at handover, prefilled from the previous handover. |
 | Practice money | Fictional money for learning. Never mixed with recorded money. |
@@ -37,7 +37,8 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | Reserved | Save money tied up by a pending or approved withdrawal. Still in the balance; excluded from goal progress and from the withdrawal cap. |
 | Emergency grant | Extra money requested by the child; same approve → handover flow. Its own ledger kind. |
 | Goal | Item + price the child saves toward; progress = confirmed Save balance vs price. |
-| Diary entry | Received money or purchase: amount, label, jar. Correctable/undoable via reversing entries. |
+| Diary entry | Received money or purchase: amount, label, jar and a category (a fixed list: spending on snacks, games, clothes, going out, a gift, school, travel, apps, other; received from family, birthday, a job, a sale, found, other). Correctable/undoable via reversing entries. |
+| Fix chain | A fixed line is a reversal of the old line plus a new line with the same kind, jar and `occurred_at`, linked by `corrects_entry_id`. The first line of the chain (the root) sets the windows: undo within 24 hours and fix within 7 days of its `created_at`. Only the newest line is live; earlier versions are read through `list_entry_versions`. |
 | Mission | 2–3 minute daily learning activity in the 7-day journey: 6–8 steps (choices, amounts, a Spend/Save slider, sorting, matching, predictions, reasons) with fictional amounts, instant feedback, two free hints, and the steps missed first time replayed once at the end. The next mission unlocks when the previous one is done; there is no day gate. |
 | Topic | One of the five FR06 topics, with a page that explains, works an example and offers one practice question (FR08). Opening it never changes progress. |
 | Check-in | Five starting questions before mission 1 (FR10). Places, doesn't test: no score is shown and nothing is locked. |
@@ -58,7 +59,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 | `requests` | FR14, FR15 | Savings deposits, savings withdrawals and emergency requests: decision, then handover or receipt confirmation posts to `ledger`. Reserves Save for pending/approved withdrawals. |
 | `limits` | FR14 | Spending limits; evaluates purchases after recording and raises limit notices. |
 | `goals` ✅ | FR02, FR05 | One active goal per child with name, emoji, price and the child's plan; counted progress (Save − reserved) and payments left. What-if simulation (FR05, no writes) comes later. |
-| `diary` | FR04 | UI over `ledger` entries: add, correct, undo. |
+| `diary` | FR04 | UI over `ledger` entries: add a purchase or money received, fix, undo. Fixing a line with a new amount sends the parents an `entry_corrected` notice; a category or name change alone is quiet. |
 | `learning` ✅ | FR06, FR08, FR10 | Missions, topics, spaced review, check-in, progress (separate from money). Content as JSON (ADR 0009). |
 | `reviews` | FR11, FR12 | Weekly summary, next-step recommendation, resume state. |
 | `notifications` | FR16 | In-app inbox: due badge, handover reminders, limit, new-request and decision notices, no push needed. Web push is an at-most-once copy of the inbox row (`pushed_at`, ADR 0012) for browsers that said yes; the app installs from its manifest. Sent after commit; failure never affects records. |
