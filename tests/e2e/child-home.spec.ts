@@ -86,8 +86,7 @@ test("child sees jars, due badge and a revealed gift", async () => {
   await expect(child.getByText(/^US\$500 every \w+day$/)).toBeVisible();
   await expect(child.getByText(/^Next: \d{1,2} \w{3}$/)).toBeVisible();
   // Due allowance: waiting, not in the jars.
-  await expect(child.getByText("US$500 waiting for a parent")).toBeVisible();
-  await expect(child.getByText("Waiting money isn't in your jars yet.")).toBeVisible();
+  await expect(child.getByText("US$500 on its way · waiting for a parent")).toBeVisible();
   await expect(child.getByRole("region", { name: "Spend jar" })).toContainText("US$0");
   await expect(child.getByRole("region", { name: "Save jar" })).toContainText("US$0");
 
@@ -99,7 +98,7 @@ test("child sees jars, due badge and a revealed gift", async () => {
   await expect(parent.getByRole("region", { name: "Due now" }).getByText(NOTE)).toBeVisible();
 
   await child.reload();
-  await expect(child.getByText("US$500 waiting for a parent")).toBeVisible();
+  await expect(child.getByText("US$500 on its way · waiting for a parent")).toBeVisible();
   expect(await child.content()).not.toContain(NOTE);
 
   // Hand over both: jars update, the gift shows with its note, no waiting badge.
@@ -135,6 +134,7 @@ test("child sees jars, due badge and a revealed gift", async () => {
 test("child sets a goal and the Save jar shows how far to go", async () => {
   await child.goto("/child");
   const saveJar = child.getByRole("region", { name: "Save jar" });
+  await saveJar.getByRole("button", { name: /^Save/ }).click();
   await saveJar.getByRole("button", { name: "Set a goal" }).click();
   const sheet = child.getByRole("dialog");
   await sheet.getByLabel("What is it?").fill("Football boots");

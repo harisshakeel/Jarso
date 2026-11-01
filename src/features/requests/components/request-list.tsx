@@ -1,13 +1,14 @@
 "use client";
 
+import { ArrowDownToLineIcon, ArrowUpFromLineIcon, HandCoinsIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { StatusChip } from "@/components/brand";
+import { JarsoMark, StatusChip } from "@/components/brand";
 import { FormError } from "@/components/form";
 import { Button, Card, CardContent } from "@/components/ui";
 import { runOnline } from "@/features/offline";
-import { formatMoney } from "@/lib";
+import { cn, formatMoney } from "@/lib";
 import { statusLabel } from "../describe";
 import { cancelRequestAction } from "../server/actions";
 import type { RequestStatus, SavingsRequest } from "../types";
@@ -36,9 +37,13 @@ export function RequestList({ requests, currency, timeZone }: RequestListProps) 
     <Card className="shadow-raised">
       <CardContent>
         <section aria-label="Your requests" className="grid gap-3">
-          <h2 className="text-h3">Your requests</h2>
+          <h2 className="text-h3">What you asked for</h2>
           {requests.length === 0 ? (
-            <p className="text-ink-2">Nothing here yet.</p>
+            <div className="grid justify-items-center gap-2 py-4 text-center">
+              <JarsoMark size={48} />
+              <p className="font-semibold">Nothing here yet.</p>
+              <p className="text-ink-2">When you move money or ask for extra, it shows up here.</p>
+            </div>
           ) : (
             <ul className="grid gap-3">
               {requests.map((request) => (
@@ -72,6 +77,14 @@ function RequestRow({
   const what =
     request.kind === "withdrawal" ? "Take out" : request.kind === "deposit" ? "Put in" : "Extra";
   const amount = formatMoney(request.amountMinor, currency, { showMinor: "nonzero" });
+  const Icon =
+    request.kind === "withdrawal"
+      ? ArrowUpFromLineIcon
+      : request.kind === "deposit"
+        ? ArrowDownToLineIcon
+        : HandCoinsIcon;
+  const tint =
+    request.kind === "emergency" ? "bg-gold-100 text-gold-700" : "bg-cyan-100 text-cyan-700";
 
   function cancel() {
     setError(undefined);
@@ -89,8 +102,14 @@ function RequestRow({
 
   return (
     <li className="grid gap-1">
-      <div className="flex items-center justify-between gap-3">
-        <span className="font-semibold">
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", tint)}
+        >
+          <Icon className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1 font-semibold">
           {what} <span className="money font-bold">{amount}</span>
         </span>
         <StatusChip
@@ -98,8 +117,8 @@ function RequestRow({
           label={statusLabel(request.kind, request.status)}
         />
       </div>
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-ink-2 text-sm">
+      <div className="flex items-center justify-between gap-3 pl-13">
+        <span className="text-ink-2">
           {day(request.occurredAt, timeZone)}
           {request.reason ? ` · ${request.reason}` : ""}
         </span>

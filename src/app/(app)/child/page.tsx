@@ -1,29 +1,30 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
-import { ChildAllowanceCard, runningSchedule } from "@/features/allowance";
+import { AllowanceLine, runningSchedule } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
-import { PendingPurchases } from "@/features/diary";
+import { PendingPurchases, PurchaseSheet } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
 import { getGoalView } from "@/features/goals/server";
 import { AskJarso, guideCopy } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
-import { chooseHomeStep, HomeStepCard, SkillsStrip } from "@/features/learning";
+import { chooseHomeStep, HomeStepCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { JarShelf } from "@/features/ledger";
 import { takeOutLimit } from "@/features/requests";
 import { getAvailability, listRequests } from "@/features/requests/server";
-import { showsOnHome, WeekCard } from "@/features/review";
-import { getWeeklyReview } from "@/features/review/server";
 import { getChildRules } from "@/features/rules/server";
-import { fallback, familyToday, logger } from "@/lib";
+import { fallback, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Home" };
 
-/** requireRole sends signed-out users to the PIN sign-in and parents to their own home. */
+/**
+ * The child's Home, in the order a kid reads it: the money (jars, one gold keycap to record a
+ * purchase, the allowance in a line), then the one next thing, then Ask Jarso. The week and the
+ * skills live on Learn. requireRole sends signed-out users to the PIN sign-in and parents home.
+ */
 async function ChildHome() {
   const { user } = await requireRole("child", routes.child);
   const [nickname, family, schedule, due] = await Promise.all([
@@ -36,13 +37,6 @@ async function ChildHome() {
   return (
     <>
       <h1 className="rise-in text-balance text-display">{nickname ? `Hi, ${nickname}!` : "Hi!"}</h1>
-      <Suspense fallback={null}>
-        <HomeJarso childId={user.id} hasAllowance={allowanceMinor !== null} />
-      </Suspense>
-      <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
-        <HomeStep childId={user.id} currency={family.currency} allowanceMinor={allowanceMinor} />
-      </Suspense>
-      <PendingPurchases userId={user.id} currency={family.currency} />
       <Suspense fallback={<div aria-hidden className="shimmer h-96 rounded-xl bg-muted" />}>
         <HomeShelf
           childId={user.id}
@@ -51,22 +45,16 @@ async function ChildHome() {
           dueMinor={due.totalMinor}
         />
       </Suspense>
-      <Link
-        href={routes.childRequests}
-        className="-mt-3 inline-flex min-h-11 w-fit items-center justify-self-center rounded-full px-2 font-semibold text-primary text-sm underline-offset-4 hover:underline"
-      >
-        Move my money
-      </Link>
-      <ChildAllowanceCard
-        schedule={schedule}
-        dueTotalMinor={due.totalMinor}
-        currency={family.currency}
-      />
-      <Suspense fallback={null}>
-        <HomeWeek childId={user.id} currency={family.currency} timezone={family.timezone} />
+      <div className="grid justify-items-center gap-3">
+        <PurchaseSheet currency={family.currency} userId={user.id} variant="keycap-gold" />
+        <AllowanceLine schedule={schedule} currency={family.currency} />
+      </div>
+      <PendingPurchases userId={user.id} currency={family.currency} />
+      <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
+        <HomeStep childId={user.id} currency={family.currency} allowanceMinor={allowanceMinor} />
       </Suspense>
-      <Suspense fallback={<div aria-hidden className="shimmer h-24 rounded-xl bg-muted" />}>
-        <HomeSkills childId={user.id} />
+      <Suspense fallback={null}>
+        <HomeJarso childId={user.id} hasAllowance={allowanceMinor !== null} />
       </Suspense>
     </>
   );
@@ -164,44 +152,8 @@ async function HomeShelf({
 }
 
 /**
- * "Your week" (FR11) from Friday to Monday, when the week is nearly in or just over. The full
- * review is always at /child/learn/week. Hides itself if it can't load.
- */
-async function HomeWeek({
-  childId,
-  currency,
-  timezone,
-}: {
-  childId: string;
-  currency: string;
-  timezone: string;
-}) {
-  if (!showsOnHome(familyToday(timezone))) return null;
-  try {
-    const review = await getWeeklyReview(childId);
-    return <WeekCard review={review} currency={currency} compact />;
-  } catch (error) {
-    unstable_rethrow(error);
-    logger.warn("Weekly review unavailable on child home", { error: errorName(error) });
-    return null;
-  }
-}
-
-/** Skills learned, outside the jars (invariant 11). Hides itself if learning can't load. */
-async function HomeSkills({ childId }: { childId: string }) {
-  try {
-    const learning = await getLearningOverview(childId);
-    return <SkillsStrip skills={learning.skills} />;
-  } catch (error) {
-    unstable_rethrow(error);
-    logger.warn("Skills unavailable on child home", { error: errorName(error) });
-    return null;
-  }
-}
-
-/**
- * "Ask Jarso" at the top of Home, when the parent has turned Jarso on (FR07, ADR 0011). Its
- * turns stream from /api/v1/guide/turns, so this page needs no long maxDuration.
+ * "Ask Jarso", when the parent has turned Jarso on (FR07, ADR 0011). Its turns stream from
+ * /api/v1/guide/turns, so this page needs no long maxDuration.
  */
 async function HomeJarso({ childId, hasAllowance }: { childId: string; hasAllowance: boolean }) {
   const [guide, goal] = await Promise.all([
@@ -231,7 +183,7 @@ function HomeSkeleton() {
   return (
     <div aria-hidden className="grid gap-6">
       <div className="shimmer h-11 w-48 rounded-lg bg-muted" />
-      <div className="shimmer h-44 rounded-xl bg-muted" />
+      <div className="shimmer h-96 rounded-xl bg-muted" />
     </div>
   );
 }
