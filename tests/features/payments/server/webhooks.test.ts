@@ -5,7 +5,7 @@ import type { ProviderEvent } from "@/lib/payments";
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn(() => ({ kind: "admin" })) }));
 vi.mock("@/features/payments/server/repository", () => ({
   applyPayment: vi.fn(),
-  armAutoCharge: vi.fn(),
+  armAutoChargeForSetup: vi.fn(),
   failPayment: vi.fn(),
   failSetup: vi.fn(),
   findPaymentForWebhook: vi.fn(),
@@ -69,7 +69,7 @@ beforeEach(() => {
     arm: null,
   });
   vi.mocked(repo.saveCustomerCard).mockResolvedValue(true);
-  vi.mocked(repo.armAutoCharge).mockResolvedValue("ok");
+  vi.mocked(repo.armAutoChargeForSetup).mockResolvedValue("ok");
 });
 
 describe("handleProviderEvent: payments", () => {
@@ -170,19 +170,14 @@ describe("handleProviderEvent: card setups", () => {
       methodRef: "fake_pm_ok",
       card: { brand: "visa", last4: "4242" },
     });
-    expect(repo.armAutoCharge).toHaveBeenCalledWith(
-      ADMIN,
-      PARENT_ID,
-      { type: "allowance_schedule", id: SCHEDULE_ID },
-      "fake",
-    );
+    expect(repo.armAutoChargeForSetup).toHaveBeenCalledWith(ADMIN, SETUP_ID);
     expect(repo.succeedSetup).toHaveBeenCalledWith(ADMIN, SETUP_ID);
   });
 
   it("saves the card without arming when the setup has no toggle", async () => {
     expect(await handleProviderEvent("fake", saved)).toBe("applied");
     expect(repo.saveCustomerCard).toHaveBeenCalled();
-    expect(repo.armAutoCharge).not.toHaveBeenCalled();
+    expect(repo.armAutoChargeForSetup).not.toHaveBeenCalled();
     expect(repo.succeedSetup).toHaveBeenCalledWith(ADMIN, SETUP_ID);
   });
 
@@ -194,8 +189,22 @@ describe("handleProviderEvent: card setups", () => {
       status: "pending",
       arm: { type: "parent_gift", id: SCHEDULE_ID },
     });
-    vi.mocked(repo.armAutoCharge).mockResolvedValue("refused");
+    vi.mocked(repo.armAutoChargeForSetup).mockResolvedValue("refused");
     expect(await handleProviderEvent("fake", saved)).toBe("applied");
+    expect(repo.succeedSetup).toHaveBeenCalledWith(ADMIN, SETUP_ID);
+  });
+
+  it("still saves the card when the toggle was turned off meanwhile", async () => {
+    vi.mocked(repo.findSetupForWebhook).mockResolvedValue({
+      id: SETUP_ID,
+      parentId: PARENT_ID,
+      provider: "fake",
+      status: "pending",
+      arm: { type: "allowance_schedule", id: SCHEDULE_ID },
+    });
+    vi.mocked(repo.armAutoChargeForSetup).mockResolvedValue("cleared");
+    expect(await handleProviderEvent("fake", saved)).toBe("applied");
+    expect(repo.saveCustomerCard).toHaveBeenCalled();
     expect(repo.succeedSetup).toHaveBeenCalledWith(ADMIN, SETUP_ID);
   });
 
@@ -215,7 +224,7 @@ describe("handleProviderEvent: card setups", () => {
     });
     expect(await handleProviderEvent("fake", { ...saved, eventId: "evt_other" })).toBe("ignored");
     expect(repo.saveCustomerCard).not.toHaveBeenCalled();
-    expect(repo.armAutoCharge).not.toHaveBeenCalled();
+    expect(repo.armAutoChargeForSetup).not.toHaveBeenCalled();
   });
 
   it("marks a failed or expired setup", async () => {

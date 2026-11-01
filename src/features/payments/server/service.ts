@@ -464,7 +464,8 @@ async function assertParentOfTarget(target: AutoChargeTarget) {
 
 /**
  * Opens the chosen provider's hosted save-card page. With `arm`, the webhook turns that
- * auto-charge toggle on once the card is saved (arm_auto_charge re-checks the parent then).
+ * auto-charge toggle on once the card is saved, unless it was turned off meanwhile
+ * (arm_auto_charge_for_setup re-checks the arm and the parent then).
  * A provider that needs the parent's contact gets `phone` and the account email (`setupContact`).
  */
 export async function startCardSetup(

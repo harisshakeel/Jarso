@@ -557,21 +557,18 @@ export async function succeedSetup(admin: Client, setupId: string): Promise<void
  * when the database says no (JA403: no longer allowed; JA409: nothing left to charge or no card);
  * any other error throws.
  */
-export async function armAutoCharge(
+/**
+ * Turns on the toggle a save-card session was started for (arm_auto_charge_for_setup): "ok",
+ * "cleared" when it was turned off meanwhile, "refused" when it can no longer be turned on.
+ */
+export async function armAutoChargeForSetup(
   admin: Client,
-  parentId: string,
-  target: AutoChargeTarget,
-  provider: PaymentProviderId,
-): Promise<"ok" | "refused"> {
-  const { error } = await admin.rpc("arm_auto_charge", {
-    p_parent_id: parentId,
-    p_target_type: target.type,
-    p_target_id: target.id,
-    p_provider: provider,
-  });
+  setupId: string,
+): Promise<"ok" | "cleared" | "refused"> {
+  const { data, error } = await admin.rpc("arm_auto_charge_for_setup", { p_setup_id: setupId });
   if (error?.code === "JA403" || error?.code === "JA409") return "refused";
   if (error) throw toAppError(error, "Failed to turn on auto charge");
-  return "ok";
+  return data ? "ok" : "cleared";
 }
 
 // ---------------------------------------------------------------------------------------------

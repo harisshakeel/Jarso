@@ -1889,6 +1889,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      arm_auto_charge_for_setup: {
+        Args: { p_setup_id: string }
+        Returns: boolean
+      }
       available_save: { Args: { p_child_id: string }; Returns: number }
       available_spend: { Args: { p_child_id: string }; Returns: number }
       balance: {

@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { nextStatus } from "../status";
 import {
   applyPayment,
-  armAutoCharge,
+  armAutoChargeForSetup,
   failPayment,
   failSetup,
   findPaymentForWebhook,
@@ -120,11 +120,13 @@ async function handleSetup(
   });
   if (!saved) logger.warn("Card saved for a parent with no customer row", log);
   if (setup.arm) {
-    const armed = await armAutoCharge(admin, setup.parentId, setup.arm, provider);
-    if (armed === "refused") {
-      // The gift was given or the schedule stopped meanwhile; the card is still saved.
+    // Re-reads the arm under the target's lock: a turn-off meanwhile cleared it.
+    const armed = await armAutoChargeForSetup(admin, setup.id);
+    if (armed !== "ok") {
+      // Turned off, given or stopped meanwhile; the card is still saved.
       logger.info("Auto charge not turned on after saving the card", {
         ...log,
+        reason: armed,
         armType: setup.arm.type,
         armId: setup.arm.id,
       });
