@@ -1,5 +1,5 @@
+import { goalInputSchema } from "@jarso/core/goals";
 import { describe, expect, it } from "vitest";
-import { goalInputSchema } from "@/features/goals/schemas";
 
 const valid = { name: "Football boots", emoji: "⚽", target: "45", plan: "4" };
 

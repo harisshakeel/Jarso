@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { formatMoney, moneySchema } from "@/lib";
+import { formatMoney, moneySchema } from "../lib";
 import { GOAL_EMOJI } from "./emoji";
 
 /** Largest goal price in minor units; the database caps it too. */

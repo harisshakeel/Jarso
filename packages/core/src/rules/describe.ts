@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib";
+import { formatMoney } from "../lib";
 import type { MoneyRule, Period } from "./types";
 
 const PER: Record<Period, string> = { item: "each time", week: "a week", month: "a month" };

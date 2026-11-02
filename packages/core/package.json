@@ -10,7 +10,9 @@
   "exports": {
     "./lib": "./src/lib/index.ts",
     "./config": "./src/config/index.ts",
-    "./ledger": "./src/ledger/index.ts"
+    "./ledger": "./src/ledger/index.ts",
+    "./goals": "./src/goals/index.ts",
+    "./rules": "./src/rules/index.ts"
   },
   "dependencies": {
     "@jarso/content": "workspace:*",

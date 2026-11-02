@@ -1,10 +1,10 @@
 import "server-only";
+import type { GoalInput, GoalView } from "@jarso/core/goals";
+import { goalProgress } from "@jarso/core/goals";
 // Savings goal (FR02): the child's own goal, read by the child and their parents.
 import { cache } from "react";
 import { assertRole, assertSelfOrParentOf } from "@/features/family/server";
 import { createClient } from "@/lib/supabase/server";
-import { goalProgress } from "../progress";
-import type { GoalInput, GoalView } from "../types";
 import {
   callArchiveGoal,
   callGoalProgress,

@@ -1,5 +1,5 @@
+import { explainOutcome, predictOutcome } from "@jarso/core/goals";
 import { describe, expect, it } from "vitest";
-import { explainOutcome, predictOutcome } from "@/features/goals/predict";
 
 const base = { saveMinor: 6400, reservedMinor: 0, targetMinor: 12000, planMinor: 800 };
 const money = (minor: number) => `£${minor / 100}`;

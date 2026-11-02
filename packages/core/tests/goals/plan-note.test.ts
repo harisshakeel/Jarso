@@ -1,5 +1,5 @@
+import { planNote } from "@jarso/core/goals";
 import { describe, expect, it } from "vitest";
-import { planNote } from "@/features/goals/plan-note";
 
 const goal = { name: "Football boots", emoji: "⚽", planMinor: 400 };
 

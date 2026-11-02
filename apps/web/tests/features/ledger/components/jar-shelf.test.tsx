@@ -13,7 +13,7 @@ vi.mock("@/features/requests", async () => ({
   PutInSheet: () => <button type="button">Put in</button>,
 }));
 vi.mock("@/features/goals", async () => {
-  const progress = await import("@/features/goals/progress");
+  const progress = await import("@/features/goals");
   return {
     ...progress,
     GoalSheet: ({ goal }: { goal: unknown }) => (

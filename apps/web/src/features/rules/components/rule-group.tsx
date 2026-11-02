@@ -1,5 +1,7 @@
 "use client";
 
+import type { MoneyRule, Period, RuleKind } from "@jarso/core/rules";
+import { describeRule } from "@jarso/core/rules";
 import { PlusIcon } from "lucide-react";
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -7,9 +9,7 @@ import { AmountField, ChoiceChips, FormError } from "@/components/form";
 import { Button } from "@/components/ui";
 import { runOnline } from "@/features/offline";
 import { parseMoney, toMajorString } from "@/lib";
-import { describeRule } from "../describe";
 import { setRuleAction } from "../server/actions";
-import type { MoneyRule, Period, RuleKind } from "../types";
 
 export const PERIOD_LABEL: Record<Period, string> = {
   item: "Each time",

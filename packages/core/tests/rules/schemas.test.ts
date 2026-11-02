@@ -1,5 +1,5 @@
+import { overspendSchema, setRuleSchema } from "@jarso/core/rules";
 import { describe, expect, it } from "vitest";
-import { overspendSchema, setRuleSchema } from "@/features/rules/schemas";
 
 const childId = "6f1c2a52-3c4e-4c8e-9a51-0a1b2c3d4e5f";
 const base = { childId, kind: "spend_limit", period: "week" };

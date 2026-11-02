@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib";
+import { formatMoney } from "../lib";
 import type { Goal } from "./types";
 
 /**

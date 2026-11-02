@@ -1,5 +1,5 @@
+import { goalProgress } from "@jarso/core/goals";
 import { describe, expect, it } from "vitest";
-import { goalProgress } from "@/features/goals/progress";
 
 describe("goalProgress", () => {
   it("counts Save less reserved and estimates payments from the plan", () => {

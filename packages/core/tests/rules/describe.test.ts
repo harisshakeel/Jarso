@@ -1,6 +1,6 @@
+import type { MoneyRule } from "@jarso/core/rules";
+import { describeRule, describeRuleForChild, summarise } from "@jarso/core/rules";
 import { describe, expect, it } from "vitest";
-import { describeRule, describeRuleForChild, summarise } from "@/features/rules/describe";
-import type { MoneyRule } from "@/features/rules/types";
 
 const rule = (kind: MoneyRule["kind"], period: MoneyRule["period"], amountMinor: number) => ({
   kind,
