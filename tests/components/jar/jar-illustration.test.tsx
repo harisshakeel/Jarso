@@ -34,7 +34,7 @@ describe("JarIllustration", () => {
     expect(container.querySelector("[data-coins]")).toBeNull();
     rerender(<JarIllustration jar="spend" capacityMinor={1000} filledMinor={500} />);
     expect(container.querySelector("[data-coins]")).not.toBeNull();
-    expect(container.querySelectorAll("[data-coins] circle")).toHaveLength(2);
+    expect(container.querySelectorAll("[data-coins] > g")).toHaveLength(2);
     const { container: falling } = render(
       <JarIllustration jar="spend" capacityMinor={1000} filledMinor={500} />,
     );

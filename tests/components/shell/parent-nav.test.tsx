@@ -30,6 +30,7 @@ describe("ParentNav", () => {
     ["/parent/children/abc", "Home"],
     ["/parent/children/abc/allowance", "Home"],
     ["/parent/allowance", "Allowance"],
+    ["/parent/settings", "Settings"],
   ])("on %s lights %s", (path, tab) => {
     pathname.current = path;
     render(<ParentNav />);

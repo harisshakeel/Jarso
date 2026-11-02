@@ -8,7 +8,7 @@ Production runs on Vercel, database and auth on Supabase. Both are in Tokyo so e
 | Production URL | https://jarso.vercel.app |
 | Function region | `hnd1` (pinned in `vercel.json`) |
 | Supabase project | `sbnakvwvaymzypwmpqzv`, region `ap-northeast-1` |
-| Health check | https://jarso.vercel.app/api/health → `{"data":{"status":"ok"}}`; `?deep=1` also asks the database and answers 503 when it does not reply (point the uptime monitor here) |
+| Health check | https://jarso.vercel.app/api/health → `{"data":{"status":"ok"}}`; `?deep=1` also asks the database and answers 503 when it does not reply (point the uptime monitor here), and reports `guide: on|off` so a missing `FEATURE_GUIDE` or `ANTHROPIC_API_KEY` shows without reading logs |
 
 ## Environment variables
 

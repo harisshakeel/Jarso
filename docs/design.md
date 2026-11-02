@@ -163,7 +163,7 @@ Design at 360 px first, then 768 and 1024. Single column on phones; parent scree
 
 Tab bar height 64 px plus the safe-area inset, icons 24 px, labels 12 px 600, active tab primary with a filled icon. The Inbox tab shows a count badge in gold with ink text. Family settings live under the parent's Home.
 
-**Header**: 56 px, the mark and name on the left, the settings link on the right, nothing else. No hamburger, no sign out: that lives in Settings ("Done for now?"), so a child never has a destructive button a thumb away from Home. The light/dark toggle lives in Settings ("Looks") and on the signed-out pages.
+**Header**: 56 px, the mark and name on the left (a link to the landing page), the signed-in person's avatar on the right (their initial in a teal disc, opening Settings), nothing else. From 1024 px Settings is also the last item of the left rail ("Me" for a child). No hamburger, no sign out: that lives in Settings ("Done for now?"), so a child never has a destructive button a thumb away from Home. The light/dark toggle lives in Settings ("Looks") and on the signed-out pages.
 
 **Page rhythm**: title, one primary card (balance, due allowance, next step), then lists. The first thing on every Home is the next step (FR12): a mission, a due handover, a pending request.
 
