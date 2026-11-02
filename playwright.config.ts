@@ -43,7 +43,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? "github" : "list",
+  // On CI the html report holds the retry traces; the workflow uploads it when the job fails.
+  reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   globalSetup: "./tests/e2e/global-setup.ts",
   use: { baseURL, trace: "on-first-retry" },
   projects: [
