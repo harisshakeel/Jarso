@@ -1,15 +1,10 @@
 import "server-only";
+import { getClosedOccurrences, getOccurrenceAmounts } from "@/features/allowance/server";
 import { assertSelfOrParentOf, getFamily } from "@/features/family/server";
 import { localDateOf } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import type { HistoryItem, Jars } from "../types";
-import {
-  fetchBalance,
-  type LedgerRow,
-  listClosedOccurrences,
-  listLedgerRows,
-  listOccurrenceAmounts,
-} from "./repository";
+import { fetchBalance, type LedgerRow, listLedgerRows } from "./repository";
 
 /** Reads of a child's money. The child or a parent of the child only. */
 
@@ -167,7 +162,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
   const db = await createClient();
   const [rows, closed, family] = await Promise.all([
     listLedgerRows(db, childId, ROW_LIMIT, before),
-    listClosedOccurrences(db, childId, HISTORY_LIMIT + 1, before),
+    getClosedOccurrences(childId, HISTORY_LIMIT + 1, before),
     getFamily(),
   ]);
   const timezone = family?.timezone ?? "UTC";
@@ -176,7 +171,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
 
   const occurrenceIds = groups.filter((g) => g.kind === "allowance").map((g) => g.sourceId);
   const amounts = new Map(
-    (await listOccurrenceAmounts(db, occurrenceIds)).map((o) => [o.id, o] as const),
+    (await getOccurrenceAmounts(childId, occurrenceIds)).map((o) => [o.id, o] as const),
   );
 
   const items: Timed[] = [

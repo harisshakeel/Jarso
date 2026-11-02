@@ -8,11 +8,14 @@ vi.mock("@/features/family/server", () => ({
 }));
 vi.mock("@/features/ledger/server/repository", () => ({
   fetchBalance: vi.fn(),
-  listClosedOccurrences: vi.fn(),
   listLedgerRows: vi.fn(),
-  listOccurrenceAmounts: vi.fn(),
+}));
+vi.mock("@/features/allowance/server", () => ({
+  getClosedOccurrences: vi.fn(),
+  getOccurrenceAmounts: vi.fn(),
 }));
 
+const allowance = await import("@/features/allowance/server");
 const family = await import("@/features/family/server");
 const repo = await import("@/features/ledger/server/repository");
 const { getHistory, getHistoryPage, getJars } = await import("@/features/ledger/server/service");
@@ -50,8 +53,8 @@ beforeEach(() => {
     currency: "INR",
     timezone: "Asia/Kolkata",
   });
-  vi.mocked(repo.listClosedOccurrences).mockResolvedValue([]);
-  vi.mocked(repo.listOccurrenceAmounts).mockResolvedValue([]);
+  vi.mocked(allowance.getClosedOccurrences).mockResolvedValue([]);
+  vi.mocked(allowance.getOccurrenceAmounts).mockResolvedValue([]);
 });
 
 describe("getJars", () => {
@@ -75,7 +78,7 @@ describe("getHistory", () => {
       row({ id: "r1", jar: "spend", amountMinor: 30000 }),
       row({ id: "r2", jar: "save", amountMinor: 10000 }),
     ]);
-    vi.mocked(repo.listOccurrenceAmounts).mockResolvedValue([
+    vi.mocked(allowance.getOccurrenceAmounts).mockResolvedValue([
       { id: "occ-1", amountMinor: 50000, shortfallMinor: 10000 },
     ]);
 
@@ -124,10 +127,10 @@ describe("getHistory", () => {
       }),
       row({ id: "r1", amountMinor: 500, occurredAt: "2026-10-20T09:00:00Z" }),
     ]);
-    vi.mocked(repo.listOccurrenceAmounts).mockResolvedValue([
+    vi.mocked(allowance.getOccurrenceAmounts).mockResolvedValue([
       { id: "occ-1", amountMinor: 500, shortfallMinor: 0 },
     ]);
-    vi.mocked(repo.listClosedOccurrences).mockResolvedValue([
+    vi.mocked(allowance.getClosedOccurrences).mockResolvedValue([
       { id: "occ-2", closedAt: "2026-10-27T09:00:00Z" },
     ]);
 
@@ -448,8 +451,7 @@ describe("getHistoryPage", () => {
       100,
       "2026-10-01T00:00:00Z",
     );
-    expect(repo.listClosedOccurrences).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(allowance.getClosedOccurrences).toHaveBeenCalledWith(
       childId,
       51,
       "2026-10-01T00:00:00Z",
@@ -481,7 +483,7 @@ describe("getHistoryPage", () => {
     rows[98] = row({ ...rows[98], sourceId: "occ-49" });
     vi.mocked(repo.listLedgerRows).mockResolvedValue(rows);
     // Not given long ago: older than the cut, so it belongs to a later page.
-    vi.mocked(repo.listClosedOccurrences).mockResolvedValue([
+    vi.mocked(allowance.getClosedOccurrences).mockResolvedValue([
       { id: "occ-old", closedAt: "2026-01-01T00:00:00Z" },
     ]);
 

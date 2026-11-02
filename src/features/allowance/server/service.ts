@@ -21,6 +21,7 @@ import type {
   Split,
 } from "../types";
 import {
+  type ClosedOccurrence,
   cancelPendingGift,
   changeGift,
   changeSchedule,
@@ -38,8 +39,11 @@ import {
   findScheduleState,
   insertGift,
   insertSchedule,
+  listClosedOccurrences,
   listDueForParent,
+  listOccurrenceAmounts,
   listPendingGifts,
+  type OccurrenceAmounts,
   pauseSchedule,
   resumeSchedule,
   stopSchedule,
@@ -146,6 +150,28 @@ export async function listDueForChild(
 ): Promise<{ totalMinor: number; count: number }> {
   await assertSelfOrParentOf(childId);
   return sumDueOccurrences(await createClient(), childId);
+}
+
+/** Planned amount and shortfall of a child's allowance occurrences, for history. Child or parent. */
+export async function getOccurrenceAmounts(
+  childId: string,
+  occurrenceIds: string[],
+): Promise<OccurrenceAmounts[]> {
+  await assertSelfOrParentOf(childId);
+  return listOccurrenceAmounts(await createClient(), occurrenceIds);
+}
+
+/**
+ * A child's allowances closed as not given, newest first; only those closed before `before`
+ * when given. For history. Child or parent.
+ */
+export async function getClosedOccurrences(
+  childId: string,
+  limit: number,
+  before?: string,
+): Promise<ClosedOccurrence[]> {
+  await assertSelfOrParentOf(childId);
+  return listClosedOccurrences(await createClient(), childId, limit, before);
 }
 
 /** Due allowances and due gifts, oldest first. Parent only: it reveals pending gifts. */
