@@ -9,7 +9,7 @@
 
 Both must stay thin and call the feature **service**.
 
-Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. Two cron routes exist today, because their work needs app code: `/api/cron/payments/auto-charge` (charging a card, ADR 0013 card handover) and `/api/cron/push` (sending web push, ADR 0012 web push). Both take the same `CRON_SECRET`. More arrive with email delivery in the final demo.
+Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. Three cron routes exist today, because their work needs app code: `/api/cron/payments/auto-charge` (charging a card, ADR 0013 card handover), `/api/cron/push` (sending web push, ADR 0012 web push) and `/api/cron/guide/noticed` (Jarso's weekly nudges, which may ask Claude to word a line). All take the same `CRON_SECRET`. More arrive with email delivery in the final demo.
 
 ## Server Actions
 
@@ -58,6 +58,7 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | POST | `/api/v1/payments/webhooks/[provider]` | provider signature | A payment provider's signed event (ADR 0013) |
 | GET, POST | `/api/cron/payments/auto-charge` | `Authorization: Bearer <CRON_SECRET>` | Charge every due item with auto charge on |
 | GET | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Daily web push sweep (ADR 0012); 404 when the secret is unset |
+| GET | `/api/cron/guide/noticed` | `Authorization: Bearer $CRON_SECRET` | Jarso noticed: the weekly nudges (demo 3); 404 when the secret is unset |
 
 ### `POST /api/v1/outbox`
 
@@ -107,6 +108,10 @@ Called by the payment provider, never by our UI (`apps/web/src/app/api/v1/paymen
 ### `POST /api/v1/payments/razorpay/return`
 
 Where Razorpay Checkout posts its form after the save-card page (`apps/web/src/app/api/v1/payments/razorpay/return/route.ts`). It is the only `withApi` route with `{ crossOrigin: true }`: the post comes from Razorpay's site, so the same-origin check would refuse it. That is safe because the route reads no session, writes nothing and only redirects. Query: `success` and `cancel`, absolute URLs on `NEXT_PUBLIC_APP_URL`'s origin. It answers 303 to `success` when the form has `razorpay_payment_id`, else to `cancel`; with either URL missing or off-origin it answers 303 to `/parent`. The `order.paid` webhook, not this redirect, saves the card. 404 when Razorpay is off.
+
+### `GET /api/cron/guide/noticed`
+
+Calls `runGuideNoticed()` (`features/guide/server/noticed.ts`). A weekly Vercel Cron (`apps/web/vercel.json`, `0 17 * * 0`, Sunday 17:00 UTC) calls it with `Authorization: Bearer $CRON_SECRET` (constant-time compare); 404 when `CRON_SECRET` is unset, 401 for a wrong secret. For each approved child it reads `guide_noticed_inputs`, picks at most one signal in code (a goal quarter mark, a saving streak of 3, 5, 8 or 12 allowances, a parent-only spending week over twice the one before, or 14 quiet days), and records it with `guide_noticed_record`, which writes the child's and the parents' notices. Where Jarso is on for the child and the guide is up, under its breaker and within budget, Claude Haiku may reword the child's line; the reworded line must keep exactly the fixed line's figure refs and pass the output screen, or the fixed line goes out. Nothing about a child whose parent turned Jarso off is sent to Anthropic. A repeat is harmless (a signal is sent once; one nudge per child in 6 days). Stops starting children after 40 s; `maxDuration` 60 s. Returns counts only: `{children, nudged, notices, worded, quiet, failed, timedOut}`.
 
 ### `GET|POST /api/cron/payments/auto-charge`
 

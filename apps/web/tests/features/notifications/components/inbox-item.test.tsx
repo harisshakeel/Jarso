@@ -57,4 +57,21 @@ describe("InboxItem", () => {
     fireEvent.click(screen.getByRole("link"));
     expect(onOpen.mock.calls[0]?.[0]).toBe(notice.id);
   });
+
+  it("shows the Jarso mark on a Jarso noticed nudge, and an icon on anything else", () => {
+    const { container, unmount } = render(
+      <InboxItem
+        notice={{ ...notice, kind: "guide_noticed", sourceType: "guide_noticed" }}
+        href="/child/goal"
+        title="Halfway to Bike"
+        detail="£50 of £100 counts toward it now."
+      />,
+    );
+    expect(container.querySelector('img[src*="jarso-mark"]')).not.toBeNull();
+    expect(container.querySelector("span[aria-hidden] > svg")).toBeNull();
+    unmount();
+    renderItem();
+    expect(document.querySelector('img[src*="jarso-mark"]')).toBeNull();
+    expect(document.querySelector("span[aria-hidden] > svg")).not.toBeNull();
+  });
 });

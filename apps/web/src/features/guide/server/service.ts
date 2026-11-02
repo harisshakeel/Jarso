@@ -22,14 +22,10 @@ import { AppError, familyToday, isAppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { guideBreaker } from "./breaker";
-import {
-  getGuideProvider,
-  guideDailyBudgetCents,
-  guideMonthlyBudgetCents,
-  guideProviderName,
-} from "./config";
+import { budgetSpent } from "./budget";
+import { getGuideProvider, guideProviderName } from "./config";
 import { type BuiltContext, buildContext } from "./context";
-import { usageCents, zeroUsage } from "./cost";
+import { zeroUsage } from "./cost";
 import { deleteMemory, listMemories } from "./memory";
 import { fallbackResult, type PipelineResult, runGuidePipeline } from "./pipeline";
 import { GUIDE_PROMPT_VERSION } from "./prompts";
@@ -67,21 +63,6 @@ export async function getGuideState(childId: string): Promise<GuideState> {
     });
     return off;
   }
-}
-
-async function spentCentsSince(since: string): Promise<number> {
-  const rows = await repo.usageSince(createAdminClient(), since);
-  return rows.reduce((sum, row) => sum + usageCents(row.usage, row.model), 0);
-}
-
-/** Whether today's or this month's spend (UTC) has reached its cap. */
-async function budgetSpent(): Promise<boolean> {
-  const today = new Date().toISOString().slice(0, 10);
-  const [day, month] = await Promise.all([
-    spentCentsSince(`${today}T00:00:00Z`),
-    spentCentsSince(`${today.slice(0, 7)}-01T00:00:00Z`),
-  ]);
-  return day >= guideDailyBudgetCents() || month >= guideMonthlyBudgetCents();
 }
 
 /**

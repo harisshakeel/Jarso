@@ -409,6 +409,32 @@ isOneToOne: false
       referencedColumns: ["id","child_id"]
     }
                   ]
+                },"guide_noticed_runs": {
+                  Row: {
+                    "child_id": string,"family_id": string,"id": string,"noticed_at": string,"payload": NonNullable<Json>,"signal_key": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"family_id": string,"id"?: string,"noticed_at"?: string,"payload"?: NonNullable<Json>,"signal_key": string
+                  }
+                  Update: {
+                    "child_id"?: string,"family_id"?: string,"id"?: string,"noticed_at"?: string,"payload"?: NonNullable<Json>,"signal_key"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "guide_noticed_runs_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "guide_noticed_runs_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"invitations": {
                   Row: {
                     "accepted_by": string | null,"child_id": string | null,"code_hash": string,"created_at": string,"expires_at": string,"family_id": string | null,"id": string,"kind": string,"nickname": string,"parent_email": string | null,"status": string,"token_hash": string
@@ -1117,6 +1143,14 @@ isOneToOne: false
 { Args: { "p_child_id": string,"p_client_message_id": string }; Returns: {
               "conversation_id": string,"reply_id": string
             }[]
+                           },
+"guide_noticed_inputs":
+{ Args: { "p_now"?: string }; Returns: {
+              "allowance_days": Json,"child_id": string,"currency": string,"family_id": string,"goal": Json,"guide_on": boolean,"last_move_on": string,"last_noticed_at": string,"nickname": string,"signal_keys": string[],"spent_7_days_before_minor": number,"spent_last_7_days_minor": number,"timezone": string,"today": string
+            }[]
+                           },
+"guide_noticed_record":
+{ Args: { "p_child_id": string,"p_child_payload": Json,"p_parent_payload": Json,"p_signal_key": string }; Returns: number
                            },
 "guide_record_turn":
 { Args: { "p_child_id": string,"p_child_text": string,"p_client_message_id"?: string,"p_conversation_id": string,"p_flagged": boolean,"p_latency_ms": number,"p_model": string,"p_reply_role": string,"p_reply_text": string,"p_route": string,"p_tool_calls"?: Json,"p_usage": Json }; Returns: string

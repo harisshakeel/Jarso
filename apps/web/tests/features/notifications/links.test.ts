@@ -65,4 +65,18 @@ describe("card_charge_failed", () => {
       noticeHref({ ...failed, payload: { source_type: "request", source_id: "x" } }, "parent"),
     ).toBe(routes.parent);
   });
+  it("a Jarso noticed nudge opens the page it is about", () => {
+    const noticed = {
+      ...base,
+      kind: "guide_noticed" as const,
+      sourceType: "guide_noticed" as const,
+    };
+    const open = (to: string) => ({ ...noticed, payload: { open: to } });
+    expect(noticeHref(open("goal"), "child")).toBe(routes.childGoal);
+    expect(noticeHref(open("jarso"), "child")).toBe(routes.childJarso);
+    expect(noticeHref(open("home"), "child")).toBe(routes.child);
+    expect(noticeHref(open("nowhere"), "child")).toBe(routes.child);
+    expect(noticeHref(open("history"), "parent")).toBe(routes.parentChildHistory("c1"));
+    expect(noticeHref(open("child"), "parent")).toBe(routes.parentChild("c1"));
+  });
 });

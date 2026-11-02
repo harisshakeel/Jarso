@@ -202,4 +202,25 @@ describe("noticeText", () => {
       detail: "Done without asking, as you set.",
     });
   });
+
+  it("guide_noticed shows the lines written when the nudge was sent", () => {
+    const n = { ...base, kind: "guide_noticed" as const, sourceType: "guide_noticed" as const };
+    expect(
+      noticeText(
+        {
+          ...n,
+          payload: { title: "Halfway to Bike", detail: "£50 of £100 counts toward it now." },
+        },
+        "child",
+        "GBP",
+      ),
+    ).toEqual({ title: "Halfway to Bike", detail: "£50 of £100 counts toward it now." });
+    expect(noticeText({ ...n, payload: { title: "  " } }, "parent", "GBP")).toEqual({
+      title: "Jarso noticed something",
+      detail: "Take a look.",
+    });
+    expect(
+      noticeText({ ...n, payload: { title: "x".repeat(300) } }, "child", "GBP").title,
+    ).toHaveLength(140);
+  });
 });

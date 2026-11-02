@@ -14,9 +14,15 @@ export type NoticeKind =
   | "card_charge_failed"
   | "money_received"
   | "entry_corrected"
-  | "jar_moved";
+  | "jar_moved"
+  | "guide_noticed";
 
-export type NoticeSource = "ledger_entry" | "request" | "allowance_occurrence" | "payment";
+export type NoticeSource =
+  | "ledger_entry"
+  | "request"
+  | "allowance_occurrence"
+  | "payment"
+  | "guide_noticed";
 
 export type Notice = {
   id: string;
