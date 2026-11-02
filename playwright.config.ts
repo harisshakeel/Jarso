@@ -84,6 +84,12 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     { name: "diary", testMatch: "diary.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    // Phone width (360 px, the smallest design.md targets), touch on, Chromium.
+    {
+      name: "a11y",
+      testMatch: "a11y.spec.ts",
+      use: { ...devices["Pixel 5"], viewport: { width: 360, height: 780 } },
+    },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
