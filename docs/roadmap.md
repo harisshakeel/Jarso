@@ -74,7 +74,7 @@ Sizes below are relative effort (S < M < L), not dates.
 | 5 | **Jar Home.** Child Home built around two jars: "Do this next" (goal reached, a withdrawal a parent said yes to, the learning order, set a goal, all done), Spend and Save side by side with the Save jar filling to the goal's line, due money as a coin outside the jars, open requests under their jar, and a strip of skills learned (counts that only go up, no day grid). History moves to a Diary tab. Parent Home leads with Needs you (due handovers, requests, unread limit notices) and shows each child's jars small with the goal line. Designed from the HTML mockup the user approved, with no Figma step and no milestone road. | FR12, FR02, FR03, FR04, FR10 | L | Built: `superpowers/specs/2026-10-30-inbox-goal-jar-home-design.md` §6 | 3; 2 for the inbox badge |
 | 7 | **Jarso, the agent (child).** "Ask Jarso" at the top of the child's Home; read-only look-ups of the child's own jars, allowance, history, rules and learning, and a saving plan for a price they give; figures filled in by the app; status lines while it works; on by default with a parent switch to turn it off; parents see what it looked at; Claude Sonnet 5.5; `instructions.md` for its voice. | FR07, FR09 | L | Written: `superpowers/specs/2026-10-30-jarso-agent-design.md`, ADR 0011 | Done (this slice) |
 | 8 | **Jarso knows the goal, and remembers.** `get_goal` over the savings goal ("how much more for my bike?" without giving the price) and `get_requests`: built; structured memory (short typed facts, at most 20, 90 days, checked for personal details, shown to child and parent with delete): built. | FR07, FR02 | M | Plan in the agent spec §8 | 3, 7 |
-| 6 | **Demo hardening.** Demo clock (D11) with the injectable clock in the remaining time functions; a seed family with two children; a full-milestone e2e; each acceptance criterion mapped to a test; a design polish pass. | All | M | Written: first-milestone design, slice 6; `superpowers/specs/2026-11-02-demo-clock-design.md`. Demo clock built (offset, triggers, `advance_family_clock`, parent card behind `FEATURE_DEMO_CLOCK`); seed family, e2e and polish in progress | 1–5 |
+| 6 | **Demo hardening.** Demo clock (D11) with the injectable clock in the remaining time functions; a seed family with two children; a full-milestone e2e; each acceptance criterion mapped to a test; a design polish pass. | All | M | Written: first-milestone design, slice 6; `superpowers/specs/2026-11-02-demo-clock-design.md`. Demo clock built (offset, triggers, `advance_family_clock`, parent card behind `FEATURE_DEMO_CLOCK`); seed family built (`pnpm db:seed:demo`, `scripts/seed-demo.mts`); full-milestone e2e built (`tests/e2e/milestone.spec.ts`); each criterion mapped to its tests in `fr-audit.md`. Left: the design polish pass, and the owner's seed run on production | 1–5 |
 
 Three tracks run side by side: Jarso (7, then 3 and 8), money (1, then 2), and design (4 done, 5 once the goal exists). Alongside: run the guide eval gate and fix what it finds.
 
@@ -90,10 +90,10 @@ Three tracks run side by side: Jarso (7, then 3 and 8), money (1, then 2), and d
 
 **Done when**
 
-- Every first-milestone acceptance criterion maps to a passing test.
+- Every first-milestone acceptance criterion maps to a passing test. Mapped in `fr-audit.md` ("Milestone-one acceptance criteria"), with `tests/e2e/milestone.spec.ts` running the whole milestone in one go.
 - The guide eval gate has passed: every safety and personal case routed correctly, zero FR09 breaks, at least 95% helpful.
 - The landing page and the child dashboard are live in light and dark, at AA contrast, with reduced motion respected.
-- The seed family runs the whole script on production.
+- The seed family runs the whole script on production. The seed (`pnpm db:seed:demo`) and the e2e of the script are built; seeding production (`--yes-hosted`, with `FEATURE_DEMO_CLOCK=true` on the deployment) is the owner's step (`docs/deploy.md`).
 
 ## Final demo: the full pilot
 

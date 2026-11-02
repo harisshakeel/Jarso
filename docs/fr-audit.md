@@ -35,25 +35,25 @@ Legend: **Built** = on `main`, usable end to end, tested, live on production · 
 | Child money history | `ledger_entries.child_id` is `on delete restrict`, and `remove_child` keeps the account once ledger rows exist (ADR 0007). |
 | Email confirmation | **Off.** Needs custom SMTP first; the confirmation template is commented out in `supabase/config.toml` until then, because the free tier rejects template changes and that stops the integration. Turn both back on before real families. |
 
-## Milestone-one acceptance criteria, today
+## Milestone-one acceptance criteria
 
-| Criterion | Met |
-| --- | --- |
-| Both onboarding paths reach parent-approved state | Yes |
-| Parent sets allowance schedule and limits | Yes |
-| Allowance becomes due exactly once, no balance change | Yes (pgTAP `allowance_generation`, live job) |
-| Due badge on both accounts and parent reminder | Yes (badges, plus the due and 3-day reminders in the parent's inbox) |
-| Handover posts cash and savings exactly once | Yes (pgTAP `handover`, `handover-race` e2e) |
-| Over-limit purchase recorded and parent notified | Yes (notice row, shown in the parent's inbox) |
-| Withdrawal posts only after approval and handover; reservation | Yes (pgTAP `withdrawals`, `requests` and `requests-race` e2e) |
-| Deposit posts only after receipt confirmation | Yes (pgTAP, `requests` e2e) |
-| Parent gets in-app notices for request and limit breach | Yes (limit and request notices in the inbox) |
-| Child-initiated onboarding collects only nickname and parent email | Yes |
-| Repeated or concurrent confirmations cannot duplicate | Yes (`handover-race` and `requests-race` e2e) |
-| Works with push disabled | Yes |
-| Unlinked account cannot act for the family | Yes (pgTAP and e2e) |
+Each criterion in `REQUIREMENTS.md` ("First-milestone acceptance criteria") and the tests that prove it (updated 2026-11-02, slice 6). `M` is `tests/e2e/milestone.spec.ts`, the whole milestone in one run with one parent and one child, time moved by the demo clock. E2E references are `file:line` of the test; pgTAP files are in `supabase/tests/database/`. All 13 are met.
 
-Thirteen of thirteen are met on `main` once PR B merges.
+| # | Criterion | E2E | pgTAP |
+| --- | --- | --- | --- |
+| 1 | Child- and parent-initiated onboarding reach the parent-approved state | `onboarding.spec.ts:88` (parent-started), `:109` (child-started), `:157` (invitations list); `M` setup (`milestone.spec.ts:75`) | `family_core`, `invitations`, `child_accounts`, `list_my_invitations` |
+| 2 | The parent can set an allowance schedule and spending limits | `allowance.spec.ts:108`, `:123`; `purchases.spec.ts:91`; `requests.spec.ts:281`, `:311`, `:368` (request rules); `M:135` | `allowance_schedules`, `money_rules` |
+| 3 | A scheduled allowance becomes due exactly once, including on retry, with no balance change | `allowance.spec.ts:234`; `M:164` (falls due on the demo clock, one occurrence, jars at 0) | `allowance_generation`, `demo_clock` |
+| 4 | Both accounts show the due badge; the parent gets a reminder while unconfirmed | `child-home.spec.ts:85`; `allowance.spec.ts:278`; `inbox.spec.ts:74`, `:94`, `:101`; `M:164` (badge and due-day notice on both sides), `M:205` (3-day reminder) | `inbox_reminders`, `demo_clock` |
+| 5 | The handover posts the entered cash and savings to Spend and Save exactly once | `allowance.spec.ts:173`; `handover-race.spec.ts:106`, `:124`, `:146`; `M:223` (two ledger lines, both jars) | `handover`, `parent_gifts`, `retry_safety` |
+| 6 | A purchase over a limit is recorded and the parent gets a limit notice | `purchases.spec.ts:116`, `:131`; `M:247` (notice in the parent's inbox) | `purchases`, `money_rules`, `notifications` |
+| 7 | A withdrawal posts only after approval and handover; rejection changes nothing; reserved while pending or approved and not requestable again | `requests.spec.ts:119`, `:154`, `:173`; `requests-race.spec.ts:183`, `:198`, `:274`, `:363`; `M:267` | `withdrawals`, `requests` |
+| 8 | A deposit posts only after the parent confirms receiving the cash; cancellation and rejection change nothing | `requests.spec.ts:209`, `:247`, `:297`; `requests-race.spec.ts:327`; `M:311` | `deposits`, `requests` |
+| 9 | In-app notices for a new request and a limit breach, with push disabled | `requests.spec.ts:173` (asserts push is off), `:209`, `:247`; `inbox.spec.ts:118`, `:180`; `M:247`, `M:267`, `M:311` | `notifications` (notices are rows, independent of push) |
+| 10 | Child-initiated onboarding collects only a nickname and the parent's email | `onboarding.spec.ts:109` | `invitations` |
+| 11 | Repeated or concurrent confirmations and decisions cannot duplicate a balance change | `handover-race.spec.ts:106`, `:124`, `:146`; `requests-race.spec.ts:183`, `:302`, `:327`; `offline-purchase.spec.ts` (resent purchase recorded once) | `retry_safety`, `handover`, `withdrawals`, `deposits` |
+| 12 | The whole flow works with push disabled | `M` (every step; the e2e server has no VAPID keys); `requests.spec.ts:173` | — (push is a delivery on top of the notice rows) |
+| 13 | An unlinked account cannot view, confirm or decide anything for the family | `onboarding.spec.ts:206`; `family-settings.spec.ts:121` (a removed child is signed out); `onboarding.spec.ts:235`, `:262` (PIN lockout) | `family_core`, `child_accounts`, `handover`, `requests`, `withdrawals`, `deposits`, `money_rules`, `notifications` |
 
 ## Known follow-ups from slice 2 (non-blocking)
 
