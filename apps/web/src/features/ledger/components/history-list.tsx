@@ -1,3 +1,5 @@
+import type { HistoryItem } from "@jarso/core/ledger";
+import { categoryOf } from "@jarso/core/ledger";
 import {
   ArrowRightLeftIcon,
   CalendarXIcon,
@@ -11,8 +13,6 @@ import type { ReactNode } from "react";
 import { JarsoMark } from "@/components/brand";
 import { Card, CardContent } from "@/components/ui";
 import { cn, formatMoney } from "@/lib";
-import { categoryOf } from "../categories";
-import type { HistoryItem } from "../types";
 
 const JAR_NAME = { spend: "Spend", save: "Save" } as const;
 

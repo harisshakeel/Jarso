@@ -9,7 +9,8 @@
   },
   "exports": {
     "./lib": "./src/lib/index.ts",
-    "./config": "./src/config/index.ts"
+    "./config": "./src/config/index.ts",
+    "./ledger": "./src/ledger/index.ts"
   },
   "dependencies": {
     "@jarso/content": "workspace:*",

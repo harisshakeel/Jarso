@@ -1,4 +1,4 @@
-import { minorDigits } from "@/lib";
+import { minorDigits } from "../lib";
 
 /**
  * One shared scale for both jars when there is no goal, so Spend and Save compare honestly:

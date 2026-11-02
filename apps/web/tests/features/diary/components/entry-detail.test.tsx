@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EntryDetail } from "@/features/diary/components/entry-detail";
-import type { HistoryItem } from "@/features/ledger/types";
+import type { HistoryItem } from "@/features/ledger";
 
 const { fix, undo, versions, refresh } = vi.hoisted(() => ({
   fix: vi.fn(),

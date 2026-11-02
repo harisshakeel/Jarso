@@ -1,6 +1,6 @@
+import type { HistoryItem } from "@jarso/core/ledger";
+import { spendingByCategory, whereItWent } from "@jarso/core/ledger";
 import { describe, expect, it } from "vitest";
-import type { HistoryItem } from "@/features/ledger/types";
-import { spendingByCategory, whereItWent } from "@/features/ledger/where-it-went";
 
 const TODAY = "2026-11-04"; // Wednesday; the week starts 2026-11-02
 let n = 0;

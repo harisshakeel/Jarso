@@ -1,5 +1,5 @@
+import { jarCapacity } from "@jarso/core/ledger";
 import { describe, expect, it } from "vitest";
-import { jarCapacity } from "@/features/ledger/jar-scale";
 
 describe("jarCapacity", () => {
   it("is the biggest of the balances and four allowances", () => {

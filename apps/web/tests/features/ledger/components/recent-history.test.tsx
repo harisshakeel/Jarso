@@ -1,8 +1,8 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import type { Route } from "next";
 import { afterEach, describe, expect, it } from "vitest";
+import type { HistoryItem } from "@/features/ledger";
 import { RecentHistory } from "@/features/ledger/components/recent-history";
-import type { HistoryItem } from "@/features/ledger/types";
 
 afterEach(cleanup);
 

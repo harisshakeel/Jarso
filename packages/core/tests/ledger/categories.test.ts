@@ -1,5 +1,5 @@
+import { categoryOf, RECEIVED_CATEGORIES, SPEND_CATEGORIES } from "@jarso/core/ledger";
 import { describe, expect, it } from "vitest";
-import { categoryOf, RECEIVED_CATEGORIES, SPEND_CATEGORIES } from "@/features/ledger";
 
 describe("categories", () => {
   it("lists 9 spend keys in order", () => {

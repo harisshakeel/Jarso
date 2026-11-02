@@ -1,8 +1,8 @@
+import type { Jars as JarBalances } from "@jarso/core/ledger";
+import { jarCapacity } from "@jarso/core/ledger";
 import { JarIllustration } from "@/components/jar";
 import { Card, CardContent } from "@/components/ui";
 import { formatMoney } from "@/lib";
-import { jarCapacity } from "../jar-scale";
-import type { Jars as JarBalances } from "../types";
 
 type JarsProps = {
   jars: JarBalances;
