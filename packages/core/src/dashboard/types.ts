@@ -28,6 +28,8 @@ export type DashboardChild = {
   history: HistoryItem[];
   /** Where both jars stood each day, or null when that read failed. */
   balances: BalanceHistory | null;
+  /** Jarso chats flagged for the parent this week (a safety or personal-details reply). */
+  flaggedChats: number;
 };
 
 /** A period the dashboard looks at, in days back from today, with the one before it. */
@@ -75,7 +77,7 @@ export type TimelineEvent = {
 };
 
 /** What a callout offers to do, mapped to a page by the app. */
-export type CalloutAction = "limit" | "allowance" | "goal";
+export type CalloutAction = "limit" | "allowance" | "goal" | "chats";
 
 /** One plain observation about one child, never compared with another child. */
 export type Callout = {

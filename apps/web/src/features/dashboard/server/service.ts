@@ -2,6 +2,7 @@ import { type DashboardChild, periodOf, slotFor, windowFor } from "@jarso/core/d
 import { getSchedule, listDue, listGifts } from "@/features/allowance/server";
 import { getFamily, listChildren } from "@/features/family/server";
 import { getGoalView } from "@/features/goals/server";
+import { isGuideConfigured, listGuideChats } from "@/features/guide/server";
 import { getBalanceHistory, getHistorySince } from "@/features/ledger/server";
 import { getAvailability } from "@/features/requests/server";
 import { addDays, fallback, familyToday, startOfWeek } from "@/lib";
@@ -29,17 +30,20 @@ export async function getFamilyDashboard(days: number): Promise<FamilyDashboard 
   // Back to the start of the period before, and at least to Monday for this week's handovers.
   const weekStart = startOfWeek(today);
   const since = [window.prevFrom, weekStart].sort()[0] ?? weekStart;
+  const guideOn = isGuideConfigured();
   const read = await Promise.all(
     children.map(async (child, index): Promise<DashboardChild> => {
-      const [availability, due, goal, schedule, gifts, history, balances] = await Promise.all([
-        getAvailability(child.id),
-        listDue(child.id),
-        fallback(getGoalView(child.id), null, "Goal on the dashboard"),
-        fallback(getSchedule(child.id), null, "Schedule on the dashboard"),
-        fallback(listGifts(child.id), [], "Gifts on the dashboard"),
-        fallback(getHistorySince(child.id, addDays(since, -1)), [], "History on the dashboard"),
-        fallback(getBalanceHistory(child.id), null, "Balances on the dashboard"),
-      ]);
+      const [availability, due, goal, schedule, gifts, history, balances, chats] =
+        await Promise.all([
+          getAvailability(child.id),
+          listDue(child.id),
+          fallback(getGoalView(child.id), null, "Goal on the dashboard"),
+          fallback(getSchedule(child.id), null, "Schedule on the dashboard"),
+          fallback(listGifts(child.id), [], "Gifts on the dashboard"),
+          fallback(getHistorySince(child.id, addDays(since, -1)), [], "History on the dashboard"),
+          fallback(getBalanceHistory(child.id), null, "Balances on the dashboard"),
+          guideOn ? fallback(listGuideChats(child.id), [], "Chats on the dashboard") : [],
+        ]);
       return {
         id: child.id,
         nickname: child.nickname,
@@ -53,6 +57,9 @@ export async function getFamilyDashboard(days: number): Promise<FamilyDashboard 
         gifts,
         history,
         balances,
+        flaggedChats: chats.filter(
+          (chat) => chat.flagged && chat.lastMessageAt.slice(0, 10) >= weekStart,
+        ).length,
       };
     }),
   );

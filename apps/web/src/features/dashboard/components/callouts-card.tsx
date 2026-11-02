@@ -10,6 +10,7 @@ const ACTIONS: Record<CalloutAction, { label: string; href: (childId: string) =>
   limit: { label: "Set a spending limit", href: routes.parentRules },
   allowance: { label: "Adjust allowance", href: routes.parentAllowanceEdit },
   goal: { label: "See their goal", href: routes.parentChild },
+  chats: { label: "Read the chat", href: routes.parentChildGuide },
 };
 
 /**

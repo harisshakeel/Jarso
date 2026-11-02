@@ -294,8 +294,9 @@ function times(now: number, before: number): string {
 }
 
 /**
- * Plain observations about each scoped child, at most `limit`, in priority order: a goal in
- * reach, a spending category that at least doubled, money into Save. Each is about one child
+ * Plain observations about each scoped child, at most `limit`, in priority order: Jarso chats
+ * flagged for the parent, a goal in reach, a spending category that at least doubled, money
+ * into Save. Each is about one child
  * and never compares children; amounts are stated, never judged.
  */
 export function callouts(
@@ -306,11 +307,21 @@ export function callouts(
 ): Callout[] {
   const period = periodOf(window.days);
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "always" });
+  const flagged: Callout[] = [];
   const goals: Callout[] = [];
   const spikes: Callout[] = [];
   const saved: Callout[] = [];
   for (const child of children) {
     const who = { childId: child.id, nickname: child.nickname, slot: child.slot };
+    if (child.flaggedChats > 0) {
+      const n = child.flaggedChats;
+      flagged.push({
+        ...who,
+        id: `chats-${child.id}`,
+        text: `${n === 1 ? "A chat" : `${n} chats`} ${child.nickname} had with Jarso this week ${n === 1 ? "was" : "were"} flagged for you to read.`,
+        action: "chats",
+      });
+    }
     const view = child.goal;
     if (view?.progress.reached) {
       goals.push({
@@ -354,7 +365,7 @@ export function callouts(
       });
     }
   }
-  return [...goals, ...spikes, ...saved].slice(0, limit);
+  return [...flagged, ...goals, ...spikes, ...saved].slice(0, limit);
 }
 
 /**

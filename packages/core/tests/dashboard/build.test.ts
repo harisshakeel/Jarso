@@ -69,6 +69,7 @@ const child = (
   gifts: [],
   history: [],
   balances: null,
+  flaggedChats: 0,
   ...over,
 });
 
@@ -289,6 +290,14 @@ describe("callouts", () => {
       "Aisha's Save grew by £10.00 this week.",
     ]);
     expect(lines.map((c) => c.action)).toEqual(["goal", "limit", "allowance"]);
+  });
+
+  it("puts a chat Jarso flagged first", () => {
+    const lines = callouts([{ ...zarrar, flaggedChats: 2 }], week, "GBP");
+    expect(lines[0]).toMatchObject({
+      text: "2 chats Zarrar had with Jarso this week were flagged for you to read.",
+      action: "chats",
+    });
   });
 
   it("ignores changes of pennies", () => {

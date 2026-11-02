@@ -46,6 +46,7 @@ const child = (
   gifts: [],
   history: [],
   balances: null,
+  flaggedChats: 0,
   ...over,
 });
 
