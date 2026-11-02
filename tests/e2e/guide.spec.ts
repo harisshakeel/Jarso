@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, readFamilyCode } from "./helpers";
+import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -59,7 +59,7 @@ test.beforeAll(async ({ browser }) => {
   await parent.getByLabel("Email", { exact: true }).fill(`e2e-guide-${run}@example.com`);
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Create account" }).click();
-  await expect(parent).toHaveURL(at("/parent/setup"), { timeout: 20_000 });
+  await expectSetupPage(parent);
   await completeParentProfile(parent);
   await parent.getByRole("button", { name: "Create family" }).click();
   await expect(parent).toHaveURL(at("/parent"));
@@ -142,8 +142,9 @@ test("a safety message gets a kind fixed reply with helplines, never the model's
 });
 
 test("off-topic questions are redirected to money topics", async () => {
+  // On the Jarso page a new chat starts from the list down the side, not from the thread.
+  await child.getByRole("link", { name: "New chat" }).click();
   const panel = jarso(child);
-  await panel.getByRole("button", { name: "New chat" }).click();
   await askJarso(child, "can you do my homework");
   await expect(panel.getByText(/I can only help with money/)).toBeVisible();
   // The intro shows only before a child's very first message.

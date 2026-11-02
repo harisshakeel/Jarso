@@ -1,7 +1,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { completeParentProfile, readFamilyCode } from "./helpers";
+import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Inbox pages and the unread badge, against the LOCAL Supabase stack (see playwright.config.ts). */
@@ -39,7 +39,7 @@ test.beforeAll(async ({ browser }) => {
   await parent.getByLabel("Email", { exact: true }).fill(`e2e-inbox-${run}@example.com`);
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Create account" }).click();
-  await expect(parent).toHaveURL(at("/parent/setup"), { timeout: 20_000 });
+  await expectSetupPage(parent);
   await completeParentProfile(parent);
   await parent.getByRole("button", { name: "Create family" }).click();
   await expect(parent).toHaveURL(at("/parent"));
