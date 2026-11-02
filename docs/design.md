@@ -115,7 +115,7 @@ Hard rules:
 
 ## 3. Typography
 
-**Nunito** for everything on screen, loaded with `next/font/google` (weights 400, 600, 700, 800) and exposed as `--font-sans`. Geist Mono stays for code only. Nunito is rounded, highly legible at small sizes and has a friendly 800 weight for big numbers.
+**Nunito** for everything on screen, loaded with `next/font/google` (weights 400, 600, 700, 800) and exposed as `--font-sans`. Code, if any ever shows, uses the system monospace stack; no web mono font is loaded. Nunito is rounded, highly legible at small sizes and has a friendly 800 weight for big numbers.
 
 Money is set with `font-variant-numeric: tabular-nums lining-nums` so columns of amounts align. Verify once in the browser that Nunito's tabular figures align; if they do not, load Manrope for the `.money` class only.
 
@@ -343,7 +343,7 @@ Add to `@theme inline`: `--color-gold: var(--gold); --color-gold-foreground: var
 
 ## 14. Implementation order
 
-1. Fonts: load Nunito in `src/app/layout.tsx`, keep Geist Mono; set `--font-sans`.
+1. Fonts: load Nunito in `src/app/layout.tsx`; set `--font-sans`.
 2. Tokens: paste section 13 into `globals.css`; add the gold colour utilities; set `--radius`.
 3. Icons: export the mark at 512, 192 and 180 px plus a 32 px favicon into `public/` and `src/app/`; add `manifest.webmanifest` when PWA work starts.
 4. Primitives: add the components listed in section 6; export from the barrel.
