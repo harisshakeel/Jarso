@@ -3,10 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/copy-brand.mjs",
-    "dev": "next dev",
-    "prebuild": "node scripts/copy-brand.mjs",
-    "build": "next build",
+    "dev": "node scripts/copy-brand.mjs && next dev",
+    "build": "node scripts/copy-brand.mjs && next build",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",

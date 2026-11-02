@@ -1,6 +1,6 @@
 # Jarso design system
 
-The visual language for the app, derived from the two logos in `apps/web/public/brand/`. Scope decisions behind it: playful and rounded; deep teal as the action colour with gold reserved for money; same component system for parent and child with different emphasis; bottom tab navigation; rounded friendly type; Lucide icons plus the jar as the recurring illustration; light motion; light and dark themes; WCAG AA, 44 px targets, 360 px phones first; warm coach voice.
+The visual language for the app, derived from the two logos in `packages/brand/assets/` (copied to `apps/web/public/brand/` at dev/build). Scope decisions behind it: playful and rounded; deep teal as the action colour with gold reserved for money; same component system for parent and child with different emphasis; bottom tab navigation; rounded friendly type; Lucide icons plus the jar as the recurring illustration; light motion; light and dark themes; WCAG AA, 44 px targets, 360 px phones first; warm coach voice.
 
 Visual references, and what we take from each, are in section 15. Code owners: tokens live in `apps/web/src/app/globals.css`, fonts in `apps/web/src/app/layout.tsx`, primitives in `apps/web/src/components/ui`. Change this document and the tokens together.
 
@@ -8,9 +8,9 @@ Visual references, and what we take from each, are in section 15. Code owners: t
 
 | File | What | Use |
 | --- | --- | --- |
-| `apps/web/public/brand/jarso-mark.png` | Jar mark, 1254 × 1254, transparent | App icon, favicon source, header mark, empty states, jar illustrations |
-| `apps/web/public/brand/jarso-wordmark.png` | "jarso" wordmark with mark, 2172 × 724, **opaque near-white background (#FDFDFD)** | Marketing page, emails, light surfaces only |
-| `apps/web/public/brand/jarso-wordmark-dark.png` | Dark-mode wordmark, white "jars" and gold "o", 2172 × 724, **opaque near-black background (#10191C)** | Marketing page in dark mode, dark emails |
+| `packages/brand/assets/jarso-mark.png` | Jar mark, 1254 × 1254, transparent | App icon, favicon source, header mark, empty states, jar illustrations |
+| `packages/brand/assets/jarso-wordmark.png` | "jarso" wordmark with mark, 2172 × 724, **opaque near-white background (#FDFDFD)** | Marketing page, emails, light surfaces only |
+| `packages/brand/assets/jarso-wordmark-dark.png` | Dark-mode wordmark, white "jars" and gold "o", 2172 × 724, **opaque near-black background (#10191C)** | Marketing page in dark mode, dark emails |
 
 The app serves 864 × 288 copies of both wordmarks (`jarso-wordmark-864.png`, `jarso-wordmark-dark-864.png`) through `JarsoWordmark`, which switches between them on the `.dark` class.
 

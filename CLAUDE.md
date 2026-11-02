@@ -13,7 +13,7 @@ Full-stack Next.js 16 (App Router) + Supabase in a pnpm + Turborepo workspace (w
 - Conventions (naming, barrels, errors, env): `docs/conventions.md`
 - Schema / migrations / RLS: `docs/database.md`
 - Auth: `docs/auth.md` · Backend entry points: `docs/api.md` · Tests: `docs/testing.md`
-- UI and brand: `docs/design.md` (tokens, type, components, voice). Logos in `apps/web/public/brand/`.
+- UI and brand: `docs/design.md` (tokens, type, components, voice). Logos in `packages/brand/assets/` (copied to `apps/web/public/brand/` at dev/build).
 - Next.js 16 APIs differ from training data — check `node_modules/next/dist/docs/` before using an unfamiliar API.
 
 ## Commands

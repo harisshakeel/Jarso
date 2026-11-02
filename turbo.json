@@ -5,7 +5,7 @@
     "test": { "dependsOn": ["^typecheck"] },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"],
+      "outputs": [".next/**", "!.next/cache/**", "public/brand/**"],
       "env": ["NEXT_PUBLIC_*"]
     },
     "dev": { "persistent": true, "cache": false },
