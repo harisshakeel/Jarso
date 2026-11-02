@@ -18,7 +18,7 @@ import {
 } from "@/components/ui";
 import { SPEND_CATEGORIES } from "@/features/ledger";
 import { newId, offlineCopy, removeOutboxItem, submitToOutbox } from "@/features/offline";
-import type { FieldErrors } from "@/lib";
+import { type FieldErrors, playCoins } from "@/lib";
 import { CategoryChips } from "./category-chips";
 
 /** The name field's hint follows the chip: a snack asks "What snack?". */
@@ -121,6 +121,7 @@ function PurchaseForm({
         case "sent":
           await onSaved?.();
           coinToast("Saved. Nice one.");
+          playCoins();
           onDone();
           router.refresh();
           return null;

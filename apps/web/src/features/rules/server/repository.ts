@@ -1,6 +1,8 @@
 import "server-only";
 import {
   type ChildRules,
+  type JarMovesMode,
+  jarMovesModes,
   type MoneyRule,
   type Period,
   periods,
@@ -22,12 +24,19 @@ function oneOf<const T extends string>(value: string, allowed: readonly T[]): T 
 export async function findChildRules(db: Client, childId: string): Promise<ChildRules> {
   const [rules, settings] = await Promise.all([
     db.from("money_rules").select("kind, period, amount_minor").eq("child_id", childId),
-    db.from("child_settings").select("allow_negative_spend").eq("child_id", childId).maybeSingle(),
+    db
+      .from("child_settings")
+      .select("allow_negative_spend, jar_moves_approval")
+      .eq("child_id", childId)
+      .maybeSingle(),
   ]);
   if (rules.error) throw toAppError(rules.error, "Failed to load rules");
   if (settings.error) throw toAppError(settings.error, "Failed to load rules");
   return {
     allowNegativeSpend: settings.data?.allow_negative_spend ?? false,
+    jarMovesApproval: settings.data
+      ? oneOf(settings.data.jar_moves_approval, jarMovesModes)
+      : "ask",
     rules: rules.data.map(
       (row): MoneyRule => ({
         kind: oneOf(row.kind, ruleKinds),
@@ -51,6 +60,15 @@ export async function saveMoneyRule(
     p_amount_minor: input.amountMinor as number,
   });
   if (error) throw toAppError(error, "Failed to save the rule");
+}
+
+export async function saveJarMovesApproval(
+  db: Client,
+  childId: string,
+  mode: JarMovesMode,
+): Promise<void> {
+  const { error } = await db.rpc("set_jar_moves_approval", { p_child_id: childId, p_mode: mode });
+  if (error) throw toAppError(error, "Failed to save the setting");
 }
 
 export async function saveAllowNegativeSpend(

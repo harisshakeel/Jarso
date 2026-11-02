@@ -103,4 +103,30 @@ describe("AskJarso", () => {
       expect(screen.getByLabelText("Your question for Jarso")).toHaveValue("What did I spend?"),
     );
   });
+
+  it("asks as a parent about the picked child, and starts over when the child changes", async () => {
+    sendGuideTurn.mockResolvedValue({ ok: true, data: answer });
+    render(
+      <AskJarso
+        introNeeded={false}
+        audience="parent"
+        kids={[
+          { id: "11111111-1111-4111-8111-111111111111", nickname: "Sam" },
+          { id: "22222222-2222-4222-8222-222222222222", nickname: "Mia" },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Ask Jarso about Sam" })).toBeVisible();
+    expect(screen.getByText(guideCopy.parent.disclosure("Sam"))).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "How is Sam doing with saving?" }));
+    await screen.findByText("You have £12.40 in Spend and £64 in Save.");
+    expect(sendGuideTurn.mock.calls[0]?.[0]).toMatchObject({
+      context: { entry: "parent", childId: "11111111-1111-4111-8111-111111111111" },
+      text: "How is Sam doing with saving?",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Mia" }));
+    expect(screen.getByRole("heading", { name: "Ask Jarso about Mia" })).toBeVisible();
+    expect(screen.queryByText("You have £12.40 in Spend and £64 in Save.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Mia" })).toHaveAttribute("aria-pressed", "true");
+  });
 });

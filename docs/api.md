@@ -84,12 +84,14 @@ Every refusal message is shown to the child, so it never carries Zod details. `m
 
 ### `POST /api/v1/guide/turns`
 
-Called by the Ask Jarso window on the child's Home (`apps/web/src/features/guide/send-turn.ts`), the one Route Handler our own UI calls for a reason other than the outbox: a Server Action can't stream status lines (ADR 0011). Body: `askGuideSchema` (`clientMessageId`, `conversationId`, `context`, `text`). Every check (child role, the deployment flag and the parent's switch, on unless a parent turned it off, a re-sent question, the context key, the chat, the rate limits) runs first and fails with the usual JSON error envelope and status. After that the response is `200 application/x-ndjson`, one JSON object per line:
+Called by the Ask Jarso window on the child's Home (`packages/core/src/guide/send-turn.ts`), the one Route Handler our own UI calls for a reason other than the outbox: a Server Action can't stream status lines (ADR 0011). Body: `askGuideSchema` (`clientMessageId`, `conversationId`, `context`, `text`). `context.entry` is where the chat was opened; `{ entry: "parent", childId }` is a parent asking about one of their own children from the parent's Home (the parent role is checked, the child must be theirs, the chat is stored on the child with `asked_by` set, no memories are read or kept). Every check (child or parent role, the deployment flag and the parent's switch, on unless a parent turned it off, a re-sent question, the context key, the chat, the rate limits) runs first and fails with the usual JSON error envelope and status. After that the response is `200 application/x-ndjson`, one JSON object per line:
 
 - `{ "type": "status", "text": "Peeking in your jars…" }` — where Jarso is: one per phase (`guideCopy.phases`: reading the question, putting an answer together, double-checking it) and one per look-up (`guideCopy.status`), all fixed copy;
 - then `{ "type": "reply", "data": AskGuideResult }` (the screened reply, in one piece), or `{ "type": "error", "error": { "code", "message" } }`.
 
 No model text ever streams. `maxDuration` 60 s (the turn's own deadline is 45 s).
+
+The Jarso pages (`/child/jarso`, `/parent/jarso`) read past chats through the guide's server barrel, never a Route Handler: `listMyChats()` / `getMyTranscript(id)` for the signed-in child's own chats (a parent's chat about them, `asked_by` set, is never theirs), and `listParentChats()` / `getParentTranscript(id)` for the signed-in parent's own chats about their children. A reopened chat continues with its `conversationId` through the same `POST /api/v1/guide/turns`.
 
 ### `POST /api/v1/payments/webhooks/[provider]`
 

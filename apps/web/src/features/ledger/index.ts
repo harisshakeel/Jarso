@@ -3,6 +3,7 @@
 export type { Jars as JarBalances } from "@jarso/core/ledger";
 export * from "@jarso/core/ledger";
 export * from "./components/history-list";
+export * from "./components/jar-graph";
 export * from "./components/jar-shelf";
 export { Jars } from "./components/jars";
 export * from "./components/recent-history";

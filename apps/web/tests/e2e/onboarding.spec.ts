@@ -1,6 +1,11 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, expireAccessToken, readFamilyCode } from "./helpers";
+import {
+  completeParentProfile,
+  expectSetupPage,
+  expireAccessToken,
+  readFamilyCode,
+} from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -47,7 +52,7 @@ async function signUpParent(page: Page, name: string, email: string): Promise<vo
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
   // Local stack has email confirmation off, so sign-up returns a session straight away.
-  await expect(page).toHaveURL(at("/parent/setup"), { timeout: 20_000 });
+  await expectSetupPage(page);
   await completeParentProfile(page);
 }
 
@@ -97,7 +102,8 @@ test("parent-started: parent adds Sam, Sam signs in with the family code", async
   await giveConsent(parent);
   await parent.getByRole("button", { name: "Add child" }).click();
   await expect(parent).toHaveURL(at("/parent"));
-  await expect(parent.getByRole("listitem").filter({ hasText: "Sam" })).toBeVisible();
+  // The child's card; the parent's Home also names Sam in "Sam's week" and "Sam's latest".
+  await expect(parent.getByRole("heading", { name: "Sam", exact: true })).toBeVisible();
 
   const child = await newActor(browser);
   await fillChildSignIn(child, messyCode(state.samFamilyCode, "-"), "  sAM ");
@@ -131,7 +137,7 @@ test("child-started: Mia asks, parent approves with the code, Mia signs in", asy
   await giveConsent(parent);
   await parent.getByRole("button", { name: "Add child" }).click();
   await expect(parent).toHaveURL(at("/parent"));
-  await expect(parent.getByRole("listitem").filter({ hasText: "Mia" })).toBeVisible();
+  await expect(parent.getByRole("heading", { name: "Mia", exact: true })).toBeVisible();
 
   await fillChildSignIn(child, messyCode(familyCode, " "), " MIA");
   await submitPin(child, "2468");
@@ -186,7 +192,7 @@ test("invitations list: parent refreshes, sees Ava's invite and accepts it", asy
   await giveConsent(parent);
   await parent.getByRole("button", { name: "Add child" }).click();
   await expect(parent).toHaveURL(at("/parent"));
-  await expect(parent.getByRole("listitem").filter({ hasText: "Ava" })).toBeVisible();
+  await expect(parent.getByRole("heading", { name: "Ava", exact: true })).toBeVisible();
 
   // Accepted invitations leave the list, and their id no longer opens the form.
   await parent.goto("/invite");

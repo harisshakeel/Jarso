@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, readFamilyCode } from "./helpers";
+import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** The money diary: categories, money received, fixes, the weekly card and the parent notices, against the LOCAL Supabase stack. */
@@ -38,7 +38,7 @@ test.beforeAll(async ({ browser }) => {
   await parent.getByLabel("Email", { exact: true }).fill(email);
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Create account" }).click();
-  await expect(parent).toHaveURL(at("/parent/setup"), { timeout: 20_000 });
+  await expectSetupPage(parent);
   await completeParentProfile(parent);
   await parent.getByRole("button", { name: "Create family" }).click();
   await expect(parent).toHaveURL(at("/parent"));

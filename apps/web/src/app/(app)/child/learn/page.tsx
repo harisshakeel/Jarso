@@ -2,6 +2,7 @@ import { CalendarCheckIcon, ChevronRightIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { CoachSays } from "@/components/brand";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { requireRole } from "@/features/family/server";
@@ -25,6 +26,7 @@ async function LearnContent() {
           <h1 className="text-balance text-display">Seven days. Small missions.</h1>
           <p className="text-ink-2">{weeklyRhythmLine(overview.daysThisWeek)}</p>
         </header>
+        <CoachSays coach={{ key: "learn" }} says={{ moment: "learn" }} />
         {cardFirst ? <NextStepCard step={overview.nextStep} /> : null}
         <Link
           href={routes.childWeek}

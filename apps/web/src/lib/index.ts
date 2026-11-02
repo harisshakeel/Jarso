@@ -9,5 +9,6 @@ export * from "./fallback";
 // evaluation, so every @/lib consumer gets a configured logger.
 export { configureLogger, logger } from "./logger";
 
+export * from "./sounds";
 export * from "./timed-fetch";
 export * from "./utils";

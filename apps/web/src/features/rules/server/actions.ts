@@ -1,10 +1,10 @@
 "use server";
 
-import { overspendSchema, setRuleSchema } from "@jarso/core/rules";
+import { jarMovesSchema, overspendSchema, setRuleSchema } from "@jarso/core/rules";
 import { refresh } from "next/cache";
 import { getFamilyContext } from "@/features/allowance/server";
 import { createAction } from "@/lib";
-import { setOverspend, setRule } from "./service";
+import { setJarMovesApproval, setOverspend, setRule } from "./service";
 
 export const setRuleAction = createAction(
   async () => setRuleSchema((await getFamilyContext()).currency),
@@ -13,6 +13,11 @@ export const setRuleAction = createAction(
     refresh();
   },
 );
+
+export const setJarMovesAction = createAction(jarMovesSchema, async (input) => {
+  await setJarMovesApproval(input);
+  refresh();
+});
 
 export const setOverspendAction = createAction(overspendSchema, async (input) => {
   await setOverspend(input);

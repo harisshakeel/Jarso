@@ -1,12 +1,12 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, readFamilyCode } from "./helpers";
+import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
  * Jarso (FR07, FR09, ADR 0011) against the LOCAL Supabase stack with the keyword-based fake
  * provider (FEATURE_GUIDE=true, GUIDE_PROVIDER=fake in playwright.config): on by default (the
- * add-child notice and the parent's switch), the intro card in the Ask Jarso window on Home, a
+ * add-child notice and the parent's switch), the intro card on the child's Jarso page, a
  * look-up of the child's own jars, an answer with topic links and a check, a safety response with
  * helplines, "Help me" in a mission, the parent's flagged-first transcript with what Jarso looked
  * at, and turning it off.
@@ -25,7 +25,7 @@ let parent: Page;
 let child: Page;
 let childBase = "";
 
-/** The Ask Jarso window at the top of the child's Home. */
+/** The Ask Jarso thread on the child's Jarso page (the Jarso tab). */
 const jarso = (page: Page) => page.getByRole("region", { name: "Ask Jarso" });
 
 async function askJarso(page: Page, question: string): Promise<void> {
@@ -59,7 +59,7 @@ test.beforeAll(async ({ browser }) => {
   await parent.getByLabel("Email", { exact: true }).fill(`e2e-guide-${run}@example.com`);
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Create account" }).click();
-  await expect(parent).toHaveURL(at("/parent/setup"), { timeout: 20_000 });
+  await expectSetupPage(parent);
   await completeParentProfile(parent);
   await parent.getByRole("button", { name: "Create family" }).click();
   await expect(parent).toHaveURL(at("/parent"));
@@ -103,6 +103,7 @@ test("Jarso is on by default, and the parent sees how to turn it off", async () 
   await expect(card.getByText(/sees only Remi's own jars and learning/)).toBeVisible();
   await expect(card.getByRole("link", { name: "What Jarso can and can't do" })).toBeVisible();
   await expect(child.getByRole("heading", { name: /Five quick questions/ })).toBeVisible();
+  await child.goto("/child/jarso");
   await expect(jarso(child)).toBeVisible();
 });
 
@@ -141,8 +142,9 @@ test("a safety message gets a kind fixed reply with helplines, never the model's
 });
 
 test("off-topic questions are redirected to money topics", async () => {
+  // On the Jarso page a new chat starts from the list down the side, not from the thread.
+  await child.getByRole("link", { name: "New chat" }).click();
   const panel = jarso(child);
-  await panel.getByRole("button", { name: "New chat" }).click();
   await askJarso(child, "can you do my homework");
   await expect(panel.getByText(/I can only help with money/)).toBeVisible();
   // The intro shows only before a child's very first message.
@@ -191,9 +193,7 @@ test("turning Jarso off hides it from the child", async () => {
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-checked", "false");
   await expect(toggle).toBeEnabled();
-  await child.goto("/child");
-  // By now the child has started a mission, so Home leads with "Keep going"; wait on the greeting.
-  await expect(child.getByRole("heading", { name: "Hi, Remi!" })).toBeVisible();
-  await child.waitForLoadState("networkidle");
+  await child.goto("/child/jarso");
+  await expect(child.getByRole("link", { name: "Back to Home" })).toBeVisible();
   await expect(jarso(child)).toHaveCount(0);
 });

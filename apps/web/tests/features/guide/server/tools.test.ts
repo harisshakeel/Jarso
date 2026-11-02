@@ -323,6 +323,7 @@ describe("get_money_rules", () => {
   it("lists spending limits only", async () => {
     vi.mocked(rules.getChildRules).mockResolvedValue({
       allowNegativeSpend: false,
+      jarMovesApproval: "ask",
       rules: [
         { kind: "spend_limit", period: "item", amountMinor: 1500 },
         { kind: "withdrawal_cap", period: "month", amountMinor: 2000 },
@@ -435,5 +436,13 @@ describe("the toolbox", () => {
     const { result } = await call("get_jars");
     expect(result.isError).toBe(true);
     expect(result.content).not.toContain("secret row text");
+  });
+
+  it("leaves remember out of a parent's toolbox and refuses it if called", async () => {
+    const tools = createTurnTools({ ...ctx, forParent: true });
+    expect(tools.specs.map((spec) => spec.name)).not.toContain("remember");
+    const result = await tools.run("remember", { kind: "interest", text: "football" });
+    expect(result.isError).toBe(true);
+    expect(tools.calls).toEqual([]);
   });
 });

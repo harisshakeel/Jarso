@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
+import { CoachSays } from "@/components/brand";
 import { SlowFallback } from "@/components/shell";
+import { SoundsToggle } from "@/components/sounds";
 import { ThemeChoice } from "@/components/theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { routes } from "@/config";
@@ -48,6 +50,7 @@ async function ChildSettings() {
           <ThemeChoice />
         </CardContent>
       </Card>
+      <SoundsToggle />
       <PushToggle />
       <Card className="rise-in" style={rise(2)}>
         <CardHeader>
@@ -56,7 +59,8 @@ async function ChildSettings() {
             You can sign back in with your family code, nickname and PIN.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="grid gap-4">
+          <CoachSays coach={{ key: "settings" }} says={{ moment: "doneForNow" }} size="sm" />
           <SignOutButton />
         </CardContent>
       </Card>

@@ -19,7 +19,10 @@ import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 import type { GoalView } from "@/features/goals";
 import { getGoalView } from "@/features/goals/server";
-import { jarCapacity } from "@/features/ledger";
+import { isGuideConfigured, listGuideChats } from "@/features/guide/server";
+import { getLearningOverview } from "@/features/learning/server";
+import { JarGraph, jarCapacity, RecentHistory } from "@/features/ledger";
+import { getBalanceHistory, getHistory } from "@/features/ledger/server";
 import { type Notice, UnreadNotices } from "@/features/notifications";
 import { listUnreadNotices } from "@/features/notifications/server";
 import {
@@ -30,7 +33,8 @@ import {
   settleRequestReads,
 } from "@/features/requests";
 import { getAvailability, listRequestsNeedingParent } from "@/features/requests/server";
-import { fallback, logger } from "@/lib";
+import { ChildWeekCard, weekBounds, weekMoney } from "@/features/review";
+import { fallback, familyToday, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Your family" };
 
@@ -71,8 +75,11 @@ async function ParentHome() {
     return [] as Notice[];
   });
 
+  const today = familyToday(family.timezone);
+
+  // Three columns on a wide screen: what needs the parent, each child's week, the children.
   return (
-    <div className="grid gap-6 lg:grid-cols-[3fr_2fr] lg:items-start lg:gap-10">
+    <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8 xl:grid-cols-3">
       <div className="grid gap-6">
         <div className="rise-in">
           <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
@@ -90,7 +97,27 @@ async function ParentHome() {
           </Suspense>
         </div>
       </div>
-      <section aria-labelledby="children-title" className="rise-in grid gap-3" style={rise(2)}>
+      <section aria-labelledby="week-title" className="rise-in grid gap-3" style={rise(2)}>
+        <h2 id="week-title" className="text-h2">
+          This week
+        </h2>
+        <div className="grid gap-4">
+          {reads.map((read) => (
+            <Suspense
+              key={read.child.id}
+              fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}
+            >
+              <ChildWeekSection
+                read={read}
+                currency={family.currency}
+                today={today}
+                guideOn={isGuideConfigured()}
+              />
+            </Suspense>
+          ))}
+        </div>
+      </section>
+      <section aria-labelledby="children-title" className="rise-in grid gap-3" style={rise(3)}>
         <h2 id="children-title" className="text-h2">
           Children
         </h2>
@@ -99,6 +126,13 @@ async function ParentHome() {
             <li key={read.child.id}>
               <Suspense fallback={<div aria-hidden className="shimmer h-36 rounded-xl bg-muted" />}>
                 <ChildCard read={read} currency={family.currency} />
+              </Suspense>
+            </li>
+          ))}
+          {reads.map((read) => (
+            <li key={`latest-${read.child.id}`}>
+              <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
+                <LatestSection read={read} currency={family.currency} />
               </Suspense>
             </li>
           ))}
@@ -181,6 +215,91 @@ async function RequestsSection({ reads, currency }: { reads: ChildReads[]; curre
   );
 }
 
+/**
+ * One child's week in three sentences (money, learning, Jarso) and how their jars moved. Each
+ * read is a nice-to-have on its own: a failed one leaves its line out, never the section.
+ */
+async function ChildWeekSection({
+  read,
+  currency,
+  today,
+  guideOn,
+}: {
+  read: ChildReads;
+  currency: string;
+  today: string;
+  guideOn: boolean;
+}) {
+  const { child } = read;
+  const { weekStart } = weekBounds(today);
+  const [history, learning, chats, balances, due] = await Promise.all([
+    fallback(getHistory(child.id), null, "History on parent home"),
+    fallback(getLearningOverview(child.id), null, "Learning on parent home"),
+    guideOn ? fallback(listGuideChats(child.id), null, "Chats on parent home") : null,
+    fallback(getBalanceHistory(child.id), null, "Balances on parent home"),
+    read.due,
+  ]);
+  const stillDue = due.reduce((sum, item) => sum + item.amountMinor, 0);
+  const current = learning?.journey.find((mission) => mission.status === "current") ?? null;
+  const thisWeek = chats?.filter((chat) => chat.lastMessageAt.slice(0, 10) >= weekStart) ?? null;
+  return (
+    <div className="grid gap-4">
+      {history && learning ? (
+        <ChildWeekCard
+          currency={currency}
+          week={{
+            nickname: child.nickname,
+            money: weekMoney(history, stillDue, today),
+            learning: {
+              daysThisWeek: learning.daysThisWeek,
+              missionsDone: learning.completed.length,
+              current: current ? { day: current.day, title: current.title } : null,
+            },
+            chats: thisWeek
+              ? { count: thisWeek.length, flagged: thisWeek.filter((c) => c.flagged).length }
+              : null,
+          }}
+          hrefs={{
+            money: routes.parentChild(child.id),
+            learning: routes.parentChildLearning(child.id),
+            jarso: routes.parentChildGuide(child.id),
+          }}
+        />
+      ) : null}
+      {balances ? (
+        <div className="rounded-xl bg-card p-4 shadow-raised">
+          <JarGraph
+            history={balances}
+            currency={currency}
+            title={`How ${child.nickname}'s jars moved`}
+            showMinor="always"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The child's latest money lines, as the parent reads them, with the way to the full history. */
+async function LatestSection({ read, currency }: { read: ChildReads; currency: string }) {
+  const history = await fallback(getHistory(read.child.id), null, "History on parent home");
+  if (!history) return null;
+  return (
+    <section aria-label={`${read.child.nickname}'s latest`} className="grid gap-2">
+      <h3 className="text-h3">{read.child.nickname}'s latest</h3>
+      <RecentHistory
+        items={history}
+        currency={currency}
+        limit={4}
+        skippedLabel="Not given"
+        showMinor="always"
+        seeAllHref={routes.parentChildHistory(read.child.id)}
+        emptyLine={`${read.child.nickname}'s money story starts here.`}
+      />
+    </section>
+  );
+}
+
 async function ChildCard({ read, currency }: { read: ChildReads; currency: string }) {
   const [due, availability, schedule] = await Promise.all([
     read.due,
@@ -226,7 +345,7 @@ function HomeSkeleton() {
 
 export default function ParentHomePage() {
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-6">
+    <div className="grid w-full gap-5">
       <h1 className="text-h1">Your family</h1>
       <Suspense
         fallback={

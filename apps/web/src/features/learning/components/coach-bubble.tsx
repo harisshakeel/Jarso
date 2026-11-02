@@ -4,7 +4,7 @@ import type { Coach } from "@jarso/core/learning";
 import { renderText } from "@jarso/core/learning";
 import { LightbulbIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { type CoachReaction, JarCoach } from "@/components/brand";
+import { CoachFigure, type CoachReaction } from "@/components/brand";
 import { cn } from "@/lib";
 
 type CoachBubbleProps = {
@@ -20,10 +20,10 @@ type CoachBubbleProps = {
 };
 
 /**
- * A coach beside the question, Duolingo-style: the jar with a face on the left and a speech
+ * A coach beside the question, Duolingo-style: one of the four kids on the left and a speech
  * bubble that says one short line before the child answers, holds the hints they ask for, and
- * carries the feedback once they have answered. The coach cheers for a right answer and nods
- * for a wrong one; reduced motion keeps it still.
+ * carries the feedback once they have answered. The coach cheers for a right answer (an open
+ * mouth, two hops) and nods for a wrong one (an unsure face); reduced motion keeps it still.
  */
 export function CoachBubble({
   coach,
@@ -37,7 +37,7 @@ export function CoachBubble({
   return (
     <div className="flex items-end gap-3">
       <figure className="grid shrink-0 justify-items-center gap-1">
-        <JarCoach coach={coach.id} size={88} reaction={reaction} />
+        <CoachFigure coach={coach.id} size={88} reaction={reaction} />
         <figcaption className="font-semibold text-ink-2 text-sm">{coach.name}</figcaption>
       </figure>
       <div

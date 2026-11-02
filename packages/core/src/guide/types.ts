@@ -2,7 +2,8 @@ import type { Helpline } from "@jarso/core/config";
 import type { TopicKey } from "@jarso/core/learning";
 
 /** Where the child opened the guide (spec §5.1). */
-export type GuideEntry = "step" | "why" | "topic" | "home";
+/** Where a chat was opened; "parent" is a parent asking about their child from their own Home. */
+export type GuideEntry = "step" | "why" | "topic" | "home" | "parent";
 
 /**
  * How the pipeline handled one message. The first six come from the input screen;
@@ -33,6 +34,8 @@ export type TopicLink = { key: TopicKey; title: string };
 
 export type GuideReply = {
   messageId: string | null;
+  /** The thumbs given earlier, when a stored chat is reopened. */
+  rating?: -1 | 1 | null;
   /** "guide" is Claude's own words; "fixed_copy" is reviewed text the app shows instead. */
   role: "guide" | "fixed_copy";
   text: string;
@@ -87,6 +90,8 @@ export type GuideUsage = {
 
 export type ConversationSummary = {
   id: string;
+  /** The child the chat is about (the asker, unless a parent asked). */
+  childId: string;
   entry: GuideEntry;
   label: string;
   createdAt: string;

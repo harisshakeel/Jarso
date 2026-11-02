@@ -21,7 +21,7 @@ import { rateGuideMessageAction } from "../server/actions";
 
 /** One reply from Jarso: the answer, what it looked at, helplines, topics, a check, thumbs. */
 export function GuideBubble({ reply }: { reply: GuideReply }) {
-  const [rating, setRating] = useState<1 | -1 | null>(null);
+  const [rating, setRating] = useState<1 | -1 | null>(reply.rating ?? null);
   const [, startRating] = useTransition();
   function rate(value: 1 | -1) {
     if (!reply.messageId) return;

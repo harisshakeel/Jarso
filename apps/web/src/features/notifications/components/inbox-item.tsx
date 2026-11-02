@@ -33,6 +33,7 @@ const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
   card_charge_failed: { icon: CreditCardIcon, tint: "bg-gold-100 text-gold-700" },
   money_received: { icon: HandCoinsIcon, tint: "bg-teal-100 text-teal-800" },
   entry_corrected: { icon: PencilIcon, tint: "bg-secondary text-ink-2" },
+  jar_moved: { icon: PiggyBankIcon, tint: "bg-teal-100 text-teal-800" },
 };
 
 const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });

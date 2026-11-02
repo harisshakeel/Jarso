@@ -33,6 +33,10 @@ describe("noticeHref", () => {
   it("child ledger entry opens the diary", () => {
     expect(noticeHref({ ...base, sourceType: "ledger_entry" }, "child")).toBe(routes.childDiary);
   });
+  it("parent jar move (a request) opens the child page", () => {
+    const moved = { ...base, kind: "jar_moved" as const, sourceType: "request" as const };
+    expect(noticeHref(moved, "parent")).toBe(routes.parentChild("c1"));
+  });
 });
 
 describe("card_charge_failed", () => {

@@ -107,7 +107,12 @@ function longDate(isoDate: string): string {
  * The context for one message. `today` is the family's local date, so "this week" means the
  * child's week.
  */
-export function buildContext(ref: GuideContextRef, currency: string, today?: string): BuiltContext {
+export function buildContext(
+  ref: GuideContextRef,
+  currency: string,
+  today?: string,
+  { childNickname = "the child" }: { childNickname?: string } = {},
+): BuiltContext {
   const money = [
     `The family's currency is ${currency}; write amounts like ${formatMoney(1250, currency)}.`,
     ...(today ? [`Today is ${longDate(today)} where the family lives.`] : []),
@@ -170,6 +175,16 @@ export function buildContext(ref: GuideContextRef, currency: string, today?: str
           "Context from the app (not from the child):",
           money,
           "The child opened Jarso from their home screen. They may ask about their own money: look it up with your tools.",
+        ].join("\n"),
+      };
+    case "parent":
+      return {
+        entry: "parent",
+        contextKey: `parent:${ref.childId}`,
+        text: [
+          "Context from the app (not from the child):",
+          money,
+          `The person asking is ${childNickname}'s parent, from their own home screen, not the child. Answer the parent as an adult, plainly and briefly, about ${childNickname}'s money and learning in Jarso: look it up with your tools, which read ${childNickname}'s own jars, allowance, history, rules, goal, requests and learning. Say "${childNickname}" and "they" for the child, never "you". The same rules hold: never judge an amount, never recommend products, never ask for personal details. Keep no memories in this chat.`,
         ].join("\n"),
       };
   }

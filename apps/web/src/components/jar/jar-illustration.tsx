@@ -6,14 +6,12 @@ import { cn } from "@/lib";
 
 type JarIllustrationProps = {
   jar: "spend" | "save";
-  /** What a full jar holds, in minor units: the goal's price, or the shared scale. */
+  /** What a full jar holds, in minor units: the shared scale. */
   capacityMinor: number;
   /** Money that counts (for Save: Save less what is waiting to come out). */
   filledMinor: number;
   /** Money waiting to come out, drawn as hatched coins on top of the pile. */
   reservedMinor?: number;
-  /** With a goal, the top of the jar is the goal line. */
-  goal?: { emoji: string } | null;
   /** Money that is due, drawn as a dashed coin beside the lid, never inside the jar. */
   dueCoin?: string | null;
   size?: "sm" | "lg";
@@ -23,7 +21,6 @@ type JarIllustrationProps = {
 // above it, a coin beside the lid, and a pile of coins inside. A full jar is the whole pile.
 const LID = { x: 96, y: 58, width: 262, height: 62 };
 const LID_COIN = { x: 414, y: 88 };
-const PILE_TOP = 176;
 const COINS = JAR_PILE.length;
 
 const round = (value: number) => Math.round(value * 1000) / 1000;
@@ -63,7 +60,6 @@ export function JarIllustration({
   capacityMinor,
   filledMinor,
   reservedMinor = 0,
-  goal = null,
   dueCoin = null,
   size = "lg",
 }: JarIllustrationProps) {
@@ -149,22 +145,6 @@ export function JarIllustration({
         rx={LID.height / 2}
         className="fill-cyan-300"
       />
-      {goal ? (
-        <g data-goal-line>
-          <line
-            x1={80}
-            y1={PILE_TOP}
-            x2={426}
-            y2={PILE_TOP}
-            strokeWidth="5"
-            strokeDasharray="12 10"
-            className="stroke-foreground"
-          />
-          <text x={24} y={PILE_TOP + 16} fontSize="44">
-            {goal.emoji}
-          </text>
-        </g>
-      ) : null}
       {dueCoin ? (
         <g data-due-coin>
           <ellipse

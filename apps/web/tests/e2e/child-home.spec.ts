@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, readFamilyCode } from "./helpers";
+import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Child home (jars, allowance card, history) against the LOCAL Supabase stack. */
@@ -41,7 +41,7 @@ test.beforeAll(async ({ browser }) => {
   await parent.getByLabel("Email", { exact: true }).fill(`e2e-childhome-${run}@example.com`);
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Create account" }).click();
-  await expect(parent).toHaveURL(at("/parent/setup"), { timeout: 20_000 });
+  await expectSetupPage(parent);
   await completeParentProfile(parent);
   await parent.getByRole("button", { name: "Create family" }).click();
   await expect(parent).toHaveURL(at("/parent"));
@@ -131,7 +131,7 @@ test("child sees jars, due badge and a revealed gift", async () => {
   await expect(child.getByText("Back after the holiday")).toBeVisible();
 });
 
-test("child sets a goal and the Save jar shows how far to go", async () => {
+test("child sets a goal and the goal card shows the climb", async () => {
   await child.goto("/child");
   const saveJar = child.getByRole("region", { name: "Save jar" });
   await saveJar.getByRole("button", { name: /^Save/ }).click();
@@ -146,9 +146,11 @@ test("child sets a goal and the Save jar shows how far to go", async () => {
   await sheet.getByRole("button", { name: "Save my goal" }).click();
   await expect(child.getByRole("dialog")).toHaveCount(0);
 
-  await expect(saveJar.getByText("⚽ Football boots, US$45.")).toBeVisible();
+  const goalCard = child.getByRole("region", { name: "Your goal" });
+  await expect(goalCard.getByText("⚽ Football boots, US$45.")).toBeVisible();
+  await expect(goalCard.getByText("About 12 allowances to go")).toBeVisible();
   await expect(
-    saveJar.getByText("US$45 to go · about 12 more allowances at US$4 each"),
+    goalCard.getByRole("img", { name: /Football boots, US\$45\. 0 of 12 steps/ }),
   ).toBeVisible();
   await expect(saveJar.getByRole("button", { name: "Change my goal" })).toBeVisible();
 });

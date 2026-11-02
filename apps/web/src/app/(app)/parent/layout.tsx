@@ -6,6 +6,7 @@ import { currentRole, getFamily } from "@/features/family/server";
 import { NoticeListener } from "@/features/notifications";
 import { getUnreadCount } from "@/features/notifications/server";
 import { logger } from "@/lib";
+import { RailAvatar } from "../header-avatar";
 
 /**
  * Parent area: static shell with the parent tab bar. Pages read the session behind <Suspense>.
@@ -16,7 +17,7 @@ export default function ParentLayout({ children }: LayoutProps<"/parent">) {
     <>
       {children}
       <Suspense fallback={null}>
-        <Suspense fallback={<ParentNav />}>
+        <Suspense fallback={<ParentNav footer={<RailAvatar />} />}>
           <ParentNavWithCount />
         </Suspense>
       </Suspense>
@@ -30,10 +31,10 @@ export default function ParentLayout({ children }: LayoutProps<"/parent">) {
 /** The tab bar with the Inbox count. Without a session or on a read error it shows no count. */
 async function ParentNavWithCount() {
   try {
-    return <ParentNav unread={await getUnreadCount()} />;
+    return <ParentNav unread={await getUnreadCount()} footer={<RailAvatar />} />;
   } catch (error) {
     unstable_rethrow(error);
-    return <ParentNav />;
+    return <ParentNav footer={<RailAvatar />} />;
   }
 }
 

@@ -7,8 +7,12 @@ export {
   getGuideState,
   getGuideTranscript,
   getMemories,
+  getMyTranscript,
+  getParentTranscript,
   isGuideConfigured,
   listGuideChats,
+  listMyChats,
+  listParentChats,
   prepareGuideTurn,
 } from "./service";
 export { streamGuideTurn } from "./stream";

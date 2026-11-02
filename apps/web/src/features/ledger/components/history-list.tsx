@@ -10,7 +10,7 @@ import {
   ShoppingBagIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { JarsoMark } from "@/components/brand";
+import { CoachSays } from "@/components/brand";
 import { Card, CardContent } from "@/components/ui";
 import { cn, formatMoney } from "@/lib";
 
@@ -121,10 +121,7 @@ export function HistoryList({
         <section aria-label="History" className="grid gap-3">
           <h2 className="text-h3">History</h2>
           {items.length === 0 ? (
-            <div className="grid justify-items-center gap-2 py-4 text-center">
-              <JarsoMark size={48} />
-              <p className="font-semibold">{emptyLine}</p>
-            </div>
+            <CoachSays coach={{ key: "history" }} says={emptyLine} className="py-2" />
           ) : (
             <ul className="grid gap-2">
               {items.map((item) => {

@@ -165,6 +165,10 @@ export async function callCreateWithdrawal(
   if ((r?.status === "pending" || r?.status === "approved") && typeof r.request_id === "string") {
     return { status: r.status, requestId: r.request_id };
   }
+  // "Just tell me": the move was recorded at once (a retry of it says the same).
+  if (r?.status === "handed_over" && r.settled_now === true && typeof r.request_id === "string") {
+    return { status: "done", requestId: r.request_id };
+  }
   // A retried key whose request has since moved on: the ask was already sent.
   if (
     (r?.status === "handed_over" || r?.status === "rejected" || r?.status === "cancelled") &&
@@ -219,6 +223,9 @@ export async function callCreateDeposit(
   });
   if (error) throw toAppError(error, "Failed to record your deposit");
   const r = data as Json;
+  if (r?.status === "confirmed" && r.settled_now === true && typeof r.request_id === "string") {
+    return { status: "done", requestId: r.request_id };
+  }
   if ((r?.status === "pending" || r?.status === "confirmed") && typeof r.request_id === "string") {
     return { status: r.status, requestId: r.request_id };
   }

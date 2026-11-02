@@ -2,11 +2,11 @@
 
 import type { Notice } from "@jarso/core/notifications";
 import { noticeText } from "@jarso/core/notifications";
-import { InboxIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useTransition } from "react";
 import { toast } from "sonner";
+import { CoachSays } from "@/components/brand";
 import { Button, buttonVariants } from "@/components/ui";
 import { runOnline } from "@/features/offline";
 import { noticeHref } from "../links";
@@ -56,9 +56,8 @@ export function InboxList({ items, currency, viewer, moreHref }: InboxListProps)
 
   if (items.length === 0) {
     return (
-      <div className="grid justify-items-center gap-2 rounded-xl border border-hairline bg-card p-8 text-center">
-        <InboxIcon aria-hidden className="size-8 text-ink-2" />
-        <p className="font-semibold">Nothing here yet.</p>
+      <div className="rounded-xl border border-hairline bg-card p-5">
+        <CoachSays coach={{ key: "inbox" }} says={{ moment: "nothingNew" }} />
       </div>
     );
   }

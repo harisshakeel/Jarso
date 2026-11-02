@@ -1,5 +1,11 @@
 import type { MoneyRule } from "@jarso/core/rules";
-import { describeRule, describeRuleForChild, summarise } from "@jarso/core/rules";
+import {
+  describeRule,
+  describeRuleForChild,
+  jarMovesLineForChild,
+  jarMovesSentence,
+  summarise,
+} from "@jarso/core/rules";
 import { describe, expect, it } from "vitest";
 
 const rule = (kind: MoneyRule["kind"], period: MoneyRule["period"], amountMinor: number) => ({
@@ -76,6 +82,22 @@ describe("summarise", () => {
     );
     expect(summarise([rule("deposit_auto_confirm", "month", 3000)], "deposit", "GBP")).toBe(
       "Deposits beyond £30 a month wait for you to confirm",
+    );
+  });
+});
+
+describe("jar moves", () => {
+  it("reads the setting as a sentence for the parent", () => {
+    expect(jarMovesSentence("ask", "Maya")).toBe("Maya asks you before moving money between jars");
+    expect(jarMovesSentence("notify", "Maya")).toBe(
+      "Maya moves money between jars and you get a note",
+    );
+  });
+
+  it("tells the child only when they can move money without asking", () => {
+    expect(jarMovesLineForChild("ask")).toBeNull();
+    expect(jarMovesLineForChild("notify")).toBe(
+      "You can move money between your jars without asking. Your parent gets a note.",
     );
   });
 });

@@ -44,4 +44,9 @@ describe("PutInSheet", () => {
     putIn({ status: "over_available", availableMinor: 250 });
     expect(await screen.findByRole("status")).toHaveTextContent("Spend has £2.50");
   });
+
+  it("says the parent knows when the move was recorded at once", async () => {
+    putIn({ status: "done", requestId: "r1" });
+    expect(await screen.findByText("Added to Save. Your parent knows.")).toBeInTheDocument();
+  });
 });

@@ -1,5 +1,5 @@
 import { formatMoney } from "@jarso/core/lib";
-import type { MoneyRule, Period } from "./types";
+import type { JarMovesMode, MoneyRule, Period } from "./types";
 
 const PER: Record<Period, string> = { item: "each time", week: "a week", month: "a month" };
 
@@ -36,6 +36,20 @@ export function describeRuleForChild(rule: MoneyRule, currency: string): string 
     case "deposit_auto_confirm":
       return `Money you put in up to ${amount} ${per} goes straight into Save`;
   }
+}
+
+/** The jar-moves setting as the parent reads it. */
+export function jarMovesSentence(mode: JarMovesMode, nickname: string): string {
+  return mode === "notify"
+    ? `${nickname} moves money between jars and you get a note`
+    : `${nickname} asks you before moving money between jars`;
+}
+
+/** The jar-moves setting as the child reads it in a tray; nothing when they have to ask. */
+export function jarMovesLineForChild(mode: JarMovesMode): string | null {
+  return mode === "notify"
+    ? "You can move money between your jars without asking. Your parent gets a note."
+    : null;
 }
 
 /** What a parent has to approve: everything, or only what is above the auto rule. */

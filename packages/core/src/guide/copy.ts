@@ -75,6 +75,22 @@ export const guideCopy = {
       prefers: "Prefers",
     },
   },
+  /** The parent's window on their Home: the same Jarso, asking about one child. */
+  parent: {
+    title: (nickname: string) => `Ask Jarso about ${nickname}`,
+    disclosure: (nickname: string) =>
+      `Jarso is an AI. It looks at ${nickname}'s jars and learning only when you ask. ${nickname} doesn't see these chats.`,
+    placeholder: (nickname: string) => `Ask about ${nickname}'s money or learning…`,
+    pick: "Ask about",
+    suggestions: (nickname: string) => [
+      `How is ${nickname} doing with saving?`,
+      `What did ${nickname} spend on this week?`,
+      `When is ${nickname}'s next allowance?`,
+      `What has ${nickname} learned so far?`,
+    ],
+    off: (nickname: string) =>
+      `Jarso is off for ${nickname}. Turn it on from ${nickname}'s page to ask about them.`,
+  },
   newChat: "Start a new chat",
   chatFull: "This chat is full. Start a new chat to keep going.",
   routes: {

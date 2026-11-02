@@ -17,40 +17,52 @@ function Disc({ initial }: { initial: string | null }) {
   );
 }
 
-async function Avatar() {
-  let initial: string | null = null;
+/** Who is signed in: their first name (a child's nickname) and its initial. Fails open to none. */
+async function whoAmI(): Promise<{ name: string | null; initial: string | null }> {
   try {
     const user = await getCurrentUser();
-    if (user) {
-      const role = await currentRole();
-      const name =
-        role === "child"
-          ? await getChildNickname()
-          : ((await getProfile(user.id)).fullName ?? user.email ?? "");
-      initial = name.trim().charAt(0).toUpperCase() || null;
-    }
+    if (!user) return { name: null, initial: null };
+    const role = await currentRole();
+    const full =
+      role === "child"
+        ? await getChildNickname()
+        : ((await getProfile(user.id)).fullName ?? user.email ?? "");
+    const name = full.trim().split(/\s+/)[0] ?? "";
+    return { name: name || null, initial: name.charAt(0).toUpperCase() || null };
   } catch (error) {
     unstable_rethrow(error);
-    logger.warn("Header avatar lookup failed; showing the plain disc", { error });
+    logger.warn("Avatar lookup failed; showing the plain disc", { error });
+    return { name: null, initial: null };
   }
-  return <Disc initial={initial} />;
 }
 
-/**
- * The header's right end: the signed-in person's initial in a disc, which opens Settings (named
- * "Account" so the rail's own Settings link stays the one called that). Reads
- * the session, so it streams in behind its own Suspense; the plain disc shows meanwhile. Fails
- * open to the plain disc, which still opens Settings.
- */
-export function HeaderAvatar() {
+async function RailName() {
+  const me = await whoAmI();
+  return (
+    <>
+      <Disc initial={me.initial} />
+      <span className="max-w-20 truncate font-semibold text-xs">{me.name ?? "You"}</span>
+    </>
+  );
+}
+
+/** The same person at the foot of the left rail, with their first name, opening Settings. */
+export function RailAvatar() {
   return (
     <Link
       href={routes.settings}
       aria-label="Account"
-      className="-mr-1 grid size-11 place-items-center rounded-full transition-colors hover:bg-muted focus-visible:outline-3 focus-visible:outline-ring focus-visible:outline-offset-2"
+      className="mx-auto flex min-h-11 w-20 flex-col items-center gap-1 rounded-xl py-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-3 focus-visible:outline-ring focus-visible:outline-offset-2"
     >
-      <Suspense fallback={<Disc initial={null} />}>
-        <Avatar />
+      <Suspense
+        fallback={
+          <>
+            <Disc initial={null} />
+            <span className="font-semibold text-xs">You</span>
+          </>
+        }
+      >
+        <RailName />
       </Suspense>
     </Link>
   );

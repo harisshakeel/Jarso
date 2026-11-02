@@ -15,6 +15,7 @@ import {
   assertRole,
   assertSelfOrParentOf,
   getFamily,
+  listChildren,
 } from "@/features/family/server";
 import { topicTitles } from "@/features/learning";
 import { AppError, familyToday, isAppError, logger } from "@/lib";
@@ -141,12 +142,31 @@ function lookedAt(names: readonly ToolName[]): string[] {
   return [...new Set(names.map((name) => guideCopy.checked[name]))];
 }
 
+/**
+ * Who is asking, and about whom: the signed-in child about themselves, or a parent about one of
+ * their own children (the parent's Home). Anything else is refused before a read.
+ */
+async function resolveAsker(
+  context: GuideContextRef,
+): Promise<{ userId: string; childId: string; nickname: string | null; parent: boolean }> {
+  if (context.entry !== "parent") {
+    const { user } = await assertRole("child");
+    return { userId: user.id, childId: user.id, nickname: null, parent: false };
+  }
+  const { user } = await assertRole("parent");
+  const child = (await listChildren()).find((c) => c.id === context.childId);
+  if (!child) throw new AppError("FORBIDDEN", "You can't do that.");
+  return { userId: user.id, childId: child.id, nickname: child.nickname, parent: true };
+}
+
 /** A message checked and ready for Jarso, or one already answered (a re-send). */
 export type PreparedTurn =
   | { kind: "stored"; result: AskGuideResult }
   | {
       kind: "ready";
       childId: string;
+      /** The parent asking about the child, or null when the child asks. */
+      askedBy: string | null;
       family: { currency: string; timezone: string };
       provider: GuideProvider;
       context: BuiltContext;
@@ -169,30 +189,37 @@ export async function prepareGuideTurn(input: {
   context: GuideContextRef;
   text: string;
 }): Promise<PreparedTurn> {
-  const { user } = await assertRole("child");
+  const asker = await resolveAsker(input.context);
+  const { childId } = asker;
+  const askedBy = asker.parent ? asker.userId : null;
   const provider = getGuideProvider();
   if (!provider) throw new AppError("FORBIDDEN", guideCopy.switchedOff);
   const db = await createClient();
-  if (!(await repo.findGuideAccess(db, user.id))) {
+  if (!(await repo.findGuideAccess(db, childId))) {
     throw new AppError("FORBIDDEN", guideCopy.switchedOff);
   }
   // After the switch (a child-safety boundary), before anything is counted or sent.
   const admin = createAdminClient();
-  const replay = await storedTurn(admin, user.id, input.clientMessageId);
+  const replay = await storedTurn(admin, childId, input.clientMessageId);
   if (replay) return { kind: "stored", result: replay };
   const family = await getFamily();
   if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
 
   // Context first: an unknown key fails before anything is counted or stored.
-  const context = buildContext(input.context, family.currency, familyToday(family.timezone));
-  // What Jarso remembers rides in the per-turn context as data, never as instructions. It is
-  // optional context: if it can't be read, the turn goes ahead without it.
-  const memories = await listMemories(db, user.id).catch((error: unknown) => {
-    logger.warn("Guide memories unavailable", {
-      error: error instanceof Error ? error.name : typeof error,
-    });
-    return [];
+  const context = buildContext(input.context, family.currency, familyToday(family.timezone), {
+    childNickname: asker.nickname ?? undefined,
   });
+  // What Jarso remembers rides in the per-turn context as data, never as instructions. It is
+  // optional context: if it can't be read, the turn goes ahead without it. A parent's chat about
+  // the child never sees the child's memories.
+  const memories = asker.parent
+    ? []
+    : await listMemories(db, childId).catch((error: unknown) => {
+        logger.warn("Guide memories unavailable", {
+          error: error instanceof Error ? error.name : typeof error,
+        });
+        return [];
+      });
   if (memories.length > 0) {
     context.text = [
       context.text,
@@ -206,7 +233,7 @@ export async function prepareGuideTurn(input: {
   let turns = 0;
   if (conversationId) {
     const conversation = await repo.findConversation(db, conversationId);
-    if (!conversation || conversation.childId !== user.id) {
+    if (!conversation || conversation.childId !== childId || conversation.askedBy !== askedBy) {
       throw new AppError("FORBIDDEN", "You can't do that.");
     }
     if (conversation.turns >= MAX_TURNS) throw new AppError("CONFLICT", guideCopy.chatFull);
@@ -214,24 +241,26 @@ export async function prepareGuideTurn(input: {
     history = onTopicHistory(await repo.listMessages(db, [conversationId]));
   }
 
-  if (!(await repo.hitRateLimit(admin, `guide:min:${user.id}`, "1 minute", PER_MINUTE))) {
+  if (!(await repo.hitRateLimit(admin, `guide:min:${asker.userId}`, "1 minute", PER_MINUTE))) {
     throw new AppError("RATE_LIMITED", guideCopy.rateLimitedMinute);
   }
-  if (!(await repo.hitRateLimit(admin, `guide:day:${user.id}`, "1 day", PER_DAY))) {
+  if (!(await repo.hitRateLimit(admin, `guide:day:${asker.userId}`, "1 day", PER_DAY))) {
     throw new AppError("RATE_LIMITED", guideCopy.rateLimitedDay);
   }
 
   if (!conversationId) {
     conversationId = await repo.startConversation(admin, {
-      childId: user.id,
+      childId,
       entry: context.entry,
       contextKey: context.contextKey,
+      askedBy,
     });
   }
 
   return {
     kind: "ready",
-    childId: user.id,
+    childId,
+    askedBy,
     family: { currency: family.currency, timezone: family.timezone },
     provider,
     context,
@@ -262,7 +291,12 @@ export async function runGuideTurn(
   } else {
     // The child's id comes from the session, never from the model (ADR 0011).
     const tools = createTurnTools(
-      { childId: turn.childId, currency: family.currency, timezone: family.timezone },
+      {
+        childId: turn.childId,
+        currency: family.currency,
+        timezone: family.timezone,
+        forParent: turn.askedBy !== null,
+      },
       onStatus,
     );
     result = await runGuidePipeline(
@@ -381,12 +415,18 @@ export async function setGuideAccess(childId: string, enabled: boolean): Promise
 const SAFETY_HIDDEN = "A safety response was shown. The message itself is not kept.";
 const PERSONAL_HIDDEN = "Personal details were shared, so the message is not kept.";
 const EXPIRED = "Older than 30 days, so deleted.";
+/** What the asker sees in place of their own message that was not kept. */
+const NOT_KEPT = "This message wasn't kept.";
 
 /**
- * A chat as the parent reads it. A child message that got a safety or personal-details response
- * is stored blank (spec decision 3, ADR 0010); the parent sees a note in its place.
+ * A chat as a reader sees it. A child message that got a safety or personal-details response
+ * is stored blank (spec decision 3, ADR 0010); the parent sees a note in its place, and the
+ * asker (the child, or a parent reading their own chat) a plain line.
  */
-function forParent(messages: repo.MessageRow[]): TranscriptMessage[] {
+function transcriptFor(
+  messages: repo.MessageRow[],
+  viewer: "parent" | "asker",
+): TranscriptMessage[] {
   return messages.map(({ checked, ...message }, index) => {
     if (message.role !== "child") {
       const text = message.text || EXPIRED;
@@ -394,19 +434,30 @@ function forParent(messages: repo.MessageRow[]): TranscriptMessage[] {
     }
     const shown = { ...message, lookedAt: [] };
     const reply = messages[index + 1];
-    if (reply?.route === "safety") return { ...shown, hidden: true, text: SAFETY_HIDDEN };
-    if (reply?.route === "personal_info") return { ...shown, hidden: true, text: PERSONAL_HIDDEN };
+    if (reply?.route === "safety") {
+      return { ...shown, hidden: true, text: viewer === "parent" ? SAFETY_HIDDEN : NOT_KEPT };
+    }
+    if (reply?.route === "personal_info") {
+      return { ...shown, hidden: true, text: viewer === "parent" ? PERSONAL_HIDDEN : NOT_KEPT };
+    }
     return { ...shown, hidden: false, text: message.text || EXPIRED };
   });
+}
+
+/** A chat as the parent reads it. */
+function forParent(messages: repo.MessageRow[]): TranscriptMessage[] {
+  return transcriptFor(messages, "parent");
 }
 
 function summarize(
   conversation: repo.ConversationRow,
   messages: repo.MessageRow[],
+  viewer: "parent" | "asker" = "parent",
 ): ConversationSummary {
-  const first = forParent(messages).find((m) => m.role === "child");
+  const first = transcriptFor(messages, viewer).find((m) => m.role === "child");
   return {
     id: conversation.id,
+    childId: conversation.childId,
     entry: conversation.entry,
     label: labelFor(conversation.entry, conversation.contextKey),
     createdAt: conversation.createdAt,
@@ -447,6 +498,76 @@ export async function getGuideTranscript(
   return { summary: summarize(conversation, messages), messages: forParent(messages) };
 }
 
+/** The signed-in child's own chats (not a parent's about them), newest first (the Jarso page). */
+export async function listMyChats(): Promise<ConversationSummary[]> {
+  const { user } = await assertRole("child");
+  const db = await createClient();
+  const conversations = await repo.listConversations(db, user.id);
+  const messages = await repo.listMessages(
+    db,
+    conversations.map((c) => c.id),
+  );
+  return conversations
+    .map((conversation) =>
+      summarize(
+        conversation,
+        messages.filter((m) => m.conversationId === conversation.id),
+        "asker",
+      ),
+    )
+    .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
+}
+
+/** One of the signed-in child's own chats, to pick it up again. Null when it isn't theirs. */
+export async function getMyTranscript(
+  conversationId: string,
+): Promise<{ summary: ConversationSummary; messages: TranscriptMessage[] } | null> {
+  const { user } = await assertRole("child");
+  const db = await createClient();
+  const conversation = await repo.findConversation(db, conversationId);
+  if (!conversation || conversation.childId !== user.id || conversation.askedBy !== null) {
+    return null;
+  }
+  const messages = await repo.listMessages(db, [conversationId]);
+  return {
+    summary: summarize(conversation, messages, "asker"),
+    messages: transcriptFor(messages, "asker"),
+  };
+}
+
+/** The signed-in parent's own chats about their children, newest first (the Jarso page). */
+export async function listParentChats(): Promise<ConversationSummary[]> {
+  const { user } = await assertRole("parent");
+  const db = await createClient();
+  const conversations = await repo.listConversationsAskedBy(db, user.id);
+  const messages = await repo.listMessages(
+    db,
+    conversations.map((c) => c.id),
+  );
+  return conversations.map((conversation) =>
+    summarize(
+      conversation,
+      messages.filter((m) => m.conversationId === conversation.id),
+      "asker",
+    ),
+  );
+}
+
+/** One of the signed-in parent's own chats about a child. Null when it isn't theirs. */
+export async function getParentTranscript(
+  conversationId: string,
+): Promise<{ summary: ConversationSummary; messages: TranscriptMessage[] } | null> {
+  const { user } = await assertRole("parent");
+  const db = await createClient();
+  const conversation = await repo.findConversation(db, conversationId);
+  if (!conversation || conversation.askedBy !== user.id) return null;
+  const messages = await repo.listMessages(db, [conversationId]);
+  return {
+    summary: summarize(conversation, messages, "asker"),
+    messages: transcriptFor(messages, "asker"),
+  };
+}
+
 /** Flagged chats in the last 30 days, for the badge on the child's card. */
 export async function countFlaggedChats(childId: string): Promise<number> {
   await assertParentCanRead(childId);
@@ -456,6 +577,7 @@ export async function countFlaggedChats(childId: string): Promise<number> {
 
 function labelFor(entry: string, contextKey: string): string {
   if (entry === "home") return "Asked from Home";
+  if (entry === "parent") return "A parent asked about them";
   if (entry === "topic") {
     const key = contextKey.replace(/^topic:/, "") as keyof typeof topicTitles;
     return topicTitles[key] ? `Topic: ${topicTitles[key]}` : "A topic page";

@@ -160,3 +160,23 @@ export async function dueOccurrence(
   if (readError) throw new Error(`Occurrence lookup failed: ${readError.message}`);
   return data.id;
 }
+
+/**
+ * After "Create account" on the local stack (email confirmation off): the setup page. When it
+ * does not arrive, the failure says where the page is and what the form said, so a flaky
+ * sign-up explains itself instead of reading as a timeout.
+ */
+export async function expectSetupPage(page: Page): Promise<void> {
+  try {
+    await expect(page).toHaveURL((url) => url.pathname === "/parent/setup", { timeout: 20_000 });
+  } catch (error) {
+    const said = await page
+      .getByRole("alert")
+      .allInnerTexts()
+      .catch(() => [] as string[]);
+    throw new Error(
+      `Sign-up did not reach /parent/setup (page is at ${page.url()}). The form said: ${said.join(" | ") || "nothing"}`,
+      { cause: error },
+    );
+  }
+}

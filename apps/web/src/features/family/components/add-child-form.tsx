@@ -9,7 +9,7 @@ import { useOnlineActionState } from "@/features/offline";
 import { addChildAction } from "../server/actions";
 
 export function AddChildForm() {
-  const [state, formAction, pending, submit] = useOnlineActionState(addChildAction);
+  const [state, formAction, pending, submit, ready] = useOnlineActionState(addChildAction);
   // Controlled so they survive a failed submit (React resets uncontrolled fields); the PIN clears.
   const [nickname, setNickname] = useState("");
   const [consent, setConsent] = useState(false);
@@ -63,7 +63,7 @@ export function AddChildForm() {
         <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
           Cancel
         </Link>
-        <Button type="submit" size="lg" loading={pending}>
+        <Button type="submit" size="lg" loading={pending} disabled={!ready}>
           Add child
         </Button>
       </div>
