@@ -1,5 +1,5 @@
+import { addDays, moneySchema } from "@jarso/core/lib";
 import { z } from "zod";
-import { addDays, moneySchema } from "@/lib";
 import { frequencies } from "./types";
 
 /**

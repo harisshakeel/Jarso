@@ -1,4 +1,4 @@
-import type { PaymentProviderId } from "@/lib/payments";
+import type { PaymentProviderId } from "@jarso/core/lib";
 
 export const frequencies = ["weekly", "monthly", "quarterly", "annual"] as const;
 export type Frequency = (typeof frequencies)[number];

@@ -1,8 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { AutoChargeCard } from "@/features/payments";
 import { AutoChargeToggle } from "@/features/payments/components/auto-charge-toggle";
-import type { AutoChargeCard } from "@/features/payments/types";
 
 const setAutoChargeAction = vi.hoisted(() => vi.fn());
 vi.mock("@/features/payments/server/actions", () => ({ setAutoChargeAction }));

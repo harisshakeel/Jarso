@@ -1,4 +1,4 @@
-import type { CardSummary, FailureCode, PaymentProviderId } from "@/lib/payments";
+import type { CardSummary, FailureCode, PaymentProviderId } from "@jarso/core/lib";
 
 export type { CardSummary, FailureCode, PaymentProviderId };
 

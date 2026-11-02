@@ -1,7 +1,7 @@
+import type { Schedule } from "@jarso/core/allowance";
+import { cadenceAfterAmount, formatDay } from "@jarso/core/allowance";
 import { Badge } from "@/components/ui";
 import { formatMoney } from "@/lib";
-import { cadenceAfterAmount, formatDay } from "../describe";
-import type { Schedule } from "../types";
 
 type AllowanceLineProps = {
   schedule: Schedule | null;

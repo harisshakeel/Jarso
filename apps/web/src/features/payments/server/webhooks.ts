@@ -1,9 +1,9 @@
 import "server-only";
+import { nextStatus } from "@jarso/core/payments";
 import { z } from "zod";
 import { logger } from "@/lib";
 import type { PaymentProviderId, ProviderEvent } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { nextStatus } from "../status";
 import {
   applyPayment,
   armAutoChargeForSetup,

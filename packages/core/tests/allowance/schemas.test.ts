@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import {
   allowanceSchema,
   changeAllowanceSchema,
@@ -8,8 +7,9 @@ import {
   idSchema,
   pauseSchema,
   updateGiftSchema,
-} from "@/features/allowance/schemas";
-import { familyToday } from "@/lib";
+} from "@jarso/core/allowance";
+import { familyToday } from "@jarso/core/lib";
+import { describe, expect, it } from "vitest";
 
 const today = "2026-10-29";
 const childId = "6f1c2a52-3c4e-4c8e-9a51-0a1b2c3d4e5f";

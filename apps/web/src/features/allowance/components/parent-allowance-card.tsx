@@ -1,10 +1,9 @@
+import type { Schedule } from "@jarso/core/allowance";
+import { cadenceAfterAmount, describeAllowanceState, runningSchedule } from "@jarso/core/allowance";
 import Link from "next/link";
 import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { formatMoney } from "@/lib";
-import { cadenceAfterAmount, describeAllowanceState } from "../describe";
-import { runningSchedule } from "../due";
-import type { Schedule } from "../types";
 
 type ParentAllowanceCardProps = {
   childId: string;

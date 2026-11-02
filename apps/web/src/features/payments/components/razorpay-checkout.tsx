@@ -1,10 +1,10 @@
 "use client";
 
+import { paymentCopy } from "@jarso/core/payments";
 import Script from "next/script";
 import { useCallback, useRef, useState } from "react";
 import { FormError } from "@/components/form";
 import { Button, buttonVariants, Card, CardContent } from "@/components/ui";
-import { paymentCopy } from "../copy";
 
 const CHECKOUT_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import type { Schedule } from "@jarso/core/allowance";
 import {
   cadenceAfterAmount,
   cashForSaved,
@@ -10,8 +10,8 @@ import {
   prefillSplit,
   shareOf,
   splitAtShare,
-} from "@/features/allowance/describe";
-import type { Schedule } from "@/features/allowance/types";
+} from "@jarso/core/allowance";
+import { describe, expect, it } from "vitest";
 
 describe("describeCadence", () => {
   it("describes each frequency from the anchor, with no start date", () => {

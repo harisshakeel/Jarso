@@ -1,6 +1,6 @@
+import type { DueItem, Gift, Schedule } from "@jarso/core/allowance";
+import { mergeDue, runningSchedule, upcomingGifts } from "@jarso/core/allowance";
 import { describe, expect, it } from "vitest";
-import { mergeDue, runningSchedule, upcomingGifts } from "@/features/allowance/due";
-import type { DueItem, Gift, Schedule } from "@/features/allowance/types";
 
 const item = (id: string, dueOn: string, kind: DueItem["kind"] = "allowance"): DueItem => ({
   kind,

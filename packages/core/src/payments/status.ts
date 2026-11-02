@@ -1,4 +1,4 @@
-import type { PaymentStatus } from "@/lib/payments";
+import type { PaymentStatus } from "@jarso/core/lib";
 
 /** A payment's status as stored: the provider's, plus money captured but not posted. */
 export type StoredStatus = PaymentStatus | "succeeded_unapplied";

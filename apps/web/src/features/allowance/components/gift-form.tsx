@@ -1,5 +1,6 @@
 "use client";
 
+import type { Gift } from "@jarso/core/allowance";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useActionState, useEffect, useState, useTransition } from "react";
@@ -22,9 +23,7 @@ import {
 import { routes } from "@/config";
 import { newId, runOnline } from "@/features/offline";
 import { type ActionState, idle, toMajorString } from "@/lib";
-
 import { cancelGiftAction, createGiftAction, updateGiftAction } from "../server/actions";
-import type { Gift } from "../types";
 
 type GiftFormProps = {
   childId: string;

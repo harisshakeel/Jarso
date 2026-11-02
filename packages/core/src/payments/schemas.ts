@@ -1,5 +1,5 @@
+import { moneySchema, PAYMENT_PROVIDER_IDS } from "@jarso/core/lib";
 import { z } from "zod";
-import { moneySchema, PAYMENT_PROVIDER_IDS } from "@/lib";
 import { paymentCopy } from "./copy";
 
 /** A card provider the parent chose (it must also be on: the service checks). */

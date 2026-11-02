@@ -1,7 +1,7 @@
+import type { CardPaymentState } from "@jarso/core/payments";
+import { failureCopy, paymentCopy } from "@jarso/core/payments";
 import { cn } from "cn";
 import { CreditCardIcon, HourglassIcon, type LucideIcon } from "lucide-react";
-import { failureCopy, paymentCopy } from "../copy";
-import type { CardPaymentState } from "../types";
 
 type Note = { icon: LucideIcon; tone: string; title: string; detail: string };
 

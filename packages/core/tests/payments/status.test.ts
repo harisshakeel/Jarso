@@ -1,5 +1,5 @@
+import { isStoredStatus, nextStatus, type StoredStatus } from "@jarso/core/payments";
 import { describe, expect, it } from "vitest";
-import { isStoredStatus, nextStatus, type StoredStatus } from "@/features/payments/status";
 
 describe("nextStatus", () => {
   it.each<[StoredStatus, Parameters<typeof nextStatus>[1], ReturnType<typeof nextStatus>]>([

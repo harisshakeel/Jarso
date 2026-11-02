@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import {
   autoChargeSchema,
   cardPaymentSchema,
@@ -9,7 +8,8 @@ import {
   razorpayReturnFormSchema,
   razorpayReturnUrlsSchema,
   removeSavedCardSchema,
-} from "@/features/payments/schemas";
+} from "@jarso/core/payments";
+import { describe, expect, it } from "vitest";
 
 const id = "0b7e8f40-9d1a-4b2c-8e3f-1a2b3c4d5e6f";
 

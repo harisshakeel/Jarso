@@ -1,6 +1,6 @@
+import type { SavedCard } from "@jarso/core/payments";
+import { paymentCopy } from "@jarso/core/payments";
 import { describe, expect, it } from "vitest";
-import { paymentCopy } from "@/features/payments/copy";
-import type { SavedCard } from "@/features/payments/types";
 
 const card = { brand: "visa", last4: "4242" };
 const saved = (provider: SavedCard["provider"]): SavedCard => ({ provider, label: provider, card });

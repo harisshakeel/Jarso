@@ -1,7 +1,5 @@
 "use server";
 
-import { refresh } from "next/cache";
-import { createAction } from "@/lib";
 import {
   allowanceSchema,
   changeAllowanceSchema,
@@ -10,7 +8,9 @@ import {
   idSchema,
   pauseSchema,
   updateGiftSchema,
-} from "../schemas";
+} from "@jarso/core/allowance";
+import { refresh } from "next/cache";
+import { createAction } from "@/lib";
 import {
   cancelGift,
   changeAllowance,
