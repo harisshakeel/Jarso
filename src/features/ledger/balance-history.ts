@@ -23,13 +23,22 @@ export type BalanceHistory = {
   movedOn: string[];
 };
 
-/** The periods the graph offers, in days back from today. */
+/**
+ * The periods the graph offers, in days back from today: the pill's label, and the words the
+ * coach uses for it in a sentence. The week comes first and is the default.
+ */
 export const graphPeriods = [
-  { days: 7, label: "Last 7 days" },
-  { days: 30, label: "Last 30 days" },
-  { days: 90, label: "Last 3 months" },
+  { days: 7, label: "This week", word: "this week" },
+  { days: 30, label: "This month", word: "this month" },
+  { days: 90, label: "3 months", word: "these 3 months" },
 ] as const;
 export type GraphPeriod = (typeof graphPeriods)[number]["days"];
+
+/** The track the coach rides: whichever jar moved most across the points, Save if tied. */
+export function riderTrack(points: BalancePoint[]): Jar {
+  const change = jarChange(points);
+  return Math.abs(change.save) >= Math.abs(change.spend) ? "save" : "spend";
+}
 
 /**
  * Walks back from today's balances through the movements, so the series always ends at the
@@ -80,20 +89,25 @@ export function jarChange(points: BalancePoint[]): Jars {
 }
 
 /**
- * One friendly line about the period, for under the graph: which jar climbed or dipped and by
- * how much. Never a judgement of the amount.
+ * The coach's line under the graph: which jar climbed or dipped and by how much, in the words of
+ * the chosen period ("Save climbed £8 this week. Nice."). A word of praise only when Save went
+ * up (saving is the choice to praise); never a judgement of the amount.
  */
 export function graphCaption(
   points: BalancePoint[],
   anyMoves: boolean,
   money: (minor: number) => string,
+  period = "this week",
 ): string {
   if (!anyMoves) return "Nothing has moved yet. Your first allowance will show up here.";
   const change = jarChange(points);
+  if (change.spend === 0 && change.save === 0) return `Both jars stayed put ${period}.`;
   const line = (jar: "Spend" | "Save", by: number) =>
-    by === 0
-      ? `${jar} stayed put`
-      : `${jar} ${by > 0 ? "climbed" : "dipped"} ${money(Math.abs(by))}`;
-  if (change.spend === 0 && change.save === 0) return "Both jars stayed where they were.";
-  return `${line("Spend", change.spend)}. ${line("Save", change.save)}.`;
+    `${jar} ${by > 0 ? "climbed" : "dipped"} ${money(Math.abs(by))}`;
+  const parts = [
+    ...(change.spend !== 0 ? [line("Spend", change.spend)] : []),
+    ...(change.save !== 0 ? [line("Save", change.save)] : []),
+  ];
+  const nice = change.save > 0 ? " Nice." : "";
+  return `${parts.join(" and ")} ${period}.${nice}`;
 }

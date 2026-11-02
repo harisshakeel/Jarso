@@ -330,6 +330,33 @@
   }
 }
 
+/* The coaster cart on the jar graph: it sits at the end of its track; where the browser knows
+   motion paths it rides the track once, after the track has drawn (design.md §8). */
+.coaster-cart {
+  transform: translate(var(--cart-x), var(--cart-y));
+}
+@supports (offset-path: path("M0 0")) {
+  .coaster-cart {
+    transform: none;
+    offset-path: var(--cart-path);
+    offset-rotate: 0deg;
+    offset-distance: 100%;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .coaster-cart {
+      animation: coaster-ride 1000ms var(--ease-brand) 900ms both;
+    }
+  }
+}
+@keyframes coaster-ride {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+
 /* Coins flying between the jars on the shelf (jar-shelf.tsx): an arc to --fly-dx, --fly-dy. */
 @keyframes coin-fly {
   from {
