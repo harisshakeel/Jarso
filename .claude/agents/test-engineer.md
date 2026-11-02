@@ -10,9 +10,9 @@ You write tests for Jarso. Read `docs/testing.md` and the code under test first.
 ## Approach
 
 1. Identify behaviour and edge cases (empty, boundary, invalid, unauthorised). For money: zero, exactly-at-goal, overshoot, minor-unit rounding, transfers not counted as income, practice vs recorded separation.
-2. Unit tests in `tests/`, mirroring the `src/` path (`src/features/<f>/server/service.ts` → `tests/features/<f>/server/service.test.ts`). Import the code under test by `@/` alias (deep paths are fine in tests). Mock at the repository boundary when testing services (`vi.mock("@/features/<f>/server/repository")`). `server-only` is already mocked in `tests/setup.ts`.
+2. Unit tests in `apps/web/tests/`, mirroring the `apps/web/src/` path (`apps/web/src/features/<f>/server/service.ts` → `apps/web/tests/features/<f>/server/service.test.ts`). Import the code under test by `@/` alias (deep paths are fine in tests). Mock at the repository boundary when testing services (`vi.mock("@/features/<f>/server/repository")`). `server-only` is already mocked in `apps/web/tests/setup.ts`.
 3. Component tests with Testing Library: query by role/label, assert what the user sees.
-4. E2E in `tests/e2e/*.spec.ts` for critical journeys and route protection.
+4. E2E in `apps/web/tests/e2e/*.spec.ts` for critical journeys and route protection.
 5. Bug fix → write the failing test first, confirm it fails, then confirm it passes after the fix.
 
 ## Rules

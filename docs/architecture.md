@@ -7,7 +7,7 @@ Diagrams are Mermaid and render on GitHub.
 ## 1. Principles
 
 1. **One source of truth for money.** The append-only `ledger_entries` table. Balances are derived, never stored as the truth. Only three paths write to it: a parent's handover confirmation, a child's recorded entry (purchase, gift, correction), and a request reaching its final state. Each path is a Postgres function running in one transaction.
-2. **Feature modules own their domain.** UI, validation, data access and business rules for one area live in `src/features/<name>/`. `src/app` routes and composes. Modules talk through barrels only.
+2. **Feature modules own their domain.** UI, validation, data access and business rules for one area live in `apps/web/src/features/<name>/`. `apps/web/src/app` routes and composes. Modules talk through barrels only.
 3. **Authorization in three layers, the database last and loudest.** Proxy redirects optimistically, the data access layer verifies the user and role, Row Level Security decides. A bug in app code cannot read another family's rows.
 4. **Records are authoritative, notifications are derived.** The inbox and push are projections of records. Delivery can fail; the record cannot be lost.
 5. **Idempotent by construction.** Every balance-changing write carries a key with a unique constraint. Retries, double taps and cron reruns are no-ops.
@@ -57,7 +57,7 @@ External dependencies and what happens when each is down:
 
 | Runtime piece | Where | Responsibility |
 | --- | --- | --- |
-| `src/proxy.ts` | Vercel edge of every request | Refresh Supabase session cookie; optimistic redirects for protected and auth routes; attach a request id header. No data access. |
+| `apps/web/src/proxy.ts` | Vercel edge of every request | Refresh Supabase session cookie; optimistic redirects for protected and auth routes; attach a request id header. No data access. |
 | Server Components | Vercel function | Read data through services inside `<Suspense>`; never mutate. |
 | Server Actions (`createAction`) | Vercel function | Mutations from our own UI: validate with Zod, `assertUser()`, call a service, `refresh()`. |
 | Route Handlers (`withApi`) | Vercel function | Non-UI callers: the cron sweep, the device outbox, Jarso's stream, `/api/v1/*` for a future mobile app. CSRF origin check built in. |
@@ -85,7 +85,7 @@ route / action / handler  →  service  →  repository  →  Supabase (RLS, fun
 ### 4.2 Layout
 
 ```
-src/
+apps/web/src/
 ├── app/
 │   ├── (marketing)/              # public pages
 │   ├── (auth)/                   # login, signup (parent), child sign-in, invite acceptance
@@ -121,8 +121,7 @@ src/
 ├── config/             routes, site, env (Zod-validated), feature flags
 ├── lib/                errors, logger, createAction, api helpers, supabase clients, money formatting
 │   └── payments/       server-only provider layer: PaymentProvider interface, registry (a provider is on when its keys are set), Stripe, Razorpay and fake adapters (ADR 0013, 0014)
-├── content/            missions and topics as versioned JSON (see 5.3)
-└── types/              generated database types
+└── types/              re-exports `@jarso/db` (generated types live in packages/db)
 supabase/migrations/    schema, RLS, functions, cron registrations
 ```
 
@@ -172,6 +171,26 @@ Writers of `ledger_entries`, enforced by which Postgres function may insert:
 | `diary` | `record_entry`, `reverse_entry` | `purchase`, `gift_in`, `reversal` |
 
 No other code path inserts into the ledger. The table's insert policy is `false` for all roles; only these `security definer` functions write, after their own authorization checks.
+
+### Built to grow (shared core)
+
+The repo is a pnpm + Turborepo monorepo. Pure domain code lives in `packages/core` (`@jarso/core`); apps consume it. Tooling enforces these rules where it can.
+
+```
+apps/web ─┬─> core ─┬─> content
+          │         └─> db (types only)
+          ├─> content, db, brand
+packages never depend on apps; core never depends on brand.
+```
+
+1. **One-way dependencies.** apps -> packages, never back. `core` -> `content`, `db`; `brand` and `tsconfig` -> nothing. pnpm's isolated linker fails undeclared imports; Biome `noRestrictedImports`/`noRestrictedGlobals` block `@/*`, React, Next, `server-only` and browser globals inside core and content.
+2. **Core is a layered graph.** `lib` and `config` import no feature. Leaves (`ledger goals rules profiles auth payments allowance`) import only lower layers. Composites (`learning diary requests family notifications guide review offline`) may import leaves and each other, but must not form cycles; no Biome rule enforces this yet, so reviewers check it. Cross-module imports name the subpath (`@jarso/core/goals`), never a file inside it. A Biome override per layer blocks upward imports. `learning/content` is its own subpath so the mission JSON stays out of `@jarso/core/learning`; in web only `features/learning/server/content.ts` imports it.
+3. **Same feature name across layers.** `packages/core/src/<x>` (rules, schemas, copy) plus `apps/web/src/features/<x>` (components, `server/`, barrel re-exporting `@jarso/core/<x>`), later `apps/mobile/src/features/<x>`. The `new-feature` skill scaffolds core first.
+4. **Platform code behind ports.** When core needs storage, network, locks or time it declares an interface; each app supplies the implementation. The offline outbox is the pattern: `OutboxStore` / `OutboxPlatform` in `packages/core/src/offline/outbox/ports.ts`, bound in web by `webOutboxPlatform` (idb + navigator). Core never feature-detects a platform.
+5. **Logger.** Core owns `logger` and `configureLogger({ level?, json? })`. `apps/web/src/lib/logger.ts` reads env and configures it, so web code imports `@/lib`, never `@jarso/core/lib` (Biome blocks it outside `apps/web/src/lib/**`).
+6. **Turbo caching per package.** `typecheck`, `test`, `lint` cache per package; CI runs `turbo ... --affected` on PRs.
+7. **When to split a package.** Core stays one package with subpaths until a module needs its own dependency other consumers mustn't get, needs a different release or build, or core's test run passes about 60 s. Then the module becomes `packages/<x>`; its subpath is already the boundary.
+8. **Tests beside their package.** Core tests live in `packages/core/tests/<module>/`, node environment only.
 
 ## 5. Data architecture
 
@@ -408,7 +427,7 @@ Sixty children at ten entries a day is about 220k rows a year; summing per child
 
 ### 5.3 Content
 
-Missions, topics and hints are authored as versioned JSON under `src/content/` (validated by Zod at build time) so they ship with the code, are reviewable in PRs, and need no admin UI. Only progress lives in the database, keyed by `mission_key` and `skill_key`. When content changes, keys stay stable; a mission is retired by flag, never deleted. Built in ADR 0009: `src/content/learning` holds seven missions, five topics, a review pool and the check-in; `features/learning/content.ts` parses them on the server and pages pass the one mission or set a child needs to the player, so content is never in a shared client bundle. Progress tables: `mission_attempts`, `step_results`, `skill_progress`, `review_items`, `practice_results`, `learning_checkins` (`docs/database.md`).
+Missions, topics and hints are authored as versioned JSON under `packages/content/src/` (validated by Zod at build time) so they ship with the code, are reviewable in PRs, and need no admin UI. Only progress lives in the database, keyed by `mission_key` and `skill_key`. When content changes, keys stay stable; a mission is retired by flag, never deleted. Built in ADR 0009: `packages/content/src/learning` (`@jarso/content/learning`) holds seven missions, five topics, a review pool and the check-in; `features/learning/content.ts` parses them on the server and pages pass the one mission or set a child needs to the player, so content is never in a shared client bundle. Progress tables: `mission_attempts`, `step_results`, `skill_progress`, `review_items`, `practice_results`, `learning_checkins` (`docs/database.md`).
 
 ### 5.4 Practice money
 
@@ -619,7 +638,7 @@ Database jobs run in `pg_cron` with `job_runs` rows for observability. Work that
 
 Children use school or home Wi-Fi and parents use mobile data, so slow and dropped connections are normal. Two rules: nothing waits forever, and a child's own record survives a dropped connection. Design and decisions: `docs/superpowers/specs/2026-10-30-network-resilience-design.md`.
 
-- **Time limits.** Every Supabase client uses `createTimedFetch` (`src/lib/timed-fetch.ts`): 8 s per call, and a timeout or network failure becomes a 503 `JA503` response mapped to `AppError("UNAVAILABLE")`. Postgrest retries are off. Calls over 1 s, timeouts and network failures log a `warn` with name, path, status and duration only. A guide turn has a 45 s server deadline shared by every Claude call and look-up, under `maxDuration = 60` on the pages that can ask the guide and on `POST /api/v1/guide/turns` (Ask Jarso on Home); the sheet and the Home window wait 52 s so the server's own reply arrives first.
+- **Time limits.** Every Supabase client uses `createTimedFetch` (`apps/web/src/lib/timed-fetch.ts`): 8 s per call, and a timeout or network failure becomes a 503 `JA503` response mapped to `AppError("UNAVAILABLE")`. Postgrest retries are off. Calls over 1 s, timeouts and network failures log a `warn` with name, path, status and duration only. A guide turn has a 45 s server deadline shared by every Claude call and look-up, under `maxDuration = 60` on the pages that can ask the guide and on `POST /api/v1/guide/turns` (Ask Jarso on Home); the sheet and the Home window wait 52 s so the server's own reply arrives first.
 - **Online-only actions.** `runOnline` / `useOnlineActionState` (`@/features/offline`) race a Server Action against 15 s (the guide sheet 52 s). Offline, a dropped connection or a slow reply returns a calm `UNAVAILABLE` result ("You're offline, try again when connected" or "This is taking a while. Try again?"), and the form keeps what was typed. This covers everything that moves or controls money (handover, gifts, allowance, rules, undo purchase), account and family settings, sign-in/out and the money guide.
 - **Device outbox.** Purchases, mission steps, mission completion, practice results and check-ins go through an IndexedDB outbox scoped to the signed-in user id. Each item keeps its idempotency key and is sent one at a time to `POST /api/v1/outbox` under a Web Lock, with 15 s per send and backoff 2 s, 5 s, 15 s, 30 s, then 60 s; nothing is sent while the browser is offline. It flushes on app start, `online`, tab focus and after any successful request. The device sends the action's age (`ageMs`), not its clock time, and the server sets the action time to `now - ageMs` (at most 7 days back), so a wrong device clock cancels out; the database clamps any future time to `now()`. A known key is replayed without moving money twice. 408 and 429 are retried like a 5xx. Items expire after 7 days or 20 attempts. A refused or expired purchase stays in the diary as "Needs a look" ("Change it" on an expired one first re-sends it once with its own key); refused or expired learning items are deleted. Without IndexedDB an online save is sent directly. The outbox never sends another user's items.
 - **Slow pages.** Page fallbacks switch to "This is taking a while. Try again?" after 10 s; Try again refreshes the route, then reloads if it is still showing 5 s later; never while offline, where it shows the offline copy instead. A stale Server Action after a deploy shows "Jarso was updated. Refresh to continue."

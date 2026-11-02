@@ -20,7 +20,7 @@ Spreading requests across instances. The serverless host does this per request. 
 
 ## Reverse proxies — Know
 
-A server in front of the app that terminates TLS, compresses, routes and adds headers. The host is the reverse proxy. `src/proxy.ts` is Next.js 16's request-time hook and we use it only for session refresh and optimistic redirects; keep it fast and free of heavy imports because it runs on every request.
+A server in front of the app that terminates TLS, compresses, routes and adds headers. The host is the reverse proxy. `apps/web/src/proxy.ts` is Next.js 16's request-time hook and we use it only for session refresh and optimistic redirects; keep it fast and free of heavy imports because it runs on every request.
 
 ## API gateways — Know
 

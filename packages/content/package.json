@@ -1,0 +1,16 @@
+{
+  "name": "@jarso/content",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./learning": "./src/learning/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@jarso/tsconfig": "workspace:*",
+    "typescript": "^5"
+  }
+}

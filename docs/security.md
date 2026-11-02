@@ -15,21 +15,21 @@ The Supabase **project URL** and its project ref are not secrets; they ship to e
 
 | Secret | Lives in | Read by |
 | --- | --- | --- |
-| `SUPABASE_SECRET_KEY` | Host env vars (server only) | `src/lib/supabase/admin.ts` |
+| `SUPABASE_SECRET_KEY` | Host env vars (server only) | `apps/web/src/lib/supabase/admin.ts` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Host env vars (public) | browser + server clients |
 | `ANTHROPIC_API_KEY` | Vercel env vars (Production, sensitive); GitHub repository secret for the eval workflow | `features/guide/server/claude.ts` only (ADR 0010) |
-| `STRIPE_SECRET_KEY` (`sk_test_…`, test mode only) | Vercel env vars (sensitive) | `src/lib/payments/stripe/` only (ADR 0013) |
-| `RAZORPAY_KEY_ID` (`rzp_test_…`, test mode only) | Vercel env vars (sensitive). The id is also passed to Razorpay Checkout in the browser by design, from the server page, not a `NEXT_PUBLIC_` var | `src/lib/payments/razorpay/`; the save-card page (`src/app/(app)/parent/payments/razorpay/`) |
-| `RAZORPAY_KEY_SECRET` | Vercel env vars (sensitive) | `src/lib/payments/razorpay/` only (ADR 0014) |
-| `RAZORPAY_WEBHOOK_SECRET` | Vercel env vars (sensitive); the same value typed into the Razorpay test dashboard webhook | the Razorpay webhook verification in `src/lib/payments/razorpay/` |
-| `STRIPE_WEBHOOK_SECRET` (`whsec_…`) | Vercel env vars (sensitive). A separate value for `stripe listen` in `.env.local` | the Stripe webhook verification in `src/lib/payments/stripe/` |
+| `STRIPE_SECRET_KEY` (`sk_test_…`, test mode only) | Vercel env vars (sensitive) | `apps/web/src/lib/payments/stripe/` only (ADR 0013) |
+| `RAZORPAY_KEY_ID` (`rzp_test_…`, test mode only) | Vercel env vars (sensitive). The id is also passed to Razorpay Checkout in the browser by design, from the server page, not a `NEXT_PUBLIC_` var | `apps/web/src/lib/payments/razorpay/`; the save-card page (`apps/web/src/app/(app)/parent/payments/razorpay/`) |
+| `RAZORPAY_KEY_SECRET` | Vercel env vars (sensitive) | `apps/web/src/lib/payments/razorpay/` only (ADR 0014) |
+| `RAZORPAY_WEBHOOK_SECRET` | Vercel env vars (sensitive); the same value typed into the Razorpay test dashboard webhook | the Razorpay webhook verification in `apps/web/src/lib/payments/razorpay/` |
+| `STRIPE_WEBHOOK_SECRET` (`whsec_…`) | Vercel env vars (sensitive). A separate value for `stripe listen` in `apps/web/.env.local` | the Stripe webhook verification in `apps/web/src/lib/payments/stripe/` |
 | `CRON_SECRET` | Vercel env vars (sensitive), and the same value in Supabase Vault as `cron_secret`; Vercel sends it as the cron request's bearer token | `/api/cron/payments/auto-charge` and `app/api/cron/push/route.ts`; pg_cron reads the Vault copy through `trigger_auto_charge` |
 | `VAPID_PRIVATE_KEY` | Vercel env vars (Production, sensitive) | `features/notifications/server/push.ts` only |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Host env vars (public: it is the `applicationServerKey` every browser receives) | the push toggle and the dispatcher |
 | Supabase access token, project DB password | CI repository secrets | migration job |
-| Local copies | `.env.local` (gitignored) | `pnpm dev` |
+| Local copies | `apps/web/.env.local` (gitignored) | `pnpm dev` |
 
-Every variable is declared in `src/config/env.client.ts` or `env.server.ts`; nothing else reads `process.env` except the isomorphic logger.
+Every variable is declared in `apps/web/src/config/env.client.ts` or `env.server.ts`; nothing else reads `process.env` except the isomorphic logger.
 
 ## Layers that keep secrets out
 
@@ -50,12 +50,12 @@ All three pattern lists (`extract-log.py`, `check-secrets.sh`, `.gitleaks.toml`)
 - **Payments (ADR 0013, 0014):** test mode only (`STRIPE_SECRET_KEY` must be `sk_test_`/`rk_test_`, `RAZORPAY_KEY_ID` must be `rzp_test_`; live-mode events are rejected). Several providers can be on; each is on only when all its keys are set. Card numbers never reach Jarso; only the provider's references, brand and last 4 are stored. The webhook route authenticates by signature, the cron route by a constant-time bearer check, and both fail closed (404 when payments are off or `CRON_SECRET` is unset). `fake` is refused on Vercel production. Logs carry payment IDs, provider refs and failure codes, never payment-method details or raw payloads. Razorpay requires the customer's email and phone before it saves a card: Jarso asks the parent for their mobile number on every Razorpay save and passes it with the account email to Razorpay only. A typed email is never accepted: Razorpay finds customers by email and phone, so another parent's exact pair would return their customer and saved cards (the save-card order goes to the Razorpay customer found or created with that email and phone). Neither is stored (no column, audit detail or URL) or logged; a refusal is logged by Razorpay's code, reason and field name, never the value. Other Razorpay errors log their code, reason and source; the description only when the source is the account or Razorpay itself (`internal`, `razorpay`, `business`, e.g. a feature not enabled), and never if it contains an `@` or a run of 8+ digits. The child never sees card details or a failed charge.
 - **Input:** Zod on every external input; PostgREST parameterises queries; plpgsql uses `set search_path = ''`.
 - **Output:** React escaping; guide output rendered as text or HTML-escaped Markdown; `AppError` messages only, never raw errors.
-- **Headers:** `next.config.ts` sets `nosniff`, `X-Frame-Options: DENY`, referrer policy, permissions policy and HSTS. Add a Content-Security-Policy when the first third-party script arrives. Razorpay Checkout (`checkout.razorpay.com`, loaded only on `/parent/payments/razorpay`) is now that script; no CSP is set yet, so when one is added it must allow `checkout.razorpay.com` and `api.razorpay.com`.
+- **Headers:** `apps/web/next.config.ts` sets `nosniff`, `X-Frame-Options: DENY`, referrer policy, permissions policy and HSTS. Add a Content-Security-Policy when the first third-party script arrives. Razorpay Checkout (`checkout.razorpay.com`, loaded only on `/parent/payments/razorpay`) is now that script; no CSP is set yet, so when one is added it must allow `checkout.razorpay.com` and `api.razorpay.com`.
 - **Open redirects:** `safeNextPath()` for every post-login target.
 - **Children's data:** collect the minimum (FR09, `CLAUDE.md` rule 15); never log emails, names or message bodies; the guide never asks for personal or account information. Rate-limit keys and lockout rows store SHA-256 hex of IPs and (normalised) emails, never the raw values; an invitation's `parent_email` is cleared when it is accepted.
 - **The AI guide, Jarso (ADR 0010, 0011):** on per child by default, and a parent can turn it off at any time (told on the add-child form); look-ups of the child's own data run as the child (RLS), only after the input screen; contact details scrubbed before a message is stored or sent; input and output screens; transcripts written only by the server; message text blanked after 30 days; logs carry route, model, tokens and latency, never message text. The key never reaches the browser and is never in a `NEXT_PUBLIC_` variable.
 - **Parents' details:** date of birth, country and gender live in `parent_details`, readable only by their owner (ADR 0008). Never log them or put them in audit details.
-- **Client IP:** `getClientIp` (`src/features/family/server/client-ip.ts`) trusts the first `x-forwarded-for` hop. That is safe only because Vercel overwrites the header with the real client address. Self-hosting or putting another proxy or CDN in front means changing it to read that platform's trusted header (or the socket address); otherwise a client can pick its own IP and dodge the per-IP limits and per-source PIN lockout.
+- **Client IP:** `getClientIp` (`apps/web/src/features/family/server/client-ip.ts`) trusts the first `x-forwarded-for` hop. That is safe only because Vercel overwrites the header with the real client address. Self-hosting or putting another proxy or CDN in front means changing it to read that platform's trusted header (or the socket address); otherwise a client can pick its own IP and dodge the per-IP limits and per-source PIN lockout.
 - **Child passwords:** children sign in with a PIN only. `/login` refuses the child email domain, and the child's random password is rotated on every PIN sign-in and PIN reset (`docs/auth.md`).
 
 ## Rotation runbook
@@ -81,7 +81,7 @@ Assume any secret that touched a commit, a log, a chat or a screenshot is compro
 ## Review checklist for PRs that touch auth, data or secrets
 
 - `assertUser()` / `requireUser()` present; RLS policies for every operation on new tables.
-- No new `process.env` reads outside `src/config`.
+- No new `process.env` reads outside `apps/web/src/config`.
 - No new credential type without updating the three pattern lists.
 - No real emails, names or keys in tests, fixtures, docs or logs.
 - `security-auditor` agent run and its findings addressed.

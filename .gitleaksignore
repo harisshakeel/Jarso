@@ -14,3 +14,6 @@ ecab39dfc63638f1df44b8640e7428ca4788f243:.claude-logs/2026-10-29_13-42-09_3336f1
 # Renamed in current files; these entries cover the commits that still contain them.
 1e915018bc8a8177fca96bfa74fd6819e5a16676:src/features/diary/components/pending-purchases.test.tsx:generic-api-key:23
 af83decee73b18692375f6bf755018fbfae06028:src/app/api/v1/outbox/route.test.ts:generic-api-key:7
+# Test fixture UUID (stored outbox item in core flush test), not a secret. Now held in a const.
+1394ffac5ff39b9bdf5f3dc62f1ab1e18496cf62:packages/core/tests/offline/flush.test.ts:generic-api-key:174
+1394ffac5ff39b9bdf5f3dc62f1ab1e18496cf62:packages/core/tests/offline/flush.test.ts:generic-api-key:176

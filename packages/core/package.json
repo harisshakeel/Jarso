@@ -1,0 +1,40 @@
+{
+  "name": "@jarso/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "exports": {
+    "./lib": "./src/lib/index.ts",
+    "./config": "./src/config/index.ts",
+    "./ledger": "./src/ledger/index.ts",
+    "./goals": "./src/goals/index.ts",
+    "./rules": "./src/rules/index.ts",
+    "./profiles": "./src/profiles/index.ts",
+    "./auth": "./src/auth/index.ts",
+    "./payments": "./src/payments/index.ts",
+    "./allowance": "./src/allowance/index.ts",
+    "./learning": "./src/learning/index.ts",
+    "./learning/content": "./src/learning/content.ts",
+    "./diary": "./src/diary/index.ts",
+    "./requests": "./src/requests/index.ts",
+    "./family": "./src/family/index.ts",
+    "./notifications": "./src/notifications/index.ts",
+    "./guide": "./src/guide/index.ts",
+    "./review": "./src/review/index.ts",
+    "./offline": "./src/offline/index.ts"
+  },
+  "dependencies": {
+    "@jarso/content": "workspace:*",
+    "@jarso/db": "workspace:*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@jarso/tsconfig": "workspace:*",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  }
+}

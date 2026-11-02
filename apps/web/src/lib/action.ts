@@ -1,0 +1,68 @@
+import {
+  type ActionResult,
+  type ActionState,
+  AppError,
+  type FieldErrors,
+  isAppError,
+} from "@jarso/core/lib";
+import { unstable_rethrow } from "next/navigation";
+import { z } from "zod";
+import { logger } from "./logger";
+
+function toFailure(error: unknown): ActionResult<never> {
+  if (isAppError(error)) {
+    return {
+      ok: false,
+      error: { code: error.code, message: error.message, fieldErrors: error.fieldErrors },
+    };
+  }
+  logger.error("Unhandled action error", { error });
+  return {
+    ok: false,
+    error: { code: "INTERNAL", message: "Something went wrong. Please try again." },
+  };
+}
+
+function formDataToObject(formData: FormData): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of new Set(formData.keys())) {
+    const values = formData.getAll(key);
+    out[key] = values.length > 1 ? values : values[0];
+  }
+  return out;
+}
+
+/**
+ * Wraps a server action: validates input with Zod, maps AppError → typed result,
+ * logs unexpected errors, and lets Next.js control-flow errors (redirect, notFound) through.
+ *
+ * Accepts either FormData (from `<form action>` / `useActionState`) or a plain object.
+ * `schema` may be a factory, called per request, for schemas that depend on server context
+ * (e.g. the family's currency); an AppError it throws becomes a typed failure.
+ */
+export function createAction<S extends z.ZodType, T>(
+  schema: S | (() => S | Promise<S>),
+  handler: (input: z.infer<S>) => Promise<T>,
+) {
+  return async (
+    _prev: ActionState<T>,
+    payload: FormData | z.input<S>,
+  ): Promise<ActionResult<T>> => {
+    try {
+      const resolved = typeof schema === "function" ? await schema() : schema;
+      const raw = payload instanceof FormData ? formDataToObject(payload) : payload;
+      const parsed = resolved.safeParse(raw);
+
+      if (!parsed.success) {
+        throw new AppError("VALIDATION", "Please fix the highlighted fields.", {
+          fieldErrors: z.flattenError(parsed.error).fieldErrors as FieldErrors,
+        });
+      }
+
+      return { ok: true, data: await handler(parsed.data) };
+    } catch (error) {
+      unstable_rethrow(error);
+      return toFailure(error);
+    }
+  };
+}

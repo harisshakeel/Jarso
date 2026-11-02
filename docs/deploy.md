@@ -6,13 +6,13 @@ Production runs on Vercel, database and auth on Supabase. Both are in Tokyo so e
 | --- | --- |
 | Vercel project | `haris-shakeels-projects/jarso` (Hobby) |
 | Production URL | https://jarso.vercel.app |
-| Function region | `hnd1` (pinned in `vercel.json`) |
+| Function region | `hnd1` (pinned in `apps/web/vercel.json`) |
 | Supabase project | `sbnakvwvaymzypwmpqzv`, region `ap-northeast-1` |
 | Health check | https://jarso.vercel.app/api/health → `{"data":{"status":"ok"}}`; `?deep=1` also asks the database and answers 503 when it does not reply (point the uptime monitor here), and reports `guide: on|off` so a missing `FEATURE_GUIDE` or `ANTHROPIC_API_KEY` shows without reading logs |
 
 ## Environment variables
 
-Set in Vercel → Project → Settings → Environment Variables, never in the repo. Names are declared in `src/config/env.client.ts` and `env.server.ts`; the build fails fast if a required one is missing.
+Set in Vercel → Project → Settings → Environment Variables, never in the repo. Names are declared in `apps/web/src/config/env.client.ts` and `env.server.ts`; the build fails fast if a required one is missing.
 
 | Variable | Production | Preview | Notes |
 | --- | --- | --- | --- |
@@ -33,7 +33,7 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `RAZORPAY_KEY_SECRET` | test key secret (sensitive) | same | Server only. |
 | `RAZORPAY_WEBHOOK_SECRET` | the secret you type into the dashboard webhook (sensitive) | same | Razorpay chooses no format; use a long random value. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | set | unset | Web push (ADR 0012). Public by design: the browser gets it as the `applicationServerKey`. Unset hides the push switch. |
-| `VAPID_PRIVATE_KEY` | set (sensitive) | unset | Web push. Server only; read only by `features/notifications/server/push.ts`. Make the pair once with `pnpm exec web-push generate-vapid-keys` and paste each value into the dashboard, never a command line. |
+| `VAPID_PRIVATE_KEY` | set (sensitive) | unset | Web push. Server only; read only by `features/notifications/server/push.ts`. Make the pair once with `pnpm --filter @jarso/web exec web-push generate-vapid-keys` and paste each value into the dashboard, never a command line. |
 | `VAPID_SUBJECT` | `mailto:<contact>` | — | Optional contact the push services may use; defaults to the app URL. |
 | `CRON_SECRET` | `<cron secret ≥16 chars>` (sensitive) | same | Bearer secret for both cron routes, `/api/cron/payments/auto-charge` and `/api/cron/push`. Unset: both routes are 404. Vercel Cron sends it as `Authorization: Bearer …` on its own. Any 16+ character random string. |
 
@@ -105,10 +105,10 @@ Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no r
    ```
 
    `cron_secret` must equal the app's `CRON_SECRET`. Until both exist the job does nothing, so local runs and CI are unaffected. Create them by hand in each environment; they are never in a migration. After rotating `CRON_SECRET`, update the Vault secret too (`docs/security.md`).
-3. `vercel.json` already has a daily fallback cron (`30 3 * * *`) on the same route. It works once `CRON_SECRET` is set. Hobby allows daily crons only, which is why pg_cron is the primary.
+3. `apps/web/vercel.json` already has a daily fallback cron (`30 3 * * *`) on the same route. It works once `CRON_SECRET` is set. Hobby allows daily crons only, which is why pg_cron is the primary.
 4. Check: `curl -s -o /dev/null -w '%{http_code}' https://jarso.vercel.app/api/cron/payments/auto-charge` is `401` with payments on (a `404` means `CRON_SECRET` is unset or no provider is on). A webhook with a bad signature returns `400`.
 
-**Local development.** Put the test keys of the providers you want and `CRON_SECRET` in `.env.local`. For Stripe, run `stripe listen --forward-to localhost:3000/api/v1/payments/webhooks/stripe`; it prints a local `whsec_…`, which goes in `.env.local` as `STRIPE_WEBHOOK_SECRET` (a different value from the dashboard endpoint's). `stripe trigger …` sends sample events. For Razorpay, the webhook needs a public URL (a tunnel to `localhost:3000`) registered in the test dashboard; without one the payment is made but never posts. Without any provider, set `PAYMENTS_ALLOW_FAKE=true`; its hosted page is `/dev/payments/fake`.
+**Local development.** Put the test keys of the providers you want and `CRON_SECRET` in `apps/web/.env.local`. For Stripe, run `stripe listen --forward-to localhost:3000/api/v1/payments/webhooks/stripe`; it prints a local `whsec_…`, which goes in `apps/web/.env.local` as `STRIPE_WEBHOOK_SECRET` (a different value from the dashboard endpoint's). `stripe trigger …` sends sample events. For Razorpay, the webhook needs a public URL (a tunnel to `localhost:3000`) registered in the test dashboard; without one the payment is made but never posts. Without any provider, set `PAYMENTS_ALLOW_FAKE=true`; its hosted page is `/dev/payments/fake`.
 
 **Stripe test cards** (any future expiry, any CVC, any postcode):
 
@@ -143,7 +143,9 @@ Runbook step: Supabase → Authentication → Sessions → Refresh token reuse i
 - **Git integration (preferred):** connect the GitHub repo in Vercel → Project → Settings → Git. Afterwards every push to `main` deploys to production and every PR gets a preview URL. CI on GitHub still gates merges; Vercel builds independently.
 - **Manual from a machine with the CLI:** `vercel deploy --prod` from the repo root. The CLI uploads the working tree and builds in the cloud; nothing is built locally. Use this only when the Git integration is unavailable.
 
-`vercel link` writes `.vercel/` (project ids) and may write `.env.local` with a short-lived `VERCEL_OIDC_TOKEN`. Both are gitignored. Do not commit either and do not run `vercel env pull` into the repo.
+The Vercel project's Root Directory is `apps/web`, so `apps/web/vercel.json` and its crons are picked up; run `vercel link` from `apps/web`.
+
+`vercel link` writes `.vercel/` (project ids) and may write `apps/web/.env.local` with a short-lived `VERCEL_OIDC_TOKEN`. Both are gitignored. Do not commit either and do not run `vercel env pull` into the repo.
 
 ## Verifying a deploy
 
@@ -163,7 +165,7 @@ Vercel → Deployments → previous Ready deployment → "Promote to Production"
 ## Limits that matter (Hobby plan)
 
 - Serverless function duration is capped; set `maxDuration` on routes that stream (the guide) and keep cron jobs chunked.
-- Cron jobs run at most once a day, so `vercel.json` schedules the push sweep daily (01:30 UTC). Requests, decisions and purchases push right after the action regardless; only the hourly allowance reminders wait for the sweep. On a Pro plan shorten the schedule; or have `pg_cron` + `pg_net` call the route hourly (ADR 0012).
+- Cron jobs run at most once a day, so `apps/web/vercel.json` schedules the push sweep daily (01:30 UTC). Requests, decisions and purchases push right after the action regardless; only the hourly allowance reminders wait for the sweep. On a Pro plan shorten the schedule; or have `pg_cron` + `pg_net` call the route hourly (ADR 0012).
 - One concurrent build; a push during a build queues.
 - Preview deployments may be behind Vercel Authentication (Deployment Protection). Production is public.
 

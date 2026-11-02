@@ -11,7 +11,7 @@ The failures that matter most: money posting twice (webhook retry, double click,
 
 ## Decision
 
-- **A provider interface in `src/lib/payments`.** A server-only entry point (`import "server-only"`), imported directly as `@/lib/payments` and not re-exported from `@/lib`. It holds the `PaymentProvider` interface (customer, hosted payment, hosted setup, off-session charge, detach, webhook parsing, minimum charge), a registry, the Stripe adapter, a fake adapter and a contract test suite. It has no domain code and no database access. Domain code in `src/features/payments` sees only the interface, `ProviderEvent` and opaque `*_ref` strings. Stripe types and IDs never leave `src/lib/payments/stripe/`.
+- **A provider interface in `apps/web/src/lib/payments`.** A server-only entry point (`import "server-only"`), imported directly as `@/lib/payments` and not re-exported from `@/lib`. It holds the `PaymentProvider` interface (customer, hosted payment, hosted setup, off-session charge, detach, webhook parsing, minimum charge), a registry, the Stripe adapter, a fake adapter and a contract test suite. It has no domain code and no database access. Domain code in `apps/web/src/features/payments` sees only the interface, `ProviderEvent` and opaque `*_ref` strings. Stripe types and IDs never leave `apps/web/src/lib/payments/stripe/`.
 - **Our IDs go out, provider IDs come back.** Every call carries our own `paymentId` or `setupId`, which the adapter puts where the provider echoes it back and also uses as the idempotency key (`customer:`, `pay:`, `setup:`, `charge:` plus our id). The adapter verifies signatures and maps events and errors; adapters throw `AppError`, never raw SDK errors.
 - **Stripe first, test mode only.** `stripe` 23.1.0, API version `2026-10-28.endive`, hosted Checkout limited to `card`. `STRIPE_SECRET_KEY` must match `^(sk|rk)_test_`, and webhook events with `livemode: true` are rejected. No live mode, no real money.
 - **One active provider per deployment.** `PAYMENTS_PROVIDER` is `none | stripe | fake`, default `none`. `none` means nothing renders, the payment routes return 404 and cash works as before. `fake` is for tests and local runs: it needs `PAYMENTS_ALLOW_FAKE=true` and is refused on `VERCEL_ENV=production`. Rows carry `provider`, so a second provider can run later.
@@ -23,11 +23,11 @@ The failures that matter most: money posting twice (webhook retry, double click,
 ## Consequences
 
 - Adding a provider is one folder, one registry line and its env vars. No migration, no domain or UI change, no new route. Checklist:
-  1. Add `src/lib/payments/<id>/` implementing `PaymentProvider` (hosted payment, hosted setup, off-session charge, webhook verification and mapping, currency minimums).
-  2. Add `<id>` to `ProviderId` and one line in `src/lib/payments/registry.ts`.
+  1. Add `apps/web/src/lib/payments/<id>/` implementing `PaymentProvider` (hosted payment, hosted setup, off-session charge, webhook verification and mapping, currency minimums).
+  2. Add `<id>` to `ProviderId` and one line in `apps/web/src/lib/payments/registry.ts`.
   3. Add its env vars to `env.server.ts` and `.env.example`, required only when `PAYMENTS_PROVIDER=<id>`.
   4. Point the provider's webhooks at `/api/v1/payments/webhooks/<id>`.
-  5. Run the shared adapter contract suite (`tests/lib/payments/contract.test.ts`) and the domain tests, which use `fake`.
+  5. Run the shared adapter contract suite (`apps/web/tests/lib/payments/contract.test.ts`) and the domain tests, which use `fake`.
 - Cash handover does not depend on the provider. If Stripe is down, card actions say so plainly and cash still works.
 - Card always pays the item's full amount (no shortfall). Currencies Stripe treats as zero-decimal are unsupported until needed. A saved card per parent, one provider at a time.
 - Real money needs more than a key swap: a new decision to leave test mode, live-mode webhooks, refunds and disputes, a legal review of the mandate wording for off-session charges, and the pilot's parental verification. Out of scope here.

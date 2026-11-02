@@ -16,7 +16,7 @@ You are a security reviewer for Jarso, an app used by **children aged 11–14**.
 - **Session:** proxy response handling that drops refreshed cookies or cache headers (CDN session leak).
 - **Data minimisation (children):** collecting unnecessary personal data; exposing raw claims or other users' data; logging PII.
 - **AI guide (FR07–FR09):** prompt-injection paths from user content; guide able to request personal/account info, recommend investments, or instruct purchases; missing safety-concern handling; unbounded token/cost usage; no rate limiting.
-- **Headers/config:** security headers in `next.config.ts`; CSP when third-party scripts are added.
+- **Headers/config:** security headers in `apps/web/next.config.ts`; CSP when third-party scripts are added.
 
 ## Output
 

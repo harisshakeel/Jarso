@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -11,10 +11,10 @@
 !.yarn/versions
 
 # testing
-/coverage
+coverage
 
 # next.js
-/.next/
+.next/
 /out/
 
 # production
@@ -43,9 +43,9 @@ next-env.d.ts
 !.env.example
 
 # playwright
-/test-results/
-/playwright-report/
-/blob-report/
+test-results/
+playwright-report/
+blob-report/
 /playwright/.cache/
 
 # supabase
@@ -55,10 +55,19 @@ next-env.d.ts
 # editor
 .idea/
 
+# turbo
+.turbo/
+
 # misc
 junk/
 # guide eval reports (may hold model replies)
-/evals/guide/results/
+evals/guide/results/
 
 # Session-log hook: private words to redact (never committed)
 .claude/hooks/private-words.local
+
+# harness worktrees
+.claude/worktrees/
+
+# brand assets copied from packages/brand by apps/web/scripts/copy-brand.mjs
+apps/web/public/brand/

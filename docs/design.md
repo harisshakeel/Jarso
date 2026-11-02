@@ -1,16 +1,16 @@
 # Jarso design system
 
-The visual language for the app, derived from the two logos in `public/brand/`. Scope decisions behind it: playful and rounded; deep teal as the action colour with gold reserved for money; same component system for parent and child with different emphasis; bottom tab navigation; rounded friendly type; Lucide icons plus the jar as the recurring illustration; light motion; light and dark themes; WCAG AA, 44 px targets, 360 px phones first; warm coach voice.
+The visual language for the app, derived from the two logos in `packages/brand/assets/` (copied to `apps/web/public/brand/` at dev/build). Scope decisions behind it: playful and rounded; deep teal as the action colour with gold reserved for money; same component system for parent and child with different emphasis; bottom tab navigation; rounded friendly type; Lucide icons plus the jar as the recurring illustration; light motion; light and dark themes; WCAG AA, 44 px targets, 360 px phones first; warm coach voice.
 
-Visual references, and what we take from each, are in section 15. Code owners: tokens live in `src/app/globals.css`, fonts in `src/app/layout.tsx`, primitives in `src/components/ui`. Change this document and the tokens together.
+Visual references, and what we take from each, are in section 15. Code owners: tokens live in `apps/web/src/app/globals.css`, fonts in `apps/web/src/app/layout.tsx`, primitives in `apps/web/src/components/ui`. Change this document and the tokens together.
 
 ## 1. Brand assets
 
 | File | What | Use |
 | --- | --- | --- |
-| `public/brand/jarso-mark.png` | Jar mark, 1254 × 1254, transparent | App icon, favicon source, header mark, empty states, jar illustrations |
-| `public/brand/jarso-wordmark.png` | "jarso" wordmark with mark, 2172 × 724, **opaque near-white background (#FDFDFD)** | Marketing page, emails, light surfaces only |
-| `public/brand/jarso-wordmark-dark.png` | Dark-mode wordmark, white "jars" and gold "o", 2172 × 724, **opaque near-black background (#10191C)** | Marketing page in dark mode, dark emails |
+| `packages/brand/assets/jarso-mark.png` | Jar mark, 1254 × 1254, transparent | App icon, favicon source, header mark, empty states, jar illustrations |
+| `packages/brand/assets/jarso-wordmark.png` | "jarso" wordmark with mark, 2172 × 724, **opaque near-white background (#FDFDFD)** | Marketing page, emails, light surfaces only |
+| `packages/brand/assets/jarso-wordmark-dark.png` | Dark-mode wordmark, white "jars" and gold "o", 2172 × 724, **opaque near-black background (#10191C)** | Marketing page in dark mode, dark emails |
 
 The app serves 864 × 288 copies of both wordmarks (`jarso-wordmark-864.png`, `jarso-wordmark-dark-864.png`) through `JarsoWordmark`, which switches between them on the `.dark` class.
 
@@ -171,7 +171,7 @@ Installable as a PWA later in the pilot: respect `env(safe-area-inset-*)`, use t
 
 ## 6. Components
 
-Built on the existing shadcn primitives in `src/components/ui`. Add with `pnpm dlx shadcn@latest add <name>` and export from the barrel.
+Built on the existing shadcn primitives in `apps/web/src/components/ui`. Add with `pnpm dlx shadcn@latest add <name>` (run in `apps/web`) and export from the barrel.
 
 | Component | Notes |
 | --- | --- |
@@ -209,7 +209,7 @@ Primitives to add next: `badge`, `progress`, `tabs`, `sheet`, `dialog`, `avatar`
 
 - **Lucide** icons only, 24 px in navigation and 20 px inline, stroke 2. Prefer filled variants only for the active tab.
 - **Jar illustrations** are SVGs drawn from the mark: an outline jar that fills with teal or gold to the balance ratio, coins as gold ellipses with a teal-800 rim as in the mark. One component, `JarIllustration` (`@/components/jar`), with `jar`, `capacityMinor`, `filledMinor`, `reservedMinor`, `goal`, `dueCoin` and `size` props. It is decorative (`aria-hidden`); every amount is also written beside it.
-- **The four coaches** are kids drawn exactly like the hero's kid on the landing page (`KidFigure` and `CoachFigure` in `@/components/brand`; the hero's own animated version is `features/landing/components/kid-art.tsx`, and the two must stay alike): thick round-ended strokes, flat fills, a hoodie like the lid, trousers like the jar, gold only on the coins each of them holds. **Bo** is the hero's boy (calm: brown crop, cyan hoodie, a handful of coins cupped in both hands). **Zuzu** is a boy (cheeky: black curls, a teal-500 top with a cyan sticker, one arm up flipping a coin). **Pip** is a girl (curious: ginger bunches, a teal-200 hoodie, holding one coin up to look at it). **Nell** is a girl (thoughtful: a dark bob with a cyan hairband, round glasses, two coins held close). Skin and hair are flat warm tokens: `skin-1` to `skin-4`, `hair-1` to `hair-4`, `blush` for cheeks and `kid-ink` for eyes and mouths, the same in both themes. The face follows what just happened: a smile at rest, an open-mouth cheer for a right answer, the hero's unsure wave for a wrong one. `components/brand/coaches.ts` holds their names and the lines for the app's moments; `features/learning/coaches.ts` the lines around a question.
+- **The four coaches** are kids drawn exactly like the hero's kid on the landing page (`KidFigure` and `CoachFigure` in `@/components/brand`; the hero's own animated version is `features/landing/components/kid-art.tsx`, and the two must stay alike): thick round-ended strokes, flat fills, a hoodie like the lid, trousers like the jar, gold only on the coins each of them holds. **Bo** is the hero's boy (calm: brown crop, cyan hoodie, a handful of coins cupped in both hands). **Zuzu** is a boy (cheeky: black curls, a teal-500 top with a cyan sticker, one arm up flipping a coin). **Pip** is a girl (curious: ginger bunches, a teal-200 hoodie, holding one coin up to look at it). **Nell** is a girl (thoughtful: a dark bob with a cyan hairband, round glasses, two coins held close). Skin and hair are flat warm tokens: `skin-1` to `skin-4`, `hair-1` to `hair-4`, `blush` for cheeks and `kid-ink` for eyes and mouths, the same in both themes. The face follows what just happened: a smile at rest, an open-mouth cheer for a right answer, the hero's unsure wave for a wrong one. `@jarso/core/learning` (`packages/core/src/learning/coaches.ts`) holds their ids, names, the stable picker (`coachIdFor`) and the lines around a question; `components/brand/coaches.ts` the lines for the app's moments.
 - **Where the coaches appear** (one per screen, at a moment that earns it): the child's sign-in and start screens (a greeting), the next-step card on Home and Learn (a nudge beside the button), the Learn header, the jar graph's and the history's empty states, the News empty state, the "Done for now?" card on Me, the offline banner (28 px, beside the line), and the not-found and error screens, where the coach stands in for the mark. Parent screens stay plain apart from an empty money history.
 - **Coins** appear only where money moves: handover confirmed, deposit confirmed, goal reached.
 - No emoji in UI chrome. Emoji may appear in child-authored labels.
@@ -232,7 +232,7 @@ Primitives to add next: `badge`, `progress`, `tabs`, `sheet`, `dialog`, `avatar`
 
 Easing `cubic-bezier(0.2, 0.8, 0.2, 1)`. With `prefers-reduced-motion: reduce`, everything becomes an instant state change; the coins do not fall or fly and the rise-in is skipped. Nothing loops except skeletons. No confetti, no smooth-scroll library, no parallax: those belong to marketing pages, not to an app a child uses daily.
 
-**Sound.** Three sounds, synthesised in the browser (`src/lib/sounds.ts`, no audio files), each under 400 ms and quiet (gain at most 0.2): coins clinking when money moves between the jars, leaves Spend, or a purchase is saved; a rising two-note chime for a right answer; one soft low bonk for a wrong one, never a buzzer. Nothing plays before the person has touched the page. One "Sounds" switch on Settings (child and parent) turns them off for that browser (`localStorage`, `jarso:sounds`).
+**Sound.** Three sounds, synthesised in the browser (`apps/web/src/lib/sounds.ts`, no audio files), each under 400 ms and quiet (gain at most 0.2): coins clinking when money moves between the jars, leaves Spend, or a purchase is saved; a rising two-note chime for a right answer; one soft low bonk for a wrong one, never a buzzer. Nothing plays before the person has touched the page. One "Sounds" switch on Settings (child and parent) turns them off for that browser (`localStorage`, `jarso:sounds`).
 
 ## 9. Voice
 
@@ -354,12 +354,12 @@ Add to `@theme inline`: `--color-gold: var(--gold); --color-gold-foreground: var
 
 ## 14. Implementation order
 
-1. Fonts: load Nunito in `src/app/layout.tsx`, keep Geist Mono; set `--font-sans`.
+1. Fonts: load Nunito in `apps/web/src/app/layout.tsx`, keep Geist Mono; set `--font-sans`.
 2. Tokens: paste section 13 into `globals.css`; add the gold colour utilities; set `--radius`.
-3. Icons: export the mark at 512, 192 and 180 px plus a 32 px favicon into `public/` and `src/app/`; add `manifest.webmanifest` when PWA work starts.
+3. Icons: export the mark at 512, 192 and 180 px plus a 32 px favicon into `public/` and `apps/web/src/app/`; add `manifest.webmanifest` when PWA work starts.
 4. Primitives: add the components listed in section 6; export from the barrel.
 5. Brand components: `JarsoMark`, `JarIllustration`, `Money` (formats minor units with tabular figures), `StatusChip`.
-6. Shell: bottom tab bar and header in `src/app/(app)/layout.tsx`, role-aware tabs once FR13 lands.
+6. Shell: bottom tab bar and header in `apps/web/src/app/(app)/layout.tsx`, role-aware tabs once FR13 lands.
 7. Replace the placeholder home with the wordmark on white and the two sign-in actions.
 
 ## 15. Reference sites and what we borrow

@@ -82,7 +82,7 @@ Read the matching reference file when you need the how-to. The one-liners here a
 | Rate limiting | Cheap | Supabase Auth already limits sign-in/up. Add a Postgres counter per user for Claude calls and any expensive route; return 429. |
 | Caching | Do | `use cache` for public/static content and lesson material; never for per-user data without a user key. `updateTag`/`refresh` after writes. |
 | Load balancing | Know | The host does it. Keep the app stateless so it keeps working. |
-| Reverse proxies | Know | The host terminates TLS and routes. `src/proxy.ts` is our only proxy-like layer and it only touches auth. |
+| Reverse proxies | Know | The host terminates TLS and routes. `apps/web/src/proxy.ts` is our only proxy-like layer and it only touches auth. |
 | API gateways | Know | Supabase's gateway fronts PostgREST/Auth. We do not add one. |
 | Service discovery | Know | One service. URLs come from env vars. |
 | Circuit breakers | Cheap | For the Claude API only: after N failures in a window, fail fast with fallback copy for a minute. |
