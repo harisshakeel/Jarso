@@ -88,6 +88,25 @@ export async function listChildMembers(db: Client, familyId: string): Promise<Ch
   return data.map((row) => ({ id: row.profile_id, nickname: row.profile?.nickname ?? "" }));
 }
 
+/**
+ * register_child and rename_child raise JA409 for two different things; the SQL message tells
+ * them apart. A taken nickname is shown on the field; anything else keeps its own message.
+ */
+function childNicknameError(error: { code?: string; message?: string }, context: string): AppError {
+  if (error.code === "JA409" && error.message === "Nickname already used in this family") {
+    return new AppError("CONFLICT", "Please fix the highlighted fields.", {
+      fieldErrors: { nickname: ["Another child in your family already uses this nickname"] },
+      cause: error,
+    });
+  }
+  if (error.code === "JA409" && error.message === "Child account is not available") {
+    return new AppError("CONFLICT", "We couldn't set up this child account. Please try again.", {
+      cause: error,
+    });
+  }
+  return toAppError(error, context);
+}
+
 export async function registerChild(
   db: Client,
   args: {
@@ -107,7 +126,7 @@ export async function registerChild(
     p_consent: args.consent,
     ...(args.invitationId && { p_invitation_id: args.invitationId }),
   });
-  if (error) throw toAppError(error, "Failed to add child");
+  if (error) throw childNicknameError(error, "Failed to add child");
 }
 
 export async function updateChildPin(db: Client, childId: string, pin: string): Promise<void> {
@@ -128,7 +147,7 @@ export async function renameChildMember(
   nickname: string,
 ): Promise<void> {
   const { error } = await db.rpc("rename_child", { p_child_id: childId, p_nickname: nickname });
-  if (error) throw toAppError(error, "Failed to rename the child");
+  if (error) throw childNicknameError(error, "Failed to rename the child");
 }
 
 export async function updateFamilyTimezone(db: Client, timezone: string): Promise<void> {
