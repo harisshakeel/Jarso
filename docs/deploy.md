@@ -133,6 +133,17 @@ Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no r
 - [ ] Razorpay only (INR family, test mode): pay now opens a card-only Payment Link and the jars fill after the webhook. Save a card on `/parent/payments/razorpay` (one of the test cards in Razorpay's documentation); closing Checkout returns to the allowance screen with nothing saved, completing it shows the card (brand, last 4). An auto charge shows "card payment in progress" and resolves by webhook, up to about 36 h later.
 - [ ] Two providers on: with Stripe's card saved and auto charge on, save a Razorpay card too. Removing one card turns off only the toggles that use it.
 
+## Seeding the demo family
+
+`pnpm db:seed:demo` (`scripts/seed-demo.mts`, Node 22.6 or later) creates one demo family for the Demo 2 script: a parent with a completed profile, a family (GBP, Europe/London), Mia and Leo with the PIN you choose, a weekly allowance each with the first one handed over, Mia's goal, a weekly spending limit for Mia with purchases over it (a limit notice is waiting), a purchase for Leo, and then `demo_clock_enabled = true`. History goes in before any clock move. It is safe to run again: existing rows are found and kept.
+
+```bash
+# Local stack (pnpm db:start); the URL and keys come from `supabase status`, never printed.
+DEMO_PARENT_EMAIL=demo@example.com DEMO_PARENT_PASSWORD=… DEMO_CHILD_PIN=… pnpm db:seed:demo
+```
+
+Production is the owner's step. Export `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` for the hosted project in your own shell (the script loads no `.env` file and refuses a non-local URL without the flag), then run `pnpm db:seed:demo --yes-hosted` with the three `DEMO_*` values. Type the password and PIN at a prompt (`read -s`), not into a command line, a chat or a log. Then set `FEATURE_DEMO_CLOCK=true` for the deployment that hosts the demo; the Demo clock card in the parent's Settings moves only this family. The clock goes forward only; to start the demo over, seed again with a new `DEMO_PARENT_EMAIL`.
+
 ## Supabase auth settings for production
 
 Applied from the repo: `supabase/config.toml` has a `[remotes.production]` block (Site URL, redirect URLs for production and localhost, secure password change, and the hosted-only values pinned). `supabase config diff` previews, `supabase config push --yes` applies. Dashboard-only items and the free-tier email limits are in `docs/auth.md` → "Hosted setup".
