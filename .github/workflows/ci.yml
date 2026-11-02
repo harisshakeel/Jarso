@@ -52,6 +52,18 @@ jobs:
         shard: [1, 2]
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # A pull request runs only the projects its changes touch (scripts/e2e-projects.sh); a
+      # change shared by every page, and every push to main, runs the whole suite.
+      - name: Pick the projects
+        id: pick
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch -q origin "${{ github.base_ref }}"
+          args=$(bash scripts/e2e-projects.sh "origin/${{ github.base_ref }}")
+          echo "args=$args" >> "$GITHUB_OUTPUT"
+          echo "e2e projects: ${args:-all}" >> "$GITHUB_STEP_SUMMARY"
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
@@ -75,7 +87,7 @@ jobs:
       # Playwright config reads the keys itself via `supabase status -o json`, in memory.
       - name: Start local Supabase
         run: supabase start > /dev/null
-      - run: pnpm --filter @jarso/web exec playwright test --shard=${{ matrix.shard }}/2
+      - run: pnpm --filter @jarso/web exec playwright test --shard=${{ matrix.shard }}/2 --pass-with-no-tests ${{ steps.pick.outputs.args }}
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

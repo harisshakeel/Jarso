@@ -83,6 +83,7 @@ export function GuideThread({
     reopened?.conversationId ?? null,
   );
   const [messages, setMessages] = useState<ThreadMessage[]>(reopened?.messages ?? []);
+  const [started, setStarted] = useState<string | null>(null);
   const [turnsLeft, setTurnsLeft] = useState<number | null>(reopened?.turnsLeft ?? null);
   const [text, setText] = useState("");
   const [status, setStatus] = useState<string | null>(null);
@@ -170,10 +171,17 @@ export function GuideThread({
           { id: reply.messageId ?? `guide-${current.length}`, from: "guide", reply },
         ]);
         setText("");
-        if (firstTurn) onChatStarted?.(result.data.conversationId);
+        if (firstTurn) setStarted(result.data.conversationId);
       });
     });
   }
+
+  // The page learns about a started chat only after the reply has been shown: inside the
+  // transition the page's address change would hold the reply back until the server had
+  // re-rendered the thread, and the child would stare at the status bubble meanwhile.
+  useEffect(() => {
+    if (started) onChatStarted?.(started);
+  }, [started, onChatStarted]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
