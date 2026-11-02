@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChildSummary } from "@jarso/core/family";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { FormError } from "@/components/form";
@@ -17,7 +18,6 @@ import {
 import { runOnline, useFormSubmit } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { removeChildAction } from "../server/actions";
-import type { ChildSummary } from "../types";
 
 /**
  * "Remove" button plus the confirmation dialog that spells out what happens (design.md §6:

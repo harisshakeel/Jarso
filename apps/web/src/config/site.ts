@@ -114,6 +114,3 @@ export const protectedRoutePrefixes = [
 
 /** Auth pages that signed-in users should be bounced away from. */
 export const authRoutePrefixes = [routes.login, routes.signup] as const;
-
-/** Currencies a family can pick. ISO 4217 codes; money is stored in minor units. */
-export const supportedCurrencies = ["GBP", "EUR", "USD", "INR", "AUD", "CAD", "JPY"] as const;

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChildSummary } from "@jarso/core/family";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { Field, FormError } from "@/components/form";
@@ -15,7 +16,6 @@ import {
 import { runOnline, useFormSubmit } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { renameChildAction } from "../server/actions";
-import type { ChildSummary } from "../types";
 
 /** "Rename" button that opens a bottom sheet with the new-nickname form, like SetPinForm. */
 export function RenameChildForm({ child }: { child: ChildSummary }) {

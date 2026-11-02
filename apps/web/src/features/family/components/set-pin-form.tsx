@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChildSummary } from "@jarso/core/family";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { Field, FormError } from "@/components/form";
@@ -15,7 +16,6 @@ import {
 import { runOnline, useFormSubmit } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { setChildPinAction } from "../server/actions";
-import type { ChildSummary } from "../types";
 
 /** "Reset PIN" button that opens a bottom sheet with the new-PIN form (design.md §6 sheets). */
 export function SetPinForm({ child }: { child: ChildSummary }) {

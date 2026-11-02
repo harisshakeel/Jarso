@@ -1,8 +1,8 @@
+import type { ChildSummary } from "@jarso/core/family";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants, Card } from "@/components/ui";
 import { routes } from "@/config";
-import type { ChildSummary } from "../types";
 import { RemoveChildDialog } from "./remove-child-dialog";
 import { RenameChildForm } from "./rename-child-form";
 import { SetPinForm } from "./set-pin-form";

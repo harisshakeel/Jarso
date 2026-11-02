@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  type Currency,
+  currencyForLocale,
+  currencyLabels,
+  DEFAULT_CURRENCY,
+  isCurrency,
+} from "@jarso/core/family";
 import { useState, useSyncExternalStore } from "react";
 import { FieldError, FormError } from "@/components/form";
 import {
@@ -13,13 +20,6 @@ import {
 } from "@/components/ui";
 import { supportedCurrencies } from "@/config";
 import { useOnlineActionState } from "@/features/offline";
-import {
-  type Currency,
-  currencyForLocale,
-  currencyLabels,
-  DEFAULT_CURRENCY,
-  isCurrency,
-} from "../currency";
 import { createFamilyAction } from "../server/actions";
 
 // Browser-only values, read without an effect. The server snapshot is the fallback.
