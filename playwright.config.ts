@@ -32,6 +32,9 @@ const serverEnv: Record<string, string> = {
   // Card payments run on the fake provider and its hosted page; no Stripe or Razorpay calls, no
   // keys (a provider is on only when its keys are set).
   PAYMENTS_ALLOW_FAKE: "true",
+  // The parent's Demo clock card (D11). It moves only families marked demo, which only the
+  // milestone spec does, so every other spec stays on real time.
+  FEATURE_DEMO_CLOCK: "true",
   CRON_SECRET: E2E_CRON_SECRET,
 };
 
@@ -84,6 +87,8 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     { name: "diary", testMatch: "diary.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    // The whole first milestone in one run, time moved by the demo clock.
+    { name: "milestone", testMatch: "milestone.spec.ts", use: { ...devices["Desktop Chrome"] } },
     // Phone width (360 px, the smallest design.md targets), touch on, Chromium.
     {
       name: "a11y",
