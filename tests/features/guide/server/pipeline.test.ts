@@ -379,4 +379,64 @@ describe("runGuidePipeline", () => {
     expect(failed).toMatchObject({ route: "unavailable", failed: true });
     expect(failed.usage).toMatchObject({ mainInput: 900, mainOutput: 50 });
   });
+
+  it("says where it is: reading, then answering once on-topic, then checking the reply", async () => {
+    const lines: string[] = [];
+    await runGuidePipeline(
+      { text: "What is saving?", history: [], context, tools: tools() },
+      provider(),
+      { onStatus: (line) => lines.push(line) },
+    );
+    expect(lines).toEqual([
+      guideCopy.phases.reading,
+      guideCopy.phases.answering,
+      guideCopy.phases.checking,
+    ]);
+    const routed: string[] = [];
+    await runGuidePipeline(
+      { text: "help with my homework", history: [], context, tools: tools() },
+      provider(),
+      { onStatus: (line) => routed.push(line) },
+    );
+    expect(routed).toEqual([guideCopy.phases.reading]);
+  });
+
+  it("never lets a status line that throws fail the turn", async () => {
+    const result = await runGuidePipeline(
+      { text: "What is saving?", history: [], context, tools: tools() },
+      provider(),
+      {
+        onStatus: () => {
+          throw new Error("closed");
+        },
+      },
+    );
+    expect(result.route).toBe("on_topic");
+  });
+
+  it("names why a reply was held back, with ref keys only", async () => {
+    const held = async (reply: string) =>
+      runGuidePipeline(
+        { text: "How much do I have?", history: [], context, tools: tools() },
+        provider({
+          reply: async () => ({
+            kind: "ok",
+            reply: { reply, topics: [], check: null },
+            usage: {},
+            model: "fake",
+          }),
+        }),
+      );
+    expect((await held("You have {{jars.goal}} and {{jars.total}}.")).blocked).toBe(
+      "unknown_ref: jars.goal, jars.total",
+    );
+    expect((await held("You have {jars.save} in Save.")).blocked).toBe("malformed_ref");
+    expect((await held("   ")).blocked).toBe("empty");
+    expect((await held("You should buy the blue trainers.")).blocked).toBe("product_or_purchase");
+    const shown = await runGuidePipeline(
+      { text: "What is saving?", history: [], context, tools: tools() },
+      provider(),
+    );
+    expect(shown.blocked).toBeNull();
+  });
 });

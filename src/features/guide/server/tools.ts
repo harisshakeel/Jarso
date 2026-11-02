@@ -203,7 +203,11 @@ const runners: { [N in ToolName]: Run<N> } = {
       has_allowance: true,
       status: schedule.status,
       amount: money(fact, "allowance.amount", schedule.amountMinor, currency),
-      how_often: describeCadence(schedule.frequency, schedule.anchorOn),
+      // A fact too, so "every Friday" in a reply is a figure the app vouched for.
+      how_often: fact(
+        "allowance.how_often",
+        describeCadence(schedule.frequency, schedule.anchorOn),
+      ),
       next_due: schedule.nextDueOn
         ? fact("allowance.next_date", showDate(schedule.nextDueOn))
         : null,
@@ -378,7 +382,10 @@ const runners: { [N in ToolName]: Run<N> } = {
       schedule && schedule.status !== "stopped"
         ? {
             amount: money(fact, "plan.allowance_amount", schedule.amountMinor, currency),
-            how_often: describeCadence(schedule.frequency, schedule.anchorOn),
+            how_often: fact(
+              "plan.how_often",
+              describeCadence(schedule.frequency, schedule.anchorOn),
+            ),
             next_due: schedule.nextDueOn
               ? fact("plan.next_date", showDate(schedule.nextDueOn))
               : null,

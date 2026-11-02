@@ -23,7 +23,7 @@ Jarso's AI is the app's headline feature: a prompt window at the top of the chil
 | Tool | Reads (service) | Returns (figures as refs) |
 | --- | --- | --- |
 | `get_jars` | `getAvailability`, `listDueForChild` | `jars.spend`, `jars.save`, `jars.total`, `jars.reserved` (waiting to come out of Save), `jars.held` (waiting to go in), `jars.free_spend`, `jars.free_save`, `jars.waiting` |
-| `get_allowance` | `getSchedule`, `listDueForChild` | `allowance.amount`, `allowance.next_date`, `allowance.waiting`; how often; status |
+| `get_allowance` | `getSchedule`, `listDueForChild` | `allowance.amount`, `allowance.how_often`, `allowance.next_date`, `allowance.waiting`; status |
 | `get_money_history(period)` | `getHistoryPage` | `history.money_in`, `history.spent`, `history.purchases`, up to 10 lines (`history.N.date`, `history.N.amount`); labels scrubbed, braces removed; `complete` |
 | `get_money_rules` | `getChildRules` | spending limits (`rules.spend_limit_<period>`), overspend setting |
 | `get_learning` | `getLearningOverview` | next step, skill levels, `learning.practice_due`, `learning.days_this_week`, `learning.missions_done` |

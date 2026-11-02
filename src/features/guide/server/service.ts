@@ -264,6 +264,7 @@ export async function runGuideTurn(
     result = await runGuidePipeline(
       { text: turn.text, history: turn.history, context: turn.context.text, tools },
       provider,
+      { onStatus },
     );
     if (result.failed) guideBreaker.recordFailure();
     else guideBreaker.recordSuccess();
@@ -299,6 +300,7 @@ export async function runGuideTurn(
   // Route, model, tokens, latency and look-up names only: never message text (spec §9).
   logger.info("Guide turn", {
     route: result.route,
+    blocked: result.blocked,
     model: result.model,
     prompt: GUIDE_PROMPT_VERSION,
     latencyMs: result.latencyMs,
