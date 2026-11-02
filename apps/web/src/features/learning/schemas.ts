@@ -2,7 +2,7 @@ import { z } from "zod";
 import { skillKeys, topicKeys } from "./skills";
 
 /**
- * Learning content is authored as JSON in `src/content/learning` (architecture §5.3) and parsed
+ * Learning content is authored as JSON in `packages/content/src/learning` (architecture §5.3) and parsed
  * with these schemas when the module loads, so invalid content fails the build and the content
  * test. Amounts are fictional and in minor units; text writes them as `{m:1250}` (see text.ts).
  */

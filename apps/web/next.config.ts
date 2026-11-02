@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   typedRoutes: true,
   poweredByHeader: false,
-  transpilePackages: ["@jarso/db"],
+  transpilePackages: ["@jarso/content", "@jarso/db"],
   turbopack: {
     rules: {
       "*.css": {

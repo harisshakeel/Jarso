@@ -121,7 +121,6 @@ apps/web/src/
 ├── config/             routes, site, env (Zod-validated), feature flags
 ├── lib/                errors, logger, createAction, api helpers, supabase clients, money formatting
 │   └── payments/       server-only provider layer: PaymentProvider interface, registry (a provider is on when its keys are set), Stripe, Razorpay and fake adapters (ADR 0013, 0014)
-├── content/            missions and topics as versioned JSON (see 5.3)
 └── types/              re-exports `@jarso/db` (generated types live in packages/db)
 supabase/migrations/    schema, RLS, functions, cron registrations
 ```
@@ -408,7 +407,7 @@ Sixty children at ten entries a day is about 220k rows a year; summing per child
 
 ### 5.3 Content
 
-Missions, topics and hints are authored as versioned JSON under `apps/web/src/content/` (validated by Zod at build time) so they ship with the code, are reviewable in PRs, and need no admin UI. Only progress lives in the database, keyed by `mission_key` and `skill_key`. When content changes, keys stay stable; a mission is retired by flag, never deleted. Built in ADR 0009: `apps/web/src/content/learning` holds seven missions, five topics, a review pool and the check-in; `features/learning/content.ts` parses them on the server and pages pass the one mission or set a child needs to the player, so content is never in a shared client bundle. Progress tables: `mission_attempts`, `step_results`, `skill_progress`, `review_items`, `practice_results`, `learning_checkins` (`docs/database.md`).
+Missions, topics and hints are authored as versioned JSON under `packages/content/src/` (validated by Zod at build time) so they ship with the code, are reviewable in PRs, and need no admin UI. Only progress lives in the database, keyed by `mission_key` and `skill_key`. When content changes, keys stay stable; a mission is retired by flag, never deleted. Built in ADR 0009: `packages/content/src/learning` (`@jarso/content/learning`) holds seven missions, five topics, a review pool and the check-in; `features/learning/content.ts` parses them on the server and pages pass the one mission or set a child needs to the player, so content is never in a shared client bundle. Progress tables: `mission_attempts`, `step_results`, `skill_progress`, `review_items`, `practice_results`, `learning_checkins` (`docs/database.md`).
 
 ### 5.4 Practice money
 

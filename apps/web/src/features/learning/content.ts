@@ -1,6 +1,6 @@
 import "server-only";
+import { rawCheckIn, rawMissions, rawReviews, rawTopics } from "@jarso/content/learning";
 import { z } from "zod";
-import { rawCheckIn, rawMissions, rawReviews, rawTopics } from "@/content/learning";
 import { checkInSchema, missionSchema, reviewPoolSchema, topicSchema } from "./schemas";
 import type { SkillKey, TopicKey } from "./skills";
 import type { AnswerableStep, CheckIn, Mission, Topic } from "./types";
