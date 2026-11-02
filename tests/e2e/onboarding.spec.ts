@@ -97,7 +97,8 @@ test("parent-started: parent adds Sam, Sam signs in with the family code", async
   await giveConsent(parent);
   await parent.getByRole("button", { name: "Add child" }).click();
   await expect(parent).toHaveURL(at("/parent"));
-  await expect(parent.getByRole("listitem").filter({ hasText: "Sam" })).toBeVisible();
+  // The child's card; the parent's Home also names Sam in "Sam's week" and "Sam's latest".
+  await expect(parent.getByRole("heading", { name: "Sam", exact: true })).toBeVisible();
 
   const child = await newActor(browser);
   await fillChildSignIn(child, messyCode(state.samFamilyCode, "-"), "  sAM ");
