@@ -25,11 +25,25 @@ export async function createChildAuthUser(): Promise<string> {
   });
   if (error) {
     logger.error("Child auth user creation failed", { code: error.code, status: error.status });
+    // The error may come after GoTrue inserted the user (e.g. a timeout), which would leave an
+    // orphan under the id we chose. Delete it best-effort; "not found" means nothing was created.
+    await deleteOrphan(id);
     throw new AppError("INTERNAL", "We couldn't create the child account. Please try again.", {
       cause: error,
     });
   }
   return id;
+}
+
+async function deleteOrphan(id: string): Promise<void> {
+  try {
+    const { error } = await createAdminClient().auth.admin.deleteUser(id);
+    if (error && error.status !== 404) {
+      logger.warn("Orphan child auth user cleanup failed", { childId: id, code: error.code });
+    }
+  } catch (cause) {
+    logger.warn("Orphan child auth user cleanup failed", { childId: id, cause });
+  }
 }
 
 /** Best-effort cleanup used when registration fails after the auth user was created. */
