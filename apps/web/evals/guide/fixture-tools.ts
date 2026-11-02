@@ -1,3 +1,14 @@
+import {
+  type ActionFields,
+  type ActionKind,
+  type DraftResult,
+  describeDraft,
+  draftFromFields,
+  type GuideProposal,
+  goalProposalFrom,
+  isActionKindFor,
+  type ProposedGoalArgs,
+} from "@jarso/core/guide";
 import { addFact, type Facts } from "@/features/guide/server/facts";
 import type { TurnTools } from "@/features/guide/server/provider";
 import {
@@ -146,30 +157,37 @@ function run(name: string, input: Record<string, unknown>, fact: Fact): unknown 
         ],
         more_not_shown: 0,
       };
-    case "plan_saving": {
-      const price = pence(String(input.price));
-      if (!price) return { error: "The price must be a plain amount like 120 or 12.50." };
-      const each = input.save_each === null ? null : pence(String(input.save_each));
-      if (input.save_each !== null && !each) {
-        return { error: "save_each must be a plain amount like 5, or null." };
-      }
-      const needed = Math.max(0, price - (pence(FIXTURE.save) ?? 0));
+    case "plan_saving":
+      return plan(input, fact, "plan");
+    case "propose_goal": {
+      const data = plan(input, fact, "goal_idea");
+      if ("error" in data) return data;
       return {
-        price: fact("plan.price", gbp(price)),
-        in_spend: fact("plan.in_spend", FIXTURE.spend),
-        spend_covers_it: (pence(FIXTURE.spend) ?? 0) >= price,
-        in_save: fact("plan.in_save", FIXTURE.save),
-        still_needed: fact("plan.still_needed", gbp(needed)),
-        already_enough: needed === 0,
-        save_each: each ? fact("plan.save_each", gbp(each)) : null,
-        allowances_needed:
-          each && needed > 0 ? fact("plan.allowances", String(Math.ceil(needed / each))) : null,
-        allowance: {
-          amount: fact("plan.allowance_amount", FIXTURE.allowance),
-          how_often: fact("plan.how_often", "Every Friday"),
-          next_due: fact("plan.next_date", FIXTURE.nextAllowance),
-        },
-        note: "Only the Save jar counts toward a price. Money that is due is not counted until it is handed over.",
+        ...data,
+        goal: String(input.title),
+        offered:
+          "A 'Make it my goal' card now shows under your reply. In a few words, tell the child they can tap it if they want this as their goal. It is their choice; never push.",
+      };
+    }
+    case "propose_action": {
+      const built = fixtureDraft(input);
+      if (!built) return { error: "That isn't something you can prepare in this chat." };
+      if (!built.ok) {
+        return "missing" in built
+          ? {
+              missing: built.missing,
+              ask: "Ask ONE short question for what is missing, then call propose_action again. No card shows yet.",
+            }
+          : { error: built.problem };
+      }
+      const card = describeDraft(built.draft, "GBP");
+      return {
+        prepared: card.title,
+        card: card.lines.map((line, index) => ({
+          what: line.label,
+          value: /\d/.test(line.value) ? fact(`action.${index + 1}`, line.value) : line.value,
+        })),
+        next: "A card with a 'Do it' button now shows under your reply. In a few words, ask them to check it and tap Do it if it's right. Never say it is done: only the app can, after the tap.",
       };
     }
     default:
@@ -177,11 +195,51 @@ function run(name: string, input: Record<string, unknown>, fact: Fact): unknown 
   }
 }
 
+/** The fixture child's draft for a `propose_action` call (child kinds only), or null. */
+function fixtureDraft(input: Record<string, unknown>): DraftResult | null {
+  const kind = input.kind as ActionKind;
+  if (!isActionKindFor(kind, "child")) return null;
+  return draftFromFields(kind, (input.fields ?? {}) as ActionFields, {
+    currency: "GBP",
+    id: "00000000-0000-4000-8000-0000000000aa",
+    today: "2026-10-30",
+  });
+}
+
+/** `plan_saving`'s answer for the fixture child, with refs under `prefix`. */
+function plan(input: Record<string, unknown>, fact: Fact, prefix: string) {
+  const price = pence(String(input.price));
+  if (!price) return { error: "The price must be a plain amount like 120 or 12.50." };
+  const each = input.save_each === null ? null : pence(String(input.save_each));
+  if (input.save_each !== null && !each) {
+    return { error: "save_each must be a plain amount like 5, or null." };
+  }
+  const needed = Math.max(0, price - (pence(FIXTURE.save) ?? 0));
+  return {
+    price: fact(`${prefix}.price`, gbp(price)),
+    in_spend: fact(`${prefix}.in_spend`, FIXTURE.spend),
+    spend_covers_it: (pence(FIXTURE.spend) ?? 0) >= price,
+    in_save: fact(`${prefix}.in_save`, FIXTURE.save),
+    still_needed: fact(`${prefix}.still_needed`, gbp(needed)),
+    already_enough: needed === 0,
+    save_each: each ? fact(`${prefix}.save_each`, gbp(each)) : null,
+    allowances_needed:
+      each && needed > 0 ? fact(`${prefix}.allowances`, String(Math.ceil(needed / each))) : null,
+    allowance: {
+      amount: fact(`${prefix}.allowance_amount`, FIXTURE.allowance),
+      how_often: fact(`${prefix}.how_often`, "Every Friday"),
+      next_due: fact(`${prefix}.next_date`, FIXTURE.nextAllowance),
+    },
+    note: "Only the Save jar counts toward a price. Money that is due is not counted until it is handed over.",
+  };
+}
+
 /** A fresh fixture toolbox for one eval case. */
 export function createFixtureTools(): TurnTools {
   const facts: Facts = new Map();
   const calls: ToolCall[] = [];
   const timesCalled = new Map<string, number>();
+  let proposal: GuideProposal | null = null;
   const error = (message: string) => ({
     content: JSON.stringify({ error: message }),
     isError: true,
@@ -191,6 +249,9 @@ export function createFixtureTools(): TurnTools {
     facts,
     calls,
     remembered: [],
+    get proposal() {
+      return proposal;
+    },
     async run(name, input) {
       if (!isToolName(name)) return error(`There is no tool called ${name}.`);
       if (calls.length >= MAX_TOOL_CALLS) return error("That's enough look-ups for this question.");
@@ -204,6 +265,13 @@ export function createFixtureTools(): TurnTools {
         addFact(facts, n === 1 ? key : key.replace(/^([a-z_]+)\./, `$1${n}.`), shown);
       const data = run(name, args, fact);
       const isError = !!data && typeof data === "object" && "error" in data;
+      if (name === "propose_goal" && !isError) {
+        proposal = goalProposalFrom(args as ProposedGoalArgs, "GBP");
+      }
+      if (name === "propose_action" && !isError) {
+        const built = fixtureDraft(args);
+        if (built?.ok) proposal = describeDraft(built.draft, "GBP");
+      }
       return { content: JSON.stringify(data), isError };
     },
   };

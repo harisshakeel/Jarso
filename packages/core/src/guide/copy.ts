@@ -90,6 +90,8 @@ export const guideCopy = {
     get_goal: "Checking the goal…",
     get_requests: "Checking the requests…",
     remember: "Making a note of that…",
+    propose_goal: "Working out a goal…",
+    propose_action: "Getting that ready for you to check…",
   },
   /**
    * Funny lines that follow the line above while that step is still going, one every couple of
@@ -150,6 +152,45 @@ export const guideCopy = {
     get_goal: "goal",
     get_requests: "requests",
     remember: "memory",
+    propose_goal: "goal idea",
+    propose_action: "prepared an action",
+  },
+  /**
+   * The card under a reply in which Jarso prepared an action. Jarso never does it: the user's
+   * tap runs the app's own form for it, and the outcome line comes from what that returned.
+   */
+  action: {
+    eyebrow: "Check this, then tap Do it",
+    doIt: "Do it",
+    change: "Change something",
+    /** Put in the box by "Change something", for the user to finish. */
+    changePrompt: "Change it: ",
+    already: "That's already been sent.",
+  },
+  /** The card under a reply that offered a goal. The child decides; Jarso never sets one. */
+  proposal: {
+    title: "Make it your goal?",
+    make: "Make it my goal",
+    notNow: "Not now",
+    saved: "That's your goal now. You can see it from your Save jar.",
+    planLeftOff:
+      "That's your goal now. The amount to save each time was more than your allowance, so set it on your goal page.",
+    hasGoal: (name: string) => `You already have a goal: ${name}. Swap it for this one?`,
+    replace: "Swap it",
+    keep: "Keep my goal",
+    see: "See my goal",
+  },
+  /** The photo price check: a price tag or receipt read into a question for Jarso. */
+  photo: {
+    button: "Snap a price",
+    hint: "Take a photo of a price tag or receipt.",
+    reading: "Reading the price…",
+    none: "I couldn't find a price in that photo. Try a clearer one, or type the price.",
+    otherCurrency:
+      "That price looks like it's in a different money. Type the price in yours instead.",
+    untitled: "Something I want",
+    tooBig: "That photo is too big. Try another one.",
+    notPhoto: "Choose a photo (JPEG, PNG or WebP).",
   },
   /** Under a reply that kept a fact, so the child always knows what Jarso remembers. */
   remembered: "Jarso will remember:",

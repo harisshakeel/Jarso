@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { addFact, type Facts } from "@/features/guide/server/facts";
 import { createFakeProvider } from "@/features/guide/server/fake-provider";
 import { runGuidePipeline } from "@/features/guide/server/pipeline";
-import { type GuideProvider, type TurnTools, withUsage } from "@/features/guide/server/provider";
+import {
+  type GuideProvider,
+  outputScreenSchema,
+  type TurnTools,
+  withUsage,
+} from "@/features/guide/server/provider";
 import type { ToolCall } from "@/features/guide/server/tool-specs";
 
 const context =
@@ -27,7 +32,7 @@ function tools(): TurnTools & { run: ReturnType<typeof vi.fn> } {
       isError: false,
     };
   });
-  return { specs: [], facts, calls, remembered: [], run };
+  return { specs: [], facts, calls, remembered: [], proposal: null, run };
 }
 
 describe("runGuidePipeline", () => {
@@ -44,6 +49,73 @@ describe("runGuidePipeline", () => {
     });
     expect(result.topics).toEqual(["saving-goal"]);
     expect(result.check?.options).toEqual(["Spend", "Save"]);
+  });
+
+  it("carries a goal Jarso offered only on a reply that passed the output screen", async () => {
+    const offered = {
+      kind: "goal" as const,
+      title: "Bike",
+      emoji: "🚲" as const,
+      priceMinor: 12000,
+      saveEachMinor: null,
+      allowances: null,
+      figures: "£120",
+    };
+    const passed = await runGuidePipeline(
+      { text: "What is saving?", history: [], context, tools: { ...tools(), proposal: offered } },
+      provider(),
+    );
+    expect(passed.proposal).toEqual(offered);
+    const held = await runGuidePipeline(
+      { text: "What is saving?", history: [], context, tools: { ...tools(), proposal: offered } },
+      provider({ screenOutput: async () => ({ pass: false, problem: "off_topic", usage: {} }) }),
+    );
+    expect(held).toMatchObject({ route: "blocked_output", proposal: null });
+  });
+
+  it("holds back a reply that says Jarso did something itself (claims_action)", async () => {
+    const claims = provider({
+      reply: async () => ({
+        kind: "ok",
+        reply: { reply: "I've recorded £5 in your Save jar.", topics: [], check: null },
+        usage: {},
+        model: "fake",
+      }),
+    });
+    const result = await runGuidePipeline(
+      { text: "I got 5 from grandma", history: [], context, tools: tools() },
+      claims,
+    );
+    expect(result).toMatchObject({
+      route: "blocked_output",
+      role: "fixed_copy",
+      blocked: "claims_action",
+      proposal: null,
+    });
+    // The real output screen may answer with it too.
+    expect(
+      outputScreenSchema.safeParse({ pass: false, problem: "claims_action", reason: "x" }).success,
+    ).toBe(true);
+  });
+
+  it("lets a reply say it prepared something for the user to check", async () => {
+    const prepared = provider({
+      reply: async () => ({
+        kind: "ok",
+        reply: {
+          reply: "I've got that ready. Check the card and tap Do it.",
+          topics: [],
+          check: null,
+        },
+        usage: {},
+        model: "fake",
+      }),
+    });
+    const result = await runGuidePipeline(
+      { text: "I got 5 from grandma", history: [], context, tools: tools() },
+      prepared,
+    );
+    expect(result.route).toBe("on_topic");
   });
 
   it("routes a safety message to fixed copy and flags it, never showing the model's reply", async () => {

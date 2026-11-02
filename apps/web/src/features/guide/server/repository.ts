@@ -1,5 +1,12 @@
 import "server-only";
-import type { GuideEntry, GuideRoute, GuideUsage } from "@jarso/core/guide";
+import {
+  actionDraftSchema,
+  type GuideEntry,
+  type GuideRoute,
+  type GuideUsage,
+  proposedGoalArgsSchema,
+  type StoredProposal,
+} from "@jarso/core/guide";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database, Json } from "@/types";
@@ -151,7 +158,34 @@ export type MessageRow = {
   createdAt: string;
   /** What Jarso looked up for this reply, in order (replies only). */
   checked: ToolName[];
+  /** What Jarso offered with this reply: a goal's arguments or an action's checked draft. */
+  proposed?: StoredProposal | null;
 };
+
+/**
+ * The last offer on a reply (`propose_goal` arguments or a `propose_action` draft), while it is
+ * still stored (the retention job keeps only tool names after 30 days) and well formed.
+ */
+function asProposed(value: Json | null): StoredProposal | null {
+  if (!Array.isArray(value)) return null;
+  for (let i = value.length - 1; i >= 0; i--) {
+    const call = value[i];
+    if (!call || typeof call !== "object" || Array.isArray(call)) continue;
+    if (call.name === "propose_goal") {
+      const parsed = proposedGoalArgsSchema.safeParse(call.input);
+      return parsed.success ? { type: "goal", args: parsed.data } : null;
+    }
+    if (call.name === "propose_action") {
+      const input = call.input;
+      const draft =
+        input && typeof input === "object" && !Array.isArray(input) ? input.draft : undefined;
+      const parsed = actionDraftSchema.safeParse(draft);
+      // A call that made no card (fields were missing) is skipped, so an earlier card still shows.
+      if (parsed.success) return { type: "action", draft: parsed.data };
+    }
+  }
+  return null;
+}
 
 /** Tool names from a stored `tool_calls` array; anything unrecognised is dropped. */
 function asChecked(value: Json | null): ToolName[] {
@@ -191,6 +225,7 @@ export async function listMessages(
     rating: row.rating === 1 || row.rating === -1 ? row.rating : null,
     createdAt: row.created_at,
     checked: asChecked(row.tool_calls),
+    proposed: asProposed(row.tool_calls),
   }));
 }
 

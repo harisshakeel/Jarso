@@ -1,7 +1,20 @@
 import "server-only";
-import { guideCopy } from "@jarso/core/guide";
+import { randomUUID } from "node:crypto";
+import {
+  type ActionDraft,
+  type ActionFields,
+  actionFieldWords,
+  type DraftContext,
+  describeDraft,
+  draftFromFields,
+  formProblem,
+  type GuideProposal,
+  goalProposalFrom,
+  guideCopy,
+  isActionKindFor,
+} from "@jarso/core/guide";
 import { describeCadence } from "@/features/allowance";
-import { getSchedule, listDueForChild } from "@/features/allowance/server";
+import { getSchedule, listDue, listDueForChild } from "@/features/allowance/server";
 import { getGoalView } from "@/features/goals/server";
 import { type NextStep, skillLevelLabels, skills } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
@@ -23,13 +36,15 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { addFact, type Facts } from "./facts";
 import { remember } from "./memory";
-import type { TurnTools } from "./provider";
+import type { ToolSpec, TurnTools } from "./provider";
 import { looksUnsafe } from "./safety-net";
 import { scrub } from "./scrub";
 import {
+  CHILD_ONLY_TOOLS,
   isToolName,
   MAX_TOOL_CALLS,
   type Period,
+  parentProposeAction,
   type ToolCall,
   type ToolInput,
   type ToolName,
@@ -42,7 +57,8 @@ import {
  * child, so RLS applies and the child's id comes from the session, never from the model. Each
  * returns plain data for the model, with every figure as a `{ ref, value }` pair from `fact`.
  * A tool's second call in a turn gets its own refs (`history2.spent`), so "this week or last
- * week?" can't mix two figures up. Nothing here writes.
+ * week?" can't mix two figures up. Nothing here writes, except `remember` (a short fact) and
+ * `propose_goal`, which only offers: the app saves the goal once the child taps the card.
  */
 
 /** Lines of money history the model sees at most. */
@@ -58,6 +74,8 @@ export type ToolContext = {
   timezone: string;
   /** A parent asking about the child: the look-ups read the child's data, but nothing is remembered. */
   forParent?: boolean;
+  /** The child's nickname on a parent's action card ("Hand over the allowance for Sam"). */
+  childName?: string | null;
 };
 
 /** Records one figure under this call's refs. */
@@ -65,7 +83,11 @@ type Fact = (key: string, shown: string) => { ref: string; value: string };
 
 type Run<N extends ToolName> = (
   input: ToolInput<N>,
-  ctx: ToolContext & { today: string },
+  ctx: ToolContext & {
+    today: string;
+    /** Shows a card under the reply; the stored call keeps `stored` to show it again. */
+    offer: (proposal: GuideProposal, stored?: Record<string, unknown>) => void;
+  },
   fact: Fact,
 ) => Promise<unknown>;
 
@@ -95,7 +117,7 @@ const INSTRUCTION_LIKE =
  * can't fake a ref), short. Labels skip the input screen, so one that trips the safety keyword
  * net or reads like an instruction is not shown to the model at all.
  */
-function cleanLabel(label: string): string {
+export function cleanLabel(label: string): string {
   const text = scrub(label).replace(/[{}]/g, "").replace(/\s+/g, " ").trim();
   if (looksUnsafe(text) || INSTRUCTION_LIKE.test(text)) return "(label not shown)";
   return text.length > LABEL_CHARS ? `${text.slice(0, LABEL_CHARS - 1)}…` : text;
@@ -103,6 +125,94 @@ function cleanLabel(label: string): string {
 
 function money(fact: Fact, key: string, minor: number, currency: string) {
   return fact(key, formatMoney(minor, currency, { showMinor: "nonzero" }));
+}
+
+export type SavingPlan = {
+  priceMinor: number;
+  inSpendMinor: number;
+  inSaveMinor: number;
+  neededMinor: number;
+  spendCoversIt: boolean;
+  /** Allowances at the plan to cover what is needed; null without a plan or when nothing is. */
+  allowances: number | null;
+  schedule: Awaited<ReturnType<typeof getSchedule>>;
+};
+
+/**
+ * The saving maths behind `plan_saving`, `propose_goal` and the photo price check, in code
+ * (ADR 0011): only free money counts, never money waiting to come out or go in.
+ */
+export async function savingPlan(
+  childId: string,
+  priceMinor: number,
+  eachMinor: number | null,
+): Promise<SavingPlan> {
+  const [jars, schedule] = await Promise.all([getAvailability(childId), getSchedule(childId)]);
+  const neededMinor = Math.max(0, priceMinor - jars.availableSaveMinor);
+  return {
+    priceMinor,
+    inSpendMinor: jars.availableSpendMinor,
+    inSaveMinor: jars.availableSaveMinor,
+    neededMinor,
+    spendCoversIt: jars.availableSpendMinor >= priceMinor,
+    allowances: eachMinor && neededMinor > 0 ? Math.ceil(neededMinor / eachMinor) : null,
+    schedule,
+  };
+}
+
+/** A plan as the model sees it: every figure a ref under `prefix`. */
+function planFacts(
+  plan: SavingPlan,
+  eachMinor: number | null,
+  currency: string,
+  fact: Fact,
+  prefix = "plan",
+) {
+  const { schedule } = plan;
+  const allowance =
+    schedule && schedule.status !== "stopped"
+      ? {
+          amount: money(fact, `${prefix}.allowance_amount`, schedule.amountMinor, currency),
+          how_often: fact(
+            `${prefix}.how_often`,
+            describeCadence(schedule.frequency, schedule.anchorOn),
+          ),
+          next_due: schedule.nextDueOn
+            ? fact(`${prefix}.next_date`, showDate(schedule.nextDueOn))
+            : null,
+        }
+      : null;
+  return {
+    price: money(fact, `${prefix}.price`, plan.priceMinor, currency),
+    in_spend: money(fact, `${prefix}.in_spend`, plan.inSpendMinor, currency),
+    spend_covers_it: plan.spendCoversIt,
+    in_save: money(fact, `${prefix}.in_save`, plan.inSaveMinor, currency),
+    still_needed: money(fact, `${prefix}.still_needed`, plan.neededMinor, currency),
+    already_enough: plan.neededMinor === 0,
+    save_each: eachMinor ? money(fact, `${prefix}.save_each`, eachMinor, currency) : null,
+    allowances_needed:
+      plan.allowances !== null ? fact(`${prefix}.allowances`, String(plan.allowances)) : null,
+    allowance,
+    note: "Only free money counts: Save less money waiting to come out, Spend less money waiting to go in. Money that is due is not counted until it is handed over.",
+  };
+}
+
+/** Both amounts of a plan parsed, or the message the model gets back. */
+function planAmounts(
+  price: string,
+  saveEach: string | null,
+  currency: string,
+): { priceMinor: number; eachMinor: number | null } | { error: string } {
+  const priceMinor = parseMoney(price, currency);
+  if (!priceMinor || priceMinor > MAX_AMOUNT_MINOR) {
+    return { error: "The price must be a plain amount like 120 or 12.50." };
+  }
+  if (saveEach === null || saveEach === "") return { priceMinor, eachMinor: null };
+  const eachMinor = parseMoney(saveEach, currency);
+  if (!eachMinor || eachMinor > MAX_AMOUNT_MINOR) {
+    return { error: "save_each must be a plain amount like 5, or null." };
+  }
+  return { priceMinor, eachMinor };
 }
 
 function periodRange(period: Period, today: string): { from: string; to: string; text: string } {
@@ -334,13 +444,15 @@ const runners: { [N in ToolName]: Run<N> } = {
     };
   },
 
-  async get_requests(_input, { childId, currency, timezone }, fact) {
+  async get_requests(_input, { childId, currency, timezone, forParent }, fact) {
     const requests = await listRequests(childId);
     const shown = requests.slice(0, REQUEST_LINES);
     return {
       requests: shown.map((request, index) => {
         const n = index + 1;
         return {
+          // A parent can say yes or no to a waiting request with propose_action.
+          ...(forParent && request.status === "pending" ? { request_id: request.id } : {}),
           what:
             request.kind === "withdrawal"
               ? "take out of Save"
@@ -372,47 +484,163 @@ const runners: { [N in ToolName]: Run<N> } = {
   },
 
   async plan_saving({ price, save_each }, { childId, currency }, fact) {
-    const priceMinor = parseMoney(price, currency);
-    if (!priceMinor || priceMinor > MAX_AMOUNT_MINOR) {
-      return { error: "The price must be a plain amount like 120 or 12.50." };
+    const amounts = planAmounts(price, save_each, currency);
+    if ("error" in amounts) return amounts;
+    const plan = await savingPlan(childId, amounts.priceMinor, amounts.eachMinor);
+    return planFacts(plan, amounts.eachMinor, currency, fact);
+  },
+
+  async propose_goal({ title, price, save_each }, { childId, currency, offer }, fact) {
+    const name = cleanLabel(title);
+    if (name === "(label not shown)" || PERSONAL_IN_MEMORY.test(name)) {
+      return { error: "Give the goal a plain name from the child's words, like 'Headphones'." };
     }
-    const eachMinor = save_each === null ? null : parseMoney(save_each, currency);
-    if (save_each !== null && (!eachMinor || eachMinor > MAX_AMOUNT_MINOR)) {
-      return { error: "save_each must be a plain amount like 5, or null." };
-    }
-    const [jars, schedule] = await Promise.all([getAvailability(childId), getSchedule(childId)]);
-    // Like the goal: only free money counts, never money waiting to come out or go in.
-    const needed = Math.max(0, priceMinor - jars.availableSaveMinor);
-    const allowance =
-      schedule && schedule.status !== "stopped"
-        ? {
-            amount: money(fact, "plan.allowance_amount", schedule.amountMinor, currency),
-            how_often: fact(
-              "plan.how_often",
-              describeCadence(schedule.frequency, schedule.anchorOn),
-            ),
-            next_due: schedule.nextDueOn
-              ? fact("plan.next_date", showDate(schedule.nextDueOn))
-              : null,
-          }
-        : null;
+    const amounts = planAmounts(price, save_each, currency);
+    if ("error" in amounts) return amounts;
+    const plan = await savingPlan(childId, amounts.priceMinor, amounts.eachMinor);
+    const proposal = goalProposalFrom({ title: name, price, save_each }, currency, plan.allowances);
+    if (!proposal) return { error: "A goal's price must be a plain amount up to the goal limit." };
+    offer(proposal);
     return {
-      price: money(fact, "plan.price", priceMinor, currency),
-      in_spend: money(fact, "plan.in_spend", jars.availableSpendMinor, currency),
-      spend_covers_it: jars.availableSpendMinor >= priceMinor,
-      in_save: money(fact, "plan.in_save", jars.availableSaveMinor, currency),
-      still_needed: money(fact, "plan.still_needed", needed, currency),
-      already_enough: needed === 0,
-      save_each: eachMinor ? money(fact, "plan.save_each", eachMinor, currency) : null,
-      allowances_needed:
-        eachMinor && needed > 0
-          ? fact("plan.allowances", String(Math.ceil(needed / eachMinor)))
-          : null,
-      allowance,
-      note: "Only free money counts: Save less money waiting to come out, Spend less money waiting to go in. Money that is due is not counted until it is handed over.",
+      ...planFacts(plan, amounts.eachMinor, currency, fact, "goal_idea"),
+      goal: name,
+      offered:
+        "A 'Make it my goal' card now shows under your reply. In a few words, tell the child they can tap it if they want this as their goal. It is their choice; never push.",
+    };
+  },
+
+  async propose_action({ kind, fields }, ctx, fact) {
+    const asker = ctx.forParent ? "parent" : "child";
+    if (!isActionKindFor(kind, asker)) {
+      return { error: `${kind} isn't something you can prepare in this chat.` };
+    }
+    const clean = cleanActionFields(fields);
+    const found = await actionLookups(kind, clean, ctx);
+    if ("error" in found) return found;
+    const built = draftFromFields(kind, clean, {
+      currency: ctx.currency,
+      id: randomUUID(),
+      today: ctx.today,
+      ...found,
+    });
+    if (!built.ok) {
+      if ("missing" in built) {
+        return {
+          missing: built.missing,
+          ask: `Ask ONE short question for ${built.missing.map((name) => actionFieldWords[name] ?? name).join(" and ")}, then call propose_action again with the answer. No card shows yet.`,
+        };
+      }
+      return { error: built.problem };
+    }
+    // The app's own form for this action checks the draft too: nothing it would refuse is shown.
+    const refused = formProblem(built.draft, ctx.currency, ctx.today);
+    if (refused) return { error: refused };
+    const proposal = describeDraft(built.draft, ctx.currency, ctx.forParent ? ctx.childName : null);
+    ctx.offer(proposal, storedDraft(built.draft));
+    return {
+      prepared: proposal.title,
+      // Figures as refs, like every look-up: the reply may only state what the app filled in.
+      card: proposal.lines.map((line, index) => ({
+        what: line.label,
+        value: /\d/.test(line.value) ? fact(`action.${index + 1}`, line.value) : line.value,
+      })),
+      next: "A card with a 'Do it' button now shows under your reply. In a few words, ask them to check it and tap Do it if it's right. Never say it is done: only the app can, after the tap.",
     };
   },
 };
+
+/** A `propose_action` call that made no card, stored with only the fields that were given. */
+function compactFields(input: Record<string, unknown>): Record<string, unknown> {
+  const fields = (input.fields ?? {}) as Record<string, unknown>;
+  const given = Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => typeof value === "string" && value !== ""),
+  );
+  return { kind: input.kind, fields: given };
+}
+
+/** The text fields of a draft, cleaned like any label a person typed; anything unsafe is dropped. */
+function cleanActionFields(fields: ActionFields): ActionFields {
+  const out: ActionFields = { ...fields };
+  for (const name of ["label", "reason", "from"] as const) {
+    const value = fields[name];
+    if (!value) continue;
+    const cleaned = cleanLabel(value);
+    out[name] = cleaned === "(label not shown)" ? null : cleaned;
+  }
+  return out;
+}
+
+/**
+ * What a parent's draft needs from the app, read as the parent through the feature services
+ * (RLS and the parent-of checks apply): the allowance that is due, the schedule, the request.
+ */
+async function actionLookups(
+  kind: ActionDraft["kind"],
+  fields: ActionFields,
+  { childId, forParent }: ToolContext,
+): Promise<Partial<DraftContext> | { error: string }> {
+  if (!forParent) return {};
+  switch (kind) {
+    case "hand_over_allowance": {
+      const due = (await listDue(childId)).find((item) => item.kind === "allowance");
+      if (!due) return { error: "No allowance is waiting to be handed over right now." };
+      return { childId, due: { id: due.id, amountMinor: due.amountMinor } };
+    }
+    case "change_allowance": {
+      const schedule = await getSchedule(childId);
+      if (!schedule || schedule.status === "stopped") {
+        return { error: "There's no allowance to change. A new one is set up from their page." };
+      }
+      return {
+        childId,
+        schedule: {
+          id: schedule.id,
+          frequency: schedule.frequency,
+          nextDueOn: schedule.nextDueOn,
+        },
+      };
+    }
+    case "decide_request": {
+      const id = fields.request_id?.trim();
+      if (!id) return { childId };
+      const request = (await listRequests(childId)).find(
+        (item) => item.id === id && item.status === "pending",
+      );
+      if (!request) {
+        return { error: "That request isn't waiting for a decision. Look at get_requests again." };
+      }
+      return {
+        childId,
+        request: { id: request.id, kind: request.kind, amountMinor: request.amountMinor },
+      };
+    }
+    default:
+      return { childId };
+  }
+}
+
+/**
+ * The draft as its call is stored, so a reopened chat can show the card again. The database
+ * keeps each call to 300 characters of JSON; one that would not fit keeps only the kind, and its
+ * card is simply not shown again.
+ */
+function storedDraft(draft: ActionDraft): Record<string, unknown> {
+  return fitsStored({ name: "propose_action", input: { draft } })
+    ? { draft }
+    : { kind: draft.kind };
+}
+
+/**
+ * Whether a call fits the database's limit on one stored call (300 characters as Postgres prints
+ * jsonb, which puts a space after every `:` and `,`), with room to spare.
+ */
+export function fitsStored(call: { name: string; input: Record<string, unknown> }): boolean {
+  const json = JSON.stringify(call);
+  const spaced = json.replace(/("(?:[^"\\]|\\.)*")|[:,]/g, (match, quoted: string | undefined) =>
+    quoted ? match : `${match} `,
+  );
+  return spaced.length <= 280;
+}
 
 /**
  * The toolbox for one turn. Unknown names, bad arguments and failed reads come back to the model
@@ -425,22 +653,31 @@ export function createTurnTools(
   const facts: Facts = new Map();
   const calls: ToolCall[] = [];
   const remembered: string[] = [];
+  let proposal: GuideProposal | null = null;
   const timesCalled = new Map<ToolName, number>();
   const today = familyToday(ctx.timezone);
   const error = (message: string) => ({
     content: JSON.stringify({ error: message }),
     isError: true,
   });
-  // Memories are the child's: a parent's chat about them never writes one.
-  const specs = ctx.forParent ? toolSpecs.filter((spec) => spec.name !== "remember") : toolSpecs;
+  // Memories and goals are the child's: a parent's chat about them never keeps or offers one.
+  // A parent's propose_action prepares the parent's own kinds of action, never the child's.
+  const specs: readonly ToolSpec[] = ctx.forParent
+    ? toolSpecs
+        .filter((spec) => !CHILD_ONLY_TOOLS.has(spec.name))
+        .map((spec) => (spec.name === "propose_action" ? parentProposeAction : spec))
+    : toolSpecs;
 
   return {
     specs,
     facts,
     calls,
     remembered,
+    get proposal() {
+      return proposal;
+    },
     async run(name, input) {
-      if (!isToolName(name) || (ctx.forParent && name === "remember")) {
+      if (!isToolName(name) || (ctx.forParent && CHILD_ONLY_TOOLS.has(name))) {
         const names = specs.map((spec) => spec.name).join(", ");
         return error(`There is no tool called ${name}. Use one of: ${names}.`);
       }
@@ -449,7 +686,8 @@ export function createTurnTools(
       }
       const parsed = toolInputs[name].safeParse(input ?? {});
       if (!parsed.success) return error(`The arguments for ${name} don't match its schema.`);
-      calls.push({ name, input: parsed.data });
+      const call: ToolCall = { name, input: parsed.data };
+      calls.push(call);
       const n = (timesCalled.get(name) ?? 0) + 1;
       timesCalled.set(name, n);
       // A second call's refs get a number: `jars.spend`, then `jars2.spend`.
@@ -462,7 +700,21 @@ export function createTurnTools(
       }
       try {
         const run = runners[name] as Run<typeof name>;
-        const data = await run(parsed.data as never, { ...ctx, today }, fact);
+        let stored = false;
+        const offer = (offered: GuideProposal, keep?: Record<string, unknown>) => {
+          proposal = offered;
+          stored = true;
+          // The stored call is what a reopened chat rebuilds the card from: the clean goal name,
+          // or the checked draft.
+          call.input = keep ?? {
+            ...call.input,
+            title: offered.kind === "goal" ? offered.title : "",
+          };
+        };
+        const data = await run(parsed.data as never, { ...ctx, today, offer }, fact);
+        if (name === "propose_action" && !stored) call.input = compactFields(call.input);
+        // The database refuses a whole turn with an over-long call: keep only its name then.
+        if (!fitsStored(call)) call.input = {};
         // A runner returns `{ error }` for arguments the model can fix (a price it can't read).
         const failed = typeof data === "object" && data !== null && "error" in data;
         // Only a fact that was really stored is shown to the child as remembered.
