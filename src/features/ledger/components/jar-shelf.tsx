@@ -55,8 +55,8 @@ type Jar = "spend" | "save";
 /**
  * Child Home's two jars (FR03, FR02): Spend and Save side by side. The resting shelf is just the
  * jars and their balances; tapping a jar opens its tray of actions, so one tap at a time has one
- * meaning. With a goal, a full Save jar means the goal is reached; due money floats outside the
- * jars. Every amount is also in text.
+ * meaning. The goal lives in its own card (GoalCard); here the Save jar is a plain jar on the
+ * shared scale, and due money floats outside the jars. Every amount is also in text.
  */
 export function JarShelf({
   currency,
@@ -108,7 +108,6 @@ export function JarShelf({
       : undefined;
   const countedMinor = Math.max(saveMinor - reservedSaveMinor, 0);
   const shared = jarCapacity({ spendMinor, saveMinor, allowanceMinor, currency });
-  const saveCapacity = goal ? goal.goal.targetMinor : shared;
   // Deposits and emergencies touch Spend; withdrawals touch Save.
   const spendSide = openRequests.filter((r) => r.kind !== "withdrawal");
   const withdrawals = openRequests.filter((r) => r.kind === "withdrawal");
@@ -168,13 +167,11 @@ export function JarShelf({
           >
             <JarIllustration
               jar="save"
-              capacityMinor={saveCapacity}
+              capacityMinor={shared}
               filledMinor={countedMinor}
               reservedMinor={reservedSaveMinor}
-              goal={goal ? { emoji: goal.goal.emoji } : null}
             />
           </JarButton>
-          {goal ? <GoalLines goal={goal} money={money} reservedMinor={reservedSaveMinor} /> : null}
           {withdrawals.map((r) => (
             <p key={r.id} className="text-center text-ink-2">
               {requestChip(r, money)}
@@ -204,7 +201,7 @@ export function JarShelf({
           </Tray>
         </section>
       </div>
-      <Legend goal={goal !== null} reserved={reservedSaveMinor > 0} due={dueMinor > 0} />
+      <Legend reserved={reservedSaveMinor > 0} due={dueMinor > 0} />
     </section>
   );
 }
@@ -307,20 +304,14 @@ function Tray({ id, open, children }: { id: string; open: boolean; children: Rea
   );
 }
 
-/** Only the keys the drawing is using right now; a child with no goal never reads about one. */
-function Legend({ goal, reserved, due }: { goal: boolean; reserved: boolean; due: boolean }) {
-  if (!goal && !reserved && !due) return null;
+/** Only the keys the drawing is using right now. */
+function Legend({ reserved, due }: { reserved: boolean; due: boolean }) {
+  if (!reserved && !due) return null;
   return (
     <ul
       aria-label="What the jars show"
       className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-ink-2"
     >
-      {goal ? (
-        <li className="flex items-center gap-1.5">
-          <span aria-hidden className="size-3 rounded-sm bg-gold" />
-          Counts toward your goal
-        </li>
-      ) : null}
       {reserved ? (
         <li className="flex items-center gap-1.5">
           <span
@@ -340,43 +331,5 @@ function Legend({ goal, reserved, due }: { goal: boolean; reserved: boolean; due
         </li>
       ) : null}
     </ul>
-  );
-}
-
-function GoalLines({
-  goal: { goal, progress },
-  money,
-  reservedMinor,
-}: {
-  goal: NonNullable<GoalView>;
-  money: (minor: number) => string;
-  reservedMinor: number;
-}) {
-  return (
-    <div className="grid gap-1 text-center">
-      <p className="font-semibold">
-        {goal.emoji} {goal.name}, {money(goal.targetMinor)}.
-      </p>
-      {/* With money waiting to come out, Save and "to go" don't add up unless we say this. */}
-      {reservedMinor > 0 && !progress.reached ? (
-        <p>{money(progress.countedMinor)} counts toward it</p>
-      ) : null}
-      {progress.reached ? (
-        <p className="font-bold">Goal reached</p>
-      ) : progress.paymentsLeft === null ? (
-        <>
-          <p>{money(progress.remainingMinor)} to go</p>
-          <p className="text-ink-2">
-            Set how much you'll save each time to see how long it'll take
-          </p>
-        </>
-      ) : (
-        <p>
-          {money(progress.remainingMinor)} to go · about {progress.paymentsLeft} more{" "}
-          {progress.paymentsLeft === 1 ? "allowance" : "allowances"} at {money(goal.planMinor ?? 0)}{" "}
-          each
-        </p>
-      )}
-    </div>
   );
 }

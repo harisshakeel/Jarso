@@ -92,28 +92,15 @@ describe("JarShelf", () => {
     expect(screen.getByText("Kept by your parent")).toBeInTheDocument();
   });
 
-  it("says what is left of the goal and about how long", () => {
+  it("keeps the goal off the jars: its words live in the goal card", () => {
     shelf();
-    expect(screen.getByText("⚽ Football boots, £45.")).toBeInTheDocument();
-    expect(screen.getByText("£19 to go · about 5 more allowances at £4 each")).toBeInTheDocument();
+    expect(screen.queryByText("⚽ Football boots, £45.")).toBeNull();
+    expect(screen.queryByText(/to go/)).toBeNull();
     // The actions wait in the jar's tray until the jar is tapped.
     expect(screen.queryByRole("button", { name: "Change my goal" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
     expect(screen.getByRole("button", { name: "Change my goal" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Take out" })).toBeInTheDocument();
-  });
-
-  it("asks for a plan when there is none", () => {
-    shelf({ goal: goal(2600, null) });
-    expect(screen.getByText("£19 to go")).toBeInTheDocument();
-    expect(
-      screen.getByText("Set how much you'll save each time to see how long it'll take"),
-    ).toBeInTheDocument();
-  });
-
-  it("says the goal is reached", () => {
-    shelf({ goal: goal(4500) });
-    expect(screen.getByText("Goal reached")).toBeInTheDocument();
   });
 
   it("offers a goal when there is none", () => {
@@ -158,14 +145,9 @@ describe("JarShelf", () => {
 
   it("explains the jar drawing in words", () => {
     shelf({ dueMinor: 500 });
-    expect(screen.getByText("Counts toward your goal")).toBeInTheDocument();
+    expect(screen.queryByText("Counts toward your goal")).toBeNull();
     expect(screen.getByText("Waiting to come out")).toBeInTheDocument();
     expect(screen.getByText("On its way")).toBeInTheDocument();
-  });
-
-  it("writes how much counts toward the goal when some is waiting to come out", () => {
-    shelf();
-    expect(screen.getByText("£26 counts toward it")).toBeInTheDocument();
   });
 
   it("draws due money between the jars, not on the Save jar", () => {

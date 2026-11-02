@@ -98,7 +98,6 @@ export function ChildOverviewCard({
               capacityMinor={goal ? goal.targetMinor : capacityMinor}
               filledMinor={counted}
               reservedMinor={reservedMinor}
-              goal={goal ? { emoji: goal.emoji } : null}
             />
             <p className="grid">
               <span className="text-ink-2">Save</span>

@@ -7,6 +7,7 @@ import { AllowanceLine, runningSchedule } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
 import { PendingPurchases, PurchaseSheet } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
+import { GoalCard } from "@/features/goals";
 import { getGoalView } from "@/features/goals/server";
 import { AskJarso, guideCopy } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
@@ -55,9 +56,16 @@ async function ChildHome() {
             <AllowanceLine schedule={schedule} currency={family.currency} />
           </div>
         </div>
-        <div className="lg:col-span-2 xl:order-2 xl:col-span-1">
+        <div className="grid gap-6 lg:col-span-2 xl:order-2 xl:col-span-1">
           <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
             <HomeGraph childId={user.id} currency={family.currency} />
+          </Suspense>
+          <Suspense fallback={<div aria-hidden className="shimmer h-56 rounded-xl bg-muted" />}>
+            <HomeGoal
+              childId={user.id}
+              currency={family.currency}
+              allowanceMinor={allowanceMinor}
+            />
           </Suspense>
         </div>
         <div className="grid gap-6 xl:order-3">
@@ -122,6 +130,37 @@ async function HomeStep({
   } catch (error) {
     unstable_rethrow(error);
     logger.warn("Next step unavailable on child home", { error: errorName(error) });
+    return null;
+  }
+}
+
+/** The goal as a staircase of coins (FR02), or the invitation to set one. Nice to have. */
+async function HomeGoal({
+  childId,
+  currency,
+  allowanceMinor,
+}: {
+  childId: string;
+  currency: string;
+  allowanceMinor: number | null;
+}) {
+  try {
+    const [goal, availability] = await Promise.all([
+      getGoalView(childId),
+      getAvailability(childId),
+    ]);
+    return (
+      <GoalCard
+        goal={goal}
+        currency={currency}
+        allowanceMinor={allowanceMinor}
+        saveMinor={availability.saveMinor}
+        reservedMinor={availability.reservedSaveMinor}
+      />
+    );
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Goal unavailable on child home", { error: errorName(error) });
     return null;
   }
 }
