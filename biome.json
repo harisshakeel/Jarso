@@ -75,6 +75,94 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/core/**", "packages/content/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "window": "Browser global not allowed in shared code.",
+                  "document": "Browser global not allowed in shared code.",
+                  "navigator": "Browser global not allowed in shared code.",
+                  "localStorage": "Browser global not allowed in shared code.",
+                  "sessionStorage": "Browser global not allowed in shared code.",
+                  "indexedDB": "Browser global not allowed in shared code.",
+                  "location": "Browser global not allowed in shared code."
+                }
+              }
+            },
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "react": "core/content must stay framework-free.",
+                  "react-dom": "core/content must stay framework-free.",
+                  "server-only": "core/content must stay framework-free.",
+                  "@supabase/ssr": "core/content must stay framework-free.",
+                  "idb": "core/content must stay framework-free."
+                },
+                "patterns": [
+                  {
+                    "group": ["next", "next/*"],
+                    "message": "No Next.js in shared code."
+                  },
+                  {
+                    "group": ["@/*"],
+                    "message": "No web app aliases in shared code."
+                  },
+                  {
+                    "group": ["@jarso/brand", "@jarso/brand/**"],
+                    "message": "No brand in shared code."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/core/src/lib/**", "packages/core/src/config/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "react": "core/content must stay framework-free.",
+                  "react-dom": "core/content must stay framework-free.",
+                  "server-only": "core/content must stay framework-free.",
+                  "@supabase/ssr": "core/content must stay framework-free.",
+                  "idb": "core/content must stay framework-free."
+                },
+                "patterns": [
+                  {
+                    "group": ["next", "next/*"],
+                    "message": "No Next.js in shared code."
+                  },
+                  {
+                    "group": ["@/*"],
+                    "message": "No web app aliases in shared code."
+                  },
+                  {
+                    "group": ["@jarso/brand", "@jarso/brand/**"],
+                    "message": "No brand in shared code."
+                  },
+                  {
+                    "group": ["@jarso/core/**", "!@jarso/core/lib", "!@jarso/core/config"],
+                    "message": "lib/config cannot import feature layers."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "assist": {

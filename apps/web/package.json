@@ -17,6 +17,7 @@
     "@base-ui/react": "^1.9.0",
     "@jarso/brand": "workspace:*",
     "@jarso/content": "workspace:*",
+    "@jarso/core": "workspace:*",
     "@jarso/db": "workspace:*",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
