@@ -6,6 +6,7 @@ import { logger } from "@/lib";
 import { addUsage, zeroUsage } from "./cost";
 import { describeFacts, type Facts, fillFacts } from "./facts";
 import {
+  type Asker,
   type GuideProvider,
   type MainReply,
   type MainResult,
@@ -185,7 +186,14 @@ async function settled(main: Promise<MainOutcome>): Promise<MainOutcome | null> 
 }
 
 export async function runGuidePipeline(
-  input: { text: string; history: Turn[]; context: string; tools: TurnTools },
+  input: {
+    text: string;
+    history: Turn[];
+    context: string;
+    tools: TurnTools;
+    /** Who is asking (default the child). A parent's message is screened as a parent's. */
+    asker?: Asker;
+  },
   provider: GuideProvider,
   {
     deadlineMs = TURN_DEADLINE_MS,
@@ -257,7 +265,12 @@ export async function runGuidePipeline(
 
   let route: Awaited<ReturnType<GuideProvider["screenInput"]>>["route"];
   try {
-    const screen = await provider.screenInput({ text: childText, history, signal });
+    const screen = await provider.screenInput({
+      text: childText,
+      history,
+      asker: input.asker ?? "child",
+      signal,
+    });
     usage = addUsage(usage, screen.usage);
     route = screen.route;
   } catch (error) {

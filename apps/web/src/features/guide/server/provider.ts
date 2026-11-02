@@ -94,11 +94,20 @@ export function usageOf(error: unknown): Partial<GuideUsage> {
  * "refused"; output screen: not passed), never a throw. A throw means an infrastructure failure
  * (network, timeout, HTTP error) and feeds the circuit breaker.
  */
+/** Who wrote the message: the child, or a parent asking about their child. */
+export type Asker = "child" | "parent";
+
 export interface GuideProvider {
   readonly name: "anthropic" | "fake";
+  /**
+   * Routes the latest message. `asker` says who wrote it: the child about their own money, or a
+   * parent about their child (the parent's Jarso), which the screen must not read as someone
+   * asking about another person.
+   */
   screenInput(args: {
     text: string;
     history: Turn[];
+    asker: Asker;
     signal?: AbortSignal;
   }): Promise<{ route: ScreenRoute; usage: Partial<GuideUsage> }>;
   /** Answers, looking things up with `tools` for at most MAX_TOOL_ROUNDS rounds. */

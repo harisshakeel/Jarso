@@ -300,7 +300,13 @@ export async function runGuideTurn(
       onStatus,
     );
     result = await runGuidePipeline(
-      { text: turn.text, history: turn.history, context: turn.context.text, tools },
+      {
+        text: turn.text,
+        history: turn.history,
+        context: turn.context.text,
+        tools,
+        asker: turn.askedBy !== null ? "parent" : "child",
+      },
       provider,
       { onStatus },
     );

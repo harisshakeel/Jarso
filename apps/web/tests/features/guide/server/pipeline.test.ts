@@ -236,6 +236,32 @@ describe("runGuidePipeline", () => {
     expect(signals.every((signal) => signal?.aborted)).toBe(true);
   });
 
+  it("tells the input screen who is asking: the child by default, the parent when set", async () => {
+    const askers: (string | undefined)[] = [];
+    const base = createFakeProvider();
+    const watching = provider({
+      screenInput: async (args) => {
+        askers.push(args.asker);
+        return base.screenInput(args);
+      },
+    });
+    await runGuidePipeline(
+      { text: "What is saving?", history: [], context, tools: tools() },
+      watching,
+    );
+    await runGuidePipeline(
+      {
+        text: "How is Zarrar doing with saving?",
+        history: [],
+        context,
+        tools: tools(),
+        asker: "parent",
+      },
+      watching,
+    );
+    expect(askers).toEqual(["child", "parent"]);
+  });
+
   it("passes the same deadline signal to every provider call", async () => {
     const signals: Record<string, AbortSignal | undefined> = {};
     const base = createFakeProvider();
