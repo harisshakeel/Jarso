@@ -1,7 +1,7 @@
 "use client";
 
 import { guideCopy } from "@jarso/core/guide";
-import { type CSSProperties, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { JarsoEyes } from "@/components/brand";
 import { cn } from "@/lib";
 import { useMotionAllowed } from "./motion";
@@ -23,11 +23,11 @@ export function stepOf(status: string | null): number {
 }
 
 /**
- * Jarso's bubble while the reply is on its way (ADR 0011, design.md §8): its eyes looking
- * around, the latest status line from the server (a phase or a look-up) and a strip of the four
- * steps lighting up as the lines arrive. Coins orbit the eyes once for a look-up and a check
- * draws itself while the answer is double-checked; reduced motion shows a still face and the
- * line. A long think with no new line turns the line over to "Still thinking…", "Counting
+ * Jarso's bubble while the reply is on its way (ADR 0011, design.md §8): the jar with coins
+ * dropping through its lid and its eyes looking up at them, the latest status line from the
+ * server (a phase or a look-up) and a strip of the four steps lighting up as the lines arrive.
+ * A check draws itself while the answer is double-checked; reduced motion shows a still jar
+ * and the line. A long think with no new line turns the line over to "Still thinking…", "Counting
  * carefully…", "Nearly there…" in turn, so the child never watches a line that looks stuck.
  * Only fixed copy, never model text.
  */
@@ -70,25 +70,7 @@ export function ThinkingBubble({
     >
       <div className="flex items-center gap-4">
         <div className="relative shrink-0">
-          <JarsoEyes size={big ? "lg" : "md"} look={motion ? "around" : "ahead"} />
-          {motion && step === 1 ? (
-            <span key={status} aria-hidden data-coins className="absolute inset-0">
-              {[0, 1, 2].map((coin) => (
-                <span
-                  key={coin}
-                  className="coin-orbit absolute inset-0"
-                  style={{ "--coin-index": coin } as CSSProperties}
-                >
-                  <span
-                    className={cn(
-                      "absolute left-1/2 rounded-full bg-gold ring-2 ring-teal-800",
-                      big ? "-top-2.5 size-3.5" : "-top-2 size-2.5",
-                    )}
-                  />
-                </span>
-              ))}
-            </span>
-          ) : null}
+          <JarsoEyes size={big ? "lg" : "md"} look={motion ? "up" : "ahead"} filling={motion} />
           {motion && step === 3 ? (
             <svg
               aria-hidden

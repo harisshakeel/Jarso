@@ -45,7 +45,7 @@ const lookedAtIcons: Record<string, typeof CoinsIcon> = {
 export function JarsoChip({ look }: { look?: "ahead" | "down" }) {
   return (
     <span className="flex w-fit items-center gap-1.5 rounded-full bg-cyan-100 py-0.5 pr-2.5 pl-1 font-semibold text-cyan-700 text-xs dark:bg-cyan-900 dark:text-cyan-300">
-      <JarsoEyes size="sm" look={look} className="rounded-[6px]" />
+      <JarsoEyes size="sm" look={look} />
       {guideCopy.label}
     </span>
   );

@@ -11,9 +11,20 @@ describe("JarsoEyes", () => {
     expect(eyes).toHaveAttribute("aria-hidden", "true");
     expect(eyes).toHaveAttribute("width", "112");
     expect(eyes).toHaveAttribute("data-look", "ahead");
-    // Two eyes, two pupils (and their shine): nothing else on the face.
-    expect(container.querySelectorAll("ellipse")).toHaveLength(2);
+    // A jar: two eyes, two pupils (and their shine), coins inside, nothing dropping in.
+    expect(container.querySelectorAll(".eyes-lids > ellipse")).toHaveLength(2);
     expect(container.querySelectorAll(".eyes-pupils circle")).toHaveLength(4);
+    expect(container.querySelector(".jar-pile")).not.toBeNull();
+    expect(container.querySelector(".jar-drop")).toBeNull();
+    expect(eyes).not.toHaveAttribute("data-filling");
+  });
+
+  it("drops coins through the lid while filling, eyes up at them", () => {
+    const { container } = render(<JarsoEyes size="lg" look="up" filling />);
+    const jar = container.querySelector("[data-jarso-eyes]");
+    expect(jar).toHaveAttribute("data-filling");
+    expect(jar).toHaveAttribute("data-look", "up");
+    expect(container.querySelectorAll(".jar-drop")).toHaveLength(3);
   });
 
   it("is named for assistive technology when it stands alone, and can look down or around", () => {

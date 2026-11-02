@@ -59,24 +59,27 @@ describe("ThinkingBubble", () => {
     ]);
   });
 
-  it("orbits coins for a look-up and draws a check while checking, only when motion is allowed", () => {
+  it("drops coins into the jar while thinking and draws a check while checking", () => {
     allowMotion(true);
     const { container, rerender } = render(<ThinkingBubble status={guideCopy.status.get_jars} />);
     expect(screen.getByRole("status")).toHaveAttribute("data-motion", "on");
-    expect(container.querySelector("[data-jarso-eyes]")).toHaveAttribute("data-look", "around");
-    expect(container.querySelector("[data-coins]")).not.toBeNull();
+    const jar = container.querySelector("[data-jarso-eyes]");
+    expect(jar).toHaveAttribute("data-look", "up");
+    expect(jar).toHaveAttribute("data-filling");
+    expect(container.querySelectorAll(".jar-drop")).toHaveLength(3);
     expect(container.querySelector("[data-check]")).toBeNull();
     rerender(<ThinkingBubble status={guideCopy.phases.checking} />);
-    expect(container.querySelector("[data-coins]")).toBeNull();
     expect(container.querySelector("[data-check]")).not.toBeNull();
   });
 
-  it("stays still under reduced motion: the face ahead, the line and the steps, no coins", () => {
+  it("stays still under reduced motion: the jar looking ahead, the line and the steps", () => {
     allowMotion(false);
     const { container } = render(<ThinkingBubble status={guideCopy.status.get_jars} />);
     expect(screen.getByRole("status")).toHaveAttribute("data-motion", "still");
-    expect(container.querySelector("[data-jarso-eyes]")).toHaveAttribute("data-look", "ahead");
-    expect(container.querySelector("[data-coins]")).toBeNull();
+    const jar = container.querySelector("[data-jarso-eyes]");
+    expect(jar).toHaveAttribute("data-look", "ahead");
+    expect(jar).not.toHaveAttribute("data-filling");
+    expect(container.querySelector(".jar-drop")).toBeNull();
     expect(screen.getByRole("status")).toHaveTextContent(guideCopy.status.get_jars);
     expect(steps()[1]).toBe("Looking things up:current");
   });

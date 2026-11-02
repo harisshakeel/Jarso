@@ -325,6 +325,60 @@
 [data-jarso-eyes][data-look="down"] .eyes-pupils {
   translate: 0.5px 2.4px;
 }
+[data-jarso-eyes][data-look="up"] .eyes-pupils {
+  translate: 0 -2.6px;
+}
+/* While Jarso thinks (a loading state, so it may loop): coins drop into the slot in the lid,
+   turning edge-on as they go in, and the coins inside the jar rise. Reduced motion: no drops,
+   the jar just sits there with its coins. */
+[data-jarso-eyes] .jar-drop,
+[data-jarso-eyes] .jar-pile {
+  transform-box: fill-box;
+}
+[data-jarso-eyes] .jar-drop {
+  opacity: 0;
+  transform-origin: 50% 50%;
+}
+[data-jarso-eyes] .jar-pile {
+  transform-origin: 50% 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-jarso-eyes] .jar-drop {
+    animation: jar-drop 1.2s cubic-bezier(0.5, 0, 0.75, 0.35) infinite;
+  }
+  [data-jarso-eyes][data-filling] .jar-pile {
+    animation: jar-pile 9s var(--ease-brand) forwards;
+  }
+}
+@keyframes jar-drop {
+  0% {
+    opacity: 0;
+    translate: 0 -30px;
+    scale: 1 1;
+    rotate: -25deg;
+  }
+  20% {
+    opacity: 1;
+  }
+  70% {
+    scale: 1 1;
+    rotate: 0deg;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 6px;
+    scale: 0.3 1;
+    rotate: 0deg;
+  }
+}
+@keyframes jar-pile {
+  from {
+    scale: 1 0.85;
+  }
+  to {
+    scale: 1 1.2;
+  }
+}
 @media (prefers-reduced-motion: no-preference) {
   [data-jarso-eyes] .eyes-lids {
     animation: eyes-blink 5s ease-in-out infinite;
@@ -360,8 +414,8 @@
 }
 
 /* While a reply is on its way (design.md §8, a loading state, so it may loop): the status line
-   fades in, the current step pulses, coins orbit the eyes once during a look-up, and a check
-   draws itself while the answer is double-checked. */
+   fades in, the current step pulses, and a check draws itself while the answer is
+   double-checked. */
 @utility fade-up {
   animation: fade-up 250ms var(--ease-brand) both;
 }
@@ -369,28 +423,6 @@
   from {
     opacity: 0;
     translate: 0 4px;
-  }
-}
-@utility coin-orbit {
-  animation: coin-orbit 1.4s var(--ease-brand) both;
-  animation-delay: calc(var(--coin-index, 0) * 120ms);
-}
-@keyframes coin-orbit {
-  0% {
-    opacity: 0;
-    rotate: 0deg;
-  }
-  15% {
-    opacity: 1;
-  }
-  75% {
-    opacity: 1;
-    rotate: 360deg;
-  }
-  100% {
-    opacity: 0;
-    rotate: 360deg;
-    translate: 0 14px;
   }
 }
 @utility check-draw {

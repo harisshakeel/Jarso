@@ -131,7 +131,7 @@ export function ChatHistory({
                           chat.id === currentId && "bg-secondary",
                         )}
                       >
-                        <JarsoEyes size="md" className="rounded-lg" />
+                        <JarsoEyes size="md" />
                         <span className="grid min-w-0 gap-0.5">
                           <span className="truncate font-semibold">{chatTitle(chat)}</span>
                           <span className="text-ink-2 text-xs">

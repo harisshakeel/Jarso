@@ -348,7 +348,7 @@ export function GuideThread({
   const intro = (
     <div className="grid gap-3 self-start rounded-2xl bg-secondary p-5 text-left">
       <p className="flex items-center gap-2 font-bold">
-        <JarsoEyes size="sm" className="rounded-[6px]" />
+        <JarsoEyes size="sm" />
         Before we start
       </p>
       {guideCopy.intro.map((line) => (
@@ -414,7 +414,7 @@ export function GuideThread({
         <h2 id="ask-jarso" className="sr-only">
           {copy.title}
         </h2>
-        <JarsoEyes size="xl" look={focused ? "down" : "ahead"} className="rounded-[2rem]" />
+        <JarsoEyes size="xl" look={focused ? "down" : "ahead"} />
         <div className="grid gap-2">
           <p className="text-balance text-h2">{copy.greeting}</p>
           <p className="text-ink-2 text-sm">{copy.disclosure}</p>
@@ -444,7 +444,7 @@ export function GuideThread({
         <div className="flex items-center justify-between gap-3">
           <h2 id="ask-jarso" className="flex items-center gap-2 text-h3">
             {page ? (
-              <JarsoEyes size="md" className="rounded-lg" />
+              <JarsoEyes size="md" />
             ) : (
               <SparklesIcon aria-hidden className="size-5 text-accent-text" />
             )}
