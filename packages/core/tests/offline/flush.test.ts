@@ -163,17 +163,18 @@ describe("flush", () => {
   });
 
   it("flushes an item stored by the previous build", async () => {
+    const STORED_ID = "5d0c5b1e-7f8a-4c2b-9a51-1f2e3d4c5b6a";
     // Exactly what the previous web build wrote to IndexedDB: do not "update" this literal.
     const stored: OutboxItem = {
-      id: "5d0c5b1e-7f8a-4c2b-9a51-1f2e3d4c5b6a",
+      id: STORED_ID,
       userId: "8b7a6c5d-4e3f-4a2b-8c1d-0e9f8a7b6c5d",
       kind: "purchase",
       payload: {
         amount: "2.50",
         label: "Comic",
-        idempotencyKey: "5d0c5b1e-7f8a-4c2b-9a51-1f2e3d4c5b6a",
+        idempotencyKey: STORED_ID,
       },
-      idempotencyKey: "5d0c5b1e-7f8a-4c2b-9a51-1f2e3d4c5b6a",
+      idempotencyKey: STORED_ID,
       createdAt: "2026-10-30T09:00:00.000Z",
       attempts: 0,
       nextAttemptAt: "2026-10-30T09:00:00.000Z",
