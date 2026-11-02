@@ -68,3 +68,6 @@ evals/guide/results/
 
 # harness worktrees
 .claude/worktrees/
+
+# brand assets copied from packages/brand by apps/web/scripts/copy-brand.mjs
+apps/web/public/brand/
