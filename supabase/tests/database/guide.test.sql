@@ -35,11 +35,11 @@ select function_privs_are('public', 'guide_record_turn',
 select function_privs_are('public', 'guide_record_turn',
   array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'boolean', 'text', 'jsonb', 'integer', 'uuid', 'jsonb'],
   'service_role', array['EXECUTE'], 'the server records turns with their look-ups');
-select function_privs_are('public', 'guide_start_conversation', array['uuid', 'text', 'text'],
+select function_privs_are('public', 'guide_start_conversation', array['uuid', 'text', 'text', 'uuid'],
   'authenticated', array[]::text[], 'only the server opens chats');
 select function_privs_are('public', 'guide_usage_since', array['timestamp with time zone'],
   'authenticated', array[]::text[], 'only the server reads usage');
-select function_privs_are('public', 'guide_start_conversation', array['uuid', 'text', 'text'],
+select function_privs_are('public', 'guide_start_conversation', array['uuid', 'text', 'text', 'uuid'],
   'service_role', array['EXECUTE'], 'the server starts chats');
 select function_privs_are('public', 'set_guide_access', array['uuid', 'boolean'], 'anon', array[]::text[],
   'anon cannot switch the guide');
