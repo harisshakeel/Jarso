@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { AppHeader, InboxRefresh } from "@/components/shell";
 import { ThemeSwitch } from "@/components/theme";
 import { routes } from "@/config";
+import { LogOutButton } from "@/features/auth";
 import { OfflineBanner } from "@/features/offline";
-import { HeaderAvatar } from "./header-avatar";
 import { ProfileGate } from "./profile-gate";
 
 /** Signed-in pages are private: never indexed (robots.ts also keeps crawlers out). */
@@ -25,7 +25,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         end={
           <div className="flex items-center gap-1">
             <ThemeSwitch />
-            <HeaderAvatar />
+            <LogOutButton />
           </div>
         }
       />
