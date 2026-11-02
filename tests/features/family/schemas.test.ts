@@ -90,6 +90,15 @@ describe("family schemas", () => {
     },
   );
 
+  // Same mark ranges as is_valid_nickname: no invisible grapheme joiner, no mark outside them.
+  it.each(["Sa͏m", "Sam⃝"])("rejects nickname with mark %j", (nickname) => {
+    expect(addChildSchema.safeParse({ ...child, nickname }).success).toBe(false);
+  });
+
+  it("accepts the marks either side of the joiner", () => {
+    expect(addChildSchema.safeParse({ ...child, nickname: "Sa͎m͐" }).success).toBe(true);
+  });
+
   it("normalises decomposed accents so they count as letters", () => {
     expect(addChildSchema.parse({ ...child, nickname: "Zoe\u0308" }).nickname).toBe("Zoë");
   });

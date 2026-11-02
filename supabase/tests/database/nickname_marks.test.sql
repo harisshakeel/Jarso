@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(16);
+select plan(17);
 
 -- The shared check
 select ok(public.is_valid_nickname('Zoë O''Neil-2'), 'Latin letters, digits and _ . '' - pass');
@@ -15,6 +15,7 @@ select ok(not public.is_valid_nickname('<b>'), '< and > are refused');
 select ok(not public.is_valid_nickname(U&'Sam\+01F600'), 'emoji are refused');
 select ok(not public.is_valid_nickname(U&'Sa\200Dm'), 'a zero-width joiner is refused');
 select ok(not public.is_valid_nickname(U&'Sam\202E'), 'a bidi override is refused');
+select ok(not public.is_valid_nickname(U&'Sa\034Fm'), 'a combining grapheme joiner is refused');
 
 -- Through the three callers
 select tests.create_user('pa@example.com') as pa \gset
