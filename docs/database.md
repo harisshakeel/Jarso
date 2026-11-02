@@ -40,7 +40,7 @@ Emergency rollback of a migration already on hosted (prefer a fix-forward migrat
 2. **Every table in `public` gets RLS enabled in the same migration that creates it.** No exceptions.
 3. Write explicit policies per operation (`select`, `insert`, `update`, `delete`) and role (`to authenticated`). No catch-all `for all` policies unless genuinely identical.
 4. Use `(select auth.uid())` (wrapped) in policies — it's evaluated once per query, not per row.
-5. Index every foreign key and every column used in RLS predicates.
+5. Index every foreign key and every column used in RLS predicates. "Who did this" columns pointing at `profiles` (`consent_by`, `approved_by`, `removed_by`, `set_by`, `created_by` on rows that outlive their author) are `on delete set null`. Kept `restrict` on purpose: `families.created_by` (no parent account deletion in the pilot) and the `ledger_entries` self-references (`reverses_entry_id`, `corrects_entry_id`), so money history is never orphaned.
 6. Standard columns: `id uuid primary key default gen_random_uuid()`, `created_at timestamptz not null default now()`, `updated_at timestamptz not null default now()` + `public.set_updated_at()` trigger.
 7. Functions: `set search_path = ''` and fully-qualify names. `security definer` only when needed, and never exposing it to callers who could abuse it.
 8. Comment non-obvious tables/columns (`comment on …`).

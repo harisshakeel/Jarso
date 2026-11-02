@@ -260,7 +260,7 @@ export type Database = {
           profile_id: string
           recent_failures: number
           recent_failures_since: string | null
-          set_by: string
+          set_by: string | null
           updated_at: string
         }
         Insert: {
@@ -269,7 +269,7 @@ export type Database = {
           profile_id: string
           recent_failures?: number
           recent_failures_since?: string | null
-          set_by: string
+          set_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -278,7 +278,7 @@ export type Database = {
           profile_id?: string
           recent_failures?: number
           recent_failures_since?: string | null
-          set_by?: string
+          set_by?: string | null
           updated_at?: string
         }
         Relationships: [
