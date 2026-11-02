@@ -443,16 +443,13 @@ describe("childSignIn", () => {
     );
   });
 
-  it("rotates the child's password, then mints a session", async () => {
+  it("mints a session without rotating the password (other devices stay signed in)", async () => {
     vi.mocked(repo.verifyChildPin).mockResolvedValue({ status: "ok", childId: "child-1" });
 
     await service.childSignIn(input, "1.2.3.4");
 
-    expect(childAuth.rotateChildPassword).toHaveBeenCalledWith("child-1");
     expect(childAuth.mintChildSession).toHaveBeenCalledWith("child-1");
-    expect(
-      vi.mocked(childAuth.rotateChildPassword).mock.invocationCallOrder[0] ?? Infinity,
-    ).toBeLessThan(vi.mocked(childAuth.mintChildSession).mock.invocationCallOrder[0] ?? 0);
+    expect(childAuth.rotateChildPassword).not.toHaveBeenCalled();
   });
 });
 

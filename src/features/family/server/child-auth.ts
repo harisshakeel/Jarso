@@ -58,8 +58,8 @@ export async function deleteChildIdentity(id: string): Promise<void> {
 
 /**
  * Replaces the child's password with a fresh random one nobody knows. A child session could set
- * its own password and then sign in without the PIN; rotating on every PIN sign-in and PIN reset
- * ends that. GoTrue may also end the user's other sessions here.
+ * its own password and then sign in without the PIN; rotating on PIN reset ends that. Not done on
+ * PIN sign-in: GoTrue may end the user's other sessions here, which would sign out other devices.
  */
 export async function rotateChildPassword(childId: string): Promise<void> {
   const { error } = await createAdminClient().auth.admin.updateUserById(childId, {

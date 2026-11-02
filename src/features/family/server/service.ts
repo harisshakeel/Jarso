@@ -135,14 +135,17 @@ export async function startChildOnboarding(
     hashSecret(ip),
     hashSecret(normaliseEmailForLimit(input.parentEmail)),
   ]);
+  const tooMany = "Too many tries. Please wait a little and try again.";
   await enforceLimits(
     [
       { key: `invite:ip:${ipHash}`, window: "1 hour", max: 5 },
       { key: `invite:email:${emailHash}`, window: "1 day", max: 3 },
-      { key: "invite:global", window: "1 day", max: 200 },
     ],
-    "Too many tries. Please wait a little and try again.",
+    tooMany,
   );
+  // Only attempts that pass the per-source limits count globally, so one noisy source can't
+  // use up everyone's daily allowance.
+  await enforceLimits([{ key: "invite:global", window: "1 day", max: 200 }], tooMany);
 
   const token = generateToken();
   const code = generateCode(INVITE_CODE_LENGTH);
@@ -284,9 +287,8 @@ export async function childSignIn(input: ChildSignInInput, ip: string): Promise<
     throw new AppError("UNAUTHORIZED", "Hmm, that didn't match. Check with your parent.");
   }
 
-  // Kills any password the child set for themselves (which would skip the PIN and lockout).
-  // Before minting: GoTrue may end the user's existing sessions on a password change.
-  await rotateChildPassword(result.childId);
+  // No password rotation here: it may end the child's other sessions, so signing in on one
+  // device would sign out the others. setChildPin rotates instead.
   await mintChildSession(result.childId);
 }
 
