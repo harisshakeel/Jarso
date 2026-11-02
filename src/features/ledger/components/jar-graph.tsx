@@ -106,6 +106,10 @@ const r = (value: number) => Math.round(value * 100) / 100;
 type JarGraphProps = {
   history: BalanceHistory;
   currency: string;
+  /** The heading; a parent's view names the child ("How Maya's jars moved"). */
+  title?: string;
+  /** Parents see exact amounts ("always"); the child sees "£5" for whole amounts. */
+  showMinor?: "always" | "nonzero";
 };
 
 /**
@@ -114,11 +118,16 @@ type JarGraphProps = {
  * use the arrow keys to read a day: a hairline finds it and a card gives both jars' figures.
  * Under it, one line says what climbed and what dipped. The figures are also in a plain list.
  */
-export function JarGraph({ history, currency }: JarGraphProps) {
+export function JarGraph({
+  history,
+  currency,
+  title = "How your jars moved",
+  showMinor = "nonzero",
+}: JarGraphProps) {
   const id = useId();
   const [days, setDays] = useState<GraphPeriod>(30);
   const [active, setActive] = useState<number | null>(null);
-  const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
+  const money = (minor: number) => formatMoney(minor, currency, { showMinor });
 
   const view = useMemo(() => lastDays(history, days), [history, days]);
   const { points } = view;
@@ -177,7 +186,7 @@ export function JarGraph({ history, currency }: JarGraphProps) {
     <section aria-labelledby={`${id}-title`} className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id={`${id}-title`} className="text-h3">
-          How your jars moved
+          {title}
         </h2>
         <fieldset className="flex gap-1 rounded-full bg-muted p-1">
           <legend className="sr-only">Show</legend>
