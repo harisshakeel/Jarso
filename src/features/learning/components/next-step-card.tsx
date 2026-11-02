@@ -1,6 +1,7 @@
 import { ArrowRightIcon, GraduationCapIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import { CoachSays } from "@/components/brand";
 import { Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import type { NextStep } from "../types";
@@ -55,7 +56,7 @@ function describeStep(step: NextStep): { heading: string; body: string; href: Ro
   }
 }
 
-/** The first thing on the child's Home (design.md §5, FR12): one clear next step. */
+/** The first thing on the child's Home (design.md §5, FR12): one clear next step, a coach beside it. */
 export function NextStepCard({ step }: { step: NextStep }) {
   const { heading, body, href, cta } = describeStep(step);
   return (
@@ -70,6 +71,11 @@ export function NextStepCard({ step }: { step: NextStep }) {
             {heading}
           </h2>
           <p className="text-ink-2">{body}</p>
+          <CoachSays
+            coach={{ key: `next-step-${step.kind}` }}
+            says={{ moment: "nextStep" }}
+            size="sm"
+          />
           <Link
             href={href}
             className="keycap inline-flex h-11 w-fit items-center gap-2 rounded-full bg-primary px-6 font-bold text-primary-foreground"

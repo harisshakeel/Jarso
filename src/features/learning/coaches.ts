@@ -1,4 +1,4 @@
-import { type CoachId, coachIds } from "@/components/brand";
+import { type CoachId, coachIdFor, coachNames } from "@/components/brand";
 
 // The lesson coaches' names and what each says around a question (FR06). The drawing lives in
 // components/brand; this is the voice. Child-facing: short, warm, no blame.
@@ -21,7 +21,7 @@ export type Coach = {
 export const coaches: Record<CoachId, Coach> = {
   pip: {
     id: "pip",
-    name: "Pip",
+    name: coachNames.pip,
     trait: "curious",
     says: {
       idle: "Let's look closely.",
@@ -31,7 +31,7 @@ export const coaches: Record<CoachId, Coach> = {
   },
   bo: {
     id: "bo",
-    name: "Bo",
+    name: coachNames.bo,
     trait: "calm",
     says: {
       idle: "Take your time.",
@@ -41,7 +41,7 @@ export const coaches: Record<CoachId, Coach> = {
   },
   zuzu: {
     id: "zuzu",
-    name: "Zuzu",
+    name: coachNames.zuzu,
     trait: "cheeky",
     says: {
       idle: "Ooh, a tricky one.",
@@ -51,7 +51,7 @@ export const coaches: Record<CoachId, Coach> = {
   },
   nell: {
     id: "nell",
-    name: "Nell",
+    name: coachNames.nell,
     trait: "thoughtful",
     says: {
       idle: "Think it through.",
@@ -61,20 +61,11 @@ export const coaches: Record<CoachId, Coach> = {
   },
 };
 
-/** A small, stable hash of a string. */
-function hash(text: string): number {
-  let value = 5381;
-  for (let index = 0; index < text.length; index++) {
-    value = (value * 33) ^ text.charCodeAt(index);
-  }
-  return Math.abs(value);
-}
-
 /**
  * The coach for a step, always the same one for the same step key, so a replay or a refresh
- * brings the same face back. Content keys only, never anything the child typed.
+ * brings the same face back (the same picker every screen uses). Content keys only, never
+ * anything the child typed.
  */
 export function coachFor(stepKey: string): Coach {
-  const id = coachIds[hash(stepKey) % coachIds.length] ?? "pip";
-  return coaches[id];
+  return coaches[coachIdFor(stepKey)];
 }
