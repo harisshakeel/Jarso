@@ -1,11 +1,12 @@
 "use client";
 
 import {
-  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
+  useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { CoachFigure, CoachSays, coachIdFor } from "@/components/brand";
@@ -21,6 +22,10 @@ import {
 } from "../balance-history";
 
 // The drawing box. Text and marks are in these units; the SVG scales to its column.
+/** The ride starts after the track has drawn, and lasts about a second. */
+const RIDE_DELAY_MS = 900;
+const RIDE_MS = 1000;
+
 const W = 360;
 const H = 210;
 const PAD = { top: 40, right: 16, bottom: 30, left: 46 };
@@ -186,7 +191,48 @@ export function JarGraph({
   const rider = riderTrack(points);
   const last = points.length - 1;
   const cart = last >= 0 ? { x: x(last), y: y(points[last]?.[rider] ?? 0) } : null;
-  const riderPath = tracks.find((track) => track.key === rider)?.path ?? "";
+  const svgRef = useRef<SVGSVGElement>(null);
+  const cartRef = useRef<SVGGElement>(null);
+  const cartX = cart ? r(cart.x) : 0;
+  const cartY = cart ? r(cart.y) : 0;
+
+  // One ride when the picture appears or the period changes: the cart runs its track from the
+  // first day to today over a second, after the track has drawn, then parks at today's point.
+  // Done in script along the drawn path, because motion paths on SVG groups are not reliable
+  // across browsers. Reduced motion, or no path geometry (tests), parks it at once.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a period change restarts the ride
+  useEffect(() => {
+    const cartEl = cartRef.current;
+    const track = svgRef.current?.querySelector<SVGPathElement>(`path[data-track="${rider}"]`);
+    if (!cartEl) return;
+    const park = () => cartEl.setAttribute("transform", `translate(${cartX} ${cartY})`);
+    const still =
+      typeof window === "undefined" ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      !track ||
+      typeof track.getTotalLength !== "function";
+    if (still || !track) {
+      park();
+      return;
+    }
+    const total = track.getTotalLength();
+    if (!total) {
+      park();
+      return;
+    }
+    const start = performance.now() + RIDE_DELAY_MS;
+    const ease = (t: number) => 1 - (1 - t) ** 3;
+    let frame = 0;
+    const step = (now: number) => {
+      const t = Math.min(1, Math.max(0, (now - start) / RIDE_MS));
+      const at = track.getPointAtLength(total * ease(t));
+      cartEl.setAttribute("transform", `translate(${r(at.x)} ${r(at.y)})`);
+      if (t < 1) frame = requestAnimationFrame(step);
+      else park();
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [days, rider, cartX, cartY]);
   const current: BalancePoint | undefined = active === null ? undefined : points[active];
 
   function nearest(event: PointerEvent<SVGSVGElement>) {
@@ -268,6 +314,7 @@ export function JarGraph({
         className="relative mx-auto w-full max-w-md rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
       >
         <svg
+          ref={svgRef}
           aria-hidden
           viewBox={`0 0 ${W} ${H}`}
           onPointerMove={nearest}
@@ -345,6 +392,7 @@ export function JarGraph({
             )}
             {tracks.map((track) => (
               <path
+                data-track={track.key}
                 key={track.key}
                 d={track.path}
                 fill="none"
@@ -372,15 +420,10 @@ export function JarGraph({
             )}
             {cart ? (
               <g
+                ref={cartRef}
                 data-rider={rider}
                 className="coaster-cart"
-                style={
-                  {
-                    "--cart-path": `path("${riderPath}")`,
-                    "--cart-x": `${r(cart.x)}px`,
-                    "--cart-y": `${r(cart.y)}px`,
-                  } as CSSProperties
-                }
+                transform={`translate(${cartX} ${cartY})`}
               >
                 {/* The coach sits in the cart; the cart's body covers their legs. */}
                 <g transform="translate(-9 -36)">

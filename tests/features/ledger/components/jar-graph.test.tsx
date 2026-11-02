@@ -50,7 +50,7 @@ describe("JarGraph", () => {
     const cart = container.querySelector("[data-rider]");
     expect(cart).toHaveAttribute("data-rider", "spend");
     expect(cart?.querySelector(`[data-coach="${coachIdFor("jar-graph")}"]`)).not.toBeNull();
-    expect((cart as HTMLElement).style.getPropertyValue("--cart-path")).toMatch(/^path\("M/);
+    expect(cart).toHaveAttribute("transform", expect.stringMatching(/^translate\(/));
     // Save moved most over the month, so the coach changes track.
     fireEvent.click(screen.getByRole("button", { name: "This month" }));
     expect(container.querySelector("[data-rider]")).toHaveAttribute("data-rider", "spend");
