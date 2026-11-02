@@ -176,8 +176,13 @@ export async function expectSetupPage(page: Page): Promise<void> {
       .or(page.getByRole("status"))
       .allInnerTexts()
       .catch(() => [] as string[]);
+    const form = await page
+      .locator("form")
+      .first()
+      .innerText()
+      .catch(() => "");
     throw new Error(
-      `Sign-up did not reach /parent/setup (page is at ${page.url()}). The form said: ${said.join(" | ") || "nothing"}`,
+      `Sign-up did not reach /parent/setup (page is at ${page.url()}). Alerts and statuses: ${said.join(" | ") || "none"}. The form read: ${form.replace(/\s+/g, " ").slice(0, 400) || "nothing"}`,
       { cause: error },
     );
   }
