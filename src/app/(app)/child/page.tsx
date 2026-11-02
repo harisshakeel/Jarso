@@ -12,7 +12,8 @@ import { AskJarso, guideCopy } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
 import { chooseHomeStep, HomeStepCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
-import { JarShelf } from "@/features/ledger";
+import { JarGraph, JarShelf } from "@/features/ledger";
+import { getBalanceHistory } from "@/features/ledger/server";
 import { takeOutLimit } from "@/features/requests";
 import { getAvailability, listRequests } from "@/features/requests/server";
 import { getChildRules } from "@/features/rules/server";
@@ -22,7 +23,7 @@ export const metadata: Metadata = { title: "Home" };
 
 /**
  * The child's Home, in the order a kid reads it: the money (jars, one gold keycap to record a
- * purchase, the allowance in a line), then the one next thing, then Ask Jarso. The week and the
+ * purchase, the allowance in a line, how the jars moved), then the one next thing, then Ask Jarso. The week and the
  * skills live on Learn. requireRole sends signed-out users to the PIN sign-in and parents home.
  */
 async function ChildHome() {
@@ -51,6 +52,9 @@ async function ChildHome() {
             <PurchaseSheet currency={family.currency} userId={user.id} variant="keycap-gold" />
             <AllowanceLine schedule={schedule} currency={family.currency} />
           </div>
+          <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
+            <HomeGraph childId={user.id} currency={family.currency} />
+          </Suspense>
         </div>
         <div className="grid gap-6">
           <PendingPurchases userId={user.id} currency={family.currency} />
@@ -114,6 +118,18 @@ async function HomeStep({
   } catch (error) {
     unstable_rethrow(error);
     logger.warn("Next step unavailable on child home", { error: errorName(error) });
+    return null;
+  }
+}
+
+/** How the jars moved over the last weeks. Nice to have: if it can't load, Home goes on without it. */
+async function HomeGraph({ childId, currency }: { childId: string; currency: string }) {
+  try {
+    const history = await getBalanceHistory(childId);
+    return <JarGraph history={history} currency={currency} />;
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Jar graph unavailable on child home", { error: errorName(error) });
     return null;
   }
 }
