@@ -40,6 +40,14 @@ export type LedgerRow = {
   prevLabel: string | null;
 };
 
+/** A recorded line reduced to what moves a balance (the graph on the child's Home). */
+export type MovementRow = {
+  jar: Jar;
+  direction: "in" | "out";
+  amountMinor: number;
+  occurredAt: string;
+};
+
 export async function fetchBalance(db: Client, childId: string, jar: Jar): Promise<number> {
   const { data, error } = await db.rpc("balance", { p_child_id: childId, p_jar: jar });
   if (error) throw toAppError(error, "Failed to load jars");
@@ -79,5 +87,27 @@ export async function listLedgerRows(
     prevAmountMinor: row.prev_amount_minor == null ? null : Number(row.prev_amount_minor),
     prevCategory: row.prev_category ?? null,
     prevLabel: row.prev_label ?? null,
+  }));
+}
+
+/** Every recorded movement since an instant, oldest first (RLS: the child or their parent). */
+export async function listMovementsSince(
+  db: Client,
+  childId: string,
+  since: string,
+): Promise<MovementRow[]> {
+  const { data, error } = await db
+    .from("ledger_entries")
+    .select("jar, direction, amount_minor, occurred_at")
+    .eq("child_id", childId)
+    .eq("mode", "recorded")
+    .gte("occurred_at", since)
+    .order("occurred_at", { ascending: true });
+  if (error) throw toAppError(error, "Failed to load history");
+  return data.map((row) => ({
+    jar: row.jar === "save" ? "save" : "spend",
+    direction: row.direction === "out" ? "out" : "in",
+    amountMinor: Number(row.amount_minor),
+    occurredAt: row.occurred_at,
   }));
 }
