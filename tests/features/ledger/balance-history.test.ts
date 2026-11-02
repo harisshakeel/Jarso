@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   balanceHistory,
   graphCaption,
+  graphPeriods,
   jarChange,
   lastDays,
+  riderTrack,
 } from "@/features/ledger/balance-history";
 
 const money = (minor: number) => `£${minor / 100}`;
@@ -73,13 +75,52 @@ describe("lastDays and jarChange", () => {
   });
 });
 
+describe("graphPeriods and riderTrack", () => {
+  it("offers the week first, in friendly words", () => {
+    expect(graphPeriods.map((p) => p.label)).toEqual(["This week", "This month", "3 months"]);
+    expect(graphPeriods[0].days).toBe(7);
+  });
+
+  it("gives the coach the track that moved most, Save if tied", () => {
+    expect(
+      riderTrack([
+        { date: "2026-10-25", spend: 1000, save: 1000 },
+        { date: "2026-10-31", spend: 1500, save: 1200 },
+      ]),
+    ).toBe("spend");
+    expect(
+      riderTrack([
+        { date: "2026-10-25", spend: 1000, save: 1000 },
+        { date: "2026-10-31", spend: 1200, save: 800 },
+      ]),
+    ).toBe("save");
+    expect(riderTrack([])).toBe("save");
+  });
+});
+
 describe("graphCaption", () => {
-  it("names what climbed and what dipped, without judging the amount", () => {
+  it("names what climbed and what dipped in the period's words, praising only saving", () => {
     const points = [
       { date: "2026-10-25", spend: 1200, save: 1500 },
       { date: "2026-10-31", spend: 1000, save: 2000 },
     ];
-    expect(graphCaption(points, true, money)).toBe("Spend dipped £2. Save climbed £5.");
+    expect(graphCaption(points, true, money)).toBe(
+      "Spend dipped £2 and Save climbed £5 this week. Nice.",
+    );
+    expect(graphCaption(points, true, money, "this month")).toBe(
+      "Spend dipped £2 and Save climbed £5 this month. Nice.",
+    );
+    expect(
+      graphCaption(
+        [
+          { date: "2026-10-25", spend: 1000, save: 2000 },
+          { date: "2026-10-31", spend: 1300, save: 2000 },
+        ],
+        true,
+        money,
+        "these 3 months",
+      ),
+    ).toBe("Spend climbed £3 these 3 months.");
     expect(
       graphCaption(
         [
@@ -89,7 +130,7 @@ describe("graphCaption", () => {
         true,
         money,
       ),
-    ).toBe("Both jars stayed where they were.");
+    ).toBe("Both jars stayed put this week.");
   });
 
   it("invites the first allowance when nothing has moved yet", () => {
