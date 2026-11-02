@@ -76,7 +76,7 @@ Three PRs, in this order. Research done by three Explore agents; claims spot-che
 
 ## PR A: slice 1 leftovers, retention, slice 2 follow-ups (`fix/…`, one commit per item)
 
-- [x] PIN sign-in stops rotating the password (`family/server/service.ts:288`); rotation only in `setChildPin`. Fix comment in `child-auth.ts`. Roadmap wrongly says done.
+- [x] PIN sign-in stops rotating the password (`family/server/service.ts:288`); later replaced by the `on_auth_child_password_change` trigger (no rotation anywhere, `setChildPin` revokes sessions). Fix comment in `child-auth.ts`. Roadmap wrongly says done.
 - [x] `invite:global` counted only after per-IP and per-email limits pass (`service.ts:138`). Roadmap wrongly says done.
 - [x] Retention job: migration `prune_onboarding_data()` (security definer, `job_runs` row, mirrors `blank_old_guide_text`), daily pg_cron `23 3 * * *`: delete non-accepted invitations expired 30+ days, `usage_counters` windows older than 2 days, expired `guide_memories`. pgTAP test.
 - [x] Orphan auth user: `child-auth.ts` deletes the made-up id best-effort when `createUser` errors.

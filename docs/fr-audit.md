@@ -107,10 +107,10 @@ Dependabot's five action bumps (#2–#6) are the only other merges.
 - Learning: content as reviewed JSON, progress tables written only by checked functions, spaced review (ADR 0009). The guide: screened Claude pipeline, parent switch, transcripts, retention, evals and a public `/safety` page (ADR 0010).
 - Security for a public repo: secret scanners, redacted session logs, CSRF guard, owner-only personal data, internal SQL helpers not callable by `anon` or `authenticated` (`generate_for_schedule` stays callable by `service_role` for the e2e fast-forward).
 - Demo clock (D11, slice 6): `families.clock_offset` (forward only, at most a year) added to the family's today, to business timestamps by triggers and to the money-rule windows; `advance_family_clock` (parent, demo families only) catches up generation and replays each skipped day's reminders; auto charge skips a family whose clock moved; the app reads `family_now` for every family today. Behind `FEATURE_DEMO_CLOCK`, a "Demo clock" card on parent settings (+1 day, +7 days, +1 month).
+- Demo seed family (slice 6): `pnpm db:seed:demo` (`scripts/seed-demo.mts`) creates one demo family with two children and some history; it refuses hosted URLs without `--yes-hosted` and any existing family that is not already a demo family. Running it on production is the owner's step.
 
 ## Cross-cutting, not built
 
-- The demo seed family (slice 6).
 - Error tracking (deferred: logs carry codes and ids; a Sentry free tier when someone will read it) and the uptime monitor itself (`/api/health?deep=1` is built for it).
 - Custom SMTP and the confirmation email (dashboard work). The privacy notice is built at `/privacy`; legal review pending.
 
