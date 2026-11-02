@@ -9,8 +9,6 @@ import { PendingPurchases, PurchaseSheet } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
 import { GoalCard } from "@/features/goals";
 import { getGoalView } from "@/features/goals/server";
-import { AskJarso, guideCopy } from "@/features/guide";
-import { getGuideState } from "@/features/guide/server";
 import { chooseHomeStep, HomeStepCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { JarGraph, JarShelf } from "@/features/ledger";
@@ -24,7 +22,8 @@ export const metadata: Metadata = { title: "Home" };
 
 /**
  * The child's Home, in the order a kid reads it: the money (jars, one gold keycap to record a
- * purchase, the allowance in a line, how the jars moved), then the one next thing, then Ask Jarso. The week and the
+ * purchase, the allowance in a line, how the jars moved), then the one next thing and the goal.
+ * Ask Jarso has its own page (the Jarso tab). The week and the
  * skills live on Learn. requireRole sends signed-out users to the PIN sign-in and parents home.
  */
 async function ChildHome() {
@@ -40,7 +39,8 @@ async function ChildHome() {
     <>
       <h1 className="rise-in text-balance text-display">{nickname ? `Hi, ${nickname}!` : "Hi!"}</h1>
       {/* Phones stack; laptops get money and the next thing side by side with the graph under
-          them; wide screens get three columns, so nothing needs a scroll. */}
+          them; wide screens get three columns (money, the ride, the next thing and the goal), so
+          nothing needs a scroll. Ask Jarso lives on its own page, the Jarso tab. */}
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8 xl:grid-cols-3">
         <div className="grid gap-6">
           <Suspense fallback={<div aria-hidden className="shimmer h-96 rounded-xl bg-muted" />}>
@@ -60,13 +60,6 @@ async function ChildHome() {
           <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
             <HomeGraph childId={user.id} currency={family.currency} />
           </Suspense>
-          <Suspense fallback={<div aria-hidden className="shimmer h-56 rounded-xl bg-muted" />}>
-            <HomeGoal
-              childId={user.id}
-              currency={family.currency}
-              allowanceMinor={allowanceMinor}
-            />
-          </Suspense>
         </div>
         <div className="grid gap-6 xl:order-3">
           <PendingPurchases userId={user.id} currency={family.currency} />
@@ -77,8 +70,12 @@ async function ChildHome() {
               allowanceMinor={allowanceMinor}
             />
           </Suspense>
-          <Suspense fallback={null}>
-            <HomeJarso childId={user.id} hasAllowance={allowanceMinor !== null} />
+          <Suspense fallback={<div aria-hidden className="shimmer h-56 rounded-xl bg-muted" />}>
+            <HomeGoal
+              childId={user.id}
+              currency={family.currency}
+              allowanceMinor={allowanceMinor}
+            />
           </Suspense>
         </div>
       </div>
@@ -219,31 +216,6 @@ async function HomeShelf({
       </p>
     );
   }
-}
-
-/**
- * "Ask Jarso", when the parent has turned Jarso on (FR07, ADR 0011). Its turns stream from
- * /api/v1/guide/turns, so this page needs no long maxDuration.
- */
-async function HomeJarso({ childId, hasAllowance }: { childId: string; hasAllowance: boolean }) {
-  const [guide, goal] = await Promise.all([
-    getGuideState(childId),
-    fallback(getGoalView(childId), null, "Goal for Ask Jarso"),
-  ]);
-  if (!guide.available) return null;
-  const { suggestions } = guideCopy;
-  return (
-    <AskJarso
-      introNeeded={guide.introNeeded}
-      openHref={routes.childJarso}
-      suggestions={[
-        suggestions.jars,
-        suggestions.spent,
-        hasAllowance ? suggestions.allowance : suggestions.learning,
-        goal ? suggestions.goal : suggestions.saving,
-      ]}
-    />
-  );
 }
 
 function errorName(error: unknown): string {
