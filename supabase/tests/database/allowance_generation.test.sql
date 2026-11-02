@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(21);
+select plan(23);
 
 -- Fixtures: PA owns family A (UTC), PB owns family B (Asia/Kolkata).
 select tests.create_user('pa@example.com') as pa \gset
@@ -59,6 +59,13 @@ select is(
 select is(
   (select details from public.job_runs where job = 'generate-due-occurrences' order by started_at desc, id limit 1)->>'failed',
   '0', 'job_runs details record zero failures');
+select is(
+  (select details from public.job_runs where job = 'generate-due-occurrences' order by started_at desc, id limit 1)->>'stopped_early',
+  'false', 'a run inside its time budget is not stopped early');
+select ok(
+  (select 'lock_timeout=5s' = any(proconfig) from pg_proc
+   where oid = 'public.generate_due_occurrences(timestamptz)'::regprocedure),
+  'a schedule stuck behind a lock times out alone (lock_timeout 5s)');
 
 -- ---------------------------------------------------------------------------
 -- Timezone: Kolkata is the next day from 18:30 UTC
