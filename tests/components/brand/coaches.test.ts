@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { coachIds } from "@/components/brand/coach-figure";
 import { coachIdFor, coachLines, coachNames } from "@/components/brand/coaches";
-import { coachIds } from "@/components/brand/jar-coach";
 
 describe("coachIdFor", () => {
   it("keeps the same coach for the same page key", () => {
