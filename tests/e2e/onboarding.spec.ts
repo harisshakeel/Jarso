@@ -239,12 +239,16 @@ test("lockout: five wrong PINs lock this device out, even the right PIN is refus
   await fillChildSignIn(child, state.samFamilyCode, "Sam");
   const pin = child.getByLabel("Your PIN");
 
-  for (let attempt = 1; attempt <= 5; attempt++) {
+  for (let attempt = 1; attempt <= 4; attempt++) {
     await submitPin(child, "9999");
     // The PIN field clears when the action finishes; the code and nickname stay.
     await expect(pin).toHaveValue("");
     await expect(child.getByText(NO_MATCH)).toBeVisible();
   }
+
+  // The fifth wrong PIN starts the lock and says so.
+  await submitPin(child, "9999");
+  await expect(child.getByText(LOCKED)).toBeVisible();
 
   await submitPin(child, "9999");
   await expect(child.getByText(LOCKED)).toBeVisible();
