@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertSeedableFamily,
   assertSeedTarget,
   isLocalUrl,
   parseSeedArgs,
@@ -106,6 +107,22 @@ describe("readSeedTarget", () => {
     expect(run).toThrow(/Set all of NEXT_PUBLIC_SUPABASE_URL/);
     expect(() => readSeedTarget({ SUPABASE_SECRET_KEY: "secret-key-placeholder" })).toThrow(
       /or none to seed the local stack/,
+    );
+  });
+});
+
+describe("assertSeedableFamily", () => {
+  it("allows a parent with no family (the seed creates a demo one)", () => {
+    expect(() => assertSeedableFamily(null)).not.toThrow();
+  });
+
+  it("allows a family that is already a demo family", () => {
+    expect(() => assertSeedableFamily({ demoClockEnabled: true })).not.toThrow();
+  });
+
+  it("refuses an existing family that is not a demo family", () => {
+    expect(() => assertSeedableFamily({ demoClockEnabled: false })).toThrow(
+      /already has a family that is not a demo family/,
     );
   });
 });

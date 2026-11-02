@@ -6,7 +6,8 @@
  * Creates (or reuses) a confirmed parent with a completed profile, their family, two children
  * (Mia and Leo) with the given PIN, a weekly allowance each with its first handover, a savings
  * goal for Mia, a weekly spending limit for Mia and purchases that go over it (so a limit notice
- * is waiting), a purchase for Leo, and finally turns the family's demo clock on. History is
+ * is waiting), a purchase for Leo, and finally turns the family's demo clock on. A parent whose
+ * family is not already a demo family is refused, so a real family is never made a demo one. History is
  * written before any clock move, as the demo clock needs (moves shift later history).
  *
  * Target: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY
@@ -51,6 +52,18 @@ export function assertSeedTarget(url: string, yesHosted: boolean): void {
   if (isLocalUrl(url) || yesHosted) return;
   throw new Error(
     `Refusing to seed ${new URL(url).hostname}: it isn't local. Pass --yes-hosted to seed it.`,
+  );
+}
+
+/**
+ * The demo clock moves a family's dates and turns auto charge off for it, so the seed only
+ * touches a family that is already a demo family. `existing` is the parent's family before the
+ * seed runs (null = none, so the seed creates a new one).
+ */
+export function assertSeedableFamily(existing: { demoClockEnabled: boolean } | null): void {
+  if (existing === null || existing.demoClockEnabled) return;
+  throw new Error(
+    "Refusing to seed: DEMO_PARENT_EMAIL already has a family that is not a demo family. Use an email with no family, or turn demo_clock_enabled on for that family by hand if an earlier seed run stopped halfway.",
   );
 }
 
@@ -254,22 +267,30 @@ async function childSession(
   return client;
 }
 
-async function ensureFamily(
-  admin: SupabaseClient,
-  parent: SupabaseClient,
-  parentId: string,
-): Promise<string> {
+type ExistingFamily = { id: string; demoClockEnabled: boolean };
+
+/** The parent's family before the seed touches anything, or null when they have none. */
+async function findFamily(admin: SupabaseClient, parentId: string): Promise<ExistingFamily | null> {
   const { data, error } = await admin
     .from("family_members")
-    .select("family_id")
+    .select("family_id, families(demo_clock_enabled)")
     .eq("profile_id", parentId)
     .eq("role", "parent")
     .eq("status", "approved")
     .maybeSingle();
   if (error) throw new Error(`Family lookup failed: ${error.message}`);
-  if (data) {
-    say("Family: already there");
-    return data.family_id;
+  if (!data) return null;
+  const family = data.families as { demo_clock_enabled?: unknown } | null;
+  return { id: data.family_id, demoClockEnabled: family?.demo_clock_enabled === true };
+}
+
+async function ensureFamily(
+  parent: SupabaseClient,
+  existing: ExistingFamily | null,
+): Promise<string> {
+  if (existing) {
+    say("Family: already there (a demo family)");
+    return existing.id;
   }
   const id = await rpc<string>(parent, "create_family", {
     p_currency: FAMILY.currency,
@@ -453,6 +474,9 @@ async function main(): Promise<void> {
 
   const admin = createClient(target.url, target.secretKey, apiOptions);
   const parentId = await ensureParent(admin, input);
+  // Before anything is written for an existing parent: never turn a real family into a demo one.
+  const existingFamily = await findFamily(admin, parentId);
+  assertSeedableFamily(existingFamily);
   const parent = await signIn(target, input);
   await rpc(parent, "complete_parent_profile", {
     p_date_of_birth: "1985-06-15",
@@ -460,7 +484,7 @@ async function main(): Promise<void> {
     p_gender: "prefer_not_to_say",
   });
 
-  const familyId = await ensureFamily(admin, parent, parentId);
+  const familyId = await ensureFamily(parent, existingFamily);
   const existing = await childrenByNickname(admin, familyId);
   for (const plan of CHILDREN) {
     const childId = await ensureChild(admin, parent, familyId, existing, plan.nickname, input.pin);

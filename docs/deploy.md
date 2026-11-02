@@ -135,7 +135,7 @@ Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no r
 
 ## Seeding the demo family
 
-`pnpm db:seed:demo` (`scripts/seed-demo.mts`, Node 22.6 or later) creates one demo family for the Demo 2 script: a parent with a completed profile, a family (GBP, Europe/London), Mia and Leo with the PIN you choose, a weekly allowance each with the first one handed over, Mia's goal, a weekly spending limit for Mia with purchases over it (a limit notice is waiting), a purchase for Leo, and then `demo_clock_enabled = true`. History goes in before any clock move. It is safe to run again: existing rows are found and kept.
+`pnpm db:seed:demo` (`scripts/seed-demo.mts`, Node 22.6 or later) creates one demo family for the Demo 2 script: a parent with a completed profile, a family (GBP, Europe/London), Mia and Leo with the PIN you choose, a weekly allowance each with the first one handed over, Mia's goal, a weekly spending limit for Mia with purchases over it (a limit notice is waiting), a purchase for Leo, and then `demo_clock_enabled = true`. History goes in before any clock move. It is safe to run again: existing rows are found and kept. It refuses a parent who already has a family that is not a demo family, before writing anything, so a real family is never turned into a demo one.
 
 ```bash
 # Local stack (pnpm db:start); the URL and keys come from `supabase status`, never printed.
