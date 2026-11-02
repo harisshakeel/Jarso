@@ -1,6 +1,7 @@
 // Public, client-safe API of the guide feature. Server-only API: "@/features/guide/server".
 export * from "@jarso/core/guide";
 export * from "./components/ask-jarso";
+export * from "./components/chat-history";
 export * from "./components/guide-sheet";
 export * from "./components/guide-switch";
 export * from "./components/guide-thread";

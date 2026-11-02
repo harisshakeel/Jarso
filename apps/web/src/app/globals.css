@@ -312,3 +312,102 @@
     scroll-behavior: auto;
   }
 }
+
+/* Jarso's eyes (design.md §7, §8): a blink every 5 s, the one idle loop the app allows; the
+   pupils look down at the composer or wander while Jarso thinks. Reduced motion stills both. */
+[data-jarso-eyes] .eyes-lids {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+[data-jarso-eyes] .eyes-pupils {
+  transition: translate 250ms var(--ease-brand);
+}
+[data-jarso-eyes][data-look="down"] .eyes-pupils {
+  translate: 0.5px 2.4px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-jarso-eyes] .eyes-lids {
+    animation: eyes-blink 5s ease-in-out infinite;
+  }
+  [data-jarso-eyes][data-look="around"] .eyes-pupils {
+    animation: eyes-wander 4s ease-in-out infinite;
+  }
+}
+@keyframes eyes-blink {
+  0%,
+  93%,
+  100% {
+    scale: 1 1;
+  }
+  96% {
+    scale: 1 0.08;
+  }
+}
+@keyframes eyes-wander {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: -2.5px 0.5px;
+  }
+  55% {
+    translate: 2px -2px;
+  }
+  80% {
+    translate: 0.5px 2.2px;
+  }
+}
+
+/* While a reply is on its way (design.md §8, a loading state, so it may loop): the status line
+   fades in, the current step pulses, coins orbit the eyes once during a look-up, and a check
+   draws itself while the answer is double-checked. */
+@utility fade-up {
+  animation: fade-up 250ms var(--ease-brand) both;
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+@utility coin-orbit {
+  animation: coin-orbit 1.4s var(--ease-brand) both;
+  animation-delay: calc(var(--coin-index, 0) * 120ms);
+}
+@keyframes coin-orbit {
+  0% {
+    opacity: 0;
+    rotate: 0deg;
+  }
+  15% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+    rotate: 360deg;
+  }
+  100% {
+    opacity: 0;
+    rotate: 360deg;
+    translate: 0 14px;
+  }
+}
+@utility check-draw {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: check-draw 600ms var(--ease-brand) 150ms forwards;
+}
+@keyframes check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@utility pulse-soft {
+  animation: pulse-soft 1.2s ease-in-out infinite;
+}
+@keyframes pulse-soft {
+  50% {
+    opacity: 0.45;
+  }
+}

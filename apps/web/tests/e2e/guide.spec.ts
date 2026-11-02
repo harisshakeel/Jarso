@@ -142,8 +142,9 @@ test("a safety message gets a kind fixed reply with helplines, never the model's
 });
 
 test("off-topic questions are redirected to money topics", async () => {
-  // On the Jarso page a new chat starts from the list down the side, not from the thread. The
+  // On the Jarso page a new chat starts from the History drawer, not from the thread. The
   // link moves the page and swaps the thread for an empty one: wait for that before typing.
+  await child.getByRole("button", { name: "History" }).click();
   await child.getByRole("link", { name: "New chat" }).click();
   await expect(child).toHaveURL(/[?&]new=/);
   const panel = jarso(child);

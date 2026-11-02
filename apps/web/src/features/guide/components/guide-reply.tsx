@@ -3,25 +3,69 @@
 import type { GuideCheck, GuideReply } from "@jarso/core/guide";
 import { guideCopy } from "@jarso/core/guide";
 import {
-  BotIcon,
+  BookOpenIcon,
   BrainIcon,
+  CalendarDaysIcon,
   CircleCheckIcon,
+  CoinsIcon,
+  InboxIcon,
   PhoneIcon,
+  PiggyBankIcon,
+  ReceiptIcon,
+  ScaleIcon,
   ScanSearchIcon,
+  TargetIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { JarsoEyes } from "@/components/brand";
 import { Button } from "@/components/ui";
 import { routes } from "@/config";
 import { runOnline } from "@/features/offline";
 import { cn } from "@/lib";
 import { rateGuideMessageAction } from "../server/actions";
+import { TypedText } from "./typed-text";
 
-/** One reply from Jarso: the answer, what it looked at, helplines, topics, a check, thumbs. */
-export function GuideBubble({ reply }: { reply: GuideReply }) {
+/** An icon per thing Jarso can look at (`guideCopy.checked`), for the "Looked at" chips. */
+const lookedAtIcons: Record<string, typeof CoinsIcon> = {
+  jars: CoinsIcon,
+  allowance: CalendarDaysIcon,
+  "money history": ReceiptIcon,
+  "money rules": ScaleIcon,
+  learning: BookOpenIcon,
+  "saving plan": PiggyBankIcon,
+  goal: TargetIcon,
+  requests: InboxIcon,
+  memory: BrainIcon,
+};
+
+/** The cyan "Jarso AI" chip with Jarso's eyes, over every reply and the thinking bubble. */
+export function JarsoChip({ look }: { look?: "ahead" | "down" }) {
+  return (
+    <span className="flex w-fit items-center gap-1.5 rounded-full bg-cyan-100 py-0.5 pr-2.5 pl-1 font-semibold text-cyan-700 text-xs dark:bg-cyan-900 dark:text-cyan-300">
+      <JarsoEyes size="sm" look={look} className="rounded-[6px]" />
+      {guideCopy.label}
+    </span>
+  );
+}
+
+/**
+ * One reply from Jarso: the answer, what it looked at, helplines, topics, a check, thumbs. A
+ * reply that has just arrived (`live`) is typed out word by word; a reopened one shows whole.
+ */
+export function GuideBubble({
+  reply,
+  live = false,
+  onTyped,
+}: {
+  reply: GuideReply;
+  live?: boolean;
+  onTyped?: () => void;
+}) {
   const [rating, setRating] = useState<1 | -1 | null>(reply.rating ?? null);
+  const [typing, setTyping] = useState(live);
   const [, startRating] = useTransition();
   function rate(value: 1 | -1) {
     if (!reply.messageId) return;
@@ -33,15 +77,32 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
   }
   return (
     <div className="mr-8 grid gap-3 rounded-2xl rounded-bl-sm bg-card p-4 shadow-rest">
-      <span className="flex w-fit items-center gap-1 rounded-full bg-cyan-100 px-2 py-0.5 font-semibold text-cyan-700 text-xs dark:bg-cyan-900 dark:text-cyan-300">
-        <BotIcon aria-hidden className="size-3.5" />
-        {guideCopy.label}
-      </span>
-      <p className="whitespace-pre-line">{reply.text}</p>
+      <JarsoChip look={typing ? "down" : "ahead"} />
+      <TypedText
+        text={reply.text}
+        animate={live}
+        className="whitespace-pre-line"
+        onDone={() => {
+          setTyping(false);
+          onTyped?.();
+        }}
+      />
       {reply.lookedAt.length > 0 ? (
-        <p className="flex items-center gap-1.5 text-ink-2 text-sm">
+        <p className="flex flex-wrap items-center gap-1.5 text-ink-2 text-sm">
           <ScanSearchIcon aria-hidden className="size-4 shrink-0" />
-          Looked at: {reply.lookedAt.join(", ")}
+          Looked at:{" "}
+          {reply.lookedAt.map((item) => {
+            const Icon = lookedAtIcons[item] ?? ScanSearchIcon;
+            return (
+              <span
+                key={item}
+                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5"
+              >
+                <Icon aria-hidden className="size-3.5" />
+                {item}
+              </span>
+            );
+          })}
         </p>
       ) : null}
       {reply.remembered.length > 0 ? (

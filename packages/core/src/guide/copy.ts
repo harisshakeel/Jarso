@@ -2,6 +2,37 @@
 // and the labels around it. Child-facing: reading age about 10, warm, no blame, no exclamation
 // marks. Change only through a PR review.
 
+/** A starter question on an empty chat: the question (the button's name) and a hint under it. */
+export type SuggestionCard = {
+  key: "jars" | "spent" | "allowance" | "saving" | "goal" | "learning";
+  question: string;
+  hint: string;
+};
+
+const childCards: SuggestionCard[] = [
+  { key: "jars", question: "How much do I have?", hint: "Spend and Save, right now" },
+  { key: "spent", question: "What did I spend this week?", hint: "Where your money went" },
+  { key: "allowance", question: "When is my next allowance?", hint: "Your next payday" },
+  { key: "saving", question: "How long to save for something?", hint: "A plan to get there" },
+  { key: "goal", question: "How long until my goal?", hint: "Your goal, step by step" },
+  { key: "learning", question: "What should I learn next?", hint: "Your next mission" },
+];
+
+const parentCards = (nickname: string): SuggestionCard[] => [
+  { key: "saving", question: `How is ${nickname} doing with saving?`, hint: "Save jar and goal" },
+  {
+    key: "spent",
+    question: `What did ${nickname} spend on this week?`,
+    hint: "This week's purchases",
+  },
+  { key: "allowance", question: `When is ${nickname}'s next allowance?`, hint: "The next payday" },
+  {
+    key: "learning",
+    question: `What has ${nickname} learned so far?`,
+    hint: "Missions and skills",
+  },
+];
+
 export const guideCopy = {
   name: "Jarso",
   label: "Jarso AI",
@@ -16,6 +47,17 @@ export const guideCopy = {
   placeholder: "Ask Jarso about money…",
   homePlaceholder: "Ask Jarso about your money…",
   homeTitle: "Ask Jarso",
+  /** The greeting over an empty chat on the Jarso page, naming who is asking. */
+  greeting: {
+    child: (nickname: string) =>
+      nickname ? `Hi ${nickname}. Ask me about your money.` : "Ask me about your money.",
+    parent: (firstName: string, nickname: string) =>
+      firstName
+        ? `Hi ${firstName}. Ask me anything about ${nickname}'s money.`
+        : `Ask me anything about ${nickname}'s money.`,
+  },
+  /** Starter questions as cards with a hint each (the Jarso page). */
+  suggestionCards: { child: childCards, parent: parentCards },
   suggestions: {
     jars: "How much do I have?",
     spent: "What did I spend this week?",
@@ -48,6 +90,21 @@ export const guideCopy = {
   },
   /** Shown in turn when no new line has arrived for a while, so a long think never looks stuck. */
   stillWorking: ["Still thinking…", "Counting carefully…", "Nearly there…"],
+  /** The four steps of a reply, lit in turn under Jarso's eyes while it works. */
+  steps: ["Reading", "Looking things up", "Writing", "Checking"],
+  /** The past chats, behind one "History" control on the Jarso page. */
+  history: {
+    button: "History",
+    title: "Your chats",
+    empty: "No chats yet.",
+    groups: { today: "Today", week: "This week", earlier: "Earlier" },
+  },
+  /** Speaking a question instead of typing it (the browser's own speech recognition). */
+  voice: {
+    label: "Speak your question",
+    listening: "Listening…",
+    failed: "Couldn't hear that. Type it instead.",
+  },
   /** What the parent sees Jarso looked at, per reply (by tool name). */
   checked: {
     get_jars: "jars",
@@ -82,12 +139,7 @@ export const guideCopy = {
       `Jarso is an AI. It looks at ${nickname}'s jars and learning only when you ask. ${nickname} doesn't see these chats.`,
     placeholder: (nickname: string) => `Ask about ${nickname}'s money or learning…`,
     pick: "Ask about",
-    suggestions: (nickname: string) => [
-      `How is ${nickname} doing with saving?`,
-      `What did ${nickname} spend on this week?`,
-      `When is ${nickname}'s next allowance?`,
-      `What has ${nickname} learned so far?`,
-    ],
+    suggestions: (nickname: string) => parentCards(nickname).map((card) => card.question),
     off: (nickname: string) =>
       `Jarso is off for ${nickname}. Turn it on from ${nickname}'s page to ask about them.`,
   },
