@@ -25,18 +25,29 @@ export const guideCopy = {
     learning: "What should I learn next?",
   },
   thinking: "Thinking…",
+  /**
+   * What Jarso is doing right now, streamed while it works. Each line is true of the step it
+   * names: the phases come from the pipeline, the look-ups from the tool that is running.
+   */
+  phases: {
+    reading: "Reading your question…",
+    answering: "Putting an answer together…",
+    checking: "Double-checking the answer…",
+  },
   /** One line per look-up while Jarso works (by tool name). */
   status: {
-    get_jars: "Looking at your jars…",
-    get_allowance: "Checking your allowance…",
-    get_money_history: "Looking through your money history…",
+    get_jars: "Peeking in your jars…",
+    get_allowance: "Checking when your allowance comes…",
+    get_money_history: "Reading your money history…",
     get_money_rules: "Checking your money rules…",
     get_learning: "Looking at your learning…",
     plan_saving: "Working out a saving plan…",
     get_goal: "Checking your goal…",
     get_requests: "Checking your requests…",
-    remember: "Remembering that…",
+    remember: "Making a note of that…",
   },
+  /** Shown in turn when no new line has arrived for a while, so a long think never looks stuck. */
+  stillWorking: ["Still thinking…", "Counting carefully…", "Nearly there…"],
   /** What the parent sees Jarso looked at, per reply (by tool name). */
   checked: {
     get_jars: "jars",
