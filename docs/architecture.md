@@ -515,7 +515,7 @@ Pause, resume, change and stop are parent-only functions that write `audit_log`.
 
 Reminders: a second cron job (`send_handover_reminders`, hourly) creates a `reminder` notification when `today - due_on` is a positive multiple of 3 days (family timezone) for an occurrence still `due`, idempotent on `(occurrence_id, reminder_date)`. The `due` notice itself goes out the day it falls due. The interval is fixed at 3 for now. `due_on` and these day counts use the family timezone (`families.timezone`); monthly, quarterly and annual dates on day 29–31 clamp to the month's last day.
 
-Demo clock: `family_now(family_id)` returns `now() + families.clock_offset`, and every time-based function uses it. A parent-only action advances the offset (forward only) and runs generation and reminders for that family. It exists only when `FEATURE_DEMO_CLOCK` is on and the family's `demo_clock_enabled` flag is set.
+Demo clock: `family_now(family_id)` returns `now() + families.clock_offset`. Callers keep passing real time; the offset is added where the family's day is computed (`family_today`), where business timestamps are written (triggers) and in the money-rule windows, so created_at, undo windows, rate limits and payment expiry stay on real time (`docs/database.md`). A parent-only action advances the offset (forward only) and runs generation and reminders for that family. It exists only when `FEATURE_DEMO_CLOCK` is on and the family's `demo_clock_enabled` flag is set.
 
 ### 7.3 Purchase and limit notice
 

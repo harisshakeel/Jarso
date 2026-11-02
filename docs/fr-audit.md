@@ -57,7 +57,7 @@ Thirteen of thirteen are met on `main` once PR B merges.
 
 ## Known follow-ups from slice 2 (non-blocking)
 
-- **Injectable clock (D11)** in the remaining time-based functions; do it right before the slice 6 demo clock.
+- **Injectable clock (D11):** done with the slice 6 demo clock. Callers keep real time; the family offset is added in `family_today`, `family_now` and the stamp triggers.
 - **Generator timeout:** fixed. The generator stops starting schedules after 45 s (under the job's 60 s timeout) and records the run as `error` with `stopped_early`; a schedule stuck behind a lock fails alone after 5 s. Only a single schedule running past the remaining 15 s would still lose the row.
 - **`allowance_next_due_on`** can show a past date between an ended pause and the next hourly run. Display only; it fixes itself on the next run.
 - **Module boundary:** fixed. The occurrence reads behind history live in `allowance` (`getOccurrenceAmounts`, `getClosedOccurrences`); the ledger service calls them.
@@ -105,11 +105,12 @@ Dependabot's five action bumps (#2–#6) are the only other merges.
 - Design system from `docs/design.md`: Nunito, tokens, light and dark themes with a one-click toggle, primitives including alert dialog, sheet and tabs, brand components including light and dark wordmarks, app shell with Home and Allowance navigation.
 - Delivery: CI (lint, typecheck, unit, build, gitleaks, pgTAP, e2e on a fresh Supabase), Vercel on `main`, the Supabase GitHub integration for migrations, squash-merge workflow.
 - Learning: content as reviewed JSON, progress tables written only by checked functions, spaced review (ADR 0009). The guide: screened Claude pipeline, parent switch, transcripts, retention, evals and a public `/safety` page (ADR 0010).
-- Security for a public repo: secret scanners, redacted session logs, CSRF guard, owner-only personal data, internal SQL helpers not callable by `anon` or `authenticated` (`generate_for_schedule` stays callable by `service_role` for the e2e fast-forward and the demo clock).
+- Security for a public repo: secret scanners, redacted session logs, CSRF guard, owner-only personal data, internal SQL helpers not callable by `anon` or `authenticated` (`generate_for_schedule` stays callable by `service_role` for the e2e fast-forward).
+- Demo clock (D11, slice 6): `families.clock_offset` (forward only, at most a year) added to the family's today, to business timestamps by triggers and to the money-rule windows; `advance_family_clock` (parent, demo families only) catches up generation and replays each skipped day's reminders; auto charge skips a family whose clock moved; the app reads `family_now` for every family today. Behind `FEATURE_DEMO_CLOCK`, a "Demo clock" card on parent settings (+1 day, +7 days, +1 month).
 
 ## Cross-cutting, not built
 
-- Demo clock (D11) and the demo seed family (slice 6).
+- The demo seed family (slice 6).
 - Error tracking (deferred: logs carry codes and ids; a Sentry free tier when someone will read it) and the uptime monitor itself (`/api/health?deep=1` is built for it).
 - Custom SMTP and the confirmation email (dashboard work). The privacy notice is built at `/privacy`; legal review pending.
 

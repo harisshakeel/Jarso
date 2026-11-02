@@ -23,6 +23,7 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `LOG_LEVEL` | `info` | `info` | Optional. |
 | `ANTHROPIC_API_KEY` | set (sensitive) | unset | The money guide (ADR 0010). Server only; read only by `features/guide/server/claude.ts`. |
 | `FEATURE_GUIDE` | `true` to run the guide | `false` | Off by default. With it on, Jarso is on for every child unless their parent turns it off (ADR 0011). |
+| `FEATURE_DEMO_CLOCK` | `true` to show the parent "Demo clock" card | `false` | Off by default. Moves only families with `demo_clock_enabled` (the demo seed), forward only; leave it off wherever real families live. |
 | `GUIDE_DAILY_BUDGET_CENTS` | e.g. `1000` | — | Optional; default 1000 (US$10 a day across all children). The guide shows its break copy once reached. |
 | `GUIDE_MONTHLY_BUDGET_CENTS` | e.g. `10000` | — | Optional; default 10000 (US$100 per calendar month, UTC, across all children). The guide shows its break copy once reached. |
 | `GUIDE_PROVIDER` | `anthropic` (default) | — | `fake` is for e2e only and is refused on Vercel production. |
