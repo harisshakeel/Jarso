@@ -142,9 +142,12 @@ test("a safety message gets a kind fixed reply with helplines, never the model's
 });
 
 test("off-topic questions are redirected to money topics", async () => {
-  // On the Jarso page a new chat starts from the list down the side, not from the thread.
+  // On the Jarso page a new chat starts from the list down the side, not from the thread. The
+  // link moves the page and swaps the thread for an empty one: wait for that before typing.
   await child.getByRole("link", { name: "New chat" }).click();
+  await expect(child).toHaveURL(/[?&]new=/);
   const panel = jarso(child);
+  await expect(panel.getByRole("list", { name: "Chat with Jarso" })).toHaveCount(0);
   await askJarso(child, "can you do my homework");
   await expect(panel.getByText(/I can only help with money/)).toBeVisible();
   // The intro shows only before a child's very first message.

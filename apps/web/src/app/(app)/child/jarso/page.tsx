@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -18,7 +19,7 @@ export const metadata: Metadata = { title: "Jarso" };
 
 type Props = PageProps<"/child/jarso">;
 
-const paramsSchema = z.object({ chat: z.uuid().optional() });
+const paramsSchema = z.object({ chat: z.uuid().optional(), new: z.string().max(16).optional() });
 const hrefFor = (id: string) => `${routes.childJarso}?chat=${id}` as Route;
 
 /**
@@ -27,7 +28,9 @@ const hrefFor = (id: string) => `${routes.childJarso}?chat=${id}` as Route;
  */
 async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
   const { user } = await requireRole("child", routes.childJarso);
-  const { chat } = paramsSchema.parse(await searchParams);
+  const { chat, new: nonce } = paramsSchema.parse(await searchParams);
+  // A fresh nonce each render, so "New chat" starts over even from an unsaved new chat.
+  const newHref = `${routes.childJarso}?new=${randomUUID().slice(0, 8)}` as Route;
   const [state, family] = await Promise.all([getGuideState(user.id), getFamily()]);
   if (!state.available) {
     return (
@@ -60,11 +63,10 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
       chats={chats}
       currentId={transcript?.summary.id ?? null}
       hrefFor={hrefFor}
-      newHref={routes.childJarso}
+      newHref={newHref}
       timezone={family?.timezone ?? "UTC"}
     >
       <JarsoPageThread
-        key={transcript?.summary.id ?? "new"}
         introNeeded={state.introNeeded}
         suggestions={[
           suggestions.jars,
@@ -74,6 +76,8 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
         ]}
         reopened={reopened}
         chatHref={routes.childJarso}
+        chatId={chat ?? null}
+        nonce={nonce ?? null}
       />
     </JarsoChatPage>
   );

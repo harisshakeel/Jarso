@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -25,7 +26,7 @@ export const metadata: Metadata = { title: "Jarso" };
 
 type Props = PageProps<"/parent/jarso">;
 
-const paramsSchema = z.object({ chat: z.uuid().optional() });
+const paramsSchema = z.object({ chat: z.uuid().optional(), new: z.string().max(16).optional() });
 const hrefFor = (id: string) => `${routes.parentJarso}?chat=${id}` as Route;
 
 /**
@@ -35,7 +36,9 @@ const hrefFor = (id: string) => `${routes.parentJarso}?chat=${id}` as Route;
 async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
   const { membership } = await requireRole("parent", routes.parentJarso);
   if (!membership) redirect(routes.parentSetup);
-  const { chat } = paramsSchema.parse(await searchParams);
+  const { chat, new: nonce } = paramsSchema.parse(await searchParams);
+  // A fresh nonce each render, so "New chat" starts over even from an unsaved new chat.
+  const newHref = `${routes.parentJarso}?new=${randomUUID().slice(0, 8)}` as Route;
   if (!isGuideConfigured()) {
     return <p className="rounded-xl bg-muted p-4 text-ink-2">{guideCopy.switchedOff}</p>;
   }
@@ -72,17 +75,18 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
       chats={chats}
       currentId={reopened?.conversationId ?? null}
       hrefFor={hrefFor}
-      newHref={routes.parentJarso}
+      newHref={newHref}
       timezone={family?.timezone ?? "UTC"}
       names={names}
     >
       {kids.length > 0 || reopened ? (
         <JarsoPageThread
-          key={reopened?.conversationId ?? "new"}
           audience="parent"
           kids={kids}
           reopened={reopened}
           chatHref={routes.parentJarso}
+          chatId={chat ?? null}
+          nonce={nonce ?? null}
         />
       ) : (
         <p className="rounded-xl bg-muted p-4 text-ink-2">

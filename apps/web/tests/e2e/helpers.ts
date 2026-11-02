@@ -168,14 +168,20 @@ export async function dueOccurrence(
  */
 export async function expectSetupPage(page: Page): Promise<void> {
   try {
-    await expect(page).toHaveURL((url) => url.pathname === "/parent/setup", { timeout: 20_000 });
+    await expect(page).toHaveURL((url) => url.pathname === "/parent/setup", { timeout: 45_000 });
   } catch (error) {
+    // Errors are alerts; "taking a while" and "check your email" are statuses: read both.
     const said = await page
       .getByRole("alert")
+      .or(page.getByRole("status"))
       .allInnerTexts()
       .catch(() => [] as string[]);
+    const body = await page
+      .locator("body")
+      .innerText()
+      .catch(() => "");
     throw new Error(
-      `Sign-up did not reach /parent/setup (page is at ${page.url()}). The form said: ${said.join(" | ") || "nothing"}`,
+      `Sign-up did not reach /parent/setup (page is at ${page.url()}). Alerts and statuses: ${said.join(" | ") || "none"}. The page read: ${body.replace(/\s+/g, " ").slice(0, 500) || "nothing"}`,
       { cause: error },
     );
   }

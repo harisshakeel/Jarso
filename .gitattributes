@@ -1,0 +1,2 @@
+# Session logs only ever grow: merge both sides instead of conflicting.
+.claude-logs/*.md merge=union
