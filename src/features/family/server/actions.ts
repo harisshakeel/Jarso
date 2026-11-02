@@ -1,15 +1,16 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { routes } from "@/config";
 import { safeNextPath } from "@/features/auth";
-import { AppError, createAction, isAppError } from "@/lib";
+import { AppError, createAction } from "@/lib";
 import {
   acceptInvitationSchema,
   acceptListedInvitationSchema,
   addChildSchema,
+  advanceFamilyClockSchema,
   childSignInSchema,
   createFamilySchema,
   removeChildSchema,
@@ -24,6 +25,7 @@ import {
   acceptInvitation,
   acceptListedInvitation,
   addChild,
+  advanceFamilyClock,
   childSignIn,
   createFamily,
   removeChild,
@@ -45,25 +47,11 @@ export const createFamilyAction = createAction(
   },
 );
 
-/** A duplicate nickname comes back from register_child as CONFLICT; show it on the field. */
-function nicknameConflict(error: unknown): never {
-  if (isAppError(error) && error.code === "CONFLICT") {
-    throw new AppError("CONFLICT", "Please fix the highlighted fields.", {
-      fieldErrors: { nickname: ["Another child in your family already uses this nickname"] },
-      cause: error,
-    });
-  }
-  throw error;
-}
-
 export const addChildAction = createAction(addChildSchema, async ({ nickname, pin, consent }) => {
   const { membership } = await assertRole("parent");
   if (!membership) throw new AppError("FORBIDDEN", "Set up your family first.");
-  try {
-    await addChild({ familyId: membership.familyId, nickname, pin, consent });
-  } catch (error) {
-    nicknameConflict(error);
-  }
+  // A taken nickname comes back with a field error from the repository.
+  await addChild({ familyId: membership.familyId, nickname, pin, consent });
   redirect(routes.parent);
 });
 
@@ -79,22 +67,14 @@ export const childSignInAction = createAction(childSignInSchema, async (input) =
 });
 
 export const acceptInvitationAction = createAction(acceptInvitationSchema, async (input) => {
-  try {
-    await acceptInvitation(input);
-  } catch (error) {
-    nicknameConflict(error);
-  }
+  await acceptInvitation(input);
   redirect(routes.parent);
 });
 
 export const acceptListedInvitationAction = createAction(
   acceptListedInvitationSchema,
   async (input) => {
-    try {
-      await acceptListedInvitation(input);
-    } catch (error) {
-      nicknameConflict(error);
-    }
+    await acceptListedInvitation(input);
     redirect(routes.parent);
   },
 );
@@ -106,11 +86,7 @@ export const setChildPinAction = createAction(setChildPinSchema, async (input) =
 
 export const renameChildAction = createAction(renameChildSchema, async (input) => {
   await assertParentOf(input.childId);
-  try {
-    await renameChild(input);
-  } catch (error) {
-    nicknameConflict(error);
-  }
+  await renameChild(input);
   refresh();
 });
 
@@ -130,3 +106,14 @@ export const updateFamilySettingsAction = createAction(
     refresh();
   },
 );
+
+/**
+ * Demo clock (D11): a parent moves their demo family's clock forward. Every screen reads the
+ * family's day, so the whole app is revalidated.
+ */
+export const advanceFamilyClockAction = createAction(advanceFamilyClockSchema, async (input) => {
+  // The service checks the deployment flag and the parent role.
+  const result = await advanceFamilyClock(input);
+  revalidatePath("/", "layout");
+  return result;
+});

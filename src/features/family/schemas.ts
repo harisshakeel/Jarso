@@ -2,17 +2,32 @@ import { z } from "zod";
 import { supportedCurrencies } from "@/config";
 
 /**
- * Letters (any script), digits, space and _ . ' - only, so a nickname can't carry an email
- * address or a link into the invitation email. Mirrors register_child / create_invitation.
- * NFC first, so an accent typed as a separate mark still counts as part of its letter.
+ * Letters (any script), their combining marks, digits, space and _ . ' - only, so a nickname
+ * can't carry an email address or a link into the invitation email. Marks are needed for names
+ * like 'कृष्ण' (virama) or 'น้อย' (tone mark), which have no precomposed form. Mirrors
+ * is_valid_nickname in the database (20261102200500) range for range instead of \p{M}:
+ * combining diacritics without the invisible grapheme joiner U+034F, Cyrillic/Hebrew/Arabic
+ * marks, whole Indic, Thai, Lao, Tibetan, Myanmar and Khmer blocks, and the extended,
+ * supplement, kana and half marks. NFC first, so an accent typed as a separate mark still counts
+ * as part of its letter.
  */
+const NICKNAME_MARKS = [
+  "\\u0300-\\u034E\\u0350-\\u036F", // combining diacritics, without U+034F
+  "\\u0483-\\u0489\\u0591-\\u05C7\\u0610-\\u061A\\u064B-\\u065F\\u0670\\u06D6-\\u06ED",
+  "\\u0900-\\u0DFF\\u0E00-\\u0EFF\\u0F00-\\u0FFF\\u1000-\\u109F\\u1780-\\u17FF",
+  "\\u1AB0-\\u1AFF\\u1DC0-\\u1DFF\\u3099-\\u309A\\uFE20-\\uFE2F",
+].join("");
+
 const nickname = z
   .string()
   .trim()
   .normalize("NFC")
   .min(1, "Pick a nickname")
   .max(20, "Nickname can be up to 20 letters")
-  .regex(/^[\p{L}\p{Nd} _.'-]+$/u, "Use letters, numbers, spaces, dots, dashes or apostrophes");
+  .regex(
+    new RegExp(`^[\\p{L}\\p{Nd}${NICKNAME_MARKS} _.'-]+$`, "u"),
+    "Use letters, numbers, spaces, dots, dashes or apostrophes",
+  );
 
 /** A pasted link token (64 hex) or short code; generous bound, still parsed and trimmed. */
 const inviteValue = z
@@ -95,6 +110,15 @@ export const updateFamilySettingsSchema = z.object({
   timezone: z.string().refine(isValidTimezone, "Choose a valid timezone"),
 });
 
+/** Demo clock (D11): how many days to move the family's clock forward, 1 to 60 at a time. */
+export const advanceFamilyClockSchema = z.object({
+  days: z.coerce
+    .number()
+    .int("Pick a whole number of days")
+    .min(1, "Move at least 1 day")
+    .max(60, "Move at most 60 days at a time"),
+});
+
 export type CreateFamilyInput = z.infer<typeof createFamilySchema>;
 export type AddChildInput = z.infer<typeof addChildSchema>;
 export type StartChildOnboardingInput = z.infer<typeof startChildOnboardingSchema>;
@@ -106,3 +130,4 @@ export type RemoveChildInput = z.infer<typeof removeChildSchema>;
 export type UpdateFamilySettingsInput = z.infer<typeof updateFamilySettingsSchema>;
 export type ChildSignInInput = z.infer<typeof childSignInSchema>;
 export type SetChildPinInput = z.infer<typeof setChildPinSchema>;
+export type AdvanceFamilyClockInput = z.infer<typeof advanceFamilyClockSchema>;

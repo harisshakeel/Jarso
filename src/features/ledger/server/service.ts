@@ -1,17 +1,11 @@
 import "server-only";
-import { assertSelfOrParentOf, getFamily } from "@/features/family/server";
-import { addDays, familyToday } from "@/lib";
+import { getClosedOccurrences, getOccurrenceAmounts } from "@/features/allowance/server";
+import { assertSelfOrParentOf, getFamily, getFamilyNow } from "@/features/family/server";
+import { addDays, familyToday, localDateOf } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import { type BalanceHistory, balanceHistory } from "../balance-history";
 import type { HistoryItem, Jars } from "../types";
-import {
-  fetchBalance,
-  type LedgerRow,
-  listClosedOccurrences,
-  listLedgerRows,
-  listMovementsSince,
-  listOccurrenceAmounts,
-} from "./repository";
+import { fetchBalance, type LedgerRow, listLedgerRows, listMovementsSince } from "./repository";
 
 /** Reads of a child's money. The child or a parent of the child only. */
 
@@ -51,7 +45,8 @@ export async function getBalanceHistory(childId: string): Promise<BalanceHistory
   const db = await createClient();
   const family = await getFamily();
   const timezone = family?.timezone ?? "UTC";
-  const today = familyToday(timezone);
+  // Family time, so the graph ends on the same day as the demo clock (0 offset otherwise).
+  const today = familyToday(timezone, family ? await getFamilyNow(family.id) : new Date());
   const from = addDays(today, -(GRAPH_DAYS - 1));
   // A day earlier than `from` in UTC covers every timezone's start of that day.
   const [spend, save, rows] = await Promise.all([
@@ -63,19 +58,9 @@ export async function getBalanceHistory(childId: string): Promise<BalanceHistory
     jar: row.jar,
     direction: row.direction,
     amountMinor: row.amountMinor,
-    occurredOn: localDate(row.occurredAt, timezone),
+    occurredOn: localDateOf(row.occurredAt, timezone),
   }));
   return balanceHistory({ spend, save }, movements, from, today);
-}
-
-/** ISO date of an instant in the family's timezone. */
-function localDate(instant: string, timezone: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(instant));
 }
 
 type Group = {
@@ -131,7 +116,7 @@ function diaryItem(row: LedgerRow, timezone: string, now: number): Timed | null 
     amountMinor: row.amountMinor,
     dueMinor: null,
     label: row.label ?? (received ? "Money received" : "Purchase"),
-    occurredOn: localDate(row.occurredAt, timezone),
+    occurredOn: localDateOf(row.occurredAt, timezone),
     undone,
     entryId: row.id,
     canUndo: !undone && age < UNDO_WINDOW_MS,
@@ -177,7 +162,7 @@ function requestItems(rows: LedgerRow[], timezone: string): Timed[] {
       dueMinor: null,
       // The database always labels a request row (the reason, "Taken out of Save", "Put into Save").
       label: row.label ?? "",
-      occurredOn: localDate(row.occurredAt, timezone),
+      occurredOn: localDateOf(row.occurredAt, timezone),
       undone: false,
       entryId: null,
       canUndo: false,
@@ -208,7 +193,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
   const db = await createClient();
   const [rows, closed, family] = await Promise.all([
     listLedgerRows(db, childId, ROW_LIMIT, before),
-    listClosedOccurrences(db, childId, HISTORY_LIMIT + 1, before),
+    getClosedOccurrences(childId, HISTORY_LIMIT + 1, before),
     getFamily(),
   ]);
   const timezone = family?.timezone ?? "UTC";
@@ -217,7 +202,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
 
   const occurrenceIds = groups.filter((g) => g.kind === "allowance").map((g) => g.sourceId);
   const amounts = new Map(
-    (await listOccurrenceAmounts(db, occurrenceIds)).map((o) => [o.id, o] as const),
+    (await getOccurrenceAmounts(childId, occurrenceIds)).map((o) => [o.id, o] as const),
   );
 
   const items: Timed[] = [
@@ -229,7 +214,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
         amountMinor: group.amount,
         dueMinor: occurrence && occurrence.shortfallMinor > 0 ? occurrence.amountMinor : null,
         label: group.label,
-        occurredOn: localDate(group.at, timezone),
+        occurredOn: localDateOf(group.at, timezone),
         undone: false,
         entryId: null,
         canUndo: false,
@@ -254,7 +239,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
       amountMinor: null,
       dueMinor: null,
       label: "Allowance",
-      occurredOn: localDate(occurrence.closedAt, timezone),
+      occurredOn: localDateOf(occurrence.closedAt, timezone),
       undone: false,
       entryId: null,
       canUndo: false,

@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, readFamilyCode } from "./helpers";
+import { completeParentProfile, readFamilyCode, waitForHydration } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Purchases saved on the device while offline and sent later, against LOCAL Supabase. */
@@ -44,6 +44,8 @@ test.beforeAll(async ({ browser }) => {
   child = await childContext.newPage();
 
   await parent.goto("/signup");
+
+  await waitForHydration(parent);
   await parent.getByLabel("Name", { exact: true }).fill("Alex Parent");
   await parent.getByLabel("Email", { exact: true }).fill(email);
   await parent.getByLabel("Password", { exact: true }).fill(password);
@@ -75,6 +77,8 @@ test.beforeAll(async ({ browser }) => {
   await expect(parent).toHaveURL(at(childBase));
 
   await child.goto("/sign-in/child");
+
+  await waitForHydration(child);
   const codeField = child.getByLabel("Family code");
   await expect(async () => {
     await codeField.fill(code);

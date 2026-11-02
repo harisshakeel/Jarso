@@ -65,6 +65,9 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      "@axe-core/playwright":
+        specifier: ^4.14.0
+        version: 4.14.0(playwright-core@1.64.1)
       "@biomejs/biome":
         specifier: ^2.6.3
         version: 2.6.3
@@ -171,6 +174,15 @@ packages:
         integrity: sha512-EgmJ7oEaGQECTn3H3wmnQpEy4hKY66VvM7VQndwPIQob3p877BgbyOUE3EX0LgXQCciF2H8KMdR+RznqjMNOLw==,
       }
     engines: { node: ^22.22.2 || ^24.15.0 || >=26.0.0 }
+
+  "@axe-core/playwright@4.14.0":
+    resolution:
+      {
+        integrity: sha512-SGUhG5PIHd2eMdpgBF2PyQLOhX+qyDR2PT4cmoS4Qk2ak+jX/rrSvst9l0PGv5WTHolKpUMvVmoHpr4cZgf1RQ==,
+      }
+    engines: { node: ">=22.12.0" }
+    peerDependencies:
+      playwright-core: ">= 1.0.0"
 
   "@babel/code-frame@7.29.7":
     resolution:
@@ -1952,6 +1964,13 @@ packages:
         integrity: sha512-Xcz9l0z7y9yQ9rdDaxlmaI4uJHf/T8g9hOEzJcsEqX2SjCj4J20uK7+ldkDHMbpJDK76wF7xEIgxc/vSlsfw5w==,
       }
     engines: { node: ">=10.12.0" }
+
+  axe-core@4.14.0:
+    resolution:
+      {
+        integrity: sha512-9WTZxEjsZ7b13TH8JPmbV2z8CHbl80/2hm3XPEG4JgNdQLK81IBRXmSxHfMAOkSqQeRxT/0dwNDz2GOm3zzpcQ==,
+      }
+    engines: { node: ">=4" }
 
   axios@1.21.0:
     resolution:
@@ -4590,6 +4609,11 @@ snapshots:
       is-potential-custom-element-name: 1.0.1
       lru-cache: 11.5.3
 
+  "@axe-core/playwright@4.14.0(playwright-core@1.64.1)":
+    dependencies:
+      axe-core: 4.14.0
+      playwright-core: 1.64.1
+
   "@babel/code-frame@7.29.7":
     dependencies:
       "@babel/helper-validator-identifier": 7.29.7
@@ -5590,6 +5614,8 @@ snapshots:
   asynckit@0.4.0: {}
 
   atomically@1.7.0: {}
+
+  axe-core@4.14.0: {}
 
   axios@1.21.0:
     dependencies:

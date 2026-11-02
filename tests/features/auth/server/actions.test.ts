@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const signUpMock = vi.fn();
 const signOutMock = vi.fn();
+const getClaimsMock = vi.fn();
 const unsubscribe = vi.fn();
 /** The auth listener the action registered, so a test can say SIGNED_OUT like auth-js. */
 let authListener: (event: string) => void = () => {};
@@ -12,7 +13,7 @@ const onAuthStateChange = vi.fn((listener: (event: string) => void) => {
 });
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({
-    auth: { signUp: signUpMock, signOut: signOutMock, onAuthStateChange },
+    auth: { signUp: signUpMock, signOut: signOutMock, getClaims: getClaimsMock, onAuthStateChange },
   })),
 }));
 
@@ -88,6 +89,7 @@ describe("signOut", () => {
     signOutMock.mockReset();
     warnMock.mockReset();
     unsubscribe.mockReset();
+    getClaimsMock.mockResolvedValue({ data: { claims: { app_metadata: {} } }, error: null });
   });
 
   /** auth-js removes the session (SIGNED_OUT), then reports `error`. */
@@ -121,6 +123,23 @@ describe("signOut", () => {
       error: { code: "UNAVAILABLE", message: "Jarso is taking a while. Please try again." },
     });
     expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it("sends a child back to the child PIN sign-in", async () => {
+    getClaimsMock.mockResolvedValue({
+      data: { claims: { app_metadata: { jarso_role: "child" } } },
+      error: null,
+    });
+    signOutRemoving(null);
+
+    await expect(signOut(null, {})).rejects.toMatchObject({ url: "/sign-in/child" });
+  });
+
+  it("falls back to the parent login when the claims can't be read", async () => {
+    getClaimsMock.mockResolvedValue({ data: null, error: new Error("x") });
+    signOutRemoving(null);
+
+    await expect(signOut(null, {})).rejects.toMatchObject({ url: "/login" });
   });
 
   it("redirects without logging when the revoke call succeeds", async () => {

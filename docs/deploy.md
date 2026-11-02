@@ -23,6 +23,7 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `LOG_LEVEL` | `info` | `info` | Optional. |
 | `ANTHROPIC_API_KEY` | set (sensitive) | unset | The money guide (ADR 0010). Server only; read only by `features/guide/server/claude.ts`. |
 | `FEATURE_GUIDE` | `true` to run the guide | `false` | Off by default. With it on, Jarso is on for every child unless their parent turns it off (ADR 0011). |
+| `FEATURE_DEMO_CLOCK` | `true` to show the parent "Demo clock" card | `false` | Off by default. Moves only families with `demo_clock_enabled` (the demo seed), forward only; leave it off wherever real families live. |
 | `GUIDE_DAILY_BUDGET_CENTS` | e.g. `1000` | — | Optional; default 1000 (US$10 a day across all children). The guide shows its break copy once reached. |
 | `GUIDE_MONTHLY_BUDGET_CENTS` | e.g. `10000` | — | Optional; default 10000 (US$100 per calendar month, UTC, across all children). The guide shows its break copy once reached. |
 | `GUIDE_PROVIDER` | `anthropic` (default) | — | `fake` is for e2e only and is refused on Vercel production. |
@@ -131,6 +132,17 @@ Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no r
 - [ ] Stripe dashboard → Webhooks (or Razorpay dashboard → Webhooks): the endpoint shows 2xx for each event.
 - [ ] Razorpay only (INR family, test mode): pay now opens a card-only Payment Link and the jars fill after the webhook. Save a card on `/parent/payments/razorpay` (one of the test cards in Razorpay's documentation); closing Checkout returns to the allowance screen with nothing saved, completing it shows the card (brand, last 4). An auto charge shows "card payment in progress" and resolves by webhook, up to about 36 h later.
 - [ ] Two providers on: with Stripe's card saved and auto charge on, save a Razorpay card too. Removing one card turns off only the toggles that use it.
+
+## Seeding the demo family
+
+`pnpm db:seed:demo` (`scripts/seed-demo.mts`, Node 22.6 or later) creates one demo family for the Demo 2 script: a parent with a completed profile, a family (GBP, Europe/London), Mia and Leo with the PIN you choose, a weekly allowance each with the first one handed over, Mia's goal, a weekly spending limit for Mia with purchases over it (a limit notice is waiting), a purchase for Leo, and then `demo_clock_enabled = true`. History goes in before any clock move. It is safe to run again: existing rows are found and kept. It refuses a parent who already has a family that is not a demo family, before writing anything, so a real family is never turned into a demo one.
+
+```bash
+# Local stack (pnpm db:start); the URL and keys come from `supabase status`, never printed.
+DEMO_PARENT_EMAIL=demo@example.com DEMO_PARENT_PASSWORD=… DEMO_CHILD_PIN=… pnpm db:seed:demo
+```
+
+Production is the owner's step. Export `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` for the hosted project in your own shell (the script loads no `.env` file and refuses a non-local URL without the flag), then run `pnpm db:seed:demo --yes-hosted` with the three `DEMO_*` values. Type the password and PIN at a prompt (`read -s`), not into a command line, a chat or a log. Then set `FEATURE_DEMO_CLOCK=true` for the deployment that hosts the demo; the Demo clock card shows in the parent's Settings of this family only, and moves only this family. The clock goes forward only; to start the demo over, seed again with a new `DEMO_PARENT_EMAIL`.
 
 ## Supabase auth settings for production
 

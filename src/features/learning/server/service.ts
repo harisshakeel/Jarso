@@ -1,6 +1,11 @@
 import "server-only";
 import { cache } from "react";
-import { assertRole, assertSelfOrParentOf, getFamily } from "@/features/family/server";
+import {
+  assertRole,
+  assertSelfOrParentOf,
+  getFamily,
+  getFamilyNow,
+} from "@/features/family/server";
 import { AppError, addDays, familyToday, localDateOf, startOfWeek } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import { isComeback } from "../comeback";
@@ -29,7 +34,10 @@ type FamilyClock = { timezone: string; today: string };
 async function familyClock(): Promise<FamilyClock> {
   const family = await getFamily();
   if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
-  return { timezone: family.timezone, today: familyToday(family.timezone) };
+  return {
+    timezone: family.timezone,
+    today: familyToday(family.timezone, await getFamilyNow(family.id)),
+  };
 }
 
 /** The signed-in child. Learning writes are the child's own. */

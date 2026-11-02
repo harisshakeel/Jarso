@@ -48,9 +48,6 @@ export type MovementRow = {
   occurredAt: string;
 };
 
-export type OccurrenceAmounts = { id: string; amountMinor: number; shortfallMinor: number };
-export type ClosedOccurrence = { id: string; closedAt: string };
-
 export async function fetchBalance(db: Client, childId: string, jar: Jar): Promise<number> {
   const { data, error } = await db.rpc("balance", { p_child_id: childId, p_jar: jar });
   if (error) throw toAppError(error, "Failed to load jars");
@@ -113,43 +110,4 @@ export async function listMovementsSince(
     amountMinor: Number(row.amount_minor),
     occurredAt: row.occurred_at,
   }));
-}
-
-/** Planned amount and shortfall of the given allowance occurrences. */
-export async function listOccurrenceAmounts(
-  db: Client,
-  ids: string[],
-): Promise<OccurrenceAmounts[]> {
-  if (ids.length === 0) return [];
-  const { data, error } = await db
-    .from("allowance_occurrences")
-    .select("id, amount_minor, shortfall_minor")
-    .in("id", ids);
-  if (error) throw toAppError(error, "Failed to load history");
-  return data.map((row) => ({
-    id: row.id,
-    amountMinor: Number(row.amount_minor),
-    shortfallMinor: Number(row.shortfall_minor),
-  }));
-}
-
-/** Allowance occurrences closed as not given, newest first; only those before `before` when given. */
-export async function listClosedOccurrences(
-  db: Client,
-  childId: string,
-  limit: number,
-  before?: string,
-): Promise<ClosedOccurrence[]> {
-  let query = db
-    .from("allowance_occurrences")
-    .select("id, confirmed_at")
-    .eq("child_id", childId)
-    .eq("status", "closed")
-    .not("confirmed_at", "is", null);
-  if (before) query = query.lt("confirmed_at", before);
-  const { data, error } = await query.order("confirmed_at", { ascending: false }).limit(limit);
-  if (error) throw toAppError(error, "Failed to load history");
-  return data.flatMap((row) =>
-    row.confirmed_at ? [{ id: row.id, closedAt: row.confirmed_at }] : [],
-  );
 }

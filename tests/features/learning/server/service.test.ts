@@ -6,6 +6,7 @@ vi.mock("@/features/family/server", () => ({
   assertRole: vi.fn(),
   assertSelfOrParentOf: vi.fn(),
   getFamily: vi.fn(),
+  getFamilyNow: vi.fn(async () => new Date()),
 }));
 vi.mock("@/features/learning/server/repository", () => ({
   completeCheckIn: vi.fn(),

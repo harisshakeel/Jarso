@@ -247,7 +247,7 @@ export function GuideSheet({
                     rows={2}
                     maxLength={MAX_MESSAGE_LENGTH}
                     placeholder={guideCopy.placeholder}
-                    className="w-full resize-none rounded-xl border border-hairline-strong bg-card px-3 py-2 outline-none focus-visible:border-primary"
+                    className="w-full resize-none rounded-xl border border-hairline-strong bg-card px-3 py-2 focus-visible:border-primary"
                     aria-describedby="guide-count"
                   />
                   <div className="flex items-center justify-between gap-3">

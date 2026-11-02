@@ -11,7 +11,7 @@ import { getAvailability, listRequests } from "@/features/requests/server";
 import { getChildRules } from "@/features/rules/server";
 import {
   addDays,
-  familyToday,
+  formatIsoDate,
   formatMoney,
   localDateOf,
   logger,
@@ -53,25 +53,21 @@ const REQUEST_LINES = 5;
 /** A label typed by a person, as the model sees it. */
 const LABEL_CHARS = 40;
 
-export type ToolContext = { childId: string; currency: string; timezone: string };
+/** Who the turn is for. `today` is the family's day (demo clock included), set once per turn. */
+export type ToolContext = { childId: string; currency: string; timezone: string; today: string };
 
 /** Records one figure under this call's refs. */
 type Fact = (key: string, shown: string) => { ref: string; value: string };
 
 type Run<N extends ToolName> = (
   input: ToolInput<N>,
-  ctx: ToolContext & { today: string },
+  ctx: ToolContext,
   fact: Fact,
 ) => Promise<unknown>;
 
 /** "Fri 6 Nov" for an ISO date. Dates are calendar days, so format them in UTC. */
 function showDate(isoDate: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(new Date(`${isoDate}T00:00:00Z`));
+  return formatIsoDate(isoDate, { weekday: "short", day: "numeric", month: "short" });
 }
 
 /**
@@ -421,7 +417,7 @@ export function createTurnTools(
   const calls: ToolCall[] = [];
   const remembered: string[] = [];
   const timesCalled = new Map<ToolName, number>();
-  const today = familyToday(ctx.timezone);
+
   const error = (message: string) => ({
     content: JSON.stringify({ error: message }),
     isError: true,
@@ -454,7 +450,7 @@ export function createTurnTools(
       }
       try {
         const run = runners[name] as Run<typeof name>;
-        const data = await run(parsed.data as never, { ...ctx, today }, fact);
+        const data = await run(parsed.data as never, ctx, fact);
         // A runner returns `{ error }` for arguments the model can fix (a price it can't read).
         const failed = typeof data === "object" && data !== null && "error" in data;
         // Only a fact that was really stored is shown to the child as remembered.

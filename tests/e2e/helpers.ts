@@ -160,3 +160,15 @@ export async function dueOccurrence(
   if (readError) throw new Error(`Occurrence lookup failed: ${readError.message}`);
   return data.id;
 }
+
+/**
+ * Waits until React has hydrated the page's first form. A submit made before hydration is
+ * replayed through `<form action>`, which resets the form (React 19), so a fast fill-and-click
+ * could send empty fields. Call it right after opening a sign-up or sign-in page.
+ */
+export async function waitForHydration(page: Page, selector = "form"): Promise<void> {
+  await page.waitForFunction((sel) => {
+    const el = document.querySelector(sel);
+    return el !== null && Object.keys(el).some((key) => key.startsWith("__reactFiber$"));
+  }, selector);
+}

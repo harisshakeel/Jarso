@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, readFamilyCode } from "./helpers";
+import { completeParentProfile, readFamilyCode, waitForHydration } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Child home (jars, allowance card, history) against the LOCAL Supabase stack. */
@@ -37,6 +37,8 @@ test.beforeAll(async ({ browser }) => {
   ).newPage();
 
   await parent.goto("/signup");
+
+  await waitForHydration(parent);
   await parent.getByLabel("Name", { exact: true }).fill("Alex Parent");
   await parent.getByLabel("Email", { exact: true }).fill(`e2e-childhome-${run}@example.com`);
   await parent.getByLabel("Password", { exact: true }).fill(password);
@@ -66,6 +68,8 @@ test.beforeAll(async ({ browser }) => {
   await expect(parent.getByRole("region", { name: "Due now" })).toBeVisible();
 
   await child.goto("/sign-in/child");
+
+  await waitForHydration(child);
   const codeField = child.getByLabel("Family code");
   await expect(async () => {
     await codeField.fill(code);
@@ -139,7 +143,7 @@ test("child sets a goal and the Save jar shows how far to go", async () => {
   const sheet = child.getByRole("dialog");
   await sheet.getByLabel("What is it?").fill("Football boots");
   // The radios are visually hidden inside their picture labels.
-  await sheet.getByRole("radio", { name: "⚽" }).check({ force: true });
+  await sheet.getByRole("radio", { name: "Football" }).check({ force: true });
   await sheet.getByLabel("How much does it cost?").fill("45");
   await sheet.getByLabel("How much will you save each time?").fill("4");
   await expect(sheet.getByText("About 12 more allowances")).toBeVisible();

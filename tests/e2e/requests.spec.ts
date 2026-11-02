@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, readFamilyCode } from "./helpers";
+import { completeParentProfile, readFamilyCode, waitForHydration } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -64,6 +64,8 @@ test.beforeAll(async ({ browser }) => {
   ).newPage();
 
   await parent.goto("/signup");
+
+  await waitForHydration(parent);
   await parent.getByLabel("Name", { exact: true }).fill("Alex Parent");
   await parent.getByLabel("Email", { exact: true }).fill(email);
   await parent.getByLabel("Password", { exact: true }).fill(password);
@@ -84,6 +86,8 @@ test.beforeAll(async ({ browser }) => {
   childBase = new URL(parent.url()).pathname;
 
   await child.goto("/sign-in/child");
+
+  await waitForHydration(child);
   const codeField = child.getByLabel("Family code");
   await expect(async () => {
     await codeField.fill(code);
@@ -141,6 +145,141 @@ test("child takes out 500, parent approves and confirms the handover", async () 
   await parent.goto(childBase);
   await expect(parent.getByRole("region", { name: "Save jar" })).toContainText("US$1,500.00");
   await expect(parent.getByRole("region", { name: "Spend jar" })).toContainText("US$1,500.00");
+});
+
+// Save 1500 and Spend 1500 from here until the auto rules below; the next three tests leave both
+// as they are, which is the point.
+
+const requestRow = (text: string) =>
+  child.getByRole("region", { name: "Your requests" }).getByRole("listitem").filter({
+    hasText: text,
+  });
+
+test("a pending take-out is reserved and can't be asked for again beyond what's left", async () => {
+  const sheet = await ask("Take out", "600", "Ask");
+  await expect(sheet.getByRole("status").first()).toHaveText("Sent to your parent");
+  await sheet.getByRole("button", { name: "Done" }).click();
+
+  // The money stays in Save, shown as reserved, not moved.
+  await child.goto("/child/requests");
+  const save = child.getByRole("region", { name: "Save jar" });
+  await expect(save).toContainText("US$1,500");
+  await expect(save).toContainText("US$600 waiting to come out");
+  await expect(requestRow("Take out US$600")).toContainText("Waiting");
+
+  // Only what isn't reserved can be asked for.
+  const again = await ask("Take out", "1000", "Ask");
+  await expect(again.getByRole("status").first()).toHaveText("You can take out up to US$900");
+  await again.getByRole("button", { name: "Close" }).click();
+  await expect(child.getByRole("dialog")).toHaveCount(0);
+});
+
+test("parent says not now to a take-out: Save unchanged, reservation gone, child told", async () => {
+  // Push is off in e2e: playwright.config.ts gives the server no VAPID keys, `__NEXT_PROCESSED_ENV`
+  // keeps .env.local out, and CI sets none. The push switch hides itself without a public key,
+  // so its absence proves this run has push disabled, and the notices below still arrive in-app.
+  await parent.goto("/parent/inbox");
+  await expect(parent.getByText("Pings on this device")).toHaveCount(0);
+  await expect(
+    parent
+      .getByRole("listitem")
+      .filter({ hasText: "Sam asked to take money out of Save" })
+      .filter({ hasText: /US\$600(\.00)?\. Your answer is waiting\./ }),
+  ).toBeVisible();
+
+  await parent.goto("/parent");
+  const item = parent.getByRole("listitem").filter({ hasText: "Sam wants US$600.00" });
+  await item.getByRole("button", { name: "Not now" }).click();
+  await expect(item).toHaveCount(0);
+  await parent.goto(childBase);
+  await expect(parent.getByRole("region", { name: "Save jar" })).toContainText("US$1,500.00");
+  await expect(parent.getByRole("region", { name: "Spend jar" })).toContainText("US$1,500.00");
+
+  await child.goto("/child/inbox");
+  await expect(child.getByText("Pings on this device")).toHaveCount(0);
+  await expect(child.getByText("Your parent said not now").first()).toBeVisible();
+
+  await child.goto("/child/requests");
+  const save = child.getByRole("region", { name: "Save jar" });
+  await expect(save).toContainText("US$1,500");
+  await expect(save).not.toContainText("waiting to come out");
+  await expect(child.getByRole("region", { name: "Spend jar" })).toContainText("US$1,500");
+  await expect(requestRow("Take out US$600")).toContainText("Not now");
+  await child.getByRole("button", { name: /Take out/ }).click();
+  await expect(child.getByRole("dialog")).toContainText("You can take out up to US$1,500");
+  await child.getByRole("dialog").getByRole("button", { name: "Close" }).click();
+});
+
+test("child cancels a put-in: nothing posts and the Spend hold is released", async () => {
+  const sheet = await ask("Put in", "400", "Put in");
+  await expect(sheet.getByRole("status").first()).toHaveText("Waiting for your parent to confirm");
+  await sheet.getByRole("button", { name: "Done" }).click();
+
+  await child.goto("/child/requests");
+  await expect(child.getByRole("region", { name: "Spend jar" })).toContainText(
+    "US$400 on its way to Save",
+  );
+  await child.getByRole("button", { name: /Put in/ }).click();
+  await expect(child.getByRole("dialog")).toContainText("Spend has US$1,100");
+  await child.getByRole("dialog").getByRole("button", { name: "Close" }).click();
+
+  // The parent is told about the new put-in in the inbox.
+  await parent.goto("/parent/inbox");
+  await expect(
+    parent
+      .getByRole("listitem")
+      .filter({ hasText: "Sam asked to add money to Save" })
+      .filter({ hasText: /US\$400(\.00)?\. Your answer is waiting\./ }),
+  ).toBeVisible();
+
+  await requestRow("Put in US$400")
+    .getByRole("button", { name: "Cancel put in of US$400" })
+    .click();
+  await expect(requestRow("Put in US$400")).toContainText("Cancelled");
+  const spend = child.getByRole("region", { name: "Spend jar" });
+  await expect(spend).toContainText("US$1,500");
+  await expect(spend).not.toContainText("on its way to Save");
+  await expect(child.getByRole("region", { name: "Save jar" })).toContainText("US$1,500");
+
+  await parent.goto("/parent");
+  await expect(parent.getByText("Sam gave you US$400.00?")).toHaveCount(0);
+  await parent.goto(childBase);
+  await expect(parent.getByRole("region", { name: "Save jar" })).toContainText("US$1,500.00");
+  await expect(parent.getByRole("region", { name: "Spend jar" })).toContainText("US$1,500.00");
+});
+
+test("parent didn't get a put-in: nothing posts, hold released, child told", async () => {
+  const sheet = await ask("Put in", "250", "Put in");
+  await expect(sheet.getByRole("status").first()).toHaveText("Waiting for your parent to confirm");
+  await sheet.getByRole("button", { name: "Done" }).click();
+
+  await parent.goto("/parent/inbox");
+  await expect(
+    parent
+      .getByRole("listitem")
+      .filter({ hasText: "Sam asked to add money to Save" })
+      .filter({ hasText: /US\$250(\.00)?\. Your answer is waiting\./ }),
+  ).toBeVisible();
+  await parent.goto("/parent");
+  const item = parent.getByRole("listitem").filter({ hasText: "Sam gave you US$250.00?" });
+  await item.getByRole("button", { name: "Didn't get it" }).click();
+  await expect(item).toHaveCount(0);
+  await parent.goto(childBase);
+  await expect(parent.getByRole("region", { name: "Save jar" })).toContainText("US$1,500.00");
+  await expect(parent.getByRole("region", { name: "Spend jar" })).toContainText("US$1,500.00");
+
+  await child.goto("/child/inbox");
+  await expect(child.getByText(/Your US\$250(\.00)? wasn't added to Save/)).toBeVisible();
+
+  await child.goto("/child/requests");
+  const spend = child.getByRole("region", { name: "Spend jar" });
+  await expect(spend).toContainText("US$1,500");
+  await expect(spend).not.toContainText("on its way to Save");
+  await expect(child.getByRole("region", { name: "Save jar" })).toContainText("US$1,500");
+  await expect(requestRow("Put in US$250")).toContainText("Not now");
+  await child.getByRole("button", { name: /Put in/ }).click();
+  await expect(child.getByRole("dialog")).toContainText("Spend has US$1,500");
+  await child.getByRole("dialog").getByRole("button", { name: "Close" }).click();
 });
 
 test("with auto-approve per time 300, a 200 take-out is approved at once", async () => {

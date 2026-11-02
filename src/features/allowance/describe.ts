@@ -1,17 +1,9 @@
+import { formatIsoDate, utcMidnight } from "@/lib";
 import type { Frequency, Schedule, Split } from "./types";
 
 const DEFAULT_LOCALE = "en-GB";
 const ordinalRules = new Intl.PluralRules("en", { type: "ordinal" });
 const ordinalSuffix: Record<string, string> = { one: "st", two: "nd", few: "rd", other: "th" };
-
-/** `YYYY-MM-DD` as a UTC midnight Date, so formatting never shifts the day. */
-function utcDate(isoDate: string): Date {
-  return new Date(`${isoDate}T00:00:00Z`);
-}
-
-function format(date: Date, locale: string, options: Intl.DateTimeFormatOptions): string {
-  return new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).format(date);
-}
 
 function ordinal(n: number): string {
   return `${n}${ordinalSuffix[ordinalRules.select(n)] ?? "th"}`;
@@ -19,7 +11,7 @@ function ordinal(n: number): string {
 
 /** `YYYY-MM-DD` as "2 Nov". */
 export function formatDay(isoDate: string, locale: string = DEFAULT_LOCALE): string {
-  return format(utcDate(isoDate), locale, { day: "numeric", month: "short" });
+  return formatIsoDate(isoDate, { day: "numeric", month: "short" }, locale);
 }
 
 /** Summary line under the date field: "Every Sunday from 2 Nov". */
@@ -28,13 +20,12 @@ export function describeSchedule(
   firstOn: string,
   locale: string = DEFAULT_LOCALE,
 ): string {
-  const date = utcDate(firstOn);
-  const from = `from ${format(date, locale, { day: "numeric", month: "short" })}`;
+  const from = `from ${formatDay(firstOn, locale)}`;
   switch (frequency) {
     case "weekly":
-      return `Every ${format(date, locale, { weekday: "long" })} ${from}`;
+      return `Every ${formatIsoDate(firstOn, { weekday: "long" }, locale)} ${from}`;
     case "monthly":
-      return `Every month on the ${ordinal(date.getUTCDate())} ${from}`;
+      return `Every month on the ${ordinal(utcMidnight(firstOn).getUTCDate())} ${from}`;
     case "quarterly":
       return `Every 3 months ${from}`;
     case "annual":
@@ -51,16 +42,16 @@ export function describeCadence(
   anchorOn: string,
   locale: string = DEFAULT_LOCALE,
 ): string {
-  const date = utcDate(anchorOn);
+  const dayOfMonth = utcMidnight(anchorOn).getUTCDate();
   switch (frequency) {
     case "weekly":
-      return `Every ${format(date, locale, { weekday: "long" })}`;
+      return `Every ${formatIsoDate(anchorOn, { weekday: "long" }, locale)}`;
     case "monthly":
-      return `Every month on the ${ordinal(date.getUTCDate())}`;
+      return `Every month on the ${ordinal(dayOfMonth)}`;
     case "quarterly":
-      return `Every 3 months on the ${ordinal(date.getUTCDate())}`;
+      return `Every 3 months on the ${ordinal(dayOfMonth)}`;
     case "annual":
-      return `Every year on ${format(date, locale, { day: "numeric", month: "short" })}`;
+      return `Every year on ${formatDay(anchorOn, locale)}`;
   }
 }
 

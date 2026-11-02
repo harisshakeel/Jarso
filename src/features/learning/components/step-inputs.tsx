@@ -15,7 +15,14 @@ type InputProps<D extends Draft["kind"]> = {
   disabled: boolean;
   /** Prefix for element ids, unique per step on the page. */
   idBase: string;
+  /** Id of the feedback shown after a check, so the input announces it (design.md §11). */
+  describedBy?: string;
 };
+
+/** Joins the ids that describe an input; undefined when there are none. */
+function ids(...parts: (string | undefined)[]): string | undefined {
+  return parts.filter(Boolean).join(" ") || undefined;
+}
 
 const optionCard =
   "flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-hairline-strong bg-card px-4 py-3 font-semibold transition-colors hover:bg-muted has-checked:border-primary has-checked:bg-secondary has-disabled:cursor-default has-disabled:hover:bg-card";
@@ -28,10 +35,11 @@ export function OptionInput({
   currency,
   disabled,
   idBase,
+  describedBy,
 }: InputProps<"option">) {
   if (body.type !== "choice" && body.type !== "predict" && body.type !== "reason") return null;
   return (
-    <fieldset className="grid gap-3" disabled={disabled}>
+    <fieldset className="grid gap-3" disabled={disabled} aria-describedby={describedBy}>
       <legend className="sr-only">Pick one answer</legend>
       {body.options.map((option) => (
         <label key={option.id} className={optionCard}>
@@ -58,6 +66,7 @@ export function NumberInput({
   currency,
   disabled,
   idBase,
+  describedBy,
 }: InputProps<"number">) {
   if (body.type !== "amount") return null;
   const money = body.unit === "money";
@@ -86,8 +95,8 @@ export function NumberInput({
           onChange={(event) => onChange({ kind: "number", text: event.target.value })}
           disabled={disabled}
           placeholder={placeholder}
-          className="h-12 w-40 rounded-xl border border-hairline-strong bg-card px-3 font-bold text-xl tabular-nums outline-none focus-visible:border-primary disabled:opacity-70"
-          aria-describedby={body.suffix ? `${idBase}-suffix` : undefined}
+          className="h-12 w-40 rounded-xl border border-hairline-strong bg-card px-3 font-bold text-xl tabular-nums focus-visible:border-primary disabled:opacity-70"
+          aria-describedby={ids(body.suffix ? `${idBase}-suffix` : undefined, describedBy)}
         />
         {body.suffix ? (
           <span id={`${idBase}-suffix`} className="font-semibold text-ink-2">
@@ -107,6 +116,7 @@ export function SplitInput({
   currency,
   disabled,
   idBase,
+  describedBy,
 }: InputProps<"split">) {
   if (body.type !== "split") return null;
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
@@ -129,7 +139,7 @@ export function SplitInput({
         </span>
         <Slider
           aria-label="Save amount"
-          aria-describedby={`${idBase}-split-label`}
+          aria-describedby={ids(`${idBase}-split-label`, describedBy)}
           min={0}
           max={body.total}
           step={body.increment}
@@ -157,6 +167,7 @@ export function SortInput({
   currency,
   disabled,
   idBase,
+  describedBy,
 }: InputProps<"sort">) {
   if (body.type !== "sort") return null;
   return (
@@ -165,6 +176,7 @@ export function SortInput({
         <li key={item.id}>
           <fieldset
             disabled={disabled}
+            aria-describedby={describedBy}
             className="grid gap-2 rounded-xl border border-hairline bg-card p-3 sm:grid-cols-[1fr_auto] sm:items-center"
           >
             <legend className="float-left font-semibold sm:mb-0">
@@ -210,6 +222,7 @@ export function MatchInput({
   currency,
   disabled,
   idBase,
+  describedBy,
 }: InputProps<"match">) {
   if (body.type !== "match") return null;
   const meanings = stableShuffle(body.pairs, idBase, (pair) => pair.id);
@@ -227,7 +240,8 @@ export function MatchInput({
               onChange({ kind: "match", pairs: { ...draft.pairs, [pair.id]: event.target.value } })
             }
             disabled={disabled}
-            className="h-11 w-full rounded-xl border border-hairline-strong bg-card px-3 font-semibold outline-none focus-visible:border-primary disabled:opacity-70"
+            aria-describedby={describedBy}
+            className="h-11 w-full rounded-xl border border-hairline-strong bg-card px-3 font-semibold focus-visible:border-primary disabled:opacity-70"
           >
             <option value="" disabled>
               Choose a meaning

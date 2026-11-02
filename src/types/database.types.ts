@@ -260,7 +260,7 @@ export type Database = {
           profile_id: string
           recent_failures: number
           recent_failures_since: string | null
-          set_by: string
+          set_by: string | null
           updated_at: string
         }
         Insert: {
@@ -269,7 +269,7 @@ export type Database = {
           profile_id: string
           recent_failures?: number
           recent_failures_since?: string | null
-          set_by: string
+          set_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -278,7 +278,7 @@ export type Database = {
           profile_id?: string
           recent_failures?: number
           recent_failures_since?: string | null
-          set_by?: string
+          set_by?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -381,28 +381,34 @@ export type Database = {
       }
       families: {
         Row: {
+          clock_offset: unknown
           code: string
           created_at: string
           created_by: string
           currency: string
+          demo_clock_enabled: boolean
           id: string
           timezone: string
           updated_at: string
         }
         Insert: {
+          clock_offset?: unknown
           code: string
           created_at?: string
           created_by: string
           currency: string
+          demo_clock_enabled?: boolean
           id?: string
           timezone?: string
           updated_at?: string
         }
         Update: {
+          clock_offset?: unknown
           code?: string
           created_at?: string
           created_by?: string
           currency?: string
+          demo_clock_enabled?: boolean
           id?: string
           timezone?: string
           updated_at?: string
@@ -1883,6 +1889,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_family_clock: {
+        Args: { p_days: number; p_family_id: string }
+        Returns: Json
+      }
       allowance_due_on: {
         Args: { p_anchor: string; p_frequency: string; p_index: number }
         Returns: string
@@ -2132,6 +2142,9 @@ export type Database = {
         Args: { p_failure_code: string; p_payment_id: string; p_status: string }
         Returns: undefined
       }
+      family_clock_offset: { Args: { p_family_id: string }; Returns: unknown }
+      family_demo_clock: { Args: never; Returns: boolean }
+      family_now: { Args: { p_family_id: string }; Returns: string }
       family_today: {
         Args: { p_family_id: string; p_now?: string }
         Returns: string
@@ -2143,7 +2156,10 @@ export type Database = {
           nickname: string
         }[]
       }
-      generate_due_occurrences: { Args: { p_now?: string }; Returns: number }
+      generate_due_occurrences: {
+        Args: { p_family_id?: string; p_now?: string }
+        Returns: number
+      }
       generate_for_schedule: {
         Args: { p_schedule_id: string; p_today: string }
         Returns: number
@@ -2209,6 +2225,7 @@ export type Database = {
       is_approved_member: { Args: { p_family_id: string }; Returns: boolean }
       is_parent_of: { Args: { p_child_id: string }; Returns: boolean }
       is_self: { Args: { p_child_id: string }; Returns: boolean }
+      is_valid_nickname: { Args: { p_nickname: string }; Returns: boolean }
       learning_child_family: { Args: never; Returns: string }
       list_due_for_parent: {
         Args: { p_child_id: string }
@@ -2379,6 +2396,7 @@ export type Database = {
         Args: { p_actor: string; p_request_id: string }
         Returns: string
       }
+      prune_onboarding_data: { Args: never; Returns: number }
       push_subscribe: {
         Args: {
           p_auth: string
@@ -2514,7 +2532,10 @@ export type Database = {
         }
         Returns: string
       }
-      send_handover_reminders: { Args: { p_now?: string }; Returns: number }
+      send_handover_reminders: {
+        Args: { p_family_id?: string; p_now?: string }
+        Returns: number
+      }
       set_allow_negative_spend: {
         Args: { p_allowed: boolean; p_child_id: string }
         Returns: undefined

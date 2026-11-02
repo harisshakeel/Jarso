@@ -1,7 +1,9 @@
 import "server-only";
+import { cache } from "react";
 import { clientEnv, routes } from "@/config";
+import { serverEnv } from "@/config/env.server";
 import { sendEmail } from "@/features/notifications/server";
-import { AppError, isAppError, logger } from "@/lib";
+import { AppError, familyToday, isAppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -14,6 +16,7 @@ import {
 import type {
   AcceptInvitationInput,
   AcceptListedInvitationInput,
+  AdvanceFamilyClockInput,
   ChildSignInInput,
   CreateFamilyInput,
   RemoveChildInput,
@@ -22,16 +25,18 @@ import type {
   StartChildOnboardingInput,
   UpdateFamilySettingsInput,
 } from "../schemas";
-import type { ChildSummary, Family, PendingInvitation } from "../types";
+import type { ChildSummary, ClockAdvance, Family, PendingInvitation } from "../types";
 import {
   createChildAuthUser,
   deleteChildAuthUser,
   deleteChildIdentity,
   mintChildSession,
-  rotateChildPassword,
 } from "./child-auth";
 import { assertParentOf, assertRole, getMembership } from "./dal";
 import {
+  advanceClock,
+  fetchFamilyNow,
+  fetchIsDemoFamily,
   findFamilyById,
   findInvitationByHash,
   findNickname,
@@ -87,6 +92,57 @@ export async function getFamily(): Promise<Family | null> {
   return findFamilyById(await createClient(), membership.familyId);
 }
 
+/**
+ * The family's now (D11): real time plus its demo clock offset, which is 0 for every family
+ * whose clock was never moved. Use it for the family's today (`familyToday(timezone, now)`), so
+ * the app and the database agree on the day. Real-time rules (undo windows, checkout expiry,
+ * guide quotas) keep `Date.now()`. Once per request and family.
+ */
+export const getFamilyNow = cache(
+  async (familyId: string): Promise<Date> => fetchFamilyNow(await createClient(), familyId),
+);
+
+/** Whether this deployment offers the demo clock (FEATURE_DEMO_CLOCK). */
+export function demoClockEnabled(): boolean {
+  return serverEnv.FEATURE_DEMO_CLOCK;
+}
+
+const DEMO_CLOCK_OFF = "The demo clock is off.";
+
+/**
+ * The family's today for the Demo clock card, or null when the card is hidden: the deployment
+ * flag is off, or the caller's family is not a demo family.
+ */
+export async function getDemoClockToday(family: Family): Promise<string | null> {
+  if (!demoClockEnabled()) return null;
+  if (!(await fetchIsDemoFamily(await createClient()))) return null;
+  return familyToday(family.timezone, await getFamilyNow(family.id));
+}
+
+/**
+ * Parent moves their family's demo clock forward. Refused unless the deployment has the flag
+ * on; the database also refuses a family that is not a demo family (CONFLICT).
+ */
+export async function advanceFamilyClock(input: AdvanceFamilyClockInput): Promise<ClockAdvance> {
+  if (!demoClockEnabled()) throw new AppError("FORBIDDEN", DEMO_CLOCK_OFF);
+  const { membership } = await assertRole("parent");
+  if (!membership) throw new AppError("FORBIDDEN", "Set up your family first.");
+  try {
+    return await advanceClock(await createClient(), membership.familyId, input.days);
+  } catch (error) {
+    if (isAppError(error) && error.code === "CONFLICT") {
+      throw new AppError("CONFLICT", "The demo clock is off for this family.", { cause: error });
+    }
+    // Days are already 1 to 60 here, so the database only refuses going past a year ahead.
+    if (isAppError(error) && error.code === "VALIDATION") {
+      throw new AppError("VALIDATION", "The demo clock can go at most a year ahead.", {
+        cause: error,
+      });
+    }
+    throw error;
+  }
+}
+
 export async function listChildren(): Promise<ChildSummary[]> {
   const membership = await getMembership();
   if (!membership) return [];
@@ -135,14 +191,17 @@ export async function startChildOnboarding(
     hashSecret(ip),
     hashSecret(normaliseEmailForLimit(input.parentEmail)),
   ]);
+  const tooMany = "Too many tries. Please wait a little and try again.";
   await enforceLimits(
     [
       { key: `invite:ip:${ipHash}`, window: "1 hour", max: 5 },
       { key: `invite:email:${emailHash}`, window: "1 day", max: 3 },
-      { key: "invite:global", window: "1 day", max: 200 },
     ],
-    "Too many tries. Please wait a little and try again.",
+    tooMany,
   );
+  // Only attempts that pass the per-source limits count globally, so one noisy source can't
+  // use up everyone's daily allowance.
+  await enforceLimits([{ key: "invite:global", window: "1 day", max: 200 }], tooMany);
 
   const token = generateToken();
   const code = generateCode(INVITE_CODE_LENGTH);
@@ -284,17 +343,15 @@ export async function childSignIn(input: ChildSignInInput, ip: string): Promise<
     throw new AppError("UNAUTHORIZED", "Hmm, that didn't match. Check with your parent.");
   }
 
-  // Kills any password the child set for themselves (which would skip the PIN and lockout).
-  // Before minting: GoTrue may end the user's existing sessions on a password change.
-  await rotateChildPassword(result.childId);
+  // No password rotation: the database never lets a child's password change
+  // (on_auth_child_password_change), so other devices stay signed in.
   await mintChildSession(result.childId);
 }
 
-/** Parent resets a PIN. The old PIN, any self-set password and every signed-in device stop working. */
+/** Parent resets a PIN. The old PIN and every signed-in device stop working. */
 export async function setChildPin(input: SetChildPinInput): Promise<void> {
   await assertParentOf(input.childId);
   await updateChildPin(await createClient(), input.childId, input.pin);
-  await rotateChildPassword(input.childId);
   await revokeUserSessions(createAdminClient(), input.childId);
 }
 

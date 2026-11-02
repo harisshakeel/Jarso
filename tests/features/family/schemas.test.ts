@@ -64,14 +64,23 @@ describe("family schemas", () => {
     );
   });
 
-  it.each(["Zoë", "Ελένη", "Sam 2", "O'Neil", "Mary-Jo", "j.r_b", "Ana"])(
-    "accepts nickname %s",
-    (nickname) => {
-      expect(addChildSchema.safeParse({ ...child, nickname }).success).toBe(true);
-    },
-  );
+  it.each([
+    "Zoë",
+    "Ελένη",
+    "Sam 2",
+    "O'Neil",
+    "Mary-Jo",
+    "j.r_b",
+    "Ana",
+    "अनु",
+    "किरण",
+    "कृष्ण",
+    "น้อย",
+  ])("accepts nickname %s", (nickname) => {
+    expect(addChildSchema.safeParse({ ...child, nickname }).success).toBe(true);
+  });
 
-  it.each(["a@b.co", "see http://x", "<b>", "Sam!", "😀", "x²"])(
+  it.each(["a@b.co", "see http://x", "<b>", "Sam!", "😀", "x²", "Sa‍m", "Sam‮"])(
     "rejects nickname %s",
     (nickname) => {
       expect(addChildSchema.safeParse({ ...child, nickname }).success).toBe(false);
@@ -80,6 +89,15 @@ describe("family schemas", () => {
       ).toBe(false);
     },
   );
+
+  // Same mark ranges as is_valid_nickname: no invisible grapheme joiner, no mark outside them.
+  it.each(["Sa͏m", "Sam⃝"])("rejects nickname with mark %j", (nickname) => {
+    expect(addChildSchema.safeParse({ ...child, nickname }).success).toBe(false);
+  });
+
+  it("accepts the marks either side of the joiner", () => {
+    expect(addChildSchema.safeParse({ ...child, nickname: "Sa͎m͐" }).success).toBe(true);
+  });
 
   it("normalises decomposed accents so they count as letters", () => {
     expect(addChildSchema.parse({ ...child, nickname: "Zoe\u0308" }).nickname).toBe("Zoë");

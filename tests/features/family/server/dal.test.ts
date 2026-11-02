@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AppError } from "@/lib";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => {
@@ -21,8 +22,14 @@ vi.mock("@/features/profiles/server", () => ({ isParentProfileComplete: vi.fn() 
 const auth = await import("@/features/auth/server");
 const repo = await import("@/features/family/server/repository");
 const profiles = await import("@/features/profiles/server");
-const { assertParentCanRead, assertParentOf, assertRole, assertSelfOrParentOf, requireRole } =
-  await import("@/features/family/server/dal");
+const {
+  assertParentCanRead,
+  assertParentOf,
+  assertRole,
+  assertSelfOrParentOf,
+  currentRole,
+  requireRole,
+} = await import("@/features/family/server/dal");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -189,5 +196,94 @@ describe("assertRole and the parent profile gate (ADR 0008)", () => {
 
     await expect(assertRole("child")).resolves.toMatchObject({ user });
     expect(profiles.isParentProfileComplete).not.toHaveBeenCalled();
+  });
+});
+
+describe("a signed-in user with no profile role (null)", () => {
+  const user = { id: "ghost-1", email: "g@example.com" };
+
+  beforeEach(() => {
+    vi.mocked(auth.assertUser).mockResolvedValue(user);
+    vi.mocked(auth.getCurrentUser).mockResolvedValue(user);
+    vi.mocked(repo.findMembership).mockResolvedValue(null);
+    vi.mocked(repo.findProfileRole).mockResolvedValue(null);
+    vi.mocked(profiles.isParentProfileComplete).mockResolvedValue(true);
+  });
+
+  it("is not treated as a parent by assertRole", async () => {
+    await expect(assertRole("parent")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(profiles.isParentProfileComplete).not.toHaveBeenCalled();
+  });
+
+  it("is not treated as a child by assertRole", async () => {
+    await expect(assertRole("child")).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("is refused by assertParentOf before any parent check", async () => {
+    await expect(assertParentOf("child-1")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repo.isParentOf).not.toHaveBeenCalled();
+  });
+
+  it("gets FORBIDDEN from requireRole, not a redirect that could loop", async () => {
+    await expect(requireRole("parent", "/parent")).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("has no role for pages that serve both", async () => {
+    await expect(currentRole()).resolves.toBeNull();
+  });
+});
+
+describe("assertRole with a membership", () => {
+  it("refuses a child calling a parent action without reading the profile", async () => {
+    const child = { id: "child-1", email: null };
+    vi.mocked(auth.assertUser).mockResolvedValue(child);
+    vi.mocked(auth.getCurrentUser).mockResolvedValue(child);
+    vi.mocked(repo.findMembership).mockResolvedValue({
+      familyId: "fam-1",
+      role: "child",
+      status: "approved",
+    });
+
+    await expect(assertRole("parent")).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "You can't do that.",
+    });
+    expect(repo.findProfileRole).not.toHaveBeenCalled();
+  });
+
+  it("refuses when signed out", async () => {
+    vi.mocked(auth.assertUser).mockRejectedValue(
+      new AppError("UNAUTHORIZED", "You must be signed in"),
+    );
+
+    await expect(assertRole("child")).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+});
+
+describe("assertParentOf", () => {
+  const parent = { id: "parent-1", email: "p@example.com" };
+
+  beforeEach(() => {
+    vi.mocked(auth.assertUser).mockResolvedValue(parent);
+    vi.mocked(auth.getCurrentUser).mockResolvedValue(parent);
+    vi.mocked(repo.findMembership).mockResolvedValue({
+      familyId: "fam-1",
+      role: "parent",
+      status: "approved",
+    });
+    vi.mocked(profiles.isParentProfileComplete).mockResolvedValue(true);
+  });
+
+  it("returns the parent for their own child", async () => {
+    vi.mocked(repo.isParentOf).mockResolvedValue(true);
+
+    await expect(assertParentOf("child-1")).resolves.toBe(parent);
+    expect(repo.isParentOf).toHaveBeenCalledWith(expect.anything(), "child-1");
+  });
+
+  it("refuses a child of another family", async () => {
+    vi.mocked(repo.isParentOf).mockResolvedValue(false);
+
+    await expect(assertParentOf("child-9")).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

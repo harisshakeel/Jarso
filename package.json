@@ -24,6 +24,7 @@
     "db:types": "supabase gen types typescript --local > src/types/database.types.ts",
     "prepare": "husky",
     "db:types:linked": "supabase gen types typescript --linked > src/types/database.types.ts",
+    "db:seed:demo": "node --experimental-strip-types scripts/seed-demo.mts",
     "eval:guide": "vitest run --config vitest.eval.config.mts"
   },
   "dependencies": {
@@ -48,6 +49,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@biomejs/biome": "^2.6.3",
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",

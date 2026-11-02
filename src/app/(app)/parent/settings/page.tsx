@@ -12,11 +12,12 @@ import { SignOutButton } from "@/features/auth";
 import {
   ChildrenSettingsList,
   currencyLabels,
+  DemoClockCard,
   FamilyCodeCard,
   FamilySettingsForm,
   isCurrency,
 } from "@/features/family";
-import { getFamily, listChildren, requireRole } from "@/features/family/server";
+import { getDemoClockToday, getFamily, listChildren, requireRole } from "@/features/family/server";
 import { PushToggle } from "@/features/notifications";
 import { paymentCopy, SavedCards } from "@/features/payments";
 import { getSavedCards, paymentsEnabled } from "@/features/payments/server";
@@ -45,6 +46,8 @@ async function ParentSettings({ searchParams }: Props) {
   ]);
   if (!family) redirect(routes.parentSetup);
   const { tab } = paramsSchema.parse(await searchParams);
+  // Only for a demo family on a deployment with the demo clock on.
+  const demoToday = await getDemoClockToday(family);
 
   const familyTab = (
     <>
@@ -66,6 +69,7 @@ async function ParentSettings({ searchParams }: Props) {
           </Link>
         </p>
       </Section>
+      {demoToday ? <DemoClockCard today={demoToday} className="rise-in" style={rise(2)} /> : null}
     </>
   );
 

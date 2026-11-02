@@ -7,7 +7,7 @@ import {
   skillOf,
 } from "@/features/learning";
 import { type HistoryItem, spendingByCategory } from "@/features/ledger";
-import { addDays, formatMoney, startOfWeek } from "@/lib";
+import { addDays, formatMoney, startOfWeek, utcMidnight } from "@/lib";
 import type { DecisionLine, GoalLine, SkillNote, WeeklyReview, WeekMoney } from "./types";
 
 /**
@@ -239,6 +239,6 @@ export function buildWeeklyReview(input: BuildInput): WeeklyReview {
 
 /** The review card shows on Home from Friday to Monday: the week is nearly in, or just over. */
 export function showsOnHome(today: string): boolean {
-  const day = new Date(`${today}T00:00:00Z`).getUTCDay();
+  const day = utcMidnight(today).getUTCDay();
   return day === 5 || day === 6 || day === 0 || day === 1;
 }

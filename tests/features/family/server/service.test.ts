@@ -2,10 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { hashSecret } from "@/features/family/codes";
 import { AppError } from "@/lib";
 
+const env = vi.hoisted(() => ({ serverEnv: { FEATURE_DEMO_CLOCK: true } }));
+vi.mock("@/config/env.server", () => env);
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn(() => ({ kind: "admin" })) }));
 vi.mock("@/features/notifications/server", () => ({ sendEmail: vi.fn() }));
 vi.mock("@/features/family/server/repository", () => ({
+  advanceClock: vi.fn(),
+  fetchFamilyNow: vi.fn(),
+  fetchIsDemoFamily: vi.fn(),
   findFamilyById: vi.fn(),
   findInvitationByHash: vi.fn(),
   findNickname: vi.fn(),
@@ -27,7 +32,6 @@ vi.mock("@/features/family/server/child-auth", () => ({
   deleteChildAuthUser: vi.fn(),
   deleteChildIdentity: vi.fn(),
   mintChildSession: vi.fn(),
-  rotateChildPassword: vi.fn(),
 }));
 vi.mock("@/features/family/server/dal", () => ({
   assertParentOf: vi.fn(),
@@ -337,6 +341,19 @@ describe("startChildOnboarding", () => {
     expect(message?.text).toContain("Zed");
   });
 
+  it("does not count a request against invite:global when a per-source limit refuses it", async () => {
+    vi.mocked(repo.hitRateLimit).mockImplementation(
+      async (_db, key) => !key.startsWith("invite:ip:"),
+    );
+
+    await expect(service.startChildOnboarding(input, "1.2.3.4")).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+    });
+    const keys = vi.mocked(repo.hitRateLimit).mock.calls.map((call) => call[1]);
+    expect(keys).not.toContain("invite:global");
+    expect(repo.insertInvitation).not.toHaveBeenCalled();
+  });
+
   it("throws RATE_LIMITED and creates no invitation when the limit is hit", async () => {
     vi.mocked(repo.hitRateLimit).mockResolvedValue(false);
 
@@ -443,27 +460,22 @@ describe("childSignIn", () => {
     );
   });
 
-  it("rotates the child's password, then mints a session", async () => {
+  it("mints a session", async () => {
     vi.mocked(repo.verifyChildPin).mockResolvedValue({ status: "ok", childId: "child-1" });
 
     await service.childSignIn(input, "1.2.3.4");
 
-    expect(childAuth.rotateChildPassword).toHaveBeenCalledWith("child-1");
     expect(childAuth.mintChildSession).toHaveBeenCalledWith("child-1");
-    expect(
-      vi.mocked(childAuth.rotateChildPassword).mock.invocationCallOrder[0] ?? Infinity,
-    ).toBeLessThan(vi.mocked(childAuth.mintChildSession).mock.invocationCallOrder[0] ?? 0);
   });
 });
 
 describe("setChildPin", () => {
   const input = { childId: crypto.randomUUID(), pin: "4321" };
 
-  it("sets the PIN, rotates the password and revokes every session", async () => {
+  it("sets the PIN and revokes every session", async () => {
     await service.setChildPin(input);
 
     expect(repo.updateChildPin).toHaveBeenCalledWith({ kind: "user" }, input.childId, "4321");
-    expect(childAuth.rotateChildPassword).toHaveBeenCalledWith(input.childId);
     expect(repo.revokeUserSessions).toHaveBeenCalledWith({ kind: "admin" }, input.childId);
   });
 
@@ -472,7 +484,6 @@ describe("setChildPin", () => {
 
     await expect(service.setChildPin(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(repo.updateChildPin).not.toHaveBeenCalled();
-    expect(childAuth.rotateChildPassword).not.toHaveBeenCalled();
     expect(repo.revokeUserSessions).not.toHaveBeenCalled();
   });
 
@@ -598,5 +609,96 @@ describe("updateFamilySettings", () => {
       code: "FORBIDDEN",
     });
     expect(repo.updateFamilyTimezone).not.toHaveBeenCalled();
+  });
+});
+
+describe("getFamilyNow", () => {
+  it("reads the family's clock once per family", async () => {
+    const now = new Date("2026-12-01T09:00:00Z");
+    vi.mocked(repo.fetchFamilyNow).mockResolvedValue(now);
+
+    await expect(service.getFamilyNow("fam-1")).resolves.toBe(now);
+    expect(repo.fetchFamilyNow).toHaveBeenCalledWith({ kind: "user" }, "fam-1");
+  });
+});
+
+describe("advanceFamilyClock", () => {
+  const moved = { offsetDays: 7, today: "2026-11-09", generated: 1, reminders: 3 };
+
+  beforeEach(() => {
+    env.serverEnv.FEATURE_DEMO_CLOCK = true;
+  });
+
+  it("moves the parent's own family forward", async () => {
+    vi.mocked(repo.advanceClock).mockResolvedValue(moved);
+
+    await expect(service.advanceFamilyClock({ days: 7 })).resolves.toEqual(moved);
+    expect(dal.assertRole).toHaveBeenCalledWith("parent");
+    expect(repo.advanceClock).toHaveBeenCalledWith({ kind: "user" }, "fam-1", 7);
+  });
+
+  it("refuses when the deployment has no demo clock, before anything else", async () => {
+    env.serverEnv.FEATURE_DEMO_CLOCK = false;
+
+    await expect(service.advanceFamilyClock({ days: 1 })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(dal.assertRole).not.toHaveBeenCalled();
+    expect(repo.advanceClock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a parent without a family", async () => {
+    vi.mocked(dal.assertRole).mockResolvedValue({ user: parent, membership: null });
+
+    await expect(service.advanceFamilyClock({ days: 1 })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(repo.advanceClock).not.toHaveBeenCalled();
+  });
+
+  it("explains a family that is not a demo family and a clock already a year ahead", async () => {
+    vi.mocked(repo.advanceClock).mockRejectedValueOnce(
+      new AppError("CONFLICT", "That already exists."),
+    );
+    await expect(service.advanceFamilyClock({ days: 1 })).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: "The demo clock is off for this family.",
+    });
+
+    vi.mocked(repo.advanceClock).mockRejectedValueOnce(
+      new AppError("VALIDATION", "Please check what you entered and try again."),
+    );
+    await expect(service.advanceFamilyClock({ days: 60 })).rejects.toMatchObject({
+      code: "VALIDATION",
+      message: "The demo clock can go at most a year ahead.",
+    });
+  });
+});
+
+describe("getDemoClockToday", () => {
+  const family = { id: "fam-1", code: "ABC234", currency: "GBP", timezone: "UTC" };
+
+  beforeEach(() => {
+    env.serverEnv.FEATURE_DEMO_CLOCK = true;
+  });
+
+  it("returns the family's today for a demo family", async () => {
+    vi.mocked(repo.fetchIsDemoFamily).mockResolvedValue(true);
+    vi.mocked(repo.fetchFamilyNow).mockResolvedValue(new Date("2026-11-09T10:00:00Z"));
+
+    await expect(service.getDemoClockToday(family)).resolves.toBe("2026-11-09");
+  });
+
+  it("hides the card for a family that is not a demo family", async () => {
+    vi.mocked(repo.fetchIsDemoFamily).mockResolvedValue(false);
+
+    await expect(service.getDemoClockToday(family)).resolves.toBeNull();
+  });
+
+  it("hides the card without asking the database when the deployment has no demo clock", async () => {
+    env.serverEnv.FEATURE_DEMO_CLOCK = false;
+
+    await expect(service.getDemoClockToday(family)).resolves.toBeNull();
+    expect(repo.fetchIsDemoFamily).not.toHaveBeenCalled();
   });
 });

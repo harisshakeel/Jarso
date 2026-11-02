@@ -21,6 +21,16 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  /**
+   * Demo clock (D11). "true": parents of a family with demo_clock_enabled can move its clock
+   * forward from settings. Off by default; leave it off wherever real families live.
+   */
+  FEATURE_DEMO_CLOCK: blankAsUnset(
+    z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+  ),
   /** Daily spend cap across all children, in US cents; the guide pauses when it is reached. */
   GUIDE_DAILY_BUDGET_CENTS: z.coerce.number().int().positive().default(1000),
   /** Monthly spend cap across all children, in US cents (calendar month, UTC). */

@@ -330,7 +330,7 @@ select is(has_function_privilege('service_role', 'public.generate_for_schedule(u
 select is(has_function_privilege('service_role', 'public.lock_allowance_for_parent(uuid)', 'execute'), false, 'service_role cannot run lock_allowance_for_parent');
 select is(has_function_privilege('service_role', 'public.lock_occurrence_for_parent(uuid)', 'execute'), false, 'service_role cannot run lock_occurrence_for_parent');
 select is(has_function_privilege('service_role', 'public.lock_gift_for_parent(uuid)', 'execute'), false, 'service_role cannot run lock_gift_for_parent');
-select is(has_function_privilege('service_role', 'public.generate_due_occurrences(timestamptz)', 'execute'), false, 'service_role cannot run generate_due_occurrences');
+select is(has_function_privilege('service_role', 'public.generate_due_occurrences(timestamptz, uuid)', 'execute'), false, 'service_role cannot run generate_due_occurrences');
 
 select * from finish();
 rollback;

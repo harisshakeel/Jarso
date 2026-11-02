@@ -78,7 +78,7 @@ export function PathMap({
                 className={cn(
                   "flex items-center gap-4 rounded-xl border bg-card p-4",
                   locked
-                    ? "border-hairline opacity-80"
+                    ? "border-dashed border-hairline"
                     : current
                       ? "border-gold"
                       : "border-hairline",

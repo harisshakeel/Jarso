@@ -2,7 +2,7 @@ import "server-only";
 // Weekly review (FR11): read what the week's screens already read, then build in code.
 import { cache } from "react";
 import { listDueForChild } from "@/features/allowance/server";
-import { assertSelfOrParentOf, getFamily } from "@/features/family/server";
+import { assertSelfOrParentOf, getFamily, getFamilyNow } from "@/features/family/server";
 import { getGoalView } from "@/features/goals/server";
 import { getLearningOverview, reviewPool } from "@/features/learning/server";
 import { getHistorySince } from "@/features/ledger/server";
@@ -17,7 +17,7 @@ export const getWeeklyReview = cache(async (childId: string): Promise<WeeklyRevi
   await assertSelfOrParentOf(childId);
   const family = await getFamily();
   if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
-  const today = familyToday(family.timezone);
+  const today = familyToday(family.timezone, await getFamilyNow(family.id));
   const { weekStart } = weekBounds(today);
   const db = await createClient();
   const [history, due, goal, learning, reviews, recentItemKeys] = await Promise.all([

@@ -16,8 +16,10 @@ type JarsoWordmarkProps = {
  */
 export function JarsoWordmark({ width = 288, priority, className }: JarsoWordmarkProps) {
   const height = Math.round((width * 724) / 2172);
-  // Two candidate LCP images, so load eagerly instead of preloading both (next/image docs).
-  const loading = priority ? "eager" : undefined;
+  // Both stay lazy, so the browser never fetches the one `display: none` hides; `priority` only
+  // raises the fetch priority of whichever is shown. Eager or preload would download both
+  // (next/image docs, "Theme detection").
+  const fetchPriority = priority ? "high" : undefined;
   return (
     <>
       <Image
@@ -25,7 +27,7 @@ export function JarsoWordmark({ width = 288, priority, className }: JarsoWordmar
         width={width}
         height={height}
         alt="Jarso"
-        loading={loading}
+        fetchPriority={fetchPriority}
         // Served as the lossless 864 px PNGs: lossy re-encoding tints the flat background
         // into a visible box.
         unoptimized
@@ -36,7 +38,7 @@ export function JarsoWordmark({ width = 288, priority, className }: JarsoWordmar
         width={width}
         height={height}
         alt="Jarso"
-        loading={loading}
+        fetchPriority={fetchPriority}
         unoptimized
         className={cn("hidden h-auto select-none rounded-2xl dark:block", className)}
       />

@@ -6,6 +6,7 @@ import {
   assertParentOf,
   assertRole,
   getFamily,
+  getFamilyNow,
   listChildren,
 } from "@/features/family/server";
 import { AppError, familyToday, logger } from "@/lib";
@@ -315,7 +316,10 @@ export async function startCardPayment(input: {
   const family = await familyOrThrow();
 
   if (!row.open) throw new AppError("CONFLICT", paymentCopy.notDue);
-  if (row.type === "parent_gift" && row.dueOn > familyToday(family.timezone)) {
+  if (
+    row.type === "parent_gift" &&
+    row.dueOn > familyToday(family.timezone, await getFamilyNow(family.id))
+  ) {
     throw new AppError("CONFLICT", paymentCopy.giftNotDue);
   }
   if (input.cashMinor + input.savedMinor !== row.amountMinor) {

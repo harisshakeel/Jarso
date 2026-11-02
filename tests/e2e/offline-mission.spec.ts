@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, readFamilyCode } from "./helpers";
+import { completeParentProfile, readFamilyCode, waitForHydration } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** A mission started online and finished offline, sent in order on reconnect (LOCAL Supabase). */
@@ -42,6 +42,8 @@ test.beforeAll(async ({ browser }) => {
   child = await childContext.newPage();
 
   await parent.goto("/signup");
+
+  await waitForHydration(parent);
   await parent.getByLabel("Name", { exact: true }).fill("Jo Parent");
   await parent.getByLabel("Email", { exact: true }).fill(`e2e-offline-mission-${run}@example.com`);
   await parent.getByLabel("Password", { exact: true }).fill(password);
@@ -59,6 +61,8 @@ test.beforeAll(async ({ browser }) => {
   await expect(parent).toHaveURL(at("/parent"));
 
   await child.goto("/sign-in/child");
+
+  await waitForHydration(child);
   const codeField = child.getByLabel("Family code");
   await expect(async () => {
     await codeField.fill(code);

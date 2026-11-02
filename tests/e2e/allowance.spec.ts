@@ -1,7 +1,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { completeParentProfile } from "./helpers";
+import { completeParentProfile, waitForHydration } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Parent allowance and gift screens against the LOCAL Supabase stack (see playwright.config.ts). */
@@ -74,6 +74,7 @@ test.beforeAll(async ({ browser }) => {
   });
   page = await context.newPage();
   await page.goto("/signup");
+  await waitForHydration(page);
   await page.getByLabel("Name", { exact: true }).fill("Alex Parent");
   await page.getByLabel("Email", { exact: true }).fill(`e2e-allowance-${run}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill(password);
@@ -231,8 +232,34 @@ test("parent cancels a due gift from the handover screen", async () => {
   await expect(page.getByRole("region", { name: "Due now" })).toHaveCount(0);
 });
 
+test("an allowance falls due exactly once, even when generation runs again", async () => {
+  // A week later the weekly allowance falls due again; the second run (a retry) adds nothing.
+  await generateDueIn(8);
+  await generateDueIn(8);
+
+  const local = loadLocalSupabase();
+  if (!local) throw new Error("Local Supabase is required.");
+  const admin = createClient(local.url, local.secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { count, error } = await admin
+    .from("allowance_occurrences")
+    .select("id", { count: "exact", head: true })
+    .eq("child_id", childPath.split("/").pop() ?? "")
+    .eq("status", "due");
+  expect(error).toBeNull();
+  expect(count).toBe(1);
+
+  await page.reload();
+  const due = page.getByRole("region", { name: "Due now" });
+  await expect(due.getByRole("link", { name: /^Allowance/ })).toHaveCount(1);
+  // Falling due changes no balance: the jars still hold the handed-over allowance and gift.
+  await expect(page.getByRole("region", { name: "Spend jar" })).toContainText("US$330.00");
+  await expect(page.getByRole("region", { name: "Save jar" })).toContainText("US$220.00");
+});
+
 test("parent marks a due allowance as not given", async () => {
-  // A week later the weekly allowance falls due again.
+  // The occurrence generated above; running again for the same day is a no-op.
   await generateDueIn(8);
 
   await page.reload();

@@ -12,6 +12,7 @@
 | [api.md](./api.md) | Adding Server Actions or Route Handlers |
 | [design.md](./design.md) | Any UI work: brand assets, colour tokens, type, layout, components, motion, voice |
 | [testing.md](./testing.md) | Writing or running tests |
+| [perf.md](./perf.md) | Measuring page speed (Lighthouse), the low-end device checklist |
 | [deploy.md](./deploy.md) | Vercel project, env vars, Supabase auth URLs, rollback |
 | [security.md](./security.md) | What never enters the public repo, scanners, rotation runbook |
 | [adr/](./adr/) | Understanding why a decision was made, or recording a new one |

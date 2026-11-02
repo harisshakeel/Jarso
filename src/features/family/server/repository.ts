@@ -1,8 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AppError, toAppError } from "@/lib";
+import { AppError, GENERIC_FAILURE, toAppError } from "@/lib";
 import type { Database } from "@/types";
-import type { ChildSummary, Family, Membership, PendingInvitation } from "../types";
+import type { ChildSummary, ClockAdvance, Family, Membership, PendingInvitation } from "../types";
 
 type Client = SupabaseClient<Database>;
 
@@ -31,10 +31,14 @@ export async function findMembership(db: Client, userId: string): Promise<Member
   };
 }
 
-export async function findProfileRole(db: Client, userId: string): Promise<"parent" | "child"> {
+/** The profile's role, or null when there is no profile or the role is not one we know. */
+export async function findProfileRole(
+  db: Client,
+  userId: string,
+): Promise<"parent" | "child" | null> {
   const { data, error } = await db.from("profiles").select("role").eq("id", userId).maybeSingle();
   if (error) throw toAppError(error, "Failed to load profile");
-  return data?.role === "child" ? "child" : "parent";
+  return data?.role === "child" || data?.role === "parent" ? data.role : null;
 }
 
 export async function findNickname(db: Client, userId: string): Promise<string | null> {
@@ -76,6 +80,48 @@ export async function findFamilyById(db: Client, id: string): Promise<Family | n
   return data;
 }
 
+/** The family's now: real time plus its demo clock offset (0 unless the clock was moved). */
+export async function fetchFamilyNow(db: Client, familyId: string): Promise<Date> {
+  const { data, error } = await db.rpc("family_now", { p_family_id: familyId });
+  if (error) throw toAppError(error, "Failed to read the family clock");
+  return new Date(data);
+}
+
+/** Whether the caller's family is a demo family (family_demo_clock). */
+export async function fetchIsDemoFamily(db: Client): Promise<boolean> {
+  const { data, error } = await db.rpc("family_demo_clock");
+  if (error) throw toAppError(error, "Failed to read the family clock");
+  return data === true;
+}
+
+/** Moves the family's demo clock forward `days` days (advance_family_clock). */
+export async function advanceClock(
+  db: Client,
+  familyId: string,
+  days: number,
+): Promise<ClockAdvance> {
+  const { data, error } = await db.rpc("advance_family_clock", {
+    p_family_id: familyId,
+    p_days: days,
+  });
+  if (error) throw toAppError(error, "Failed to move the demo clock");
+  const r = data as { [key: string]: unknown } | null;
+  if (
+    typeof r?.offset_days !== "number" ||
+    typeof r.today !== "string" ||
+    typeof r.generated !== "number" ||
+    typeof r.reminders !== "number"
+  ) {
+    throw new AppError("INTERNAL", GENERIC_FAILURE);
+  }
+  return {
+    offsetDays: r.offset_days,
+    today: r.today,
+    generated: r.generated,
+    reminders: r.reminders,
+  };
+}
+
 export async function listChildMembers(db: Client, familyId: string): Promise<ChildSummary[]> {
   const { data, error } = await db
     .from("family_members")
@@ -86,6 +132,25 @@ export async function listChildMembers(db: Client, familyId: string): Promise<Ch
     .order("created_at", { ascending: true });
   if (error) throw toAppError(error, "Failed to load children");
   return data.map((row) => ({ id: row.profile_id, nickname: row.profile?.nickname ?? "" }));
+}
+
+/**
+ * register_child and rename_child raise JA409 for two different things; the SQL message tells
+ * them apart. A taken nickname is shown on the field; anything else keeps its own message.
+ */
+function childNicknameError(error: { code?: string; message?: string }, context: string): AppError {
+  if (error.code === "JA409" && error.message === "Nickname already used in this family") {
+    return new AppError("CONFLICT", "Please fix the highlighted fields.", {
+      fieldErrors: { nickname: ["Another child in your family already uses this nickname"] },
+      cause: error,
+    });
+  }
+  if (error.code === "JA409" && error.message === "Child account is not available") {
+    return new AppError("CONFLICT", "We couldn't set up this child account. Please try again.", {
+      cause: error,
+    });
+  }
+  return toAppError(error, context);
 }
 
 export async function registerChild(
@@ -107,7 +172,7 @@ export async function registerChild(
     p_consent: args.consent,
     ...(args.invitationId && { p_invitation_id: args.invitationId }),
   });
-  if (error) throw toAppError(error, "Failed to add child");
+  if (error) throw childNicknameError(error, "Failed to add child");
 }
 
 export async function updateChildPin(db: Client, childId: string, pin: string): Promise<void> {
@@ -128,7 +193,7 @@ export async function renameChildMember(
   nickname: string,
 ): Promise<void> {
   const { error } = await db.rpc("rename_child", { p_child_id: childId, p_nickname: nickname });
-  if (error) throw toAppError(error, "Failed to rename the child");
+  if (error) throw childNicknameError(error, "Failed to rename the child");
 }
 
 export async function updateFamilyTimezone(db: Client, timezone: string): Promise<void> {

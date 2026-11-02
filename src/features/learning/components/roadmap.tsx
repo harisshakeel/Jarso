@@ -150,7 +150,6 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
                 {done || current ? (
                   <Link
                     href={routes.childMission(mission.key)}
-                    aria-label={name}
                     aria-current={current ? "step" : undefined}
                     className="relative block rounded-full transition-transform hover:scale-105 focus-visible:outline-3 focus-visible:outline-ring focus-visible:outline-offset-4"
                   >

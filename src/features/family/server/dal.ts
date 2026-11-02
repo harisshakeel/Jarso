@@ -20,8 +20,11 @@ export const getMembership = cache(async (): Promise<Membership | null> => {
   return findMembership(await createClient(), user.id);
 });
 
-/** Role from the membership, falling back to the server-set profile role (parent before setup). */
-const getRole = cache(async (userId: string): Promise<Role> => {
+/**
+ * Role from the membership, falling back to the server-set profile role (parent before setup).
+ * Null when neither is known (no profile row): callers refuse, never guess "parent".
+ */
+const getRole = cache(async (userId: string): Promise<Role | null> => {
   const membership = await getMembership();
   return membership?.role ?? findProfileRole(await createClient(), userId);
 });
@@ -41,6 +44,8 @@ async function requireSignedIn(role: Role, next: string): Promise<SessionUser> {
 export async function requireRole(role: Role, next: string): Promise<RoleContext> {
   const user = await requireSignedIn(role, next);
   const actual = await getRole(user.id);
+  // Not a redirect: the proxy sends signed-in users away from the sign-in pages, so it would loop.
+  if (!actual) throw new AppError("FORBIDDEN", "You can't do that.");
   if (actual !== role) redirect(homeOf(actual));
   return { user, membership: await getMembership() };
 }
