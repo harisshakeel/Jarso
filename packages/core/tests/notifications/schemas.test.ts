@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
 import {
   inboxParamsSchema,
   pushEndpointSchema,
   pushSubscriptionSchema,
-} from "@/features/notifications/schemas";
+} from "@jarso/core/notifications";
+import { describe, expect, it } from "vitest";
 
 const cursor = "2026-10-30T21:00:00.123456+00:00|7b0f6a52-3c1e-4b52-9d52-0a6f3a1d1b11";
 

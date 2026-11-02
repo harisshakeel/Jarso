@@ -1,5 +1,7 @@
 "use client";
 
+import type { Notice } from "@jarso/core/notifications";
+import { noticeText } from "@jarso/core/notifications";
 import { InboxIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -7,9 +9,8 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui";
 import { runOnline } from "@/features/offline";
-import { noticeHref, noticeText } from "../links";
+import { noticeHref } from "../links";
 import { markNoticesReadAction } from "../server/actions";
-import type { Notice } from "../types";
 import { InboxItem } from "./inbox-item";
 import { useOpenNotice } from "./use-open-notice";
 

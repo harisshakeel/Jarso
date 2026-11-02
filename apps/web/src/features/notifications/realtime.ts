@@ -1,7 +1,7 @@
+import type { Notice, NoticeKind, NoticeSource } from "@jarso/core/notifications";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/types";
-import type { Notice, NoticeKind, NoticeSource } from "./types";
 
 type Row = Tables<"notifications">;
 

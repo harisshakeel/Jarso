@@ -1,8 +1,8 @@
+import type { Notice } from "@jarso/core/notifications";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NoticeListener } from "@/features/notifications/components/notice-listener";
 import type { NoticeChange } from "@/features/notifications/realtime";
-import type { Notice } from "@/features/notifications/types";
 
 const { push, refresh, toast, unsubscribe, handlers } = vi.hoisted(() => ({
   push: vi.fn(),

@@ -1,7 +1,8 @@
 "use client";
 
-import { noticeHref, noticeText } from "../links";
-import type { Notice } from "../types";
+import type { Notice } from "@jarso/core/notifications";
+import { noticeText } from "@jarso/core/notifications";
+import { noticeHref } from "../links";
 import { InboxItem } from "./inbox-item";
 import { useOpenNotice } from "./use-open-notice";
 

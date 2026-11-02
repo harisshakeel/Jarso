@@ -1,7 +1,7 @@
+import type { Notice } from "@jarso/core/notifications";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { groupNotices, InboxList } from "@/features/notifications/components/inbox-list";
-import type { Notice } from "@/features/notifications/types";
 
 const push = vi.fn();
 const refresh = vi.fn();

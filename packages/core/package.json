@@ -21,7 +21,8 @@
     "./learning/content": "./src/learning/content.ts",
     "./diary": "./src/diary/index.ts",
     "./requests": "./src/requests/index.ts",
-    "./family": "./src/family/index.ts"
+    "./family": "./src/family/index.ts",
+    "./notifications": "./src/notifications/index.ts"
   },
   "dependencies": {
     "@jarso/content": "workspace:*",

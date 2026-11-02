@@ -1,7 +1,4 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { AppError, toAppError } from "@/lib";
-import type { Database } from "@/types";
 import type {
   ClaimedNotice,
   Notice,
@@ -9,7 +6,10 @@ import type {
   NoticeSource,
   PushSubscriptionInput,
   PushSubscriptionRow,
-} from "../types";
+} from "@jarso/core/notifications";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { AppError, toAppError } from "@/lib";
+import type { Database } from "@/types";
 
 type Client = SupabaseClient<Database>;
 
