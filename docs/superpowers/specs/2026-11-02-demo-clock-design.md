@@ -24,6 +24,7 @@ Callers keep passing **real time** (`p_now`, `now()`). The family's offset is ad
   - `requests.occurred_at` on insert; `decided_at`, `completed_at` when set.
   - `allowance_occurrences.confirmed_at`, `parent_gifts.given_at` when set.
   - `mission_attempts.completed_at` when set. **Not** `started_at` (the 40-per-24h limit compares it with real time).
+  - `step_results.answered_at` (the attempt's family) and `practice_results.answered_at` (the child's approved family) on insert (`20261102200300`), so days learned this week, the last learning day and the comeback nudge follow the family's day. Nothing compares them with real time: the write caps count rows per attempt and per family day.
 - `advance_family_clock(p_family_id, p_days int) returns jsonb`: security definer. 1..60 days (22023); caller an approved parent of the family (JA403); `demo_clock_enabled` (JA409); total offset at most 366 days; locks the family row; adds the days; runs `generate_due_occurrences(now(), id)` once, then `send_handover_reminders(now() - k days, id)` for k = days-1 … 0 so skipped days' notices land; audit row `family.clock_advanced`; returns offset, family today and counts.
 
 ## Stays on real time
@@ -39,5 +40,5 @@ Callers keep passing **real time** (`p_now`, `now()`). The family's offset is ad
 ## Known limits
 
 - One jump of N days replays every skipped day's reminders at once.
-- The weekly review reads `skills.updated_at` (real time), so after a jump "this week" may look empty for learning.
+- The weekly review reads `skills.updated_at` (real time), so after a jump "this week" may look empty for learning. Mission and practice answers are shifted (`answered_at`), so the learning page's days this week, last learning day and comeback nudge do follow the family's day.
 - Turning the flag off leaves offsets in place; clearing them is an admin SQL or a re-seed.
