@@ -1,0 +1,38 @@
+import { helplinesFor } from "@/config";
+import type { GuideReply, TranscriptMessage } from "./types";
+
+/** One line of a chat as the thread shows it: the asker's words, or one of Jarso's replies. */
+export type ThreadMessage =
+  | { id: string; from: "child"; text: string }
+  | { id: string; from: "guide"; reply: GuideReply };
+
+/**
+ * A stored chat as thread messages, to pick it up again. Topic chips, the quick check and
+ * what Jarso remembered are not stored, so a reopened reply shows its words, what it looked
+ * at, the helplines on a safety reply and the thumbs given.
+ */
+export function threadMessagesFrom(
+  messages: readonly TranscriptMessage[],
+  currency: string,
+): ThreadMessage[] {
+  return messages.map((message) =>
+    message.role === "child"
+      ? { id: message.id, from: "child", text: message.text }
+      : {
+          id: message.id,
+          from: "guide",
+          reply: {
+            messageId: message.role === "guide" ? message.id : null,
+            rating: message.rating,
+            role: message.role,
+            text: message.text,
+            route: message.route ?? "on_topic",
+            topics: [],
+            check: null,
+            helplines: message.route === "safety" ? helplinesFor(currency) : [],
+            lookedAt: message.lookedAt,
+            remembered: [],
+          },
+        },
+  );
+}

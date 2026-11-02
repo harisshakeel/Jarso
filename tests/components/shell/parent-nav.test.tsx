@@ -23,6 +23,7 @@ describe("ParentNav", () => {
       "href",
       "/parent/allowance",
     );
+    expect(screen.getByRole("link", { name: "Jarso" })).toHaveAttribute("href", "/parent/jarso");
   });
 
   it.each([

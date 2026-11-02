@@ -123,6 +123,23 @@ export async function listConversations(
   return data.map(toConversation);
 }
 
+/** A parent's own chats about any of their children, newest first, at most `limit`. */
+export async function listConversationsAskedBy(
+  db: Client,
+  parentId: string,
+  limit = 50,
+): Promise<ConversationRow[]> {
+  const { data, error } = await db
+    .from("guide_conversations")
+    .select(CONVERSATION_COLUMNS)
+    .eq("asked_by", parentId)
+    .gt("turns", 0)
+    .order("last_message_at", { ascending: false })
+    .limit(limit);
+  if (error) throw toAppError(error, "Failed to load chats");
+  return data.map(toConversation);
+}
+
 export type MessageRow = {
   id: string;
   conversationId: string;

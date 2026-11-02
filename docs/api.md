@@ -91,6 +91,8 @@ Called by the Ask Jarso window on the child's Home (`src/features/guide/send-tur
 
 No model text ever streams. `maxDuration` 60 s (the turn's own deadline is 45 s).
 
+The Jarso pages (`/child/jarso`, `/parent/jarso`) read past chats through the guide's server barrel, never a Route Handler: `listMyChats()` / `getMyTranscript(id)` for the signed-in child's own chats (a parent's chat about them, `asked_by` set, is never theirs), and `listParentChats()` / `getParentTranscript(id)` for the signed-in parent's own chats about their children. A reopened chat continues with its `conversationId` through the same `POST /api/v1/guide/turns`.
+
 ### `POST /api/v1/payments/webhooks/[provider]`
 
 Called by the payment provider, never by our UI (`src/app/api/v1/payments/webhooks/[provider]/route.ts`). `[provider]` must be a provider that is on (all its env keys set; `fake` needs `PAYMENTS_ALLOW_FAKE=true`); an unknown or inactive one, or no provider on, returns 404. The route reads the raw body once with `req.text()`, passes it and the headers to `provider.parseWebhook` (signature check, live-mode rejection, event mapping), then calls `handleProviderEvent`. There is no session: the signature is the authentication, and the signing secret is `STRIPE_WEBHOOK_SECRET` for Stripe and `RAZORPAY_WEBHOOK_SECRET` for Razorpay (HMAC-SHA256 of the raw body in `x-razorpay-signature`; the event id comes from `x-razorpay-event-id`).
