@@ -65,3 +65,6 @@ evals/guide/results/
 
 # Session-log hook: private words to redact (never committed)
 .claude/hooks/private-words.local
+
+# harness worktrees
+.claude/worktrees/
