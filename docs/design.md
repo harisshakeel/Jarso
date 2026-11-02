@@ -179,6 +179,7 @@ Built on the existing shadcn primitives in `src/components/ui`. Add with `pnpm d
 | Keycap button | The child's one primary action per screen (Record purchase, Ask a parent, Confirm). Primary pill plus the keycap shadow: a 3 px teal-900 ledge below; pressed state drops the ledge and moves 2 px down. Gold keycap (gold fill, ink text, gold-700 ledge) only for money moments such as confirming a handover. Never more than one keycap per screen. |
 | Card | White surface, 20 px radius, border, optional soft shadow when it is the page's primary card. |
 | Jar shelf (child Home) | The two jars side by side at every width, drawn with `JarIllustration`: under each, the jar name, Money L balance, a one-line caption ("Cash you have", "Kept by your parent"), open requests as plain lines, and the jar's buttons. With a goal the Save jar's full height is the goal's price: counted money is gold, money waiting to come out is a hatched band, and a dashed goal line with the goal's emoji marks the top. Money that is due floats outside as a dashed coin. A key in words sits under the shelf. The parent's child card shows the same two jars small. |
+| Jar graph (child Home) | How the jars moved: Spend (teal) and Save (gold) as two smooth 2.5 px lines over the last 7, 30 or 90 days, ending at today's balances, with a soft fill under each, recessive hairline gridlines labelled in money, and a coin-sized dot (2 px card ring) on each day money moved. A pill control above it picks the period; a legend with line keys names the series. Pointing, tapping or the arrow keys read a day: a dashed hairline finds it and a card gives the date and both figures, value first. One line under it says what climbed and what dipped ("Spend climbed £10. Save stayed put."), never judging an amount; a "See the numbers" disclosure lists the same figures as a table. The line draws itself in over 900 ms; reduced motion shows it at once. |
 | Progress | Goal: the Save jar's goal line on child Home; a line of text elsewhere ("⚽ Football boots · £26 of £45 · plans £4 each allowance"). Always says amount saved, remaining and the estimated payments in words. |
 | Status chip | See 2.5. Icon plus word, never colour alone. |
 | Badge (count) | Gold fill, ink text, min 20 px, on Inbox tab and request lists. |
@@ -215,6 +216,7 @@ Primitives to add next: `badge`, `progress`, `tabs`, `sheet`, `dialog`, `avatar`
 | Cards and list items on first paint | Rise-in: opacity 0 to 1, translateY 12 px to 0, scale 0.99 to 1; stagger 40 ms per item, at most 6 items | 250 ms |
 | Sheets, dialogs, page transitions | Slide up / fade | 250 ms |
 | Jar fill after a confirmed handover | Fill level rises, two coins drop; the coin icon in the toast does one `rotateY` flip | 500 ms |
+| Jar graph line | Draws from left to right (`graph-draw`) when the graph or its period appears | 900 ms |
 | Goal reached, mission complete | Ring completes, badge scales in once | 600 ms |
 | Skeletons | Shimmer band | 1.5 s loop |
 

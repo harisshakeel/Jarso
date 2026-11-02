@@ -1,12 +1,15 @@
 import "server-only";
 import { assertSelfOrParentOf, getFamily } from "@/features/family/server";
+import { addDays, familyToday } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
+import { type BalanceHistory, balanceHistory } from "../balance-history";
 import type { HistoryItem, Jars } from "../types";
 import {
   fetchBalance,
   type LedgerRow,
   listClosedOccurrences,
   listLedgerRows,
+  listMovementsSince,
   listOccurrenceAmounts,
 } from "./repository";
 
@@ -34,6 +37,35 @@ export async function getJars(childId: string): Promise<Jars> {
     fetchBalance(db, childId, "save"),
   ]);
   return { spend, save };
+}
+
+/** Days the child's graph can look back; the longest period it offers. */
+const GRAPH_DAYS = 90;
+
+/**
+ * Where both jars stood at the end of each of the last GRAPH_DAYS days, ending at today's
+ * balances (the graph on the child's Home). One read of the movements; the walk-back is pure.
+ */
+export async function getBalanceHistory(childId: string): Promise<BalanceHistory> {
+  await assertSelfOrParentOf(childId);
+  const db = await createClient();
+  const family = await getFamily();
+  const timezone = family?.timezone ?? "UTC";
+  const today = familyToday(timezone);
+  const from = addDays(today, -(GRAPH_DAYS - 1));
+  // A day earlier than `from` in UTC covers every timezone's start of that day.
+  const [spend, save, rows] = await Promise.all([
+    fetchBalance(db, childId, "spend"),
+    fetchBalance(db, childId, "save"),
+    listMovementsSince(db, childId, `${addDays(from, -1)}T00:00:00Z`),
+  ]);
+  const movements = rows.map((row) => ({
+    jar: row.jar,
+    direction: row.direction,
+    amountMinor: row.amountMinor,
+    occurredOn: localDate(row.occurredAt, timezone),
+  }));
+  return balanceHistory({ spend, save }, movements, from, today);
 }
 
 /** ISO date of an instant in the family's timezone. */

@@ -306,6 +306,18 @@
 }
 
 /* Jar fill after money arrives (design.md §8): two coins drop into the jar once, 500 ms. */
+/* A graph line drawing itself from left to right (child Home's jar graph). */
+@keyframes graph-draw {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
 @keyframes coin-drop {
   from {
     opacity: 0;
