@@ -6,7 +6,7 @@ Postgres via Supabase. Schema is managed **only** through SQL migrations in `sup
 
 ```bash
 pnpm db:start                 # start local Supabase (Docker required); prints URL + keys
-pnpm exec supabase status     # show keys again → copy into .env.local
+pnpm exec supabase status     # show keys again → copy into apps/web/.env.local (start from the root `.env.example`)
 pnpm db:migration add_thing   # create supabase/migrations/<ts>_add_thing.sql
 pnpm db:reset                 # rebuild local DB from migrations + seed.sql
 pnpm db:types                 # regenerate types from local DB

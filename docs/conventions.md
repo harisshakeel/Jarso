@@ -31,7 +31,7 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`
 | Services | verb + noun | `getProfile`, `updateProfile` |
 | Repository fns | `find…`, `insert…`, `update…ById`, `delete…` | `findProfileById` |
 | Migrations | `supabase migration new <snake_case>` | `create_profiles` |
-| Tests | `tests/**/*.test.ts(x)` mirroring the `src/` path; e2e in `tests/e2e/*.spec.ts` | `tests/features/goals/schemas.test.ts` |
+| Tests | `apps/web/tests/**/*.test.ts(x)` mirroring the `apps/web/src/` path; e2e in `apps/web/tests/e2e/*.spec.ts` | `apps/web/tests/features/goals/schemas.test.ts` |
 
 ## Index barrels (required)
 
@@ -56,8 +56,8 @@ Rules:
 3. **Across modules, use the barrel** (`@/features/auth`, `@/lib`), never a deep path like `@/features/auth/components/sign-in-form`.
 4. **Exceptions — environment entry points:** `@/lib/supabase/{client,server,admin,proxy}`, `@/lib/payments` and `@/config/env.server` are imported directly. They're intentionally separate so the wrong client can't be pulled into the wrong runtime.
 5. Prefer `export *` for files you fully own; use named re-exports (`export { a, b } from`) when you want to hide internals (e.g. `server/actions`).
-6. After `pnpm dlx shadcn add <x>`, add `export * from "./<x>";` to `src/components/ui/index.ts`.
-7. **Tests are exempt from the barrel rule.** Unit tests under `tests/` may import a module's internals by deep `@/` path (`@/features/goals/server/service`), since they test units the barrel doesn't export. Rules 2 and 3 apply to production code in `src/`.
+6. After `pnpm dlx shadcn add <x>` (run in `apps/web`), add `export * from "./<x>";` to `apps/web/src/components/ui/index.ts`.
+7. **Tests are exempt from the barrel rule.** Unit tests under `apps/web/tests/` may import a module's internals by deep `@/` path (`@/features/goals/server/service`), since they test units the barrel doesn't export. Rules 2 and 3 apply to production code in `apps/web/src/`.
 
 ## Server vs client
 
@@ -77,10 +77,10 @@ Use `logger` from `@/lib` (structured JSON in production). `console.log` is a li
 
 ## Env vars
 
-- Add to the Zod schema in `src/config/env.client.ts` (`NEXT_PUBLIC_*`) or `env.server.ts`, and to `.env.example`.
+- Add to the Zod schema in `apps/web/src/config/env.client.ts` (`NEXT_PUBLIC_*`) or `env.server.ts`, and to `.env.example`.
 - Client vars must be referenced explicitly (`process.env.NEXT_PUBLIC_X`) so Next inlines them.
-- Never read `process.env` directly elsewhere. Sole exception: `src/lib/logger.ts` reads `LOG_LEVEL`/`NODE_ENV` itself because it is imported by Client Components and cannot depend on `env.server`.
+- Never read `process.env` directly elsewhere. Sole exception: `apps/web/src/lib/logger.ts` reads `LOG_LEVEL`/`NODE_ENV` itself because it is imported by Client Components and cannot depend on `env.server`.
 
 ## Styling
 
-Tailwind v4 + shadcn/ui (Base UI primitives). Compose classes with `cn()` from `@/lib`. Theme tokens live in `src/app/globals.css`.
+Tailwind v4 + shadcn/ui (Base UI primitives). Compose classes with `cn()` from `@/lib`. Theme tokens live in `apps/web/src/app/globals.css`.

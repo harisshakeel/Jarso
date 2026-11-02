@@ -7,7 +7,7 @@ Diagrams are Mermaid and render on GitHub.
 ## 1. Principles
 
 1. **One source of truth for money.** The append-only `ledger_entries` table. Balances are derived, never stored as the truth. Only three paths write to it: a parent's handover confirmation, a child's recorded entry (purchase, gift, correction), and a request reaching its final state. Each path is a Postgres function running in one transaction.
-2. **Feature modules own their domain.** UI, validation, data access and business rules for one area live in `src/features/<name>/`. `src/app` routes and composes. Modules talk through barrels only.
+2. **Feature modules own their domain.** UI, validation, data access and business rules for one area live in `apps/web/src/features/<name>/`. `apps/web/src/app` routes and composes. Modules talk through barrels only.
 3. **Authorization in three layers, the database last and loudest.** Proxy redirects optimistically, the data access layer verifies the user and role, Row Level Security decides. A bug in app code cannot read another family's rows.
 4. **Records are authoritative, notifications are derived.** The inbox and push are projections of records. Delivery can fail; the record cannot be lost.
 5. **Idempotent by construction.** Every balance-changing write carries a key with a unique constraint. Retries, double taps and cron reruns are no-ops.
@@ -57,7 +57,7 @@ External dependencies and what happens when each is down:
 
 | Runtime piece | Where | Responsibility |
 | --- | --- | --- |
-| `src/proxy.ts` | Vercel edge of every request | Refresh Supabase session cookie; optimistic redirects for protected and auth routes; attach a request id header. No data access. |
+| `apps/web/src/proxy.ts` | Vercel edge of every request | Refresh Supabase session cookie; optimistic redirects for protected and auth routes; attach a request id header. No data access. |
 | Server Components | Vercel function | Read data through services inside `<Suspense>`; never mutate. |
 | Server Actions (`createAction`) | Vercel function | Mutations from our own UI: validate with Zod, `assertUser()`, call a service, `refresh()`. |
 | Route Handlers (`withApi`) | Vercel function | Non-UI callers: the cron sweep, the device outbox, Jarso's stream, `/api/v1/*` for a future mobile app. CSRF origin check built in. |
@@ -85,7 +85,7 @@ route / action / handler  →  service  →  repository  →  Supabase (RLS, fun
 ### 4.2 Layout
 
 ```
-src/
+apps/web/src/
 ├── app/
 │   ├── (marketing)/              # public pages
 │   ├── (auth)/                   # login, signup (parent), child sign-in, invite acceptance
@@ -408,7 +408,7 @@ Sixty children at ten entries a day is about 220k rows a year; summing per child
 
 ### 5.3 Content
 
-Missions, topics and hints are authored as versioned JSON under `src/content/` (validated by Zod at build time) so they ship with the code, are reviewable in PRs, and need no admin UI. Only progress lives in the database, keyed by `mission_key` and `skill_key`. When content changes, keys stay stable; a mission is retired by flag, never deleted. Built in ADR 0009: `src/content/learning` holds seven missions, five topics, a review pool and the check-in; `features/learning/content.ts` parses them on the server and pages pass the one mission or set a child needs to the player, so content is never in a shared client bundle. Progress tables: `mission_attempts`, `step_results`, `skill_progress`, `review_items`, `practice_results`, `learning_checkins` (`docs/database.md`).
+Missions, topics and hints are authored as versioned JSON under `apps/web/src/content/` (validated by Zod at build time) so they ship with the code, are reviewable in PRs, and need no admin UI. Only progress lives in the database, keyed by `mission_key` and `skill_key`. When content changes, keys stay stable; a mission is retired by flag, never deleted. Built in ADR 0009: `apps/web/src/content/learning` holds seven missions, five topics, a review pool and the check-in; `features/learning/content.ts` parses them on the server and pages pass the one mission or set a child needs to the player, so content is never in a shared client bundle. Progress tables: `mission_attempts`, `step_results`, `skill_progress`, `review_items`, `practice_results`, `learning_checkins` (`docs/database.md`).
 
 ### 5.4 Practice money
 
@@ -619,7 +619,7 @@ Database jobs run in `pg_cron` with `job_runs` rows for observability. Work that
 
 Children use school or home Wi-Fi and parents use mobile data, so slow and dropped connections are normal. Two rules: nothing waits forever, and a child's own record survives a dropped connection. Design and decisions: `docs/superpowers/specs/2026-10-30-network-resilience-design.md`.
 
-- **Time limits.** Every Supabase client uses `createTimedFetch` (`src/lib/timed-fetch.ts`): 8 s per call, and a timeout or network failure becomes a 503 `JA503` response mapped to `AppError("UNAVAILABLE")`. Postgrest retries are off. Calls over 1 s, timeouts and network failures log a `warn` with name, path, status and duration only. A guide turn has a 45 s server deadline shared by every Claude call and look-up, under `maxDuration = 60` on the pages that can ask the guide and on `POST /api/v1/guide/turns` (Ask Jarso on Home); the sheet and the Home window wait 52 s so the server's own reply arrives first.
+- **Time limits.** Every Supabase client uses `createTimedFetch` (`apps/web/src/lib/timed-fetch.ts`): 8 s per call, and a timeout or network failure becomes a 503 `JA503` response mapped to `AppError("UNAVAILABLE")`. Postgrest retries are off. Calls over 1 s, timeouts and network failures log a `warn` with name, path, status and duration only. A guide turn has a 45 s server deadline shared by every Claude call and look-up, under `maxDuration = 60` on the pages that can ask the guide and on `POST /api/v1/guide/turns` (Ask Jarso on Home); the sheet and the Home window wait 52 s so the server's own reply arrives first.
 - **Online-only actions.** `runOnline` / `useOnlineActionState` (`@/features/offline`) race a Server Action against 15 s (the guide sheet 52 s). Offline, a dropped connection or a slow reply returns a calm `UNAVAILABLE` result ("You're offline, try again when connected" or "This is taking a while. Try again?"), and the form keeps what was typed. This covers everything that moves or controls money (handover, gifts, allowance, rules, undo purchase), account and family settings, sign-in/out and the money guide.
 - **Device outbox.** Purchases, mission steps, mission completion, practice results and check-ins go through an IndexedDB outbox scoped to the signed-in user id. Each item keeps its idempotency key and is sent one at a time to `POST /api/v1/outbox` under a Web Lock, with 15 s per send and backoff 2 s, 5 s, 15 s, 30 s, then 60 s; nothing is sent while the browser is offline. It flushes on app start, `online`, tab focus and after any successful request. The device sends the action's age (`ageMs`), not its clock time, and the server sets the action time to `now - ageMs` (at most 7 days back), so a wrong device clock cancels out; the database clamps any future time to `now()`. A known key is replayed without moving money twice. 408 and 429 are retried like a 5xx. Items expire after 7 days or 20 attempts. A refused or expired purchase stays in the diary as "Needs a look" ("Change it" on an expired one first re-sends it once with its own key); refused or expired learning items are deleted. Without IndexedDB an online save is sent directly. The outbox never sends another user's items.
 - **Slow pages.** Page fallbacks switch to "This is taking a while. Try again?" after 10 s; Try again refreshes the route, then reloads if it is still showing 5 s later; never while offline, where it shows the offline copy instead. A stale Server Action after a deploy shows "Jarso was updated. Refresh to continue."

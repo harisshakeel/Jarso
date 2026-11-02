@@ -1,16 +1,16 @@
 # Jarso design system
 
-The visual language for the app, derived from the two logos in `public/brand/`. Scope decisions behind it: playful and rounded; deep teal as the action colour with gold reserved for money; same component system for parent and child with different emphasis; bottom tab navigation; rounded friendly type; Lucide icons plus the jar as the recurring illustration; light motion; light and dark themes; WCAG AA, 44 px targets, 360 px phones first; warm coach voice.
+The visual language for the app, derived from the two logos in `apps/web/public/brand/`. Scope decisions behind it: playful and rounded; deep teal as the action colour with gold reserved for money; same component system for parent and child with different emphasis; bottom tab navigation; rounded friendly type; Lucide icons plus the jar as the recurring illustration; light motion; light and dark themes; WCAG AA, 44 px targets, 360 px phones first; warm coach voice.
 
-Visual references, and what we take from each, are in section 15. Code owners: tokens live in `src/app/globals.css`, fonts in `src/app/layout.tsx`, primitives in `src/components/ui`. Change this document and the tokens together.
+Visual references, and what we take from each, are in section 15. Code owners: tokens live in `apps/web/src/app/globals.css`, fonts in `apps/web/src/app/layout.tsx`, primitives in `apps/web/src/components/ui`. Change this document and the tokens together.
 
 ## 1. Brand assets
 
 | File | What | Use |
 | --- | --- | --- |
-| `public/brand/jarso-mark.png` | Jar mark, 1254 × 1254, transparent | App icon, favicon source, header mark, empty states, jar illustrations |
-| `public/brand/jarso-wordmark.png` | "jarso" wordmark with mark, 2172 × 724, **opaque near-white background (#FDFDFD)** | Marketing page, emails, light surfaces only |
-| `public/brand/jarso-wordmark-dark.png` | Dark-mode wordmark, white "jars" and gold "o", 2172 × 724, **opaque near-black background (#10191C)** | Marketing page in dark mode, dark emails |
+| `apps/web/public/brand/jarso-mark.png` | Jar mark, 1254 × 1254, transparent | App icon, favicon source, header mark, empty states, jar illustrations |
+| `apps/web/public/brand/jarso-wordmark.png` | "jarso" wordmark with mark, 2172 × 724, **opaque near-white background (#FDFDFD)** | Marketing page, emails, light surfaces only |
+| `apps/web/public/brand/jarso-wordmark-dark.png` | Dark-mode wordmark, white "jars" and gold "o", 2172 × 724, **opaque near-black background (#10191C)** | Marketing page in dark mode, dark emails |
 
 The app serves 864 × 288 copies of both wordmarks (`jarso-wordmark-864.png`, `jarso-wordmark-dark-864.png`) through `JarsoWordmark`, which switches between them on the `.dark` class.
 
@@ -171,7 +171,7 @@ Installable as a PWA later in the pilot: respect `env(safe-area-inset-*)`, use t
 
 ## 6. Components
 
-Built on the existing shadcn primitives in `src/components/ui`. Add with `pnpm dlx shadcn@latest add <name>` and export from the barrel.
+Built on the existing shadcn primitives in `apps/web/src/components/ui`. Add with `pnpm dlx shadcn@latest add <name>` (run in `apps/web`) and export from the barrel.
 
 | Component | Notes |
 | --- | --- |
@@ -343,12 +343,12 @@ Add to `@theme inline`: `--color-gold: var(--gold); --color-gold-foreground: var
 
 ## 14. Implementation order
 
-1. Fonts: load Nunito in `src/app/layout.tsx`, keep Geist Mono; set `--font-sans`.
+1. Fonts: load Nunito in `apps/web/src/app/layout.tsx`, keep Geist Mono; set `--font-sans`.
 2. Tokens: paste section 13 into `globals.css`; add the gold colour utilities; set `--radius`.
-3. Icons: export the mark at 512, 192 and 180 px plus a 32 px favicon into `public/` and `src/app/`; add `manifest.webmanifest` when PWA work starts.
+3. Icons: export the mark at 512, 192 and 180 px plus a 32 px favicon into `public/` and `apps/web/src/app/`; add `manifest.webmanifest` when PWA work starts.
 4. Primitives: add the components listed in section 6; export from the barrel.
 5. Brand components: `JarsoMark`, `JarIllustration`, `Money` (formats minor units with tabular figures), `StatusChip`.
-6. Shell: bottom tab bar and header in `src/app/(app)/layout.tsx`, role-aware tabs once FR13 lands.
+6. Shell: bottom tab bar and header in `apps/web/src/app/(app)/layout.tsx`, role-aware tabs once FR13 lands.
 7. Replace the placeholder home with the wordmark on white and the two sign-in actions.
 
 ## 15. Reference sites and what we borrow

@@ -49,7 +49,7 @@ Jarso teaches children aged **11–14** to manage pocket money, with a linked pa
 
 ## Planned feature modules
 
-| Module (`src/features/…`) | Requirements | Notes |
+| Module (`apps/web/src/features/…`) | Requirements | Notes |
 | --- | --- | --- |
 | `auth`, `profiles` (partial) | FR13 | Email sign-in exists. Add `role`, currency, and nickname-only child onboarding. **Role and family links are assigned server-side only and never appear in a user-writable schema such as `updateProfileSchema`.** |
 | `family` | FR13 | Parent–child links, approval, onboarding from either side. Basis of all cross-user RLS. |

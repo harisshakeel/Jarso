@@ -9,12 +9,12 @@ Patterns learned from corrections. Review at session start.
 - Check for incoming remote changes before finishing (`git fetch`); REQUIREMENTS.md arrived mid-task.
 - Claude config for this repo lives only in repo `.claude/` (settings, hooks, scripts). Never install into `~/.claude`, even if a guide says so.
 - UI must follow docs/design.md; check its implementation state (tokens, fonts, primitives) before building screens, and make design.md binding in every UI brief and review.
-- `.env.local` points at the HOSTED Supabase project. Never run the app, spikes or smoke tests with it; force local URL/keys in the process env (see playwright.config.ts).
+- `apps/web/.env.local` points at the HOSTED Supabase project. Never run the app, spikes or smoke tests with it; force local URL/keys in the process env (see apps/web/playwright.config.ts).
 - Supabase-js `getClaims()` calls `Date.now()`; with Partial Prefetching, read the session after `await connection()`.
 - GoTrue admin `createUser` writes `app_metadata` after the insert; DB triggers must handle the follow-up UPDATE.
 - Never commit until the user explicitly says so — not docs, not per-task SDD commits. Leave work uncommitted and ask.
 - Use a provider's official SDK (e.g. `razorpay`, `stripe`) for integrations, not hand-rolled REST calls.
-- Unit tests live in `tests/` mirroring `src/`, never colocated.
+- Unit tests live in `apps/web/tests/` mirroring `apps/web/src/`, never colocated.
 - Webhook mapping must only trust fields the server set (references, order notes); payment notes are browser-settable.
 - Before pushing migrations to the hosted project, `supabase migration list --linked` and check main's migrations for redefined constraints/functions the branch also redefines.
 - Probe a payment provider's test mode early (a throwaway script with the test keys, never printing them) before building on documented assumptions: Razorpay rejects recurring card orders unless the customer already has email and phone, which the docs research missed.

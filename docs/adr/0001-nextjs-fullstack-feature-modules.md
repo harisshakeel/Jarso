@@ -9,7 +9,7 @@ Frontend and backend ship together. We need a structure that stays navigable as 
 
 ## Decision
 
-One Next.js 16 App Router app. Code is grouped by domain in `src/features/<name>` with a fixed internal shape (`components/`, `schemas.ts`, `types.ts`, `server/{actions,service,repository}`). `src/app` is a thin routing layer. Backend entry points are Server Actions (own UI) and versioned Route Handlers (`/api/v1`, external callers); both delegate to services.
+One Next.js 16 App Router app. Code is grouped by domain in `apps/web/src/features/<name>` with a fixed internal shape (`components/`, `schemas.ts`, `types.ts`, `server/{actions,service,repository}`). `apps/web/src/app` is a thin routing layer. Backend entry points are Server Actions (own UI) and versioned Route Handlers (`/api/v1`, external callers); both delegate to services.
 
 ## Consequences
 

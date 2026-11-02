@@ -61,7 +61,7 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 
 ### `POST /api/v1/outbox`
 
-Called only by the device outbox (`src/features/offline/outbox/send.ts`), one item at a time.
+Called only by the device outbox (`apps/web/src/features/offline/outbox/send.ts`), one item at a time.
 Body: `{ kind, userId, ageMs, payload }`, `kind` one of `purchase | practice | step |
 completeMission | checkIn`. `payload` is exactly that feature's schema input
 (`purchaseSchema(currency)`, `recordPracticeSchema`, `recordStepSchema`, `completeMissionSchema`,
@@ -84,7 +84,7 @@ Every refusal message is shown to the child, so it never carries Zod details. `m
 
 ### `POST /api/v1/guide/turns`
 
-Called by the Ask Jarso window on the child's Home (`src/features/guide/send-turn.ts`), the one Route Handler our own UI calls for a reason other than the outbox: a Server Action can't stream status lines (ADR 0011). Body: `askGuideSchema` (`clientMessageId`, `conversationId`, `context`, `text`). Every check (child role, the deployment flag and the parent's switch, on unless a parent turned it off, a re-sent question, the context key, the chat, the rate limits) runs first and fails with the usual JSON error envelope and status. After that the response is `200 application/x-ndjson`, one JSON object per line:
+Called by the Ask Jarso window on the child's Home (`apps/web/src/features/guide/send-turn.ts`), the one Route Handler our own UI calls for a reason other than the outbox: a Server Action can't stream status lines (ADR 0011). Body: `askGuideSchema` (`clientMessageId`, `conversationId`, `context`, `text`). Every check (child role, the deployment flag and the parent's switch, on unless a parent turned it off, a re-sent question, the context key, the chat, the rate limits) runs first and fails with the usual JSON error envelope and status. After that the response is `200 application/x-ndjson`, one JSON object per line:
 
 - `{ "type": "status", "text": "Peeking in your jars…" }` — where Jarso is: one per phase (`guideCopy.phases`: reading the question, putting an answer together, double-checking it) and one per look-up (`guideCopy.status`), all fixed copy;
 - then `{ "type": "reply", "data": AskGuideResult }` (the screened reply, in one piece), or `{ "type": "error", "error": { "code", "message" } }`.
@@ -93,7 +93,7 @@ No model text ever streams. `maxDuration` 60 s (the turn's own deadline is 45 s)
 
 ### `POST /api/v1/payments/webhooks/[provider]`
 
-Called by the payment provider, never by our UI (`src/app/api/v1/payments/webhooks/[provider]/route.ts`). `[provider]` must be a provider that is on (all its env keys set; `fake` needs `PAYMENTS_ALLOW_FAKE=true`); an unknown or inactive one, or no provider on, returns 404. The route reads the raw body once with `req.text()`, passes it and the headers to `provider.parseWebhook` (signature check, live-mode rejection, event mapping), then calls `handleProviderEvent`. There is no session: the signature is the authentication, and the signing secret is `STRIPE_WEBHOOK_SECRET` for Stripe and `RAZORPAY_WEBHOOK_SECRET` for Razorpay (HMAC-SHA256 of the raw body in `x-razorpay-signature`; the event id comes from `x-razorpay-event-id`).
+Called by the payment provider, never by our UI (`apps/web/src/app/api/v1/payments/webhooks/[provider]/route.ts`). `[provider]` must be a provider that is on (all its env keys set; `fake` needs `PAYMENTS_ALLOW_FAKE=true`); an unknown or inactive one, or no provider on, returns 404. The route reads the raw body once with `req.text()`, passes it and the headers to `provider.parseWebhook` (signature check, live-mode rejection, event mapping), then calls `handleProviderEvent`. There is no session: the signature is the authentication, and the signing secret is `STRIPE_WEBHOOK_SECRET` for Stripe and `RAZORPAY_WEBHOOK_SECRET` for Razorpay (HMAC-SHA256 of the raw body in `x-razorpay-signature`; the event id comes from `x-razorpay-event-id`).
 
 | Status | Meaning |
 | --- | --- |
@@ -104,10 +104,10 @@ Called by the payment provider, never by our UI (`src/app/api/v1/payments/webhoo
 
 ### `POST /api/v1/payments/razorpay/return`
 
-Where Razorpay Checkout posts its form after the save-card page (`src/app/api/v1/payments/razorpay/return/route.ts`). It is the only `withApi` route with `{ crossOrigin: true }`: the post comes from Razorpay's site, so the same-origin check would refuse it. That is safe because the route reads no session, writes nothing and only redirects. Query: `success` and `cancel`, absolute URLs on `NEXT_PUBLIC_APP_URL`'s origin. It answers 303 to `success` when the form has `razorpay_payment_id`, else to `cancel`; with either URL missing or off-origin it answers 303 to `/parent`. The `order.paid` webhook, not this redirect, saves the card. 404 when Razorpay is off.
+Where Razorpay Checkout posts its form after the save-card page (`apps/web/src/app/api/v1/payments/razorpay/return/route.ts`). It is the only `withApi` route with `{ crossOrigin: true }`: the post comes from Razorpay's site, so the same-origin check would refuse it. That is safe because the route reads no session, writes nothing and only redirects. Query: `success` and `cancel`, absolute URLs on `NEXT_PUBLIC_APP_URL`'s origin. It answers 303 to `success` when the form has `razorpay_payment_id`, else to `cancel`; with either URL missing or off-origin it answers 303 to `/parent`. The `order.paid` webhook, not this redirect, saves the card. 404 when Razorpay is off.
 
 ### `GET|POST /api/cron/payments/auto-charge`
 
-Calls `runAutoCharges()`: every due item with auto charge on, a saved card and no earlier auto attempt is claimed once and charged. Needs `Authorization: Bearer <CRON_SECRET>` (constant-time compare). Returns 404 when `CRON_SECRET` is unset or payments are off, and 401 for a wrong secret. pg_cron calls it hourly at :09 with POST through pg_net; a daily Vercel Cron (`vercel.json`, `30 3 * * *`) calls it with GET as a fallback. A missed or doubled run is harmless. `maxDuration` 60 s.
+Calls `runAutoCharges()`: every due item with auto charge on, a saved card and no earlier auto attempt is claimed once and charged. Needs `Authorization: Bearer <CRON_SECRET>` (constant-time compare). Returns 404 when `CRON_SECRET` is unset or payments are off, and 401 for a wrong secret. pg_cron calls it hourly at :09 with POST through pg_net; a daily Vercel Cron (`apps/web/vercel.json`, `30 3 * * *`) calls it with GET as a fallback. A missed or doubled run is harmless. `maxDuration` 60 s.
 
 `/dev/payments/fake` is a page, not an endpoint: the fake provider's hosted checkout for tests and local runs. It is a 404 unless the fake provider is on (`PAYMENTS_ALLOW_FAKE=true`, never on Vercel production).
