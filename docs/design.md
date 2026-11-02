@@ -220,12 +220,15 @@ Primitives to add next: `badge`, `progress`, `tabs`, `sheet`, `dialog`, `avatar`
 | Cards and list items on first paint | Rise-in: opacity 0 to 1, translateY 12 px to 0, scale 0.99 to 1; stagger 40 ms per item, at most 6 items | 250 ms |
 | Sheets, dialogs, page transitions | Slide up / fade | 250 ms |
 | Jar fill after a confirmed handover | Fill level rises, two coins drop; the coin icon in the toast does one `rotateY` flip | 500 ms |
+| Money moves between the jars, or leaves Spend | Three coins arc from the source jar to the other (`coin-fly`, one turn in the air, 70 ms apart), or up and away for a purchase; the target's drop follows. Coins clink | 700 ms |
 | Jar graph line | Draws from left to right (`graph-draw`) when the graph or its period appears | 900 ms |
 | Goal reached, mission complete | Ring completes, badge scales in once | 600 ms |
 | Coach reacts to an answer | Right: two small hops (`coach-cheer`); wrong: one nod (`coach-nod`). Once, never looping | 700 / 500 ms |
 | Skeletons | Shimmer band | 1.5 s loop |
 
-Easing `cubic-bezier(0.2, 0.8, 0.2, 1)`. With `prefers-reduced-motion: reduce`, everything becomes an instant state change; the coins do not fall and the rise-in is skipped. Nothing loops except skeletons. No confetti, no smooth-scroll library, no parallax: those belong to marketing pages, not to an app a child uses daily.
+Easing `cubic-bezier(0.2, 0.8, 0.2, 1)`. With `prefers-reduced-motion: reduce`, everything becomes an instant state change; the coins do not fall or fly and the rise-in is skipped. Nothing loops except skeletons. No confetti, no smooth-scroll library, no parallax: those belong to marketing pages, not to an app a child uses daily.
+
+**Sound.** Three sounds, synthesised in the browser (`src/lib/sounds.ts`, no audio files), each under 400 ms and quiet (gain at most 0.2): coins clinking when money moves between the jars, leaves Spend, or a purchase is saved; a rising two-note chime for a right answer; one soft low bonk for a wrong one, never a buzzer. Nothing plays before the person has touched the page. One "Sounds" switch on Settings (child and parent) turns them off for that browser (`localStorage`, `jarso:sounds`).
 
 ## 9. Voice
 

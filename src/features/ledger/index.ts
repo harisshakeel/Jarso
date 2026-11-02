@@ -2,6 +2,7 @@
 
 export * from "./balance-history";
 export * from "./categories";
+export * from "./coin-flight";
 export * from "./components/history-list";
 export * from "./components/jar-graph";
 export * from "./components/jar-shelf";

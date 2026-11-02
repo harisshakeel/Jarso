@@ -2,7 +2,7 @@
 
 import { ChevronDownIcon } from "lucide-react";
 import Link from "next/link";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { JarIllustration } from "@/components/jar";
 import { routes } from "@/config";
 import { GoalSheet, type GoalView } from "@/features/goals";
@@ -14,7 +14,8 @@ import {
   takeOutLimit,
 } from "@/features/requests";
 import { describeRuleForChild, type MoneyRule } from "@/features/rules";
-import { cn, formatMoney } from "@/lib";
+import { cn, formatMoney, playCoins } from "@/lib";
+import { type CoinFlight, flightFor } from "../coin-flight";
 import { jarCapacity } from "../jar-scale";
 
 type JarShelfProps = {
@@ -29,6 +30,8 @@ type JarShelfProps = {
   dueMinor: number;
   /** Pending and approved requests, shown under the jar they affect. */
   openRequests: SavingsRequest[];
+  /** A move that just landed, for the coins to fly once on first paint (a sheet can pass it). */
+  justMoved?: CoinFlight | null;
 };
 
 /** A request in the child's words, under its jar (spec §6.1). */
@@ -62,14 +65,33 @@ export function JarShelf({
   allowanceMinor,
   dueMinor,
   openRequests,
+  justMoved = null,
 }: JarShelfProps) {
   const [open, setOpen] = useState<Jar | null>(null);
   const trayId = useId();
+  const { spendMinor, saveMinor, reservedSaveMinor } = availability;
+  // Coins fly when the balances the shelf shows change (design.md §8): Save to Spend, Spend to
+  // Save, or out of Spend for a purchase. The first paint flies nothing unless told to.
+  const previous = useRef({ spend: spendMinor, save: saveMinor });
+  const [flight, setFlight] = useState<{ key: number; flight: CoinFlight } | null>(() =>
+    justMoved ? { key: 0, flight: justMoved } : null,
+  );
+  useEffect(() => {
+    const next = { spend: spendMinor, save: saveMinor };
+    const found = flightFor(previous.current, next);
+    previous.current = next;
+    if (found) setFlight({ key: Date.now(), flight: found });
+  }, [spendMinor, saveMinor]);
+  useEffect(() => {
+    if (!flight) return;
+    playCoins();
+    const done = setTimeout(() => setFlight(null), FLIGHT_MS + 200);
+    return () => clearTimeout(done);
+  }, [flight]);
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
   const ruleLines = (kinds: MoneyRule["kind"][]) =>
     rules.filter((rule) => kinds.includes(rule.kind)).map((r) => describeRuleForChild(r, currency));
 
-  const { spendMinor, saveMinor, reservedSaveMinor } = availability;
   // FR05: with an unreached goal, the Save sheets ask the child to predict the effect first.
   const predict =
     goal && !goal.progress.reached
@@ -90,7 +112,8 @@ export function JarShelf({
           {money(dueMinor)} on its way · waiting for a parent
         </p>
       ) : null}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="@container relative grid grid-cols-2 gap-4">
+        {flight ? <CoinFlightOverlay key={flight.key} flight={flight.flight} /> : null}
         <section aria-label="Spend jar" className="grid content-start gap-2">
           <JarButton
             jar="spend"
@@ -174,6 +197,43 @@ export function JarShelf({
       </div>
       <Legend goal={goal !== null} reserved={reservedSaveMinor > 0} due={dueMinor > 0} />
     </section>
+  );
+}
+
+/** How long the coins are in the air. */
+const FLIGHT_MS = 700;
+
+/**
+ * Three coins arcing from one jar to the other, or up and away out of Spend, over the shelf.
+ * Decorative: the balances say what happened. Motion-safe only; reduced motion shows nothing.
+ */
+function CoinFlightOverlay({ flight }: { flight: CoinFlight }) {
+  const out = flight.to === "out";
+  const fromLeft = flight.from === "spend";
+  const dx = out ? "0px" : fromLeft ? "50cqw" : "-50cqw";
+  return (
+    <div
+      aria-hidden
+      data-coin-flight={`${flight.from}-${flight.to}`}
+      className="pointer-events-none absolute inset-0 z-10 hidden motion-safe:block"
+    >
+      {[0, 1, 2].map((coin) => (
+        <span
+          key={coin}
+          className="absolute top-[42%] size-5 rounded-full border-2 border-teal-800 bg-gold shadow-raised motion-safe:animate-[coin-fly_700ms_var(--ease-brand)_both]"
+          style={
+            {
+              left: fromLeft ? "25%" : "75%",
+              marginLeft: `${(coin - 1) * 10}px`,
+              animationDelay: `${coin * 70}ms`,
+              "--fly-dx": dx,
+              "--fly-dy": out ? "-110px" : "0px",
+              "--fly-end": out ? 0 : 1,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </div>
   );
 }
 
