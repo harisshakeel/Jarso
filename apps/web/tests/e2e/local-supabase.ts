@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 /**
  * Local Supabase credentials for e2e runs, read from `supabase status -o json`.
@@ -25,7 +25,7 @@ function readStatus(): LocalSupabase | null {
   try {
     // stderr is dropped and stdout only parsed: the output contains keys.
     output = execSync("pnpm exec supabase status -o json", {
-      cwd: fileURLToPath(new URL("../../../../", import.meta.url)),
+      cwd: resolve(__dirname, "../../../.."),
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
       timeout: 60_000,
