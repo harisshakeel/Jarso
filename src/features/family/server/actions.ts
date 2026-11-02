@@ -28,7 +28,6 @@ import {
   advanceFamilyClock,
   childSignIn,
   createFamily,
-  demoClockEnabled,
   removeChild,
   renameChild,
   setChildPin,
@@ -113,8 +112,7 @@ export const updateFamilySettingsAction = createAction(
  * family's day, so the whole app is revalidated.
  */
 export const advanceFamilyClockAction = createAction(advanceFamilyClockSchema, async (input) => {
-  if (!demoClockEnabled()) throw new AppError("FORBIDDEN", "The demo clock is off.");
-  await assertRole("parent");
+  // The service checks the deployment flag and the parent role.
   const result = await advanceFamilyClock(input);
   revalidatePath("/", "layout");
   return result;

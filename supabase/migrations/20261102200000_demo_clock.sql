@@ -19,7 +19,7 @@ alter table public.families
     constraint families_clock_offset_check check (clock_offset >= interval '0'),
   add column demo_clock_enabled boolean not null default false;
 
-comment on column public.families.clock_offset is 'Demo clock (D11): how far this family''s clock is ahead of real time. 0 for every real family. Moved forward only by advance_family_clock; never readable by signed-in users.';
+comment on column public.families.clock_offset is 'Demo clock (D11): how far this family''s clock is ahead of real time. 0 for every real family. Moved forward only by advance_family_clock. Signed-in users cannot select the column, but an approved member can derive it through family_clock_offset / family_now.';
 comment on column public.families.demo_clock_enabled is 'Demo clock (D11): advance_family_clock works only when true. Set by the demo seed or an admin, never by users.';
 
 -- Signed-in users read every column except the two above (same pattern as 20261101230000).
@@ -722,7 +722,7 @@ begin
 end;
 $$;
 
-comment on function public.advance_family_clock(uuid, int) is 'Demo clock (D11). An approved parent of the family moves its clock forward p_days (1..60) days; forward only. Needs families.demo_clock_enabled; the total offset is at most 366 days. Locks the family row, adds the days, generates due allowance periods at the new today (generate_due_occurrences for this family), then runs send_handover_reminders for this family once per skipped day so each day''s notices land; audit_log family.clock_advanced {days, offset_days}. Returns {offset_days, today, generated, reminders}. JA403 (not an approved parent of the family), 22023 (days outside 1..60, offset over 366 days), JA409 (demo clock off).';
+comment on function public.advance_family_clock(uuid, int) is 'Demo clock (D11). An approved parent of the family moves its clock forward p_days (1..60) days; forward only. Needs families.demo_clock_enabled; the total offset is at most 366 days. Locks the family row, adds the days, generates due allowance periods at the new today (generate_due_occurrences for this family), then runs send_handover_reminders for this family once per skipped day so each day''s notices land (a schedule a parent is editing at that moment is skipped, as generate_due_occurrences skips locked rows, and falls due at the next hourly cron run); audit_log family.clock_advanced {days, offset_days}. Returns {offset_days, today, generated, reminders}. JA403 (not an approved parent of the family), 22023 (days outside 1..60, offset over 366 days), JA409 (demo clock off).';
 
 revoke execute on function public.advance_family_clock(uuid, int) from public, anon;
 grant execute on function public.advance_family_clock(uuid, int) to authenticated;

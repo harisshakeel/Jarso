@@ -18,7 +18,6 @@ export {
   advanceFamilyClock,
   childSignIn,
   createFamily,
-  demoClockEnabled,
   findInvitation,
   findMyInvitation,
   getChildNickname,

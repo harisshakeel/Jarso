@@ -8,34 +8,24 @@ vi.mock("@/features/family/server/dal", () => ({
   assertParentOf: vi.fn(),
   assertRole: vi.fn(),
 }));
-vi.mock("@/features/family/server/service", () => ({
-  advanceFamilyClock: vi.fn(),
-  demoClockEnabled: vi.fn(),
-}));
+vi.mock("@/features/family/server/service", () => ({ advanceFamilyClock: vi.fn() }));
 
 const { advanceFamilyClockAction } = await import("@/features/family/server/actions");
 const service = await import("@/features/family/server/service");
-const dal = await import("@/features/family/server/dal");
 
 const moved = { offsetDays: 7, today: "2026-11-09", generated: 1, reminders: 3 };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(service.demoClockEnabled).mockReturnValue(true);
-  vi.mocked(dal.assertRole).mockResolvedValue({
-    user: { id: "parent-1", email: "p@example.com" },
-    membership: { familyId: "fam-1", role: "parent", status: "approved" },
-  });
   vi.mocked(service.advanceFamilyClock).mockResolvedValue(moved);
 });
 
 describe("advanceFamilyClockAction", () => {
-  it("moves the clock as a parent and refreshes every screen", async () => {
+  it("moves the clock and refreshes every screen", async () => {
     await expect(advanceFamilyClockAction(null, { days: 7 })).resolves.toEqual({
       ok: true,
       data: moved,
     });
-    expect(dal.assertRole).toHaveBeenCalledWith("parent");
     expect(service.advanceFamilyClock).toHaveBeenCalledWith({ days: 7 });
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
@@ -47,24 +37,18 @@ describe("advanceFamilyClockAction", () => {
     expect(service.advanceFamilyClock).toHaveBeenCalledWith({ days: 30 });
   });
 
-  it("refuses when the deployment has no demo clock", async () => {
-    vi.mocked(service.demoClockEnabled).mockReturnValue(false);
+  it("passes on a refusal (no demo clock, not a parent) without refreshing", async () => {
+    vi.mocked(service.advanceFamilyClock).mockRejectedValue(
+      new AppError("FORBIDDEN", "The demo clock is off."),
+    );
     const result = await advanceFamilyClockAction(null, { days: 1 });
     expect(result).toMatchObject({ ok: false, error: { code: "FORBIDDEN" } });
-    expect(service.advanceFamilyClock).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it.each([0, 61, 1.5, "soon"])("rejects %s days", async (days) => {
     const result = await advanceFamilyClockAction(null, { days } as never);
     expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION" } });
-    expect(service.advanceFamilyClock).not.toHaveBeenCalled();
-  });
-
-  it("refuses a child", async () => {
-    vi.mocked(dal.assertRole).mockRejectedValue(new AppError("FORBIDDEN", "You can't do that."));
-    const result = await advanceFamilyClockAction(null, { days: 1 });
-    expect(result).toMatchObject({ ok: false, error: { code: "FORBIDDEN" } });
     expect(service.advanceFamilyClock).not.toHaveBeenCalled();
   });
 });
