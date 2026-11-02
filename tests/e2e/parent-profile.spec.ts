@@ -1,7 +1,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { completeParentProfile } from "./helpers";
+import { completeParentProfile, expectSetupPage } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -33,7 +33,7 @@ async function signUp(page: Page, email: string): Promise<void> {
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(at("/parent/setup"), { timeout: 20_000 });
+  await expectSetupPage(page);
 }
 
 test("a new parent is blocked until the profile is complete", async ({ browser }) => {

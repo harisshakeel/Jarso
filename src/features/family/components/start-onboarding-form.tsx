@@ -11,7 +11,9 @@ import { InviteShareCard } from "./invite-share-card";
  * email (invariant 16), then swaps to the share card with the link and code.
  */
 export function StartOnboardingForm() {
-  const [state, formAction, pending, submit] = useOnlineActionState(startChildOnboardingAction);
+  const [state, formAction, pending, submit, ready] = useOnlineActionState(
+    startChildOnboardingAction,
+  );
   if (state?.ok) return <InviteShareCard link={state.data.link} code={state.data.code} />;
 
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
@@ -38,7 +40,14 @@ export function StartOnboardingForm() {
             errors={fieldErrors?.parentEmail}
           />
           <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
-          <Button type="submit" variant="keycap" size="lg" className="w-full" loading={pending}>
+          <Button
+            type="submit"
+            variant="keycap"
+            size="lg"
+            className="w-full"
+            loading={pending}
+            disabled={!ready}
+          >
             Ask my parent
           </Button>
         </form>

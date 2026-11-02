@@ -9,7 +9,7 @@ import { withNext } from "../schemas";
 import { signUp } from "../server/actions";
 
 export function SignUpForm({ next }: { next?: string }) {
-  const [state, formAction, pending, submit] = useOnlineActionState(signUp);
+  const [state, formAction, pending, submit, ready] = useOnlineActionState(signUp);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
   if (state?.ok && state.data?.needsConfirmation) {
@@ -43,7 +43,7 @@ export function SignUpForm({ next }: { next?: string }) {
         errors={fieldErrors?.password}
       />
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending || !ready}>
         {pending ? "Creating account…" : "Create account"}
       </Button>
       <p className="text-muted-foreground text-center text-sm">

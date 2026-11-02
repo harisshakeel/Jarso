@@ -8,6 +8,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useSyncExternalStore,
 } from "react";
 import type { ActionResult, ActionState } from "@/lib";
 import { offlineCopy } from "./copy";
@@ -100,9 +101,14 @@ export function useFormSubmit(
   );
 }
 
+const noSubscribe = () => () => {};
+
 /**
  * `useActionState` with `runOnline` applied inside. The fourth element is the form's `onSubmit`
  * (see `useFormSubmit`): use it together with `action={formAction}` so typed values are kept.
+ * The fifth, `ready`, is false until the page has hydrated: the action is wrapped on the client,
+ * so a submit before then is a plain POST that goes nowhere. Forms disable their submit button
+ * until it is true, which also makes an e2e click wait for it.
  */
 export function useOnlineActionState<T>(
   action: (prev: ActionState<T>, payload: FormData) => Promise<ActionResult<T>>,
@@ -112,5 +118,10 @@ export function useOnlineActionState<T>(
     null,
   );
   const submit = useFormSubmit(formAction, state);
-  return [state, formAction, pending, submit] as const;
+  const ready = useSyncExternalStore(
+    noSubscribe,
+    () => true,
+    () => false,
+  );
+  return [state, formAction, pending, submit, ready] as const;
 }

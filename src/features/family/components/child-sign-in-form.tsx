@@ -11,7 +11,7 @@ import { childSignInAction } from "../server/actions";
  * survive a wrong PIN (React resets uncontrolled fields after an action); the PIN clears.
  */
 export function ChildSignInForm() {
-  const [state, formAction, pending, submit] = useOnlineActionState(childSignInAction);
+  const [state, formAction, pending, submit, ready] = useOnlineActionState(childSignInAction);
   const [familyCode, setFamilyCode] = useState("");
   const [nickname, setNickname] = useState("");
 
@@ -58,7 +58,14 @@ export function ChildSignInForm() {
             errors={fieldErrors?.pin}
           />
           <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
-          <Button type="submit" variant="keycap" size="lg" className="w-full" loading={pending}>
+          <Button
+            type="submit"
+            variant="keycap"
+            size="lg"
+            className="w-full"
+            loading={pending}
+            disabled={!ready}
+          >
             Sign in
           </Button>
         </form>

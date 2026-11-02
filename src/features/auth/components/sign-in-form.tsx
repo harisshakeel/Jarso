@@ -9,7 +9,7 @@ import { withNext } from "../schemas";
 import { signIn } from "../server/actions";
 
 export function SignInForm({ next }: { next?: string }) {
-  const [state, formAction, pending, submit] = useOnlineActionState(signIn);
+  const [state, formAction, pending, submit, ready] = useOnlineActionState(signIn);
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
   return (
@@ -32,7 +32,7 @@ export function SignInForm({ next }: { next?: string }) {
         errors={fieldErrors?.password}
       />
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending || !ready}>
         {pending ? "Signing in…" : "Sign in"}
       </Button>
       <p className="text-muted-foreground text-center text-sm">
