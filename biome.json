@@ -10,10 +10,10 @@
     "includes": [
       "**",
       "!**/next-env.d.ts",
-      "!src/types/database.types.ts",
+      "!apps/web/src/types/database.types.ts",
       "!supabase/.temp",
-      "!playwright-report",
-      "!test-results",
+      "!**/playwright-report",
+      "!**/test-results",
       "!**/*.md"
     ]
   },
@@ -65,7 +65,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/components/ui/**"],
+      "includes": ["apps/web/src/components/ui/**"],
       "linter": {
         "rules": {
           "a11y": {
