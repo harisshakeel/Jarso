@@ -1,5 +1,6 @@
 "use client";
 
+import { purchaseSchema } from "@jarso/core/diary";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
@@ -18,7 +19,6 @@ import {
 import { SPEND_CATEGORIES } from "@/features/ledger";
 import { newId, offlineCopy, removeOutboxItem, submitToOutbox } from "@/features/offline";
 import type { FieldErrors } from "@/lib";
-import { purchaseSchema } from "../schemas";
 import { CategoryChips } from "./category-chips";
 
 /** The name field's hint follows the chip: a snack asks "What snack?". */

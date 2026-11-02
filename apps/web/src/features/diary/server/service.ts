@@ -1,10 +1,16 @@
 import "server-only";
+import type {
+  EntryVersion,
+  FixResult,
+  PurchaseResult,
+  ReceivedResult,
+  UndoResult,
+} from "@jarso/core/diary";
 // Spending and money received, recorded in the money diary.
 import { assertUser } from "@/features/auth/server";
 import { assertRole } from "@/features/family/server";
 import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
-import type { EntryVersion, FixResult, PurchaseResult, ReceivedResult, UndoResult } from "../types";
 import {
   callCorrectDiaryEntry,
   callListEntryVersions,

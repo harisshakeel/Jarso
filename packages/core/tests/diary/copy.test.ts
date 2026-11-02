@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
 import {
   notEnoughSpendMessage,
   notEnoughSpendToLowerMessage,
   notEnoughSpendToRaiseMessage,
-} from "@/features/diary/copy";
+} from "@jarso/core/diary";
+import { describe, expect, it } from "vitest";
 
 describe("notEnoughSpendMessage", () => {
   it("says the jar is empty when nothing is free", () => {

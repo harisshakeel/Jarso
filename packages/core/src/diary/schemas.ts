@@ -1,6 +1,6 @@
+import { RECEIVED_CATEGORIES, SPEND_CATEGORIES } from "@jarso/core/ledger";
+import { moneySchema } from "@jarso/core/lib";
 import { z } from "zod";
-import { RECEIVED_CATEGORIES, SPEND_CATEGORIES } from "@/features/ledger";
-import { moneySchema } from "@/lib";
 
 const MAX_LABEL = 60;
 

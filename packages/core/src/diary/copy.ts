@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib";
+import { formatMoney } from "@jarso/core/lib";
 
 /** What a child sees when a purchase is more than the Spend jar holds. */
 export function notEnoughSpendMessage(freeMinor: number, currency: string): string {

@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  fixSchema,
+  notEnoughSaveToFixMessage,
+  notEnoughSpendToLowerMessage,
+  notEnoughSpendToRaiseMessage,
+  notFixableMessage,
+  unchangedMessage,
+} from "@jarso/core/diary";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
@@ -14,14 +22,6 @@ import {
 } from "@/features/ledger";
 import { newId, runOnline } from "@/features/offline";
 import { type FieldErrors, toMajorString } from "@/lib";
-import {
-  notEnoughSaveToFixMessage,
-  notEnoughSpendToLowerMessage,
-  notEnoughSpendToRaiseMessage,
-  notFixableMessage,
-  unchangedMessage,
-} from "../copy";
-import { fixSchema } from "../schemas";
 import { correctDiaryEntryAction } from "../server/actions";
 import { CategoryChips } from "./category-chips";
 

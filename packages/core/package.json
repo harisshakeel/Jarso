@@ -18,7 +18,8 @@
     "./payments": "./src/payments/index.ts",
     "./allowance": "./src/allowance/index.ts",
     "./learning": "./src/learning/index.ts",
-    "./learning/content": "./src/learning/content.ts"
+    "./learning/content": "./src/learning/content.ts",
+    "./diary": "./src/diary/index.ts"
   },
   "dependencies": {
     "@jarso/content": "workspace:*",

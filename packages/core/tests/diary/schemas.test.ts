@@ -1,5 +1,5 @@
+import { fixSchema, purchaseSchema, receivedSchema, undoSchema } from "@jarso/core/diary";
 import { describe, expect, it } from "vitest";
-import { fixSchema, purchaseSchema, receivedSchema, undoSchema } from "@/features/diary/schemas";
 
 const uuid = "0b7e8f40-9d1a-4b2c-8e3f-1a2b3c4d5e6f";
 const schema = purchaseSchema("GBP");
