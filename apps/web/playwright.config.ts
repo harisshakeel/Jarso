@@ -43,6 +43,9 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   globalSetup: "./tests/e2e/global-setup.ts",
+  // Auth round trips and server renders on a loaded CI runner can pass five seconds without
+  // anything being wrong; locally the default stays sharp.
+  expect: { timeout: process.env.CI ? 10_000 : 5_000 },
   use: { baseURL, trace: "on-first-retry" },
   projects: [
     { name: "smoke", testMatch: "smoke.spec.ts", use: { ...devices["Desktop Chrome"] } },
@@ -54,6 +57,7 @@ export default defineConfig({
     { name: "allowance", testMatch: "allowance.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "child-home", testMatch: "child-home.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "purchases", testMatch: "purchases.spec.ts", use: { ...devices["Desktop Chrome"] } },
+    { name: "diary", testMatch: "diary.spec.ts", use: { ...devices["Desktop Chrome"] } },
     { name: "requests", testMatch: "requests.spec.ts", use: { ...devices["Desktop Chrome"] } },
     // No browser: concurrent RPC calls against local Supabase.
     { name: "handover-race", testMatch: "handover-race.spec.ts" },

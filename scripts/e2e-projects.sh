@@ -43,6 +43,7 @@ while IFS= read -r f; do
     apps/web/tests/e2e/allowance.spec.ts) add allowance ;;
     apps/web/tests/e2e/child-home.spec.ts) add child-home ;;
     apps/web/tests/e2e/purchases.spec.ts) add purchases ;;
+    apps/web/tests/e2e/diary.spec.ts) add diary ;;
     apps/web/tests/e2e/requests.spec.ts) add requests ;;
     apps/web/tests/e2e/handover-race.spec.ts) add handover-race ;;
     apps/web/tests/e2e/requests-race.spec.ts) add requests-race ;;
@@ -60,7 +61,7 @@ while IFS= read -r f; do
     apps/web/src/components/theme/*) add theme ;;
     apps/web/src/features/guide/*|apps/web/src/app/\(app\)/child/jarso/*|apps/web/src/app/\(app\)/parent/jarso/*|apps/web/src/app/\(app\)/parent/children/\[childId\]/guide/*) add guide ;;
     apps/web/src/features/learning/*|apps/web/src/app/\(app\)/child/learn/*|apps/web/src/app/\(app\)/parent/children/\[childId\]/learning/*) add learning offline-mission child-home ;;
-    apps/web/src/features/ledger/*|apps/web/src/features/diary/*|apps/web/src/components/jar/*|apps/web/src/app/\(app\)/child/diary/*) add child-home purchases offline-purchase ;;
+    apps/web/src/features/ledger/*|apps/web/src/features/diary/*|apps/web/src/components/jar/*|apps/web/src/app/\(app\)/child/diary/*) add child-home purchases diary offline-purchase ;;
     apps/web/src/features/goals/*|apps/web/src/app/\(app\)/child/goal/*) add child-home ;;
     apps/web/src/features/requests/*|apps/web/src/app/\(app\)/child/requests/*) add requests requests-race handover-race child-home ;;
     apps/web/src/features/rules/*|apps/web/src/app/\(app\)/parent/children/\[childId\]/rules/*) add purchases requests ;;
