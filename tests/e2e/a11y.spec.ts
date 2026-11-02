@@ -96,9 +96,11 @@ async function scan(page: Page, route: string, theme: Theme): Promise<void> {
   await page.goto(route);
   await page.waitForLoadState("networkidle").catch(() => {});
   await expect(page.locator("html")).toHaveClass(theme === "dark" ? /dark/ : /^(?!.*\bdark\b)/);
-  expect(new URL(page.url()).pathname, `${route} bounced to sign-in`).not.toMatch(
-    /^\/(login|sign-in)/,
-  );
+  // A bounce means we landed on a sign-in page we did not ask for; the public sign-in pages are scanned on purpose.
+  const signIn = /^\/(login|sign-in)/;
+  if (!signIn.test(route)) {
+    expect(new URL(page.url()).pathname, `${route} bounced to sign-in`).not.toMatch(signIn);
+  }
   expect.soft(await violations(page), `${route} (${theme})`).toEqual([]);
 }
 
