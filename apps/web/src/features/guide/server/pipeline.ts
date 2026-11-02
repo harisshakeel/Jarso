@@ -1,5 +1,5 @@
 import "server-only";
-import type { GoalProposal, GuideCheck, GuideRoute, GuideUsage } from "@jarso/core/guide";
+import type { GuideCheck, GuideProposal, GuideRoute, GuideUsage } from "@jarso/core/guide";
 import { guideCopy } from "@jarso/core/guide";
 import type { TopicKey } from "@/features/learning";
 import { logger } from "@/lib";
@@ -50,11 +50,11 @@ export type PipelineResult = {
   /** Facts this turn stored, as written; shown to the child under the reply. */
   remembered: string[];
   /**
-   * The goal Jarso offered (`propose_goal`), shown as a card under an on-topic reply that passed
+   * The goal or action Jarso offered (`propose_goal`, `propose_action`), shown as a card under an on-topic reply that passed
    * the output screen and dropped with any other reply. Its figures come from the tool's
    * validated arguments, parsed in code, never from the model's text.
    */
-  proposal: GoalProposal | null;
+  proposal: GuideProposal | null;
   /**
    * Why a reply was held back (`blocked_output` only): the output screen's problem, or
    * "unknown_ref: <keys>" / "malformed_ref" / "empty" / "too_long". Ref keys only, never text.

@@ -1,4 +1,14 @@
-import { type GoalProposal, goalProposalFrom, type ProposedGoalArgs } from "@jarso/core/guide";
+import {
+  type ActionFields,
+  type ActionKind,
+  type DraftResult,
+  describeDraft,
+  draftFromFields,
+  type GuideProposal,
+  goalProposalFrom,
+  isActionKindFor,
+  type ProposedGoalArgs,
+} from "@jarso/core/guide";
 import { addFact, type Facts } from "@/features/guide/server/facts";
 import type { TurnTools } from "@/features/guide/server/provider";
 import {
@@ -159,9 +169,41 @@ function run(name: string, input: Record<string, unknown>, fact: Fact): unknown 
           "A 'Make it my goal' card now shows under your reply. In a few words, tell the child they can tap it if they want this as their goal. It is their choice; never push.",
       };
     }
+    case "propose_action": {
+      const built = fixtureDraft(input);
+      if (!built) return { error: "That isn't something you can prepare in this chat." };
+      if (!built.ok) {
+        return "missing" in built
+          ? {
+              missing: built.missing,
+              ask: "Ask ONE short question for what is missing, then call propose_action again. No card shows yet.",
+            }
+          : { error: built.problem };
+      }
+      const card = describeDraft(built.draft, "GBP");
+      return {
+        prepared: card.title,
+        card: card.lines.map((line, index) => ({
+          what: line.label,
+          value: /\d/.test(line.value) ? fact(`action.${index + 1}`, line.value) : line.value,
+        })),
+        next: "A card with a 'Do it' button now shows under your reply. In a few words, ask them to check it and tap Do it if it's right. Never say it is done: only the app can, after the tap.",
+      };
+    }
     default:
       return null;
   }
+}
+
+/** The fixture child's draft for a `propose_action` call (child kinds only), or null. */
+function fixtureDraft(input: Record<string, unknown>): DraftResult | null {
+  const kind = input.kind as ActionKind;
+  if (!isActionKindFor(kind, "child")) return null;
+  return draftFromFields(kind, (input.fields ?? {}) as ActionFields, {
+    currency: "GBP",
+    id: "00000000-0000-4000-8000-0000000000aa",
+    today: "2026-10-30",
+  });
 }
 
 /** `plan_saving`'s answer for the fixture child, with refs under `prefix`. */
@@ -197,7 +239,7 @@ export function createFixtureTools(): TurnTools {
   const facts: Facts = new Map();
   const calls: ToolCall[] = [];
   const timesCalled = new Map<string, number>();
-  let proposal: GoalProposal | null = null;
+  let proposal: GuideProposal | null = null;
   const error = (message: string) => ({
     content: JSON.stringify({ error: message }),
     isError: true,
@@ -225,6 +267,10 @@ export function createFixtureTools(): TurnTools {
       const isError = !!data && typeof data === "object" && "error" in data;
       if (name === "propose_goal" && !isError) {
         proposal = goalProposalFrom(args as ProposedGoalArgs, "GBP");
+      }
+      if (name === "propose_action" && !isError) {
+        const built = fixtureDraft(args);
+        if (built?.ok) proposal = describeDraft(built.draft, "GBP");
       }
       return { content: JSON.stringify(data), isError };
     },

@@ -1,5 +1,5 @@
 import { helplinesFor } from "@jarso/core/config";
-import { goalProposalFrom } from "./proposal";
+import { proposalFromStored } from "./proposal";
 import type { GuideReply, TranscriptMessage } from "./types";
 
 /** One line of a chat as the thread shows it: the asker's words, or one of Jarso's replies. */
@@ -36,8 +36,8 @@ export function threadMessagesFrom(
             remembered: [],
             // Only a reply that was shown carries its card; a held-back one never offered it.
             proposal:
-              message.proposed && message.role === "guide" && message.route === "on_topic"
-                ? goalProposalFrom(message.proposed, currency)
+              message.role === "guide" && message.route === "on_topic"
+                ? proposalFromStored(message.proposed, currency)
                 : null,
           },
         },

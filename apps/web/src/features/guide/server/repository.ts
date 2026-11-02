@@ -1,10 +1,11 @@
 import "server-only";
 import {
+  actionDraftSchema,
   type GuideEntry,
   type GuideRoute,
   type GuideUsage,
-  type ProposedGoalArgs,
   proposedGoalArgsSchema,
+  type StoredProposal,
 } from "@jarso/core/guide";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
@@ -157,22 +158,31 @@ export type MessageRow = {
   createdAt: string;
   /** What Jarso looked up for this reply, in order (replies only). */
   checked: ToolName[];
-  /** The goal Jarso offered with this reply, from its stored `propose_goal` arguments. */
-  proposed?: ProposedGoalArgs | null;
+  /** What Jarso offered with this reply: a goal's arguments or an action's checked draft. */
+  proposed?: StoredProposal | null;
 };
 
 /**
- * The last `propose_goal` call's arguments, while they are still stored (the retention job keeps
- * only tool names after 30 days) and well formed.
+ * The last offer on a reply (`propose_goal` arguments or a `propose_action` draft), while it is
+ * still stored (the retention job keeps only tool names after 30 days) and well formed.
  */
-function asProposed(value: Json | null): ProposedGoalArgs | null {
+function asProposed(value: Json | null): StoredProposal | null {
   if (!Array.isArray(value)) return null;
   for (let i = value.length - 1; i >= 0; i--) {
     const call = value[i];
     if (!call || typeof call !== "object" || Array.isArray(call)) continue;
-    if (call.name !== "propose_goal") continue;
-    const parsed = proposedGoalArgsSchema.safeParse(call.input);
-    return parsed.success ? parsed.data : null;
+    if (call.name === "propose_goal") {
+      const parsed = proposedGoalArgsSchema.safeParse(call.input);
+      return parsed.success ? { type: "goal", args: parsed.data } : null;
+    }
+    if (call.name === "propose_action") {
+      const input = call.input;
+      const draft =
+        input && typeof input === "object" && !Array.isArray(input) ? input.draft : undefined;
+      const parsed = actionDraftSchema.safeParse(draft);
+      // A call that made no card (fields were missing) is skipped, so an earlier card still shows.
+      if (parsed.success) return { type: "action", draft: parsed.data };
+    }
   }
   return null;
 }

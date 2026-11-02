@@ -3,14 +3,18 @@
 import {
   acceptGoalProposalSchema,
   askGuideSchema,
+  confirmActionDraftSchema,
   forgetMemorySchema,
+  isActionKindFor,
   rateGuideMessageSchema,
   readPriceSchema,
   setGuideAccessSchema,
 } from "@jarso/core/guide";
 import { refresh, revalidatePath } from "next/cache";
 import { routes } from "@/config";
+import { pushAfterNotices } from "@/features/notifications/server";
 import { createAction } from "@/lib";
+import { confirmActionDraft } from "./do-action";
 import {
   acceptGoalProposal,
   askGuide,
@@ -47,6 +51,22 @@ export const acceptGoalProposalAction = createAction(acceptGoalProposalSchema, a
   }
   return result;
 });
+
+/**
+ * The user tapped "Do it" on an action Jarso prepared. The draft is checked again (Zod here, the
+ * form's own schema in the service) and runs through the feature service the form uses. Pages
+ * that show the money are revalidated, not the chat, so the thread keeps its place.
+ */
+export const confirmActionDraftAction = createAction(
+  confirmActionDraftSchema,
+  async ({ draft }) => {
+    const outcome = await confirmActionDraft(draft);
+    // Requests, purchases and decisions can leave notices; send their pushes like the forms do.
+    pushAfterNotices();
+    revalidatePath(isActionKindFor(draft.kind, "parent") ? routes.parent : routes.child, "layout");
+    return outcome;
+  },
+);
 
 /** The photo price check: a shrunk photo of a price tag or receipt in, a question for Jarso out. */
 export const readPriceFromPhotoAction = createAction(readPriceSchema, ({ image }) =>

@@ -41,7 +41,10 @@ describe("threadMessagesFrom", () => {
   });
 
   it("brings back the goal card a shown reply offered, and never one a held-back reply did", () => {
-    const proposed = { title: "Bike", price: "120", save_each: "8" };
+    const proposed = {
+      type: "goal" as const,
+      args: { title: "Bike", price: "120", save_each: "8" },
+    };
     const [shown, held] = threadMessagesFrom(
       [
         { ...base, id: "m2", role: "guide", text: "…", route: "on_topic", rating: null, proposed },

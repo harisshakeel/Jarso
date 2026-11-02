@@ -1,6 +1,8 @@
 import { GOAL_EMOJI, type GoalEmoji, MAX_GOAL_MINOR } from "@jarso/core/goals";
 import { formatMoney, parseMoney } from "@jarso/core/lib";
 import { z } from "zod";
+import { actionDraftSchema, describeDraft } from "./action-draft";
+import type { GuideProposal, StoredProposal } from "./types";
 
 /**
  * A goal Jarso offers (demo 3, "goal by chat"). Jarso proposes; the child decides with a card
@@ -111,6 +113,21 @@ export function makeGoalProposal(
     emoji: emojiForGoal(input.title),
     figures: describeProposal(input, currency),
   };
+}
+
+/**
+ * The card a stored offer shows again on a reopened chat: a goal from its arguments, an action
+ * from its draft (checked again; one that no longer reads is dropped). A parent's card loses the
+ * child's name, which isn't stored.
+ */
+export function proposalFromStored(
+  stored: StoredProposal | null | undefined,
+  currency: string,
+): GuideProposal | null {
+  if (!stored) return null;
+  if (stored.type === "goal") return goalProposalFrom(stored.args, currency);
+  const parsed = actionDraftSchema.safeParse(stored.draft);
+  return parsed.success ? describeDraft(parsed.data, currency) : null;
 }
 
 /** One line of figures for the card: "£120 · £5 each allowance · about 14 allowances". */

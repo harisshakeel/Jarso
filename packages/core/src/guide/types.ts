@@ -1,6 +1,15 @@
 import type { Helpline } from "@jarso/core/config";
 import type { TopicKey } from "@jarso/core/learning";
+import type { ActionDraft, ActionProposal } from "./action-draft";
 import type { GoalProposal, ProposedGoalArgs } from "./proposal";
+
+/** Something Jarso offered under a reply: a goal, or an action the user can confirm. */
+export type GuideProposal = GoalProposal | ActionProposal;
+
+/** An offer as a stored reply keeps it, to show its card again when the chat is reopened. */
+export type StoredProposal =
+  | { type: "goal"; args: ProposedGoalArgs }
+  | { type: "action"; draft: ActionDraft };
 
 /** Where the child opened the guide (spec §5.1). */
 /** Where a chat was opened; "parent" is a parent asking about their child from their own Home. */
@@ -48,8 +57,11 @@ export type GuideReply = {
   lookedAt: string[];
   /** Facts this reply kept, shown so the child always knows what Jarso remembers. */
   remembered: string[];
-  /** A goal Jarso offered with this reply; the child decides with a card under it. */
-  proposal?: GoalProposal | null;
+  /**
+   * A goal or an action Jarso offered with this reply. The user decides with a card under it;
+   * only their tap does anything.
+   */
+  proposal?: GuideProposal | null;
 };
 
 export type AskGuideResult = {
@@ -117,6 +129,6 @@ export type TranscriptMessage = {
   hidden: boolean;
   /** Replies only: what Jarso looked at, in plain words. */
   lookedAt: string[];
-  /** Replies only: the goal Jarso offered, as its stored arguments (gone after 30 days). */
-  proposed?: ProposedGoalArgs | null;
+  /** Replies only: what Jarso offered, as stored with the reply (gone after 30 days). */
+  proposed?: StoredProposal | null;
 };

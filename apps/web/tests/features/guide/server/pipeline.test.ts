@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { addFact, type Facts } from "@/features/guide/server/facts";
 import { createFakeProvider } from "@/features/guide/server/fake-provider";
 import { runGuidePipeline } from "@/features/guide/server/pipeline";
-import { type GuideProvider, type TurnTools, withUsage } from "@/features/guide/server/provider";
+import {
+  type GuideProvider,
+  outputScreenSchema,
+  type TurnTools,
+  withUsage,
+} from "@/features/guide/server/provider";
 import type { ToolCall } from "@/features/guide/server/tool-specs";
 
 const context =
@@ -66,6 +71,51 @@ describe("runGuidePipeline", () => {
       provider({ screenOutput: async () => ({ pass: false, problem: "off_topic", usage: {} }) }),
     );
     expect(held).toMatchObject({ route: "blocked_output", proposal: null });
+  });
+
+  it("holds back a reply that says Jarso did something itself (claims_action)", async () => {
+    const claims = provider({
+      reply: async () => ({
+        kind: "ok",
+        reply: { reply: "I've recorded £5 in your Save jar.", topics: [], check: null },
+        usage: {},
+        model: "fake",
+      }),
+    });
+    const result = await runGuidePipeline(
+      { text: "I got 5 from grandma", history: [], context, tools: tools() },
+      claims,
+    );
+    expect(result).toMatchObject({
+      route: "blocked_output",
+      role: "fixed_copy",
+      blocked: "claims_action",
+      proposal: null,
+    });
+    // The real output screen may answer with it too.
+    expect(
+      outputScreenSchema.safeParse({ pass: false, problem: "claims_action", reason: "x" }).success,
+    ).toBe(true);
+  });
+
+  it("lets a reply say it prepared something for the user to check", async () => {
+    const prepared = provider({
+      reply: async () => ({
+        kind: "ok",
+        reply: {
+          reply: "I've got that ready. Check the card and tap Do it.",
+          topics: [],
+          check: null,
+        },
+        usage: {},
+        model: "fake",
+      }),
+    });
+    const result = await runGuidePipeline(
+      { text: "I got 5 from grandma", history: [], context, tools: tools() },
+      prepared,
+    );
+    expect(result.route).toBe("on_topic");
   });
 
   it("routes a safety message to fixed copy and flags it, never showing the model's reply", async () => {

@@ -14,6 +14,7 @@ export * from "./components/proposal-card";
 export * from "./components/step-guide";
 export {
   acceptGoalProposalAction,
+  confirmActionDraftAction,
   forgetMemoryAction,
   rateGuideMessageAction,
   readPriceFromPhotoAction,

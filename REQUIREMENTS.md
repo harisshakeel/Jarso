@@ -109,6 +109,8 @@ The initial topics are:
 - Basic conceptual questions receive a direct answer.
 - The guide can offer a short follow-up activity to check understanding.
 - When the child asks, the guide (Jarso) looks up the child's own jars, allowance, money history, money rules and learning progress, and can work out how far Save is from a price the child gives. Figures it shows come from the app, never from the model (ADR 0011).
+- When the child says they want to save up for something with a price, the guide can offer to make it their goal; a photo of a price tag or receipt can stand in for typing the price. The child decides with a card under the reply.
+- When asked, the guide can prepare an action for the user to confirm: for a child, writing down money they got, recording a purchase, moving money between Spend and Save, or asking their parent; for a parent, handing over the allowance, giving a gift now, changing the allowance, or saying yes or no to a request. It asks one short question for anything missing, shows every field on a card, and the app states the result after the tap.
 
 ## FR08 — Related learning material
 
@@ -123,7 +125,7 @@ The initial topics are:
 - Unrelated requests receive a brief redirection toward relevant learning.
 - The guide acknowledges uncertainty or missing information.
 - It does not request sensitive personal or account information, recommend specific investments, or instruct the child to make purchases.
-- It states the child's own figures plainly when asked, but never judges an amount or compares it with anyone else's. It cannot see other children's money, a parent's planned gifts, or anything outside Jarso, and it cannot move money.
+- It states the child's own figures plainly when asked, but never judges an amount or compares it with anyone else's. It cannot see other children's money, a parent's planned gifts, or anything outside Jarso. It cannot move money itself: it can prepare an action the child or parent confirms with a tap, and only that tap carries it out. It never says it did something; only the app's outcome line does.
 - Safety concerns receive a supportive response and appropriate guidance toward help.
 
 ## FR10 — Learning progress

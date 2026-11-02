@@ -10,12 +10,12 @@ import type {
   TranscriptMessage,
 } from "@jarso/core/guide";
 import {
-  goalProposalFrom,
   guideCopy,
   isOtherCurrency,
   MAX_TURNS,
   makeGoalProposal,
   priceQuestion,
+  proposalFromStored,
   readPrice,
   splitDataUrl,
   tidyPhotoLabel,
@@ -150,7 +150,7 @@ async function storedTurn(
       helplines: family && reply.route === "safety" ? helplinesFor(family.currency) : [],
       lookedAt: lookedAt(reply.checked),
       remembered: [],
-      proposal: family && offered ? goalProposalFrom(offered, family.currency) : null,
+      proposal: family && offered ? proposalFromStored(offered, family.currency) : null,
     },
     turnsLeft: Math.max(0, MAX_TURNS - turns),
   };
@@ -186,6 +186,8 @@ export type PreparedTurn =
       childId: string;
       /** The parent asking about the child, or null when the child asks. */
       askedBy: string | null;
+      /** The child's nickname when a parent asks, for the parent's action cards. */
+      childName?: string | null;
       family: { currency: string; timezone: string };
       provider: GuideProvider;
       context: BuiltContext;
@@ -280,6 +282,7 @@ export async function prepareGuideTurn(input: {
     kind: "ready",
     childId,
     askedBy,
+    ...(asker.parent ? { childName: asker.nickname } : {}),
     family: { currency: family.currency, timezone: family.timezone },
     provider,
     context,
@@ -315,6 +318,7 @@ export async function runGuideTurn(
         currency: family.currency,
         timezone: family.timezone,
         forParent: turn.askedBy !== null,
+        ...(turn.childName ? { childName: turn.childName } : {}),
       },
       onStatus,
     );

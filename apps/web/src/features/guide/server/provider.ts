@@ -1,5 +1,5 @@
 import "server-only";
-import type { GoalProposal, GuideUsage, ScreenRoute } from "@jarso/core/guide";
+import type { GuideProposal, GuideUsage, ScreenRoute } from "@jarso/core/guide";
 import { z } from "zod";
 import { topicKeys } from "@/features/learning";
 import type { Facts } from "./facts";
@@ -26,13 +26,13 @@ export interface Toolbox {
 
 /**
  * A turn's toolbox as the pipeline holds it: it reads back what was looked up and kept, and the
- * goal Jarso offered (`propose_goal`), if any.
+ * goal or action Jarso offered (`propose_goal`, `propose_action`), if any.
  */
 export type TurnTools = Toolbox & {
   facts: Facts;
   calls: ToolCall[];
   remembered: string[];
-  proposal: GoalProposal | null;
+  proposal: GuideProposal | null;
 };
 
 export const mainReplySchema = z.object({
@@ -66,6 +66,7 @@ export const outputScreenSchema = z.object({
     "invented_figure",
     "off_topic",
     "reveals_answer_early",
+    "claims_action",
   ]),
   reason: z.string(),
 });

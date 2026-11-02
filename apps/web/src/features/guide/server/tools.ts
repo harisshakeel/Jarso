@@ -1,7 +1,20 @@
 import "server-only";
-import { type GoalProposal, goalProposalFrom, guideCopy } from "@jarso/core/guide";
+import { randomUUID } from "node:crypto";
+import {
+  type ActionDraft,
+  type ActionFields,
+  actionFieldWords,
+  type DraftContext,
+  describeDraft,
+  draftFromFields,
+  formProblem,
+  type GuideProposal,
+  goalProposalFrom,
+  guideCopy,
+  isActionKindFor,
+} from "@jarso/core/guide";
 import { describeCadence } from "@/features/allowance";
-import { getSchedule, listDueForChild } from "@/features/allowance/server";
+import { getSchedule, listDue, listDueForChild } from "@/features/allowance/server";
 import { getGoalView } from "@/features/goals/server";
 import { type NextStep, skillLevelLabels, skills } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
@@ -23,7 +36,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { addFact, type Facts } from "./facts";
 import { remember } from "./memory";
-import type { TurnTools } from "./provider";
+import type { ToolSpec, TurnTools } from "./provider";
 import { looksUnsafe } from "./safety-net";
 import { scrub } from "./scrub";
 import {
@@ -31,6 +44,7 @@ import {
   isToolName,
   MAX_TOOL_CALLS,
   type Period,
+  parentProposeAction,
   type ToolCall,
   type ToolInput,
   type ToolName,
@@ -60,6 +74,8 @@ export type ToolContext = {
   timezone: string;
   /** A parent asking about the child: the look-ups read the child's data, but nothing is remembered. */
   forParent?: boolean;
+  /** The child's nickname on a parent's action card ("Hand over the allowance for Sam"). */
+  childName?: string | null;
 };
 
 /** Records one figure under this call's refs. */
@@ -67,7 +83,11 @@ type Fact = (key: string, shown: string) => { ref: string; value: string };
 
 type Run<N extends ToolName> = (
   input: ToolInput<N>,
-  ctx: ToolContext & { today: string; offer: (proposal: GoalProposal) => void },
+  ctx: ToolContext & {
+    today: string;
+    /** Shows a card under the reply; the stored call keeps `stored` to show it again. */
+    offer: (proposal: GuideProposal, stored?: Record<string, unknown>) => void;
+  },
   fact: Fact,
 ) => Promise<unknown>;
 
@@ -424,13 +444,15 @@ const runners: { [N in ToolName]: Run<N> } = {
     };
   },
 
-  async get_requests(_input, { childId, currency, timezone }, fact) {
+  async get_requests(_input, { childId, currency, timezone, forParent }, fact) {
     const requests = await listRequests(childId);
     const shown = requests.slice(0, REQUEST_LINES);
     return {
       requests: shown.map((request, index) => {
         const n = index + 1;
         return {
+          // A parent can say yes or no to a waiting request with propose_action.
+          ...(forParent && request.status === "pending" ? { request_id: request.id } : {}),
           what:
             request.kind === "withdrawal"
               ? "take out of Save"
@@ -486,7 +508,139 @@ const runners: { [N in ToolName]: Run<N> } = {
         "A 'Make it my goal' card now shows under your reply. In a few words, tell the child they can tap it if they want this as their goal. It is their choice; never push.",
     };
   },
+
+  async propose_action({ kind, fields }, ctx, fact) {
+    const asker = ctx.forParent ? "parent" : "child";
+    if (!isActionKindFor(kind, asker)) {
+      return { error: `${kind} isn't something you can prepare in this chat.` };
+    }
+    const clean = cleanActionFields(fields);
+    const found = await actionLookups(kind, clean, ctx);
+    if ("error" in found) return found;
+    const built = draftFromFields(kind, clean, {
+      currency: ctx.currency,
+      id: randomUUID(),
+      today: ctx.today,
+      ...found,
+    });
+    if (!built.ok) {
+      if ("missing" in built) {
+        return {
+          missing: built.missing,
+          ask: `Ask ONE short question for ${built.missing.map((name) => actionFieldWords[name] ?? name).join(" and ")}, then call propose_action again with the answer. No card shows yet.`,
+        };
+      }
+      return { error: built.problem };
+    }
+    // The app's own form for this action checks the draft too: nothing it would refuse is shown.
+    const refused = formProblem(built.draft, ctx.currency, ctx.today);
+    if (refused) return { error: refused };
+    const proposal = describeDraft(built.draft, ctx.currency, ctx.forParent ? ctx.childName : null);
+    ctx.offer(proposal, storedDraft(built.draft));
+    return {
+      prepared: proposal.title,
+      // Figures as refs, like every look-up: the reply may only state what the app filled in.
+      card: proposal.lines.map((line, index) => ({
+        what: line.label,
+        value: /\d/.test(line.value) ? fact(`action.${index + 1}`, line.value) : line.value,
+      })),
+      next: "A card with a 'Do it' button now shows under your reply. In a few words, ask them to check it and tap Do it if it's right. Never say it is done: only the app can, after the tap.",
+    };
+  },
 };
+
+/** A `propose_action` call that made no card, stored with only the fields that were given. */
+function compactFields(input: Record<string, unknown>): Record<string, unknown> {
+  const fields = (input.fields ?? {}) as Record<string, unknown>;
+  const given = Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => typeof value === "string" && value !== ""),
+  );
+  return { kind: input.kind, fields: given };
+}
+
+/** The text fields of a draft, cleaned like any label a person typed; anything unsafe is dropped. */
+function cleanActionFields(fields: ActionFields): ActionFields {
+  const out: ActionFields = { ...fields };
+  for (const name of ["label", "reason", "from"] as const) {
+    const value = fields[name];
+    if (!value) continue;
+    const cleaned = cleanLabel(value);
+    out[name] = cleaned === "(label not shown)" ? null : cleaned;
+  }
+  return out;
+}
+
+/**
+ * What a parent's draft needs from the app, read as the parent through the feature services
+ * (RLS and the parent-of checks apply): the allowance that is due, the schedule, the request.
+ */
+async function actionLookups(
+  kind: ActionDraft["kind"],
+  fields: ActionFields,
+  { childId, forParent }: ToolContext,
+): Promise<Partial<DraftContext> | { error: string }> {
+  if (!forParent) return {};
+  switch (kind) {
+    case "hand_over_allowance": {
+      const due = (await listDue(childId)).find((item) => item.kind === "allowance");
+      if (!due) return { error: "No allowance is waiting to be handed over right now." };
+      return { childId, due: { id: due.id, amountMinor: due.amountMinor } };
+    }
+    case "change_allowance": {
+      const schedule = await getSchedule(childId);
+      if (!schedule || schedule.status === "stopped") {
+        return { error: "There's no allowance to change. A new one is set up from their page." };
+      }
+      return {
+        childId,
+        schedule: {
+          id: schedule.id,
+          frequency: schedule.frequency,
+          nextDueOn: schedule.nextDueOn,
+        },
+      };
+    }
+    case "decide_request": {
+      const id = fields.request_id?.trim();
+      if (!id) return { childId };
+      const request = (await listRequests(childId)).find(
+        (item) => item.id === id && item.status === "pending",
+      );
+      if (!request) {
+        return { error: "That request isn't waiting for a decision. Look at get_requests again." };
+      }
+      return {
+        childId,
+        request: { id: request.id, kind: request.kind, amountMinor: request.amountMinor },
+      };
+    }
+    default:
+      return { childId };
+  }
+}
+
+/**
+ * The draft as its call is stored, so a reopened chat can show the card again. The database
+ * keeps each call to 300 characters of JSON; one that would not fit keeps only the kind, and its
+ * card is simply not shown again.
+ */
+function storedDraft(draft: ActionDraft): Record<string, unknown> {
+  return fitsStored({ name: "propose_action", input: { draft } })
+    ? { draft }
+    : { kind: draft.kind };
+}
+
+/**
+ * Whether a call fits the database's limit on one stored call (300 characters as Postgres prints
+ * jsonb, which puts a space after every `:` and `,`), with room to spare.
+ */
+export function fitsStored(call: { name: string; input: Record<string, unknown> }): boolean {
+  const json = JSON.stringify(call);
+  const spaced = json.replace(/("(?:[^"\\]|\\.)*")|[:,]/g, (match, quoted: string | undefined) =>
+    quoted ? match : `${match} `,
+  );
+  return spaced.length <= 280;
+}
 
 /**
  * The toolbox for one turn. Unknown names, bad arguments and failed reads come back to the model
@@ -499,7 +653,7 @@ export function createTurnTools(
   const facts: Facts = new Map();
   const calls: ToolCall[] = [];
   const remembered: string[] = [];
-  let proposal: GoalProposal | null = null;
+  let proposal: GuideProposal | null = null;
   const timesCalled = new Map<ToolName, number>();
   const today = familyToday(ctx.timezone);
   const error = (message: string) => ({
@@ -507,8 +661,11 @@ export function createTurnTools(
     isError: true,
   });
   // Memories and goals are the child's: a parent's chat about them never keeps or offers one.
-  const specs = ctx.forParent
-    ? toolSpecs.filter((spec) => !CHILD_ONLY_TOOLS.has(spec.name))
+  // A parent's propose_action prepares the parent's own kinds of action, never the child's.
+  const specs: readonly ToolSpec[] = ctx.forParent
+    ? toolSpecs
+        .filter((spec) => !CHILD_ONLY_TOOLS.has(spec.name))
+        .map((spec) => (spec.name === "propose_action" ? parentProposeAction : spec))
     : toolSpecs;
 
   return {
@@ -543,12 +700,21 @@ export function createTurnTools(
       }
       try {
         const run = runners[name] as Run<typeof name>;
-        const offer = (offered: GoalProposal) => {
+        let stored = false;
+        const offer = (offered: GuideProposal, keep?: Record<string, unknown>) => {
           proposal = offered;
-          // The stored call is what a reopened chat rebuilds the card from: keep the clean name.
-          call.input = { ...call.input, title: offered.title };
+          stored = true;
+          // The stored call is what a reopened chat rebuilds the card from: the clean goal name,
+          // or the checked draft.
+          call.input = keep ?? {
+            ...call.input,
+            title: offered.kind === "goal" ? offered.title : "",
+          };
         };
         const data = await run(parsed.data as never, { ...ctx, today, offer }, fact);
+        if (name === "propose_action" && !stored) call.input = compactFields(call.input);
+        // The database refuses a whole turn with an over-long call: keep only its name then.
+        if (!fitsStored(call)) call.input = {};
         // A runner returns `{ error }` for arguments the model can fix (a price it can't read).
         const failed = typeof data === "object" && data !== null && "error" in data;
         // Only a fact that was really stored is shown to the child as remembered.

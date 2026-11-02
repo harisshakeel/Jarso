@@ -46,6 +46,7 @@ export const guideCopy = {
     get_requests: "Checking your requests…",
     remember: "Making a note of that…",
     propose_goal: "Working out a goal…",
+    propose_action: "Getting that ready for you to check…",
   },
   /** Shown in turn when no new line has arrived for a while, so a long think never looks stuck. */
   stillWorking: ["Still thinking…", "Counting carefully…", "Nearly there…"],
@@ -61,6 +62,19 @@ export const guideCopy = {
     get_requests: "requests",
     remember: "memory",
     propose_goal: "goal idea",
+    propose_action: "prepared an action",
+  },
+  /**
+   * The card under a reply in which Jarso prepared an action. Jarso never does it: the user's
+   * tap runs the app's own form for it, and the outcome line comes from what that returned.
+   */
+  action: {
+    eyebrow: "Check this, then tap Do it",
+    doIt: "Do it",
+    change: "Change something",
+    /** Put in the box by "Change something", for the user to finish. */
+    changePrompt: "Change it: ",
+    already: "That's already been sent.",
   },
   /** The card under a reply that offered a goal. The child decides; Jarso never sets one. */
   proposal: {
