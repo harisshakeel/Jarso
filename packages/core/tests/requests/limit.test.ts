@@ -1,5 +1,5 @@
+import { takeOutLimit } from "@jarso/core/requests";
 import { describe, expect, it } from "vitest";
-import { takeOutLimit } from "@/features/requests/limit";
 
 const base = {
   spendMinor: 0,

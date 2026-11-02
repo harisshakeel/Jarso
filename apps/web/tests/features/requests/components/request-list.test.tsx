@@ -1,8 +1,8 @@
+import type { SavingsRequest } from "@jarso/core/requests";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RequestList } from "@/features/requests/components/request-list";
 import { cancelRequestAction } from "@/features/requests/server/actions";
-import type { SavingsRequest } from "@/features/requests/types";
 
 const { refresh, toast } = vi.hoisted(() => ({
   refresh: vi.fn(),

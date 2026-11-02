@@ -1,5 +1,5 @@
+import { sentAgo } from "@jarso/core/family";
 import { describe, expect, it } from "vitest";
-import { sentAgo } from "@/features/family/sent-ago";
 
 const now = Date.parse("2026-10-29T12:00:00Z");
 const ago = (ms: number) => new Date(now - ms).toISOString();

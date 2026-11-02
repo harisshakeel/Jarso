@@ -1,8 +1,4 @@
 import "server-only";
-// Only place that knows the requests table and its functions.
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { AppError, toAppError } from "@/lib";
-import type { Database } from "@/types";
 import {
   type CancelResult,
   type CapPeriod,
@@ -16,7 +12,11 @@ import {
   requestStatuses,
   type SavingsRequest,
   type WithdrawalResult,
-} from "../types";
+} from "@jarso/core/requests";
+// Only place that knows the requests table and its functions.
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { AppError, toAppError } from "@/lib";
+import type { Database } from "@/types";
 
 type Client = SupabaseClient<Database>;
 

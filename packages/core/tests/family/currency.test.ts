@@ -1,5 +1,5 @@
+import { currencyForLocale } from "@jarso/core/family";
 import { describe, expect, it } from "vitest";
-import { currencyForLocale } from "@/features/family/currency";
 
 describe("currencyForLocale", () => {
   it.each([

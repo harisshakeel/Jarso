@@ -1,4 +1,4 @@
-import { supportedCurrencies } from "@/config";
+import { supportedCurrencies } from "@jarso/core/config";
 
 export type Currency = (typeof supportedCurrencies)[number];
 

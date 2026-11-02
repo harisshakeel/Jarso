@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib";
+import { formatMoney } from "@jarso/core/lib";
 import type { CapPeriod, RequestKind, RequestStatus } from "./types";
 
 export type StatusLabel = "Waiting" | "Said yes" | "Done" | "Not now" | "Cancelled";

@@ -1,5 +1,4 @@
-import type { ParentRequestItem } from "./components/parent-request-items";
-import type { SavingsRequest } from "./types";
+import type { ParentRequestItem, SavingsRequest } from "./types";
 
 /** Merges per-child reads: requests from the children that loaded, nicknames of those that did not. */
 export function settleRequestReads(

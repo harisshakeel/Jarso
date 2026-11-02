@@ -1,8 +1,8 @@
+import type { DepositResult } from "@jarso/core/requests";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PutInSheet } from "@/features/requests/components/put-in-sheet";
 import { createDepositAction } from "@/features/requests/server/actions";
-import type { DepositResult } from "@/features/requests/types";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/features/requests/server/actions", () => ({ createDepositAction: vi.fn() }));

@@ -23,6 +23,9 @@ export type SavingsRequest = {
   occurredAt: string;
 };
 
+/** One request with the nickname of the child it came from, as a parent sees it. */
+export type ParentRequestItem = { nickname: string; request: SavingsRequest };
+
 /**
  * What a child can move right now. `takeOutLimitMinor` is the smallest remaining withdrawal cap
  * (never above what Save has free), or null when there is no cap.

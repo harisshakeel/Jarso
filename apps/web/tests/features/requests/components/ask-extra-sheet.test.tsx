@@ -1,8 +1,8 @@
+import type { EmergencyResult } from "@jarso/core/requests";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AskExtraSheet } from "@/features/requests/components/ask-extra-sheet";
 import { createEmergencyAction } from "@/features/requests/server/actions";
-import type { EmergencyResult } from "@/features/requests/types";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));

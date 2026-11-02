@@ -1,5 +1,5 @@
+import { moneySchema } from "@jarso/core/lib";
 import { z } from "zod";
-import { moneySchema } from "@/lib";
 
 const MAX_TEXT = 140;
 

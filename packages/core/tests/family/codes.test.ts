@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import {
   childEmail,
   generateCode,
@@ -6,7 +5,8 @@ import {
   hashSecret,
   normaliseEmailForLimit,
   normaliseFamilyCode,
-} from "@/features/family/codes";
+} from "@jarso/core/family";
+import { describe, expect, it } from "vitest";
 
 describe("codes", () => {
   it("normalises family codes", () => {

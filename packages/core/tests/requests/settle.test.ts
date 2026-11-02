@@ -1,6 +1,6 @@
+import type { SavingsRequest } from "@jarso/core/requests";
+import { settleRequestReads } from "@jarso/core/requests";
 import { describe, expect, it } from "vitest";
-import { settleRequestReads } from "@/features/requests/settle";
-import type { SavingsRequest } from "@/features/requests/types";
 
 const request = { id: "r1" } as SavingsRequest;
 

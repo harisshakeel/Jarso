@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import {
   acceptInvitationSchema,
   acceptListedInvitationSchema,
@@ -11,7 +10,8 @@ import {
   setChildPinSchema,
   startChildOnboardingSchema,
   updateFamilySettingsSchema,
-} from "@/features/family/schemas";
+} from "@jarso/core/family";
+import { describe, expect, it } from "vitest";
 
 const child = { nickname: " Sam ", pin: "1234", consent: "on" };
 

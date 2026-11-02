@@ -1,6 +1,11 @@
+import {
+  overCapMessage,
+  type RequestKind,
+  type RequestStatus,
+  requestStatuses,
+  statusLabel,
+} from "@jarso/core/requests";
 import { describe, expect, it } from "vitest";
-import { overCapMessage, statusLabel } from "@/features/requests/describe";
-import { type RequestKind, type RequestStatus, requestStatuses } from "@/features/requests/types";
 
 describe("statusLabel", () => {
   const expected: Record<RequestStatus, string> = {

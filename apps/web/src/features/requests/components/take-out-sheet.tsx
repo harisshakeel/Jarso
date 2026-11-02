@@ -1,5 +1,7 @@
 "use client";
 
+import type { WithdrawalResult } from "@jarso/core/requests";
+import { overCapMessage } from "@jarso/core/requests";
 import { useRouter } from "next/navigation";
 import { useActionState, useRef, useState } from "react";
 import { AmountField, Field, FormError } from "@/components/form";
@@ -15,9 +17,7 @@ import {
 import { type Goal, PredictStep } from "@/features/goals";
 import { newId, runOnline } from "@/features/offline";
 import { type ActionState, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
-import { overCapMessage } from "../describe";
 import { createWithdrawalAction } from "../server/actions";
-import type { WithdrawalResult } from "../types";
 
 type TakeOutSheetProps = {
   currency: string;

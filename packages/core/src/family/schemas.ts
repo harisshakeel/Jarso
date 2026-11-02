@@ -1,5 +1,5 @@
+import { supportedCurrencies } from "@jarso/core/config";
 import { z } from "zod";
-import { supportedCurrencies } from "@/config";
 
 /**
  * Letters (any script), digits, space and _ . ' - only, so a nickname can't carry an email

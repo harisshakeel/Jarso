@@ -1,5 +1,6 @@
 "use client";
 
+import type { DepositResult } from "@jarso/core/requests";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { AmountField, FormError } from "@/components/form";
@@ -16,7 +17,6 @@ import { type Goal, PredictStep } from "@/features/goals";
 import { newId, runOnline } from "@/features/offline";
 import { type ActionState, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
 import { createDepositAction } from "../server/actions";
-import type { DepositResult } from "../types";
 
 type PutInSheetProps = {
   currency: string;
