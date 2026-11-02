@@ -9,6 +9,7 @@ vi.mock("@/features/family/server", () => ({
   assertParentOf: vi.fn(),
   assertRole: vi.fn(),
   getFamily: vi.fn(),
+  getFamilyNow: vi.fn(async () => new Date()),
 }));
 vi.mock("@/features/guide/server/config", () => ({
   getGuideProvider: vi.fn(),
@@ -61,6 +62,8 @@ beforeEach(() => {
     currency: "GBP",
     timezone: "Europe/London",
   });
+  // A demo family whose clock was moved: the guide works on the family's day, not the server's.
+  vi.mocked(family.getFamilyNow).mockResolvedValue(new Date("2026-12-24T12:00:00Z"));
   vi.mocked(config.getGuideProvider).mockReturnValue(createFakeProvider());
   vi.mocked(config.guideProviderName).mockReturnValue("fake");
   vi.mocked(repo.findGuideAccess).mockResolvedValue(true);
@@ -125,7 +128,7 @@ describe("askGuide", () => {
     const statuses: string[] = [];
     const result = await service.runGuideTurn(turn, { onStatus: (line) => statuses.push(line) });
     expect(tools.createTurnTools).toHaveBeenCalledWith(
-      { childId: "child-1", currency: "GBP", timezone: "Europe/London" },
+      { childId: "child-1", currency: "GBP", timezone: "Europe/London", today: "2026-12-24" },
       expect.any(Function),
     );
     // Where the turn is (the phases) and each look-up, in the order the child sees them.

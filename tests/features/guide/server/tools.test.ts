@@ -25,7 +25,12 @@ const { guideCopy } = await import("@/features/guide/copy");
 const { createTurnTools } = await import("@/features/guide/server/tools");
 const { MAX_TOOL_CALLS } = await import("@/features/guide/server/tool-specs");
 
-const ctx = { childId: "child-1", currency: "GBP", timezone: "Europe/London" };
+const ctx = {
+  childId: "child-1",
+  currency: "GBP",
+  timezone: "Europe/London",
+  today: "2026-10-30",
+};
 
 const schedule = {
   id: "s-1",

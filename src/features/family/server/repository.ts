@@ -1,8 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AppError, toAppError } from "@/lib";
+import { AppError, GENERIC_FAILURE, toAppError } from "@/lib";
 import type { Database } from "@/types";
-import type { ChildSummary, Family, Membership, PendingInvitation } from "../types";
+import type { ChildSummary, ClockAdvance, Family, Membership, PendingInvitation } from "../types";
 
 type Client = SupabaseClient<Database>;
 
@@ -78,6 +78,41 @@ export async function findFamilyById(db: Client, id: string): Promise<Family | n
     .maybeSingle();
   if (error) throw toAppError(error, "Failed to load family");
   return data;
+}
+
+/** The family's now: real time plus its demo clock offset (0 unless the clock was moved). */
+export async function fetchFamilyNow(db: Client, familyId: string): Promise<Date> {
+  const { data, error } = await db.rpc("family_now", { p_family_id: familyId });
+  if (error) throw toAppError(error, "Failed to read the family clock");
+  return new Date(data);
+}
+
+/** Moves the family's demo clock forward `days` days (advance_family_clock). */
+export async function advanceClock(
+  db: Client,
+  familyId: string,
+  days: number,
+): Promise<ClockAdvance> {
+  const { data, error } = await db.rpc("advance_family_clock", {
+    p_family_id: familyId,
+    p_days: days,
+  });
+  if (error) throw toAppError(error, "Failed to move the demo clock");
+  const r = data as { [key: string]: unknown } | null;
+  if (
+    typeof r?.offset_days !== "number" ||
+    typeof r.today !== "string" ||
+    typeof r.generated !== "number" ||
+    typeof r.reminders !== "number"
+  ) {
+    throw new AppError("INTERNAL", GENERIC_FAILURE);
+  }
+  return {
+    offsetDays: r.offset_days,
+    today: r.today,
+    generated: r.generated,
+    reminders: r.reminders,
+  };
 }
 
 export async function listChildMembers(db: Client, familyId: string): Promise<ChildSummary[]> {

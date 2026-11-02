@@ -12,6 +12,7 @@ vi.mock("@/features/family/server", () => ({
   assertParentOf: vi.fn(),
   assertRole: vi.fn(),
   getFamily: vi.fn(),
+  getFamilyNow: vi.fn(async () => new Date()),
   listChildren: vi.fn(),
 }));
 vi.mock("@/lib/payments", () => ({

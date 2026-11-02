@@ -100,6 +100,15 @@ export const updateFamilySettingsSchema = z.object({
   timezone: z.string().refine(isValidTimezone, "Choose a valid timezone"),
 });
 
+/** Demo clock (D11): how many days to move the family's clock forward, 1 to 60 at a time. */
+export const advanceFamilyClockSchema = z.object({
+  days: z.coerce
+    .number()
+    .int("Pick a whole number of days")
+    .min(1, "Move at least 1 day")
+    .max(60, "Move at most 60 days at a time"),
+});
+
 export type CreateFamilyInput = z.infer<typeof createFamilySchema>;
 export type AddChildInput = z.infer<typeof addChildSchema>;
 export type StartChildOnboardingInput = z.infer<typeof startChildOnboardingSchema>;
@@ -111,3 +120,4 @@ export type RemoveChildInput = z.infer<typeof removeChildSchema>;
 export type UpdateFamilySettingsInput = z.infer<typeof updateFamilySettingsSchema>;
 export type ChildSignInInput = z.infer<typeof childSignInSchema>;
 export type SetChildPinInput = z.infer<typeof setChildPinSchema>;
+export type AdvanceFamilyClockInput = z.infer<typeof advanceFamilyClockSchema>;

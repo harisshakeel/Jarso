@@ -3,9 +3,8 @@ import type { AppError } from "@/lib";
 
 vi.mock("server-only", () => ({}));
 
-const { findProfileRole, registerChild, renameChildMember } = await import(
-  "@/features/family/server/repository"
-);
+const { advanceClock, fetchFamilyNow, findProfileRole, registerChild, renameChildMember } =
+  await import("@/features/family/server/repository");
 
 type Db = Parameters<typeof registerChild>[0];
 
@@ -81,5 +80,40 @@ describe("findProfileRole", () => {
   it("returns null for a missing profile or an unknown role", async () => {
     expect(await findProfileRole(profileDb(null), "u")).toBeNull();
     expect(await findProfileRole(profileDb({ role: "admin" }), "u")).toBeNull();
+  });
+});
+
+describe("demo clock", () => {
+  function rpcReturning(data: unknown): Db {
+    return { rpc: vi.fn(async () => ({ data, error: null })) } as unknown as Db;
+  }
+
+  it("reads the family's now as a Date", async () => {
+    const db = rpcReturning("2026-11-09T10:00:00+00:00");
+    await expect(fetchFamilyNow(db, "f-1")).resolves.toEqual(new Date("2026-11-09T10:00:00Z"));
+    expect(db.rpc).toHaveBeenCalledWith("family_now", { p_family_id: "f-1" });
+  });
+
+  it("maps a clock move to camelCase", async () => {
+    const db = rpcReturning({ offset_days: 8, today: "2026-11-10", generated: 1, reminders: 4 });
+    await expect(advanceClock(db, "f-1", 7)).resolves.toEqual({
+      offsetDays: 8,
+      today: "2026-11-10",
+      generated: 1,
+      reminders: 4,
+    });
+    expect(db.rpc).toHaveBeenCalledWith("advance_family_clock", { p_family_id: "f-1", p_days: 7 });
+  });
+
+  it("maps database refusals and an unexpected shape to safe errors", async () => {
+    expect((await caught(advanceClock(rpcFailing("JA409", "off"), "f-1", 1))).code).toBe(
+      "CONFLICT",
+    );
+    expect((await caught(advanceClock(rpcFailing("JA403", "no"), "f-1", 1))).code).toBe(
+      "FORBIDDEN",
+    );
+    expect((await caught(advanceClock(rpcReturning({ today: 1 }), "f-1", 1))).code).toBe(
+      "INTERNAL",
+    );
   });
 });

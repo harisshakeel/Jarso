@@ -2,10 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { hashSecret } from "@/features/family/codes";
 import { AppError } from "@/lib";
 
+const env = vi.hoisted(() => ({ serverEnv: { FEATURE_DEMO_CLOCK: true } }));
+vi.mock("@/config/env.server", () => env);
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn(() => ({ kind: "admin" })) }));
 vi.mock("@/features/notifications/server", () => ({ sendEmail: vi.fn() }));
 vi.mock("@/features/family/server/repository", () => ({
+  advanceClock: vi.fn(),
+  fetchFamilyNow: vi.fn(),
   findFamilyById: vi.fn(),
   findInvitationByHash: vi.fn(),
   findNickname: vi.fn(),
@@ -608,5 +612,68 @@ describe("updateFamilySettings", () => {
       code: "FORBIDDEN",
     });
     expect(repo.updateFamilyTimezone).not.toHaveBeenCalled();
+  });
+});
+
+describe("getFamilyNow", () => {
+  it("reads the family's clock once per family", async () => {
+    const now = new Date("2026-12-01T09:00:00Z");
+    vi.mocked(repo.fetchFamilyNow).mockResolvedValue(now);
+
+    await expect(service.getFamilyNow("fam-1")).resolves.toBe(now);
+    expect(repo.fetchFamilyNow).toHaveBeenCalledWith({ kind: "user" }, "fam-1");
+  });
+});
+
+describe("advanceFamilyClock", () => {
+  const moved = { offsetDays: 7, today: "2026-11-09", generated: 1, reminders: 3 };
+
+  beforeEach(() => {
+    env.serverEnv.FEATURE_DEMO_CLOCK = true;
+  });
+
+  it("moves the parent's own family forward", async () => {
+    vi.mocked(repo.advanceClock).mockResolvedValue(moved);
+
+    await expect(service.advanceFamilyClock({ days: 7 })).resolves.toEqual(moved);
+    expect(dal.assertRole).toHaveBeenCalledWith("parent");
+    expect(repo.advanceClock).toHaveBeenCalledWith({ kind: "user" }, "fam-1", 7);
+  });
+
+  it("refuses when the deployment has no demo clock, before anything else", async () => {
+    env.serverEnv.FEATURE_DEMO_CLOCK = false;
+
+    await expect(service.advanceFamilyClock({ days: 1 })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(dal.assertRole).not.toHaveBeenCalled();
+    expect(repo.advanceClock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a parent without a family", async () => {
+    vi.mocked(dal.assertRole).mockResolvedValue({ user: parent, membership: null });
+
+    await expect(service.advanceFamilyClock({ days: 1 })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(repo.advanceClock).not.toHaveBeenCalled();
+  });
+
+  it("explains a family that is not a demo family and a clock already a year ahead", async () => {
+    vi.mocked(repo.advanceClock).mockRejectedValueOnce(
+      new AppError("CONFLICT", "That already exists."),
+    );
+    await expect(service.advanceFamilyClock({ days: 1 })).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: "The demo clock is off for this family.",
+    });
+
+    vi.mocked(repo.advanceClock).mockRejectedValueOnce(
+      new AppError("VALIDATION", "Please check what you entered and try again."),
+    );
+    await expect(service.advanceFamilyClock({ days: 60 })).rejects.toMatchObject({
+      code: "VALIDATION",
+      message: "The demo clock can go at most a year ahead.",
+    });
   });
 });

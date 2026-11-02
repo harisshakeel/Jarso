@@ -7,6 +7,7 @@ import {
   assertRole,
   assertSelfOrParentOf,
   getFamily,
+  getFamilyNow,
 } from "@/features/family/server";
 import { topicTitles } from "@/features/learning";
 import { AppError, familyToday, isAppError, logger } from "@/lib";
@@ -143,7 +144,7 @@ export type PreparedTurn =
   | {
       kind: "ready";
       childId: string;
-      family: { currency: string; timezone: string };
+      family: { currency: string; timezone: string; today: string };
       provider: GuideProvider;
       context: BuiltContext;
       conversationId: string;
@@ -179,8 +180,10 @@ export async function prepareGuideTurn(input: {
   const family = await getFamily();
   if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
 
+  // The family's day (demo clock included); quotas and rate limits stay on real time.
+  const today = familyToday(family.timezone, await getFamilyNow(family.id));
   // Context first: an unknown key fails before anything is counted or stored.
-  const context = buildContext(input.context, family.currency, familyToday(family.timezone));
+  const context = buildContext(input.context, family.currency, today);
   // What Jarso remembers rides in the per-turn context as data, never as instructions. It is
   // optional context: if it can't be read, the turn goes ahead without it.
   const memories = await listMemories(db, user.id).catch((error: unknown) => {
@@ -228,7 +231,7 @@ export async function prepareGuideTurn(input: {
   return {
     kind: "ready",
     childId: user.id,
-    family: { currency: family.currency, timezone: family.timezone },
+    family: { currency: family.currency, timezone: family.timezone, today },
     provider,
     context,
     conversationId,
@@ -258,7 +261,12 @@ export async function runGuideTurn(
   } else {
     // The child's id comes from the session, never from the model (ADR 0011).
     const tools = createTurnTools(
-      { childId: turn.childId, currency: family.currency, timezone: family.timezone },
+      {
+        childId: turn.childId,
+        currency: family.currency,
+        timezone: family.timezone,
+        today: family.today,
+      },
       onStatus,
     );
     result = await runGuidePipeline(

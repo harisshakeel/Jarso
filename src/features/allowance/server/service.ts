@@ -7,6 +7,7 @@ import {
   assertRole,
   assertSelfOrParentOf,
   getFamily,
+  getFamilyNow,
 } from "@/features/family/server";
 import { AppError, familyToday, isAppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
@@ -67,7 +68,7 @@ export async function getFamilyContext(): Promise<FamilyContext> {
   return {
     currency: family.currency,
     timezone: family.timezone,
-    today: familyToday(family.timezone),
+    today: familyToday(family.timezone, await getFamilyNow(family.id)),
   };
 }
 

@@ -1,5 +1,7 @@
 import "server-only";
+import { cache } from "react";
 import { clientEnv, routes } from "@/config";
+import { serverEnv } from "@/config/env.server";
 import { sendEmail } from "@/features/notifications/server";
 import { AppError, isAppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -14,6 +16,7 @@ import {
 import type {
   AcceptInvitationInput,
   AcceptListedInvitationInput,
+  AdvanceFamilyClockInput,
   ChildSignInInput,
   CreateFamilyInput,
   RemoveChildInput,
@@ -22,7 +25,7 @@ import type {
   StartChildOnboardingInput,
   UpdateFamilySettingsInput,
 } from "../schemas";
-import type { ChildSummary, Family, PendingInvitation } from "../types";
+import type { ChildSummary, ClockAdvance, Family, PendingInvitation } from "../types";
 import {
   createChildAuthUser,
   deleteChildAuthUser,
@@ -32,6 +35,8 @@ import {
 } from "./child-auth";
 import { assertParentOf, assertRole, getMembership } from "./dal";
 import {
+  advanceClock,
+  fetchFamilyNow,
   findFamilyById,
   findInvitationByHash,
   findNickname,
@@ -85,6 +90,47 @@ export async function getFamily(): Promise<Family | null> {
   const membership = await getMembership();
   if (!membership) return null;
   return findFamilyById(await createClient(), membership.familyId);
+}
+
+/**
+ * The family's now (D11): real time plus its demo clock offset, which is 0 for every family
+ * whose clock was never moved. Use it for the family's today (`familyToday(timezone, now)`), so
+ * the app and the database agree on the day. Real-time rules (undo windows, checkout expiry,
+ * guide quotas) keep `Date.now()`. Once per request and family.
+ */
+export const getFamilyNow = cache(
+  async (familyId: string): Promise<Date> => fetchFamilyNow(await createClient(), familyId),
+);
+
+/** Whether this deployment offers the demo clock (FEATURE_DEMO_CLOCK). */
+export function demoClockEnabled(): boolean {
+  return serverEnv.FEATURE_DEMO_CLOCK;
+}
+
+const DEMO_CLOCK_OFF = "The demo clock is off.";
+
+/**
+ * Parent moves their family's demo clock forward. Refused unless the deployment has the flag
+ * on; the database also refuses a family that is not a demo family (CONFLICT).
+ */
+export async function advanceFamilyClock(input: AdvanceFamilyClockInput): Promise<ClockAdvance> {
+  if (!demoClockEnabled()) throw new AppError("FORBIDDEN", DEMO_CLOCK_OFF);
+  const { membership } = await assertRole("parent");
+  if (!membership) throw new AppError("FORBIDDEN", "Set up your family first.");
+  try {
+    return await advanceClock(await createClient(), membership.familyId, input.days);
+  } catch (error) {
+    if (isAppError(error) && error.code === "CONFLICT") {
+      throw new AppError("CONFLICT", "The demo clock is off for this family.", { cause: error });
+    }
+    // Days are already 1 to 60 here, so the database only refuses going past a year ahead.
+    if (isAppError(error) && error.code === "VALIDATION") {
+      throw new AppError("VALIDATION", "The demo clock can go at most a year ahead.", {
+        cause: error,
+      });
+    }
+    throw error;
+  }
 }
 
 export async function listChildren(): Promise<ChildSummary[]> {

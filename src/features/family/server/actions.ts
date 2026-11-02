@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { routes } from "@/config";
@@ -10,6 +10,7 @@ import {
   acceptInvitationSchema,
   acceptListedInvitationSchema,
   addChildSchema,
+  advanceFamilyClockSchema,
   childSignInSchema,
   createFamilySchema,
   removeChildSchema,
@@ -24,8 +25,10 @@ import {
   acceptInvitation,
   acceptListedInvitation,
   addChild,
+  advanceFamilyClock,
   childSignIn,
   createFamily,
+  demoClockEnabled,
   removeChild,
   renameChild,
   setChildPin,
@@ -104,3 +107,15 @@ export const updateFamilySettingsAction = createAction(
     refresh();
   },
 );
+
+/**
+ * Demo clock (D11): a parent moves their demo family's clock forward. Every screen reads the
+ * family's day, so the whole app is revalidated.
+ */
+export const advanceFamilyClockAction = createAction(advanceFamilyClockSchema, async (input) => {
+  if (!demoClockEnabled()) throw new AppError("FORBIDDEN", "The demo clock is off.");
+  await assertRole("parent");
+  const result = await advanceFamilyClock(input);
+  revalidatePath("/", "layout");
+  return result;
+});

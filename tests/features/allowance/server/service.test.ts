@@ -9,6 +9,7 @@ vi.mock("@/features/family/server", () => ({
   assertRole: vi.fn(),
   assertSelfOrParentOf: vi.fn(),
   getFamily: vi.fn(),
+  getFamilyNow: vi.fn(async () => new Date()),
 }));
 vi.mock("@/features/allowance/server/repository", () => ({
   cancelPendingGift: vi.fn(),
@@ -537,5 +538,18 @@ describe("listGifts", () => {
       ["gift-2", "fake", false],
     ]);
     expect(gifts[0]).not.toHaveProperty("autoChargeBy");
+  });
+});
+
+describe("getFamilyContext", () => {
+  it("uses the family's day, so a demo family whose clock moved sees its own today", async () => {
+    vi.mocked(family.getFamilyNow).mockResolvedValueOnce(new Date("2026-12-24T12:00:00Z"));
+
+    await expect(service.getFamilyContext()).resolves.toEqual({
+      currency: "GBP",
+      timezone: "UTC",
+      today: "2026-12-24",
+    });
+    expect(family.getFamilyNow).toHaveBeenCalledWith("fam-1");
   });
 });
