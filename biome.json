@@ -219,6 +219,23 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/web/src/**", "!apps/web/src/lib/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@jarso/core/lib": "Import from @/lib so the web logger is configured."
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "assist": {
