@@ -23,6 +23,8 @@ export const guideContextSchema = z.discriminatedUnion("entry", [
   z.object({ entry: z.literal("why"), ...stepRef, answer: stepAnswerSchema.nullable() }),
   z.object({ entry: z.literal("topic"), topicKey: z.enum(topicKeys) }),
   z.object({ entry: z.literal("home") }),
+  /** A parent asking about one of their children, from the parent's Home. */
+  z.object({ entry: z.literal("parent"), childId: z.uuid() }),
 ]);
 
 export type GuideContextRef = z.infer<typeof guideContextSchema>;

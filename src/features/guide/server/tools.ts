@@ -34,7 +34,6 @@ import {
   type ToolInput,
   type ToolName,
   toolInputs,
-  toolNames,
   toolSpecs,
 } from "./tool-specs";
 
@@ -53,7 +52,13 @@ const REQUEST_LINES = 5;
 /** A label typed by a person, as the model sees it. */
 const LABEL_CHARS = 40;
 
-export type ToolContext = { childId: string; currency: string; timezone: string };
+export type ToolContext = {
+  childId: string;
+  currency: string;
+  timezone: string;
+  /** A parent asking about the child: the look-ups read the child's data, but nothing is remembered. */
+  forParent?: boolean;
+};
 
 /** Records one figure under this call's refs. */
 type Fact = (key: string, shown: string) => { ref: string; value: string };
@@ -426,15 +431,18 @@ export function createTurnTools(
     content: JSON.stringify({ error: message }),
     isError: true,
   });
+  // Memories are the child's: a parent's chat about them never writes one.
+  const specs = ctx.forParent ? toolSpecs.filter((spec) => spec.name !== "remember") : toolSpecs;
 
   return {
-    specs: toolSpecs,
+    specs,
     facts,
     calls,
     remembered,
     async run(name, input) {
-      if (!isToolName(name)) {
-        return error(`There is no tool called ${name}. Use one of: ${toolNames.join(", ")}.`);
+      if (!isToolName(name) || (ctx.forParent && name === "remember")) {
+        const names = specs.map((spec) => spec.name).join(", ");
+        return error(`There is no tool called ${name}. Use one of: ${names}.`);
       }
       if (calls.length >= MAX_TOOL_CALLS) {
         return error("That's enough look-ups for this question. Answer with what you have.");

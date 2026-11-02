@@ -163,7 +163,7 @@ Design at 360 px first, then 768 and 1024. Single column on phones; parent scree
 
 Tab bar height 64 px plus the safe-area inset, icons 24 px, labels 12 px 600, active tab primary with a filled icon. The Inbox tab shows a count badge in gold with ink text. Family settings live under the parent's Home.
 
-**Header**: 56 px, the mark and name on the left (a link to the landing page), the signed-in person's avatar on the right (their initial in a teal disc, opening Settings), nothing else. From 1024 px Settings is also the last item of the left rail ("Me" for a child). No hamburger, no sign out: that lives in Settings ("Done for now?"), so a child never has a destructive button a thumb away from Home. The light/dark toggle lives in Settings ("Looks") and on the signed-out pages.
+**Header**: 56 px, the mark and name on the left (a link to the landing page), the light/dark switch and the signed-in person's avatar on the right (their initial in a teal disc, opening Settings), nothing else. From 1024 px the left rail ends with Settings ("Me" for a child) and, at its foot, the same avatar with the person's first name. No hamburger, no sign out: that lives in Settings ("Done for now?"), so a child never has a destructive button a thumb away from Home. The light/dark toggle lives in Settings ("Looks") and on the signed-out pages.
 
 **Page rhythm**: title, one primary card (balance, due allowance, next step), then lists. The first thing on every Home is the next step (FR12): a mission, a due handover, a pending request.
 
@@ -255,7 +255,7 @@ Never: exclamation marks in errors, "oops", shame words, or anything that calls 
 Same tokens and components; different hierarchy.
 
 - **Child**: Home opens on the jars (the money first), with one gold keycap under them to record a purchase and the allowance as one line; tapping a jar opens its tray of actions, so the resting shelf is just two jars and two balances. Then the one next step, then Ask Jarso. The week and the skills live on Learn, whose hero is the current mission with the seven days as a row of stops. Celebration moments exist here only. Fewer words per screen.
-- **Parent**: Home opens on what needs them: due handovers, pending requests, limit notices, each with its action inline. The same components as the child, more of them: cards and sentences at every width, never a table or a key-value grid; Small only for timestamps. No celebration animation; a quiet confirmation toast instead.
+- **Parent**: Home opens on what needs them: due handovers, pending requests, limit notices, each with its action inline, then Ask Jarso about a child (the same window as the child's, asking as the parent, with a chip per child when there are several). The same components as the child, more of them: cards and sentences at every width, never a table or a key-value grid; Small only for timestamps. No celebration animation; a quiet confirmation toast instead.
 
 ## 11. Accessibility
 

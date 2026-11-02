@@ -28,13 +28,35 @@ const TURN_TIMEOUT_MS = 52_000;
  */
 export function AskJarso({
   introNeeded,
-  suggestions,
+  suggestions = [],
+  audience = "child",
+  kids = [],
 }: {
   introNeeded: boolean;
   /** Questions to start with, from what the child has (no allowance, no allowance question). */
-  suggestions: string[];
+  suggestions?: string[];
+  /** A parent asks about one of their children; the child asks about themselves. */
+  audience?: "child" | "parent";
+  /** The parent's children Jarso is on for; the first is picked to start. */
+  kids?: { id: string; nickname: string }[];
 }) {
   const [introSeen, setIntroSeen] = useState(!introNeeded);
+  const [kidId, setKidId] = useState(kids[0]?.id ?? null);
+  const kid = kids.find((k) => k.id === kidId) ?? kids[0] ?? null;
+  const forParent = audience === "parent" && kid !== null;
+  const copy = forParent
+    ? {
+        title: guideCopy.parent.title(kid.nickname),
+        disclosure: guideCopy.parent.disclosure(kid.nickname),
+        placeholder: guideCopy.parent.placeholder(kid.nickname),
+        suggestions: guideCopy.parent.suggestions(kid.nickname),
+      }
+    : {
+        title: guideCopy.homeTitle,
+        disclosure: guideCopy.disclosure,
+        placeholder: guideCopy.homePlaceholder,
+        suggestions,
+      };
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [turnsLeft, setTurnsLeft] = useState<number | null>(null);
@@ -82,7 +104,12 @@ export function AskJarso({
       const result = await runOnline(
         () =>
           sendGuideTurn(
-            { clientMessageId, conversationId, context: { entry: "home" }, text: question },
+            {
+              clientMessageId,
+              conversationId,
+              context: forParent ? { entry: "parent", childId: kid.id } : { entry: "home" },
+              text: question,
+            },
             (line) => {
               if (started === generation.current) setStatus(line);
             },
@@ -133,10 +160,32 @@ export function AskJarso({
           <div className="grid gap-1">
             <h2 id="ask-jarso" className="flex items-center gap-2 text-h3">
               <SparklesIcon aria-hidden className="size-5 text-accent-text" />
-              {guideCopy.homeTitle}
+              {copy.title}
             </h2>
-            <p className="text-ink-2 text-sm">{guideCopy.disclosure}</p>
+            <p className="text-ink-2 text-sm">{copy.disclosure}</p>
           </div>
+          {forParent && kids.length > 1 ? (
+            <fieldset className="flex flex-wrap items-center gap-2">
+              <legend className="sr-only">{guideCopy.parent.pick}</legend>
+              <span className="text-ink-2 text-sm">{guideCopy.parent.pick}</span>
+              {kids.map((k) => (
+                <Button
+                  key={k.id}
+                  type="button"
+                  variant={k.id === kid.id ? "secondary" : "outline"}
+                  aria-pressed={k.id === kid.id}
+                  disabled={pending}
+                  onClick={() => {
+                    if (k.id === kid.id) return;
+                    setKidId(k.id);
+                    newChat();
+                  }}
+                >
+                  {k.nickname}
+                </Button>
+              ))}
+            </fieldset>
+          ) : null}
 
           {!introSeen ? (
             <div className="grid gap-3 rounded-2xl bg-secondary p-5">
@@ -210,7 +259,7 @@ export function AskJarso({
                     }}
                     rows={2}
                     maxLength={MAX_MESSAGE_LENGTH}
-                    placeholder={guideCopy.homePlaceholder}
+                    placeholder={copy.placeholder}
                     className="w-full resize-none rounded-xl border border-hairline-strong bg-card px-3 py-2 outline-none focus-visible:border-primary"
                     aria-describedby="ask-jarso-count"
                   />
@@ -239,7 +288,7 @@ export function AskJarso({
 
               {messages.length === 0 && !pending ? (
                 <ul aria-label="Questions to try" className="flex flex-wrap gap-2">
-                  {suggestions.map((suggestion) => (
+                  {copy.suggestions.map((suggestion) => (
                     <li key={suggestion}>
                       <Button
                         variant="outline"

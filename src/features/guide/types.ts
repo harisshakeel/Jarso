@@ -2,7 +2,8 @@ import type { Helpline } from "@/config";
 import type { TopicKey } from "@/features/learning";
 
 /** Where the child opened the guide (spec §5.1). */
-export type GuideEntry = "step" | "why" | "topic" | "home";
+/** Where a chat was opened; "parent" is a parent asking about their child from their own Home. */
+export type GuideEntry = "step" | "why" | "topic" | "home" | "parent";
 
 /**
  * How the pipeline handled one message. The first six come from the input screen;

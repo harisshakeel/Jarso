@@ -60,10 +60,12 @@ export type ConversationRow = {
   flagged: boolean;
   createdAt: string;
   lastMessageAt: string;
+  /** The parent who asked, for a chat a parent had about the child; null when the child asked. */
+  askedBy: string | null;
 };
 
 const CONVERSATION_COLUMNS =
-  "id, child_id, entry, context_key, turns, flagged, created_at, last_message_at";
+  "id, child_id, entry, context_key, turns, flagged, created_at, last_message_at, asked_by";
 
 function toConversation(row: {
   id: string;
@@ -74,6 +76,7 @@ function toConversation(row: {
   flagged: boolean;
   created_at: string;
   last_message_at: string;
+  asked_by?: string | null;
 }): ConversationRow {
   return {
     id: row.id,
@@ -84,6 +87,7 @@ function toConversation(row: {
     flagged: row.flagged,
     createdAt: row.created_at,
     lastMessageAt: row.last_message_at,
+    askedBy: row.asked_by ?? null,
   };
 }
 
@@ -100,7 +104,7 @@ export async function findConversation(
   return data ? toConversation(data) : null;
 }
 
-/** A child's chats, flagged first then newest, at most `limit`. */
+/** A child's own chats (not a parent's about them), flagged first then newest, at most `limit`. */
 export async function listConversations(
   db: Client,
   childId: string,
@@ -110,6 +114,7 @@ export async function listConversations(
     .from("guide_conversations")
     .select(CONVERSATION_COLUMNS)
     .eq("child_id", childId)
+    .is("asked_by", null)
     .gt("turns", 0)
     .order("flagged", { ascending: false })
     .order("last_message_at", { ascending: false })
@@ -194,6 +199,7 @@ export async function countFlaggedSince(
     .from("guide_conversations")
     .select("id", { count: "exact", head: true })
     .eq("child_id", childId)
+    .is("asked_by", null)
     .eq("flagged", true)
     .gte("last_message_at", sinceIso);
   if (error) throw toAppError(error, "Failed to load chats");
@@ -214,12 +220,13 @@ export async function rateMessage(db: Client, messageId: string, rating: 1 | -1)
 
 export async function startConversation(
   admin: Client,
-  input: { childId: string; entry: GuideEntry; contextKey: string },
+  input: { childId: string; entry: GuideEntry; contextKey: string; askedBy?: string | null },
 ): Promise<string> {
   const { data, error } = await admin.rpc("guide_start_conversation", {
     p_child_id: input.childId,
     p_entry: input.entry,
     p_context_key: input.contextKey,
+    ...(input.askedBy ? { p_asked_by: input.askedBy } : {}),
   });
   if (error) throw toAppError(error, "Failed to start the chat");
   if (!data) throw new AppError("INTERNAL", "Failed to start the chat");

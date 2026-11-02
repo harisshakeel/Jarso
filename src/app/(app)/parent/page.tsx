@@ -19,7 +19,8 @@ import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 import type { GoalView } from "@/features/goals";
 import { getGoalView } from "@/features/goals/server";
-import { isGuideConfigured, listGuideChats } from "@/features/guide/server";
+import { AskJarso, guideCopy } from "@/features/guide";
+import { getGuideAccess, isGuideConfigured, listGuideChats } from "@/features/guide/server";
 import { getLearningOverview } from "@/features/learning/server";
 import { JarGraph, jarCapacity, RecentHistory } from "@/features/ledger";
 import { getBalanceHistory, getHistory } from "@/features/ledger/server";
@@ -94,6 +95,11 @@ async function ParentHome() {
         <div className="rise-in" style={rise(1)}>
           <Suspense fallback={null}>
             <NoticesSection notices={notices} currency={family.currency} />
+          </Suspense>
+        </div>
+        <div className="rise-in" style={rise(2)}>
+          <Suspense fallback={null}>
+            <ParentAskSection reads={reads} />
           </Suspense>
         </div>
       </div>
@@ -179,6 +185,42 @@ async function NeedsYouSection({
       currency={currency}
       otherCount={waitingRequests + unread.length}
     />
+  );
+}
+
+/**
+ * Ask Jarso about a child (ADR 0011 follow-up): the same Jarso, asking as the parent, for every
+ * child Jarso is on for. Off deployments show nothing; a child Jarso is off for gets a line.
+ */
+async function ParentAskSection({ reads }: { reads: ChildReads[] }) {
+  if (!isGuideConfigured()) return null;
+  const access = await Promise.all(
+    reads.map(async ({ child }) => ({
+      child,
+      enabled: await fallback(
+        getGuideAccess(child.id).then((a) => a.enabled),
+        false,
+        "Guide access on parent home",
+      ),
+    })),
+  );
+  const kids = access.filter((a) => a.enabled).map((a) => a.child);
+  const off = access.filter((a) => !a.enabled).map((a) => a.child);
+  return (
+    <div className="grid gap-3">
+      {kids.length > 0 ? <AskJarso introNeeded={false} audience="parent" kids={kids} /> : null}
+      {off.map((child) => (
+        <p key={child.id} className="rounded-xl bg-muted p-4 text-ink-2">
+          {guideCopy.parent.off(child.nickname)}{" "}
+          <Link
+            href={routes.parentChildGuide(child.id)}
+            className="font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            {child.nickname}'s Jarso page
+          </Link>
+        </p>
+      ))}
+    </div>
   );
 }
 

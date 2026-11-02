@@ -7,6 +7,7 @@ import {
   NotebookPenIcon,
   SettingsIcon,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { routes } from "@/config";
 import { BottomNav, type BottomNavItem } from "./bottom-nav";
 
@@ -22,13 +23,14 @@ const items: BottomNavItem[] = [
 ];
 
 /** The child's tab bar. `unread` badges the News tab. */
-export function ChildNav({ unread }: { unread?: number }) {
+export function ChildNav({ unread, footer }: { unread?: number; footer?: ReactNode }) {
   return (
     <BottomNav
       items={items.map((item) =>
         item.href === routes.childInbox ? { ...item, count: unread } : item,
       )}
       label="Child"
+      footer={footer}
     />
   );
 }

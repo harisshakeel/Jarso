@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui";
 
 export type BottomNavItem = {
@@ -31,13 +32,22 @@ function activeHref(pathname: string, items: BottomNavItem[]) {
  * Role-aware tab bar (design.md §5): fixed to the bottom on phones and tablets, a left rail
  * from 1024 px. The caller passes only the tabs that exist for the role.
  */
-export function BottomNav({ items, label = "Main" }: { items: BottomNavItem[]; label?: string }) {
+export function BottomNav({
+  items,
+  label = "Main",
+  footer,
+}: {
+  items: BottomNavItem[];
+  label?: string;
+  /** Sits at the foot of the left rail (from 1024 px): the signed-in person. */
+  footer?: ReactNode;
+}) {
   const current = activeHref(usePathname(), items);
   return (
     <nav
       aria-label={label}
       data-slot="bottom-nav"
-      className="fixed inset-x-0 bottom-0 z-40 border-hairline border-t bg-background/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-[16px] lg:top-14 lg:right-auto lg:w-24 lg:border-t-0 lg:border-r lg:pt-4 lg:pb-0"
+      className="fixed inset-x-0 bottom-0 z-40 border-hairline border-t bg-background/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-[16px] lg:top-14 lg:right-auto lg:flex lg:w-24 lg:flex-col lg:border-t-0 lg:border-r lg:pt-4 lg:pb-4"
     >
       <ul className="mx-auto flex h-16 max-w-xl items-stretch lg:h-auto lg:flex-col lg:gap-2">
         {items.map(({ href, label: itemLabel, icon: Icon, count, railOnly }) => {
@@ -72,6 +82,7 @@ export function BottomNav({ items, label = "Main" }: { items: BottomNavItem[]; l
           );
         })}
       </ul>
+      {footer ? <div className="mt-auto hidden lg:block">{footer}</div> : null}
     </nav>
   );
 }

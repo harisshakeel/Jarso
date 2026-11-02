@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AppHeader, InboxRefresh } from "@/components/shell";
+import { ThemeSwitch } from "@/components/theme";
 import { routes } from "@/config";
 import { OfflineBanner } from "@/features/offline";
 import { HeaderAvatar } from "./header-avatar";
@@ -19,7 +20,15 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col has-data-[slot=bottom-nav]:pb-[calc(4rem+env(safe-area-inset-bottom))] lg:has-data-[slot=bottom-nav]:pb-0 lg:has-data-[slot=bottom-nav]:pl-24">
-      <AppHeader homeHref={routes.home} end={<HeaderAvatar />} />
+      <AppHeader
+        homeHref={routes.home}
+        end={
+          <div className="flex items-center gap-1">
+            <ThemeSwitch />
+            <HeaderAvatar />
+          </div>
+        }
+      />
       <OfflineBanner />
       <Suspense fallback={null}>
         <InboxRefresh />
