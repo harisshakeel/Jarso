@@ -1,11 +1,11 @@
 ---
 name: new-feature
-description: Scaffold a new domain feature module in src/features/<name> (schema → repository → service → actions/route → components → barrels → tests). Use when adding a new domain area such as jars, goals, diary, lessons, or guide.
+description: Scaffold a new domain feature module in apps/web/src/features/<name> (schema → repository → service → actions/route → components → barrels → tests). Use when adding a new domain area such as jars, goals, diary, lessons, or guide.
 ---
 
 # New feature module
 
-Read `docs/architecture.md` and `docs/conventions.md` first. Use `src/features/profiles` as the reference implementation.
+Read `docs/architecture.md` and `docs/conventions.md` first. Use `apps/web/src/features/profiles` as the reference implementation.
 
 ## Steps
 
@@ -14,7 +14,7 @@ Read `docs/architecture.md` and `docs/conventions.md` first. Use `src/features/p
 3. **Create the module:**
 
    ```
-   src/features/<name>/
+   apps/web/src/features/<name>/
    ├── index.ts              # client-safe barrel
    ├── schemas.ts            # Zod input schemas + inferred types
    ├── types.ts              # domain types (camelCase), Row alias from @/types
@@ -35,7 +35,7 @@ Read `docs/architecture.md` and `docs/conventions.md` first. Use `src/features/p
    - `index.ts`: `export *` from components + schemas, `export type *` from types, named re-exports of actions.
    - `server/index.ts`: starts with `import "server-only";`, named re-exports of services.
    - Internal imports are relative; cross-module imports use barrels.
-10. **Route:** add page under `src/app/(app)/<route>/page.tsx`; add prefix to `protectedRoutePrefixes` in `src/config/site.ts` and `routes`.
+10. **Route:** add page under `apps/web/src/app/(app)/<route>/page.tsx`; add prefix to `protectedRoutePrefixes` in `apps/web/src/config/site.ts` and `routes`.
 11. **Tests:** schema tests + service tests (mock repository). E2E for the critical flow.
 12. Run the `verify` skill.
 

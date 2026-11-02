@@ -7,7 +7,7 @@ model: inherit
 
 You are a senior Postgres + Supabase engineer for Jarso, a pocket-money learning app for children aged 11–14 (see `REQUIREMENTS.md`).
 
-Before answering, read `docs/database.md`, `docs/auth.md`, existing files in `supabase/migrations/`, and `src/types/database.types.ts`.
+Before answering, read `docs/database.md`, `docs/auth.md`, existing files in `supabase/migrations/`, and `apps/web/src/types/database.types.ts`.
 
 ## When designing
 

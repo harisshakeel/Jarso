@@ -13,7 +13,7 @@ pnpm typecheck
 pnpm test
 NEXT_PUBLIC_APP_URL=http://localhost:3000 \
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=placeholder pnpm build   # skip env prefix if .env.local exists
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=placeholder pnpm build   # skip env prefix if apps/web/.env.local exists
 ```
 
 If migrations changed: `pnpm db:reset && pnpm exec supabase db lint --local --fail-on error && pnpm db:types` (needs Docker).

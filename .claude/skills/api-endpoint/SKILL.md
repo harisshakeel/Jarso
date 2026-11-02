@@ -1,6 +1,6 @@
 ---
 name: api-endpoint
-description: Add a versioned Next.js Route Handler under src/app/api/v1 that validates input with Zod, authenticates, and delegates to a feature service. Use when a non-UI caller (mobile, webhook, cron, third party) needs HTTP access.
+description: Add a versioned Next.js Route Handler under apps/web/src/app/api/v1 that validates input with Zod, authenticates, and delegates to a feature service. Use when a non-UI caller (mobile, webhook, cron, third party) needs HTTP access.
 ---
 
 # API endpoint
@@ -9,7 +9,7 @@ Default to a Server Action for our own UI (`server-action` skill). Use a Route H
 
 ## Template
 
-`src/app/api/v1/<resource>/route.ts` (or `[id]/route.ts`):
+`apps/web/src/app/api/v1/<resource>/route.ts` (or `[id]/route.ts`):
 
 ```ts
 import { assertUser } from "@/features/auth/server";

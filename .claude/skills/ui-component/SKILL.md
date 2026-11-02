@@ -8,18 +8,18 @@ description: Add shadcn/ui primitives or build shared/feature UI components foll
 ## shadcn primitive
 
 ```bash
-pnpm dlx shadcn@latest add <component>
+cd apps/web && pnpm dlx shadcn@latest add <component>
 ```
 
-Then add `export * from "./<component>";` to `src/components/ui/index.ts` and run `pnpm lint:fix`. Don't hand-edit generated primitives unless necessary; wrap them instead.
+Then add `export * from "./<component>";` to `apps/web/src/components/ui/index.ts` and run `pnpm lint:fix`. Don't hand-edit generated primitives unless necessary; wrap them instead.
 
 ## Where components go
 
 | Component | Location |
 | --- | --- |
-| Generic primitive | `src/components/ui/` (shadcn) |
-| App-wide composite (layout, nav) | `src/components/<group>/` with `index.ts` |
-| Domain-specific | `src/features/<f>/components/`, exported from the feature barrel |
+| Generic primitive | `apps/web/src/components/ui/` (shadcn) |
+| App-wide composite (layout, nav) | `apps/web/src/components/<group>/` with `index.ts` |
+| Domain-specific | `apps/web/src/features/<f>/components/`, exported from the feature barrel |
 
 ## Rules
 

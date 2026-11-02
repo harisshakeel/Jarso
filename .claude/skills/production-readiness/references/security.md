@@ -4,7 +4,7 @@ Users are children, so the bar is data minimisation plus the standard web contro
 
 ## Secrets management — Do
 
-Keeping credentials out of code and logs. Secrets live only in the host's environment variables and GitHub Actions secrets, validated by `src/config/env.server.ts`. `SUPABASE_SECRET_KEY` bypasses RLS; it never gets a `NEXT_PUBLIC_` prefix, never appears in logs, prompts, screenshots or `.claude-logs/` (session logs are committed in this repo, so anything pasted into a prompt is published). Rotate immediately on any doubt: Supabase lets you create a new secret key and revoke the old one. `.env*` is gitignored; keep it that way.
+Keeping credentials out of code and logs. Secrets live only in the host's environment variables and GitHub Actions secrets, validated by `apps/web/src/config/env.server.ts`. `SUPABASE_SECRET_KEY` bypasses RLS; it never gets a `NEXT_PUBLIC_` prefix, never appears in logs, prompts, screenshots or `.claude-logs/` (session logs are committed in this repo, so anything pasted into a prompt is published). Rotate immediately on any doubt: Supabase lets you create a new secret key and revoke the old one. `.env*` is gitignored; keep it that way.
 
 ## IAM — Do
 
@@ -20,7 +20,7 @@ Short-lived access tokens refreshed by long-lived refresh tokens, and the signin
 
 ## TLS — Know
 
-Encrypted HTTP. The host and Supabase terminate TLS and redirect HTTP to HTTPS. `next.config.ts` already sends HSTS. Only local development uses `http://127.0.0.1`.
+Encrypted HTTP. The host and Supabase terminate TLS and redirect HTTP to HTTPS. `apps/web/next.config.ts` already sends HSTS. Only local development uses `http://127.0.0.1`.
 
 ## Encryption at rest — Know
 

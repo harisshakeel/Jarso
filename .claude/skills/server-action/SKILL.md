@@ -5,7 +5,7 @@ description: Add a Server Action using createAction with Zod validation, auth, a
 
 # Server Action
 
-## 1. Schema — `src/features/<f>/schemas.ts`
+## 1. Schema — `apps/web/src/features/<f>/schemas.ts`
 
 ```ts
 export const createGoalSchema = z.object({
@@ -17,7 +17,7 @@ export type CreateGoalInput = z.infer<typeof createGoalSchema>;
 
 `FormData` values are strings — use `z.coerce` for numbers/booleans.
 
-## 2. Action — `src/features/<f>/server/actions.ts`
+## 2. Action — `apps/web/src/features/<f>/server/actions.ts`
 
 ```ts
 "use server";
@@ -38,7 +38,7 @@ export const createGoalAction = createAction(createGoalSchema, async (input) => 
 
 Export it from the feature's `index.ts`: `export { createGoalAction } from "./server/actions";`
 
-## 3. Form — `src/features/<f>/components/<thing>-form.tsx`
+## 3. Form — `apps/web/src/features/<f>/components/<thing>-form.tsx`
 
 ```tsx
 "use client";

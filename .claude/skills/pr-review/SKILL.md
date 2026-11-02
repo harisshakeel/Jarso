@@ -24,7 +24,7 @@ Note who the author is, whether the branch is up to date with `main`, whether ev
 
 Extract the PR tree somewhere outside the repo and scan it as text. Never execute anything from it until this is clean.
 
-- Lines over 500 characters in `js/ts/mjs/cjs/json/toml/yml/css/py/sql` files, and anything over 300 characters in config files (`next.config`, `biome.json`, `tsconfig`, `vitest`, `playwright`, `commitlint`, `package.json`). Long Tailwind class strings in `src/components/ui` are expected; everything else needs reading.
+- Lines over 500 characters in `js/ts/mjs/cjs/json/toml/yml/css/py/sql` files, and anything over 300 characters in config files (`next.config`, `biome.json`, `tsconfig`, `vitest`, `playwright`, `commitlint`, `package.json`). Long Tailwind class strings in `apps/web/src/components/ui` are expected; everything else needs reading.
 - `eval(`, `new Function`, `child_process`, `execSync`, `windowsHide`, hex or `\x` string arrays, `fromCharCode`, `atob(`, `Buffer.from(...base64`, `global[`, `process.env[` with a computed key, blockchain RPC hosts (`1rpc`, `drpc`, `blockscout`, `infura`, `alchemy`), `curl … | sh`, `.bat`/`.ps1`/`.sh` files, binaries.
 - `.gitignore` changes that un-ignore `.env*`; changes to `.husky/`, `.claude/settings.json`, `.claude/hooks/`, `.github/workflows/`, `package.json` scripts (`prepare`, `postinstall`), `.mcp.json`, `.vscode/tasks.json`. These run code on contributors' machines or in CI; read them completely.
 - New dependencies: check the npm registry metadata (maintainer, repository, publish date, size, `scripts`) with `curl -s https://registry.npmjs.org/<name>` before trusting a name. A lockfile diff should contain only `registry.npmjs.org` resolutions.
@@ -41,7 +41,7 @@ For each file ask: does it do what the PR says, does it do anything the PR does 
 ## 4. Check against the repo's own rules
 
 - **Scope and product:** `REQUIREMENTS.md` and `docs/domain.md`. Does the change serve a listed FR, and do its invariants hold (integer minor units, practice vs recorded money, transfers are not income, learning progress separate from money, child-safe copy, guide boundaries)? A requirements PR gets the inverse check: is it internally consistent, does it keep FR ids stable, and does it leave the codebase and docs contradicting it anywhere?
-- **Architecture:** the 17 hard rules in `CLAUDE.md` and `docs/conventions.md`: feature modules, barrels, no server code in client barrels, layering, `requireUser`/`assertUser`, Suspense for request-time reads, RLS in the same migration, Zod on every input, `AppError` only, env via `src/config`, Biome, conventional commits.
+- **Architecture:** the 17 hard rules in `CLAUDE.md` and `docs/conventions.md`: feature modules, barrels, no server code in client barrels, layering, `requireUser`/`assertUser`, Suspense for request-time reads, RLS in the same migration, Zod on every input, `AppError` only, env via `apps/web/src/config`, Biome, conventional commits.
 - **Operations:** the `production-readiness` skill's tiers. Idempotency on writes, timeouts on outbound calls, indexes on FKs and RLS columns, expand/contract migrations, no per-user data in shared caches.
 - **Security:** the `public-repo-security` skill and `docs/security.md`. No secrets, no `process.env` outside config, no new credential type without updating the three scanner lists, CSRF and open-redirect paths, children's data minimised.
 - **Tests and docs:** new logic has tests that assert behaviour; `docs/` and the skills still describe the code after the change; `database.types.ts` regenerated if the schema moved.
@@ -50,7 +50,7 @@ For each file ask: does it do what the PR says, does it do anything the PR does 
 
 Spawn them with the file list and the specific question, and verify what they return before repeating it.
 
-- `code-reviewer` for any change under `src/`.
+- `code-reviewer` for any change under `apps/web/src/`.
 - `security-auditor` for auth, RLS, API routes, env, logging, the guide, CI workflows and anything touching `.claude/`.
 - `supabase-architect` for every migration.
 - `test-engineer` when coverage is missing and the user wants tests written, not just flagged.
