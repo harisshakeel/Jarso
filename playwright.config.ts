@@ -83,6 +83,7 @@ export default defineConfig({
       testMatch: "offline-parent.spec.ts",
       use: { ...devices["Desktop Chrome"] },
     },
+    { name: "diary", testMatch: "diary.spec.ts", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
