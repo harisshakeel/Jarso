@@ -22,6 +22,7 @@ import {
   useOutbox,
 } from "@/features/offline";
 import { cn } from "@/lib";
+import { coachFor } from "../coaches";
 import { describeAnswer, gradeStep } from "../grade";
 import { attemptSummary, praiseLine, resumePosition } from "../journey";
 import { startMissionAction } from "../server/actions";
@@ -36,6 +37,8 @@ import type {
   StepBody,
   StepResult,
 } from "../types";
+import { Blackboard } from "./blackboard";
+import { CoachBubble } from "./coach-bubble";
 import { CurrentStepContext } from "./current-step";
 import { StepInput } from "./step-inputs";
 
@@ -133,8 +136,10 @@ function replayItems(steps: Step[], keys: string[]): Item[] {
 
 /**
  * Plays a mission (FR06), a practice set (FR10 reviews), the starting check-in or a topic's
- * practice question. Each step is graded on the device for instant feedback; the server grades
- * it again when the result is saved. Wrong steps come back once at the end of a mission.
+ * practice question. Each question sits on a blackboard with one of the four coaches beside it,
+ * who hands out the hints and the feedback from a speech bubble. Each step is graded on the
+ * device for instant feedback; the server grades it again when the result is saved. Wrong steps
+ * come back once at the end of a mission.
  */
 export function MissionPlayer(props: MissionPlayerProps) {
   const { mode, steps, currency, userId, intro, doneHref, doneLabel, topicHref, stepAside } = props;
@@ -647,6 +652,8 @@ function StepView({
 
   const locked = outcome !== null || saving;
   const hints = body.hints;
+  // The same step always brings the same coach back, replay or refresh.
+  const coach = coachFor(item.step.key);
 
   return (
     <CurrentStepContext.Provider
@@ -664,46 +671,13 @@ function StepView({
         aria-labelledby={`${idBase}-prompt`}
         className="rise-in grid gap-5 rounded-2xl bg-card p-6 shadow-raised"
       >
-        <div className="grid gap-2">
-          <p className="eyebrow">{position}</p>
-          <h2
-            id={`${idBase}-prompt`}
-            ref={heading}
-            tabIndex={-1}
-            className="text-balance text-h2 outline-none"
-          >
-            {renderText(body.prompt, currency)}
-          </h2>
-          {body.type === "predict" ? (
-            <p className="text-ink-2">What do you think happens?</p>
-          ) : null}
-        </div>
-
-        <StepInput
-          body={body}
-          draft={draft}
-          onChange={setDraft}
+        <CoachBubble
+          coach={coach}
+          hints={checkIn ? [] : hints.slice(0, hintsShown)}
           currency={currency}
-          disabled={locked}
-          idBase={idBase}
-        />
-
-        {!checkIn && hintsShown > 0 ? (
-          <ul className="grid gap-2" aria-label="Hints">
-            {hints.slice(0, hintsShown).map((hint) => (
-              <li
-                key={hint}
-                className="flex gap-2 rounded-xl bg-gold-100 p-3 text-gold-700 dark:bg-gold-900 dark:text-gold"
-              >
-                <LightbulbIcon aria-hidden className="mt-0.5 size-5 shrink-0" />
-                <span className="font-semibold">{renderText(hint, currency)}</span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        {/* Always in the page, so screen readers announce the feedback when it appears. */}
-        <div role="status" aria-live="polite">
+          checkIn={checkIn}
+          reaction={outcome ? (outcome.correct ? "cheer" : "nod") : null}
+        >
           {outcome ? (
             <Feedback
               ref={feedbackRef}
@@ -713,7 +687,24 @@ function StepView({
               topicHref={topicHref}
             />
           ) : null}
-        </div>
+        </CoachBubble>
+
+        <Blackboard
+          eyebrow={position}
+          promptId={`${idBase}-prompt`}
+          promptRef={heading}
+          prompt={renderText(body.prompt, currency)}
+          note={body.type === "predict" ? "What do you think happens?" : undefined}
+        />
+
+        <StepInput
+          body={body}
+          draft={draft}
+          onChange={setDraft}
+          currency={currency}
+          disabled={locked}
+          idBase={idBase}
+        />
 
         <ProblemText problem={error} />
 
@@ -765,7 +756,7 @@ function Feedback({
         "grid gap-3 rounded-xl p-4 outline-none",
         outcome.correct
           ? "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100"
-          : "bg-muted",
+          : "bg-card",
       )}
     >
       <h3 className="flex items-center gap-2 font-bold text-lg">
