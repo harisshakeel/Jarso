@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AppError, isAppError } from "@/lib/errors";
+import { AppError, isAppError } from "../../src/lib/errors";
 
 describe("AppError", () => {
   it("maps code to HTTP status", () => {

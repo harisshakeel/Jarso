@@ -1,15 +1,13 @@
+import {
+  type ActionResult,
+  type ActionState,
+  AppError,
+  type FieldErrors,
+  isAppError,
+} from "@jarso/core/lib";
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
-import { AppError, type ErrorCode, type FieldErrors, isAppError } from "./errors";
 import { logger } from "./logger";
-
-export type ActionResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: { code: ErrorCode; message: string; fieldErrors?: FieldErrors } };
-
-/** Initial state for `useActionState`. */
-export const idle = null;
-export type ActionState<T = void> = ActionResult<T> | null;
 
 function toFailure(error: unknown): ActionResult<never> {
   if (isAppError(error)) {

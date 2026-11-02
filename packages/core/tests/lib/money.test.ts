@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, minorDigits, moneySchema, parseMoney, toMajorString } from "@/lib/money";
+import {
+  formatMoney,
+  minorDigits,
+  moneySchema,
+  parseMoney,
+  toMajorString,
+} from "../../src/lib/money";
 
 describe("minorDigits", () => {
   it("returns currency fraction digits", () => {

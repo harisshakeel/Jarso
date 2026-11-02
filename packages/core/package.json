@@ -7,6 +7,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "exports": {
+    "./lib": "./src/lib/index.ts",
+    "./config": "./src/config/index.ts"
+  },
   "dependencies": {
     "@jarso/content": "workspace:*",
     "@jarso/db": "workspace:*",

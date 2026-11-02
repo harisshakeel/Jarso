@@ -5,7 +5,7 @@ const warn = vi.fn();
 vi.mock("@/lib/logger", () => ({ logger: { warn: (...args: unknown[]) => warn(...args) } }));
 
 const { createTimedFetch } = await import("@/lib/timed-fetch");
-const { toAppError } = await import("@/lib/db-error");
+const { toAppError } = await import("@jarso/core/lib");
 
 const realFetch = globalThis.fetch;
 

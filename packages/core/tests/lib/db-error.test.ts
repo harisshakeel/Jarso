@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GENERIC_FAILURE, toAppError } from "@/lib/db-error";
+import { GENERIC_FAILURE, toAppError } from "../../src/lib/db-error";
 
 describe("toAppError", () => {
   it.each([

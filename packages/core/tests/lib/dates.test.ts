@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, familyToday, localDateOf, startOfWeek } from "@/lib/dates";
+import { addDays, familyToday, localDateOf, startOfWeek } from "../../src/lib/dates";
 
 describe("familyToday", () => {
   it("uses the family's timezone, not UTC", () => {
