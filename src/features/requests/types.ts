@@ -37,8 +37,9 @@ export type Availability = {
   takeOutLimitMinor: number | null;
 };
 
+/** `done`: the parent set jar moves to "just tell me", so the money moved at once. */
 export type WithdrawalResult =
-  | { status: "pending" | "approved" | "already_sent"; requestId: string }
+  | { status: "pending" | "approved" | "done" | "already_sent"; requestId: string }
   | { status: "over_available"; availableMinor: number }
   | { status: "over_cap"; period: CapPeriod; capMinor: number; usedMinor: number };
 
@@ -46,7 +47,7 @@ export type WithdrawalResult =
 export type EmergencyResult = { status: "pending" | "already_sent"; requestId: string };
 
 export type DepositResult =
-  | { status: "pending" | "confirmed" | "already_sent"; requestId: string }
+  | { status: "pending" | "confirmed" | "done" | "already_sent"; requestId: string }
   | { status: "over_available"; availableMinor: number };
 
 export type DecideWithdrawalResult = "approved" | "rejected" | "already_decided" | "over_available";

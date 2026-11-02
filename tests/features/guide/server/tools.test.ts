@@ -323,6 +323,7 @@ describe("get_money_rules", () => {
   it("lists spending limits only", async () => {
     vi.mocked(rules.getChildRules).mockResolvedValue({
       allowNegativeSpend: false,
+      jarMovesApproval: "ask",
       rules: [
         { kind: "spend_limit", period: "item", amountMinor: 1500 },
         { kind: "withdrawal_cap", period: "month", amountMinor: 2000 },

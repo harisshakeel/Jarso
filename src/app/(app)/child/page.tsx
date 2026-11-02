@@ -168,6 +168,7 @@ async function HomeShelf({
         allowanceMinor={allowanceMinor}
         dueMinor={dueMinor}
         openRequests={requests.filter((r) => r.status === "pending" || r.status === "approved")}
+        movesWithoutAsking={rules?.jarMovesApproval === "notify"}
       />
     );
   } catch (error) {

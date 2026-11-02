@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui";
 import { summarise } from "../describe";
 import type { ChildRules, RuleKind } from "../types";
+import { JarMovesChoice } from "./jar-moves-choice";
 import { OverspendSwitch } from "./overspend-switch";
 import { RuleGroup } from "./rule-group";
 
@@ -48,11 +49,21 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
             allowed={rules.allowNegativeSpend}
           />
         </fieldset>
+        <fieldset aria-labelledby="moves-heading" className="grid min-w-0 gap-4">
+          <h2 id="moves-heading" className="text-h3">
+            Moving money between jars
+          </h2>
+          <JarMovesChoice childId={childId} nickname={nickname} mode={rules.jarMovesApproval} />
+        </fieldset>
         <fieldset aria-labelledby="take-out-heading" className="grid min-w-0 gap-4">
           <h2 id="take-out-heading" className="text-h3">
             Taking money out of Save
           </h2>
-          <p className="text-ink-2">{summarise(rules.rules, "withdrawal", currency)}</p>
+          <p className="text-ink-2">
+            {rules.jarMovesApproval === "notify"
+              ? "Take-outs are recorded at once and you get a note; the limits below still hold."
+              : summarise(rules.rules, "withdrawal", currency)}
+          </p>
           <section aria-labelledby="cap-heading" className="grid gap-3">
             <h3 id="cap-heading" className="font-semibold">
               How much can {nickname} take out?
@@ -82,7 +93,11 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
           <h2 id="put-in-heading" className="text-h3">
             Putting money into Save
           </h2>
-          <p className="text-ink-2">{summarise(rules.rules, "deposit", currency)}</p>
+          <p className="text-ink-2">
+            {rules.jarMovesApproval === "notify"
+              ? "Put-ins count in Save at once and you get a note."
+              : summarise(rules.rules, "deposit", currency)}
+          </p>
           <RuleGroup
             {...shared}
             kind="deposit_auto_confirm"

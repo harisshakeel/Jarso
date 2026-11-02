@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { moneySchema } from "@/lib";
-import { periods, ruleKinds } from "./types";
+import { jarMovesModes, periods, ruleKinds } from "./types";
 
 /** Set or clear one rule. An empty amount switches it off. */
 export const setRuleSchema = (currency: string) =>
@@ -12,6 +12,12 @@ export const setRuleSchema = (currency: string) =>
       amount: moneySchema(currency, { allowEmpty: true }),
     })
     .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));
+
+/** How the child moves money between jars: ask first, or just tell the parent. */
+export const jarMovesSchema = z.object({
+  childId: z.uuid(),
+  mode: z.enum(jarMovesModes, { error: "Choose one." }),
+});
 
 export const overspendSchema = z.object({
   childId: z.uuid(),

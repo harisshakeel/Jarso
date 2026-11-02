@@ -167,6 +167,20 @@ export function noticeText(
         detail: old && amount ? `${old} → ${amount}` : "Take a look.",
       };
     }
+    case "jar_moved": {
+      const toSpend = notice.payload.direction === "save_to_spend";
+      const where = toSpend ? "from Save to Spend" : "from Spend to Save";
+      const reason = typeof notice.payload.reason === "string" ? notice.payload.reason : null;
+      if (role === "child") {
+        return { title: `You moved ${amount ?? "money"} ${where}`, detail: "Your parent knows." };
+      }
+      return {
+        title: `${name} moved ${amount ?? "money"} ${where}`,
+        detail: reason
+          ? `For: ${reason}. Done without asking, as you set.`
+          : "Done without asking, as you set.",
+      };
+    }
     default:
       return { title: "Something new", detail: "Take a look." };
   }

@@ -6,6 +6,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 vi.mock("@/features/rules/server/actions", () => ({
   setRuleAction: vi.fn(),
   setOverspendAction: vi.fn(),
+  setJarMovesAction: vi.fn(),
 }));
 
 afterEach(cleanup);
@@ -15,8 +16,13 @@ const show = (rules: React.ComponentProps<typeof RulesForm>["rules"]) =>
 
 describe("RulesForm", () => {
   it("has a section each for spending, taking out and putting in, with no switches", () => {
-    show({ allowNegativeSpend: false, rules: [] });
-    for (const name of ["Spending", "Taking money out of Save", "Putting money into Save"]) {
+    show({ allowNegativeSpend: false, jarMovesApproval: "ask", rules: [] });
+    for (const name of [
+      "Spending",
+      "Moving money between jars",
+      "Taking money out of Save",
+      "Putting money into Save",
+    ]) {
       expect(screen.getByRole("group", { name })).toBeInTheDocument();
     }
     // The only switch left is the overspend one; rules are sentences and buttons.
@@ -32,7 +38,7 @@ describe("RulesForm", () => {
   });
 
   it("reads empty groups as plain sentences", () => {
-    show({ allowNegativeSpend: false, rules: [] });
+    show({ allowNegativeSpend: false, jarMovesApproval: "ask", rules: [] });
     expect(screen.getByText("No spending limits yet")).toBeInTheDocument();
     expect(screen.getByText("No limit: any amount can be asked for.")).toBeInTheDocument();
     expect(screen.getByText("Nothing yet: every take-out waits for your yes.")).toBeInTheDocument();
@@ -41,6 +47,7 @@ describe("RulesForm", () => {
   it("lists each saved rule as its sentence with Change and Remove", () => {
     show({
       allowNegativeSpend: false,
+      jarMovesApproval: "ask",
       rules: [
         { kind: "withdrawal_auto_approve", period: "item", amountMinor: 500 },
         { kind: "deposit_auto_confirm", period: "week", amountMinor: 1000 },

@@ -13,7 +13,8 @@ export type NoticeKind =
   | "handover_reminder"
   | "card_charge_failed"
   | "money_received"
-  | "entry_corrected";
+  | "entry_corrected"
+  | "jar_moved";
 
 export type NoticeSource = "ledger_entry" | "request" | "allowance_occurrence" | "payment";
 

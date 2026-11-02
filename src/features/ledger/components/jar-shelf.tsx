@@ -29,6 +29,8 @@ type JarShelfProps = {
   dueMinor: number;
   /** Pending and approved requests, shown under the jar they affect. */
   openRequests: SavingsRequest[];
+  /** The parent set jar moves to "just tell me": the trays say the move happens at once. */
+  movesWithoutAsking?: boolean;
 };
 
 /** A request in the child's words, under its jar (spec §6.1). */
@@ -62,12 +64,19 @@ export function JarShelf({
   allowanceMinor,
   dueMinor,
   openRequests,
+  movesWithoutAsking = false,
 }: JarShelfProps) {
   const [open, setOpen] = useState<Jar | null>(null);
   const trayId = useId();
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
-  const ruleLines = (kinds: MoneyRule["kind"][]) =>
-    rules.filter((rule) => kinds.includes(rule.kind)).map((r) => describeRuleForChild(r, currency));
+  const ruleLines = (kinds: MoneyRule["kind"][]) => [
+    ...(movesWithoutAsking
+      ? ["You can move money between your jars without asking. Your parent gets a note."]
+      : []),
+    ...rules
+      .filter((rule) => kinds.includes(rule.kind))
+      .map((r) => describeRuleForChild(r, currency)),
+  ];
 
   const { spendMinor, saveMinor, reservedSaveMinor } = availability;
   // FR05: with an unreached goal, the Save sheets ask the child to predict the effect first.

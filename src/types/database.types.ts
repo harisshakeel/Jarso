@@ -173,14 +173,14 @@ isOneToOne: false
                   ]
                 },"child_settings": {
                   Row: {
-                    "allow_negative_spend": boolean,"child_id": string,"family_id": string,"updated_at": string,"updated_by": string | null
+                    "allow_negative_spend": boolean,"child_id": string,"family_id": string,"jar_moves_approval": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "allow_negative_spend"?: boolean,"child_id": string,"family_id": string,"updated_at"?: string,"updated_by"?: string | null
+                    "allow_negative_spend"?: boolean,"child_id": string,"family_id": string,"jar_moves_approval"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "allow_negative_spend"?: boolean,"child_id"?: string,"family_id"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "allow_negative_spend"?: boolean,"child_id"?: string,"family_id"?: string,"jar_moves_approval"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -1147,6 +1147,9 @@ isOneToOne: false
 "is_self":
 { Args: { "p_child_id": string }; Returns: boolean
                            },
+"jar_moves_without_asking":
+{ Args: { "p_child_id": string }; Returns: boolean
+                           },
 "learning_child_family":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -1344,6 +1347,9 @@ isOneToOne: false
                            },
 "set_guide_access":
 { Args: { "p_child_id": string,"p_enabled": boolean }; Returns: undefined
+                           },
+"set_jar_moves_approval":
+{ Args: { "p_child_id": string,"p_mode": string }; Returns: undefined
                            },
 "set_money_rule":
 { Args: { "p_amount_minor": number,"p_child_id": string,"p_kind": string,"p_period": string }; Returns: undefined

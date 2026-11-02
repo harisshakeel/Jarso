@@ -213,4 +213,29 @@ describe("noticeText", () => {
       detail: "Take a look.",
     });
   });
+
+  it("jar_moved tells the parent which way the money went, and why", () => {
+    const n = { ...base, kind: "jar_moved" as const, sourceType: "request" as const };
+    expect(
+      noticeText(
+        { ...n, payload: { amount_minor: 500, direction: "save_to_spend", reason: "a comic" } },
+        "parent",
+        "GBP",
+      ),
+    ).toEqual({
+      title: "Maya moved £5 from Save to Spend",
+      detail: "For: a comic. Done without asking, as you set.",
+    });
+    expect(
+      noticeText(
+        { ...n, payload: { amount_minor: 300, direction: "spend_to_save" } },
+        "parent",
+        "GBP",
+      ),
+    ).toEqual({
+      title: "Maya moved £3 from Spend to Save",
+      detail: "Done without asking, as you set.",
+    });
+    expect(noticeHref(n, "parent")).toBe(routes.parentChild("c1"));
+  });
 });
