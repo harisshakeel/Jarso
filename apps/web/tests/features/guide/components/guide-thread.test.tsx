@@ -80,7 +80,8 @@ describe("GuideThread", () => {
     expect(screen.getByText("jars")).toBeVisible();
     // Money figures sit in tabular numerals.
     expect(screen.getByText("£12.40")).toHaveClass("money");
-    expect(screen.getByRole("button", { name: "Helpful" })).toHaveAttribute("aria-pressed", "true");
+    // No thumbs on replies.
+    expect(screen.queryByRole("button", { name: "Helpful" })).toBeNull();
     expect(screen.queryByRole("list", { name: "Questions to try" })).toBeNull();
 
     fireEvent.change(screen.getByLabelText("Your question for Jarso"), {

@@ -128,9 +128,6 @@ test("an idea gets an answer with topics and a check", async () => {
   await expect(panel.getByRole("link", { name: "Saving up for something" })).toBeVisible();
   await panel.getByRole("button", { name: "Save", exact: true }).click();
   await expect(panel.getByText(/That's it\. A goal counts only what's in Save\./)).toBeVisible();
-  const helpful = panel.getByRole("button", { name: "Helpful", exact: true }).last();
-  await helpful.click();
-  await expect(helpful).toHaveAttribute("aria-pressed", "true");
 });
 
 test("a safety message gets a kind fixed reply with helplines, never the model's answer", async () => {

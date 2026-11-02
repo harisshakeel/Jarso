@@ -29,7 +29,9 @@ export function JarsoChatPage({
   children: ReactNode;
 }) {
   return (
-    <div className="grid min-h-[calc(100svh-3.5rem-3rem)] grid-rows-[auto_1fr] gap-2">
+    // Exactly the room under the header (and above the bottom tabs on a phone), so the page
+    // itself never scrolls: only the chat inside it does, and History stays where it is.
+    <div className="grid h-[calc(100dvh-3.5rem-3rem-4rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] grid-rows-[auto_1fr] gap-2 lg:h-[calc(100dvh-3.5rem-3rem-env(safe-area-inset-top))]">
       <div className="-ml-3 flex items-center">
         <ChatHistory
           chats={chats}
@@ -40,7 +42,7 @@ export function JarsoChatPage({
           names={names}
         />
       </div>
-      <div className="min-h-0 min-w-0">{children}</div>
+      <div className="min-h-0 min-w-0 overflow-hidden">{children}</div>
     </div>
   );
 }

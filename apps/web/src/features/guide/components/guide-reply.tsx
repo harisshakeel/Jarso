@@ -15,17 +15,13 @@ import {
   ScaleIcon,
   ScanSearchIcon,
   TargetIcon,
-  ThumbsDownIcon,
-  ThumbsUpIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { JarsoEyes } from "@/components/brand";
 import { Button } from "@/components/ui";
 import { routes } from "@/config";
-import { runOnline } from "@/features/offline";
 import { cn } from "@/lib";
-import { rateGuideMessageAction } from "../server/actions";
 import { TypedText } from "./typed-text";
 
 /** An icon per thing Jarso can look at (`guideCopy.checked`), for the "Looked at" chips. */
@@ -52,7 +48,7 @@ export function JarsoChip({ look }: { look?: "ahead" | "down" }) {
 }
 
 /**
- * One reply from Jarso: the answer, what it looked at, helplines, topics, a check, thumbs. A
+ * One reply from Jarso: the answer, what it looked at, helplines, topics and a check. A
  * reply that has just arrived (`live`) is typed out word by word; a reopened one shows whole.
  */
 export function GuideBubble({
@@ -64,17 +60,7 @@ export function GuideBubble({
   live?: boolean;
   onTyped?: () => void;
 }) {
-  const [rating, setRating] = useState<1 | -1 | null>(reply.rating ?? null);
   const [typing, setTyping] = useState(live);
-  const [, startRating] = useTransition();
-  function rate(value: 1 | -1) {
-    if (!reply.messageId) return;
-    const messageId = reply.messageId;
-    setRating(value);
-    startRating(async () => {
-      await runOnline(() => rateGuideMessageAction(null, { messageId, rating: value }));
-    });
-  }
   return (
     <div className="mr-8 grid gap-3 rounded-2xl rounded-bl-sm bg-card p-4 shadow-rest">
       <JarsoChip look={typing ? "down" : "ahead"} />
@@ -147,31 +133,6 @@ export function GuideBubble({
         </ul>
       ) : null}
       {reply.check ? <CheckQuestion check={reply.check} /> : null}
-      {reply.role === "guide" && reply.messageId ? (
-        <fieldset className="flex items-center gap-1">
-          <legend className="sr-only">Was this helpful?</legend>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Helpful"
-            aria-pressed={rating === 1}
-            onClick={() => rate(1)}
-            className={cn(rating === 1 && "bg-muted")}
-          >
-            <ThumbsUpIcon aria-hidden />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Not helpful"
-            aria-pressed={rating === -1}
-            onClick={() => rate(-1)}
-            className={cn(rating === -1 && "bg-muted")}
-          >
-            <ThumbsDownIcon aria-hidden />
-          </Button>
-        </fieldset>
-      ) : null}
     </div>
   );
 }

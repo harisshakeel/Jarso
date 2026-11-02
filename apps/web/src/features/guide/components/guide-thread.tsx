@@ -130,6 +130,7 @@ export function GuideThread({
   const [pending, startTransition] = useTransition();
   const input = useRef<HTMLTextAreaElement>(null);
   const listEnd = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
   // Bumped on every new chat, so a reply that lands after it is dropped.
   const generation = useRef(0);
   // Sending the same text again after a failure reuses its id, so a reply that was saved but
@@ -142,13 +143,39 @@ export function GuideThread({
   const page = variant === "page";
   const empty = messages.length === 0 && !pending;
 
-  // Keep the newest message and the status line in view.
+  // Keep the newest message and the status line in view. On the page only the message list
+  // scrolls (the History button and the composer stay put), and it glides; on Home the window
+  // brings the window into view.
   const scrollToEnd = useCallback(() => {
+    const box = scroller.current;
+    if (page && box) {
+      const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      box.scrollTo?.({ top: box.scrollHeight, behavior: still ? "auto" : "smooth" });
+      return;
+    }
     listEnd.current?.scrollIntoView({ block: "nearest" });
-  }, []);
+  }, [page]);
   useEffect(() => {
     if (messages.length > 0 || pending) scrollToEnd();
   }, [messages, pending, scrollToEnd]);
+  // While a reply types itself out, stay at the bottom unless the reader has scrolled up.
+  useEffect(() => {
+    const box = scroller.current;
+    if (!page || !box || typeof MutationObserver === "undefined") return;
+    let pinned = true;
+    const onScroll = () => {
+      pinned = box.scrollHeight - box.scrollTop - box.clientHeight < 64;
+    };
+    const follow = new MutationObserver(() => {
+      if (pinned) box.scrollTop = box.scrollHeight;
+    });
+    box.addEventListener("scroll", onScroll, { passive: true });
+    follow.observe(box, { childList: true, subtree: true, characterData: true });
+    return () => {
+      box.removeEventListener("scroll", onScroll);
+      follow.disconnect();
+    };
+  }, [page]);
 
   function newChat() {
     generation.current += 1;
@@ -405,7 +432,7 @@ export function GuideThread({
     return (
       <section
         aria-labelledby="ask-jarso"
-        className="relative flex min-h-full flex-col items-center justify-center gap-6 py-6 text-center"
+        className="relative flex h-full flex-col items-center justify-center-safe gap-6 overflow-y-auto py-6 text-center"
       >
         <div
           aria-hidden
@@ -441,7 +468,7 @@ export function GuideThread({
       className={cn(
         "grid gap-4",
         // The page keeps the empty chat's centred column, so nothing widens once a chat starts.
-        page && "mx-auto min-h-full w-full max-w-[42rem] grid-rows-[auto_1fr_auto]",
+        page && "mx-auto h-full min-h-0 w-full max-w-[42rem] grid-rows-[auto_1fr_auto]",
       )}
     >
       <div className="grid gap-1">
@@ -472,7 +499,14 @@ export function GuideThread({
         intro
       ) : (
         <>
-          <div className={cn("grid content-start gap-3", page && "min-h-0 overflow-y-auto")}>
+          <div
+            ref={scroller}
+            className={cn(
+              "grid content-start gap-3",
+              page &&
+                "-mx-2 min-h-0 overflow-y-auto overscroll-contain px-2 pt-4 pb-2 [mask-image:linear-gradient(to_bottom,transparent,black_1.5rem)]",
+            )}
+          >
             {messages.length > 0 || pending ? (
               <ol aria-label="Chat with Jarso" aria-live="polite" className="grid gap-3">
                 {messages.map((message) =>
@@ -507,7 +541,7 @@ export function GuideThread({
             <div ref={listEnd} />
           </div>
 
-          <div className={cn("grid gap-3", page && "sticky bottom-0 bg-background pt-2 pb-1")}>
+          <div className={cn("grid gap-3", page && "pt-1 pb-1")}>
             <FormError error={error ?? undefined} />
             {composer}
           </div>
