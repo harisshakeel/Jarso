@@ -1,4 +1,4 @@
-import { type CoachId, coachIds } from "./jar-coach";
+import { type CoachId, coachIds } from "./coach-figure";
 
 // The four coaches' names and what each says at the app's small moments (design.md §7): a
 // greeting, an empty state, a goodbye. The lesson lines (around a question) live with the

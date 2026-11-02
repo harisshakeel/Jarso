@@ -44,6 +44,18 @@
   --color-cyan-900: #00363d;
   --color-cyan-950: #002329;
 
+  /* The kids (design.md §7): flat warm skin tones, hair, a blush and the face ink. Same in dark. */
+  --color-skin-1: #d9a07a;
+  --color-skin-2: #f1c9a5;
+  --color-skin-3: #b47a52;
+  --color-skin-4: #6f4530;
+  --color-hair-1: #2b1d14;
+  --color-hair-2: #141c1f;
+  --color-hair-3: #c8742b;
+  --color-hair-4: #1f1a2e;
+  --color-blush: #f08a6b;
+  --color-kid-ink: #141c1f;
+
   /* Type scale (design.md §3). */
   --text-display: 2.5rem;
   --text-display--line-height: 2.75rem;

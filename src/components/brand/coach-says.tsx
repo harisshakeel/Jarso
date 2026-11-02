@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import type { ReactNode } from "react";
+import { CoachFigure, type CoachId } from "./coach-figure";
 import { type CoachMoment, coachIdFor, coachLine, coachNames } from "./coaches";
-import { type CoachId, JarCoach } from "./jar-coach";
 
 type CoachSaysProps = {
   /** Which coach, or the key to pick one by (a page or moment key; never the child's words). */
@@ -31,7 +31,7 @@ export function CoachSays({ coach, says, size = "md", children, className }: Coa
   return (
     <div data-coach-says={id} className={cn("flex items-end gap-3", className)}>
       <figure className="grid shrink-0 justify-items-center gap-1">
-        <JarCoach coach={id} size={small ? 44 : 88} label={small ? name : undefined} />
+        <CoachFigure coach={id} size={small ? 44 : 88} label={small ? name : undefined} />
         {small ? null : (
           <figcaption className="font-semibold text-ink-2 text-sm">{name}</figcaption>
         )}
