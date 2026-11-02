@@ -2379,6 +2379,7 @@ export type Database = {
         Args: { p_actor: string; p_request_id: string }
         Returns: string
       }
+      prune_onboarding_data: { Args: never; Returns: number }
       push_subscribe: {
         Args: {
           p_auth: string
