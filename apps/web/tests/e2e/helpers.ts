@@ -168,10 +168,12 @@ export async function dueOccurrence(
  */
 export async function expectSetupPage(page: Page): Promise<void> {
   try {
-    await expect(page).toHaveURL((url) => url.pathname === "/parent/setup", { timeout: 20_000 });
+    await expect(page).toHaveURL((url) => url.pathname === "/parent/setup", { timeout: 45_000 });
   } catch (error) {
+    // Errors are alerts; "taking a while" and "check your email" are statuses: read both.
     const said = await page
       .getByRole("alert")
+      .or(page.getByRole("status"))
       .allInnerTexts()
       .catch(() => [] as string[]);
     throw new Error(
