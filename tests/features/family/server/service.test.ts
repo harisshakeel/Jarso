@@ -337,6 +337,19 @@ describe("startChildOnboarding", () => {
     expect(message?.text).toContain("Zed");
   });
 
+  it("does not count a request against invite:global when a per-source limit refuses it", async () => {
+    vi.mocked(repo.hitRateLimit).mockImplementation(
+      async (_db, key) => !key.startsWith("invite:ip:"),
+    );
+
+    await expect(service.startChildOnboarding(input, "1.2.3.4")).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+    });
+    const keys = vi.mocked(repo.hitRateLimit).mock.calls.map((call) => call[1]);
+    expect(keys).not.toContain("invite:global");
+    expect(repo.insertInvitation).not.toHaveBeenCalled();
+  });
+
   it("throws RATE_LIMITED and creates no invitation when the limit is hit", async () => {
     vi.mocked(repo.hitRateLimit).mockResolvedValue(false);
 
