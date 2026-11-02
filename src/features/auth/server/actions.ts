@@ -54,6 +54,10 @@ export const signUp = createAction(signUpSchema, async ({ email, password, fullN
 
 export const signOut = createAction(z.object({}), async () => {
   const supabase = await createClient();
+  // Read before signing out: a child goes back to the PIN sign-in, everyone else to login.
+  // jarso_role is app_metadata (admin-set only); this picks a page, it authorises nothing.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const isChild = claimsData?.claims.app_metadata?.jarso_role === "child";
   // auth-js clears the session cookies (and says SIGNED_OUT) even when the revoke request fails.
   // It keeps them when it could not load the session at all (a refresh that timed out); a
   // redirect then would bounce straight back into the app, so that one is a calm retry.
@@ -81,5 +85,5 @@ export const signOut = createAction(z.object({}), async () => {
   } finally {
     subscription.unsubscribe();
   }
-  redirect(routes.login);
+  redirect(isChild ? routes.childSignIn : routes.login);
 });
