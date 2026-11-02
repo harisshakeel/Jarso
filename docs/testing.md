@@ -50,7 +50,7 @@ E2E never talks to the hosted project. Run `pnpm db:start`, then `pnpm test:e2e`
 
 **Guards.** `tests/e2e/global-setup.ts` creates a throwaway user on the local stack with the admin API and signs it in through the app; if the server is not on local Supabase that fails and the run aborts. Without local Supabase the `onboarding` project skips with a message (in CI it fails instead). Setting `E2E_BASE_URL` targets an existing server for `smoke` only; `onboarding` skips.
 
-**Rate limits.** No `pnpm db:reset` is needed between runs. Each run uses fresh parent emails (`@example.com`) and families, and sends a random `x-forwarded-for`, so the app's per-IP limits (`pin:ip` 20/15 min, `invite:ip` 5/h) start empty. One run makes 10 PIN attempts, 1 invite and 4 Supabase Auth sign-ups/sign-ins, so GoTrue's local `sign_in_sign_ups` limit (30 per 5 min per IP) allows about seven runs in five minutes.
+**Rate limits.** No `pnpm db:reset` is needed between runs. Each run uses fresh parent emails (`@example.com`) and families, and sends a random `x-forwarded-for`, so the app's per-IP limits (`pin:ip` 20/15 min, `invite:ip` 5/h) start empty. The full suite signs up and signs in well over 30 times from one IP, so `supabase/config.toml` raises GoTrue's local `sign_in_sign_ups` limit to 1000 per 5 minutes. That file only configures the local and CI stack; the hosted limit stays as set in the dashboard.
 
 **CI.** The `e2e` job installs the Supabase CLI (2.122.0, same as `migrations`), runs `supabase start > /dev/null` (stdout carries keys) and then `pnpm test:e2e`.
 
