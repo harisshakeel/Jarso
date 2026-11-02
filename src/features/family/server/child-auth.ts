@@ -6,7 +6,9 @@ import { childEmail, generateToken } from "../codes";
 
 /**
  * Child auth users (ADR 0004). A child is a real auth user with a synthetic, non-deliverable
- * email and a random password nobody knows. Sessions are minted server-side after the PIN
+ * email and a random password nobody knows, set once here and never stored; the database
+ * refuses any later change of it (on_auth_child_password_change), so a child session can't set
+ * a password of its own and sign in without the PIN. Sessions are minted server-side after the PIN
  * check: admin generateLink → verifyOtp on the user's cookie client. Verified against local
  * GoTrue: the `.invalid` domain is accepted and `type: "magiclink"` verifies.
  */
@@ -67,25 +69,6 @@ export async function deleteChildIdentity(id: string): Promise<void> {
     throw new AppError("INTERNAL", "We couldn't finish removing the child. Please try again.", {
       cause: error,
     });
-  }
-}
-
-/**
- * Replaces the child's password with a fresh random one nobody knows. A child session could set
- * its own password and then sign in without the PIN; rotating on PIN reset ends that. Not done on
- * PIN sign-in: GoTrue may end the user's other sessions here, which would sign out other devices.
- */
-export async function rotateChildPassword(childId: string): Promise<void> {
-  const { error } = await createAdminClient().auth.admin.updateUserById(childId, {
-    password: generateToken(),
-  });
-  if (error) {
-    logger.error("Child password rotation failed", {
-      code: error.code,
-      status: error.status,
-      message: error.message,
-    });
-    throw new AppError("INTERNAL", "Something went wrong. Please try again.", { cause: error });
   }
 }
 

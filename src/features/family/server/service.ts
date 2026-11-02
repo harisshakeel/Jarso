@@ -31,7 +31,6 @@ import {
   deleteChildAuthUser,
   deleteChildIdentity,
   mintChildSession,
-  rotateChildPassword,
 } from "./child-auth";
 import { assertParentOf, assertRole, getMembership } from "./dal";
 import {
@@ -333,16 +332,15 @@ export async function childSignIn(input: ChildSignInInput, ip: string): Promise<
     throw new AppError("UNAUTHORIZED", "Hmm, that didn't match. Check with your parent.");
   }
 
-  // No password rotation here: it may end the child's other sessions, so signing in on one
-  // device would sign out the others. setChildPin rotates instead.
+  // No password rotation: the database never lets a child's password change
+  // (on_auth_child_password_change), so other devices stay signed in.
   await mintChildSession(result.childId);
 }
 
-/** Parent resets a PIN. The old PIN, any self-set password and every signed-in device stop working. */
+/** Parent resets a PIN. The old PIN and every signed-in device stop working. */
 export async function setChildPin(input: SetChildPinInput): Promise<void> {
   await assertParentOf(input.childId);
   await updateChildPin(await createClient(), input.childId, input.pin);
-  await rotateChildPassword(input.childId);
   await revokeUserSessions(createAdminClient(), input.childId);
 }
 

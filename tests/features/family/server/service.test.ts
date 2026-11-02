@@ -31,7 +31,6 @@ vi.mock("@/features/family/server/child-auth", () => ({
   deleteChildAuthUser: vi.fn(),
   deleteChildIdentity: vi.fn(),
   mintChildSession: vi.fn(),
-  rotateChildPassword: vi.fn(),
 }));
 vi.mock("@/features/family/server/dal", () => ({
   assertParentOf: vi.fn(),
@@ -460,24 +459,22 @@ describe("childSignIn", () => {
     );
   });
 
-  it("mints a session without rotating the password (other devices stay signed in)", async () => {
+  it("mints a session", async () => {
     vi.mocked(repo.verifyChildPin).mockResolvedValue({ status: "ok", childId: "child-1" });
 
     await service.childSignIn(input, "1.2.3.4");
 
     expect(childAuth.mintChildSession).toHaveBeenCalledWith("child-1");
-    expect(childAuth.rotateChildPassword).not.toHaveBeenCalled();
   });
 });
 
 describe("setChildPin", () => {
   const input = { childId: crypto.randomUUID(), pin: "4321" };
 
-  it("sets the PIN, rotates the password and revokes every session", async () => {
+  it("sets the PIN and revokes every session", async () => {
     await service.setChildPin(input);
 
     expect(repo.updateChildPin).toHaveBeenCalledWith({ kind: "user" }, input.childId, "4321");
-    expect(childAuth.rotateChildPassword).toHaveBeenCalledWith(input.childId);
     expect(repo.revokeUserSessions).toHaveBeenCalledWith({ kind: "admin" }, input.childId);
   });
 
@@ -486,7 +483,6 @@ describe("setChildPin", () => {
 
     await expect(service.setChildPin(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(repo.updateChildPin).not.toHaveBeenCalled();
-    expect(childAuth.rotateChildPassword).not.toHaveBeenCalled();
     expect(repo.revokeUserSessions).not.toHaveBeenCalled();
   });
 
