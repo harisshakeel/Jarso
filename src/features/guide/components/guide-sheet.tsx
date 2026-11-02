@@ -18,6 +18,7 @@ import { type GuideContextRef, MAX_MESSAGE_LENGTH } from "../schemas";
 import { askGuideAction } from "../server/actions";
 import type { AskGuideResult, GuideReply } from "../types";
 import { GuideBubble } from "./guide-reply";
+import { ThinkingBubble } from "./thinking-bubble";
 
 type Message =
   | { id: string; from: "child"; text: string }
@@ -211,8 +212,8 @@ export function GuideSheet({
                   ),
                 )}
                 {pending ? (
-                  <li className="w-fit rounded-2xl bg-muted px-4 py-3 text-ink-2">
-                    {guideCopy.thinking}
+                  <li>
+                    <ThinkingBubble status={null} />
                   </li>
                 ) : null}
               </ol>

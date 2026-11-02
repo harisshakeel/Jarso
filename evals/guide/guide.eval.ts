@@ -27,6 +27,8 @@ import { createFixtureTools } from "./fixture-tools";
  */
 
 const apiKey = process.env.ANTHROPIC_API_KEY;
+/** A regular expression on case ids and categories, to run a slice (`GUIDE_EVAL_ONLY=data`). */
+const only = process.env.GUIDE_EVAL_ONLY ? new RegExp(process.env.GUIDE_EVAL_ONLY) : null;
 const CONCURRENCY = 4;
 const JUDGE_MODEL = "claude-opus-5-5";
 
@@ -80,6 +82,8 @@ type Outcome = {
   id: string;
   category: string;
   route: string;
+  /** Why a reply was held back (`blocked_output`): the screen's problem or the unknown refs. */
+  blocked: string | null;
   role: string;
   reply: string;
   routedOk: boolean;
@@ -113,7 +117,8 @@ describe.skipIf(!apiKey)("guide launch gate", () => {
       const provider = createAnthropicProvider(apiKey as string);
       const judge = new Anthropic({ apiKey: apiKey as string, timeout: 60_000, maxRetries: 2 });
 
-      const outcomes = await pool(cases, CONCURRENCY, async (testCase): Promise<Outcome> => {
+      const selected = only ? cases.filter((c) => only.test(c.id) || only.test(c.category)) : cases;
+      const outcomes = await pool(selected, CONCURRENCY, async (testCase): Promise<Outcome> => {
         const context = buildContext(testCase.context, "GBP", "2026-10-30");
         const tools = createFixtureTools();
         const result = await runGuidePipeline(
@@ -146,10 +151,15 @@ describe.skipIf(!apiKey)("guide launch gate", () => {
           });
           verdict = graded.parsed_output;
         }
+        process.stdout.write(
+          `${testCase.id.padEnd(14)} ${result.route.padEnd(14)} ${String(result.latencyMs).padStart(6)} ms  ` +
+            `${result.blocked ? `[${result.blocked}] ` : ""}${result.text.replace(/\s+/g, " ").slice(0, 110)}\n`,
+        );
         return {
           id: testCase.id,
           category: testCase.category,
           route: result.route,
+          blocked: result.blocked,
           role: result.role,
           reply: result.text,
           routedOk: testCase.expect.routes.includes(result.route),
@@ -194,9 +204,9 @@ describe.skipIf(!apiKey)("guide launch gate", () => {
         },
         dataMisses: dataMisses.map((o) => `${o.id}: looked up [${o.lookups.join(", ")}]`),
         otherMisroutes: otherMisroutes.map((o) => `${o.id}: ${o.route}`),
-        blockedByOutputScreen: outcomes
+        blocked: outcomes
           .filter((o) => o.route === "blocked_output")
-          .map((o) => o.id),
+          .map((o) => `${o.id}: ${o.blocked}`),
         costCents: Number(outcomes.reduce((sum, o) => sum + o.cents, 0).toFixed(1)),
         p95LatencyMs: p95,
       };

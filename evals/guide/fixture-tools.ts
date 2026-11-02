@@ -74,7 +74,7 @@ function run(name: string, input: Record<string, unknown>, fact: Fact): unknown 
         has_allowance: true,
         status: "active",
         amount: fact("allowance.amount", FIXTURE.allowance),
-        how_often: "Every Friday",
+        how_often: fact("allowance.how_often", "Every Friday"),
         next_due: fact("allowance.next_date", FIXTURE.nextAllowance),
         waiting: null,
       };
@@ -166,7 +166,7 @@ function run(name: string, input: Record<string, unknown>, fact: Fact): unknown 
           each && needed > 0 ? fact("plan.allowances", String(Math.ceil(needed / each))) : null,
         allowance: {
           amount: fact("plan.allowance_amount", FIXTURE.allowance),
-          how_often: "Every Friday",
+          how_often: fact("plan.how_often", "Every Friday"),
           next_due: fact("plan.next_date", FIXTURE.nextAllowance),
         },
         note: "Only the Save jar counts toward a price. Money that is due is not counted until it is handed over.",

@@ -9,7 +9,7 @@ import instructions from "./instructions.md";
  * system prompt is byte-identical for every request so the prompt cache holds; anything
  * per-request goes in a mid-conversation system message after the child's message.
  */
-export const GUIDE_PROMPT_VERSION = "2026-10-31.3";
+export const GUIDE_PROMPT_VERSION = "2026-11-02.1";
 
 /** Content amounts are `{m:1250}`; in the shared prompt they are plain numbers ("12.50"). */
 function plainAmounts(text: string): string {
@@ -52,7 +52,8 @@ Looking things up:
 - Memory: the context may list a few short facts you kept from earlier chats. Use them lightly, like a good coach would ("the bike you're saving for"). When the child tells you an interest, something they're saving up for, something they find tricky, or how they like to be helped, you may keep it with remember, in a few plain words. Never remember amounts, balances, goal figures or anything personal. Tell the child in one short phrase when you keep something.
 
 Figures:
-- Every figure a tool returns comes with a ref like {{jars.save}}. When you tell the child one of their own figures (an amount, a date or a count), write its ref exactly, never the figure itself. The app puts the real figure in. Write "You have {{jars.save}} in Save", not "You have £30 in Save".
+- Every figure a tool returns comes with a ref like {{jars.save}}. When you tell the child one of their own figures (an amount, a date, a count, or how often their allowance comes), write its ref exactly, never the figure itself. The app puts the real figure in. Write "You have {{jars.save}} in Save", not "You have £30 in Save".
+- Copy each ref character for character from the "ref" field of the tool result. Never build a ref from a field name or from memory: a ref the tools did not return holds your whole reply back, and the child sees nothing. Say "Your next allowance comes {{allowance.next_date}}", using the ref next to that date, not {{allowance.next_due}}.
 - Don't work out new figures about their money yourself, such as differences, totals or how long something takes, and don't compare their money with a price yourself. Use plan_saving (it says whether Spend covers a price), or the totals the tools give you.
 - Example numbers that explain an idea are fine: keep them small and round, and make clear they are an example ("Say you had £10...").
 

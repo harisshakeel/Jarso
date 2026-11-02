@@ -410,7 +410,7 @@ describe("the toolbox", () => {
 
   it("says how often the allowance comes the way the child's allowance card does", async () => {
     const { data } = await call("get_allowance");
-    expect(data.how_often).toBe("Every Friday");
+    expect(data.how_often).toEqual({ ref: "{{allowance.how_often}}", value: "Every Friday" });
     expect(data.next_due.value).toBe("Fri 6 Nov");
   });
 

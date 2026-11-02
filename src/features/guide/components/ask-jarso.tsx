@@ -1,6 +1,6 @@
 "use client";
 
-import { BotIcon, LoaderCircleIcon, SendHorizontalIcon, SparklesIcon } from "lucide-react";
+import { BotIcon, SendHorizontalIcon, SparklesIcon } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { FormError } from "@/components/form";
 import { Button, Card, CardContent } from "@/components/ui";
@@ -10,6 +10,7 @@ import { MAX_MESSAGE_LENGTH } from "../schemas";
 import { sendGuideTurn } from "../send-turn";
 import type { GuideReply } from "../types";
 import { GuideBubble } from "./guide-reply";
+import { ThinkingBubble } from "./thinking-bubble";
 
 type Message =
   | { id: string; from: "child"; text: string }
@@ -20,9 +21,9 @@ const TURN_TIMEOUT_MS = 52_000;
 
 /**
  * "Ask Jarso" (FR07, ADR 0011): the prompt window at the top of the child's Home. Jarso answers
- * from the child's own jars, allowance, history and learning, looked up only when asked; a
- * status line names each look-up while it works, and the reply appears once it has passed the
- * output screen. The AI label and the note that parents can see chats are always shown; the
+ * from the child's own jars, allowance, history and learning, looked up only when asked; while
+ * it works a bubble says where it is (each phase and look-up), and the reply appears once it
+ * has passed the output screen. The AI label and the note that parents can see chats are always shown; the
  * intro card comes first for a child who has never chatted.
  */
 export function AskJarso({
@@ -179,15 +180,7 @@ export function AskJarso({
                 </ol>
               ) : null}
 
-              {pending ? (
-                <p
-                  role="status"
-                  className="flex w-fit items-center gap-2 rounded-2xl bg-muted px-4 py-3 text-ink-2"
-                >
-                  <LoaderCircleIcon aria-hidden className="size-4 motion-safe:animate-spin" />
-                  {status ?? guideCopy.thinking}
-                </p>
-              ) : null}
+              {pending ? <ThinkingBubble status={status} /> : null}
               <div ref={listEnd} />
 
               <FormError error={error ?? undefined} />

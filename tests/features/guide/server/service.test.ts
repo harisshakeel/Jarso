@@ -128,7 +128,13 @@ describe("askGuide", () => {
       { childId: "child-1", currency: "GBP", timezone: "Europe/London" },
       expect.any(Function),
     );
-    expect(statuses).toEqual([guideCopy.status.get_jars]);
+    // Where the turn is (the phases) and each look-up, in the order the child sees them.
+    expect(statuses).toEqual([
+      guideCopy.phases.reading,
+      guideCopy.phases.answering,
+      guideCopy.status.get_jars,
+      guideCopy.phases.checking,
+    ]);
     expect(result.reply).toMatchObject({
       route: "on_topic",
       text: "You have £12.40 in Spend and £30 in Save.",

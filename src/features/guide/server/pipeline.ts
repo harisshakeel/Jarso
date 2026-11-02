@@ -49,6 +49,11 @@ export type PipelineResult = {
   toolCalls: ToolCall[];
   /** Facts this turn stored, as written; shown to the child under the reply. */
   remembered: string[];
+  /**
+   * Why a reply was held back (`blocked_output` only): the output screen's problem, or
+   * "unknown_ref: <keys>" / "malformed_ref" / "empty" / "too_long". Ref keys only, never text.
+   */
+  blocked: string | null;
 };
 
 const FLAGGED_ROUTES: ReadonlySet<GuideRoute> = new Set([
@@ -67,7 +72,12 @@ type Base = Pick<
   "childText" | "usage" | "model" | "latencyMs" | "toolCalls" | "remembered"
 >;
 
-function fixed(route: Exclude<GuideRoute, "on_topic">, base: Base, failed = false): PipelineResult {
+function fixed(
+  route: Exclude<GuideRoute, "on_topic">,
+  base: Base,
+  failed = false,
+  blocked: string | null = null,
+): PipelineResult {
   const text = guideCopy.routes[route];
   return {
     ...base,
@@ -79,6 +89,7 @@ function fixed(route: Exclude<GuideRoute, "on_topic">, base: Base, failed = fals
     check: null,
     flagged: FLAGGED_ROUTES.has(route),
     failed,
+    blocked,
   };
 }
 
@@ -100,10 +111,13 @@ export function fallbackResult(
 }
 
 /**
- * The reply and its check with every figure ref filled from the tools' facts. Null when a ref
- * was never looked up (or is malformed): the model wrote a figure the app can't vouch for.
+ * The reply and its check with every figure ref filled from the tools' facts, or the refs that
+ * were never looked up (or "malformed"): the model wrote a figure the app can't vouch for.
  */
-function withFacts(reply: MainReply, facts: Facts): MainReply | null {
+function withFacts(
+  reply: MainReply,
+  facts: Facts,
+): { filled: MainReply; unknown: [] } | { filled: null; unknown: string[] } {
   const unknown: string[] = [];
   const fill = (text: string) => {
     const filled = fillFacts(text, facts);
@@ -122,7 +136,7 @@ function withFacts(reply: MainReply, facts: Facts): MainReply | null {
         }
       : null,
   };
-  return unknown.length === 0 ? filled : null;
+  return unknown.length === 0 ? { filled, unknown: [] } : { filled: null, unknown };
 }
 
 /** Keeps a model-proposed check only when it is well formed and short. */
@@ -173,10 +187,25 @@ async function settled(main: Promise<MainOutcome>): Promise<MainOutcome | null> 
 export async function runGuidePipeline(
   input: { text: string; history: Turn[]; context: string; tools: TurnTools },
   provider: GuideProvider,
-  { deadlineMs = TURN_DEADLINE_MS }: { deadlineMs?: number } = {},
+  {
+    deadlineMs = TURN_DEADLINE_MS,
+    onStatus = () => {},
+  }: {
+    deadlineMs?: number;
+    /** Where the turn is (`guideCopy.phases`), for the child's status line. Never model text. */
+    onStatus?: (text: string) => void;
+  } = {},
 ): Promise<PipelineResult> {
   const now = Date.now;
   const started = now();
+  const phase = (text: string) => {
+    try {
+      onStatus(text);
+    } catch {
+      // A status line that can't be sent (the child closed the page) never fails the turn.
+    }
+  };
+  phase(guideCopy.phases.reading);
   const childText = scrub(input.text);
   const history = input.history.map((turn) => ({ ...turn, text: scrub(turn.text) }));
   let usage = zeroUsage;
@@ -189,6 +218,9 @@ export async function runGuidePipeline(
     toolCalls: [...input.tools.calls],
     remembered: [...input.tools.remembered],
   });
+  // Nothing is sent to the model, or looked up, until the input screen says on-topic; once it
+  // does, the answer is under way (its first round may already have been cancelled or finished).
+  const answering = () => phase(guideCopy.phases.answering);
 
   // The answer starts at once (so an on-topic reply isn't slowed by the screen) and is cancelled
   // when the screen routes the message elsewhere, so a safety reply never waits for it.
@@ -239,6 +271,7 @@ export async function runGuidePipeline(
 
   // Off-topic, personal, safety, unsafe and jailbreak messages never see the model's reply.
   release(route === "on_topic");
+  if (route === "on_topic") answering();
   if (route !== "on_topic") {
     controller.abort();
     // A round that finished before the cancel was still paid for.
@@ -260,19 +293,29 @@ export async function runGuidePipeline(
     return fixed("unavailable", base());
   }
 
-  const filled = withFacts(answer.value.reply, input.tools.facts);
-  if (!filled) {
-    logger.info("Guide reply used a figure that was never looked up");
-    return fixed("blocked_output", base());
+  const facts = withFacts(answer.value.reply, input.tools.facts);
+  if (!facts.filled) {
+    // Ref keys only (`allowance.next_due`): they name app fields, never the child's words.
+    const unknown = facts.unknown.join(", ");
+    logger.info("Guide reply used a figure that was never looked up", {
+      refs: unknown,
+      lookedUp: [...input.tools.facts.keys()].join(", "),
+    });
+    const blocked = facts.unknown.includes("malformed")
+      ? "malformed_ref"
+      : `unknown_ref: ${unknown}`;
+    return fixed("blocked_output", base(), false, blocked);
   }
+  const { filled } = facts;
   const reply = filled.reply.trim();
   if (!reply || reply.length > MAX_REPLY_CHARS) {
     logger.info("Guide reply empty or too long", { chars: reply.length });
-    return fixed("blocked_output", base());
+    return fixed("blocked_output", base(), false, reply ? "too_long" : "empty");
   }
   const check = cleanCheck(filled.check);
   const shown = visibleText(reply, check);
 
+  phase(guideCopy.phases.checking);
   let verdict: Awaited<ReturnType<GuideProvider["screenOutput"]>>;
   try {
     verdict = await provider.screenOutput({
@@ -289,7 +332,7 @@ export async function runGuidePipeline(
   usage = addUsage(usage, verdict.usage);
   if (!verdict.pass) {
     logger.info("Guide reply blocked by the output screen", { problem: verdict.problem });
-    return fixed("blocked_output", base());
+    return fixed("blocked_output", base(), false, verdict.problem);
   }
 
   return {
@@ -302,6 +345,7 @@ export async function runGuidePipeline(
     check,
     flagged: false,
     failed: false,
+    blocked: null,
   };
 }
 
