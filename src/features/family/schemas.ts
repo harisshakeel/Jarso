@@ -2,9 +2,11 @@ import { z } from "zod";
 import { supportedCurrencies } from "@/config";
 
 /**
- * Letters (any script), digits, space and _ . ' - only, so a nickname can't carry an email
- * address or a link into the invitation email. Mirrors register_child / create_invitation.
- * NFC first, so an accent typed as a separate mark still counts as part of its letter.
+ * Letters (any script), their combining marks, digits, space and _ . ' - only, so a nickname
+ * can't carry an email address or a link into the invitation email. Marks are needed for names
+ * like 'कृष्ण' (virama) or 'น้อย' (tone mark), which have no precomposed form. Mirrors
+ * is_valid_nickname in the database. NFC first, so an accent typed as a separate mark still
+ * counts as part of its letter.
  */
 const nickname = z
   .string()
@@ -12,7 +14,10 @@ const nickname = z
   .normalize("NFC")
   .min(1, "Pick a nickname")
   .max(20, "Nickname can be up to 20 letters")
-  .regex(/^[\p{L}\p{Nd} _.'-]+$/u, "Use letters, numbers, spaces, dots, dashes or apostrophes");
+  .regex(
+    /^[\p{L}\p{M}\p{Nd} _.'-]+$/u,
+    "Use letters, numbers, spaces, dots, dashes or apostrophes",
+  );
 
 /** A pasted link token (64 hex) or short code; generous bound, still parsed and trimmed. */
 const inviteValue = z

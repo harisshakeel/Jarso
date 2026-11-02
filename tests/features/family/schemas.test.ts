@@ -64,14 +64,23 @@ describe("family schemas", () => {
     );
   });
 
-  it.each(["Zoë", "Ελένη", "Sam 2", "O'Neil", "Mary-Jo", "j.r_b", "Ana"])(
-    "accepts nickname %s",
-    (nickname) => {
-      expect(addChildSchema.safeParse({ ...child, nickname }).success).toBe(true);
-    },
-  );
+  it.each([
+    "Zoë",
+    "Ελένη",
+    "Sam 2",
+    "O'Neil",
+    "Mary-Jo",
+    "j.r_b",
+    "Ana",
+    "अनु",
+    "किरण",
+    "कृष्ण",
+    "น้อย",
+  ])("accepts nickname %s", (nickname) => {
+    expect(addChildSchema.safeParse({ ...child, nickname }).success).toBe(true);
+  });
 
-  it.each(["a@b.co", "see http://x", "<b>", "Sam!", "😀", "x²"])(
+  it.each(["a@b.co", "see http://x", "<b>", "Sam!", "😀", "x²", "Sa‍m", "Sam‮"])(
     "rejects nickname %s",
     (nickname) => {
       expect(addChildSchema.safeParse({ ...child, nickname }).success).toBe(false);

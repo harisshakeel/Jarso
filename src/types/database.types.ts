@@ -2209,6 +2209,7 @@ export type Database = {
       is_approved_member: { Args: { p_family_id: string }; Returns: boolean }
       is_parent_of: { Args: { p_child_id: string }; Returns: boolean }
       is_self: { Args: { p_child_id: string }; Returns: boolean }
+      is_valid_nickname: { Args: { p_nickname: string }; Returns: boolean }
       learning_child_family: { Args: never; Returns: string }
       list_due_for_parent: {
         Args: { p_child_id: string }
