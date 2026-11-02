@@ -1,8 +1,8 @@
+import type { WithdrawalResult } from "@jarso/core/requests";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TakeOutSheet } from "@/features/requests/components/take-out-sheet";
 import { createWithdrawalAction } from "@/features/requests/server/actions";
-import type { WithdrawalResult } from "@/features/requests/types";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));

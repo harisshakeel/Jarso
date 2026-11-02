@@ -1,10 +1,14 @@
 "use server";
 
+import {
+  markReadSchema,
+  pushEndpointSchema,
+  pushSubscriptionSchema,
+} from "@jarso/core/notifications";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { routes } from "@/config";
 import { createAction } from "@/lib";
-import { markReadSchema, pushEndpointSchema, pushSubscriptionSchema } from "../schemas";
 import { markRead, ownsPushEndpoint, subscribePush, unsubscribePush } from "./service";
 
 export const markNoticesReadAction = createAction(markReadSchema, async ({ ids }) => {

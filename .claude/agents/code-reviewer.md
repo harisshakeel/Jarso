@@ -18,7 +18,8 @@ Verify every finding by reading the surrounding code — no speculative findings
 5. **Validation & errors:** Zod on every external input; `AppError` with safe messages; no raw errors leaked; `logger` not `console`.
 6. **Rendering:** request-time reads inside `<Suspense>`; no top-level session await in layouts.
 7. **Tests:** new logic has tests; tests assert behaviour.
-8. **Simplicity:** dead code, needless abstraction, duplication.
+8. **Core purity and layers:** `packages/core`/`packages/content` import no React, Next, `server-only`, `@supabase/ssr`, `idb`, `@/**`, `@jarso/brand` or browser globals; platform needs sit behind ports. `lib`/`config` import no feature, leaves import no composites, cross-module imports use the subpath. Web code uses `@/lib`, not `@jarso/core/lib`. New pure logic (schemas, rules, copy) belongs in `packages/core/src/<m>` with tests in `packages/core/tests/<m>`, exported via `package.json` `exports`, and re-exported by the web barrel, not written under `apps/web/src/features`.
+9. **Simplicity:** dead code, needless abstraction, duplication.
 
 ## Output
 

@@ -1,4 +1,13 @@
 import "server-only";
+import type {
+  DueItem,
+  Frequency,
+  Gift,
+  HandoverResult,
+  NotGivenResult,
+  Schedule,
+  Split,
+} from "@jarso/core/allowance";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertUser } from "@/features/auth/server";
 import {
@@ -11,15 +20,6 @@ import {
 import { AppError, familyToday, isAppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types";
-import type {
-  DueItem,
-  Frequency,
-  Gift,
-  HandoverResult,
-  NotGivenResult,
-  Schedule,
-  Split,
-} from "../types";
 import {
   cancelPendingGift,
   changeGift,

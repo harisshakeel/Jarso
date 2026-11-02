@@ -1,5 +1,7 @@
 "use client";
 
+import type { AutoChargeCard, AutoChargeTarget, PaymentProviderId } from "@jarso/core/payments";
+import { paymentCopy } from "@jarso/core/payments";
 import { usePathname } from "next/navigation";
 import { type FormEvent, useEffect, useId, useRef, useState, useTransition } from "react";
 import { Field, FormError } from "@/components/form";
@@ -17,9 +19,7 @@ import {
   Switch,
 } from "@/components/ui";
 import { runOnline } from "@/features/offline";
-import { paymentCopy } from "../copy";
 import { setAutoChargeAction } from "../server/actions";
-import type { AutoChargeCard, AutoChargeTarget, PaymentProviderId } from "../types";
 
 type AutoChargeToggleProps = {
   target: AutoChargeTarget;

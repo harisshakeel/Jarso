@@ -1,3 +1,4 @@
+import { authPaths } from "@jarso/core/auth";
 import type { Route } from "next";
 
 /** What search engines and link previews say about Jarso. The landing page copy lives in `@/features/landing`. */
@@ -52,8 +53,8 @@ export const routes = {
   privacy: "/privacy" as Route,
   login: "/login",
   signup: "/signup",
-  dashboard: "/dashboard",
-  authCallback: "/auth/callback",
+  dashboard: authPaths.dashboard,
+  authCallback: authPaths.authCallback,
   authConfirm: "/auth/confirm",
   parent: "/parent",
   parentSetup: "/parent/setup",
@@ -113,6 +114,3 @@ export const protectedRoutePrefixes = [
 
 /** Auth pages that signed-in users should be bounced away from. */
 export const authRoutePrefixes = [routes.login, routes.signup] as const;
-
-/** Currencies a family can pick. ISO 4217 codes; money is stored in minor units. */
-export const supportedCurrencies = ["GBP", "EUR", "USD", "INR", "AUD", "CAD", "JPY"] as const;

@@ -1,8 +1,8 @@
 import "server-only";
+import type { ChildRules, Period, RuleKind } from "@jarso/core/rules";
 // Money rules and the overspend setting. Reads: the child or a parent. Writes: a parent.
 import { assertParentOf, assertSelfOrParentOf } from "@/features/family/server";
 import { createClient } from "@/lib/supabase/server";
-import type { ChildRules, Period, RuleKind } from "../types";
 import { findChildRules, saveAllowNegativeSpend, saveMoneyRule } from "./repository";
 
 export async function getChildRules(childId: string): Promise<ChildRules> {

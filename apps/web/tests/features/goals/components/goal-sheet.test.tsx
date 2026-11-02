@@ -1,8 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Goal } from "@/features/goals";
 import { GoalSheet } from "@/features/goals/components/goal-sheet";
 import { archiveGoalAction, saveGoalAction } from "@/features/goals/server/actions";
-import type { Goal } from "@/features/goals/types";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));

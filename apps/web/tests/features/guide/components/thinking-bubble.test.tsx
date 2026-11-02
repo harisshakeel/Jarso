@@ -1,7 +1,7 @@
+import { guideCopy } from "@jarso/core/guide";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ThinkingBubble } from "@/features/guide/components/thinking-bubble";
-import { guideCopy } from "@/features/guide/copy";
 
 afterEach(() => {
   cleanup();

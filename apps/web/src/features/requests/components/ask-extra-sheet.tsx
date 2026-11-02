@@ -1,5 +1,6 @@
 "use client";
 
+import type { EmergencyResult } from "@jarso/core/requests";
 import { useRouter } from "next/navigation";
 import { useActionState, useRef, useState } from "react";
 import { AmountField, Field, FormError } from "@/components/form";
@@ -15,7 +16,6 @@ import {
 import { newId, runOnline } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { createEmergencyAction } from "../server/actions";
-import type { EmergencyResult } from "../types";
 
 type AskExtraSheetProps = { currency: string };
 

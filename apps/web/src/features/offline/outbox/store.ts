@@ -1,19 +1,13 @@
+import type { OutboxItem, OutboxStore } from "@jarso/core/offline";
 import { type IDBPDatabase, openDB } from "idb";
-import type { OutboxItem } from "./types";
 
 const DB_NAME = "jarso-outbox";
 const STORE = "items";
 const BY_USER = "userId";
 const CHANNEL = "jarso-outbox";
 
-export type Store = {
-  put(item: OutboxItem): Promise<void>;
-  remove(id: string): Promise<void>;
-  /** One user's items, oldest first. Never another user's. */
-  listForUser(userId: string): Promise<OutboxItem[]>;
-  /** Called after any change, in this tab or another. Returns an unsubscribe. */
-  subscribe(listener: () => void): () => void;
-};
+/** The IndexedDB outbox. Name, version, store and index are what earlier builds wrote: keep them. */
+export type Store = OutboxStore;
 
 const listeners = new Set<() => void>();
 let channel: BroadcastChannel | null | undefined;

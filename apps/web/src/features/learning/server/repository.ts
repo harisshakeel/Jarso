@@ -1,9 +1,15 @@
 import "server-only";
+import type {
+  CheckInResult,
+  Phase,
+  ReviewItem,
+  SkillProgress,
+  StepResult,
+} from "@jarso/core/learning";
+import { type SkillKey, type SkillLevel, skillKeys } from "@jarso/core/learning";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database } from "@/types";
-import { type SkillKey, type SkillLevel, skillKeys } from "../skills";
-import type { CheckInResult, Phase, ReviewItem, SkillProgress, StepResult } from "../types";
 
 type Client = SupabaseClient<Database>;
 

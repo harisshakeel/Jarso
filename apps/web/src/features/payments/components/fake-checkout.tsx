@@ -1,11 +1,11 @@
 "use client";
 
+import type { FakeCheckoutParams } from "@jarso/core/payments";
+import { paymentCopy } from "@jarso/core/payments";
 import { useActionState, useEffect } from "react";
 import { FormError } from "@/components/form";
 import { Button, Card, CardContent } from "@/components/ui";
 import { idle } from "@/lib";
-import { paymentCopy } from "../copy";
-import type { FakeCheckoutParams } from "../schemas";
 import { completeFakeCheckoutAction } from "../server/fake-checkout";
 
 const BUTTONS = {

@@ -1,12 +1,13 @@
 import "server-only";
+import type { ClaimedNotice, PushResult } from "@jarso/core/notifications";
+import { noticeText } from "@jarso/core/notifications";
 import { after } from "next/server";
 import * as webpush from "web-push";
 import { clientEnv } from "@/config";
 import { serverEnv } from "@/config/env.server";
 import { AppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { noticeHref, noticeText } from "../links";
-import type { ClaimedNotice, PushResult } from "../types";
+import { noticeHref } from "../links";
 import { claimUnpushed, deleteSubscriptionById, subscriptionsFor } from "./repository";
 
 /**

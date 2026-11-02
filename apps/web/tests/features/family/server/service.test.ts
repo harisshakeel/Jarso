@@ -1,5 +1,5 @@
+import { hashSecret } from "@jarso/core/family";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { hashSecret } from "@/features/family/codes";
 import { AppError } from "@/lib";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));

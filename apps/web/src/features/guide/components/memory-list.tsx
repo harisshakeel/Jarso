@@ -1,14 +1,14 @@
 "use client";
 
+import type { Memory } from "@jarso/core/guide";
+import { guideCopy } from "@jarso/core/guide";
 import { BrainIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FormError } from "@/components/form";
 import { Button, Card, CardContent } from "@/components/ui";
 import { runOnline } from "@/features/offline";
-import { guideCopy } from "../copy";
 import { forgetMemoryAction } from "../server/actions";
-import type { Memory } from "../types";
 
 type MemoryListProps = {
   memories: Memory[];

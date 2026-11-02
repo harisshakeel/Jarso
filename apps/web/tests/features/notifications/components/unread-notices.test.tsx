@@ -1,8 +1,8 @@
+import type { Notice } from "@jarso/core/notifications";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { UnreadNotices } from "@/features/notifications/components/unread-notices";
 import { markNoticesReadAction } from "@/features/notifications/server/actions";
-import type { Notice } from "@/features/notifications/types";
 
 const { push, refresh } = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));

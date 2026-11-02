@@ -1,10 +1,10 @@
 import "server-only";
+import { paymentCopy } from "@jarso/core/payments";
 import { prefillSplit } from "@/features/allowance";
 import { getLastSplitWith } from "@/features/allowance/server";
 import { isAppError, logger } from "@/lib";
 import { getPaymentProviderById, getPaymentProviders, type PaymentProvider } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { paymentCopy } from "../copy";
 import {
   applyPayment,
   type DueAutoCharge,

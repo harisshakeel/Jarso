@@ -1,7 +1,7 @@
 "use client";
 
+import type { GuideContextRef } from "@jarso/core/guide";
 import { useCurrentStep } from "@/features/learning";
-import type { GuideContextRef } from "../schemas";
 import { GuideSheet } from "./guide-sheet";
 
 /**

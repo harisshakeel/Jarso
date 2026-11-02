@@ -1,4 +1,5 @@
 import "server-only";
+import type { SessionUser } from "@jarso/core/auth";
 import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -6,7 +7,6 @@ import { cache } from "react";
 import { routes } from "@/config";
 import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
-import type { SessionUser } from "../types";
 
 /**
  * Data Access Layer entry point for auth. Verifies the JWT and returns the current user,

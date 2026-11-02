@@ -1,13 +1,13 @@
 "use server";
 
-import { refresh } from "next/cache";
-import { createAction } from "@/lib";
 import {
   askGuideSchema,
   forgetMemorySchema,
   rateGuideMessageSchema,
   setGuideAccessSchema,
-} from "../schemas";
+} from "@jarso/core/guide";
+import { refresh } from "next/cache";
+import { createAction } from "@/lib";
 import { askGuide, forgetMemory, rateGuideMessage, setGuideAccess } from "./service";
 
 /** The child's guide sheet calls these with plain objects; it keeps the chat in its own state. */

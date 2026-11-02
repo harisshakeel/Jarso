@@ -1,9 +1,9 @@
 import "server-only";
+import type { Goal, GoalInput } from "@jarso/core/goals";
 // Only place that knows the goals table and its functions.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database } from "@/types";
-import type { Goal, GoalInput } from "../types";
 
 type Client = SupabaseClient<Database>;
 

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ParentRequestItem } from "@jarso/core/requests";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -25,9 +26,6 @@ import {
   decideWithdrawalAction,
   rejectDepositAction,
 } from "../server/actions";
-import type { SavingsRequest } from "../types";
-
-export type ParentRequestItem = { nickname: string; request: SavingsRequest };
 
 type ParentRequestItemsProps = { items: ParentRequestItem[]; currency: string };
 

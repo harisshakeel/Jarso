@@ -1,5 +1,5 @@
+import type { ClaimedNotice } from "@jarso/core/notifications";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ClaimedNotice } from "@/features/notifications/types";
 
 const env = vi.hoisted(() => ({
   server: {

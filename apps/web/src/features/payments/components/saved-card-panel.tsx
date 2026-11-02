@@ -1,5 +1,7 @@
 "use client";
 
+import type { CardSummary, PaymentProviderId, SavedCard } from "@jarso/core/payments";
+import { paymentCopy } from "@jarso/core/payments";
 import { CreditCardIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -16,9 +18,7 @@ import {
   Button,
 } from "@/components/ui";
 import { runOnline } from "@/features/offline";
-import { paymentCopy } from "../copy";
 import { removeSavedCardAction } from "../server/actions";
-import type { CardSummary, PaymentProviderId, SavedCard } from "../types";
 
 /**
  * The parent's saved card at one provider in settings (spec §6.8): brand and last 4, and Remove,

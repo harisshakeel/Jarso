@@ -1,10 +1,10 @@
+import type { Schedule } from "@jarso/core/allowance";
+import { describeAllowanceState } from "@jarso/core/allowance";
 import Link from "next/link";
 import { JarIllustration } from "@/components/jar";
 import { Badge, Card } from "@/components/ui";
 import { routes } from "@/config";
 import { formatMoney } from "@/lib";
-import { describeAllowanceState } from "../describe";
-import type { Schedule } from "../types";
 
 type ChildOverviewCardProps = {
   childId: string;

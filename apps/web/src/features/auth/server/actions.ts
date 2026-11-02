@@ -1,11 +1,12 @@
 "use server";
 
+import { safeNextPath, signInSchema, signUpSchema } from "@jarso/core/auth";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { clientEnv, routes } from "@/config";
 import { AppError, createAction, logger } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
-import { safeNextPath, signInSchema, signUpSchema } from "../schemas";
 
 export const signIn = createAction(signInSchema, async ({ email, password, next }) => {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export const signIn = createAction(signInSchema, async ({ email, password, next 
     throw new AppError("UNAUTHORIZED", "Invalid email or password", { cause: error });
   }
 
-  redirect(safeNextPath(next));
+  redirect(safeNextPath(next) as Route);
 });
 
 export const signUp = createAction(signUpSchema, async ({ email, password, fullName, next }) => {
@@ -49,7 +50,7 @@ export const signUp = createAction(signUpSchema, async ({ email, password, fullN
   // Email confirmation enabled → no session yet.
   if (!data.session) return { needsConfirmation: true };
 
-  redirect(target);
+  redirect(target as Route);
 });
 
 export const signOut = createAction(z.object({}), async () => {

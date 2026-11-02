@@ -1,8 +1,4 @@
 import "server-only";
-// Only place that knows the money-rule and child-settings tables and functions.
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { AppError, toAppError } from "@/lib";
-import type { Database } from "@/types";
 import {
   type ChildRules,
   type MoneyRule,
@@ -10,7 +6,11 @@ import {
   periods,
   type RuleKind,
   ruleKinds,
-} from "../types";
+} from "@jarso/core/rules";
+// Only place that knows the money-rule and child-settings tables and functions.
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { AppError, toAppError } from "@/lib";
+import type { Database } from "@/types";
 
 type Client = SupabaseClient<Database>;
 

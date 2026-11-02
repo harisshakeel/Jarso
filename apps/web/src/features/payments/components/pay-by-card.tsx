@@ -1,14 +1,14 @@
 "use client";
 
+import type { CardPaymentState, PaymentProviderId } from "@jarso/core/payments";
+import { paymentCopy } from "@jarso/core/payments";
 import { CreditCardIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { FormError } from "@/components/form";
 import { Button } from "@/components/ui";
 import { runOnline } from "@/features/offline";
 import { toMajorString } from "@/lib";
-import { paymentCopy } from "../copy";
 import { startCardPaymentAction } from "../server/actions";
-import type { CardPaymentState, PaymentProviderId } from "../types";
 import { PaymentStatusNote } from "./payment-status-note";
 
 type PayByCardProps = {

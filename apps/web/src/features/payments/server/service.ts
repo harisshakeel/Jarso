@@ -1,4 +1,12 @@
 import "server-only";
+import type {
+  AutoChargeCard,
+  AutoChargeTarget,
+  CardPaymentState,
+  PaymentSource,
+  SavedCard,
+} from "@jarso/core/payments";
+import { paymentCopy, phoneSchema, returnToSchema } from "@jarso/core/payments";
 import { clientEnv } from "@/config";
 import { assertUser } from "@/features/auth/server";
 import {
@@ -18,15 +26,6 @@ import {
 } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { paymentCopy } from "../copy";
-import { phoneSchema, returnToSchema } from "../schemas";
-import type {
-  AutoChargeCard,
-  AutoChargeTarget,
-  CardPaymentState,
-  PaymentSource,
-  SavedCard,
-} from "../types";
 import {
   cancelPayment,
   clearAutoChargeBy,

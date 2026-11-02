@@ -1,9 +1,9 @@
 "use server";
 
+import { parentDetailsSchema, updateProfileSchema } from "@jarso/core/profiles";
 import { refresh } from "next/cache";
 import { assertUser } from "@/features/auth/server";
 import { createAction } from "@/lib";
-import { parentDetailsSchema, updateProfileSchema } from "../schemas";
 import { completeParentProfile, updateProfile } from "./service";
 
 export const updateProfileAction = createAction(updateProfileSchema, async (input) => {

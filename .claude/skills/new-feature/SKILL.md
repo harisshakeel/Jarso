@@ -1,6 +1,6 @@
 ---
 name: new-feature
-description: Scaffold a new domain feature module in apps/web/src/features/<name> (schema → repository → service → actions/route → components → barrels → tests). Use when adding a new domain area such as jars, goals, diary, lessons, or guide.
+description: Scaffold a new domain feature module, core first in packages/core/src/<name> then apps/web/src/features/<name> (schema → repository → service → actions/route → components → barrels → tests). Use when adding a new domain area such as jars, goals, diary, lessons, or guide.
 ---
 
 # New feature module
@@ -11,13 +11,27 @@ Read `docs/architecture.md` and `docs/conventions.md` first. Use `apps/web/src/f
 
 1. **Name** the feature: plural kebab-case noun (`savings-goals`, `diary-entries`).
 2. **Database** (if it stores data): run the `db-migration` skill. RLS in the same migration. Then `pnpm db:reset && pnpm db:types`.
-3. **Create the module:**
+3. **Core module first** (pure code: schemas, types, rules, copy):
+
+   ```
+   packages/core/src/<name>/
+   ├── index.ts              # public API
+   ├── schemas.ts            # Zod input schemas + inferred types
+   ├── types.ts              # domain types (camelCase)
+   └── <logic>.ts            # pure rules; no React/Next/server-only/@/**/browser globals
+   packages/core/tests/<name>/   # node-env tests
+   ```
+
+   - Add the subpath to `packages/core/package.json` `exports` (`"./<name>"`).
+   - Pick its layer: leaf (imports only `lib`/`config`/other leaves) or composite (may import leaves). Add it to the matching group in the Biome layer overrides in `biome.json`.
+   - Needs storage, network, locks or time? Declare a port interface in core; the app implements it.
+   - Run `pnpm --filter @jarso/core test`.
+
+   Then **create the web module:**
 
    ```
    apps/web/src/features/<name>/
-   ├── index.ts              # client-safe barrel
-   ├── schemas.ts            # Zod input schemas + inferred types
-   ├── types.ts              # domain types (camelCase), Row alias from @/types
+   ├── index.ts              # client-safe barrel: export * from "@jarso/core/<name>" + components + actions
    ├── components/
    └── server/
        ├── index.ts          # import "server-only"; export services
@@ -32,11 +46,11 @@ Read `docs/architecture.md` and `docs/conventions.md` first. Use `apps/web/src/f
 7. **Route handlers** (only if non-UI callers need it): run `api-endpoint` skill.
 8. **Components:** presentational, receive data via props. Data fetching happens in the page inside `<Suspense>`.
 9. **Barrels:**
-   - `index.ts`: `export *` from components + schemas, `export type *` from types, named re-exports of actions.
+   - `index.ts`: `export * from "@jarso/core/<name>"`, `export *` from components, named re-exports of actions.
    - `server/index.ts`: starts with `import "server-only";`, named re-exports of services.
    - Internal imports are relative; cross-module imports use barrels.
 10. **Route:** add page under `apps/web/src/app/(app)/<route>/page.tsx`; add prefix to `protectedRoutePrefixes` in `apps/web/src/config/site.ts` and `routes`.
-11. **Tests:** schema tests + service tests (mock repository). E2E for the critical flow.
+11. **Tests:** schema and rule tests in `packages/core/tests/<name>/`; service tests (mock repository) in `apps/web/tests/`. E2E for the critical flow.
 12. Run the `verify` skill.
 
 ## Domain rules (Jarso)

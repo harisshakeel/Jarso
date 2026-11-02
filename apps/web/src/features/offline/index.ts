@@ -1,17 +1,22 @@
 // Public, client-safe API of the offline feature. Nothing here is server-only.
+export {
+  type OutboxItem,
+  type OutboxKind,
+  type OutboxPlatform,
+  type OutboxStore,
+  offlineCopy,
+  type SendOutcome,
+  type SubmitResult,
+  showsAsPending,
+  /** A random uuid for a client-minted key; works where `crypto.randomUUID` is missing. */
+  uuid as newId,
+} from "@jarso/core/offline";
 export * from "./components/offline-banner";
 export * from "./components/outbox-sync";
-export * from "./copy";
 export * from "./online-action";
-export { flushOutbox } from "./outbox/flush";
-export { sendToServer } from "./outbox/send";
-export { showsAsPending } from "./outbox/state";
+export { flushOutbox, sendToServer, submitToOutbox, webOutboxPlatform } from "./outbox/platform";
 export { removeOutboxItem } from "./outbox/store";
-export { submitToOutbox } from "./outbox/submit";
-export type { OutboxItem, OutboxKind, SendOutcome, SubmitResult } from "./outbox/types";
 export { useOutbox } from "./outbox/use-outbox";
-/** A random uuid for a client-minted key; works where `crypto.randomUUID` is missing. */
-export { uuid as newId } from "./outbox/uuid";
 export {
   onNetworkSuccess,
   reportNetworkFailure,

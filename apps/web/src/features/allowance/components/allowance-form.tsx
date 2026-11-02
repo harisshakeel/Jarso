@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  describeSchedule,
+  type Frequency,
+  formatDay,
+  frequencies,
+  type Schedule,
+} from "@jarso/core/allowance";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,9 +17,7 @@ import { Button, buttonVariants, Card, CardContent, Input, Label } from "@/compo
 import { routes } from "@/config";
 import { runOnline } from "@/features/offline";
 import { type ActionState, addDays, idle, toMajorString } from "@/lib";
-import { describeSchedule, formatDay } from "../describe";
 import { changeAllowanceAction, createAllowanceAction } from "../server/actions";
-import { type Frequency, frequencies, type Schedule } from "../types";
 
 const ONE_TIME = "one_time";
 

@@ -1,10 +1,10 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { type FakeCheckoutInput, fakeCheckoutSchema } from "@jarso/core/payments";
 import { clientEnv } from "@/config";
 import { AppError, createAction } from "@/lib";
 import { FAKE_METHODS, getPaymentProviderById, type ProviderEvent } from "@/lib/payments";
-import { type FakeCheckoutInput, fakeCheckoutSchema } from "../schemas";
 import { handleProviderEvent } from "./webhooks";
 
 /** The event the fake provider's webhook would send for this button. */

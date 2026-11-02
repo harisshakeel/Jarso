@@ -1,4 +1,4 @@
-import type { OutboxItem } from "@/features/offline/outbox/types";
+import type { OutboxItem } from "@jarso/core/offline";
 
 /** An ISO time `n` minutes before the real clock, so items are due. */
 export function minutesAgo(n: number): string {

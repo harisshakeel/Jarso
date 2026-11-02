@@ -29,7 +29,7 @@ pnpm db:migration <name> # new migration → then pnpm db:reset && pnpm db:types
 
 ## Hard rules
 
-1. **Feature modules.** Domain code lives in `apps/web/src/features/<name>/` (`components/`, `schemas.ts`, `types.ts`, `server/{actions,service,repository}.ts`). `apps/web/src/app` only routes and composes.
+1. **Feature modules.** Pure domain code (schemas, types, rules, copy) lives in `packages/core/src/<name>` (`@jarso/core/<name>`). `apps/web/src/features/<name>/` holds `components/`, `server/{actions,service,repository}.ts` and a barrel that does `export * from "@jarso/core/<name>"`. `apps/web/src/app` only routes and composes.
 2. **Index barrels.** Every module exposes an `index.ts`. Cross-module imports go through the barrel (`@/features/auth`, `@/lib`, `@/components/ui`, `@/config`, `@/types`) — never deep paths into another module. Inside a module use relative imports.
 3. **Never mix server and client in a barrel.** Server-only API lives in `features/<f>/server/index.ts` beginning with `import "server-only"`. Direct-import exceptions: `@/lib/supabase/{client,server,admin,proxy}`, `@/lib/payments`, `@/config/env.server`.
 4. **Layering:** route/action → service → repository → Supabase. Only repositories touch table/column names. No business logic in `app/`.
@@ -46,6 +46,7 @@ pnpm db:migration <name> # new migration → then pnpm db:reset && pnpm db:types
 15. **Child users.** Simple, encouraging copy. Collect minimum data. AI guide stays within FR09 boundaries.
 16. **Commits** follow Conventional Commits (`feat: …`, `fix(scope): …`), enforced by commitlint on `commit-msg`. PR titles are validated the same way (squash-merge subject).
 17. **Public repo.** Everything here, including `.claude-logs/`, is public. Never read `.env*` files, never print, echo, paste or quote a credential (Supabase keys, Anthropic keys, tokens, connection strings), and never ask the user to paste one into chat. Use placeholders like `sb_secret_…`. If a real secret appears in any output, stop, tell the user, and follow the rotation runbook in `docs/security.md`. See the `public-repo-security` skill.
+18. **Core purity.** `packages/core` has no React, Next, `server-only`, `@/**` or platform globals (`window`, `navigator`, `localStorage`, …); platform needs go behind ports the app implements (outbox). Layers: `lib`/`config` import no feature; leaves never import composites. Web uses `@/lib`, not `@jarso/core/lib`. Biome enforces this; tests in `packages/core/tests/`.
 
 ## Workflows
 

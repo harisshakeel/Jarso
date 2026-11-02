@@ -1,11 +1,10 @@
+import type { Schedule } from "@jarso/core/allowance";
+import { cadenceAfterAmount, formatDay, runningSchedule } from "@jarso/core/allowance";
 import { PauseIcon, SquareIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge, buttonVariants, Card } from "@/components/ui";
 import { routes } from "@/config";
 import { formatMoney } from "@/lib";
-import { cadenceAfterAmount, formatDay } from "../describe";
-import { runningSchedule } from "../due";
-import type { Schedule } from "../types";
 
 export type AllowanceOverviewRow = {
   childId: string;

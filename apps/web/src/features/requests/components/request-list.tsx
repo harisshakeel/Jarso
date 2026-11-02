@@ -1,5 +1,7 @@
 "use client";
 
+import type { RequestStatus, SavingsRequest } from "@jarso/core/requests";
+import { statusLabel } from "@jarso/core/requests";
 import { ArrowDownToLineIcon, ArrowUpFromLineIcon, HandCoinsIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -9,9 +11,7 @@ import { FormError } from "@/components/form";
 import { Button, Card, CardContent } from "@/components/ui";
 import { runOnline } from "@/features/offline";
 import { cn, formatMoney } from "@/lib";
-import { statusLabel } from "../describe";
 import { cancelRequestAction } from "../server/actions";
-import type { RequestStatus, SavingsRequest } from "../types";
 
 const CHIP = {
   pending: "pending",

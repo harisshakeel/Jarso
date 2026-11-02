@@ -1,8 +1,8 @@
+import { AppError, isAppError } from "@jarso/core/lib";
 import { unstable_rethrow } from "next/navigation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { clientEnv } from "@/config";
-import { AppError, isAppError } from "../errors";
 import { logger } from "../logger";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);

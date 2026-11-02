@@ -1,12 +1,12 @@
 "use client";
 
+import type { JourneyMission } from "@jarso/core/learning";
 import { CheckIcon, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { JarsoMark } from "@/components/brand";
 import { routes } from "@/config";
 import { cn } from "@/lib";
-import type { JourneyMission } from "../types";
 
 /** The road's drawing box; stops sit on an S-curve from the bottom (day 1) to the top (day 7). */
 const WIDTH = 400;

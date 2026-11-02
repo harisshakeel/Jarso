@@ -1,14 +1,12 @@
 "use client";
 
+import type { GuideReply } from "@jarso/core/guide";
+import { guideCopy, MAX_MESSAGE_LENGTH, sendGuideTurn } from "@jarso/core/guide";
 import { BotIcon, SendHorizontalIcon, SparklesIcon } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { FormError } from "@/components/form";
 import { Button, Card, CardContent } from "@/components/ui";
 import { newId, runOnline } from "@/features/offline";
-import { guideCopy } from "../copy";
-import { MAX_MESSAGE_LENGTH } from "../schemas";
-import { sendGuideTurn } from "../send-turn";
-import type { GuideReply } from "../types";
 import { GuideBubble } from "./guide-reply";
 import { ThinkingBubble } from "./thinking-bubble";
 

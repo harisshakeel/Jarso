@@ -1,8 +1,8 @@
 import "server-only";
+import type { GuideCheck, GuideRoute, GuideUsage } from "@jarso/core/guide";
+import { guideCopy } from "@jarso/core/guide";
 import type { TopicKey } from "@/features/learning";
 import { logger } from "@/lib";
-import { guideCopy } from "../copy";
-import type { GuideCheck, GuideRoute, GuideUsage } from "../types";
 import { addUsage, zeroUsage } from "./cost";
 import { describeFacts, type Facts, fillFacts } from "./facts";
 import {

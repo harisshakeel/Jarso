@@ -27,7 +27,7 @@ vi.mock("@/features/learning/server/repository", () => ({
 const family = await import("@/features/family/server");
 const repo = await import("@/features/learning/server/repository");
 const service = await import("@/features/learning/server/service");
-const content = await import("@/features/learning/content");
+const content = await import("@/features/learning/server/content");
 
 const child = { id: "child-1", email: null };
 const firstMission = content.missions[0];

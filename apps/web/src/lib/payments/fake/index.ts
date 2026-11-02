@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { AppError } from "../../errors";
+import { AppError } from "@jarso/core/lib";
 import type { PaymentProvider, ProviderEvent } from "../types";
 
 // The fake only runs off production behind two opt-ins, so a constant secret is fine.

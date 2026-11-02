@@ -1,8 +1,8 @@
 import "server-only";
+import type { Jar } from "@jarso/core/ledger";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { toAppError } from "@/lib";
 import type { Database } from "@/types";
-import type { Jar } from "../types";
 
 type Client = SupabaseClient<Database>;
 

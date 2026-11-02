@@ -1,7 +1,7 @@
+import type { Step, StepResult } from "@jarso/core/learning";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MissionPlayer } from "@/features/learning/components/mission-player";
-import type { Step, StepResult } from "@/features/learning/types";
 import type { OutboxItem, SubmitResult } from "@/features/offline";
 
 const { submitToOutbox, useOutbox, useOnline } = vi.hoisted(() => ({
@@ -12,10 +12,10 @@ const { submitToOutbox, useOutbox, useOnline } = vi.hoisted(() => ({
 
 vi.mock("@/features/learning/server/actions", () => ({ startMissionAction: vi.fn() }));
 vi.mock("@/features/offline", async () => ({
-  offlineCopy: (await import("@/features/offline/copy")).offlineCopy,
-  newId: (await import("@/features/offline/outbox/uuid")).uuid,
+  offlineCopy: (await import("@jarso/core/offline")).offlineCopy,
+  newId: (await import("@jarso/core/offline")).uuid,
   runOnline: (await import("@/features/offline/online-action")).runOnline,
-  showsAsPending: (await import("@/features/offline/outbox/state")).showsAsPending,
+  showsAsPending: (await import("@jarso/core/offline")).showsAsPending,
   submitToOutbox,
   useOutbox,
   useOnline,

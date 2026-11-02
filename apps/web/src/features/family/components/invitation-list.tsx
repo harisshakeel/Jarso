@@ -1,3 +1,5 @@
+import type { PendingInvitation } from "@jarso/core/family";
+import { sentAgo } from "@jarso/core/family";
 import type { Route } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
@@ -5,8 +7,6 @@ import { JarsoMark } from "@/components/brand";
 import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { cn } from "@/lib";
-import { sentAgo } from "../sent-ago";
-import type { PendingInvitation } from "../types";
 import { RefreshInvitationsButton } from "./refresh-invitations-button";
 
 type InvitationListProps = {

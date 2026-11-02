@@ -1,3 +1,4 @@
+import type { SavingsRequest } from "@jarso/core/requests";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,7 +9,6 @@ import {
   decideWithdrawalAction,
   rejectDepositAction,
 } from "@/features/requests/server/actions";
-import type { SavingsRequest } from "@/features/requests/types";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));

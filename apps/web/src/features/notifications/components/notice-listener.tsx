@@ -1,10 +1,10 @@
 "use client";
 
+import { noticeText } from "@jarso/core/notifications";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { routes } from "@/config";
-import { noticeText } from "../links";
 import { subscribeToNotices } from "../realtime";
 
 const REFRESH_DELAY_MS = 300;

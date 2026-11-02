@@ -1,4 +1,15 @@
 import "server-only";
+import type {
+  Availability,
+  CancelResult,
+  CompleteResult,
+  DecideDepositResult,
+  DecideWithdrawalResult,
+  DepositResult,
+  EmergencyResult,
+  SavingsRequest,
+  WithdrawalResult,
+} from "@jarso/core/requests";
 import { cache } from "react";
 import { assertUser } from "@/features/auth/server";
 // Savings requests: a child asks to take money out of Save or records money put into it.
@@ -10,17 +21,6 @@ import {
 } from "@/features/family/server";
 import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
-import type {
-  Availability,
-  CancelResult,
-  CompleteResult,
-  DecideDepositResult,
-  DecideWithdrawalResult,
-  DepositResult,
-  EmergencyResult,
-  SavingsRequest,
-  WithdrawalResult,
-} from "../types";
 import {
   callCancel,
   callComplete,

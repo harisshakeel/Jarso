@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { CardPaymentState } from "@/features/payments";
 import { PayByCard } from "@/features/payments/components/pay-by-card";
-import type { CardPaymentState } from "@/features/payments/types";
 
 const startCardPaymentAction = vi.hoisted(() => vi.fn());
 vi.mock("@/features/payments/server/actions", () => ({ startCardPaymentAction }));

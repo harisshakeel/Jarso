@@ -1,5 +1,7 @@
 "use client";
 
+import type { Schedule } from "@jarso/core/allowance";
+import { cadenceAfterAmount, formatDay } from "@jarso/core/allowance";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -22,9 +24,7 @@ import {
 import { routes } from "@/config";
 import { runOnline } from "@/features/offline";
 import { type ActionResult, formatMoney } from "@/lib";
-import { cadenceAfterAmount, formatDay } from "../describe";
 import { resumeAllowanceAction, stopAllowanceAction } from "../server/actions";
-import type { Schedule } from "../types";
 import { PauseSheet } from "./pause-sheet";
 
 type AllowanceSummaryProps = {

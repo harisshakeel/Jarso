@@ -1,9 +1,9 @@
+import type { WeeklyReview, WeekMoney } from "@jarso/core/review";
 import { ArrowRightIcon, CalendarCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { formatMoney } from "@/lib";
-import type { WeeklyReview, WeekMoney } from "../types";
 
 type WeekCardProps = {
   review: WeeklyReview;

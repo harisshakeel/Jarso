@@ -47,6 +47,9 @@ importers:
       '@jarso/content':
         specifier: workspace:*
         version: link:../../packages/content
+      '@jarso/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@jarso/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -164,6 +167,28 @@ importers:
       typescript:
         specifier: ^5
         version: 5.9.3
+
+  packages/core:
+    dependencies:
+      '@jarso/content':
+        specifier: workspace:*
+        version: link:../content
+      '@jarso/db':
+        specifier: workspace:*
+        version: link:../db
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@jarso/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(jsdom@30.1.3(@noble/hashes@1.8.0))(vite@8.3.5(@types/node@24.19.2)(jiti@2.7.0))
 
   packages/db:
     devDependencies:

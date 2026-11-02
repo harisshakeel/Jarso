@@ -172,6 +172,26 @@ Writers of `ledger_entries`, enforced by which Postgres function may insert:
 
 No other code path inserts into the ledger. The table's insert policy is `false` for all roles; only these `security definer` functions write, after their own authorization checks.
 
+### Built to grow (shared core)
+
+The repo is a pnpm + Turborepo monorepo. Pure domain code lives in `packages/core` (`@jarso/core`); apps consume it. Tooling enforces these rules where it can.
+
+```
+apps/web ─┬─> core ─┬─> content
+          │         └─> db (types only)
+          ├─> content, db, brand
+packages never depend on apps; core never depends on brand.
+```
+
+1. **One-way dependencies.** apps -> packages, never back. `core` -> `content`, `db`; `brand` and `tsconfig` -> nothing. pnpm's isolated linker fails undeclared imports; Biome `noRestrictedImports`/`noRestrictedGlobals` block `@/*`, React, Next, `server-only` and browser globals inside core and content.
+2. **Core is a layered graph.** `lib` and `config` import no feature. Leaves (`ledger goals rules profiles auth payments allowance`) import only lower layers. Composites (`learning diary requests family notifications guide review offline`) may import leaves and each other, but must not form cycles; no Biome rule enforces this yet, so reviewers check it. Cross-module imports name the subpath (`@jarso/core/goals`), never a file inside it. A Biome override per layer blocks upward imports. `learning/content` is its own subpath so the mission JSON stays out of `@jarso/core/learning`; in web only `features/learning/server/content.ts` imports it.
+3. **Same feature name across layers.** `packages/core/src/<x>` (rules, schemas, copy) plus `apps/web/src/features/<x>` (components, `server/`, barrel re-exporting `@jarso/core/<x>`), later `apps/mobile/src/features/<x>`. The `new-feature` skill scaffolds core first.
+4. **Platform code behind ports.** When core needs storage, network, locks or time it declares an interface; each app supplies the implementation. The offline outbox is the pattern: `OutboxStore` / `OutboxPlatform` in `packages/core/src/offline/outbox/ports.ts`, bound in web by `webOutboxPlatform` (idb + navigator). Core never feature-detects a platform.
+5. **Logger.** Core owns `logger` and `configureLogger({ level?, json? })`. `apps/web/src/lib/logger.ts` reads env and configures it, so web code imports `@/lib`, never `@jarso/core/lib` (Biome blocks it outside `apps/web/src/lib/**`).
+6. **Turbo caching per package.** `typecheck`, `test`, `lint` cache per package; CI runs `turbo ... --affected` on PRs.
+7. **When to split a package.** Core stays one package with subpaths until a module needs its own dependency other consumers mustn't get, needs a different release or build, or core's test run passes about 60 s. Then the module becomes `packages/<x>`; its subpath is already the boundary.
+8. **Tests beside their package.** Core tests live in `packages/core/tests/<module>/`, node environment only.
+
 ## 5. Data architecture
 
 ### 5.1 Entity model

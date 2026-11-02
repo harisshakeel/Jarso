@@ -1,5 +1,7 @@
 "use client";
 
+import type { Goal } from "@jarso/core/goals";
+import { GOAL_EMOJI, type GoalEmoji, goalProgress } from "@jarso/core/goals";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { AmountField, Field, FieldError, FormError } from "@/components/form";
@@ -22,10 +24,7 @@ import {
 } from "@/components/ui";
 import { runOnline } from "@/features/offline";
 import { type ActionState, cn, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
-import { GOAL_EMOJI, type GoalEmoji } from "../emoji";
-import { goalProgress } from "../progress";
 import { archiveGoalAction, saveGoalAction } from "../server/actions";
-import type { Goal } from "../types";
 import { PredictStep } from "./predict-step";
 
 type GoalSheetProps = {

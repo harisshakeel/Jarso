@@ -1,5 +1,5 @@
+import type { WhereItWent } from "@jarso/core/ledger";
 import { Card, CardContent } from "@/components/ui";
-import type { WhereItWent } from "../where-it-went";
 
 /** This week's spending by category and money in, as sentences. No chart, no table. */
 export function WhereItWentCard({ view }: { view: WhereItWent }) {

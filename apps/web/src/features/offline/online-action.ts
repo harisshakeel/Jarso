@@ -1,5 +1,6 @@
 "use client";
 
+import { isNetworkFailure, offlineCopy } from "@jarso/core/offline";
 import { unstable_rethrow } from "next/navigation";
 import {
   type FormEvent,
@@ -10,8 +11,7 @@ import {
   useRef,
 } from "react";
 import type { ActionResult, ActionState } from "@/lib";
-import { offlineCopy } from "./copy";
-import { isNetworkFailure, reportNetworkFailure, reportNetworkSuccess } from "./use-online";
+import { reportNetworkFailure, reportNetworkSuccess } from "./use-online";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 

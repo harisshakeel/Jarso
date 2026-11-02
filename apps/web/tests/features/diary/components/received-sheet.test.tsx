@@ -77,7 +77,7 @@ describe("ReceivedSheet", () => {
     fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "5" } });
     fireEvent.click(screen.getByRole("radio", { name: "Family" }));
     fireEvent.click(screen.getByRole("button", { name: "Write it down" }));
-    const { offlineCopy } = await import("@/features/offline/copy");
+    const { offlineCopy } = await import("@jarso/core/offline");
     expect(await screen.findByText(offlineCopy.offline)).toBeInTheDocument();
     expect(action).not.toHaveBeenCalled();
   });

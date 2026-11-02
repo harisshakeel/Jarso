@@ -1,4 +1,5 @@
 import "server-only";
+import { buildWeeklyReview, type WeeklyReview, weekBounds } from "@jarso/core/review";
 // Weekly review (FR11): read what the week's screens already read, then build in code.
 import { cache } from "react";
 import { listDueForChild } from "@/features/allowance/server";
@@ -8,8 +9,6 @@ import { getLearningOverview, reviewPool } from "@/features/learning/server";
 import { getHistorySince } from "@/features/ledger/server";
 import { AppError, addDays, familyToday, localDateOf } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
-import { buildWeeklyReview, weekBounds } from "../build";
-import type { WeeklyReview } from "../types";
 import { listRecentPracticeKeys, listReviewItems } from "./repository";
 
 /** This week's review for the child, readable by the child and their parents. */

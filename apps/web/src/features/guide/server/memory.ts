@@ -1,8 +1,8 @@
 import "server-only";
+import { type Memory, type MemoryKind, memoryKinds } from "@jarso/core/guide";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database } from "@/types";
-import { type Memory, type MemoryKind, memoryKinds } from "../types";
 
 type Client = SupabaseClient<Database>;
 
