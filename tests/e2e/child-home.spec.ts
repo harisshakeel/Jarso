@@ -139,7 +139,7 @@ test("child sets a goal and the Save jar shows how far to go", async () => {
   const sheet = child.getByRole("dialog");
   await sheet.getByLabel("What is it?").fill("Football boots");
   // The radios are visually hidden inside their picture labels.
-  await sheet.getByRole("radio", { name: "⚽" }).check({ force: true });
+  await sheet.getByRole("radio", { name: "Football" }).check({ force: true });
   await sheet.getByLabel("How much does it cost?").fill("45");
   await sheet.getByLabel("How much will you save each time?").fill("4");
   await expect(sheet.getByText("About 12 more allowances")).toBeVisible();

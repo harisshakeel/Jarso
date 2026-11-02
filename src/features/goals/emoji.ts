@@ -27,3 +27,31 @@ export const GOAL_EMOJI = [
 ] as const;
 
 export type GoalEmoji = (typeof GOAL_EMOJI)[number];
+
+/** Spoken names for the pictures: a screen reader says "Football", not the raw emoji. */
+export const GOAL_EMOJI_NAMES: Record<GoalEmoji, string> = {
+  "⚽": "Football",
+  "🏀": "Basketball",
+  "🛹": "Skateboard",
+  "🚲": "Bike",
+  "🎮": "Video game",
+  "🎧": "Headphones",
+  "📱": "Phone",
+  "💻": "Laptop",
+  "📷": "Camera",
+  "🎸": "Guitar",
+  "🎹": "Keyboard",
+  "🎨": "Art set",
+  "📚": "Books",
+  "👟": "Trainers",
+  "👕": "T-shirt",
+  "🎒": "Backpack",
+  "⌚": "Watch",
+  "🧸": "Teddy bear",
+  "🎟️": "Tickets",
+  "🍕": "Pizza",
+  "🎁": "Present",
+  "🏕️": "Camping",
+  "🐶": "Pet",
+  "⭐": "Something special",
+};

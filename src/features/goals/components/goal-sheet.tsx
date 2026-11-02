@@ -22,7 +22,7 @@ import {
 } from "@/components/ui";
 import { runOnline } from "@/features/offline";
 import { type ActionState, cn, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
-import { GOAL_EMOJI, type GoalEmoji } from "../emoji";
+import { GOAL_EMOJI, GOAL_EMOJI_NAMES, type GoalEmoji } from "../emoji";
 import { goalProgress } from "../progress";
 import { archiveGoalAction, saveGoalAction } from "../server/actions";
 import type { Goal } from "../types";
@@ -136,7 +136,10 @@ function GoalForm({
         onChange={(event) => setName(event.target.value)}
         errors={fieldErrors?.name}
       />
-      <fieldset className="grid gap-2">
+      <fieldset
+        className="grid gap-2"
+        aria-describedby={fieldErrors?.emoji ? "emoji-error" : undefined}
+      >
         <legend className="mb-2 font-semibold text-sm">Pick a picture</legend>
         <div className="grid grid-cols-6 gap-2">
           {GOAL_EMOJI.map((option) => (
@@ -154,7 +157,7 @@ function GoalForm({
                 checked={emoji === option}
                 onChange={() => setEmoji(option)}
                 className="sr-only"
-                aria-label={option}
+                aria-label={GOAL_EMOJI_NAMES[option]}
               />
               <span aria-hidden>{option}</span>
             </label>

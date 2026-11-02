@@ -39,7 +39,7 @@ function openNew(props: { saveMinor?: number; reservedMinor?: number } = {}) {
 
 function fill(price: string, plan: string) {
   fireEvent.change(screen.getByLabelText("What is it?"), { target: { value: "Football boots" } });
-  fireEvent.click(screen.getByRole("radio", { name: "⚽" }));
+  fireEvent.click(screen.getByRole("radio", { name: "Football" }));
   fireEvent.change(screen.getByLabelText("How much does it cost?"), { target: { value: price } });
   fireEvent.change(screen.getByLabelText("How much will you save each time?"), {
     target: { value: plan },
