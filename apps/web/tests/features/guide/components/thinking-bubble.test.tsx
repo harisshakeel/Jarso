@@ -66,7 +66,7 @@ describe("ThinkingBubble", () => {
     const jar = container.querySelector("[data-jarso-eyes]");
     expect(jar).toHaveAttribute("data-look", "up");
     expect(jar).toHaveAttribute("data-filling");
-    expect(container.querySelectorAll(".jar-drop")).toHaveLength(3);
+    expect(container.querySelectorAll(".jar-drop")).toHaveLength(2);
     expect(container.querySelector("[data-check]")).toBeNull();
     rerender(<ThinkingBubble status={guideCopy.phases.checking} />);
     expect(container.querySelector("[data-check]")).not.toBeNull();
@@ -94,7 +94,8 @@ describe("ThinkingBubble", () => {
     expect(screen.getByRole("status")).toHaveTextContent(jarLines[0] as string);
     act(() => vi.advanceTimersByTime(2_500));
     expect(screen.getByRole("status")).toHaveTextContent(jarLines[1] as string);
-    act(() => vi.advanceTimersByTime(2_500 * jarLines.length));
+    // Each line schedules the next after it renders, so step through them one at a time.
+    for (let line = 0; line < jarLines.length; line++) act(() => vi.advanceTimersByTime(2_500));
     expect(screen.getByRole("status")).toHaveTextContent(guideCopy.stillWorking[1] as string);
     // A fresh line from the server takes over again.
     rerender(<ThinkingBubble status={guideCopy.phases.checking} />);

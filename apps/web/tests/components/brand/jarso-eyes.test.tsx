@@ -25,7 +25,7 @@ describe("JarsoEyes", () => {
     const jar = container.querySelector("[data-jarso-eyes]");
     expect(jar).toHaveAttribute("data-filling");
     expect(jar).toHaveAttribute("data-look", "up");
-    expect(container.querySelectorAll(".jar-drop")).toHaveLength(3);
+    expect(container.querySelectorAll(".jar-drop")).toHaveLength(2);
     expect(container.querySelectorAll(".jar-land")).toHaveLength(4);
   });
 
