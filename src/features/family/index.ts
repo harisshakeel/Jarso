@@ -5,6 +5,7 @@ export * from "./components/add-child-form";
 export * from "./components/child-sign-in-form";
 export * from "./components/children-settings-list";
 export * from "./components/create-family-form";
+export * from "./components/demo-clock-card";
 export * from "./components/family-code-card";
 export * from "./components/family-settings-form";
 export * from "./components/first-child-card";
@@ -22,6 +23,7 @@ export {
   acceptInvitationAction,
   acceptListedInvitationAction,
   addChildAction,
+  advanceFamilyClockAction,
   childSignInAction,
   createFamilyAction,
   removeChildAction,

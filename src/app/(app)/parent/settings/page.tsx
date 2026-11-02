@@ -12,16 +12,24 @@ import { SignOutButton } from "@/features/auth";
 import {
   ChildrenSettingsList,
   currencyLabels,
+  DemoClockCard,
   FamilyCodeCard,
   FamilySettingsForm,
   isCurrency,
 } from "@/features/family";
-import { getFamily, listChildren, requireRole } from "@/features/family/server";
+import {
+  demoClockEnabled,
+  getFamily,
+  getFamilyNow,
+  listChildren,
+  requireRole,
+} from "@/features/family/server";
 import { PushToggle } from "@/features/notifications";
 import { paymentCopy, SavedCards } from "@/features/payments";
 import { getSavedCards, paymentsEnabled } from "@/features/payments/server";
 import { DisplayNameForm, ParentDetailsForm } from "@/features/profiles";
 import { getParentDetails, getProfile } from "@/features/profiles/server";
+import { familyToday } from "@/lib";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -45,6 +53,9 @@ async function ParentSettings({ searchParams }: Props) {
   ]);
   if (!family) redirect(routes.parentSetup);
   const { tab } = paramsSchema.parse(await searchParams);
+  const demoToday = demoClockEnabled()
+    ? familyToday(family.timezone, await getFamilyNow(family.id))
+    : null;
 
   const familyTab = (
     <>
@@ -66,6 +77,7 @@ async function ParentSettings({ searchParams }: Props) {
           </Link>
         </p>
       </Section>
+      {demoToday ? <DemoClockCard today={demoToday} className="rise-in" style={rise(2)} /> : null}
     </>
   );
 
