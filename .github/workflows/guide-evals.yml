@@ -46,6 +46,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: guide-eval-report
-          path: evals/guide/results/report.json
+          path: apps/web/evals/guide/results/report.json
           if-no-files-found: ignore
           retention-days: 30
