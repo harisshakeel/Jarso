@@ -25,6 +25,7 @@ vi.mock("@/features/guide/server/repository", () => ({
   hasAnyMessage: vi.fn(),
   hitRateLimit: vi.fn(),
   listConversations: vi.fn(),
+  listConversationsAskedBy: vi.fn(),
   listMessages: vi.fn(),
   rateMessage: vi.fn(),
   recordTurn: vi.fn(),
@@ -698,5 +699,91 @@ describe("a parent asking about their child", () => {
       }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     void home;
+  });
+});
+
+describe("the Jarso page's own chats", () => {
+  const row = (
+    over: Partial<Awaited<ReturnType<typeof repo.findConversation>>> & { id: string },
+  ) => ({
+    childId: "child-1",
+    entry: "home" as const,
+    contextKey: "home",
+    turns: 2,
+    flagged: false,
+    createdAt: "2026-11-01T10:00:00Z",
+    lastMessageAt: "2026-11-01T10:05:00Z",
+    askedBy: null,
+    ...over,
+  });
+  const line = (id: string, conversationId: string, role: "child" | "guide", text: string) => ({
+    id,
+    conversationId,
+    role,
+    text,
+    route: role === "guide" ? ("on_topic" as const) : null,
+    flagged: false,
+    rating: null,
+    createdAt: "2026-11-01T10:00:00Z",
+    checked: [],
+  });
+
+  it("lists the child's own chats newest first, titled by their first message", async () => {
+    vi.mocked(repo.listConversations).mockResolvedValue([
+      row({ id: "old", lastMessageAt: "2026-10-30T10:00:00Z" }),
+      row({ id: "new" }),
+    ]);
+    vi.mocked(repo.listMessages).mockResolvedValue([
+      line("m1", "old", "child", "what is saving?"),
+      line("m2", "old", "guide", "Keeping money for later."),
+      line("m3", "new", "child", "How much do I have?"),
+      line("m4", "new", "guide", "You have £12.40 in Spend."),
+    ]);
+    const chats = await service.listMyChats();
+    expect(family.assertRole).toHaveBeenCalledWith("child");
+    expect(repo.listConversations).toHaveBeenCalledWith(expect.anything(), "child-1");
+    expect(chats.map((c) => [c.id, c.preview, c.childId])).toEqual([
+      ["new", "How much do I have?", "child-1"],
+      ["old", "what is saving?", "child-1"],
+    ]);
+  });
+
+  it("reopens only the child's own chat, never a parent's chat about them", async () => {
+    vi.mocked(repo.listMessages).mockResolvedValue([line("m1", "convo-1", "child", "")]);
+    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "convo-1" }));
+    const mine = await service.getMyTranscript("convo-1");
+    expect(mine?.summary.id).toBe("convo-1");
+    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "convo-2", askedBy: "parent-1" }));
+    await expect(service.getMyTranscript("convo-2")).resolves.toBeNull();
+    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "convo-3", childId: "child-2" }));
+    await expect(service.getMyTranscript("convo-3")).resolves.toBeNull();
+  });
+
+  it("lists and reopens the parent's own chats about their children", async () => {
+    vi.mocked(family.assertRole).mockResolvedValue({
+      user: { id: "parent-1", email: "parent@example.test" } as never,
+      membership: null,
+    });
+    vi.mocked(repo.listConversationsAskedBy).mockResolvedValue([
+      row({ id: "p1", entry: "parent", contextKey: "parent:child-1", askedBy: "parent-1" }),
+    ]);
+    vi.mocked(repo.listMessages).mockResolvedValue([
+      line("m1", "p1", "child", "How is Sam doing with saving?"),
+      line("m2", "p1", "guide", "Sam has £64 in Save."),
+    ]);
+    const chats = await service.listParentChats();
+    expect(repo.listConversationsAskedBy).toHaveBeenCalledWith(expect.anything(), "parent-1");
+    expect(chats[0]).toMatchObject({
+      id: "p1",
+      childId: "child-1",
+      preview: "How is Sam doing with saving?",
+      label: "A parent asked about them",
+    });
+    vi.mocked(repo.findConversation).mockResolvedValue(
+      row({ id: "p1", entry: "parent", contextKey: "parent:child-1", askedBy: "parent-1" }),
+    );
+    expect((await service.getParentTranscript("p1"))?.messages).toHaveLength(2);
+    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "c1" }));
+    await expect(service.getParentTranscript("c1")).resolves.toBeNull();
   });
 });

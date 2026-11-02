@@ -196,6 +196,7 @@ async function HomeJarso({ childId, hasAllowance }: { childId: string; hasAllowa
   return (
     <AskJarso
       introNeeded={guide.introNeeded}
+      openHref={routes.childJarso}
       suggestions={[
         suggestions.jars,
         suggestions.spent,

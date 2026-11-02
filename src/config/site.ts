@@ -60,6 +60,8 @@ export const routes = {
   parentNewChild: "/parent/children/new",
   /** The Allowance tab: every child's allowance at a glance. */
   parentAllowanceOverview: "/parent/allowance" as Route,
+  /** The parent's full-page Jarso chat about their children. */
+  parentJarso: "/parent/jarso" as Route,
   parentChild: (childId: string) => `/parent/children/${childId}` as Route,
   parentChildHistory: (childId: string) => `/parent/children/${childId}/history` as Route,
   parentAllowance: (childId: string) => `/parent/children/${childId}/allowance` as Route,
@@ -78,6 +80,8 @@ export const routes = {
   child: "/child",
   /** Diary: purchases, history and undo (FR04). */
   childDiary: "/child/diary" as Route,
+  /** The child's full-page Jarso chat, with past chats. */
+  childJarso: "/child/jarso" as Route,
   /** Learn: the seven-day journey (FR06). */
   childLearn: "/child/learn" as Route,
   /** The weekly review (FR11) and its one fresh question. */

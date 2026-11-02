@@ -411,12 +411,18 @@ export async function setGuideAccess(childId: string, enabled: boolean): Promise
 const SAFETY_HIDDEN = "A safety response was shown. The message itself is not kept.";
 const PERSONAL_HIDDEN = "Personal details were shared, so the message is not kept.";
 const EXPIRED = "Older than 30 days, so deleted.";
+/** What the asker sees in place of their own message that was not kept. */
+const NOT_KEPT = "This message wasn't kept.";
 
 /**
- * A chat as the parent reads it. A child message that got a safety or personal-details response
- * is stored blank (spec decision 3, ADR 0010); the parent sees a note in its place.
+ * A chat as a reader sees it. A child message that got a safety or personal-details response
+ * is stored blank (spec decision 3, ADR 0010); the parent sees a note in its place, and the
+ * asker (the child, or a parent reading their own chat) a plain line.
  */
-function forParent(messages: repo.MessageRow[]): TranscriptMessage[] {
+function transcriptFor(
+  messages: repo.MessageRow[],
+  viewer: "parent" | "asker",
+): TranscriptMessage[] {
   return messages.map(({ checked, ...message }, index) => {
     if (message.role !== "child") {
       const text = message.text || EXPIRED;
@@ -424,19 +430,30 @@ function forParent(messages: repo.MessageRow[]): TranscriptMessage[] {
     }
     const shown = { ...message, lookedAt: [] };
     const reply = messages[index + 1];
-    if (reply?.route === "safety") return { ...shown, hidden: true, text: SAFETY_HIDDEN };
-    if (reply?.route === "personal_info") return { ...shown, hidden: true, text: PERSONAL_HIDDEN };
+    if (reply?.route === "safety") {
+      return { ...shown, hidden: true, text: viewer === "parent" ? SAFETY_HIDDEN : NOT_KEPT };
+    }
+    if (reply?.route === "personal_info") {
+      return { ...shown, hidden: true, text: viewer === "parent" ? PERSONAL_HIDDEN : NOT_KEPT };
+    }
     return { ...shown, hidden: false, text: message.text || EXPIRED };
   });
+}
+
+/** A chat as the parent reads it. */
+function forParent(messages: repo.MessageRow[]): TranscriptMessage[] {
+  return transcriptFor(messages, "parent");
 }
 
 function summarize(
   conversation: repo.ConversationRow,
   messages: repo.MessageRow[],
+  viewer: "parent" | "asker" = "parent",
 ): ConversationSummary {
-  const first = forParent(messages).find((m) => m.role === "child");
+  const first = transcriptFor(messages, viewer).find((m) => m.role === "child");
   return {
     id: conversation.id,
+    childId: conversation.childId,
     entry: conversation.entry,
     label: labelFor(conversation.entry, conversation.contextKey),
     createdAt: conversation.createdAt,
@@ -477,6 +494,76 @@ export async function getGuideTranscript(
   return { summary: summarize(conversation, messages), messages: forParent(messages) };
 }
 
+/** The signed-in child's own chats (not a parent's about them), newest first (the Jarso page). */
+export async function listMyChats(): Promise<ConversationSummary[]> {
+  const { user } = await assertRole("child");
+  const db = await createClient();
+  const conversations = await repo.listConversations(db, user.id);
+  const messages = await repo.listMessages(
+    db,
+    conversations.map((c) => c.id),
+  );
+  return conversations
+    .map((conversation) =>
+      summarize(
+        conversation,
+        messages.filter((m) => m.conversationId === conversation.id),
+        "asker",
+      ),
+    )
+    .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
+}
+
+/** One of the signed-in child's own chats, to pick it up again. Null when it isn't theirs. */
+export async function getMyTranscript(
+  conversationId: string,
+): Promise<{ summary: ConversationSummary; messages: TranscriptMessage[] } | null> {
+  const { user } = await assertRole("child");
+  const db = await createClient();
+  const conversation = await repo.findConversation(db, conversationId);
+  if (!conversation || conversation.childId !== user.id || conversation.askedBy !== null) {
+    return null;
+  }
+  const messages = await repo.listMessages(db, [conversationId]);
+  return {
+    summary: summarize(conversation, messages, "asker"),
+    messages: transcriptFor(messages, "asker"),
+  };
+}
+
+/** The signed-in parent's own chats about their children, newest first (the Jarso page). */
+export async function listParentChats(): Promise<ConversationSummary[]> {
+  const { user } = await assertRole("parent");
+  const db = await createClient();
+  const conversations = await repo.listConversationsAskedBy(db, user.id);
+  const messages = await repo.listMessages(
+    db,
+    conversations.map((c) => c.id),
+  );
+  return conversations.map((conversation) =>
+    summarize(
+      conversation,
+      messages.filter((m) => m.conversationId === conversation.id),
+      "asker",
+    ),
+  );
+}
+
+/** One of the signed-in parent's own chats about a child. Null when it isn't theirs. */
+export async function getParentTranscript(
+  conversationId: string,
+): Promise<{ summary: ConversationSummary; messages: TranscriptMessage[] } | null> {
+  const { user } = await assertRole("parent");
+  const db = await createClient();
+  const conversation = await repo.findConversation(db, conversationId);
+  if (!conversation || conversation.askedBy !== user.id) return null;
+  const messages = await repo.listMessages(db, [conversationId]);
+  return {
+    summary: summarize(conversation, messages, "asker"),
+    messages: transcriptFor(messages, "asker"),
+  };
+}
+
 /** Flagged chats in the last 30 days, for the badge on the child's card. */
 export async function countFlaggedChats(childId: string): Promise<number> {
   await assertParentCanRead(childId);
@@ -486,6 +573,7 @@ export async function countFlaggedChats(childId: string): Promise<number> {
 
 function labelFor(entry: string, contextKey: string): string {
   if (entry === "home") return "Asked from Home";
+  if (entry === "parent") return "A parent asked about them";
   if (entry === "topic") {
     const key = contextKey.replace(/^topic:/, "") as keyof typeof topicTitles;
     return topicTitles[key] ? `Topic: ${topicTitles[key]}` : "A topic page";

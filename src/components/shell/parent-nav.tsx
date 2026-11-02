@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClockIcon, HomeIcon, InboxIcon, SettingsIcon } from "lucide-react";
+import { CalendarClockIcon, HomeIcon, InboxIcon, SettingsIcon, SparklesIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { routes } from "@/config";
 import { BottomNav, type BottomNavItem } from "./bottom-nav";
@@ -12,6 +12,7 @@ import { BottomNav, type BottomNavItem } from "./bottom-nav";
 const items: BottomNavItem[] = [
   { href: routes.parent, label: "Home", icon: HomeIcon },
   { href: routes.parentAllowanceOverview, label: "Allowance", icon: CalendarClockIcon },
+  { href: routes.parentJarso, label: "Jarso", icon: SparklesIcon },
   { href: routes.parentInbox, label: "Inbox", icon: InboxIcon },
   { href: routes.parentSettings, label: "Settings", icon: SettingsIcon, railOnly: true },
 ];

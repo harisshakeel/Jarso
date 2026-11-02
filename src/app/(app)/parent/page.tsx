@@ -208,7 +208,9 @@ async function ParentAskSection({ reads }: { reads: ChildReads[] }) {
   const off = access.filter((a) => !a.enabled).map((a) => a.child);
   return (
     <div className="grid gap-3">
-      {kids.length > 0 ? <AskJarso introNeeded={false} audience="parent" kids={kids} /> : null}
+      {kids.length > 0 ? (
+        <AskJarso introNeeded={false} audience="parent" kids={kids} openHref={routes.parentJarso} />
+      ) : null}
       {off.map((child) => (
         <p key={child.id} className="rounded-xl bg-muted p-4 text-ink-2">
           {guideCopy.parent.off(child.nickname)}{" "}
