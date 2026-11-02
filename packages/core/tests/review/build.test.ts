@@ -1,7 +1,6 @@
-import { describe, expect, it } from "vitest";
-import type { GoalView } from "@/features/goals";
-import type { AnswerableStep, SkillProgress } from "@/features/learning";
-import type { HistoryItem } from "@/features/ledger";
+import type { GoalView } from "@jarso/core/goals";
+import type { AnswerableStep, SkillProgress } from "@jarso/core/learning";
+import type { HistoryItem } from "@jarso/core/ledger";
 import {
   buildWeeklyReview,
   decisionLine,
@@ -10,7 +9,8 @@ import {
   understoodThisWeek,
   weekMoney,
   worthPractising,
-} from "@/features/review/build";
+} from "@jarso/core/review";
+import { describe, expect, it } from "vitest";
 
 // Friday 30 October 2026: the week is Mon 26 to Sun 1 Nov.
 const today = "2026-10-30";

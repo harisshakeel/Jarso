@@ -1,13 +1,13 @@
-import type { GoalView } from "@/features/goals";
+import type { GoalView } from "@jarso/core/goals";
 import {
   type AnswerableStep,
   type ReviewItem,
   type SkillKey,
   type SkillProgress,
   skillOf,
-} from "@/features/learning";
-import { type HistoryItem, spendingByCategory } from "@/features/ledger";
-import { addDays, formatMoney, startOfWeek } from "@/lib";
+} from "@jarso/core/learning";
+import { type HistoryItem, spendingByCategory } from "@jarso/core/ledger";
+import { addDays, formatMoney, startOfWeek } from "@jarso/core/lib";
 import type { DecisionLine, GoalLine, SkillNote, WeeklyReview, WeekMoney } from "./types";
 
 /**

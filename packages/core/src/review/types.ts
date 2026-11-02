@@ -1,4 +1,4 @@
-import type { AnswerableStep, SkillKey, SkillLevel } from "@/features/learning";
+import type { AnswerableStep, SkillKey, SkillLevel } from "@jarso/core/learning";
 
 /** One week's money, Monday to Sunday, in minor units. `savedMinor` can be negative. */
 export type WeekMoney = {
