@@ -8,7 +8,7 @@ import {
   type StepBody,
 } from "@/features/learning";
 import { findMission, findReviewItem, findTopic, topics } from "@/features/learning/server";
-import { AppError, formatMoney } from "@/lib";
+import { AppError, formatIsoDate, formatMoney } from "@/lib";
 import type { GuideContextRef } from "../schemas";
 import type { GuideEntry } from "../types";
 
@@ -95,13 +95,12 @@ function describeChildAnswer(body: StepBody, answer: StepAnswer | null, currency
 
 /** "Friday 30 October 2026" for the family's local ISO date. */
 function longDate(isoDate: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
+  return formatIsoDate(isoDate, {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${isoDate}T00:00:00Z`));
+  });
 }
 
 /**

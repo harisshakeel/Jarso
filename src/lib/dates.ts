@@ -28,15 +28,34 @@ export function localDateOf(instant: string | Date, timezone: string): string {
   return isoDateFormat(timezone).format(typeof instant === "string" ? new Date(instant) : instant);
 }
 
+/** ISO `YYYY-MM-DD` as a UTC-midnight Date, so reading or formatting it in UTC keeps the day. */
+export function utcMidnight(isoDate: string): Date {
+  return new Date(`${isoDate}T00:00:00Z`);
+}
+
+/**
+ * An ISO calendar date formatted for people ("30 Oct", "Fri 6 Nov"). Always in UTC: the date is
+ * already the family's local day, so no timezone may shift it.
+ */
+export function formatIsoDate(
+  isoDate: string,
+  options: Intl.DateTimeFormatOptions,
+  locale = "en-GB",
+): string {
+  return new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).format(
+    utcMidnight(isoDate),
+  );
+}
+
 /** ISO `YYYY-MM-DD` plus whole days, in UTC so no timezone shifts the day. */
 export function addDays(isoDate: string, days: number): string {
-  const date = new Date(`${isoDate}T00:00:00Z`);
+  const date = utcMidnight(isoDate);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 }
 
 /** The Monday on or before an ISO date: weeks run Monday to Sunday. */
 export function startOfWeek(isoDate: string): string {
-  const day = new Date(`${isoDate}T00:00:00Z`).getUTCDay();
+  const day = utcMidnight(isoDate).getUTCDay();
   return addDays(isoDate, -((day + 6) % 7));
 }

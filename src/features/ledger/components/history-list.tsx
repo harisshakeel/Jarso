@@ -10,7 +10,7 @@ import {
 import type { ReactNode } from "react";
 import { JarsoMark } from "@/components/brand";
 import { Card, CardContent } from "@/components/ui";
-import { cn, formatMoney } from "@/lib";
+import { cn, formatIsoDate, formatMoney } from "@/lib";
 import { categoryOf } from "../categories";
 import type { HistoryItem } from "../types";
 
@@ -53,11 +53,7 @@ const KIND: Record<HistoryItem["kind"], { icon: LucideIcon; tint: string; verb: 
 
 /** `YYYY-MM-DD` as "2 Nov", without shifting the day. */
 function day(isoDate: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(new Date(`${isoDate}T00:00:00Z`));
+  return formatIsoDate(isoDate, { day: "numeric", month: "short" });
 }
 
 function Amount({

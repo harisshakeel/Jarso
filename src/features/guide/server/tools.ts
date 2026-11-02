@@ -12,6 +12,7 @@ import { getChildRules } from "@/features/rules/server";
 import {
   addDays,
   familyToday,
+  formatIsoDate,
   formatMoney,
   localDateOf,
   logger,
@@ -66,12 +67,7 @@ type Run<N extends ToolName> = (
 
 /** "Fri 6 Nov" for an ISO date. Dates are calendar days, so format them in UTC. */
 function showDate(isoDate: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(new Date(`${isoDate}T00:00:00Z`));
+  return formatIsoDate(isoDate, { weekday: "short", day: "numeric", month: "short" });
 }
 
 /**

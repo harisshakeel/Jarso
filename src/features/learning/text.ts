@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib";
+import { formatIsoDate, formatMoney } from "@/lib";
 
 /** `{m:1250}` in content text: a fictional amount in minor units, shown in the family currency. */
 const MONEY_TOKEN = /\{m:(\d{1,9})\}/g;
@@ -20,13 +20,7 @@ export function wordCount(text: string): number {
   return plainText(text).trim().split(/\s+/).filter(Boolean).length;
 }
 
-const shortDate = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  timeZone: "UTC",
-});
-
 /** An ISO date (`YYYY-MM-DD`) as "30 Oct". */
 export function formatShortDate(isoDate: string): string {
-  return shortDate.format(new Date(`${isoDate}T00:00:00Z`));
+  return formatIsoDate(isoDate, { day: "numeric", month: "short" });
 }

@@ -2,7 +2,7 @@ import { ArrowRightIcon, CalendarCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
-import { formatMoney } from "@/lib";
+import { formatIsoDate, formatMoney } from "@/lib";
 import type { WeeklyReview, WeekMoney } from "../types";
 
 type WeekCardProps = {
@@ -16,11 +16,7 @@ type WeekCardProps = {
 
 /** "Fri 30 Oct" for the week's edges. Calendar days, so formatted in UTC. */
 function day(isoDate: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(new Date(`${isoDate}T00:00:00Z`));
+  return formatIsoDate(isoDate, { day: "numeric", month: "short" });
 }
 
 /**

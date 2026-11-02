@@ -1,5 +1,6 @@
 import "server-only";
 import { assertSelfOrParentOf, getFamily } from "@/features/family/server";
+import { localDateOf } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import type { HistoryItem, Jars } from "../types";
 import {
@@ -34,16 +35,6 @@ export async function getJars(childId: string): Promise<Jars> {
     fetchBalance(db, childId, "save"),
   ]);
   return { spend, save };
-}
-
-/** ISO date of an instant in the family's timezone. */
-function localDate(instant: string, timezone: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(instant));
 }
 
 type Group = {
@@ -99,7 +90,7 @@ function diaryItem(row: LedgerRow, timezone: string, now: number): Timed | null 
     amountMinor: row.amountMinor,
     dueMinor: null,
     label: row.label ?? (received ? "Money received" : "Purchase"),
-    occurredOn: localDate(row.occurredAt, timezone),
+    occurredOn: localDateOf(row.occurredAt, timezone),
     undone,
     entryId: row.id,
     canUndo: !undone && age < UNDO_WINDOW_MS,
@@ -145,7 +136,7 @@ function requestItems(rows: LedgerRow[], timezone: string): Timed[] {
       dueMinor: null,
       // The database always labels a request row (the reason, "Taken out of Save", "Put into Save").
       label: row.label ?? "",
-      occurredOn: localDate(row.occurredAt, timezone),
+      occurredOn: localDateOf(row.occurredAt, timezone),
       undone: false,
       entryId: null,
       canUndo: false,
@@ -197,7 +188,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
         amountMinor: group.amount,
         dueMinor: occurrence && occurrence.shortfallMinor > 0 ? occurrence.amountMinor : null,
         label: group.label,
-        occurredOn: localDate(group.at, timezone),
+        occurredOn: localDateOf(group.at, timezone),
         undone: false,
         entryId: null,
         canUndo: false,
@@ -222,7 +213,7 @@ export async function getHistoryPage(childId: string, before?: string): Promise<
       amountMinor: null,
       dueMinor: null,
       label: "Allowance",
-      occurredOn: localDate(occurrence.closedAt, timezone),
+      occurredOn: localDateOf(occurrence.closedAt, timezone),
       undone: false,
       entryId: null,
       canUndo: false,
