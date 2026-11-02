@@ -35,7 +35,7 @@ pnpm db:migration <name> # new migration → then pnpm db:reset && pnpm db:types
 4. **Layering:** route/action → service → repository → Supabase. Only repositories touch table/column names. No business logic in `app/`.
 5. **Auth:** call `requireUser()` (pages) or `assertUser()` (actions/APIs) from `@/features/auth/server`. Proxy redirects are optimistic only. Never use `getSession()` on the server.
 6. **Cache Components are on.** Anything reading cookies/headers/searchParams/Supabase-server renders inside `<Suspense>`. Don't await the session at a layout's top level.
-7. **Database:** schema changes only via `supabase/migrations`. Every new table enables RLS with explicit per-operation policies in the same migration. Regenerate and commit `apps/web/src/types/database.types.ts`.
+7. **Database:** schema changes only via `supabase/migrations`. Every new table enables RLS with explicit per-operation policies in the same migration. Regenerate and commit `packages/db/src/database.types.ts`.
 8. **Admin client** (`@/lib/supabase/admin`) bypasses RLS — trusted server jobs only, after explicit authz.
 9. **Validation:** every external input (forms, JSON bodies, params) parsed with Zod. Server Actions via `createAction`; Route Handlers via `withApi` + `parseBody`.
 10. **Errors:** throw `AppError(code, safeMessage, { cause })`. Never leak raw errors to users. Use `logger` from `@/lib`; `console.log` is banned.

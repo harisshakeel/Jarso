@@ -40,7 +40,7 @@ Rules live in `docs/database.md` — follow them exactly. For non-trivial schema
 
 3. Apply locally: `pnpm db:reset` (must succeed from scratch).
 4. Lint: `pnpm exec supabase db lint --local --fail-on error`.
-5. Types: `pnpm db:types`; fix any TypeScript fallout (`pnpm typecheck`).
+5. Types: `pnpm db:types` (writes `packages/db/src/database.types.ts`); fix any TypeScript fallout (`pnpm typecheck`).
 6. Update the "Current schema" table in `docs/database.md`.
 7. Never edit an already-applied/merged migration — write a new one.
 

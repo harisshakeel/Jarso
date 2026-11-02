@@ -122,7 +122,7 @@ apps/web/src/
 ├── lib/                errors, logger, createAction, api helpers, supabase clients, money formatting
 │   └── payments/       server-only provider layer: PaymentProvider interface, registry (a provider is on when its keys are set), Stripe, Razorpay and fake adapters (ADR 0013, 0014)
 ├── content/            missions and topics as versioned JSON (see 5.3)
-└── types/              generated database types
+└── types/              re-exports `@jarso/db` (generated types live in packages/db)
 supabase/migrations/    schema, RLS, functions, cron registrations
 ```
 

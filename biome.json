@@ -10,7 +10,7 @@
     "includes": [
       "**",
       "!**/next-env.d.ts",
-      "!apps/web/src/types/database.types.ts",
+      "!packages/db/src/database.types.ts",
       "!supabase/.temp",
       "!**/playwright-report",
       "!**/test-results",
