@@ -1,8 +1,8 @@
 "use client";
 
+import { guideCopy } from "@jarso/core/guide";
 import { BotIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { guideCopy } from "../copy";
 
 /** With no new line for this long, the bubble starts saying it is still at it. */
 const QUIET_MS = 5_000;

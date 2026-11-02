@@ -1,4 +1,5 @@
 import "server-only";
+import type { GuideContextRef, GuideEntry } from "@jarso/core/guide";
 import {
   type AnswerableStep,
   bodyFor,
@@ -9,8 +10,6 @@ import {
 } from "@/features/learning";
 import { findMission, findReviewItem, findTopic, topics } from "@/features/learning/server";
 import { AppError, formatMoney } from "@/lib";
-import type { GuideContextRef } from "../schemas";
-import type { GuideEntry } from "../types";
 
 /**
  * Turns what the browser sent (content keys only) into the context the guide sees, from

@@ -1,5 +1,5 @@
 import "server-only";
-import type { GuideUsage } from "../types";
+import type { GuideUsage } from "@jarso/core/guide";
 
 /**
  * US dollars per million tokens (Anthropic list prices, checked 2026-10-30). Cache writes cost

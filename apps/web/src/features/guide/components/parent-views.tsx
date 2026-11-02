@@ -1,3 +1,4 @@
+import type { ConversationSummary, TranscriptMessage } from "@jarso/core/guide";
 import {
   BotIcon,
   ChevronRightIcon,
@@ -10,7 +11,6 @@ import type { Route } from "next";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib";
-import type { ConversationSummary, TranscriptMessage } from "../types";
 import { GuideSwitch } from "./guide-switch";
 
 /** Times in the family's timezone, not the server's. */

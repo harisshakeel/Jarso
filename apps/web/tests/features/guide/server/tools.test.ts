@@ -21,7 +21,7 @@ const goals = await import("@/features/goals/server");
 const memory = await import("@/features/guide/server/memory");
 const allowance = await import("@/features/allowance/server");
 const rules = await import("@/features/rules/server");
-const { guideCopy } = await import("@/features/guide/copy");
+const { guideCopy } = await import("@jarso/core/guide");
 const { createTurnTools } = await import("@/features/guide/server/tools");
 const { MAX_TOOL_CALLS } = await import("@/features/guide/server/tool-specs");
 

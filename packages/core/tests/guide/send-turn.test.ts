@@ -1,8 +1,8 @@
 // @vitest-environment node
+
+import type { AskGuideResult } from "@jarso/core/guide";
+import { guideCopy, sendGuideTurn } from "@jarso/core/guide";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { guideCopy } from "@/features/guide/copy";
-import { sendGuideTurn } from "@/features/guide/send-turn";
-import type { AskGuideResult } from "@/features/guide/types";
 
 const request = {
   clientMessageId: "00000000-0000-4000-8000-000000000001",
@@ -64,6 +64,18 @@ describe("sendGuideTurn", () => {
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
       "/api/v1/guide/turns",
       expect.objectContaining({ method: "POST", body: JSON.stringify(request) }),
+    );
+  });
+
+  it("posts to the given base URL", async () => {
+    const line = { type: "reply", data };
+    const mockFetch = vi.fn(async () =>
+      streamed([new TextEncoder().encode(`${JSON.stringify(line)}\n`)]),
+    );
+    await sendGuideTurn(request, () => {}, { baseUrl: "https://api.example", fetch: mockFetch });
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://api.example/api/v1/guide/turns",
+      expect.objectContaining({ method: "POST" }),
     );
   });
 

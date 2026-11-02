@@ -1,4 +1,5 @@
 import "server-only";
+import { guideCopy } from "@jarso/core/guide";
 import { describeCadence } from "@/features/allowance";
 import { getSchedule, listDueForChild } from "@/features/allowance/server";
 import { getGoalView } from "@/features/goals/server";
@@ -20,7 +21,6 @@ import {
   startOfWeek,
 } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { guideCopy } from "../copy";
 import { addFact, type Facts } from "./facts";
 import { remember } from "./memory";
 import type { TurnTools } from "./provider";

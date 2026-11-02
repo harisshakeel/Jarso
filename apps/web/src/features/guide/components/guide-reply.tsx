@@ -1,5 +1,7 @@
 "use client";
 
+import type { GuideCheck, GuideReply } from "@jarso/core/guide";
+import { guideCopy } from "@jarso/core/guide";
 import {
   BotIcon,
   BrainIcon,
@@ -15,9 +17,7 @@ import { Button } from "@/components/ui";
 import { routes } from "@/config";
 import { runOnline } from "@/features/offline";
 import { cn } from "@/lib";
-import { guideCopy } from "../copy";
 import { rateGuideMessageAction } from "../server/actions";
-import type { GuideCheck, GuideReply } from "../types";
 
 /** One reply from Jarso: the answer, what it looked at, helplines, topics, a check, thumbs. */
 export function GuideBubble({ reply }: { reply: GuideReply }) {

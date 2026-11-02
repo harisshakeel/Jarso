@@ -1,5 +1,5 @@
-import type { Helpline } from "@/config";
-import type { TopicKey } from "@/features/learning";
+import type { Helpline } from "@jarso/core/config";
+import type { TopicKey } from "@jarso/core/learning";
 
 /** Where the child opened the guide (spec §5.1). */
 export type GuideEntry = "step" | "why" | "topic" | "home";

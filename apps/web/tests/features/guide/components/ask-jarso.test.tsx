@@ -1,13 +1,16 @@
+import type { AskGuideResult } from "@jarso/core/guide";
+import { guideCopy } from "@jarso/core/guide";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AskJarso } from "@/features/guide/components/ask-jarso";
-import { guideCopy } from "@/features/guide/copy";
-import type { AskGuideResult } from "@/features/guide/types";
 
 const { sendGuideTurn, newId } = vi.hoisted(() => ({ sendGuideTurn: vi.fn(), newId: vi.fn() }));
 
-vi.mock("@/features/guide/send-turn", () => ({ sendGuideTurn }));
+vi.mock("@jarso/core/guide", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@jarso/core/guide")>()),
+  sendGuideTurn,
+}));
 vi.mock("@/features/guide/server/actions", () => ({ rateGuideMessageAction: vi.fn() }));
 vi.mock("@/features/offline", () => ({
   newId,

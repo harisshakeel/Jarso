@@ -1,5 +1,7 @@
 "use client";
 
+import type { AskGuideResult, GuideReply } from "@jarso/core/guide";
+import { type GuideContextRef, guideCopy, MAX_MESSAGE_LENGTH } from "@jarso/core/guide";
 import { BotIcon, SendHorizontalIcon, SparklesIcon } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { FormError } from "@/components/form";
@@ -13,10 +15,7 @@ import {
   SheetTrigger,
 } from "@/components/ui";
 import { newId, runOnline } from "@/features/offline";
-import { guideCopy } from "../copy";
-import { type GuideContextRef, MAX_MESSAGE_LENGTH } from "../schemas";
 import { askGuideAction } from "../server/actions";
-import type { AskGuideResult, GuideReply } from "../types";
 import { GuideBubble } from "./guide-reply";
 import { ThinkingBubble } from "./thinking-bubble";
 

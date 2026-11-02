@@ -1,5 +1,5 @@
+import type { ActionResult, ErrorCode } from "@jarso/core/lib";
 import type { z } from "zod";
-import type { ActionResult, ErrorCode } from "@/lib";
 import { guideCopy } from "./copy";
 import type { askGuideSchema } from "./schemas";
 import type { AskGuideResult, GuideTurnEvent } from "./types";
@@ -22,8 +22,9 @@ function fieldErrorsOf(details: unknown): Record<string, string[] | undefined> |
 export async function sendGuideTurn(
   request: GuideTurnRequest,
   onStatus: (text: string) => void,
+  opts: { baseUrl: string; fetch?: typeof fetch } = { baseUrl: "" },
 ): Promise<ActionResult<AskGuideResult>> {
-  const response = await fetch("/api/v1/guide/turns", {
+  const response = await (opts.fetch ?? fetch)(`${opts.baseUrl}/api/v1/guide/turns`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(request),

@@ -1,8 +1,8 @@
 import "server-only";
+import type { GuideEntry, GuideRoute, GuideUsage } from "@jarso/core/guide";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database, Json } from "@/types";
-import type { GuideEntry, GuideRoute, GuideUsage } from "../types";
 import { isToolName, type ToolCall, type ToolName } from "./tool-specs";
 
 type Client = SupabaseClient<Database>;

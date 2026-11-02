@@ -1,9 +1,9 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { guideContextSchema } from "@jarso/core/guide";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { guideContextSchema } from "@/features/guide/schemas";
 import { createAnthropicProvider } from "@/features/guide/server/claude";
 import { buildContext } from "@/features/guide/server/context";
 import { usageCents } from "@/features/guide/server/cost";

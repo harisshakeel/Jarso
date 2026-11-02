@@ -1,5 +1,5 @@
+import { contentKey, phaseSchema, stepAnswerSchema, topicKeys } from "@jarso/core/learning";
 import { z } from "zod";
-import { contentKey, phaseSchema, stepAnswerSchema, topicKeys } from "@/features/learning";
 
 /** The longest message a child can send (spec §5.2). */
 export const MAX_MESSAGE_LENGTH = 280;

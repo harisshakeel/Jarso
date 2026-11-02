@@ -1,7 +1,7 @@
 import "server-only";
+import type { GuideTurnEvent } from "@jarso/core/guide";
+import { guideCopy } from "@jarso/core/guide";
 import { isAppError, logger } from "@/lib";
-import { guideCopy } from "../copy";
-import type { GuideTurnEvent } from "../types";
 import { type PreparedTurn, runGuideTurn } from "./service";
 
 /**
