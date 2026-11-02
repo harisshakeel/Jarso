@@ -187,7 +187,7 @@ test("invitations list: parent refreshes, sees Ava's invite and accepts it", asy
   await giveConsent(parent);
   await parent.getByRole("button", { name: "Add child" }).click();
   await expect(parent).toHaveURL(at("/parent"));
-  await expect(parent.getByRole("listitem").filter({ hasText: "Ava" })).toBeVisible();
+  await expect(parent.getByRole("heading", { name: "Ava", exact: true })).toBeVisible();
 
   // Accepted invitations leave the list, and their id no longer opens the form.
   await parent.goto("/invite");
