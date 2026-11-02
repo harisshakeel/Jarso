@@ -1,6 +1,6 @@
 "use client";
 
-import type { SuggestionCard, ThreadMessage } from "@jarso/core/guide";
+import type { GuideProposal, SuggestionCard, ThreadMessage } from "@jarso/core/guide";
 import { guideCopy, MAX_MESSAGE_LENGTH, sendGuideTurn } from "@jarso/core/guide";
 import {
   BookOpenIcon,
@@ -22,6 +22,7 @@ import { Button } from "@/components/ui";
 import { newId, runOnline } from "@/features/offline";
 import { cn } from "@/lib";
 import { GuideBubble } from "./guide-reply";
+import { PhotoPriceButton } from "./photo-price-button";
 import { ThinkingBubble } from "./thinking-bubble";
 import { VoiceButton, type VoiceState } from "./voice-button";
 
@@ -177,6 +178,12 @@ export function GuideThread({
     };
   }, [page]);
 
+  // "Change something" on a card Jarso prepared: a short line in the box to finish and send.
+  function changeDraft(line: string) {
+    setText(line);
+    input.current?.focus();
+  }
+
   function newChat() {
     generation.current += 1;
     setConversationId(null);
@@ -189,7 +196,8 @@ export function GuideThread({
     input.current?.focus();
   }
 
-  function ask(question: string) {
+  /** `offer`: a goal from a photo's price, shown under Jarso's answer if it makes none itself. */
+  function ask(question: string, offer?: GuideProposal) {
     if (!question || pending) return;
     setError(null);
     setStatus(null);
@@ -234,7 +242,10 @@ export function GuideThread({
           return;
         }
         unanswered.current = null;
-        const { reply } = result.data;
+        const reply =
+          result.data.reply.proposal || !offer
+            ? result.data.reply
+            : { ...result.data.reply, proposal: offer };
         setConversationId(result.data.conversationId);
         setTurnsLeft(result.data.turnsLeft);
         if (result.data.turnsLeft === 0) setFull(true);
@@ -320,6 +331,15 @@ export function GuideThread({
                 New chat
               </Button>
             ) : null}
+            {forParent ? null : (
+              <PhotoPriceButton
+                compact
+                disabled={pending}
+                onResult={(result) => {
+                  if (result.found) ask(result.text, result.proposal);
+                }}
+              />
+            )}
             <VoiceButton
               disabled={pending}
               onStart={() => {
@@ -524,6 +544,7 @@ export function GuideThread({
                         reply={message.reply}
                         live={live.current.has(message.id)}
                         onTyped={scrollToEnd}
+                        onChangeDraft={changeDraft}
                       />
                     </li>
                   ),

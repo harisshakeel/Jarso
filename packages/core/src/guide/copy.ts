@@ -123,6 +123,12 @@ export const guideCopy = {
     get_goal: ["Measuring how close the goal is…", "Climbing the coin staircase…"],
     get_requests: ["Looking through the asks…"],
     remember: ["Writing it on a sticky note…"],
+    propose_goal: ["Drawing the coin staircase…", "Counting the steps to the top…"],
+    propose_action: [
+      "Filling in the form for you…",
+      "Lining up the coins neatly…",
+      "Nothing happens till you tap…",
+    ],
   } as Record<string, readonly string[]>,
   /** After a step's own lines run out, so a long think never looks stuck. */
   stillWorking: ["Still thinking…", "My lid is spinning…", "Nearly there…"],

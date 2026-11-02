@@ -11,7 +11,12 @@ vi.mock("@jarso/core/guide", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@jarso/core/guide")>()),
   sendGuideTurn,
 }));
-vi.mock("@/features/guide/server/actions", () => ({ rateGuideMessageAction: vi.fn() }));
+vi.mock("@/features/guide/server/actions", () => ({
+  rateGuideMessageAction: vi.fn(),
+  acceptGoalProposalAction: vi.fn(),
+  confirmActionDraftAction: vi.fn(),
+  readPriceFromPhotoAction: vi.fn(),
+}));
 vi.mock("@/features/offline", () => ({
   newId,
   runOnline: (action: () => Promise<unknown>) => action(),
@@ -259,5 +264,46 @@ describe("GuideThread voice input", () => {
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Speak your question" })).toBeNull(),
     );
+  });
+
+  it("shows a card Jarso prepared under its answer; Change something fills the box", async () => {
+    newId.mockReturnValue("id-9");
+    sendGuideTurn.mockResolvedValue({
+      ok: true,
+      data: {
+        ...answer,
+        reply: {
+          ...answer.reply,
+          text: "I've got that ready for you to check.",
+          proposal: {
+            kind: "action",
+            draft: {
+              kind: "money_received",
+              id: "00000000-0000-4000-8000-0000000000a1",
+              amountMinor: 2000,
+              jar: "spend",
+              category: "family",
+              label: "Uncle",
+            },
+            title: "Write down money you got",
+            lines: [
+              { label: "Amount", value: "£20" },
+              { label: "Into", value: "Spend" },
+              { label: "From", value: "Uncle" },
+            ],
+          },
+        },
+      },
+    });
+    render(<GuideThread introNeeded={false} variant="page" />);
+    fireEvent.change(screen.getByLabelText("Your question for Jarso"), {
+      target: { value: "Uncle gave me £20" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    const card = await screen.findByRole("region", { name: "Write down money you got" });
+    expect(card).toHaveTextContent("Uncle");
+    expect(screen.getByRole("button", { name: guideCopy.action.doIt })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: guideCopy.action.change }));
+    expect(screen.getByLabelText("Your question for Jarso")).not.toHaveValue("");
   });
 });

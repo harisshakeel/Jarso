@@ -22,6 +22,7 @@ import { JarsoEyes } from "@/components/brand";
 import { Button } from "@/components/ui";
 import { routes } from "@/config";
 import { cn } from "@/lib";
+import { ProposalCard } from "./proposal-card";
 import { TypedText } from "./typed-text";
 
 /** An icon per thing Jarso can look at (`guideCopy.checked`), for the "Looked at" chips. */
@@ -48,17 +49,21 @@ export function JarsoChip({ look }: { look?: "ahead" | "down" }) {
 }
 
 /**
- * One reply from Jarso: the answer, what it looked at, helplines, topics and a check. A
+ * One reply from Jarso: the answer, what it looked at, a card it prepared (a goal or an action
+ * to confirm), helplines, topics and a check. A
  * reply that has just arrived (`live`) is typed out word by word; a reopened one shows whole.
  */
 export function GuideBubble({
   reply,
   live = false,
   onTyped,
+  onChangeDraft,
 }: {
   reply: GuideReply;
   live?: boolean;
   onTyped?: () => void;
+  /** "Change something" on a prepared action: a line for the composer. */
+  onChangeDraft?: (line: string) => void;
 }) {
   const [typing, setTyping] = useState(live);
   return (
@@ -91,6 +96,7 @@ export function GuideBubble({
           })}
         </p>
       ) : null}
+      {reply.proposal ? <ProposalCard proposal={reply.proposal} onChange={onChangeDraft} /> : null}
       {reply.remembered.length > 0 ? (
         <p className="flex items-center gap-1.5 text-ink-2 text-sm">
           <BrainIcon aria-hidden className="size-4 shrink-0" />
