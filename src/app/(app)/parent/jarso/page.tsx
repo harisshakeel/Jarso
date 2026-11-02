@@ -82,7 +82,7 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
           audience="parent"
           kids={kids}
           reopened={reopened}
-          hrefFor={hrefFor}
+          chatHref={routes.parentJarso}
         />
       ) : (
         <p className="rounded-xl bg-muted p-4 text-ink-2">

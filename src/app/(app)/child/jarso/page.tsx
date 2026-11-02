@@ -73,7 +73,7 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
           suggestions.learning,
         ]}
         reopened={reopened}
-        hrefFor={hrefFor}
+        chatHref={routes.childJarso}
       />
     </JarsoChatPage>
   );
