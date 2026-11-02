@@ -20,6 +20,7 @@ vi.mock("@/features/allowance/server/repository", () => ({
   fetchNextDueOn: vi.fn(),
   findGift: vi.fn(),
   findLatestAllowanceSplit: vi.fn(),
+  findLatestConfirmedOccurrence: vi.fn(),
   findLatestGiftSplit: vi.fn(),
   findLatestSchedule: vi.fn(),
   fetchScheduleAutoCharge: vi.fn(),
@@ -30,6 +31,7 @@ vi.mock("@/features/allowance/server/repository", () => ({
   insertSchedule: vi.fn(),
   listDueForParent: vi.fn(),
   listPendingGifts: vi.fn(),
+  markPlanDecided: vi.fn(),
   pauseSchedule: vi.fn(),
   resumeSchedule: vi.fn(),
   stopSchedule: vi.fn(),
@@ -521,6 +523,62 @@ describe("getSchedule", () => {
     expect(forChild).not.toHaveProperty("autoChargeBy");
     // The child's read never asks for auto charge: the database would refuse it.
     expect(repo.fetchScheduleAutoCharge).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("getTodaysAllowance", () => {
+  const occurrence = {
+    id: "occ-1",
+    cashMinor: 800,
+    savedMinor: 200,
+    // 23:30 UTC on the 2nd is already the 3rd in Kolkata.
+    confirmedAt: "2026-11-02T23:30:00Z",
+    planDecidedAt: null,
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-03T06:00:00Z"));
+    vi.mocked(family.getFamily).mockResolvedValue({
+      id: "fam-1",
+      code: "ABC234",
+      currency: "INR",
+      timezone: "Asia/Kolkata",
+    });
+  });
+
+  it("returns an allowance handed over today in the family's timezone", async () => {
+    vi.mocked(repo.findLatestConfirmedOccurrence).mockResolvedValue(occurrence);
+    await expect(service.getTodaysAllowance(childId)).resolves.toEqual({
+      occurrenceId: "occ-1",
+      cashMinor: 800,
+      savedMinor: 200,
+      confirmedAt: occurrence.confirmedAt,
+      planDecided: false,
+    });
+  });
+
+  it("flags a plan already taken or dismissed", async () => {
+    vi.mocked(repo.findLatestConfirmedOccurrence).mockResolvedValue({
+      ...occurrence,
+      planDecidedAt: "2026-11-03T05:00:00Z",
+    });
+    expect((await service.getTodaysAllowance(childId))?.planDecided).toBe(true);
+  });
+
+  it("is null for another day's handover, an all-Save one, or none", async () => {
+    vi.mocked(repo.findLatestConfirmedOccurrence).mockResolvedValue({
+      ...occurrence,
+      confirmedAt: "2026-11-02T10:00:00Z",
+    });
+    expect(await service.getTodaysAllowance(childId)).toBeNull();
+    vi.mocked(repo.findLatestConfirmedOccurrence).mockResolvedValue({
+      ...occurrence,
+      cashMinor: 0,
+    });
+    expect(await service.getTodaysAllowance(childId)).toBeNull();
+    vi.mocked(repo.findLatestConfirmedOccurrence).mockResolvedValue(null);
+    expect(await service.getTodaysAllowance(childId)).toBeNull();
   });
 });
 
