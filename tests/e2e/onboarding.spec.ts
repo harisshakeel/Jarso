@@ -132,7 +132,7 @@ test("child-started: Mia asks, parent approves with the code, Mia signs in", asy
   await giveConsent(parent);
   await parent.getByRole("button", { name: "Add child" }).click();
   await expect(parent).toHaveURL(at("/parent"));
-  await expect(parent.getByRole("listitem").filter({ hasText: "Mia" })).toBeVisible();
+  await expect(parent.getByRole("heading", { name: "Mia", exact: true })).toBeVisible();
 
   await fillChildSignIn(child, messyCode(familyCode, " "), " MIA");
   await submitPin(child, "2468");
