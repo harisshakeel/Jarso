@@ -113,6 +113,8 @@ Hard rules:
 
 `chart-1` teal-600, `chart-2` brand gold, `chart-3` cyan-500, `chart-4` teal-300, `chart-5` gold-400. Weekly review uses at most three series.
 
+The parent's dashboard colours each child with `series-1` to `series-8` (the dataviz reference palette in its validated order, light and dark steps in `tokens.css`; `series-0` is the neutral tone past an eighth child). The slot follows the child's place in the family, never their rank, so a filter never repaints anyone. A child's Save is the solid step and Spend the same hue at 40%. Every series is named beside its mark and stated in a sentence, because three light steps and the dark green sit under 3:1 on the card.
+
 ## 3. Typography
 
 **Nunito** for everything on screen, loaded with `next/font/google` (weights 400, 600, 700, 800) and exposed as `--font-sans`. Geist Mono stays for code only. Nunito is rounded, highly legible at small sizes and has a friendly 800 weight for big numbers.
@@ -262,7 +264,7 @@ Never: exclamation marks in errors, "oops", shame words, or anything that calls 
 Same tokens and components; different hierarchy.
 
 - **Child**: Home opens on the jars (the money first), with one gold keycap under them to record a purchase and the allowance as one line; tapping a jar opens its tray of actions, so the resting shelf is just two jars and two balances. Then how the jars moved, the one next step and the goal; Ask Jarso lives on the Jarso tab. The week and the skills live on Learn, whose road winds up the page with the jar parked on the current stop. Celebration moments exist here only. Fewer words per screen.
-- **Parent**: Home opens on what needs them: due handovers, pending requests, limit notices, each with its action inline; asking Jarso about a child lives on the Jarso tab (the same thread as the child's, asking as the parent, with a chip per child when there are several). The same components as the child, more of them: cards and sentences at every width, never a table or a key-value grid; Small only for timestamps. No celebration animation; a quiet confirmation toast instead.
+- **Parent**: Home opens on what needs them: due handovers, pending requests, limit notices, each with its action inline. Then the family's money as one picture, never a block per child: a filter (Everyone, then one chip per child, remembered on the device) and a period switch at the top re-scope the whole page; the money chart stacked by child, one totals card, Worth knowing, spending by category against the period before, the next two weeks, one compact tile per child (the only per-child block) and one merged activity list with a name chip per line. Charts, stat tiles and small multiples are allowed on this dashboard only (spec 2026-11-02); every figure is also in a sentence; asking Jarso about a child lives on the Jarso tab (the same thread as the child's, asking as the parent, with a chip per child when there are several). The same components as the child, more of them: cards and sentences at every width, never a table or a key-value grid; Small only for timestamps. No celebration animation; a quiet confirmation toast instead.
 
 ## 11. Accessibility
 

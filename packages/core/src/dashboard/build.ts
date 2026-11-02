@@ -11,7 +11,7 @@ import type {
   DashboardChild,
   DashboardTotals,
   DashboardWindow,
-  MoneyChart,
+  MoneyChartData,
   TaggedItem,
   TimelineEvent,
 } from "./types";
@@ -362,7 +362,11 @@ export function callouts(
  * this week and last week, with the split marked; the month view the last two months; the
  * three-month view the 90 days the balance history covers, with no split.
  */
-export function moneyChart(children: DashboardChild[], days: number, today: string): MoneyChart {
+export function moneyChart(
+  children: DashboardChild[],
+  days: number,
+  today: string,
+): MoneyChartData {
   const shown = Math.min(days * 2, 90);
   const dates = Array.from({ length: shown }, (_, index) => addDays(today, index - (shown - 1)));
   const series = children
@@ -382,7 +386,7 @@ export function moneyChart(children: DashboardChild[], days: number, today: stri
 }
 
 /** The chart in words, for screen readers and the caption under it. */
-export function moneyChartSentence(chart: MoneyChart, currency: string): string {
+export function moneyChartSentence(chart: MoneyChartData, currency: string): string {
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "always" });
   const last = chart.dates.length - 1;
   if (chart.series.length === 0 || last < 0) return "No money recorded yet.";

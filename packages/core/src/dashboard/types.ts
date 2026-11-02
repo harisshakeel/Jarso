@@ -96,7 +96,7 @@ export type MoneySeries = {
   spend: number[];
 };
 
-export type MoneyChart = {
+export type MoneyChartData = {
   /** Oldest first, ending today. */
   dates: string[];
   series: MoneySeries[];
