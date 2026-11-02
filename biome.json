@@ -163,6 +163,62 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/core/src/{ledger,goals,rules,profiles,auth,payments,allowance}/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "react": "core/content must stay framework-free.",
+                  "react-dom": "core/content must stay framework-free.",
+                  "server-only": "core/content must stay framework-free.",
+                  "@supabase/ssr": "core/content must stay framework-free.",
+                  "idb": "core/content must stay framework-free."
+                },
+                "patterns": [
+                  {
+                    "group": ["next", "next/**"],
+                    "message": "No Next.js in shared code."
+                  },
+                  {
+                    "group": ["@/**"],
+                    "message": "No web app aliases in shared code."
+                  },
+                  {
+                    "group": ["@jarso/brand", "@jarso/brand/**"],
+                    "message": "No brand in shared code."
+                  },
+                  {
+                    "group": [
+                      "@jarso/core/learning",
+                      "@jarso/core/learning/**",
+                      "@jarso/core/diary",
+                      "@jarso/core/diary/**",
+                      "@jarso/core/requests",
+                      "@jarso/core/requests/**",
+                      "@jarso/core/family",
+                      "@jarso/core/family/**",
+                      "@jarso/core/notifications",
+                      "@jarso/core/notifications/**",
+                      "@jarso/core/guide",
+                      "@jarso/core/guide/**",
+                      "@jarso/core/review",
+                      "@jarso/core/review/**",
+                      "@jarso/core/offline",
+                      "@jarso/core/offline/**"
+                    ],
+                    "message": "Leaf modules cannot import composite modules."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "assist": {
