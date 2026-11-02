@@ -142,7 +142,7 @@ select is(
 -- Fifth wrong PIN locks.
 select results_eq(
   format('select child_id, status from public.verify_child_pin(%L, %L, %L, ''src-1'')', :'code_a', 'sam', '0000'),
-  $$ values (null::uuid, 'invalid'::text) $$, 'fifth wrong PIN → invalid');
+  $$ values (null::uuid, 'locked'::text) $$, 'fifth wrong PIN → locked (the attempt that starts the lock)');
 select ok(
   (select locked_until > now() + interval '14 minutes' and failed_attempts = 0
    from public.child_pin_attempts where child_id = :'c'::uuid and source_hash = 'src-1'),
@@ -311,7 +311,7 @@ select results_eq(
   $$ values (null::uuid, 'invalid'::text) $$, '99th failure in 24 h → invalid');
 select results_eq(
   format('select child_id, status from public.verify_child_pin(%L, %L, %L, ''src-10'')', :'code_b', 'sam', '0000'),
-  $$ values (null::uuid, 'invalid'::text) $$, '100th failure in 24 h → invalid');
+  $$ values (null::uuid, 'locked'::text) $$, '100th failure in 24 h → locked (it starts the freeze)');
 select results_eq(
   format('select child_id, status from public.verify_child_pin(%L, %L, %L, ''src-11'')', :'code_b', 'sam', '6666'),
   $$ values (null::uuid, 'locked'::text) $$, 'after 100 failures the right PIN is refused from any source');
