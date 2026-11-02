@@ -381,28 +381,34 @@ export type Database = {
       }
       families: {
         Row: {
+          clock_offset: unknown
           code: string
           created_at: string
           created_by: string
           currency: string
+          demo_clock_enabled: boolean
           id: string
           timezone: string
           updated_at: string
         }
         Insert: {
+          clock_offset?: unknown
           code: string
           created_at?: string
           created_by: string
           currency: string
+          demo_clock_enabled?: boolean
           id?: string
           timezone?: string
           updated_at?: string
         }
         Update: {
+          clock_offset?: unknown
           code?: string
           created_at?: string
           created_by?: string
           currency?: string
+          demo_clock_enabled?: boolean
           id?: string
           timezone?: string
           updated_at?: string
@@ -1883,6 +1889,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_family_clock: {
+        Args: { p_days: number; p_family_id: string }
+        Returns: Json
+      }
       allowance_due_on: {
         Args: { p_anchor: string; p_frequency: string; p_index: number }
         Returns: string
@@ -2132,6 +2142,8 @@ export type Database = {
         Args: { p_failure_code: string; p_payment_id: string; p_status: string }
         Returns: undefined
       }
+      family_clock_offset: { Args: { p_family_id: string }; Returns: unknown }
+      family_now: { Args: { p_family_id: string }; Returns: string }
       family_today: {
         Args: { p_family_id: string; p_now?: string }
         Returns: string
@@ -2143,7 +2155,10 @@ export type Database = {
           nickname: string
         }[]
       }
-      generate_due_occurrences: { Args: { p_now?: string }; Returns: number }
+      generate_due_occurrences: {
+        Args: { p_family_id?: string; p_now?: string }
+        Returns: number
+      }
       generate_for_schedule: {
         Args: { p_schedule_id: string; p_today: string }
         Returns: number
@@ -2516,7 +2531,10 @@ export type Database = {
         }
         Returns: string
       }
-      send_handover_reminders: { Args: { p_now?: string }; Returns: number }
+      send_handover_reminders: {
+        Args: { p_family_id?: string; p_now?: string }
+        Returns: number
+      }
       set_allow_negative_spend: {
         Args: { p_allowed: boolean; p_child_id: string }
         Returns: undefined

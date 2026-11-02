@@ -64,7 +64,7 @@ select is(
   'false', 'a run inside its time budget is not stopped early');
 select ok(
   (select 'lock_timeout=5s' = any(proconfig) from pg_proc
-   where oid = 'public.generate_due_occurrences(timestamptz)'::regprocedure),
+   where oid = 'public.generate_due_occurrences(timestamptz, uuid)'::regprocedure),
   'a schedule stuck behind a lock times out alone (lock_timeout 5s)');
 
 -- ---------------------------------------------------------------------------
