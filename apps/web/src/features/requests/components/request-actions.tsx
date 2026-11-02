@@ -1,9 +1,9 @@
+import type { Availability } from "@jarso/core/requests";
+import { takeOutLimit } from "@jarso/core/requests";
 import { JarIllustration } from "@/components/jar";
 import type { GoalView } from "@/features/goals";
 import { describeRuleForChild, type MoneyRule } from "@/features/rules";
 import { formatMoney } from "@/lib";
-import { takeOutLimit } from "../limit";
-import type { Availability } from "../types";
 import { PutInSheet } from "./put-in-sheet";
 import { TakeOutSheet } from "./take-out-sheet";
 

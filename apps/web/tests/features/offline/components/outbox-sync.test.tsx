@@ -1,14 +1,17 @@
+import type { OutboxItem } from "@jarso/core/offline";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OutboxSync } from "@/features/offline/components/outbox-sync";
-import { flushOutbox } from "@/features/offline/outbox/flush";
-import type { OutboxItem } from "@/features/offline/outbox/types";
+import { flushOutbox } from "@/features/offline/outbox/platform";
 import { reportNetworkSuccess } from "@/features/offline/use-online";
 import { makeItem } from "../outbox/test-utils";
 
 const outboxes = new Map<string, OutboxItem[]>();
 
-vi.mock("@/features/offline/outbox/flush", () => ({ flushOutbox: vi.fn(async () => {}) }));
+vi.mock("@/features/offline/outbox/platform", () => ({
+  flushOutbox: vi.fn(async () => {}),
+  sendToServer: vi.fn(),
+}));
 vi.mock("@/features/offline/outbox/use-outbox", () => ({
   useOutbox: (userId: string) => outboxes.get(userId) ?? [],
 }));

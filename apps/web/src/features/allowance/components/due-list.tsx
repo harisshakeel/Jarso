@@ -1,11 +1,11 @@
+import type { DueItem, Gift } from "@jarso/core/allowance";
+import { formatDay } from "@jarso/core/allowance";
 import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import { StatusChip } from "@/components/brand";
 import { Card } from "@/components/ui";
 import { routes } from "@/config";
 import { formatMoney } from "@/lib";
-import { formatDay } from "../describe";
-import type { DueItem, Gift } from "../types";
 
 type DueListProps = { childId: string; items: DueItem[]; currency: string };
 

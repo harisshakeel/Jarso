@@ -1,7 +1,7 @@
+import type { SkillProgress } from "@jarso/core/learning";
+import { skills as allSkills, skillLevelLabels } from "@jarso/core/learning";
 import Link from "next/link";
 import { routes } from "@/config";
-import { skills as allSkills, skillLevelLabels } from "../skills";
-import type { SkillProgress } from "../types";
 
 /**
  * What the child has learned, as counts that only go up (no day grid, no streaks). Learning

@@ -1,7 +1,7 @@
 "use client";
 
+import type { Phase, StepAnswer } from "@jarso/core/learning";
 import { createContext, useContext } from "react";
-import type { Phase, StepAnswer } from "../types";
 
 /**
  * The step the player is showing, for helpers rendered beside it (the guide's "Help me" and

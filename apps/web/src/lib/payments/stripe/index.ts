@@ -1,5 +1,5 @@
+import { AppError } from "@jarso/core/lib";
 import Stripe from "stripe";
-import { AppError } from "../../errors";
 import { logger } from "../../logger";
 import type { FailureCode, PaymentProvider, PaymentStatus } from "../types";
 import { stripeMinimumChargeMinor } from "./currencies";

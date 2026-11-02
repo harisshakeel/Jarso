@@ -1,5 +1,6 @@
 "use client";
 
+import { purchaseSchema } from "@jarso/core/diary";
 import { HourglassIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -15,7 +16,6 @@ import {
   useOutbox,
 } from "@/features/offline";
 import { formatMoney } from "@/lib";
-import { purchaseSchema } from "../schemas";
 import { type PurchaseDraft, PurchaseSheetContent } from "./purchase-sheet";
 
 const ASK_A_PARENT = "Show this to a parent and decide together.";

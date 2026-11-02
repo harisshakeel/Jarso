@@ -1,5 +1,7 @@
 "use client";
 
+import type { EntryVersion } from "@jarso/core/diary";
+import { notEnoughSaveMessage, notEnoughSpendToUndoMessage } from "@jarso/core/diary";
 import { ChevronRightIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -17,9 +19,7 @@ import {
 import { categoryOf, type HistoryItem } from "@/features/ledger";
 import { runOnline } from "@/features/offline";
 import { formatMoney } from "@/lib";
-import { notEnoughSaveMessage, notEnoughSpendToUndoMessage } from "../copy";
 import { listEntryVersionsAction, undoDiaryEntryAction } from "../server/actions";
-import type { EntryVersion } from "../types";
 import { FixForm } from "./fix-form";
 
 /**

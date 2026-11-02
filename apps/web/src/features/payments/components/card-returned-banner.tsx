@@ -1,9 +1,9 @@
 "use client";
 
+import { paymentCopy } from "@jarso/core/payments";
 import { CheckIcon, Loader2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { paymentCopy } from "../copy";
 
 const REFRESH_MS = 3_000;
 const MAX_REFRESHES = 5;

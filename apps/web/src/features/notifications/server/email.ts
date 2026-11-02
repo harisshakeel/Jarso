@@ -1,7 +1,7 @@
 import "server-only";
+import type { EmailMessage, EmailResult } from "@jarso/core/notifications";
 import { serverEnv } from "@/config/env.server";
 import { AppError, logger } from "@/lib";
-import type { EmailMessage, EmailResult } from "../types";
 
 const RESEND_URL = "https://api.resend.com/emails";
 

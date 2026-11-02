@@ -1,4 +1,12 @@
 import "server-only";
+import type {
+  AskGuideResult,
+  ConversationSummary,
+  GuideContextRef,
+  GuideState,
+  TranscriptMessage,
+} from "@jarso/core/guide";
+import { guideCopy, MAX_TURNS } from "@jarso/core/guide";
 import { helplinesFor } from "@/config";
 import { assertUser } from "@/features/auth/server";
 import {
@@ -12,10 +20,6 @@ import { topicTitles } from "@/features/learning";
 import { AppError, familyToday, isAppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { guideCopy } from "../copy";
-import type { GuideContextRef } from "../schemas";
-import { MAX_TURNS } from "../schemas";
-import type { AskGuideResult, ConversationSummary, GuideState, TranscriptMessage } from "../types";
 import { guideBreaker } from "./breaker";
 import {
   getGuideProvider,

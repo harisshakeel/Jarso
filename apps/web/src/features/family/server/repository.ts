@@ -1,8 +1,8 @@
 import "server-only";
+import type { ChildSummary, Family, Membership, PendingInvitation } from "@jarso/core/family";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database } from "@/types";
-import type { ChildSummary, Family, Membership, PendingInvitation } from "../types";
 
 type Client = SupabaseClient<Database>;
 

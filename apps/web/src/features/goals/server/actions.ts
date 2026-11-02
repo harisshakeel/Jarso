@@ -1,10 +1,10 @@
 "use server";
 
+import { goalIdSchema, goalInputSchema } from "@jarso/core/goals";
 import { revalidatePath } from "next/cache";
 import { routes } from "@/config";
 import { getFamilyContext } from "@/features/allowance/server";
 import { createAction } from "@/lib";
-import { goalIdSchema, goalInputSchema } from "../schemas";
 import { archiveGoal, markCelebrated, saveGoal } from "./service";
 
 export const saveGoalAction = createAction(

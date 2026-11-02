@@ -1,5 +1,5 @@
+import { guideCopy } from "@jarso/core/guide";
 import { describe, expect, it, vi } from "vitest";
-import { guideCopy } from "@/features/guide/copy";
 import { addFact, type Facts } from "@/features/guide/server/facts";
 import { createFakeProvider } from "@/features/guide/server/fake-provider";
 import { runGuidePipeline } from "@/features/guide/server/pipeline";

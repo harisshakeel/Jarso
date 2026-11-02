@@ -1,7 +1,7 @@
 import "server-only";
+import type { HistoryItem, Jars } from "@jarso/core/ledger";
 import { assertSelfOrParentOf, getFamily } from "@/features/family/server";
 import { createClient } from "@/lib/supabase/server";
-import type { HistoryItem, Jars } from "../types";
 import {
   fetchBalance,
   type LedgerRow,

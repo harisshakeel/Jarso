@@ -1,10 +1,9 @@
 import "server-only";
+import type { ParentDetails, ParentDetailsInput, Profile, ProfileRow } from "@jarso/core/profiles";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { genderOptions, isCountryCode } from "@/config";
 import { AppError, logger, toAppError } from "@/lib";
 import type { Database, TablesUpdate } from "@/types";
-import type { ParentDetailsInput } from "../schemas";
-import type { ParentDetails, Profile, ProfileRow } from "../types";
 
 type Client = SupabaseClient<Database>;
 

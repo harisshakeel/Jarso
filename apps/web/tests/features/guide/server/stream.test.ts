@@ -9,7 +9,7 @@ vi.mock("@/lib/logger", () => ({
 
 const service = await import("@/features/guide/server/service");
 const { logger } = await import("@/lib/logger");
-const { guideCopy } = await import("@/features/guide/copy");
+const { guideCopy } = await import("@jarso/core/guide");
 const { streamGuideTurn } = await import("@/features/guide/server/stream");
 
 const result = {

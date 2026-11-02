@@ -1,10 +1,10 @@
 "use server";
 
+import { entryIdSchema, fixSchema, receivedSchema, undoSchema } from "@jarso/core/diary";
 import { refresh } from "next/cache";
 import { getFamilyContext } from "@/features/allowance/server";
 import { pushAfterNotices } from "@/features/notifications/server";
 import { createAction } from "@/lib";
-import { entryIdSchema, fixSchema, receivedSchema, undoSchema } from "../schemas";
 import {
   correctDiaryEntry,
   listEntryVersions,

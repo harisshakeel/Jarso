@@ -1,5 +1,6 @@
 "use client";
 
+import type { Profile } from "@jarso/core/profiles";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { Field, FormError } from "@/components/form";
@@ -7,7 +8,6 @@ import { Button } from "@/components/ui";
 import { runOnline } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
 import { updateProfileAction } from "../server/actions";
-import type { Profile } from "../types";
 
 /** Lets a signed-in user change the name shown on their account. */
 export function DisplayNameForm({ fullName }: { fullName: string | null }) {

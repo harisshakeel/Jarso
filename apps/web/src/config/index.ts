@@ -1,5 +1,4 @@
 // Client-safe config. Server-only env: import from "@/config/env.server".
-export * from "./countries";
+export * from "@jarso/core/config";
 export * from "./env.client";
-export * from "./helplines";
 export * from "./site";

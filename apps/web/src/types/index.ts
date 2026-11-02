@@ -1,1 +1,1 @@
-export * from "./database.types";
+export * from "@jarso/db";

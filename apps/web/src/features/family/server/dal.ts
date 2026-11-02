@@ -1,4 +1,5 @@
 import "server-only";
+import type { Membership } from "@jarso/core/family";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { routes } from "@/config";
@@ -7,7 +8,6 @@ import { assertUser, getCurrentUser, requireUser } from "@/features/auth/server"
 import { isParentProfileComplete } from "@/features/profiles/server";
 import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
-import type { Membership } from "../types";
 import { findMembership, findProfileRole, isParentOf } from "./repository";
 
 type Role = "parent" | "child";

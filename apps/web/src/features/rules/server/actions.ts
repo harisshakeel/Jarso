@@ -1,9 +1,9 @@
 "use server";
 
+import { overspendSchema, setRuleSchema } from "@jarso/core/rules";
 import { refresh } from "next/cache";
 import { getFamilyContext } from "@/features/allowance/server";
 import { createAction } from "@/lib";
-import { overspendSchema, setRuleSchema } from "../schemas";
 import { setOverspend, setRule } from "./service";
 
 export const setRuleAction = createAction(

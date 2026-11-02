@@ -9,7 +9,7 @@ pnpm db:start                 # start local Supabase (Docker required); prints U
 pnpm exec supabase status     # show keys again → copy into apps/web/.env.local (start from the root `.env.example`)
 pnpm db:migration add_thing   # create supabase/migrations/<ts>_add_thing.sql
 pnpm db:reset                 # rebuild local DB from migrations + seed.sql
-pnpm db:types                 # regenerate types from local DB
+pnpm db:types                 # regenerate packages/db/src/database.types.ts from local DB
 pnpm db:types:linked          # regenerate types from linked hosted project
 pnpm db:stop
 ```

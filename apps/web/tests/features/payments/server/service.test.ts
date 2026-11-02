@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { paymentCopy } from "@/features/payments/copy";
+import { paymentCopy } from "@/features/payments";
 import { AppError, logger } from "@/lib";
 import type { PaymentProvider } from "@/lib/payments";
 import { createFakePaymentProvider } from "@/lib/payments/fake";

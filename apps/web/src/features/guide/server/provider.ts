@@ -1,7 +1,7 @@
 import "server-only";
+import type { GuideUsage, ScreenRoute } from "@jarso/core/guide";
 import { z } from "zod";
 import { topicKeys } from "@/features/learning";
-import type { GuideUsage, ScreenRoute } from "../types";
 import type { Facts } from "./facts";
 import type { ToolCall } from "./tool-specs";
 

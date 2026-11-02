@@ -1,5 +1,6 @@
 "use client";
 
+import { receivedSchema } from "@jarso/core/diary";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { z } from "zod";
@@ -17,7 +18,6 @@ import {
 import { RECEIVED_CATEGORIES } from "@/features/ledger";
 import { newId, runOnline } from "@/features/offline";
 import type { FieldErrors } from "@/lib";
-import { receivedSchema } from "../schemas";
 import { recordMoneyReceivedAction } from "../server/actions";
 import { CategoryChips } from "./category-chips";
 

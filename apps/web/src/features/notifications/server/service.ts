@@ -1,7 +1,12 @@
 import "server-only";
+import type {
+  Notice,
+  NoticeKind,
+  NoticePage,
+  PushSubscriptionInput,
+} from "@jarso/core/notifications";
 import { assertUser } from "@/features/auth/server";
 import { createClient } from "@/lib/supabase/server";
-import type { Notice, NoticeKind, NoticePage, PushSubscriptionInput } from "../types";
 import {
   encodeCursor,
   fetchUnreadCount,

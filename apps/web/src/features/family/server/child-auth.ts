@@ -1,8 +1,8 @@
 import "server-only";
+import { childEmail, generateToken } from "@jarso/core/family";
 import { AppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { childEmail, generateToken } from "../codes";
 
 /**
  * Child auth users (ADR 0004). A child is a real auth user with a synthetic, non-deliverable

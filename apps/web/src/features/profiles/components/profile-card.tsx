@@ -1,5 +1,5 @@
+import type { Profile } from "@jarso/core/profiles";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
-import type { Profile } from "../types";
 
 export function ProfileCard({ profile, email }: { profile: Profile; email: string | null }) {
   return (

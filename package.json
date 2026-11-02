@@ -20,8 +20,8 @@
     "db:migration": "supabase migration new",
     "db:push": "supabase db push --linked",
     "db:revert": "sh scripts/db-revert.sh",
-    "db:types": "supabase gen types typescript --local > apps/web/src/types/database.types.ts",
-    "db:types:linked": "supabase gen types typescript --linked > apps/web/src/types/database.types.ts",
+    "db:types": "supabase gen types typescript --local > packages/db/src/database.types.ts",
+    "db:types:linked": "supabase gen types typescript --linked > packages/db/src/database.types.ts",
     "prepare": "husky"
   },
   "devDependencies": {

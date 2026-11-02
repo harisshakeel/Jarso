@@ -1,10 +1,10 @@
+import type { ChildDueItem } from "@jarso/core/allowance";
+import { formatDay } from "@jarso/core/allowance";
 import { GiftIcon, HandCoinsIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge, buttonVariants, Card } from "@/components/ui";
 import { routes } from "@/config";
 import { formatMoney } from "@/lib";
-import { formatDay } from "../describe";
-import type { ChildDueItem } from "../types";
 
 type NeedsYouProps = {
   /** Every due allowance and gift across the family, oldest first. */

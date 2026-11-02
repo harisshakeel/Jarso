@@ -12,8 +12,8 @@ const { submitToOutbox, removeOutboxItem, refresh } = vi.hoisted(() => ({
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("@/features/offline", async () => ({
-  offlineCopy: (await import("@/features/offline/copy")).offlineCopy,
-  newId: (await import("@/features/offline/outbox/uuid")).uuid,
+  offlineCopy: (await import("@jarso/core/offline")).offlineCopy,
+  newId: (await import("@jarso/core/offline")).uuid,
   submitToOutbox,
   removeOutboxItem,
 }));

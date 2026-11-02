@@ -1,5 +1,7 @@
 "use client";
 
+import type { HandoverResult, Split } from "@jarso/core/allowance";
+import { cashForSaved, checkSplit, formatDay, shareOf, splitAtShare } from "@jarso/core/allowance";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useTransition } from "react";
@@ -26,9 +28,7 @@ import { routes } from "@/config";
 import { runOnline } from "@/features/offline";
 import { type CardPaymentState, PayByCard } from "@/features/payments";
 import { type ActionState, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
-import { cashForSaved, checkSplit, formatDay, shareOf, splitAtShare } from "../describe";
 import { confirmHandoverAction, markNotGivenAction } from "../server/actions";
-import type { HandoverResult, Split } from "../types";
 
 type HandoverFormProps = {
   kind: "allowance" | "gift";

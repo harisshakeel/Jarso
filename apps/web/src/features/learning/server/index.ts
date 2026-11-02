@@ -11,7 +11,7 @@ export {
   reservedMissionKeys,
   reviewPool,
   topics,
-} from "../content";
+} from "./content";
 export {
   completeCheckIn,
   completeMission,

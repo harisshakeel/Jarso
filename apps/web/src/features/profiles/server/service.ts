@@ -1,9 +1,13 @@
 import "server-only";
+import type {
+  ParentDetails,
+  ParentDetailsInput,
+  Profile,
+  UpdateProfileInput,
+} from "@jarso/core/profiles";
 import { cache } from "react";
 import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
-import type { ParentDetailsInput, UpdateProfileInput } from "../schemas";
-import type { ParentDetails, Profile } from "../types";
 import {
   findParentDetails,
   findProfileById,

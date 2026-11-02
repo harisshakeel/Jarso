@@ -1,8 +1,8 @@
 import "fake-indexeddb/auto";
+import type { OutboxItem, SendOutcome } from "@jarso/core/offline";
 import { describe, expect, it, vi } from "vitest";
-import { flushOutbox } from "@/features/offline/outbox/flush";
+import { flushOutbox } from "@/features/offline/outbox/platform";
 import { open } from "@/features/offline/outbox/store";
-import type { OutboxItem, SendOutcome } from "@/features/offline/outbox/types";
 import { makeItem, minutesAgo } from "./test-utils";
 
 async function openStore() {

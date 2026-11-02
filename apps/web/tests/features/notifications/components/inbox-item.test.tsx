@@ -1,7 +1,7 @@
+import type { Notice } from "@jarso/core/notifications";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { InboxItem } from "@/features/notifications/components/inbox-item";
-import type { Notice } from "@/features/notifications/types";
 
 const notice: Notice = {
   id: "7b0f6a52-3c1e-4b52-9d52-0a6f3a1d1b11",

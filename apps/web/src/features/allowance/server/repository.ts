@@ -1,8 +1,4 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { AppError, toAppError } from "@/lib";
-import { isPaymentProviderId, type PaymentProviderId } from "@/lib/payments";
-import type { Database } from "@/types";
 import {
   type DueItem,
   type Frequency,
@@ -13,7 +9,11 @@ import {
   type NotGivenResult,
   type ScheduleStatus,
   type Split,
-} from "../types";
+} from "@jarso/core/allowance";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { AppError, toAppError } from "@/lib";
+import { isPaymentProviderId, type PaymentProviderId } from "@/lib/payments";
+import type { Database } from "@/types";
 
 type Client = SupabaseClient<Database>;
 

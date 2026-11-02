@@ -1,9 +1,9 @@
+import type { NextStep } from "@jarso/core/learning";
 import { ArrowRightIcon, GraduationCapIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
-import type { NextStep } from "../types";
 
 function describeStep(step: NextStep): { heading: string; body: string; href: Route; cta: string } {
   switch (step.kind) {

@@ -1,7 +1,7 @@
+import { offlineCopy } from "@jarso/core/offline";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { offlineCopy } from "@/features/offline/copy";
 import { runOnline, useOnlineActionState } from "@/features/offline/online-action";
 import {
   isOnline,

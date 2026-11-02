@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Card, CardContent } from "@/components/ui";
@@ -19,7 +19,7 @@ async function SetupForm({
     searchParams,
   ]);
   const nextPath = typeof next === "string" ? next : undefined;
-  if (membership) redirect(safeNextPath(nextPath, routes.parent));
+  if (membership) redirect(safeNextPath(nextPath, routes.parent) as Route);
   return <CreateFamilyForm next={nextPath} />;
 }
 

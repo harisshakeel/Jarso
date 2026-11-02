@@ -1,7 +1,7 @@
 "use server";
 
+import { startMissionSchema } from "@jarso/core/learning";
 import { createAction } from "@/lib";
-import { startMissionSchema } from "../schemas";
 import { startMission } from "./service";
 
 /**

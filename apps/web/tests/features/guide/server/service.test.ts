@@ -1,5 +1,5 @@
+import { guideCopy } from "@jarso/core/guide";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { guideCopy } from "@/features/guide/copy";
 import { AppError } from "@/lib";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));

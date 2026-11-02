@@ -143,6 +143,8 @@ Runbook step: Supabase → Authentication → Sessions → Refresh token reuse i
 - **Git integration (preferred):** connect the GitHub repo in Vercel → Project → Settings → Git. Afterwards every push to `main` deploys to production and every PR gets a preview URL. CI on GitHub still gates merges; Vercel builds independently.
 - **Manual from a machine with the CLI:** `vercel deploy --prod` from the repo root. The CLI uploads the working tree and builds in the cloud; nothing is built locally. Use this only when the Git integration is unavailable.
 
+The Vercel project's Root Directory is `apps/web`, so `apps/web/vercel.json` and its crons are picked up; run `vercel link` from `apps/web`.
+
 `vercel link` writes `.vercel/` (project ids) and may write `apps/web/.env.local` with a short-lived `VERCEL_OIDC_TOKEN`. Both are gitignored. Do not commit either and do not run `vercel env pull` into the repo.
 
 ## Verifying a deploy

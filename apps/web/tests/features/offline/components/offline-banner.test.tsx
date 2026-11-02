@@ -1,7 +1,7 @@
+import { offlineCopy } from "@jarso/core/offline";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { OfflineBanner } from "@/features/offline/components/offline-banner";
-import { offlineCopy } from "@/features/offline/copy";
 
 afterEach(() => {
   cleanup();

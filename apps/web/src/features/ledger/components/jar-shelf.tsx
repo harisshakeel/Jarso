@@ -1,5 +1,6 @@
 "use client";
 
+import { jarCapacity } from "@jarso/core/ledger";
 import { ChevronDownIcon } from "lucide-react";
 import Link from "next/link";
 import { useId, useState } from "react";
@@ -15,7 +16,6 @@ import {
 } from "@/features/requests";
 import { describeRuleForChild, type MoneyRule } from "@/features/rules";
 import { cn, formatMoney } from "@/lib";
-import { jarCapacity } from "../jar-scale";
 
 type JarShelfProps = {
   currency: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { offlineCopy } from "../copy";
+import { offlineCopy } from "@jarso/core/offline";
 import { useOnline } from "../use-online";
 
 /** Calm notice under the header while the device is offline. */

@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import type { HistoryItem } from "@/features/ledger";
 import { HistoryList } from "@/features/ledger/components/history-list";
-import type { HistoryItem } from "@/features/ledger/types";
 
 afterEach(cleanup);
 

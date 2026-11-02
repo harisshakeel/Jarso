@@ -1,6 +1,6 @@
+import type { SkillProgress } from "@jarso/core/learning";
+import { type SkillLevel, skillLevelLabels, skills, topicTitles } from "@jarso/core/learning";
 import { cn } from "@/lib";
-import { type SkillLevel, skillLevelLabels, skills, topicTitles } from "../skills";
-import type { SkillProgress } from "../types";
 
 /**
  * FR10 progress per skill: a word plus three dots, never next to money (invariant 11). Grouped by

@@ -1,9 +1,15 @@
 import "server-only";
+import type {
+  EntryVersion,
+  FixResult,
+  PurchaseResult,
+  ReceivedResult,
+  UndoResult,
+} from "@jarso/core/diary";
 // Only place that knows the purchase functions.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database } from "@/types";
-import type { EntryVersion, FixResult, PurchaseResult, ReceivedResult, UndoResult } from "../types";
 
 type Client = SupabaseClient<Database>;
 

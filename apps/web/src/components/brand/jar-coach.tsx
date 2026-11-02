@@ -1,11 +1,9 @@
+import type { CoachId } from "@jarso/core/learning";
 import { cn } from "cn";
 import { JAR_OUTLINE_D } from "./jar-outline";
 
 // The lesson coaches (design.md §7): the mark's jar, redrawn as SVG with a face, four ways.
 // Server-safe: no hooks. Artwork units are the mark's 512 × 512; the jar is centred on (256, 256).
-
-export const coachIds = ["pip", "bo", "zuzu", "nell"] as const;
-export type CoachId = (typeof coachIds)[number];
 
 /** A one-off move when something happens: a cheer for a right answer, a nod for a wrong one. */
 export type CoachReaction = "cheer" | "nod" | null;

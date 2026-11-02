@@ -1,10 +1,9 @@
 "use client";
 
+import type { StepBody } from "@jarso/core/learning";
+import { type Draft, renderText, stableShuffle } from "@jarso/core/learning";
 import { Slider } from "@/components/ui";
 import { cn, formatMoney, minorDigits } from "@/lib";
-import { type Draft, stableShuffle } from "../steps";
-import { renderText } from "../text";
-import type { StepBody } from "../types";
 
 type InputProps<D extends Draft["kind"]> = {
   body: StepBody;

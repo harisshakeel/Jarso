@@ -3,6 +3,7 @@
 | Layer | Tool | Location | Command |
 | --- | --- | --- | --- |
 | Unit / component | Vitest + Testing Library (jsdom) | `apps/web/tests/**/*.test.ts(x)`, mirroring the `apps/web/src/` path (`apps/web/src/features/x/schemas.ts` → `apps/web/tests/features/x/schemas.test.ts`) | `pnpm test` / `pnpm --filter @jarso/web test:watch` |
+| Core unit | Vitest (node, no setup file) | `packages/core/tests/<module>/*.test.ts`, mirroring `packages/core/src/` | `pnpm --filter @jarso/core test` |
 | End-to-end | Playwright (Chromium) | `apps/web/tests/e2e/*.spec.ts` | `pnpm test:e2e` |
 | DB | pgTAP (`pnpm db:test`), plus `supabase db reset` + `supabase db lint` | `supabase/tests/database/*.test.sql`; migrations in `supabase/migrations` | CI `migrations` job |
 
@@ -14,6 +15,8 @@
 - Don't unit-test Next.js or Supabase themselves.
 
 ## Notes
+
+- Pure domain logic (schemas, rules, copy, outbox logic) is tested in `packages/core/tests/<module>/` in the node environment: no jsdom, no `server-only` mock, no browser globals. Core tests import the module under test relatively or by `@jarso/core/<m>`. Web tests cover components, services, repositories and platform adapters (e.g. `webOutboxPlatform`). `pnpm test` runs every package via Turbo.
 
 - `apps/web/tests/setup.ts` mocks `server-only` and loads jest-dom matchers. Public env vars are stubbed in `apps/web/vitest.config.mts`.
 - Unit tests live under `apps/web/tests/`, not next to the source. They import the code under test by `@/` alias, including deep paths into a module's internals (`@/features/<f>/server/service`), and mock by the same specifier (`vi.mock("@/features/<f>/server/repository")`). Test-only helpers and fixtures sit beside the tests that use them (`apps/web/tests/features/offline/outbox/test-utils.ts`, `apps/web/tests/lib/payments/stripe/fixtures/`).

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Notice, NoticeKind } from "@jarso/core/notifications";
 import { cn } from "cn";
 import {
   BellIcon,
@@ -15,7 +16,6 @@ import {
 import type { Route } from "next";
 import Link from "next/link";
 import type { MouseEvent } from "react";
-import type { Notice, NoticeKind } from "../types";
 
 // Tinted circles follow design.md §2.5: cyan for due, gold for limits and failed card charges,
 // teal for decisions.

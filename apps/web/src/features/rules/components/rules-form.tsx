@@ -1,6 +1,6 @@
+import type { ChildRules, RuleKind } from "@jarso/core/rules";
+import { summarise } from "@jarso/core/rules";
 import { Card, CardContent } from "@/components/ui";
-import { summarise } from "../describe";
-import type { ChildRules, RuleKind } from "../types";
 import { OverspendSwitch } from "./overspend-switch";
 import { RuleGroup } from "./rule-group";
 

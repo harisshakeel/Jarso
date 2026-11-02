@@ -1,7 +1,7 @@
+import { AppError } from "@jarso/core/lib";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createAction } from "@/lib/action";
-import { AppError } from "@/lib/errors";
 
 const schema = z.object({ name: z.string().min(1) });
 

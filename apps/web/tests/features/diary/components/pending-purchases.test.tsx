@@ -17,9 +17,9 @@ const { useOutbox, useOnline, submitToOutbox, removeOutboxItem, sendToServer, re
 vi.mock("sonner", () => ({ toast }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("@/features/offline", async () => ({
-  offlineCopy: (await import("@/features/offline/copy")).offlineCopy,
-  newId: (await import("@/features/offline/outbox/uuid")).uuid,
-  showsAsPending: (await import("@/features/offline/outbox/state")).showsAsPending,
+  offlineCopy: (await import("@jarso/core/offline")).offlineCopy,
+  newId: (await import("@jarso/core/offline")).uuid,
+  showsAsPending: (await import("@jarso/core/offline")).showsAsPending,
   useOutbox,
   useOnline,
   submitToOutbox,

@@ -1,6 +1,6 @@
+import { coaches } from "@jarso/core/learning";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { coaches } from "@/features/learning/coaches";
 import { Blackboard } from "@/features/learning/components/blackboard";
 import { CoachBubble } from "@/features/learning/components/coach-bubble";
 

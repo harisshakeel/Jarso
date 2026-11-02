@@ -1,16 +1,16 @@
 "use client";
 
-import { useId, useState } from "react";
-import { Button, Slider } from "@/components/ui";
-import { formatMoney } from "@/lib";
+import type { Goal } from "@jarso/core/goals";
 import {
   explainOutcome,
   type Move,
   PREDICTIONS,
   type Prediction,
   predictOutcome,
-} from "../predict";
-import type { Goal } from "../types";
+} from "@jarso/core/goals";
+import { useId, useState } from "react";
+import { Button, Slider } from "@/components/ui";
+import { formatMoney } from "@/lib";
 
 type PredictStepProps = {
   move: Move;
