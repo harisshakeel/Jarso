@@ -1,16 +1,20 @@
-import { describe, expect, it } from "vitest";
+import type { AnswerableStep, StepAnswer, StepBody } from "@jarso/core/learning";
+import {
+  bodyFor,
+  gradeStep,
+  isAnswerable,
+  skillKeys,
+  topicKeys,
+  wordCount,
+} from "@jarso/core/learning";
 import {
   checkIn,
   missions,
   reservedMissionKeys,
   reviewPool,
   topics,
-} from "@/features/learning/content";
-import { gradeStep } from "@/features/learning/grade";
-import { skillKeys, topicKeys } from "@/features/learning/skills";
-import { bodyFor, isAnswerable } from "@/features/learning/steps";
-import { wordCount } from "@/features/learning/text";
-import type { AnswerableStep, StepAnswer, StepBody } from "@/features/learning/types";
+} from "@jarso/core/learning/content";
+import { describe, expect, it } from "vitest";
 
 /**
  * Loading ./content already validates every file with Zod (an invalid file throws on import).

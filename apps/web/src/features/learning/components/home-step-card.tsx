@@ -1,12 +1,12 @@
 "use client";
 
+import type { HomeStep } from "@jarso/core/learning";
 import { CircleCheckIcon } from "lucide-react";
 import { type ComponentProps, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui";
 import { GoalSheet, markCelebratedAction } from "@/features/goals";
 import { TakeOutSheet } from "@/features/requests";
 import { formatMoney, logger } from "@/lib";
-import type { HomeStep } from "../home-step";
 import { NextStepCard } from "./next-step-card";
 
 type HomeStepCardProps = {

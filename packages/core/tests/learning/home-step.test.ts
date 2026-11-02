@@ -1,8 +1,8 @@
+import type { GoalView } from "@jarso/core/goals";
+import { goalProgress } from "@jarso/core/goals";
+import type { NextStep } from "@jarso/core/learning";
+import { chooseHomeStep } from "@jarso/core/learning";
 import { describe, expect, it } from "vitest";
-import type { GoalView } from "@/features/goals";
-import { goalProgress } from "@/features/goals";
-import { chooseHomeStep } from "@/features/learning/home-step";
-import type { NextStep } from "@/features/learning/types";
 
 const mission: NextStep = { kind: "mission", missionKey: "m3", title: "Needs or wants", day: 3 };
 const done: NextStep = { kind: "done" };

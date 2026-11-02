@@ -1,4 +1,4 @@
-import type { GoalView } from "@/features/goals";
+import type { GoalView } from "@jarso/core/goals";
 import type { NextStep } from "./types";
 
 /** The one thing child Home offers next (spec §6.1). */

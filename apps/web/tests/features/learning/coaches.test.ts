@@ -1,6 +1,5 @@
+import { coaches, coachFor, coachIds } from "@jarso/core/learning";
 import { describe, expect, it } from "vitest";
-import { coachIds } from "@/components/brand";
-import { coaches, coachFor } from "@/features/learning/coaches";
 
 describe("coachFor", () => {
   it("always brings the same coach back for the same step", () => {

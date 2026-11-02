@@ -1,4 +1,4 @@
-import { addDays } from "@/lib";
+import { addDays } from "@jarso/core/lib";
 
 /** Days without learning before Home offers one small task instead of the next mission. */
 export const COMEBACK_AFTER_DAYS = 3;

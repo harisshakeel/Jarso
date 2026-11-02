@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib";
+import { formatMoney } from "@jarso/core/lib";
 
 /** `{m:1250}` in content text: a fictional amount in minor units, shown in the family currency. */
 const MONEY_TOKEN = /\{m:(\d{1,9})\}/g;

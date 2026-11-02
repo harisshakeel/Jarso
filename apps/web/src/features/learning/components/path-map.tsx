@@ -1,11 +1,10 @@
+import type { JourneyMission } from "@jarso/core/learning";
+import { formatShortDate, topicTitles } from "@jarso/core/learning";
 import { CheckIcon, LockIcon, PlayIcon } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { routes } from "@/config";
 import { cn } from "@/lib";
-import { topicTitles } from "../skills";
-import { formatShortDate } from "../text";
-import type { JourneyMission } from "../types";
 
 /**
  * The seven-day journey as a vertical path: done, the current mission, then locked ones.

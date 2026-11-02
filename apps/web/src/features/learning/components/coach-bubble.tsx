@@ -1,11 +1,11 @@
 "use client";
 
+import type { Coach } from "@jarso/core/learning";
+import { renderText } from "@jarso/core/learning";
 import { LightbulbIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { type CoachReaction, JarCoach } from "@/components/brand";
 import { cn } from "@/lib";
-import type { Coach } from "../coaches";
-import { renderText } from "../text";
 
 type CoachBubbleProps = {
   coach: Coach;

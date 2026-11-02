@@ -16,7 +16,9 @@
     "./profiles": "./src/profiles/index.ts",
     "./auth": "./src/auth/index.ts",
     "./payments": "./src/payments/index.ts",
-    "./allowance": "./src/allowance/index.ts"
+    "./allowance": "./src/allowance/index.ts",
+    "./learning": "./src/learning/index.ts",
+    "./learning/content": "./src/learning/content.ts"
   },
   "dependencies": {
     "@jarso/content": "workspace:*",

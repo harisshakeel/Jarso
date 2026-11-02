@@ -1,5 +1,5 @@
-import { renderText } from "../text";
-import type { Topic } from "../types";
+import type { Topic } from "@jarso/core/learning";
+import { renderText } from "@jarso/core/learning";
 
 /** A topic's explanation and worked example (FR08). The practice question renders below it. */
 export function TopicView({ topic, currency }: { topic: Topic; currency: string }) {

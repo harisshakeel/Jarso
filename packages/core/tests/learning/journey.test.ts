@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import type { AnswerableStep, Mission, StepResult } from "@jarso/core/learning";
 import {
   attemptSummary,
   buildJourney,
@@ -10,8 +10,8 @@ import {
   resumePosition,
   summaryLine,
   weeklyRhythmLine,
-} from "@/features/learning/journey";
-import type { AnswerableStep, Mission, StepResult } from "@/features/learning/types";
+} from "@jarso/core/learning";
+import { describe, expect, it } from "vitest";
 
 const hints: [string, string] = ["h1", "h2"];
 const choiceStep = (

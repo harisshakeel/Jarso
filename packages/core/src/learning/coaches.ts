@@ -1,4 +1,5 @@
-import { type CoachId, coachIds } from "@/components/brand";
+export const coachIds = ["pip", "bo", "zuzu", "nell"] as const;
+export type CoachId = (typeof coachIds)[number];
 
 // The lesson coaches' names and what each says around a question (FR06). The drawing lives in
 // components/brand; this is the voice. Child-facing: short, warm, no blame.

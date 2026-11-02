@@ -1,10 +1,9 @@
+import type { LearningOverview } from "@jarso/core/learning";
+import { formatShortDate, summaryLine } from "@jarso/core/learning";
 import { ChevronRightIcon, GraduationCapIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
-import { summaryLine } from "../journey";
-import { formatShortDate } from "../text";
-import type { LearningOverview } from "../types";
 
 /** The parent's card on a child's page: missions done and learning days, linking to the detail. */
 export function LearningSummaryCard({

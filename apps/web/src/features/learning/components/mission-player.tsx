@@ -1,5 +1,27 @@
 "use client";
 
+import type {
+  AnswerableStep,
+  InfoStep,
+  Phase,
+  Step,
+  StepAnswer,
+  StepBody,
+  StepResult,
+} from "@jarso/core/learning";
+import {
+  attemptSummary,
+  bodyFor,
+  coachFor,
+  type Draft,
+  describeAnswer,
+  draftToAnswer,
+  emptyDraft,
+  gradeStep,
+  praiseLine,
+  renderText,
+  resumePosition,
+} from "@jarso/core/learning";
 import {
   BookOpenIcon,
   CircleCheckIcon,
@@ -22,21 +44,7 @@ import {
   useOutbox,
 } from "@/features/offline";
 import { cn } from "@/lib";
-import { coachFor } from "../coaches";
-import { describeAnswer, gradeStep } from "../grade";
-import { attemptSummary, praiseLine, resumePosition } from "../journey";
 import { startMissionAction } from "../server/actions";
-import { bodyFor, type Draft, draftToAnswer, emptyDraft } from "../steps";
-import { renderText } from "../text";
-import type {
-  AnswerableStep,
-  InfoStep,
-  Phase,
-  Step,
-  StepAnswer,
-  StepBody,
-  StepResult,
-} from "../types";
 import { Blackboard } from "./blackboard";
 import { CoachBubble } from "./coach-bubble";
 import { CurrentStepContext } from "./current-step";

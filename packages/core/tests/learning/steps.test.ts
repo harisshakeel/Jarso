@@ -1,8 +1,16 @@
+import type { AnswerableStep, StepBody } from "@jarso/core/learning";
+import {
+  bodyFor,
+  draftToAnswer,
+  emptyDraft,
+  formatShortDate,
+  recordStepSchema,
+  renderText,
+  stableShuffle,
+  stepAnswerSchema,
+  wordCount,
+} from "@jarso/core/learning";
 import { describe, expect, it } from "vitest";
-import { recordStepSchema, stepAnswerSchema } from "@/features/learning/schemas";
-import { bodyFor, draftToAnswer, emptyDraft, stableShuffle } from "@/features/learning/steps";
-import { formatShortDate, renderText, wordCount } from "@/features/learning/text";
-import type { AnswerableStep, StepBody } from "@/features/learning/types";
 
 const hints: [string, string] = ["h1", "h2"];
 const money: StepBody = {

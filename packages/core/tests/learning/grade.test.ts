@@ -1,6 +1,6 @@
+import type { StepBody } from "@jarso/core/learning";
+import { describeAnswer, gradeStep, needsReplay } from "@jarso/core/learning";
 import { describe, expect, it } from "vitest";
-import { describeAnswer, gradeStep, needsReplay } from "@/features/learning/grade";
-import type { StepBody } from "@/features/learning/types";
 
 const hints: [string, string] = ["Gentle hint", "Strong hint"];
 

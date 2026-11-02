@@ -1,7 +1,7 @@
+import type { Step, StepResult } from "@jarso/core/learning";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MissionPlayer } from "@/features/learning/components/mission-player";
-import type { Step, StepResult } from "@/features/learning/types";
 import type { OutboxItem, SubmitResult } from "@/features/offline";
 
 const { submitToOutbox, useOutbox, useOnline } = vi.hoisted(() => ({

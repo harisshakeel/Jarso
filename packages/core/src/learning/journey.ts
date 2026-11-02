@@ -1,4 +1,4 @@
-import { addDays, localDateOf, startOfWeek } from "@/lib";
+import { addDays, localDateOf, startOfWeek } from "@jarso/core/lib";
 import { needsReplay } from "./grade";
 import type { SkillKey } from "./skills";
 import type { AnswerableStep, JourneyMission, Mission, NextStep, StepResult } from "./types";

@@ -1,5 +1,5 @@
+import { isComeback } from "@jarso/core/learning";
 import { describe, expect, it } from "vitest";
-import { isComeback } from "@/features/learning/comeback";
 
 describe("isComeback", () => {
   it("is true three or more days after the last learning day", () => {

@@ -1,4 +1,4 @@
-import { parseMoney } from "@/lib";
+import { parseMoney } from "@jarso/core/lib";
 import type { AnswerableStep, Phase, Step, StepAnswer, StepBody } from "./types";
 
 /** Pure step helpers, safe in the browser (no content import, so no content in the bundle). */
