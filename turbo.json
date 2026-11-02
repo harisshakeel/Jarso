@@ -1,0 +1,15 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "tasks": {
+    "typecheck": { "dependsOn": ["^typecheck"] },
+    "test": { "dependsOn": ["^typecheck"] },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": ["NEXT_PUBLIC_*"]
+    },
+    "dev": { "persistent": true, "cache": false },
+    "test:e2e": { "cache": false },
+    "eval:guide": { "cache": false }
+  }
+}
