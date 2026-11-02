@@ -1,6 +1,11 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, expireAccessToken, readFamilyCode } from "./helpers";
+import {
+  completeParentProfile,
+  expireAccessToken,
+  readFamilyCode,
+  waitForHydration,
+} from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -42,6 +47,7 @@ async function newActor(browser: Browser, ip = clientIp): Promise<Page> {
 
 async function signUpParent(page: Page, name: string, email: string): Promise<void> {
   await page.goto("/signup");
+  await waitForHydration(page);
   await page.getByLabel("Name", { exact: true }).fill(name);
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
@@ -66,6 +72,7 @@ async function giveConsent(page: Page): Promise<void> {
 
 async function fillChildSignIn(page: Page, familyCode: string, nickname: string): Promise<void> {
   await page.goto("/sign-in/child");
+  await waitForHydration(page);
   const code = page.getByLabel("Family code");
   // The field upper-cases as you type once hydrated; retry so an early fill isn't lost.
   await expect(async () => {
@@ -111,6 +118,7 @@ test("child-started: Mia asks, parent approves with the code, Mia signs in", asy
 }) => {
   const child = await newActor(browser);
   await child.goto("/start");
+  await waitForHydration(child);
   await child.getByLabel("Your nickname").fill("Mia");
   await child.getByLabel("Your parent's email").fill(parentEmail("blake"));
   await child.getByRole("button", { name: "Ask my parent" }).click();
@@ -146,6 +154,7 @@ test("child-started: Mia asks, parent approves with the code, Mia signs in", asy
 /** A signed-out child asks a parent to join from /start. Returns the invite code shown. */
 async function childAsks(page: Page, nickname: string, email: string): Promise<string> {
   await page.goto("/start");
+  await waitForHydration(page);
   await page.getByLabel("Your nickname").fill(nickname);
   await page.getByLabel("Your parent's email").fill(email);
   await page.getByRole("button", { name: "Ask my parent" }).click();
@@ -275,6 +284,7 @@ test("lockout is per device; a PIN reset unlocks it and signs other devices out"
 
   const parent = await newActor(browser, randomIp());
   await parent.goto("/login");
+  await waitForHydration(parent);
   await parent.getByLabel("Email", { exact: true }).fill(parentEmail("alex"));
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Sign in" }).click();

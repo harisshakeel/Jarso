@@ -1,7 +1,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { completeParentProfile } from "./helpers";
+import { completeParentProfile, waitForHydration } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -29,6 +29,7 @@ async function newActor(browser: Browser): Promise<Page> {
 
 async function signUp(page: Page, email: string): Promise<void> {
   await page.goto("/signup");
+  await waitForHydration(page);
   await page.getByLabel("Name", { exact: true }).fill("Profile Parent");
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);

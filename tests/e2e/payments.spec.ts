@@ -7,6 +7,7 @@ import {
   dueOccurrence as dueOccurrenceFor,
   E2E_CRON_SECRET,
   signedInClient,
+  waitForHydration,
 } from "./helpers";
 import { assertLocalUrl, loadLocalSupabase } from "./local-supabase";
 
@@ -58,6 +59,7 @@ async function newParent(browser: Browser, tag: string): Promise<Parent> {
   });
   const page = await context.newPage();
   await page.goto("/login");
+  await waitForHydration(page);
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();

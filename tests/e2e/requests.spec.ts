@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, readFamilyCode } from "./helpers";
+import { completeParentProfile, readFamilyCode, waitForHydration } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -64,6 +64,8 @@ test.beforeAll(async ({ browser }) => {
   ).newPage();
 
   await parent.goto("/signup");
+
+  await waitForHydration(parent);
   await parent.getByLabel("Name", { exact: true }).fill("Alex Parent");
   await parent.getByLabel("Email", { exact: true }).fill(email);
   await parent.getByLabel("Password", { exact: true }).fill(password);
@@ -84,6 +86,8 @@ test.beforeAll(async ({ browser }) => {
   childBase = new URL(parent.url()).pathname;
 
   await child.goto("/sign-in/child");
+
+  await waitForHydration(child);
   const codeField = child.getByLabel("Family code");
   await expect(async () => {
     await codeField.fill(code);

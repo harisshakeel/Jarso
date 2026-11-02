@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
-import { completeParentProfile } from "./helpers";
+import { completeParentProfile, waitForHydration } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Online-only parent actions refuse cleanly while offline, against LOCAL Supabase. */
@@ -33,6 +33,8 @@ test.beforeAll(async ({ browser }) => {
   parent = await parentContext.newPage();
 
   await parent.goto("/signup");
+
+  await waitForHydration(parent);
   await parent.getByLabel("Name", { exact: true }).fill("Alex Parent");
   await parent.getByLabel("Email", { exact: true }).fill(email);
   await parent.getByLabel("Password", { exact: true }).fill(password);

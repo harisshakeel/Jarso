@@ -1,7 +1,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { completeParentProfile } from "./helpers";
+import { completeParentProfile, waitForHydration } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Parent allowance and gift screens against the LOCAL Supabase stack (see playwright.config.ts). */
@@ -74,6 +74,7 @@ test.beforeAll(async ({ browser }) => {
   });
   page = await context.newPage();
   await page.goto("/signup");
+  await waitForHydration(page);
   await page.getByLabel("Name", { exact: true }).fill("Alex Parent");
   await page.getByLabel("Email", { exact: true }).fill(`e2e-allowance-${run}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill(password);

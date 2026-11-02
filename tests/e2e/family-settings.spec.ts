@@ -1,6 +1,11 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type Browser, expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, expireAccessToken, readFamilyCode } from "./helpers";
+import {
+  completeParentProfile,
+  expireAccessToken,
+  readFamilyCode,
+  waitForHydration,
+} from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -44,6 +49,7 @@ async function addChild(parent: Page, nickname: string, pin: string): Promise<vo
 
 async function childSignIn(child: Page, nickname: string, pin: string): Promise<void> {
   await child.goto("/sign-in/child");
+  await waitForHydration(child);
   const code = child.getByLabel("Family code");
   await expect(async () => {
     await code.fill(state.familyCode);
@@ -57,6 +63,7 @@ async function childSignIn(child: Page, nickname: string, pin: string): Promise<
 test("setup: parent signs up, creates a family and adds Sam", async ({ browser }) => {
   const parent = await newActor(browser);
   await parent.goto("/signup");
+  await waitForHydration(parent);
   await parent.getByLabel("Name", { exact: true }).fill("Settings Parent");
   await parent.getByLabel("Email", { exact: true }).fill(parentEmail);
   await parent.getByLabel("Password", { exact: true }).fill(password);
@@ -75,6 +82,7 @@ test("settings: gear opens the parent settings; rename and timezone persist", as
 }) => {
   const parent = await newActor(browser);
   await parent.goto("/login");
+  await waitForHydration(parent);
   await parent.getByLabel("Email", { exact: true }).fill(parentEmail);
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Sign in" }).click();
@@ -125,6 +133,7 @@ test("remove: Sammy is signed out everywhere, the nickname is free again", async
 
   const parent = await newActor(browser);
   await parent.goto("/login");
+  await waitForHydration(parent);
   await parent.getByLabel("Email", { exact: true }).fill(parentEmail);
   await parent.getByLabel("Password", { exact: true }).fill(password);
   await parent.getByRole("button", { name: "Sign in" }).click();
