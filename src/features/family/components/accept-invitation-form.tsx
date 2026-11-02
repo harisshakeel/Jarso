@@ -35,7 +35,7 @@ export function AcceptInvitationForm({
   nickname: suggested,
 }: AcceptInvitationFormProps) {
   const accept: SubmitAction = invitationId ? acceptListedInvitationAction : acceptInvitationAction;
-  const [state, formAction, pending, submit] = useOnlineActionState(accept);
+  const [state, formAction, pending, submit, ready] = useOnlineActionState(accept);
   // Controlled so they survive a failed submit (React resets uncontrolled fields); the PIN clears.
   const [nickname, setNickname] = useState(suggested);
   const [consent, setConsent] = useState(false);
@@ -94,7 +94,7 @@ export function AcceptInvitationForm({
         <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
           Not now
         </Link>
-        <Button type="submit" size="lg" loading={pending}>
+        <Button type="submit" size="lg" loading={pending} disabled={!ready}>
           Add child
         </Button>
       </div>
