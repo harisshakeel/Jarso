@@ -76,20 +76,54 @@ export const guideCopy = {
     answering: "Putting an answer together…",
     checking: "Double-checking the answer…",
   },
-  /** One line per look-up while Jarso works (by tool name). */
+  /**
+   * One line per look-up while Jarso works (by tool name). Said so it fits a child asking about
+   * their own money and a parent asking about their child's.
+   */
   status: {
-    get_jars: "Peeking in your jars…",
-    get_allowance: "Checking when your allowance comes…",
-    get_money_history: "Reading your money history…",
-    get_money_rules: "Checking your money rules…",
-    get_learning: "Looking at your learning…",
+    get_jars: "Peeking in the jars…",
+    get_allowance: "Checking when pocket money comes…",
+    get_money_history: "Flipping through the money history…",
+    get_money_rules: "Checking the money rules…",
+    get_learning: "Looking at the learning so far…",
     plan_saving: "Working out a saving plan…",
-    get_goal: "Checking your goal…",
-    get_requests: "Checking your requests…",
+    get_goal: "Checking the goal…",
+    get_requests: "Checking the requests…",
     remember: "Making a note of that…",
   },
-  /** Shown in turn when no new line has arrived for a while, so a long think never looks stuck. */
-  stillWorking: ["Still thinking…", "Counting carefully…", "Nearly there…"],
+  /**
+   * Funny lines that follow the line above while that step is still going, one every couple of
+   * seconds, keyed like `phases` and `status`. Each is about the step it follows; none judges an
+   * amount (FR09).
+   */
+  quips: {
+    reading: ["Reading it twice, just to be sure…", "Ooh, good question…"],
+    answering: [
+      "Choosing my words like coins…",
+      "Keeping it short and sweet…",
+      "Polishing the answer till it shines…",
+    ],
+    checking: ["Counting the coins twice…", "Making sure every number adds up…", "One last look…"],
+    get_jars: [
+      "Lifting the lids…",
+      "Counting coins (no biting them)…",
+      "Giving the jars a gentle shake…",
+    ],
+    get_allowance: ["Looking at the calendar…", "Counting the sleeps till pocket money…"],
+    get_money_history: ["Following the trail of coins…", "Reading the receipts…"],
+    get_money_rules: ["Reading the small print…", "Checking what's allowed…"],
+    get_learning: ["Counting the gold stars…", "Checking the missions…"],
+    plan_saving: [
+      "Doing the maths, carefully…",
+      "Counting on my fingers (I don't have fingers)…",
+      "Stacking coins in my head…",
+    ],
+    get_goal: ["Measuring how close the goal is…", "Climbing the coin staircase…"],
+    get_requests: ["Looking through the asks…"],
+    remember: ["Writing it on a sticky note…"],
+  } as Record<string, readonly string[]>,
+  /** After a step's own lines run out, so a long think never looks stuck. */
+  stillWorking: ["Still thinking…", "My lid is spinning…", "Nearly there…"],
   /** The four steps of a reply, lit in turn under Jarso's eyes while it works. */
   steps: ["Reading", "Looking things up", "Writing", "Checking"],
   /** The past chats, behind one "History" control on the Jarso page. */

@@ -313,8 +313,9 @@
   }
 }
 
-/* Jarso's eyes (design.md §7, §8): a blink every 5 s, the one idle loop the app allows; the
-   pupils look down at the composer or wander while Jarso thinks. Reduced motion stills both. */
+/* Jarso's face (design.md §7, §8): the jar mark with eyes. A blink every 5 s, the one idle loop
+   the app allows; the pupils look down at the composer, wander, or look up while coins drop in.
+   Units are the mark's artwork units (the svg's viewBox is 440 wide). Reduced motion stills it. */
 [data-jarso-eyes] .eyes-lids {
   transform-box: fill-box;
   transform-origin: 50% 50%;
@@ -323,61 +324,10 @@
   transition: translate 250ms var(--ease-brand);
 }
 [data-jarso-eyes][data-look="down"] .eyes-pupils {
-  translate: 0.5px 2.4px;
+  translate: 3px 16px;
 }
 [data-jarso-eyes][data-look="up"] .eyes-pupils {
-  translate: 0 -2.6px;
-}
-/* While Jarso thinks (a loading state, so it may loop): coins drop into the slot in the lid,
-   turning edge-on as they go in, and the coins inside the jar rise. Reduced motion: no drops,
-   the jar just sits there with its coins. */
-[data-jarso-eyes] .jar-drop,
-[data-jarso-eyes] .jar-pile {
-  transform-box: fill-box;
-}
-[data-jarso-eyes] .jar-drop {
-  opacity: 0;
-  transform-origin: 50% 50%;
-}
-[data-jarso-eyes] .jar-pile {
-  transform-origin: 50% 100%;
-}
-@media (prefers-reduced-motion: no-preference) {
-  [data-jarso-eyes] .jar-drop {
-    animation: jar-drop 1.2s cubic-bezier(0.5, 0, 0.75, 0.35) infinite;
-  }
-  [data-jarso-eyes][data-filling] .jar-pile {
-    animation: jar-pile 9s var(--ease-brand) forwards;
-  }
-}
-@keyframes jar-drop {
-  0% {
-    opacity: 0;
-    translate: 0 -30px;
-    scale: 1 1;
-    rotate: -25deg;
-  }
-  20% {
-    opacity: 1;
-  }
-  70% {
-    scale: 1 1;
-    rotate: 0deg;
-  }
-  100% {
-    opacity: 1;
-    translate: 0 6px;
-    scale: 0.3 1;
-    rotate: 0deg;
-  }
-}
-@keyframes jar-pile {
-  from {
-    scale: 1 0.85;
-  }
-  to {
-    scale: 1 1.2;
-  }
+  translate: 0 -20px;
 }
 @media (prefers-reduced-motion: no-preference) {
   [data-jarso-eyes] .eyes-lids {
@@ -403,13 +353,84 @@
     translate: 0 0;
   }
   25% {
-    translate: -2.5px 0.5px;
+    translate: -16px 3px;
   }
   55% {
-    translate: 2px -2px;
+    translate: 13px -13px;
   }
   80% {
-    translate: 0.5px 2.2px;
+    translate: 3px 14px;
+  }
+}
+
+/* While Jarso thinks (a loading state, so it may loop): the lid tips open, a coin drops in every
+   0.7 s, the jar wobbles as each one lands, and the mark's pile grows by a coin at a time.
+   Reduced motion: none of it. */
+[data-jarso-eyes] .jar-lid {
+  transform-box: view-box;
+  transform-origin: 100px 89px;
+  transition: rotate 300ms var(--ease-brand);
+}
+[data-jarso-eyes] .jar-body {
+  transform-box: view-box;
+  transform-origin: 256px 450px;
+}
+[data-jarso-eyes] .jar-drop,
+[data-jarso-eyes] .jar-land {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-jarso-eyes][data-filling] .jar-lid {
+    rotate: -40deg;
+  }
+  [data-jarso-eyes][data-filling] .jar-body {
+    animation: jar-wobble 0.7s ease-in-out infinite;
+  }
+  [data-jarso-eyes] .jar-drop {
+    animation: jar-drop 1.4s cubic-bezier(0.45, 0, 0.8, 0.4) infinite;
+  }
+  [data-jarso-eyes] .jar-land {
+    animation: jar-land 300ms var(--ease-brand) forwards;
+  }
+}
+@keyframes jar-drop {
+  0% {
+    opacity: 0;
+    translate: 0 -170px;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 320px;
+  }
+}
+/* A coin lands at 85% of each 1.4 s drop, so every 0.7 s at the same point of this loop. */
+@keyframes jar-wobble {
+  0%,
+  60%,
+  100% {
+    rotate: 0deg;
+  }
+  72% {
+    rotate: -3deg;
+  }
+  86% {
+    rotate: 2deg;
+  }
+}
+@keyframes jar-land {
+  from {
+    opacity: 0;
+    translate: 0 -24px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
   }
 }
 

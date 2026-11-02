@@ -438,7 +438,11 @@ export function GuideThread({
   return (
     <section
       aria-labelledby="ask-jarso"
-      className={cn("grid gap-4", page && "min-h-full grid-rows-[auto_1fr_auto]")}
+      className={cn(
+        "grid gap-4",
+        // The page keeps the empty chat's centred column, so nothing widens once a chat starts.
+        page && "mx-auto min-h-full w-full max-w-[42rem] grid-rows-[auto_1fr_auto]",
+      )}
     >
       <div className="grid gap-1">
         <div className="flex items-center justify-between gap-3">

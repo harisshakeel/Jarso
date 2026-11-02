@@ -6,12 +6,26 @@ import { JarsoEyes } from "@/components/brand";
 import { cn } from "@/lib";
 import { useMotionAllowed } from "./motion";
 
-/** With no new line for this long, the bubble starts saying it is still at it. */
-const QUIET_MS = 5_000;
-/** How often the still-working line changes after that. */
-const ROTATE_MS = 3_000;
+/** With no new line for this long, the bubble moves on to that step's funny lines. */
+const QUIET_MS = 2_500;
+/** How often the line changes after that. */
+const ROTATE_MS = 2_500;
 
 const lookups = new Set<string>(Object.values(guideCopy.status));
+/** Each server line's key (a phase or a tool name), to find the funny lines that follow it. */
+const keyOf = new Map<string, string>(
+  [...Object.entries(guideCopy.phases), ...Object.entries(guideCopy.status)].map(([key, line]) => [
+    line,
+    key,
+  ]),
+);
+
+/** The `n`th line after a server line: its step's own funny lines, then the still-working ones. */
+export function followUp(status: string | null, n: number): string {
+  const quips = (status && guideCopy.quips[keyOf.get(status) ?? ""]) || [];
+  const still = guideCopy.stillWorking;
+  return quips[n] ?? still[(n - quips.length) % still.length] ?? guideCopy.thinking;
+}
 
 /** Which of the four steps a server line belongs to: reading, looking up, writing, checking. */
 export function stepOf(status: string | null): number {
@@ -24,12 +38,12 @@ export function stepOf(status: string | null): number {
 
 /**
  * Jarso's bubble while the reply is on its way (ADR 0011, design.md §8): the jar with coins
- * dropping through its lid and its eyes looking up at them, the latest status line from the
+ * dropping in under its tipped lid and its eyes looking up at them, the latest status line from the
  * server (a phase or a look-up) and a strip of the four steps lighting up as the lines arrive.
  * A check draws itself while the answer is double-checked; reduced motion shows a still jar
- * and the line. A long think with no new line turns the line over to "Still thinking…", "Counting
- * carefully…", "Nearly there…" in turn, so the child never watches a line that looks stuck.
- * Only fixed copy, never model text.
+ * and the line. While a step lasts, its line is followed every couple of seconds by that step's
+ * own funny lines ("Lifting the lids…" while peeking in the jars), then "Still thinking…" and
+ * friends, so the child never watches a line that looks stuck. Only fixed copy, never model text.
  */
 export function ThinkingBubble({
   status,
@@ -42,7 +56,7 @@ export function ThinkingBubble({
   const [still, setStill] = useState<number | null>(null);
   const motion = useMotionAllowed();
 
-  // Each new server line resets the quiet timer; after QUIET_MS the still-working lines rotate.
+  // Each new server line resets the quiet timer; after QUIET_MS its funny lines take turns.
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new status line restarts the timer
   useEffect(() => {
     setStill(null);
@@ -51,14 +65,11 @@ export function ThinkingBubble({
   }, [status]);
   useEffect(() => {
     if (still === null) return;
-    const next = setTimeout(
-      () => setStill((n) => ((n ?? 0) + 1) % guideCopy.stillWorking.length),
-      ROTATE_MS,
-    );
+    const next = setTimeout(() => setStill((n) => (n ?? 0) + 1), ROTATE_MS);
     return () => clearTimeout(next);
   }, [still]);
 
-  const line = still === null ? (status ?? guideCopy.thinking) : guideCopy.stillWorking[still];
+  const line = still === null ? (status ?? guideCopy.thinking) : followUp(status, still);
   const step = stepOf(status);
   const big = size === "lg";
 

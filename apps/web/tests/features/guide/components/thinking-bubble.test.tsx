@@ -1,7 +1,7 @@
 import { guideCopy } from "@jarso/core/guide";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ThinkingBubble } from "@/features/guide/components/thinking-bubble";
+import { followUp, ThinkingBubble } from "@/features/guide/components/thinking-bubble";
 
 /** jsdom has no `matchMedia`; pretend the device allows motion, or asks for less. */
 function allowMotion(allowed: boolean) {
@@ -84,17 +84,28 @@ describe("ThinkingBubble", () => {
     expect(steps()[1]).toBe("Looking things up:current");
   });
 
-  it("turns to the still-working lines when no new line arrives, and resets on a new one", () => {
+  it("follows a quiet step with its own funny lines, then the still-working ones", () => {
     vi.useFakeTimers();
-    const { rerender } = render(<ThinkingBubble status={guideCopy.phases.answering} />);
-    act(() => vi.advanceTimersByTime(4_000));
-    expect(screen.getByRole("status")).toHaveTextContent(guideCopy.phases.answering);
-    act(() => vi.advanceTimersByTime(1_500));
-    expect(screen.getByRole("status")).toHaveTextContent(guideCopy.stillWorking[0] as string);
-    act(() => vi.advanceTimersByTime(3_000));
+    const { rerender } = render(<ThinkingBubble status={guideCopy.status.get_jars} />);
+    const jarLines = guideCopy.quips.get_jars ?? [];
+    act(() => vi.advanceTimersByTime(2_000));
+    expect(screen.getByRole("status")).toHaveTextContent(guideCopy.status.get_jars);
+    act(() => vi.advanceTimersByTime(600));
+    expect(screen.getByRole("status")).toHaveTextContent(jarLines[0] as string);
+    act(() => vi.advanceTimersByTime(2_500));
+    expect(screen.getByRole("status")).toHaveTextContent(jarLines[1] as string);
+    act(() => vi.advanceTimersByTime(2_500 * jarLines.length));
     expect(screen.getByRole("status")).toHaveTextContent(guideCopy.stillWorking[1] as string);
     // A fresh line from the server takes over again.
     rerender(<ThinkingBubble status={guideCopy.phases.checking} />);
     expect(screen.getByRole("status")).toHaveTextContent(guideCopy.phases.checking);
+  });
+
+  it("has funny lines for every look-up and phase, then the still-working ones", () => {
+    for (const line of [...Object.values(guideCopy.status), ...Object.values(guideCopy.phases)]) {
+      expect(followUp(line, 0)).not.toBe(guideCopy.stillWorking[0]);
+    }
+    expect(followUp(null, 0)).toBe(guideCopy.stillWorking[0]);
+    expect(followUp("Something else…", 4)).toBe(guideCopy.stillWorking[1]);
   });
 });
