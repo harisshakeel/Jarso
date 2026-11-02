@@ -208,7 +208,8 @@ export function JarGraph({
     const park = () => cartEl.setAttribute("transform", `translate(${cartX} ${cartY})`);
     const still =
       typeof window === "undefined" ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      (typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
       !track ||
       typeof track.getTotalLength !== "function";
     if (still || !track) {
