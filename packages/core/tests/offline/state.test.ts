@@ -1,6 +1,5 @@
+import { nextState, offlineCopy, showsAsPending } from "@jarso/core/offline";
 import { describe, expect, it } from "vitest";
-import { offlineCopy } from "@/features/offline/copy";
-import { nextState, showsAsPending } from "@/features/offline/outbox/state";
 import { makeItem } from "./test-utils";
 
 const now = new Date("2026-10-30T10:00:00.000Z");

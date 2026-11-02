@@ -12,10 +12,10 @@ const { submitToOutbox, useOutbox, useOnline } = vi.hoisted(() => ({
 
 vi.mock("@/features/learning/server/actions", () => ({ startMissionAction: vi.fn() }));
 vi.mock("@/features/offline", async () => ({
-  offlineCopy: (await import("@/features/offline/copy")).offlineCopy,
-  newId: (await import("@/features/offline/outbox/uuid")).uuid,
+  offlineCopy: (await import("@jarso/core/offline")).offlineCopy,
+  newId: (await import("@jarso/core/offline")).uuid,
   runOnline: (await import("@/features/offline/online-action")).runOnline,
-  showsAsPending: (await import("@/features/offline/outbox/state")).showsAsPending,
+  showsAsPending: (await import("@jarso/core/offline")).showsAsPending,
   submitToOutbox,
   useOutbox,
   useOnline,

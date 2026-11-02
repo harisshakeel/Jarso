@@ -1,6 +1,7 @@
-import { logger } from "@/lib";
+import { logger } from "@jarso/core/lib";
 import { offlineCopy } from "../copy";
-import { isNetworkFailure, reportNetworkFailure, reportNetworkSuccess } from "../use-online";
+import { isNetworkFailure } from "../network";
+import type { OutboxPlatform } from "./ports";
 import type { OutboxItem, SendOutcome } from "./types";
 
 const SEND_TIMEOUT_MS = 15_000;
@@ -17,13 +18,19 @@ function body(item: OutboxItem): string {
   });
 }
 
-/** Sends one item to `POST /api/v1/outbox`. Never throws. */
-export async function sendToServer(item: OutboxItem): Promise<SendOutcome> {
+/** Sends one item to `POST {baseUrl}/api/v1/outbox`. Never throws. */
+export async function sendToServer(
+  platform: OutboxPlatform,
+  item: OutboxItem,
+): Promise<SendOutcome> {
+  // Called unbound: a browser's `fetch` throws "Illegal invocation" with a non-window `this`.
+  const { fetch: post, baseUrl } = platform;
   let response: Response;
   try {
-    response = await fetch("/api/v1/outbox", {
+    const headers = await platform.headers?.();
+    response = await post(`${baseUrl}/api/v1/outbox`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...headers },
       body: body(item),
       signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
     });
@@ -31,7 +38,7 @@ export async function sendToServer(item: OutboxItem): Promise<SendOutcome> {
     const reason = error instanceof DOMException && error.name === "TimeoutError";
     logger.warn("Outbox send failed", { kind: item.kind, reason: reason ? "timeout" : "network" });
     // A timeout is a slow link, not a lost one: only a fetch that never got out reports offline.
-    if (isNetworkFailure(error)) reportNetworkFailure();
+    if (isNetworkFailure(error)) platform.onNetworkFailure();
     return { kind: "retry" };
   }
 
@@ -40,7 +47,7 @@ export async function sendToServer(item: OutboxItem): Promise<SendOutcome> {
   if (response.ok) {
     // A 200 whose body never arrived whole: resend, the key makes it a replay.
     if (!json || typeof json !== "object") return { kind: "retry" };
-    reportNetworkSuccess();
+    platform.onNetworkSuccess();
     return { kind: "done", data: (json as { data?: unknown }).data };
   }
   // Too many requests or a request timeout: not a refusal, try again later.

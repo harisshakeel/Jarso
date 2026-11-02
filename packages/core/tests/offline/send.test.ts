@@ -1,24 +1,25 @@
+import type { OutboxPlatform } from "@jarso/core/offline";
+import { nextState, offlineCopy, sendToServer } from "@jarso/core/offline";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { offlineCopy } from "@/features/offline/copy";
-import { sendToServer } from "@/features/offline/outbox/send";
-import { nextState } from "@/features/offline/outbox/state";
-import { isOnline, reportNetworkSuccess } from "@/features/offline/use-online";
-import { makeItem } from "./test-utils";
+import { makeItem, makePlatform } from "./test-utils";
+
+let platform: OutboxPlatform;
 
 function respond(status: number, body: unknown) {
-  const fetchMock = vi.fn().mockResolvedValue(
+  const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
     new Response(JSON.stringify(body), {
       status,
       headers: { "content-type": "application/json" },
     }),
   );
-  vi.stubGlobal("fetch", fetchMock);
+  platform.fetch = fetchMock;
   return fetchMock;
 }
 
-beforeEach(() => reportNetworkSuccess());
+beforeEach(() => {
+  platform = makePlatform();
+});
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -28,7 +29,7 @@ describe("outcome", () => {
     respond(400, { error: { code: "VALIDATION", message } });
     // Purchases park as needs_look; a refused learning result is dropped (state.test.ts).
     const item = makeItem({ kind: "purchase" });
-    const outcome = await sendToServer(item);
+    const outcome = await sendToServer(platform, item);
     expect(outcome).toEqual({ kind: "refused", message });
     expect(nextState(item, outcome, new Date())).toMatchObject({ status: "needs_look", message });
   });
@@ -41,18 +42,19 @@ describe("outcome", () => {
       payload: { amount: "1.50", label: "Snack", idempotencyKey: "k" },
       createdAt: "2026-10-30T09:00:00.000Z",
     });
-    expect(await sendToServer(item)).toEqual({ kind: "done", data: { id: "entry-1" } });
+    expect(await sendToServer(platform, item)).toEqual({ kind: "done", data: { id: "entry-1" } });
     const [url, init] = fetchMock.mock.calls[0] ?? [];
     expect(url).toBe("/api/v1/outbox");
-    expect(init.method).toBe("POST");
-    expect(init.signal).toBeInstanceOf(AbortSignal);
-    expect(JSON.parse(init.body)).toEqual({
+    expect(init?.method).toBe("POST");
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+    expect(JSON.parse(String(init?.body))).toEqual({
       kind: "purchase",
       userId: item.userId,
       ageMs: 5 * 60_000,
       payload: { amount: "1.50", label: "Snack", idempotencyKey: "k" },
     });
-    expect(isOnline()).toBe(true);
+    expect(platform.onNetworkSuccess).toHaveBeenCalledOnce();
+    expect(platform.onNetworkFailure).not.toHaveBeenCalled();
   });
 
   it("a device clock 1 h fast sends an age of about 0, never a time", async () => {
@@ -61,53 +63,55 @@ describe("outcome", () => {
     const now = vi.spyOn(Date, "now").mockReturnValue(fast);
     const item = makeItem({ kind: "purchase", createdAt: new Date(fast).toISOString() });
     now.mockReturnValue(fast + 40);
-    await sendToServer(item);
-    const sent = JSON.parse(fetchMock.mock.calls[0]?.[1].body);
+    await sendToServer(platform, item);
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
     expect(sent.ageMs).toBe(40);
     expect(JSON.stringify(sent)).not.toContain("occurredAt");
   });
 
   it("a createdAt ahead of the clock sends age 0", async () => {
     const fetchMock = respond(200, { data: {} });
-    await sendToServer(makeItem({ createdAt: new Date(Date.now() + 60_000).toISOString() }));
-    expect(JSON.parse(fetchMock.mock.calls[0]?.[1].body).ageMs).toBe(0);
+    await sendToServer(
+      platform,
+      makeItem({ createdAt: new Date(Date.now() + 60_000).toISOString() }),
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).ageMs).toBe(0);
   });
 
   it("a network failure is a retry and reports the connection lost", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
-    expect(await sendToServer(makeItem())).toEqual({ kind: "retry" });
-    expect(isOnline()).toBe(false);
+    platform.fetch = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("fetch failed"));
+    expect(await sendToServer(platform, makeItem())).toEqual({ kind: "retry" });
+    expect(platform.onNetworkFailure).toHaveBeenCalledOnce();
   });
 
   it("a timeout is a retry but does not report the connection lost", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError")),
-    );
-    expect(await sendToServer(makeItem())).toEqual({ kind: "retry" });
-    expect(isOnline()).toBe(true);
+    platform.fetch = vi
+      .fn<typeof fetch>()
+      .mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
+    expect(await sendToServer(platform, makeItem())).toEqual({ kind: "retry" });
+    expect(platform.onNetworkFailure).not.toHaveBeenCalled();
   });
 
   it("a 503 is a retry", async () => {
     respond(503, { error: { code: "UNAVAILABLE", message: "Jarso is taking a while." } });
-    expect(await sendToServer(makeItem())).toEqual({ kind: "retry" });
+    expect(await sendToServer(platform, makeItem())).toEqual({ kind: "retry" });
     // The server answered: the device is not offline.
-    expect(isOnline()).toBe(true);
+    expect(platform.onNetworkFailure).not.toHaveBeenCalled();
   });
 
   it("a 408 is a retry", async () => {
     respond(408, { error: { code: "TIMEOUT", message: "Request timed out" } });
-    expect(await sendToServer(makeItem())).toEqual({ kind: "retry" });
+    expect(await sendToServer(platform, makeItem())).toEqual({ kind: "retry" });
   });
 
   it("a 429 is a retry, not a refusal", async () => {
     respond(429, { error: { code: "RATE_LIMITED", message: "Too many tries." } });
-    expect(await sendToServer(makeItem())).toEqual({ kind: "retry" });
+    expect(await sendToServer(platform, makeItem())).toEqual({ kind: "retry" });
   });
 
   it("a refusal without a message uses the fallback copy", async () => {
     respond(403, {});
-    expect(await sendToServer(makeItem())).toEqual({
+    expect(await sendToServer(platform, makeItem())).toEqual({
       kind: "refused",
       message: offlineCopy.refused,
     });
@@ -115,6 +119,22 @@ describe("outcome", () => {
 
   it("a 401 is unauthorized", async () => {
     respond(401, { error: { code: "UNAUTHORIZED", message: "Please sign in again." } });
-    expect(await sendToServer(makeItem())).toEqual({ kind: "unauthorized" });
+    expect(await sendToServer(platform, makeItem())).toEqual({ kind: "unauthorized" });
+  });
+
+  it("posts to baseUrl with platform headers", async () => {
+    const fetchMock = respond(200, { data: { id: "entry-1" } });
+    platform.baseUrl = "https://api.example";
+    platform.headers = async () => ({ Authorization: "Bearer t" });
+    expect(await sendToServer(platform, makeItem())).toEqual({
+      kind: "done",
+      data: { id: "entry-1" },
+    });
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("https://api.example/api/v1/outbox");
+    expect(init?.headers).toEqual({
+      "content-type": "application/json",
+      Authorization: "Bearer t",
+    });
   });
 });

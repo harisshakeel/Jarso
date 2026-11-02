@@ -1,6 +1,6 @@
-import { logger } from "@/lib";
+import { logger } from "@jarso/core/lib";
+import type { OutboxPlatform, OutboxStore } from "./ports";
 import { nextState } from "./state";
-import { open, type Store } from "./store";
 import type { OutboxItem, SendOutcome } from "./types";
 
 export type Send = (item: OutboxItem) => Promise<SendOutcome>;
@@ -14,35 +14,34 @@ const again = new Map<string, Send>();
 
 /**
  * Runs `fn` as the only drainer of this user's outbox: one per tab, and one across tabs through
- * a Web Lock. Returns `BUSY` instead of waiting. Without Web Locks it runs unlocked in-tab only.
+ * the platform's try-lock. Returns `BUSY` instead of waiting.
  */
-async function exclusive<T>(userId: string, fn: () => Promise<T>): Promise<T | typeof BUSY> {
+async function exclusive<T>(
+  platform: OutboxPlatform,
+  userId: string,
+  fn: () => Promise<T>,
+): Promise<T | typeof BUSY> {
   if (running.has(userId)) return BUSY;
   running.add(userId);
   try {
-    const locks = typeof navigator === "undefined" ? undefined : navigator.locks;
-    if (!locks) return await fn();
-    return await locks.request(`jarso-outbox:${userId}`, { ifAvailable: true }, (lock) =>
-      lock ? fn() : BUSY,
-    );
+    // Boxed, so a `null` from the lock (held elsewhere) can't be mistaken for `fn`'s result.
+    const held = await platform.withLock(`jarso-outbox:${userId}`, async () => ({
+      result: await fn(),
+    }));
+    return held ? held.result : BUSY;
   } finally {
     running.delete(userId);
   }
-}
-
-/** The browser knows it has no network: a send would only fail and use up an attempt. */
-function offline(): boolean {
-  return typeof navigator !== "undefined" && navigator.onLine === false;
 }
 
 /**
  * Sends due waiting items oldest first, one at a time, stopping at the first retry/sign-out.
  * Offline it sends nothing, so no attempt is counted towards an item's 20.
  */
-async function drain(store: Store, userId: string, send: Send) {
+async function drain(platform: OutboxPlatform, store: OutboxStore, userId: string, send: Send) {
   const outcomes = new Map<string, SendOutcome>();
   for (const item of await store.listForUser(userId)) {
-    if (offline()) break;
+    if (platform.isOffline()) break;
     if (item.status !== "waiting") continue;
     // The oldest waiting item holds the queue while it backs off, so order is kept.
     if (Date.parse(item.nextAttemptAt) > Date.now()) break;
@@ -68,11 +67,12 @@ async function drain(store: Store, userId: string, send: Send) {
  * holds it (or storage is unavailable). Shared by `flush` and `submit`.
  */
 export async function drainOutbox(
+  platform: OutboxPlatform,
   userId: string,
   send: Send,
 ): Promise<Map<string, SendOutcome> | null> {
   try {
-    return await drainOnce(userId, send);
+    return await drainOnce(platform, userId, send);
   } catch (error) {
     // Storage went away mid-drain. Items stay where they are; the next trigger tries again.
     logger.warn("Outbox flush stopped", {
@@ -85,24 +85,33 @@ export async function drainOutbox(
   }
 }
 
-async function drainOnce(userId: string, send: Send): Promise<Map<string, SendOutcome> | null> {
-  const store = await open();
+async function drainOnce(
+  platform: OutboxPlatform,
+  userId: string,
+  send: Send,
+): Promise<Map<string, SendOutcome> | null> {
+  const store = await platform.openStore();
   if (!store) return null;
 
   const inTab = running.has(userId);
-  const result = await exclusive(userId, () => drain(store, userId, send));
+  const result = await exclusive(platform, userId, () => drain(platform, store, userId, send));
   if (result === BUSY) {
     if (inTab) again.set(userId, send);
     return null;
   }
   for (let next = again.get(userId); next; next = again.get(userId)) {
     again.delete(userId);
-    if ((await exclusive(userId, () => drain(store, userId, next))) === BUSY) break;
+    if ((await exclusive(platform, userId, () => drain(platform, store, userId, next))) === BUSY)
+      break;
   }
   return result;
 }
 
 /** Sends this user's due items. A no-op while another tab is already flushing. Never throws. */
-export async function flushOutbox(userId: string, send: Send): Promise<void> {
-  await drainOutbox(userId, send);
+export async function flushOutbox(
+  platform: OutboxPlatform,
+  userId: string,
+  send: Send,
+): Promise<void> {
+  await drainOutbox(platform, userId, send);
 }

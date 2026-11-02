@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { flushOutbox } from "../outbox/flush";
-import { sendToServer } from "../outbox/send";
+import { flushOutbox, sendToServer } from "../outbox/platform";
 import { useOutbox } from "../outbox/use-outbox";
 import { onNetworkSuccess } from "../use-online";
 

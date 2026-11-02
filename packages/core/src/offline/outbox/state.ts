@@ -1,4 +1,4 @@
-import { logger } from "@/lib";
+import { logger } from "@jarso/core/lib";
 import { offlineCopy } from "../copy";
 import type { OutboxItem, SendOutcome } from "./types";
 

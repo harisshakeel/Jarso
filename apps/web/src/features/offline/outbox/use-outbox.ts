@@ -1,8 +1,8 @@
 "use client";
 
+import type { OutboxItem } from "@jarso/core/offline";
 import { useCallback, useSyncExternalStore } from "react";
 import { open } from "./store";
-import type { OutboxItem } from "./types";
 
 const EMPTY: OutboxItem[] = [];
 /** Last read per user. Keyed by user so one child never sees another's items. */
