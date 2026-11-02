@@ -1,15 +1,15 @@
 import { z } from "zod";
 
-/**
- * Child accounts use this synthetic domain (family `childEmail`). Parents can't sign up with it,
- * and nobody can sign in with it by password: children sign in with their PIN only.
- */
 /** The two paths auth logic needs; web's `routes` reuses them so there is one source. */
 export const authPaths = {
   dashboard: "/dashboard",
   authCallback: "/auth/callback",
 } as const;
 
+/**
+ * Child accounts use this synthetic domain (family `childEmail`). Parents can't sign up with it,
+ * and nobody can sign in with it by password: children sign in with their PIN only.
+ */
 const CHILD_EMAIL_DOMAIN = "@child.jarso.invalid";
 
 const parentEmail = z
