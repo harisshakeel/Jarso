@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { JarsoMark } from "@/components/brand";
+import { CoachSays, JarsoMark } from "@/components/brand";
 import { buttonVariants } from "@/components/ui";
 import { routes } from "@/config";
 import { ChildSignInForm } from "@/features/family";
@@ -16,6 +16,7 @@ export default function ChildSignInPage() {
         <h1 className="text-balance text-h1">Welcome back. Let's sign in.</h1>
         <p className="text-ink-2">Use your family code, your nickname and your PIN.</p>
       </header>
+      <CoachSays coach={{ key: "sign-in" }} says={{ moment: "signIn" }} size="sm" />
       <ChildSignInForm />
       <nav aria-label="Other ways in" className="grid justify-items-center gap-1">
         <Link href={routes.childStart} className={buttonVariants({ variant: "link", size: "lg" })}>
