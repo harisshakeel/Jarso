@@ -2143,6 +2143,7 @@ export type Database = {
         Returns: undefined
       }
       family_clock_offset: { Args: { p_family_id: string }; Returns: unknown }
+      family_demo_clock: { Args: never; Returns: boolean }
       family_now: { Args: { p_family_id: string }; Returns: string }
       family_today: {
         Args: { p_family_id: string; p_now?: string }

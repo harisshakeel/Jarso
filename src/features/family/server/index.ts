@@ -22,6 +22,7 @@ export {
   findInvitation,
   findMyInvitation,
   getChildNickname,
+  getDemoClockToday,
   getFamily,
   getFamilyNow,
   INVITATION_GONE,

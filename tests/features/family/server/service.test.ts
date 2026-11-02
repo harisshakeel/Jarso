@@ -10,6 +10,7 @@ vi.mock("@/features/notifications/server", () => ({ sendEmail: vi.fn() }));
 vi.mock("@/features/family/server/repository", () => ({
   advanceClock: vi.fn(),
   fetchFamilyNow: vi.fn(),
+  fetchIsDemoFamily: vi.fn(),
   findFamilyById: vi.fn(),
   findInvitationByHash: vi.fn(),
   findNickname: vi.fn(),
@@ -671,5 +672,33 @@ describe("advanceFamilyClock", () => {
       code: "VALIDATION",
       message: "The demo clock can go at most a year ahead.",
     });
+  });
+});
+
+describe("getDemoClockToday", () => {
+  const family = { id: "fam-1", code: "ABC234", currency: "GBP", timezone: "UTC" };
+
+  beforeEach(() => {
+    env.serverEnv.FEATURE_DEMO_CLOCK = true;
+  });
+
+  it("returns the family's today for a demo family", async () => {
+    vi.mocked(repo.fetchIsDemoFamily).mockResolvedValue(true);
+    vi.mocked(repo.fetchFamilyNow).mockResolvedValue(new Date("2026-11-09T10:00:00Z"));
+
+    await expect(service.getDemoClockToday(family)).resolves.toBe("2026-11-09");
+  });
+
+  it("hides the card for a family that is not a demo family", async () => {
+    vi.mocked(repo.fetchIsDemoFamily).mockResolvedValue(false);
+
+    await expect(service.getDemoClockToday(family)).resolves.toBeNull();
+  });
+
+  it("hides the card without asking the database when the deployment has no demo clock", async () => {
+    env.serverEnv.FEATURE_DEMO_CLOCK = false;
+
+    await expect(service.getDemoClockToday(family)).resolves.toBeNull();
+    expect(repo.fetchIsDemoFamily).not.toHaveBeenCalled();
   });
 });

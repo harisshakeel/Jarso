@@ -33,7 +33,7 @@ Callers keep passing **real time** (`p_now`, `now()`). The family's offset is ad
 
 ## App
 
-- `FEATURE_DEMO_CLOCK` (server env, default off). The action and the parent settings "Demo clock" card exist only when it is on.
+- `FEATURE_DEMO_CLOCK` (server env, default off). The action and the parent settings "Demo clock" card exist only when it is on; the card shows only for a demo family (`family_demo_clock()`, definer, true when the caller is an approved member of a family with `demo_clock_enabled`, `20261102200400`).
 - `getFamilyNow(familyId)` (server, `cache()`d, rpc `family_now`) is always used for the family's "today" (`familyToday(tz, now)`) in allowance, payments, learning, review and guide services, flag or not, so app and database agree.
 - Seed: `pnpm db:seed:demo` creates one demo family (parent and two children, allowance, goal, some history) with `demo_clock_enabled = true`. History is inserted before any advance.
 

@@ -3,7 +3,7 @@ import { cache } from "react";
 import { clientEnv, routes } from "@/config";
 import { serverEnv } from "@/config/env.server";
 import { sendEmail } from "@/features/notifications/server";
-import { AppError, isAppError, logger } from "@/lib";
+import { AppError, familyToday, isAppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -36,6 +36,7 @@ import { assertParentOf, assertRole, getMembership } from "./dal";
 import {
   advanceClock,
   fetchFamilyNow,
+  fetchIsDemoFamily,
   findFamilyById,
   findInvitationByHash,
   findNickname,
@@ -107,6 +108,16 @@ export function demoClockEnabled(): boolean {
 }
 
 const DEMO_CLOCK_OFF = "The demo clock is off.";
+
+/**
+ * The family's today for the Demo clock card, or null when the card is hidden: the deployment
+ * flag is off, or the caller's family is not a demo family.
+ */
+export async function getDemoClockToday(family: Family): Promise<string | null> {
+  if (!demoClockEnabled()) return null;
+  if (!(await fetchIsDemoFamily(await createClient()))) return null;
+  return familyToday(family.timezone, await getFamilyNow(family.id));
+}
 
 /**
  * Parent moves their family's demo clock forward. Refused unless the deployment has the flag

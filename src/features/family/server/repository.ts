@@ -87,6 +87,13 @@ export async function fetchFamilyNow(db: Client, familyId: string): Promise<Date
   return new Date(data);
 }
 
+/** Whether the caller's family is a demo family (family_demo_clock). */
+export async function fetchIsDemoFamily(db: Client): Promise<boolean> {
+  const { data, error } = await db.rpc("family_demo_clock");
+  if (error) throw toAppError(error, "Failed to read the family clock");
+  return data === true;
+}
+
 /** Moves the family's demo clock forward `days` days (advance_family_clock). */
 export async function advanceClock(
   db: Client,

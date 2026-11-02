@@ -142,7 +142,7 @@ Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no r
 DEMO_PARENT_EMAIL=demo@example.com DEMO_PARENT_PASSWORD=… DEMO_CHILD_PIN=… pnpm db:seed:demo
 ```
 
-Production is the owner's step. Export `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` for the hosted project in your own shell (the script loads no `.env` file and refuses a non-local URL without the flag), then run `pnpm db:seed:demo --yes-hosted` with the three `DEMO_*` values. Type the password and PIN at a prompt (`read -s`), not into a command line, a chat or a log. Then set `FEATURE_DEMO_CLOCK=true` for the deployment that hosts the demo; the Demo clock card in the parent's Settings moves only this family. The clock goes forward only; to start the demo over, seed again with a new `DEMO_PARENT_EMAIL`.
+Production is the owner's step. Export `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` for the hosted project in your own shell (the script loads no `.env` file and refuses a non-local URL without the flag), then run `pnpm db:seed:demo --yes-hosted` with the three `DEMO_*` values. Type the password and PIN at a prompt (`read -s`), not into a command line, a chat or a log. Then set `FEATURE_DEMO_CLOCK=true` for the deployment that hosts the demo; the Demo clock card shows in the parent's Settings of this family only, and moves only this family. The clock goes forward only; to start the demo over, seed again with a new `DEMO_PARENT_EMAIL`.
 
 ## Supabase auth settings for production
 

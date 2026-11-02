@@ -17,19 +17,12 @@ import {
   FamilySettingsForm,
   isCurrency,
 } from "@/features/family";
-import {
-  demoClockEnabled,
-  getFamily,
-  getFamilyNow,
-  listChildren,
-  requireRole,
-} from "@/features/family/server";
+import { getDemoClockToday, getFamily, listChildren, requireRole } from "@/features/family/server";
 import { PushToggle } from "@/features/notifications";
 import { paymentCopy, SavedCards } from "@/features/payments";
 import { getSavedCards, paymentsEnabled } from "@/features/payments/server";
 import { DisplayNameForm, ParentDetailsForm } from "@/features/profiles";
 import { getParentDetails, getProfile } from "@/features/profiles/server";
-import { familyToday } from "@/lib";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -53,9 +46,8 @@ async function ParentSettings({ searchParams }: Props) {
   ]);
   if (!family) redirect(routes.parentSetup);
   const { tab } = paramsSchema.parse(await searchParams);
-  const demoToday = demoClockEnabled()
-    ? familyToday(family.timezone, await getFamilyNow(family.id))
-    : null;
+  // Only for a demo family on a deployment with the demo clock on.
+  const demoToday = await getDemoClockToday(family);
 
   const familyTab = (
     <>
