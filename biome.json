@@ -107,11 +107,11 @@
                 },
                 "patterns": [
                   {
-                    "group": ["next", "next/*"],
+                    "group": ["next", "next/**"],
                     "message": "No Next.js in shared code."
                   },
                   {
-                    "group": ["@/*"],
+                    "group": ["@/**"],
                     "message": "No web app aliases in shared code."
                   },
                   {
@@ -142,11 +142,11 @@
                 },
                 "patterns": [
                   {
-                    "group": ["next", "next/*"],
+                    "group": ["next", "next/**"],
                     "message": "No Next.js in shared code."
                   },
                   {
-                    "group": ["@/*"],
+                    "group": ["@/**"],
                     "message": "No web app aliases in shared code."
                   },
                   {
