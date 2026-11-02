@@ -1,5 +1,5 @@
+import { countryCodes, genderOptions } from "@jarso/core/config";
 import { z } from "zod";
-import { countryCodes, genderOptions } from "@/config";
 import { EARLIEST_BIRTH_DATE, isAdultBirthDate } from "./age";
 
 export const updateProfileSchema = z.object({

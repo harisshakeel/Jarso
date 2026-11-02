@@ -1,5 +1,5 @@
+import { moneySchema } from "@jarso/core/lib";
 import { z } from "zod";
-import { moneySchema } from "../lib";
 import { periods, ruleKinds } from "./types";
 
 /** Set or clear one rule. An empty amount switches it off. */

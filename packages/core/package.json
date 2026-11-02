@@ -12,7 +12,9 @@
     "./config": "./src/config/index.ts",
     "./ledger": "./src/ledger/index.ts",
     "./goals": "./src/goals/index.ts",
-    "./rules": "./src/rules/index.ts"
+    "./rules": "./src/rules/index.ts",
+    "./profiles": "./src/profiles/index.ts",
+    "./auth": "./src/auth/index.ts"
   },
   "dependencies": {
     "@jarso/content": "workspace:*",

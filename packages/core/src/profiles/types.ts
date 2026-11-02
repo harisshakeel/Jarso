@@ -1,5 +1,5 @@
-import type { CountryCode, Gender } from "@/config";
-import type { Tables } from "@/types";
+import type { CountryCode, Gender } from "@jarso/core/config";
+import type { Tables } from "@jarso/db";
 
 export type ProfileRow = Tables<"profiles">;
 

@@ -1,5 +1,5 @@
+import { parentDetailsSchema } from "@jarso/core/profiles";
 import { describe, expect, it } from "vitest";
-import { parentDetailsSchema } from "@/features/profiles/schemas";
 
 const valid = { dateOfBirth: "1985-06-15", country: "PK", gender: "female" };
 

@@ -1,5 +1,5 @@
+import { isAdultBirthDate, latestAdultBirthDate } from "@jarso/core/profiles";
 import { describe, expect, it } from "vitest";
-import { isAdultBirthDate, latestAdultBirthDate } from "@/features/profiles/age";
 
 const on = (iso: string) => new Date(`${iso}T12:00:00Z`);
 

@@ -1,11 +1,15 @@
-import type { Route } from "next";
 import { z } from "zod";
-import { routes } from "@/config";
 
 /**
  * Child accounts use this synthetic domain (family `childEmail`). Parents can't sign up with it,
  * and nobody can sign in with it by password: children sign in with their PIN only.
  */
+/** The two paths auth logic needs; web's `routes` reuses them so there is one source. */
+export const authPaths = {
+  dashboard: "/dashboard",
+  authCallback: "/auth/callback",
+} as const;
+
 const CHILD_EMAIL_DOMAIN = "@child.jarso.invalid";
 
 const parentEmail = z
@@ -37,8 +41,8 @@ const PROBE_ORIGIN = "http://n.invalid";
 /** Only allow same-origin relative paths as post-login targets (prevents open redirects). */
 export function safeNextPath(
   next: string | null | undefined,
-  fallback: Route = routes.dashboard,
-): Route {
+  fallback: string = authPaths.dashboard,
+): string {
   if (!next?.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
   if (UNSAFE_PATH_CHARS.test(next) || !URL.canParse(next, PROBE_ORIGIN)) return fallback;
   // Defence in depth: resolve it the way a browser would and require it to stay on our origin.
@@ -46,13 +50,13 @@ export function safeNextPath(
   const path = `${url.pathname}${url.search}${url.hash}`;
   if (url.origin !== PROBE_ORIGIN || !path.startsWith("/") || path.startsWith("//"))
     return fallback;
-  return path as Route;
+  return path;
 }
 
 /** `path?next=…` when `next` is a safe same-origin path, else just `path`. Keeps `next` across auth pages. */
-export function withNext(path: Route, next: string | null | undefined): Route {
+export function withNext(path: string, next: string | null | undefined): string {
   if (!next || safeNextPath(next, path) !== next) return path;
-  return `${path}?next=${encodeURIComponent(next)}` as Route;
+  return `${path}?next=${encodeURIComponent(next)}`;
 }
 
 /**
@@ -73,15 +77,15 @@ export const emailConfirmSchema = z.object({
 export function nextFromEmailLink(
   value: string | null | undefined,
   allowedOrigins: readonly string[],
-  fallback: Route = routes.dashboard,
-): Route {
+  fallback: string = authPaths.dashboard,
+): string {
   const [base] = allowedOrigins;
   if (!value || !base || UNSAFE_PATH_CHARS.test(value) || !URL.canParse(value, base))
     return fallback;
   const url = new URL(value, base);
   if (!allowedOrigins.includes(url.origin)) return fallback;
   const path =
-    url.pathname === routes.authCallback
+    url.pathname === authPaths.authCallback
       ? url.searchParams.get("next")
       : `${url.pathname}${url.search}`;
   return safeNextPath(path, fallback);

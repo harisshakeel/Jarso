@@ -1,6 +1,6 @@
 // "Where your money went": this week's spending by category and money in, as plain sentences.
 // Pure. Neutral on purpose: no judging, no comparing, no percentages.
-import { addDays, formatMoney, startOfWeek } from "../lib";
+import { addDays, formatMoney, startOfWeek } from "@jarso/core/lib";
 import { categoryOf, SPEND_CATEGORIES } from "./categories";
 import type { HistoryItem } from "./types";
 

@@ -1,5 +1,7 @@
 "use client";
 
+import type { ParentDetails } from "@jarso/core/profiles";
+import { EARLIEST_BIRTH_DATE, latestAdultBirthDate } from "@jarso/core/profiles";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { Field, FieldError, FormError } from "@/components/form";
@@ -15,9 +17,7 @@ import {
 import { countryCodes, type Gender, genderLabels, genderOptions } from "@/config";
 import { runOnline } from "@/features/offline";
 import { type ActionState, idle } from "@/lib";
-import { EARLIEST_BIRTH_DATE, latestAdultBirthDate } from "../age";
 import { completeParentProfileAction } from "../server/actions";
-import type { ParentDetails } from "../types";
 
 type ParentDetailsFormProps = {
   /** Current details when editing from settings; empty for the first completion. */

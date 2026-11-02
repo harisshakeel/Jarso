@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
 import {
   loginLinkError,
   safeNextPath,
   signInSchema,
   signUpSchema,
   withNext,
-} from "@/features/auth/schemas";
+} from "@jarso/core/auth";
+import { describe, expect, it } from "vitest";
 
 describe("safeNextPath", () => {
   it.each([

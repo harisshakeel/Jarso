@@ -1,5 +1,6 @@
 "use server";
 
+import type { Route } from "next";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -41,7 +42,7 @@ export const createFamilyAction = createAction(
   async ({ next, ...input }) => {
     await assertRole("parent");
     await createFamily(input);
-    redirect(safeNextPath(next, routes.parent));
+    redirect(safeNextPath(next, routes.parent) as Route);
   },
 );
 

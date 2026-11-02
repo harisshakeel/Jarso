@@ -1,3 +1,4 @@
+import { authPaths } from "@jarso/core/auth";
 import type { Route } from "next";
 
 /** What search engines and link previews say about Jarso. The landing page copy lives in `@/features/landing`. */
@@ -52,8 +53,8 @@ export const routes = {
   privacy: "/privacy" as Route,
   login: "/login",
   signup: "/signup",
-  dashboard: "/dashboard",
-  authCallback: "/auth/callback",
+  dashboard: authPaths.dashboard,
+  authCallback: authPaths.authCallback,
   authConfirm: "/auth/confirm",
   parent: "/parent",
   parentSetup: "/parent/setup",

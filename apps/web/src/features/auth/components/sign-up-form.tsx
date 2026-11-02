@@ -1,11 +1,12 @@
 "use client";
 
+import { withNext } from "@jarso/core/auth";
+import type { Route } from "next";
 import Link from "next/link";
 import { Field, FormError } from "@/components/form";
 import { Button } from "@/components/ui";
 import { routes } from "@/config";
 import { useOnlineActionState } from "@/features/offline";
-import { withNext } from "../schemas";
 import { signUp } from "../server/actions";
 
 export function SignUpForm({ next }: { next?: string }) {
@@ -48,7 +49,7 @@ export function SignUpForm({ next }: { next?: string }) {
       </Button>
       <p className="text-muted-foreground text-center text-sm">
         Already have an account?{" "}
-        <Link href={withNext(routes.login, next)} className="underline underline-offset-4">
+        <Link href={withNext(routes.login, next) as Route} className="underline underline-offset-4">
           Sign in
         </Link>
       </p>
