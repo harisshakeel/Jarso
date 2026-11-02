@@ -95,6 +95,8 @@ export const routes = {
     `/child/learn/topics/${topicKey}${from ? `?from=${encodeURIComponent(from)}` : ""}` as Route,
   /** Take out and put in: the child's savings requests. */
   childRequests: "/child/requests" as Route,
+  /** The child's goal as a staircase of coins (FR02). */
+  childGoal: "/child/goal" as Route,
   childStart: "/start",
   childSignIn: "/sign-in/child",
   invite: "/invite",
