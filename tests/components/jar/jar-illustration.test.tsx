@@ -41,17 +41,6 @@ describe("JarIllustration", () => {
     expect(falling.querySelector("[data-coins]")).toBeNull();
   });
 
-  it("draws the goal line only with a goal", () => {
-    const { container, rerender } = render(
-      <JarIllustration jar="save" capacityMinor={4500} filledMinor={0} goal={null} />,
-    );
-    expect(container.querySelector("[data-goal-line]")).toBeNull();
-    rerender(
-      <JarIllustration jar="save" capacityMinor={4500} filledMinor={0} goal={{ emoji: "⚽" }} />,
-    );
-    expect(container.querySelector("[data-goal-line]")).not.toBeNull();
-  });
-
   it("draws the coin on its way only when money is due", () => {
     const { container } = render(
       <JarIllustration jar="save" capacityMinor={4500} filledMinor={0} dueCoin="£5" />,

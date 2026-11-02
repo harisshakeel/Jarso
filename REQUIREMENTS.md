@@ -179,6 +179,7 @@ The initial topics are:
 - A withdrawal that fits every auto-approve rule set for the child is approved at once. The parent still confirms the handover before it posts, because real cash changes hands.
 - A deposit that fits every auto-confirm rule posts at once, without the parent confirming receipt. This is a parent-chosen exception to "counts only after confirmation". It stays off unless the parent sets it.
 - Auto-approved and auto-confirmed moves send no notice.
+- The parent can also set, per child, how jar-to-jar moves are handled (2026-11-02): "Ask me first" (the flows above) or "Just tell me": a take-out or put-in is recorded at once, under any withdrawal cap, and the parent gets a notice saying what moved. Asking for extra money always waits for the parent.
 
 ### Savings deposits
 

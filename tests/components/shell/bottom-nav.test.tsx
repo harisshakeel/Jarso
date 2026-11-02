@@ -30,4 +30,12 @@ describe("BottomNav", () => {
     render(<BottomNav items={items} />);
     expect(screen.getByText("1,250")).toBeInTheDocument();
   });
+
+  it("puts the footer after the tabs, for the rail", () => {
+    render(<BottomNav items={items} footer={<a href="/settings">Account</a>} />);
+    const nav = screen.getByRole("navigation", { name: "Main" });
+    const account = screen.getByRole("link", { name: "Account" });
+    expect(nav).toContainElement(account);
+    expect(nav.lastElementChild).toContainElement(account);
+  });
 });

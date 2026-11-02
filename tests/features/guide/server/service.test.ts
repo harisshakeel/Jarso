@@ -9,6 +9,7 @@ vi.mock("@/features/family/server", () => ({
   assertParentOf: vi.fn(),
   assertRole: vi.fn(),
   getFamily: vi.fn(),
+  listChildren: vi.fn(),
 }));
 vi.mock("@/features/guide/server/config", () => ({
   getGuideProvider: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock("@/features/guide/server/repository", () => ({
   hasAnyMessage: vi.fn(),
   hitRateLimit: vi.fn(),
   listConversations: vi.fn(),
+  listConversationsAskedBy: vi.fn(),
   listMessages: vi.fn(),
   rateMessage: vi.fn(),
   recordTurn: vi.fn(),
@@ -44,6 +46,7 @@ const family = await import("@/features/family/server");
 const config = await import("@/features/guide/server/config");
 const repo = await import("@/features/guide/server/repository");
 const tools = await import("@/features/guide/server/tools");
+const memory = await import("@/features/guide/server/memory");
 const { addFact } = await import("@/features/guide/server/facts");
 const { createFakeProvider } = await import("@/features/guide/server/fake-provider");
 const service = await import("@/features/guide/server/service");
@@ -125,7 +128,7 @@ describe("askGuide", () => {
     const statuses: string[] = [];
     const result = await service.runGuideTurn(turn, { onStatus: (line) => statuses.push(line) });
     expect(tools.createTurnTools).toHaveBeenCalledWith(
-      { childId: "child-1", currency: "GBP", timezone: "Europe/London" },
+      { childId: "child-1", currency: "GBP", timezone: "Europe/London", forParent: false },
       expect.any(Function),
     );
     // Where the turn is (the phases) and each look-up, in the order the child sees them.
@@ -212,6 +215,7 @@ describe("askGuide", () => {
       flagged: false,
       createdAt: "",
       lastMessageAt: "",
+      askedBy: null,
     });
     await expect(
       service.askGuide({ clientMessageId, conversationId: "convo-2", context: home, text: "hi" }),
@@ -227,6 +231,7 @@ describe("askGuide", () => {
       flagged: false,
       createdAt: "",
       lastMessageAt: "",
+      askedBy: null,
     });
     await expect(
       service.askGuide({ clientMessageId, conversationId: "convo-1", context: home, text: "hi" }),
@@ -349,6 +354,7 @@ describe("askGuide history and fallbacks", () => {
       flagged: false,
       createdAt: "",
       lastMessageAt: "",
+      askedBy: null,
     });
     const row = (
       id: string,
@@ -555,6 +561,7 @@ describe("parent views", () => {
     flagged: true,
     createdAt: "2026-10-30T10:00:00Z",
     lastMessageAt: "2026-10-30T10:05:00Z",
+    askedBy: null,
   };
   const message = (
     id: string,
@@ -618,5 +625,165 @@ describe("parent views", () => {
       code: "FORBIDDEN",
     });
     expect(repo.setGuideAccess).not.toHaveBeenCalled();
+  });
+});
+
+describe("a parent asking about their child", () => {
+  const home = { entry: "home" as const };
+  const asParent = () => {
+    vi.mocked(family.assertRole).mockResolvedValue({
+      user: { id: "parent-1", email: "parent@example.test" } as never,
+      membership: null,
+    });
+    vi.mocked(family.listChildren).mockResolvedValue([{ id: "child-1", nickname: "Sam" }]);
+  };
+
+  it("asks as the parent: the chat is the child's with the parent on it, no memories, no remember tool", async () => {
+    asParent();
+    const turn = await service.prepareGuideTurn({
+      clientMessageId: "11111111-1111-4111-8111-111111111111",
+      conversationId: null,
+      context: { entry: "parent", childId: "child-1" },
+      text: "How is Sam doing with saving?",
+    });
+    expect(family.assertRole).toHaveBeenCalledWith("parent");
+    expect(turn.kind).toBe("ready");
+    if (turn.kind !== "ready") return;
+    expect(turn.childId).toBe("child-1");
+    expect(turn.askedBy).toBe("parent-1");
+    expect(turn.context.text).toContain("Sam's parent");
+    expect(repo.startConversation).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ childId: "child-1", entry: "parent", askedBy: "parent-1" }),
+    );
+    expect(memory.listMemories).not.toHaveBeenCalled();
+    await service.runGuideTurn(turn);
+    expect(tools.createTurnTools).toHaveBeenCalledWith(
+      expect.objectContaining({ childId: "child-1", forParent: true }),
+      undefined,
+    );
+  });
+
+  it("refuses a child who is not theirs, before any read", async () => {
+    asParent();
+    await expect(
+      service.prepareGuideTurn({
+        clientMessageId: "11111111-1111-4111-8111-111111111111",
+        conversationId: null,
+        context: { entry: "parent", childId: "someone-else" },
+        text: "hi",
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repo.findGuideAccess).not.toHaveBeenCalled();
+  });
+
+  it("keeps a child's own chat the child's: a parent can't continue it", async () => {
+    asParent();
+    vi.mocked(repo.findConversation).mockResolvedValue({
+      id: "convo-9",
+      childId: "child-1",
+      entry: "home",
+      contextKey: "home",
+      turns: 1,
+      flagged: false,
+      createdAt: "2026-11-01T10:00:00Z",
+      lastMessageAt: "2026-11-01T10:00:00Z",
+      askedBy: null,
+    });
+    await expect(
+      service.prepareGuideTurn({
+        clientMessageId: "11111111-1111-4111-8111-111111111111",
+        conversationId: "convo-9",
+        context: { entry: "parent", childId: "child-1" },
+        text: "and then?",
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    void home;
+  });
+});
+
+describe("the Jarso page's own chats", () => {
+  const row = (
+    over: Partial<Awaited<ReturnType<typeof repo.findConversation>>> & { id: string },
+  ) => ({
+    childId: "child-1",
+    entry: "home" as const,
+    contextKey: "home",
+    turns: 2,
+    flagged: false,
+    createdAt: "2026-11-01T10:00:00Z",
+    lastMessageAt: "2026-11-01T10:05:00Z",
+    askedBy: null,
+    ...over,
+  });
+  const line = (id: string, conversationId: string, role: "child" | "guide", text: string) => ({
+    id,
+    conversationId,
+    role,
+    text,
+    route: role === "guide" ? ("on_topic" as const) : null,
+    flagged: false,
+    rating: null,
+    createdAt: "2026-11-01T10:00:00Z",
+    checked: [],
+  });
+
+  it("lists the child's own chats newest first, titled by their first message", async () => {
+    vi.mocked(repo.listConversations).mockResolvedValue([
+      row({ id: "old", lastMessageAt: "2026-10-30T10:00:00Z" }),
+      row({ id: "new" }),
+    ]);
+    vi.mocked(repo.listMessages).mockResolvedValue([
+      line("m1", "old", "child", "what is saving?"),
+      line("m2", "old", "guide", "Keeping money for later."),
+      line("m3", "new", "child", "How much do I have?"),
+      line("m4", "new", "guide", "You have £12.40 in Spend."),
+    ]);
+    const chats = await service.listMyChats();
+    expect(family.assertRole).toHaveBeenCalledWith("child");
+    expect(repo.listConversations).toHaveBeenCalledWith(expect.anything(), "child-1");
+    expect(chats.map((c) => [c.id, c.preview, c.childId])).toEqual([
+      ["new", "How much do I have?", "child-1"],
+      ["old", "what is saving?", "child-1"],
+    ]);
+  });
+
+  it("reopens only the child's own chat, never a parent's chat about them", async () => {
+    vi.mocked(repo.listMessages).mockResolvedValue([line("m1", "convo-1", "child", "")]);
+    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "convo-1" }));
+    const mine = await service.getMyTranscript("convo-1");
+    expect(mine?.summary.id).toBe("convo-1");
+    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "convo-2", askedBy: "parent-1" }));
+    await expect(service.getMyTranscript("convo-2")).resolves.toBeNull();
+    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "convo-3", childId: "child-2" }));
+    await expect(service.getMyTranscript("convo-3")).resolves.toBeNull();
+  });
+
+  it("lists and reopens the parent's own chats about their children", async () => {
+    vi.mocked(family.assertRole).mockResolvedValue({
+      user: { id: "parent-1", email: "parent@example.test" } as never,
+      membership: null,
+    });
+    vi.mocked(repo.listConversationsAskedBy).mockResolvedValue([
+      row({ id: "p1", entry: "parent", contextKey: "parent:child-1", askedBy: "parent-1" }),
+    ]);
+    vi.mocked(repo.listMessages).mockResolvedValue([
+      line("m1", "p1", "child", "How is Sam doing with saving?"),
+      line("m2", "p1", "guide", "Sam has £64 in Save."),
+    ]);
+    const chats = await service.listParentChats();
+    expect(repo.listConversationsAskedBy).toHaveBeenCalledWith(expect.anything(), "parent-1");
+    expect(chats[0]).toMatchObject({
+      id: "p1",
+      childId: "child-1",
+      preview: "How is Sam doing with saving?",
+      label: "A parent asked about them",
+    });
+    vi.mocked(repo.findConversation).mockResolvedValue(
+      row({ id: "p1", entry: "parent", contextKey: "parent:child-1", askedBy: "parent-1" }),
+    );
+    expect((await service.getParentTranscript("p1"))?.messages).toHaveLength(2);
+    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "c1" }));
+    await expect(service.getParentTranscript("c1")).resolves.toBeNull();
   });
 });

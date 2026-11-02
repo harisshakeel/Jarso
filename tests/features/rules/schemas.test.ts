@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { overspendSchema, setRuleSchema } from "@/features/rules/schemas";
+import { jarMovesSchema, overspendSchema, setRuleSchema } from "@/features/rules/schemas";
 
 const childId = "6f1c2a52-3c4e-4c8e-9a51-0a1b2c3d4e5f";
 const base = { childId, kind: "spend_limit", period: "week" };
@@ -31,5 +31,13 @@ describe("overspendSchema", () => {
   it("needs a child and a boolean", () => {
     expect(overspendSchema.parse({ childId, allowed: true })).toEqual({ childId, allowed: true });
     expect(overspendSchema.safeParse({ childId: "x", allowed: true }).success).toBe(false);
+  });
+});
+
+describe("jarMovesSchema", () => {
+  it("takes ask or notify for a child, nothing else", () => {
+    expect(jarMovesSchema.parse({ childId, mode: "notify" })).toEqual({ childId, mode: "notify" });
+    expect(jarMovesSchema.safeParse({ childId, mode: "maybe" }).success).toBe(false);
+    expect(jarMovesSchema.safeParse({ childId: "x", mode: "ask" }).success).toBe(false);
   });
 });

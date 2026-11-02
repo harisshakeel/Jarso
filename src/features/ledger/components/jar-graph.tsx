@@ -1,7 +1,15 @@
 "use client";
 
-import { type KeyboardEvent, type PointerEvent, useId, useMemo, useState } from "react";
-import { CoachSays } from "@/components/brand";
+import {
+  type KeyboardEvent,
+  type PointerEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { CoachFigure, CoachSays, coachIdFor } from "@/components/brand";
 import { cn, formatMoney } from "@/lib";
 import {
   type BalanceHistory,
@@ -10,24 +18,32 @@ import {
   graphCaption,
   graphPeriods,
   lastDays,
+  riderTrack,
 } from "../balance-history";
 
 // The drawing box. Text and marks are in these units; the SVG scales to its column.
+/** The ride starts after the track has drawn, and lasts about a second. */
+const RIDE_DELAY_MS = 900;
+const RIDE_MS = 1000;
+
 const W = 360;
-const H = 200;
-const PAD = { top: 14, right: 14, bottom: 26, left: 44 };
+const H = 210;
+const PAD = { top: 40, right: 16, bottom: 30, left: 46 };
 const PLOT = { x: PAD.left, y: PAD.top, w: W - PAD.left - PAD.right, h: H - PAD.top - PAD.bottom };
+const GROUND = PLOT.y + PLOT.h + 3;
+
+/** The same coach every time, so the ride is theirs. */
+const RIDER_KEY = "jar-graph";
 
 type Series = "spend" | "save";
-const SERIES: { key: Series; name: string; line: string; fill: string; dot: string }[] = [
+const SERIES: { key: Series; name: string; line: string; post: string }[] = [
   {
     key: "spend",
     name: "Spend",
     line: "stroke-teal-600 dark:stroke-teal-300",
-    fill: "fill-teal-600 dark:fill-teal-300",
-    dot: "fill-teal-600 dark:fill-teal-300",
+    post: "stroke-teal-600/40 dark:stroke-teal-300/40",
   },
-  { key: "save", name: "Save", line: "stroke-gold", fill: "fill-gold", dot: "fill-gold" },
+  { key: "save", name: "Save", line: "stroke-gold", post: "stroke-gold/50" },
 ];
 
 /** "Fri 30 Oct" for an ISO date; a calendar day, so formatted in UTC. */
@@ -40,12 +56,13 @@ function showDate(isoDate: string): string {
   }).format(new Date(`${isoDate}T00:00:00Z`));
 }
 
-/** A round step for the gridlines: 1, 2, 5 × 10ⁿ in whole currency units. */
-function niceStep(maxMinor: number, lines: number): number {
-  const rough = Math.max(100, maxMinor / lines);
+/** A round top for the picture: 1, 2, 5 × 10ⁿ in whole currency units, above the highest point. */
+function niceTop(maxMinor: number): number {
+  const rough = Math.max(100, maxMinor / 3);
   const power = 10 ** Math.floor(Math.log10(rough));
   const unit = [1, 2, 5, 10].find((u) => u * power >= rough) ?? 10;
-  return unit * power;
+  const step = unit * power;
+  return Math.max(step, Math.ceil(maxMinor / step) * step);
 }
 
 /**
@@ -103,6 +120,23 @@ export function smoothPath(xs: number[], ys: number[]): string {
 }
 const r = (value: number) => Math.round(value * 100) / 100;
 
+/** A gold coin on the track, as the mark draws them, with a card ring so it reads over the line. */
+function Coin({ cx, cy, big }: { cx: number; cy: number; big: boolean }) {
+  const size = big ? 7 : 5;
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={size + 2} className="fill-card" />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={size}
+        strokeWidth={1.5}
+        className="fill-gold stroke-teal-800 transition-[r] duration-150"
+      />
+    </g>
+  );
+}
+
 type JarGraphProps = {
   history: BalanceHistory;
   currency: string;
@@ -113,46 +147,93 @@ type JarGraphProps = {
 };
 
 /**
- * How the jars moved (child Home): Spend and Save as two soft lines over the last 7, 30 or 90
- * days, ending at today's balances. Days when money moved carry a coin-sized dot. Point, tap or
- * use the arrow keys to read a day: a hairline finds it and a card gives both jars' figures.
- * Under it, one line says what climbed and what dipped. The figures are also in a plain list.
+ * Your money ride (child Home): Spend and Save as two rollercoaster tracks over this week, this
+ * month or 3 months, ending at today's balances. Height is the amount, left to right is days.
+ * Posts hold the tracks up, flags along the ground name the days, a coin sits on the track each
+ * day money moved, and the child's coach rides a cart on the track that moved most, parked at
+ * today. The tracks draw in and the cart rides once when the picture or its period appears.
+ * Point, tap or use the arrow keys to read a day: a hairline finds it and a card gives both jars'
+ * figures. The coach says what climbed and what dipped; "See the numbers" lists the figures.
  */
 export function JarGraph({
   history,
   currency,
-  title = "How your jars moved",
+  title = "Your money ride",
   showMinor = "nonzero",
 }: JarGraphProps) {
   const id = useId();
-  const [days, setDays] = useState<GraphPeriod>(30);
+  const [days, setDays] = useState<GraphPeriod>(7);
   const [active, setActive] = useState<number | null>(null);
   const money = (minor: number) => formatMoney(minor, currency, { showMinor });
+  const period = graphPeriods.find((p) => p.days === days) ?? graphPeriods[0];
+  const coach = coachIdFor(RIDER_KEY);
 
   const view = useMemo(() => lastDays(history, days), [history, days]);
   const { points } = view;
   const moved = new Set(view.movedOn);
-  const max = Math.max(100, ...points.flatMap((p) => [p.spend, p.save]));
-  const step = niceStep(max, 3);
-  const top = Math.max(step, Math.ceil(max / step) * step);
+  const top = niceTop(Math.max(100, ...points.flatMap((p) => [p.spend, p.save])));
   const x = (index: number) =>
     PLOT.x + (points.length < 2 ? PLOT.w / 2 : (index / (points.length - 1)) * PLOT.w);
   const y = (minor: number) => PLOT.y + PLOT.h - (Math.max(0, minor) / top) * PLOT.h;
-  const lines = SERIES.map((series) => {
-    const xs = points.map((_, index) => x(index));
-    const ys = points.map((p) => y(p[series.key]));
-    const path = smoothPath(xs, ys);
-    const first = xs[0] ?? PLOT.x;
-    const last = xs.at(-1) ?? PLOT.x;
-    const area = `${path} L${last} ${PLOT.y + PLOT.h} L${first} ${PLOT.y + PLOT.h} Z`;
-    return { ...series, path, area };
-  });
-  const gridValues = Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step);
-  // A handful of dates along the bottom, the last one always today.
+  const tracks = SERIES.map((series) => ({
+    ...series,
+    path: smoothPath(
+      points.map((_, index) => x(index)),
+      points.map((p) => y(p[series.key])),
+    ),
+  }));
+  // Posts hold each track up every day or two; flags name a handful of days, today always.
+  const postEvery = Math.max(1, Math.ceil(points.length / 8));
   const tickEvery = Math.max(1, Math.ceil(points.length / 4));
-  const ticks = points
+  const flags = points
     .map((p, index) => ({ p, index }))
     .filter(({ index }) => (points.length - 1 - index) % tickEvery === 0);
+  const rider = riderTrack(points);
+  const last = points.length - 1;
+  const cart = last >= 0 ? { x: x(last), y: y(points[last]?.[rider] ?? 0) } : null;
+  const svgRef = useRef<SVGSVGElement>(null);
+  const cartRef = useRef<SVGGElement>(null);
+  const cartX = cart ? r(cart.x) : 0;
+  const cartY = cart ? r(cart.y) : 0;
+
+  // One ride when the picture appears or the period changes: the cart runs its track from the
+  // first day to today over a second, after the track has drawn, then parks at today's point.
+  // Done in script along the drawn path, because motion paths on SVG groups are not reliable
+  // across browsers. Reduced motion, or no path geometry (tests), parks it at once.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a period change restarts the ride
+  useEffect(() => {
+    const cartEl = cartRef.current;
+    const track = svgRef.current?.querySelector<SVGPathElement>(`path[data-track="${rider}"]`);
+    if (!cartEl) return;
+    const park = () => cartEl.setAttribute("transform", `translate(${cartX} ${cartY})`);
+    const still =
+      typeof window === "undefined" ||
+      (typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
+      !track ||
+      typeof track.getTotalLength !== "function";
+    if (still || !track) {
+      park();
+      return;
+    }
+    const total = track.getTotalLength();
+    if (!total) {
+      park();
+      return;
+    }
+    const start = performance.now() + RIDE_DELAY_MS;
+    const ease = (t: number) => 1 - (1 - t) ** 3;
+    let frame = 0;
+    const step = (now: number) => {
+      const t = Math.min(1, Math.max(0, (now - start) / RIDE_MS));
+      const at = track.getPointAtLength(total * ease(t));
+      cartEl.setAttribute("transform", `translate(${r(at.x)} ${r(at.y)})`);
+      if (t < 1) frame = requestAnimationFrame(step);
+      else park();
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [days, rider, cartX, cartY]);
   const current: BalancePoint | undefined = active === null ? undefined : points[active];
 
   function nearest(event: PointerEvent<SVGSVGElement>) {
@@ -190,33 +271,33 @@ export function JarGraph({
         </h2>
         <fieldset className="flex gap-1 rounded-full bg-muted p-1">
           <legend className="sr-only">Show</legend>
-          {graphPeriods.map((period) => (
+          {graphPeriods.map((option) => (
             <button
-              key={period.days}
+              key={option.days}
               type="button"
-              aria-pressed={days === period.days}
+              aria-pressed={days === option.days}
               onClick={() => {
-                setDays(period.days);
+                setDays(option.days);
                 setActive(null);
               }}
               className={cn(
                 "min-h-9 rounded-full px-3 font-semibold text-sm transition-colors",
-                days === period.days
+                days === option.days
                   ? "bg-card text-foreground shadow-rest"
                   : "text-ink-2 hover:text-foreground",
               )}
             >
-              {period.label}
+              {option.label}
             </button>
           ))}
         </fieldset>
       </div>
 
-      <ul aria-label="Lines" className="flex gap-4 text-sm">
+      <ul aria-label="Tracks" className="flex gap-4 text-sm">
         {SERIES.map((series) => (
           <li key={series.key} className="flex items-center gap-2 font-semibold">
             <svg aria-hidden viewBox="0 0 20 8" className="h-2 w-5">
-              <path d="M1 4 H19" strokeWidth={2.5} strokeLinecap="round" className={series.line} />
+              <path d="M1 4 H19" strokeWidth={4} strokeLinecap="round" className={series.line} />
             </svg>
             {series.name}
           </li>
@@ -234,6 +315,7 @@ export function JarGraph({
         className="relative mx-auto w-full max-w-md rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
       >
         <svg
+          ref={svgRef}
           aria-hidden
           viewBox={`0 0 ${W} ${H}`}
           onPointerMove={nearest}
@@ -241,81 +323,154 @@ export function JarGraph({
           onPointerLeave={() => setActive(null)}
           className="h-auto w-full touch-pan-y select-none overflow-visible"
         >
-          {gridValues.map((value) => (
-            <g key={value}>
+          {/* Two money marks: the top of the ride and the ground. */}
+          {[top, 0].map((value) => (
+            <text
+              key={value}
+              x={PLOT.x - 8}
+              y={y(value) + 4}
+              textAnchor="end"
+              fontSize={11}
+              fontWeight={700}
+              className="fill-muted-foreground"
+            >
+              {money(value)}
+            </text>
+          ))}
+          {/* The ground, and a flag for each named day. */}
+          <line
+            x1={PLOT.x - 6}
+            x2={PLOT.x + PLOT.w + 6}
+            y1={GROUND}
+            y2={GROUND}
+            strokeWidth={2}
+            strokeLinecap="round"
+            className="stroke-hairline-strong"
+          />
+          {flags.map(({ p, index }) => (
+            <g key={p.date}>
               <line
-                x1={PLOT.x}
-                x2={PLOT.x + PLOT.w}
-                y1={y(value)}
-                y2={y(value)}
-                strokeWidth={1}
-                className="stroke-hairline-strong"
+                x1={x(index)}
+                x2={x(index)}
+                y1={GROUND}
+                y2={GROUND + 9}
+                strokeWidth={1.5}
+                className="stroke-muted-foreground"
+              />
+              <path
+                d={`M${x(index)} ${GROUND + 1} h7 l-2 2.5 l2 2.5 h-7 Z`}
+                className="fill-teal-300 dark:fill-teal-400"
               />
               <text
-                x={PLOT.x - 6}
-                y={y(value) + 3.5}
-                textAnchor="end"
+                x={x(index)}
+                y={H - 4}
+                textAnchor={index === 0 ? "start" : index === last ? "end" : "middle"}
                 fontSize={10}
+                fontWeight={600}
                 className="fill-muted-foreground"
               >
-                {money(value)}
+                {showDate(p.date).slice(4)}
               </text>
             </g>
           ))}
-          {ticks.map(({ p, index }) => (
-            <text
-              key={p.date}
-              x={x(index)}
-              y={H - 8}
-              textAnchor={index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}
-              fontSize={10}
-              className="fill-muted-foreground"
-            >
-              {showDate(p.date).slice(4)}
-            </text>
-          ))}
-          {lines.map((series) => (
-            <g key={`${series.key}-${days}`}>
-              <path d={series.area} className={cn(series.fill, "opacity-10")} />
+          <g key={days}>
+            {/* Posts under each track, then the tracks, then the coins. */}
+            {tracks.map((track) =>
+              points.map((p, index) =>
+                index % postEvery === 0 || index === last ? (
+                  <line
+                    key={`${track.key}-post-${p.date}`}
+                    x1={x(index)}
+                    x2={x(index)}
+                    y1={y(p[track.key])}
+                    y2={GROUND}
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    className={track.post}
+                  />
+                ) : null,
+              ),
+            )}
+            {tracks.map((track) => (
               <path
-                d={series.path}
+                data-track={track.key}
+                key={track.key}
+                d={track.path}
                 fill="none"
-                strokeWidth={2.5}
+                strokeWidth={6}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 pathLength={1}
                 className={cn(
-                  series.line,
+                  track.line,
                   "motion-safe:animate-[graph-draw_900ms_var(--ease-brand)_both]",
                 )}
               />
-            </g>
-          ))}
+            ))}
+            {points.map((p, index) =>
+              moved.has(p.date) || index === active
+                ? SERIES.map((series) => (
+                    <Coin
+                      key={`${series.key}-${p.date}`}
+                      cx={x(index)}
+                      cy={y(p[series.key])}
+                      big={index === active}
+                    />
+                  ))
+                : null,
+            )}
+            {cart ? (
+              <g
+                ref={cartRef}
+                data-rider={rider}
+                className="coaster-cart"
+                transform={`translate(${cartX} ${cartY})`}
+              >
+                {/* The coach sits in the cart; the cart's body covers their legs. */}
+                <g transform="translate(-9 -36)">
+                  <CoachFigure coach={coach} size={30} />
+                </g>
+                <rect
+                  x={-14}
+                  y={-15}
+                  width={28}
+                  height={14}
+                  rx={5}
+                  className="fill-teal-800 dark:fill-teal-200"
+                />
+                <line
+                  x1={-9}
+                  x2={9}
+                  y1={-17}
+                  y2={-17}
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                  className="stroke-teal-800 dark:stroke-teal-200"
+                />
+                {[-8, 8].map((wheel) => (
+                  <circle
+                    key={wheel}
+                    cx={wheel}
+                    cy={-1}
+                    r={3.5}
+                    strokeWidth={1.5}
+                    className="fill-card stroke-teal-800 dark:stroke-teal-200"
+                  />
+                ))}
+              </g>
+            ) : null}
+          </g>
           {current && active !== null ? (
             <line
               x1={x(active)}
               x2={x(active)}
-              y1={PLOT.y}
-              y2={PLOT.y + PLOT.h}
+              y1={PLOT.y - 6}
+              y2={GROUND}
               strokeWidth={1}
               strokeDasharray="3 3"
               className="stroke-foreground/50"
             />
           ) : null}
-          {points.map((p, index) =>
-            moved.has(p.date) || index === points.length - 1 || index === active
-              ? SERIES.map((series) => (
-                  <circle
-                    key={`${series.key}-${p.date}`}
-                    cx={x(index)}
-                    cy={y(p[series.key])}
-                    r={index === active ? 7 : 5}
-                    strokeWidth={2}
-                    className={cn(series.dot, "stroke-card transition-[r] duration-150")}
-                  />
-                ))
-              : null,
-          )}
         </svg>
         {current ? (
           <div
@@ -329,7 +484,7 @@ export function JarGraph({
                 <svg aria-hidden viewBox="0 0 16 8" className="h-2 w-4">
                   <path
                     d="M1 4 H15"
-                    strokeWidth={2.5}
+                    strokeWidth={4}
                     strokeLinecap="round"
                     className={series.line}
                   />
@@ -342,11 +497,11 @@ export function JarGraph({
         ) : null}
       </div>
 
-      {view.movedOn.length > 0 ? (
-        <p className="text-center text-ink-2">{graphCaption(points, true, money)}</p>
-      ) : (
-        <CoachSays coach={{ key: "jar-graph" }} says={{ moment: "nothingMoved" }} size="sm" />
-      )}
+      <CoachSays
+        coach={coach}
+        says={graphCaption(points, view.movedOn.length > 0, money, period.word)}
+        size="sm"
+      />
 
       <details className="text-sm">
         <summary className="cursor-pointer font-semibold text-ink-2">See the numbers</summary>
@@ -366,7 +521,7 @@ export function JarGraph({
           </thead>
           <tbody>
             {points
-              .filter((p, index) => moved.has(p.date) || index === points.length - 1)
+              .filter((p, index) => moved.has(p.date) || index === last)
               .map((p) => (
                 <tr key={p.date} className="border-hairline border-t">
                   <th scope="row" className="py-1 font-normal">

@@ -91,6 +91,8 @@ export function withdrawalMessage(result: WithdrawalResult, currency: string): s
       return "Sent to your parent";
     case "approved":
       return "Approved, your parent will hand it over";
+    case "done":
+      return "Done. Your parent knows.";
     case "already_sent":
       return "Already sent to your parent";
     case "over_cap":

@@ -7,6 +7,7 @@ import { NoticeListener } from "@/features/notifications";
 import { getUnreadCount } from "@/features/notifications/server";
 import { OutboxSync } from "@/features/offline";
 import { logger } from "@/lib";
+import { RailAvatar } from "../header-avatar";
 
 /**
  * Child area: static shell with the child tab bar. Pages read the session behind <Suspense>.
@@ -18,7 +19,7 @@ export default function ChildLayout({ children }: LayoutProps<"/child">) {
     <>
       {children}
       <Suspense fallback={null}>
-        <Suspense fallback={<ChildNav />}>
+        <Suspense fallback={<ChildNav footer={<RailAvatar />} />}>
           <ChildNavWithCount />
         </Suspense>
       </Suspense>
@@ -35,10 +36,10 @@ export default function ChildLayout({ children }: LayoutProps<"/child">) {
 /** The tab bar with the Inbox count. Without a session or on a read error it shows no count. */
 async function ChildNavWithCount() {
   try {
-    return <ChildNav unread={await getUnreadCount()} />;
+    return <ChildNav unread={await getUnreadCount()} footer={<RailAvatar />} />;
   } catch (error) {
     unstable_rethrow(error);
-    return <ChildNav />;
+    return <ChildNav footer={<RailAvatar />} />;
   }
 }
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { coachIdFor, JarCoach } from "@/components/brand";
+import { CoachFigure, coachIdFor } from "@/components/brand";
 import { buttonVariants } from "@/components/ui";
 import { routes } from "@/config";
 
@@ -7,7 +7,7 @@ import { routes } from "@/config";
 export default function NotFound() {
   return (
     <main className="rise-in flex flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
-      <JarCoach coach={coachIdFor("not-found")} size={96} />
+      <CoachFigure coach={coachIdFor("not-found")} size={96} />
       <h2 className="text-balance text-h1">That page rolled away.</h2>
       <p className="text-ink-2 text-lg">Your jars are still where you left them.</p>
       <Link href={routes.dashboard} className={buttonVariants({ size: "lg" })}>

@@ -3,7 +3,8 @@ import { easeInOut, segment } from "../motion";
 
 // The hero's kid, drawn like the jar mark (design.md §7): thick round-ended strokes, flat fills,
 // a cyan hoodie like the lid and teal trousers like the jar. Gold stays for coins. Units are scene
-// units with the origin between the feet; y grows downward.
+// units with the origin between the feet; y grows downward. The same figure, standing still, is
+// `KidFigure` in components/brand, where the four coaches are drawn from it; keep the two alike.
 
 /** One frame of the kid: crouch, hop, arm angles, gaze and expression. */
 export type KidPose = {
@@ -103,7 +104,7 @@ function Arm({ pose, side }: { pose: KidPose; side: 1 | -1 }) {
         strokeLinecap="round"
         className="stroke-cyan-300"
       />
-      <circle cx={x} cy={y} r={11} fill="#D9A07A" />
+      <circle cx={x} cy={y} r={11} className="fill-skin-1" />
     </g>
   );
 }
@@ -213,19 +214,33 @@ export function KidArt({
         className="stroke-cyan-300"
       />
       <g>
-        <circle cx={0} cy={headY} r={38} fill="#D9A07A" />
+        <circle cx={0} cy={headY} r={38} className="fill-skin-1" />
         <path
           d={`M-39 ${headY + 4}C-45 ${headY - 45} 40 ${headY - 51} 40 ${headY}C30 ${headY - 18} 10 ${headY - 22} -4 ${headY - 14}C-16 ${headY - 24} -31 ${headY - 18} -39 ${headY + 4}Z`}
-          fill="#2B1D14"
+          className="fill-hair-1"
         />
-        <ellipse cx={-22 + eyeX} cy={headY + 15} rx={6.5} ry={4} fill="#F08A6B" opacity={0.45} />
-        <ellipse cx={22 + eyeX} cy={headY + 15} rx={6.5} ry={4} fill="#F08A6B" opacity={0.45} />
-        <circle cx={-12 + eyeX} cy={headY + 3 + eyeY} r={4.6} fill="#141C1F" />
-        <circle cx={12 + eyeX} cy={headY + 3 + eyeY} r={4.6} fill="#141C1F" />
+        <ellipse
+          cx={-22 + eyeX}
+          cy={headY + 15}
+          rx={6.5}
+          ry={4}
+          className="fill-blush"
+          opacity={0.45}
+        />
+        <ellipse
+          cx={22 + eyeX}
+          cy={headY + 15}
+          rx={6.5}
+          ry={4}
+          className="fill-blush"
+          opacity={0.45}
+        />
+        <circle cx={-12 + eyeX} cy={headY + 3 + eyeY} r={4.6} className="fill-kid-ink" />
+        <circle cx={12 + eyeX} cy={headY + 3 + eyeY} r={4.6} className="fill-kid-ink" />
         {pose.mood === "cheer" ? (
           <path
             d={`M${-10 + eyeX} ${mouthY - 2}Q${eyeX} ${mouthY + 15} ${10 + eyeX} ${mouthY - 2}Z`}
-            fill="#141C1F"
+            className="fill-kid-ink"
           />
         ) : (
           <path
@@ -235,8 +250,8 @@ export function KidArt({
                 : `M${-9 + eyeX} ${mouthY - 1}Q${eyeX} ${mouthY + 7} ${9 + eyeX} ${mouthY - 1}`
             }
             fill="none"
-            stroke="#141C1F"
             strokeWidth={3.5}
+            className="stroke-kid-ink"
             strokeLinecap="round"
           />
         )}

@@ -108,4 +108,18 @@ describe("buildContext", () => {
       ),
     ).toThrow(/couldn't find/);
   });
+
+  it("tells Jarso when a parent is asking about their child, by name", () => {
+    const context = buildContext(
+      { entry: "parent", childId: "11111111-1111-4111-8111-111111111111" },
+      "GBP",
+      "2026-11-02",
+      { childNickname: "Sam" },
+    );
+    expect(context.entry).toBe("parent");
+    expect(context.contextKey).toBe("parent:11111111-1111-4111-8111-111111111111");
+    expect(context.text).toContain("Sam's parent");
+    expect(context.text).toContain('never "you"');
+    expect(context.text).toContain("Keep no memories");
+  });
 });
