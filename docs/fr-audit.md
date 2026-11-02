@@ -58,10 +58,10 @@ Thirteen of thirteen are met on `main` once PR B merges.
 ## Known follow-ups from slice 2 (non-blocking)
 
 - **Injectable clock (D11)** in the remaining time-based functions; do it right before the slice 6 demo clock.
-- **Generator timeout** leaves no `job_runs` row, because the cancelled statement rolls back the run.
+- **Generator timeout:** fixed. The generator stops starting schedules after 45 s (under the job's 60 s timeout) and records the run as `error` with `stopped_early`; a schedule stuck behind a lock fails alone after 5 s. Only a single schedule running past the remaining 15 s would still lose the row.
 - **`allowance_next_due_on`** can show a past date between an ended pause and the next hourly run. Display only; it fixes itself on the next run.
-- **Module boundary:** the ledger repository reads `allowance_occurrences`; move history composition into `allowance`.
-- **Date helpers** are copied in four places; move them to `@/lib`.
+- **Module boundary:** fixed. The occurrence reads behind history live in `allowance` (`getOccurrenceAmounts`, `getClosedOccurrences`); the ledger service calls them.
+- **Date helpers:** fixed. `utcMidnight`, `formatIsoDate` and `localDateOf` in `@/lib` replace the copies.
 - **Parent home** makes about six queries per child; fine at family size.
 - **ADR 0008, amended:** money functions check parenthood but not profile completion; the app gate is the enforcement.
 
