@@ -21,7 +21,7 @@ type AppHeaderProps = {
 export function AppHeader({ homeHref, end }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-hairline border-b bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-[16px]">
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="flex h-14 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           href={homeHref}
           className="-mx-2 flex min-h-11 items-center gap-2 rounded-full px-2 font-extrabold text-h3 text-primary"

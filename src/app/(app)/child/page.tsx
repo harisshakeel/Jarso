@@ -38,7 +38,9 @@ async function ChildHome() {
   return (
     <>
       <h1 className="rise-in text-balance text-display">{nickname ? `Hi, ${nickname}!` : "Hi!"}</h1>
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-10">
+      {/* Phones stack; laptops get money and the next thing side by side with the graph under
+          them; wide screens get three columns, so nothing needs a scroll. */}
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8 xl:grid-cols-3">
         <div className="grid gap-6">
           <Suspense fallback={<div aria-hidden className="shimmer h-96 rounded-xl bg-muted" />}>
             <HomeShelf
@@ -52,11 +54,13 @@ async function ChildHome() {
             <PurchaseSheet currency={family.currency} userId={user.id} variant="keycap-gold" />
             <AllowanceLine schedule={schedule} currency={family.currency} />
           </div>
+        </div>
+        <div className="lg:col-span-2 xl:order-2 xl:col-span-1">
           <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
             <HomeGraph childId={user.id} currency={family.currency} />
           </Suspense>
         </div>
-        <div className="grid gap-6">
+        <div className="grid gap-6 xl:order-3">
           <PendingPurchases userId={user.id} currency={family.currency} />
           <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
             <HomeStep
@@ -216,7 +220,7 @@ function HomeSkeleton() {
 
 export default function ChildHomePage() {
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-6">
+    <div className="grid w-full gap-5">
       <Suspense
         fallback={
           <SlowFallback>

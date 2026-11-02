@@ -1,6 +1,7 @@
 "use client";
 
 import { type KeyboardEvent, type PointerEvent, useId, useMemo, useState } from "react";
+import { CoachSays } from "@/components/brand";
 import { cn, formatMoney } from "@/lib";
 import {
   type BalanceHistory,
@@ -341,9 +342,11 @@ export function JarGraph({
         ) : null}
       </div>
 
-      <p className="text-center text-ink-2">
-        {graphCaption(points, view.movedOn.length > 0, money)}
-      </p>
+      {view.movedOn.length > 0 ? (
+        <p className="text-center text-ink-2">{graphCaption(points, true, money)}</p>
+      ) : (
+        <CoachSays coach={{ key: "jar-graph" }} says={{ moment: "nothingMoved" }} size="sm" />
+      )}
 
       <details className="text-sm">
         <summary className="cursor-pointer font-semibold text-ink-2">See the numbers</summary>

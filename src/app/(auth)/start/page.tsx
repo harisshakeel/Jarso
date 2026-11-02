@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { JarsoMark } from "@/components/brand";
+import { CoachSays, JarsoMark } from "@/components/brand";
 import { buttonVariants } from "@/components/ui";
 import { routes } from "@/config";
 import { StartOnboardingForm } from "@/features/family";
@@ -18,6 +18,7 @@ export default function StartPage() {
           Tell us your nickname and your parent's email. We'll ask them to say yes.
         </p>
       </header>
+      <CoachSays coach={{ key: "start" }} says={{ moment: "start" }} size="sm" />
       <StartOnboardingForm />
       <Link href={routes.childSignIn} className={buttonVariants({ variant: "link", size: "lg" })}>
         I already have a family code
