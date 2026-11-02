@@ -1,5 +1,6 @@
 import type { Helpline } from "@jarso/core/config";
 import type { TopicKey } from "@jarso/core/learning";
+import type { GoalProposal, ProposedGoalArgs } from "./proposal";
 
 /** Where the child opened the guide (spec §5.1). */
 /** Where a chat was opened; "parent" is a parent asking about their child from their own Home. */
@@ -47,6 +48,8 @@ export type GuideReply = {
   lookedAt: string[];
   /** Facts this reply kept, shown so the child always knows what Jarso remembers. */
   remembered: string[];
+  /** A goal Jarso offered with this reply; the child decides with a card under it. */
+  proposal?: GoalProposal | null;
 };
 
 export type AskGuideResult = {
@@ -114,4 +117,6 @@ export type TranscriptMessage = {
   hidden: boolean;
   /** Replies only: what Jarso looked at, in plain words. */
   lookedAt: string[];
+  /** Replies only: the goal Jarso offered, as its stored arguments (gone after 30 days). */
+  proposed?: ProposedGoalArgs | null;
 };

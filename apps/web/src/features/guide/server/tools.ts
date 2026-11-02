@@ -1,5 +1,5 @@
 import "server-only";
-import { guideCopy } from "@jarso/core/guide";
+import { type GoalProposal, goalProposalFrom, guideCopy } from "@jarso/core/guide";
 import { describeCadence } from "@/features/allowance";
 import { getSchedule, listDueForChild } from "@/features/allowance/server";
 import { getGoalView } from "@/features/goals/server";
@@ -27,6 +27,7 @@ import type { TurnTools } from "./provider";
 import { looksUnsafe } from "./safety-net";
 import { scrub } from "./scrub";
 import {
+  CHILD_ONLY_TOOLS,
   isToolName,
   MAX_TOOL_CALLS,
   type Period,
@@ -42,7 +43,8 @@ import {
  * child, so RLS applies and the child's id comes from the session, never from the model. Each
  * returns plain data for the model, with every figure as a `{ ref, value }` pair from `fact`.
  * A tool's second call in a turn gets its own refs (`history2.spent`), so "this week or last
- * week?" can't mix two figures up. Nothing here writes.
+ * week?" can't mix two figures up. Nothing here writes, except `remember` (a short fact) and
+ * `propose_goal`, which only offers: the app saves the goal once the child taps the card.
  */
 
 /** Lines of money history the model sees at most. */
@@ -65,7 +67,7 @@ type Fact = (key: string, shown: string) => { ref: string; value: string };
 
 type Run<N extends ToolName> = (
   input: ToolInput<N>,
-  ctx: ToolContext & { today: string },
+  ctx: ToolContext & { today: string; offer: (proposal: GoalProposal) => void },
   fact: Fact,
 ) => Promise<unknown>;
 
@@ -95,7 +97,7 @@ const INSTRUCTION_LIKE =
  * can't fake a ref), short. Labels skip the input screen, so one that trips the safety keyword
  * net or reads like an instruction is not shown to the model at all.
  */
-function cleanLabel(label: string): string {
+export function cleanLabel(label: string): string {
   const text = scrub(label).replace(/[{}]/g, "").replace(/\s+/g, " ").trim();
   if (looksUnsafe(text) || INSTRUCTION_LIKE.test(text)) return "(label not shown)";
   return text.length > LABEL_CHARS ? `${text.slice(0, LABEL_CHARS - 1)}…` : text;
@@ -103,6 +105,94 @@ function cleanLabel(label: string): string {
 
 function money(fact: Fact, key: string, minor: number, currency: string) {
   return fact(key, formatMoney(minor, currency, { showMinor: "nonzero" }));
+}
+
+export type SavingPlan = {
+  priceMinor: number;
+  inSpendMinor: number;
+  inSaveMinor: number;
+  neededMinor: number;
+  spendCoversIt: boolean;
+  /** Allowances at the plan to cover what is needed; null without a plan or when nothing is. */
+  allowances: number | null;
+  schedule: Awaited<ReturnType<typeof getSchedule>>;
+};
+
+/**
+ * The saving maths behind `plan_saving`, `propose_goal` and the photo price check, in code
+ * (ADR 0011): only free money counts, never money waiting to come out or go in.
+ */
+export async function savingPlan(
+  childId: string,
+  priceMinor: number,
+  eachMinor: number | null,
+): Promise<SavingPlan> {
+  const [jars, schedule] = await Promise.all([getAvailability(childId), getSchedule(childId)]);
+  const neededMinor = Math.max(0, priceMinor - jars.availableSaveMinor);
+  return {
+    priceMinor,
+    inSpendMinor: jars.availableSpendMinor,
+    inSaveMinor: jars.availableSaveMinor,
+    neededMinor,
+    spendCoversIt: jars.availableSpendMinor >= priceMinor,
+    allowances: eachMinor && neededMinor > 0 ? Math.ceil(neededMinor / eachMinor) : null,
+    schedule,
+  };
+}
+
+/** A plan as the model sees it: every figure a ref under `prefix`. */
+function planFacts(
+  plan: SavingPlan,
+  eachMinor: number | null,
+  currency: string,
+  fact: Fact,
+  prefix = "plan",
+) {
+  const { schedule } = plan;
+  const allowance =
+    schedule && schedule.status !== "stopped"
+      ? {
+          amount: money(fact, `${prefix}.allowance_amount`, schedule.amountMinor, currency),
+          how_often: fact(
+            `${prefix}.how_often`,
+            describeCadence(schedule.frequency, schedule.anchorOn),
+          ),
+          next_due: schedule.nextDueOn
+            ? fact(`${prefix}.next_date`, showDate(schedule.nextDueOn))
+            : null,
+        }
+      : null;
+  return {
+    price: money(fact, `${prefix}.price`, plan.priceMinor, currency),
+    in_spend: money(fact, `${prefix}.in_spend`, plan.inSpendMinor, currency),
+    spend_covers_it: plan.spendCoversIt,
+    in_save: money(fact, `${prefix}.in_save`, plan.inSaveMinor, currency),
+    still_needed: money(fact, `${prefix}.still_needed`, plan.neededMinor, currency),
+    already_enough: plan.neededMinor === 0,
+    save_each: eachMinor ? money(fact, `${prefix}.save_each`, eachMinor, currency) : null,
+    allowances_needed:
+      plan.allowances !== null ? fact(`${prefix}.allowances`, String(plan.allowances)) : null,
+    allowance,
+    note: "Only free money counts: Save less money waiting to come out, Spend less money waiting to go in. Money that is due is not counted until it is handed over.",
+  };
+}
+
+/** Both amounts of a plan parsed, or the message the model gets back. */
+function planAmounts(
+  price: string,
+  saveEach: string | null,
+  currency: string,
+): { priceMinor: number; eachMinor: number | null } | { error: string } {
+  const priceMinor = parseMoney(price, currency);
+  if (!priceMinor || priceMinor > MAX_AMOUNT_MINOR) {
+    return { error: "The price must be a plain amount like 120 or 12.50." };
+  }
+  if (saveEach === null || saveEach === "") return { priceMinor, eachMinor: null };
+  const eachMinor = parseMoney(saveEach, currency);
+  if (!eachMinor || eachMinor > MAX_AMOUNT_MINOR) {
+    return { error: "save_each must be a plain amount like 5, or null." };
+  }
+  return { priceMinor, eachMinor };
 }
 
 function periodRange(period: Period, today: string): { from: string; to: string; text: string } {
@@ -372,44 +462,28 @@ const runners: { [N in ToolName]: Run<N> } = {
   },
 
   async plan_saving({ price, save_each }, { childId, currency }, fact) {
-    const priceMinor = parseMoney(price, currency);
-    if (!priceMinor || priceMinor > MAX_AMOUNT_MINOR) {
-      return { error: "The price must be a plain amount like 120 or 12.50." };
+    const amounts = planAmounts(price, save_each, currency);
+    if ("error" in amounts) return amounts;
+    const plan = await savingPlan(childId, amounts.priceMinor, amounts.eachMinor);
+    return planFacts(plan, amounts.eachMinor, currency, fact);
+  },
+
+  async propose_goal({ title, price, save_each }, { childId, currency, offer }, fact) {
+    const name = cleanLabel(title);
+    if (name === "(label not shown)" || PERSONAL_IN_MEMORY.test(name)) {
+      return { error: "Give the goal a plain name from the child's words, like 'Headphones'." };
     }
-    const eachMinor = save_each === null ? null : parseMoney(save_each, currency);
-    if (save_each !== null && (!eachMinor || eachMinor > MAX_AMOUNT_MINOR)) {
-      return { error: "save_each must be a plain amount like 5, or null." };
-    }
-    const [jars, schedule] = await Promise.all([getAvailability(childId), getSchedule(childId)]);
-    // Like the goal: only free money counts, never money waiting to come out or go in.
-    const needed = Math.max(0, priceMinor - jars.availableSaveMinor);
-    const allowance =
-      schedule && schedule.status !== "stopped"
-        ? {
-            amount: money(fact, "plan.allowance_amount", schedule.amountMinor, currency),
-            how_often: fact(
-              "plan.how_often",
-              describeCadence(schedule.frequency, schedule.anchorOn),
-            ),
-            next_due: schedule.nextDueOn
-              ? fact("plan.next_date", showDate(schedule.nextDueOn))
-              : null,
-          }
-        : null;
+    const amounts = planAmounts(price, save_each, currency);
+    if ("error" in amounts) return amounts;
+    const plan = await savingPlan(childId, amounts.priceMinor, amounts.eachMinor);
+    const proposal = goalProposalFrom({ title: name, price, save_each }, currency, plan.allowances);
+    if (!proposal) return { error: "A goal's price must be a plain amount up to the goal limit." };
+    offer(proposal);
     return {
-      price: money(fact, "plan.price", priceMinor, currency),
-      in_spend: money(fact, "plan.in_spend", jars.availableSpendMinor, currency),
-      spend_covers_it: jars.availableSpendMinor >= priceMinor,
-      in_save: money(fact, "plan.in_save", jars.availableSaveMinor, currency),
-      still_needed: money(fact, "plan.still_needed", needed, currency),
-      already_enough: needed === 0,
-      save_each: eachMinor ? money(fact, "plan.save_each", eachMinor, currency) : null,
-      allowances_needed:
-        eachMinor && needed > 0
-          ? fact("plan.allowances", String(Math.ceil(needed / eachMinor)))
-          : null,
-      allowance,
-      note: "Only free money counts: Save less money waiting to come out, Spend less money waiting to go in. Money that is due is not counted until it is handed over.",
+      ...planFacts(plan, amounts.eachMinor, currency, fact, "goal_idea"),
+      goal: name,
+      offered:
+        "A 'Make it my goal' card now shows under your reply. In a few words, tell the child they can tap it if they want this as their goal. It is their choice; never push.",
     };
   },
 };
@@ -425,22 +499,28 @@ export function createTurnTools(
   const facts: Facts = new Map();
   const calls: ToolCall[] = [];
   const remembered: string[] = [];
+  let proposal: GoalProposal | null = null;
   const timesCalled = new Map<ToolName, number>();
   const today = familyToday(ctx.timezone);
   const error = (message: string) => ({
     content: JSON.stringify({ error: message }),
     isError: true,
   });
-  // Memories are the child's: a parent's chat about them never writes one.
-  const specs = ctx.forParent ? toolSpecs.filter((spec) => spec.name !== "remember") : toolSpecs;
+  // Memories and goals are the child's: a parent's chat about them never keeps or offers one.
+  const specs = ctx.forParent
+    ? toolSpecs.filter((spec) => !CHILD_ONLY_TOOLS.has(spec.name))
+    : toolSpecs;
 
   return {
     specs,
     facts,
     calls,
     remembered,
+    get proposal() {
+      return proposal;
+    },
     async run(name, input) {
-      if (!isToolName(name) || (ctx.forParent && name === "remember")) {
+      if (!isToolName(name) || (ctx.forParent && CHILD_ONLY_TOOLS.has(name))) {
         const names = specs.map((spec) => spec.name).join(", ");
         return error(`There is no tool called ${name}. Use one of: ${names}.`);
       }
@@ -449,7 +529,8 @@ export function createTurnTools(
       }
       const parsed = toolInputs[name].safeParse(input ?? {});
       if (!parsed.success) return error(`The arguments for ${name} don't match its schema.`);
-      calls.push({ name, input: parsed.data });
+      const call: ToolCall = { name, input: parsed.data };
+      calls.push(call);
       const n = (timesCalled.get(name) ?? 0) + 1;
       timesCalled.set(name, n);
       // A second call's refs get a number: `jars.spend`, then `jars2.spend`.
@@ -462,7 +543,12 @@ export function createTurnTools(
       }
       try {
         const run = runners[name] as Run<typeof name>;
-        const data = await run(parsed.data as never, { ...ctx, today }, fact);
+        const offer = (offered: GoalProposal) => {
+          proposal = offered;
+          // The stored call is what a reopened chat rebuilds the card from: keep the clean name.
+          call.input = { ...call.input, title: offered.title };
+        };
+        const data = await run(parsed.data as never, { ...ctx, today, offer }, fact);
         // A runner returns `{ error }` for arguments the model can fix (a price it can't read).
         const failed = typeof data === "object" && data !== null && "error" in data;
         // Only a fact that was really stored is shown to the child as remembered.

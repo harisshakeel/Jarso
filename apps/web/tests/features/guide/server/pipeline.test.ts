@@ -27,7 +27,7 @@ function tools(): TurnTools & { run: ReturnType<typeof vi.fn> } {
       isError: false,
     };
   });
-  return { specs: [], facts, calls, remembered: [], run };
+  return { specs: [], facts, calls, remembered: [], proposal: null, run };
 }
 
 describe("runGuidePipeline", () => {
@@ -44,6 +44,28 @@ describe("runGuidePipeline", () => {
     });
     expect(result.topics).toEqual(["saving-goal"]);
     expect(result.check?.options).toEqual(["Spend", "Save"]);
+  });
+
+  it("carries a goal Jarso offered only on a reply that passed the output screen", async () => {
+    const offered = {
+      kind: "goal" as const,
+      title: "Bike",
+      emoji: "🚲" as const,
+      priceMinor: 12000,
+      saveEachMinor: null,
+      allowances: null,
+      figures: "£120",
+    };
+    const passed = await runGuidePipeline(
+      { text: "What is saving?", history: [], context, tools: { ...tools(), proposal: offered } },
+      provider(),
+    );
+    expect(passed.proposal).toEqual(offered);
+    const held = await runGuidePipeline(
+      { text: "What is saving?", history: [], context, tools: { ...tools(), proposal: offered } },
+      provider({ screenOutput: async () => ({ pass: false, problem: "off_topic", usage: {} }) }),
+    );
+    expect(held).toMatchObject({ route: "blocked_output", proposal: null });
   });
 
   it("routes a safety message to fixed copy and flags it, never showing the model's reply", async () => {

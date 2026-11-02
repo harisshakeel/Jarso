@@ -3,6 +3,7 @@ import { serverEnv } from "@/config/env.server";
 import { createAnthropicProvider } from "./claude";
 import { createFakeProvider } from "./fake-provider";
 import type { GuideProvider } from "./provider";
+import { createAnthropicPriceReader, createFakePriceReader, type PriceReader } from "./vision";
 
 /**
  * Whether the guide can run at all, and with which provider. Off unless FEATURE_GUIDE is "true".
@@ -33,6 +34,21 @@ export function getGuideProvider(): GuideProvider | null {
         ? createAnthropicProvider(serverEnv.ANTHROPIC_API_KEY)
         : null;
   return provider;
+}
+
+let priceReader: PriceReader | null | undefined;
+
+/** The photo price reader, on the same switch and provider as the guide. Null when it is off. */
+export function getPriceReader(): PriceReader | null {
+  if (priceReader !== undefined) return priceReader;
+  const name = guideProviderName();
+  priceReader =
+    name === "fake"
+      ? createFakePriceReader()
+      : name === "anthropic" && serverEnv.ANTHROPIC_API_KEY
+        ? createAnthropicPriceReader(serverEnv.ANTHROPIC_API_KEY)
+        : null;
+  return priceReader;
 }
 
 export function guideDailyBudgetCents(): number {

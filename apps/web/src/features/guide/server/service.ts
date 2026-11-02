@@ -1,13 +1,27 @@
 import "server-only";
 import type {
+  AcceptGoalProposal,
+  AcceptGoalProposalResult,
   AskGuideResult,
   ConversationSummary,
   GuideContextRef,
   GuideState,
+  PhotoPriceResult,
   TranscriptMessage,
 } from "@jarso/core/guide";
-import { guideCopy, MAX_TURNS } from "@jarso/core/guide";
+import {
+  goalProposalFrom,
+  guideCopy,
+  isOtherCurrency,
+  MAX_TURNS,
+  makeGoalProposal,
+  priceQuestion,
+  readPrice,
+  splitDataUrl,
+  tidyPhotoLabel,
+} from "@jarso/core/guide";
 import { helplinesFor } from "@/config";
+import { getSchedule } from "@/features/allowance/server";
 import { assertUser } from "@/features/auth/server";
 import {
   assertParentCanRead,
@@ -17,13 +31,15 @@ import {
   getFamily,
   listChildren,
 } from "@/features/family/server";
+import { archiveGoal, getGoalView, saveGoal } from "@/features/goals/server";
 import { topicTitles } from "@/features/learning";
-import { AppError, familyToday, isAppError, logger } from "@/lib";
+import { AppError, familyToday, formatMoney, isAppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { guideBreaker } from "./breaker";
 import {
   getGuideProvider,
+  getPriceReader,
   guideDailyBudgetCents,
   guideMonthlyBudgetCents,
   guideProviderName,
@@ -36,7 +52,7 @@ import { GUIDE_PROMPT_VERSION } from "./prompts";
 import type { GuideProvider, Turn } from "./provider";
 import * as repo from "./repository";
 import type { ToolName } from "./tool-specs";
-import { createTurnTools } from "./tools";
+import { cleanLabel, createTurnTools, savingPlan } from "./tools";
 
 /** Spec §5.2: 5 messages a minute and 30 a day per child. */
 const PER_MINUTE = 5;
@@ -118,7 +134,9 @@ async function storedTurn(
   if (!reply || reply.role === "child" || !reply.route) {
     throw new AppError("INTERNAL", "Failed to load the chat");
   }
-  const family = reply.route === "safety" ? await getFamily() : null;
+  // A goal card comes back only with a reply that was shown.
+  const offered = reply.role === "guide" && reply.route === "on_topic" ? reply.proposed : null;
+  const family = reply.route === "safety" || offered ? await getFamily() : null;
   const turns = messages.filter((message) => message.role === "child").length;
   return {
     conversationId: turn.conversationId,
@@ -129,9 +147,10 @@ async function storedTurn(
       route: reply.route,
       topics: [],
       check: null,
-      helplines: family ? helplinesFor(family.currency) : [],
+      helplines: family && reply.route === "safety" ? helplinesFor(family.currency) : [],
       lookedAt: lookedAt(reply.checked),
       remembered: [],
+      proposal: family && offered ? goalProposalFrom(offered, family.currency) : null,
     },
     turnsLeft: Math.max(0, MAX_TURNS - turns),
   };
@@ -360,8 +379,151 @@ export async function runGuideTurn(
       helplines: result.route === "safety" ? helplinesFor(family.currency) : [],
       lookedAt: lookedAt(result.toolCalls.map((call) => call.name)),
       remembered: result.remembered,
+      proposal: result.proposal,
     },
     turnsLeft: Math.max(0, MAX_TURNS - (turn.turns + 1)),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Goal by chat and the photo price check (demo 3): Jarso offers, the child decides
+// ---------------------------------------------------------------------------
+
+/**
+ * The plan a goal can keep: at most the allowance (a schedule that isn't stopped), or the price
+ * without one, the same rules `save_goal` enforces. Null when there is none or it doesn't fit.
+ */
+async function planThatFits(
+  childId: string,
+  priceMinor: number,
+  planMinor: number | null,
+): Promise<number | null> {
+  if (!planMinor) return null;
+  const schedule = await getSchedule(childId);
+  const cap = schedule && schedule.status !== "stopped" ? schedule.amountMinor : priceMinor;
+  return planMinor <= cap ? planMinor : null;
+}
+
+/**
+ * The child tapped "Make it my goal" on a card Jarso offered. Saved through the goals service,
+ * as the child (RLS and `save_goal` apply). A child who already has a different goal is asked
+ * first; on "Swap it" the old goal is archived, as the goal sheet's "start a new goal" does, so
+ * the new goal starts fresh instead of taking over the old one's progress dates.
+ */
+export async function acceptGoalProposal(
+  input: AcceptGoalProposal,
+): Promise<AcceptGoalProposalResult> {
+  const { user } = await assertRole("child");
+  const current = await getGoalView(user.id);
+  const sameGoal =
+    !!current && current.goal.name.trim().toLowerCase() === input.title.trim().toLowerCase();
+  if (current && !sameGoal && !input.replace) {
+    return { status: "has_goal", existing: current.goal.name };
+  }
+  // Checked before anything changes, so a plan save_goal would refuse never costs the old goal.
+  const planMinor = await planThatFits(user.id, input.priceMinor, input.saveEachMinor);
+  if (current && !sameGoal) await archiveGoal(current.goal.id);
+  const goalId = await saveGoal({
+    name: input.title,
+    emoji: input.emoji,
+    targetMinor: input.priceMinor,
+    planMinor,
+  });
+  logger.info("Guide goal accepted", { replaced: !!current && !sameGoal });
+  return { status: "saved", goalId, planKept: planMinor === input.saveEachMinor };
+}
+
+/** The photo read's own deadline, inside the action's. */
+const PHOTO_DEADLINE_MS = 20_000;
+
+/** "headphones" → "Headphones", for a goal's name. */
+function asGoalName(label: string): string {
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/**
+ * The photo price check: reads the main price on a photo, then works out the child's plan in
+ * code and hands back a question for Jarso and a goal the child can make. Same switches, rate
+ * limits, budget and breaker as a chat turn, and a photo counts as one of the child's messages.
+ * The image goes to Claude once and is never stored or logged.
+ */
+export async function readPriceFromPhoto(image: string): Promise<PhotoPriceResult> {
+  const { user } = await assertRole("child");
+  const reader = getPriceReader();
+  if (!reader) throw new AppError("FORBIDDEN", guideCopy.switchedOff);
+  const db = await createClient();
+  if (!(await repo.findGuideAccess(db, user.id))) {
+    throw new AppError("FORBIDDEN", guideCopy.switchedOff);
+  }
+  const family = await getFamily();
+  if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
+  const admin = createAdminClient();
+  if (!(await repo.hitRateLimit(admin, `guide:min:${user.id}`, "1 minute", PER_MINUTE))) {
+    throw new AppError("RATE_LIMITED", guideCopy.rateLimitedMinute);
+  }
+  if (!(await repo.hitRateLimit(admin, `guide:day:${user.id}`, "1 day", PER_DAY))) {
+    throw new AppError("RATE_LIMITED", guideCopy.rateLimitedDay);
+  }
+  if (guideBreaker.isOpen() || (reader.name === "anthropic" && (await budgetSpent()))) {
+    throw new AppError("UNAVAILABLE", guideCopy.routes.unavailable);
+  }
+
+  const { mediaType, data } = splitDataUrl(image);
+  let reading: unknown;
+  try {
+    const result = await reader.read({
+      mediaType,
+      data,
+      signal: AbortSignal.timeout(PHOTO_DEADLINE_MS),
+    });
+    guideBreaker.recordSuccess();
+    reading = result.reading;
+    // Tokens only: never the photo, the price or the label.
+    logger.info("Guide photo read", {
+      reader: reader.name,
+      read: reading !== null,
+      screenInput: result.usage.screenInput ?? 0,
+      screenOutput: result.usage.screenOutput ?? 0,
+    });
+  } catch (error) {
+    guideBreaker.recordFailure();
+    logger.warn("Guide photo read failed", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    throw new AppError("UNAVAILABLE", guideCopy.routes.unavailable, { cause: error });
+  }
+
+  const read = readPrice(reading, family.currency);
+  if (!read.found) return { found: false, reason: "no_price" };
+  if (isOtherCurrency(read.currency, family.currency)) {
+    return { found: false, reason: "other_currency" };
+  }
+  // The label skips the input screen until the child sends the question, so it gets the same
+  // clean-up as any label a person typed.
+  const tidy = tidyPhotoLabel(read.label);
+  const cleaned = tidy ? cleanLabel(tidy) : null;
+  const label = cleaned && cleaned !== "(label not shown)" ? cleaned : null;
+  // With a goal plan already set, "about how many allowances" uses it; otherwise the child says.
+  const current = await getGoalView(user.id).catch(() => null);
+  const eachMinor = current?.goal.planMinor ?? null;
+  const plan = await savingPlan(user.id, read.priceMinor, eachMinor);
+  const proposal = makeGoalProposal(
+    {
+      title: label ? asGoalName(label) : guideCopy.photo.untitled,
+      priceMinor: read.priceMinor,
+      saveEachMinor: eachMinor,
+      allowances: plan.allowances,
+    },
+    family.currency,
+  );
+  return {
+    found: true,
+    priceMinor: read.priceMinor,
+    price: formatMoney(read.priceMinor, family.currency, { showMinor: "nonzero" }),
+    label,
+    text: priceQuestion(read.priceMinor, label, family.currency),
+    allowances: plan.allowances,
+    proposal,
   };
 }
 

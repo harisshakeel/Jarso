@@ -1,5 +1,11 @@
 import "server-only";
-import type { GuideEntry, GuideRoute, GuideUsage } from "@jarso/core/guide";
+import {
+  type GuideEntry,
+  type GuideRoute,
+  type GuideUsage,
+  type ProposedGoalArgs,
+  proposedGoalArgsSchema,
+} from "@jarso/core/guide";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database, Json } from "@/types";
@@ -151,7 +157,25 @@ export type MessageRow = {
   createdAt: string;
   /** What Jarso looked up for this reply, in order (replies only). */
   checked: ToolName[];
+  /** The goal Jarso offered with this reply, from its stored `propose_goal` arguments. */
+  proposed?: ProposedGoalArgs | null;
 };
+
+/**
+ * The last `propose_goal` call's arguments, while they are still stored (the retention job keeps
+ * only tool names after 30 days) and well formed.
+ */
+function asProposed(value: Json | null): ProposedGoalArgs | null {
+  if (!Array.isArray(value)) return null;
+  for (let i = value.length - 1; i >= 0; i--) {
+    const call = value[i];
+    if (!call || typeof call !== "object" || Array.isArray(call)) continue;
+    if (call.name !== "propose_goal") continue;
+    const parsed = proposedGoalArgsSchema.safeParse(call.input);
+    return parsed.success ? parsed.data : null;
+  }
+  return null;
+}
 
 /** Tool names from a stored `tool_calls` array; anything unrecognised is dropped. */
 function asChecked(value: Json | null): ToolName[] {
@@ -191,6 +215,7 @@ export async function listMessages(
     rating: row.rating === 1 || row.rating === -1 ? row.rating : null,
     createdAt: row.created_at,
     checked: asChecked(row.tool_calls),
+    proposed: asProposed(row.tool_calls),
   }));
 }
 

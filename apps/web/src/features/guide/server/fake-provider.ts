@@ -31,6 +31,30 @@ export function createFakeProvider(): GuideProvider {
       // The signal is ignored: the fake answers at once. Two questions look things up, so e2e
       // runs cover the look-up path end to end (status line, figure refs, the parent's view).
       const lower = text.toLowerCase();
+      // "I want to save for headphones for 30": offers the goal card (goal by chat).
+      const wish =
+        /\bsave (?:up )?for (?:a |an |some |the )?([a-z][a-z ]{1,30}?)(?: for| that costs| costing| at)? [£$€]?(\d+(?:\.\d{1,2})?)\b/.exec(
+          lower,
+        );
+      if (wish?.[1] && wish[2]) {
+        const result = await tools.run("propose_goal", {
+          title: wish[1].trim(),
+          price: wish[2],
+          save_each: null,
+        });
+        return {
+          kind: "ok",
+          reply: {
+            reply: result.isError
+              ? "I couldn't work that out just now."
+              : "That's {{goal_idea.still_needed}} more to save. You could make it your goal if you like.",
+            topics: ["saving-goal"],
+            check: null,
+          },
+          usage: {},
+          model: "fake",
+        };
+      }
       const lookup = /\bhow much do i have\b|\bmy jars\b/.test(lower)
         ? {
             tool: "get_jars",

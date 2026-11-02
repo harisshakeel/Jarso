@@ -1,5 +1,5 @@
 import "server-only";
-import type { GuideUsage, ScreenRoute } from "@jarso/core/guide";
+import type { GoalProposal, GuideUsage, ScreenRoute } from "@jarso/core/guide";
 import { z } from "zod";
 import { topicKeys } from "@/features/learning";
 import type { Facts } from "./facts";
@@ -24,8 +24,16 @@ export interface Toolbox {
   run(name: string, input: unknown): Promise<{ content: string; isError: boolean }>;
 }
 
-/** A turn's toolbox as the pipeline holds it: it reads back what was looked up and kept. */
-export type TurnTools = Toolbox & { facts: Facts; calls: ToolCall[]; remembered: string[] };
+/**
+ * A turn's toolbox as the pipeline holds it: it reads back what was looked up and kept, and the
+ * goal Jarso offered (`propose_goal`), if any.
+ */
+export type TurnTools = Toolbox & {
+  facts: Facts;
+  calls: ToolCall[];
+  remembered: string[];
+  proposal: GoalProposal | null;
+};
 
 export const mainReplySchema = z.object({
   reply: z.string(),

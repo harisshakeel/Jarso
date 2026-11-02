@@ -34,9 +34,39 @@ describe("threadMessagesFrom", () => {
           helplines: [],
           lookedAt: ["jars"],
           remembered: [],
+          proposal: null,
         },
       },
     ]);
+  });
+
+  it("brings back the goal card a shown reply offered, and never one a held-back reply did", () => {
+    const proposed = { title: "Bike", price: "120", save_each: "8" };
+    const [shown, held] = threadMessagesFrom(
+      [
+        { ...base, id: "m2", role: "guide", text: "…", route: "on_topic", rating: null, proposed },
+        {
+          ...base,
+          id: "m4",
+          role: "fixed_copy",
+          text: "Let me try that a different way.",
+          route: "blocked_output",
+          rating: null,
+          proposed,
+        },
+      ],
+      "GBP",
+    );
+    expect(shown?.from === "guide" && shown.reply.proposal).toEqual({
+      kind: "goal",
+      title: "Bike",
+      emoji: "🚲",
+      priceMinor: 12000,
+      saveEachMinor: 800,
+      allowances: null,
+      figures: "£120 · £8 each allowance",
+    });
+    expect(held?.from === "guide" && held.reply.proposal).toBeNull();
   });
 
   it("gives a safety reply its helplines and fixed copy no thumbs", () => {

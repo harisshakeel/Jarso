@@ -45,6 +45,7 @@ export const guideCopy = {
     get_goal: "Checking your goal…",
     get_requests: "Checking your requests…",
     remember: "Making a note of that…",
+    propose_goal: "Working out a goal…",
   },
   /** Shown in turn when no new line has arrived for a while, so a long think never looks stuck. */
   stillWorking: ["Still thinking…", "Counting carefully…", "Nearly there…"],
@@ -59,6 +60,32 @@ export const guideCopy = {
     get_goal: "goal",
     get_requests: "requests",
     remember: "memory",
+    propose_goal: "goal idea",
+  },
+  /** The card under a reply that offered a goal. The child decides; Jarso never sets one. */
+  proposal: {
+    title: "Make it your goal?",
+    make: "Make it my goal",
+    notNow: "Not now",
+    saved: "That's your goal now. You can see it from your Save jar.",
+    planLeftOff:
+      "That's your goal now. The amount to save each time was more than your allowance, so set it on your goal page.",
+    hasGoal: (name: string) => `You already have a goal: ${name}. Swap it for this one?`,
+    replace: "Swap it",
+    keep: "Keep my goal",
+    see: "See my goal",
+  },
+  /** The photo price check: a price tag or receipt read into a question for Jarso. */
+  photo: {
+    button: "Snap a price",
+    hint: "Take a photo of a price tag or receipt.",
+    reading: "Reading the price…",
+    none: "I couldn't find a price in that photo. Try a clearer one, or type the price.",
+    otherCurrency:
+      "That price looks like it's in a different money. Type the price in yours instead.",
+    untitled: "Something I want",
+    tooBig: "That photo is too big. Try another one.",
+    notPhoto: "Choose a photo (JPEG, PNG or WebP).",
   },
   /** Under a reply that kept a fact, so the child always knows what Jarso remembers. */
   remembered: "Jarso will remember:",
