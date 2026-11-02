@@ -5,6 +5,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Suspense } from "react";
 import { z } from "zod";
 import { PageTabs, SlowFallback } from "@/components/shell";
+import { SoundsToggle } from "@/components/sounds";
 import { ThemeChoice } from "@/components/theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { routes } from "@/config";
@@ -109,6 +110,7 @@ async function ParentSettings({ searchParams }: Props) {
       <Section index={3} title="Looks" description="Light, dark, or follow your device.">
         <ThemeChoice />
       </Section>
+      <SoundsToggle />
       <PushToggle />
       <Section index={4} title="Done for now?" description="Sign out of Jarso on this device.">
         <SignOutButton />

@@ -18,6 +18,7 @@ import {
 import { SPEND_CATEGORIES } from "@/features/ledger";
 import { newId, offlineCopy, removeOutboxItem, submitToOutbox } from "@/features/offline";
 import type { FieldErrors } from "@/lib";
+import { playCoins } from "@/lib";
 import { purchaseSchema } from "../schemas";
 import { CategoryChips } from "./category-chips";
 
@@ -121,6 +122,7 @@ function PurchaseForm({
         case "sent":
           await onSaved?.();
           coinToast("Saved. Nice one.");
+          playCoins();
           onDone();
           router.refresh();
           return null;

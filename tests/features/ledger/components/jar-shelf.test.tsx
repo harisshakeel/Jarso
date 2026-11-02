@@ -184,4 +184,52 @@ describe("JarShelf", () => {
     expect(container.querySelector("[data-due-coin]")).toBeNull();
     expect(screen.getByText("£5 on its way · waiting for a parent")).toBeInTheDocument();
   });
+
+  it("flies coins from Save to Spend when a take-out lands, and out of Spend for a purchase", () => {
+    const props = {
+      currency: "GBP",
+      userId: "c1",
+      rules: [],
+      goal: null,
+      allowanceMinor: 500,
+      dueMinor: 0,
+      openRequests: [],
+    };
+    const { container, rerender } = render(<JarShelf {...props} availability={availability} />);
+    expect(container.querySelector("[data-coin-flight]")).toBeNull();
+    rerender(
+      <JarShelf {...props} availability={{ ...availability, spendMinor: 1300, saveMinor: 2600 }} />,
+    );
+    expect(container.querySelector("[data-coin-flight]")).toHaveAttribute(
+      "data-coin-flight",
+      "save-spend",
+    );
+    rerender(
+      <JarShelf {...props} availability={{ ...availability, spendMinor: 900, saveMinor: 2600 }} />,
+    );
+    expect(container.querySelector("[data-coin-flight]")).toHaveAttribute(
+      "data-coin-flight",
+      "spend-out",
+    );
+  });
+
+  it("flies coins on first paint only when told a move just landed", () => {
+    const { container } = render(
+      <JarShelf
+        currency="GBP"
+        userId="c1"
+        availability={availability}
+        rules={[]}
+        goal={null}
+        allowanceMinor={500}
+        dueMinor={0}
+        openRequests={[]}
+        justMoved={{ from: "spend", to: "save" }}
+      />,
+    );
+    expect(container.querySelector("[data-coin-flight]")).toHaveAttribute(
+      "data-coin-flight",
+      "spend-save",
+    );
+  });
 });

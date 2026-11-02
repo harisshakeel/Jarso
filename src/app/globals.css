@@ -330,6 +330,24 @@
   }
 }
 
+/* Coins flying between the jars on the shelf (jar-shelf.tsx): an arc to --fly-dx, --fly-dy. */
+@keyframes coin-fly {
+  from {
+    translate: 0 0;
+    rotate: 0deg;
+    opacity: 1;
+  }
+  45% {
+    translate: calc(var(--fly-dx, 0px) * 0.45) -80px;
+    opacity: 1;
+  }
+  to {
+    translate: var(--fly-dx, 0px) var(--fly-dy, 0px);
+    rotate: 360deg;
+    opacity: var(--fly-end, 1);
+  }
+}
+
 @keyframes coin-drop {
   from {
     opacity: 0;

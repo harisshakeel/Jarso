@@ -21,7 +21,7 @@ import {
   useOnline,
   useOutbox,
 } from "@/features/offline";
-import { cn } from "@/lib";
+import { cn, playRight, playWrong } from "@/lib";
 import { coachFor } from "../coaches";
 import { describeAnswer, gradeStep } from "../grade";
 import { attemptSummary, praiseLine, resumePosition } from "../journey";
@@ -625,8 +625,10 @@ function StepView({
     }
     const tries = wrongTries + 1;
     if (grade.correct) {
+      playRight();
       setOutcome({ correct: true, feedback: grade.feedback, final: true, tries });
     } else {
+      playWrong();
       setWrongTries(tries);
       setOutcome({ correct: false, feedback: grade.feedback, final: tries >= 2, tries });
     }
