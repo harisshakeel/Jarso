@@ -681,6 +681,7 @@ function StepView({
           {outcome ? (
             <Feedback
               ref={feedbackRef}
+              id={`${idBase}-feedback`}
               outcome={outcome}
               body={body}
               currency={currency}
@@ -704,6 +705,7 @@ function StepView({
           currency={currency}
           disabled={locked}
           idBase={idBase}
+          describedBy={outcome ? `${idBase}-feedback` : undefined}
         />
 
         <ProblemText problem={error} />
@@ -737,12 +739,14 @@ function StepView({
 
 function Feedback({
   ref,
+  id,
   outcome,
   body,
   currency,
   topicHref,
 }: {
   ref: Ref<HTMLDivElement>;
+  id: string;
   outcome: Outcome;
   body: StepBody;
   currency: string;
@@ -751,6 +755,7 @@ function Feedback({
   return (
     <div
       ref={ref}
+      id={id}
       tabIndex={-1}
       className={cn(
         "grid gap-3 rounded-xl p-4 outline-none",
