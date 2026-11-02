@@ -1,27 +1,15 @@
 "use client";
 
-import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { GuideThread, type GuideThreadProps } from "./guide-thread";
 
 /**
- * The thread on the Jarso page. Once a new chat has its first reply, the page moves to that
- * chat's address, so the list down the side shows it and a refresh picks it up again.
+ * The thread on the Jarso page. Once a new chat has its first reply, the page's list of chats is
+ * refreshed so the chat appears there; the address is left alone on purpose. Moving to
+ * `?chat=<id>` re-keyed the thread, and the re-render replaced the live reply (topics, quick
+ * check and all) with the stored version while the child was still reading it.
  */
-export function JarsoPageThread({
-  chatHref,
-  ...thread
-}: Omit<GuideThreadProps, "variant" | "onChatStarted"> & {
-  /** The page's own path; a started chat moves to `?chat=<id>` on it. A string, not a function:
-   * a Server Component page renders this Client Component, and functions can't cross that line. */
-  chatHref: Route;
-}) {
+export function JarsoPageThread(props: Omit<GuideThreadProps, "variant" | "onChatStarted">) {
   const router = useRouter();
-  return (
-    <GuideThread
-      variant="page"
-      onChatStarted={(id) => router.replace(`${chatHref}?chat=${id}` as Route, { scroll: false })}
-      {...thread}
-    />
-  );
+  return <GuideThread variant="page" onChatStarted={() => router.refresh()} {...props} />;
 }
