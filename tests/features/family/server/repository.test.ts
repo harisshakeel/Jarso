@@ -3,7 +3,9 @@ import type { AppError } from "@/lib";
 
 vi.mock("server-only", () => ({}));
 
-const { registerChild, renameChildMember } = await import("@/features/family/server/repository");
+const { findProfileRole, registerChild, renameChildMember } = await import(
+  "@/features/family/server/repository"
+);
 
 type Db = Parameters<typeof registerChild>[0];
 
@@ -58,5 +60,26 @@ describe("registerChild / renameChildMember errors", () => {
 
     expect(error.code).toBe("FORBIDDEN");
     expect(error.fieldErrors).toBeUndefined();
+  });
+});
+
+describe("findProfileRole", () => {
+  function profileDb(row: { role: string } | null): Db {
+    const query = {
+      select: () => query,
+      eq: () => query,
+      maybeSingle: async () => ({ data: row, error: null }),
+    };
+    return { from: () => query } as unknown as Db;
+  }
+
+  it("reads parent and child roles", async () => {
+    expect(await findProfileRole(profileDb({ role: "parent" }), "u")).toBe("parent");
+    expect(await findProfileRole(profileDb({ role: "child" }), "u")).toBe("child");
+  });
+
+  it("returns null for a missing profile or an unknown role", async () => {
+    expect(await findProfileRole(profileDb(null), "u")).toBeNull();
+    expect(await findProfileRole(profileDb({ role: "admin" }), "u")).toBeNull();
   });
 });

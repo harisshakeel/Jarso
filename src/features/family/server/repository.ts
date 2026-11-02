@@ -31,10 +31,14 @@ export async function findMembership(db: Client, userId: string): Promise<Member
   };
 }
 
-export async function findProfileRole(db: Client, userId: string): Promise<"parent" | "child"> {
+/** The profile's role, or null when there is no profile or the role is not one we know. */
+export async function findProfileRole(
+  db: Client,
+  userId: string,
+): Promise<"parent" | "child" | null> {
   const { data, error } = await db.from("profiles").select("role").eq("id", userId).maybeSingle();
   if (error) throw toAppError(error, "Failed to load profile");
-  return data?.role === "child" ? "child" : "parent";
+  return data?.role === "child" || data?.role === "parent" ? data.role : null;
 }
 
 export async function findNickname(db: Client, userId: string): Promise<string | null> {
