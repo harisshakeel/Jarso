@@ -131,7 +131,12 @@ export function JarShelf({
             controls={`${trayId}-spend`}
             onToggle={() => toggle("spend")}
           >
-            <JarIllustration jar="spend" capacityMinor={shared} filledMinor={spendMinor} />
+            <JarIllustration
+              jar="spend"
+              size="shelf"
+              capacityMinor={shared}
+              filledMinor={spendMinor}
+            />
           </JarButton>
           {spendSide.map((r) => (
             <p key={r.id} className="text-center text-ink-2">
@@ -166,6 +171,7 @@ export function JarShelf({
           >
             <JarIllustration
               jar="save"
+              size="shelf"
               capacityMinor={shared}
               filledMinor={countedMinor}
               reservedMinor={reservedSaveMinor}

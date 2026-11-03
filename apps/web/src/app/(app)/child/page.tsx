@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
+import { PageContainer, PageHeader, PageSkeleton } from "@/components/layout";
 import { SlowFallback } from "@/components/shell";
+import { Card, CardContent, Skeleton } from "@/components/ui";
 import { routes } from "@/config";
 import { AllowanceLine, runningSchedule } from "@/features/allowance";
 import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
@@ -37,40 +39,51 @@ async function ChildHome() {
   const allowanceMinor = runningSchedule(schedule)?.amountMinor ?? null;
   return (
     <>
-      <h1 className="rise-in text-balance text-display">{nickname ? `Hi, ${nickname}!` : "Hi!"}</h1>
-      {/* Phones stack; laptops get money and the next thing side by side with the graph under
-          them; wide screens get three columns (money, the ride, the next thing and the goal), so
-          nothing needs a scroll. Ask Jarso lives on its own page, the Jarso tab. */}
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8 xl:grid-cols-3">
-        <div className="grid gap-6">
-          <Suspense fallback={<div aria-hidden className="shimmer h-96 rounded-xl bg-muted" />}>
-            <HomeShelf
-              childId={user.id}
-              currency={family.currency}
-              allowanceMinor={allowanceMinor}
-              dueMinor={due.totalMinor}
-            />
-          </Suspense>
-          <div className="grid justify-items-center gap-3">
-            <PurchaseSheet currency={family.currency} userId={user.id} variant="keycap-gold" />
-            <AllowanceLine schedule={schedule} currency={family.currency} />
-          </div>
-        </div>
-        <div className="grid gap-6 lg:col-span-2 xl:order-2 xl:col-span-1">
-          <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
+      <PageHeader
+        className="rise-in"
+        title={nickname ? `Hi, ${nickname}!` : "Hi!"}
+        description={<AllowanceLine schedule={schedule} currency={family.currency} />}
+        action={
+          <PurchaseSheet
+            currency={family.currency}
+            userId={user.id}
+            variant="keycap-gold"
+            size="xl"
+          />
+        }
+      />
+      {/* Two columns from 1024 px: the money on the left (the jars as the page's hero, how they
+          moved under them), the one next thing and the goal on the right. From 1536 px the money
+          splits into its own two columns (jars | ride | next and goal) so Home fits one screen.
+          Tablets stack in the same reading order. Ask Jarso lives on its own page, the Jarso tab. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8 2xl:grid-cols-3">
+        <div className="grid gap-6 2xl:contents">
+          <Card tone="raised" className="rise-in">
+            <CardContent>
+              <Suspense fallback={<Skeleton className="h-96" />}>
+                <HomeShelf
+                  childId={user.id}
+                  currency={family.currency}
+                  allowanceMinor={allowanceMinor}
+                  dueMinor={due.totalMinor}
+                />
+              </Suspense>
+            </CardContent>
+          </Card>
+          <Suspense fallback={<Skeleton className="h-64" />}>
             <HomeGraph childId={user.id} currency={family.currency} />
           </Suspense>
         </div>
-        <div className="grid gap-6 xl:order-3">
+        <div className="grid gap-6">
           <PendingPurchases userId={user.id} currency={family.currency} />
-          <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
+          <Suspense fallback={<Skeleton className="h-40" />}>
             <HomeStep
               childId={user.id}
               currency={family.currency}
               allowanceMinor={allowanceMinor}
             />
           </Suspense>
-          <Suspense fallback={<div aria-hidden className="shimmer h-56 rounded-xl bg-muted" />}>
+          <Suspense fallback={<Skeleton className="h-56" />}>
             <HomeGoal
               childId={user.id}
               currency={family.currency}
@@ -166,7 +179,13 @@ async function HomeGoal({
 async function HomeGraph({ childId, currency }: { childId: string; currency: string }) {
   try {
     const history = await getBalanceHistory(childId);
-    return <JarGraph history={history} currency={currency} />;
+    return (
+      <Card>
+        <CardContent>
+          <JarGraph history={history} currency={currency} />
+        </CardContent>
+      </Card>
+    );
   } catch (error) {
     unstable_rethrow(error);
     logger.warn("Jar graph unavailable on child home", { error: errorName(error) });
@@ -222,27 +241,18 @@ function errorName(error: unknown): string {
   return error instanceof Error ? error.name : typeof error;
 }
 
-function HomeSkeleton() {
-  return (
-    <div aria-hidden className="grid gap-6">
-      <div className="shimmer h-11 w-48 rounded-lg bg-muted" />
-      <div className="shimmer h-96 rounded-xl bg-muted" />
-    </div>
-  );
-}
-
 export default function ChildHomePage() {
   return (
-    <div className="grid w-full gap-5">
+    <PageContainer width="wide">
       <Suspense
         fallback={
           <SlowFallback>
-            <HomeSkeleton />
+            <PageSkeleton />
           </SlowFallback>
         }
       >
         <ChildHome />
       </Suspense>
-    </div>
+    </PageContainer>
   );
 }
