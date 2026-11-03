@@ -581,6 +581,48 @@ describe("askGuide retries", () => {
   });
 });
 
+describe("getParentGuideState", () => {
+  const parent = { id: "parent-1", email: "p@example.com" };
+  const kids = [
+    { id: "child-1", nickname: "Sam" },
+    { id: "child-2", nickname: "Ali" },
+    { id: "child-3", nickname: "Kim" },
+  ];
+
+  beforeEach(() => {
+    vi.mocked(family.assertRole).mockResolvedValue({ user: parent as never, membership: null });
+    vi.mocked(family.listChildren).mockResolvedValue(kids);
+  });
+
+  it("is off with no children read when the guide is off", async () => {
+    vi.mocked(config.guideProviderName).mockReturnValue(null);
+    await expect(service.getParentGuideState()).resolves.toEqual({
+      configured: false,
+      enabledChildIds: [],
+    });
+    expect(family.assertRole).toHaveBeenCalledWith("parent");
+    expect(family.listChildren).not.toHaveBeenCalled();
+  });
+
+  it("lists the children with Jarso on; a failed read counts as off", async () => {
+    vi.mocked(repo.findGuideAccess).mockImplementation(async (_db, childId) => {
+      if (childId === "child-2") throw new Error("down");
+      return childId === "child-1";
+    });
+    await expect(service.getParentGuideState()).resolves.toEqual({
+      configured: true,
+      enabledChildIds: ["child-1"],
+    });
+    expect(family.assertParentCanRead).toHaveBeenCalledTimes(3);
+  });
+
+  it("refuses a child before reading anything", async () => {
+    vi.mocked(family.assertRole).mockRejectedValueOnce(new AppError("FORBIDDEN", "No."));
+    await expect(service.getParentGuideState()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(family.listChildren).not.toHaveBeenCalled();
+  });
+});
+
 describe("parent views", () => {
   // How a chat reads to the parent is shared and tested in packages/data/tests/guide.
   it("lists and opens a child's chats through the shared reads, after the parent check", async () => {

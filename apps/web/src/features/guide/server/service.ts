@@ -7,6 +7,7 @@ import type {
   ConversationSummary,
   GuideContextRef,
   GuideState,
+  ParentGuideState,
   PhotoPriceResult,
   TranscriptMessage,
 } from "@jarso/core/guide";
@@ -623,6 +624,29 @@ export async function getGuideAccess(
     configured: isGuideConfigured(),
     enabled: await repo.findGuideAccess(await createClient(), childId),
   };
+}
+
+/**
+ * For the parent's phone: the server's guide switch and which of their children have Jarso on.
+ * A child whose setting can't be read counts as off, so the rest still show.
+ */
+export async function getParentGuideState(): Promise<ParentGuideState> {
+  await assertRole("parent");
+  if (!isGuideConfigured()) return { configured: false, enabledChildIds: [] };
+  const children = await listChildren();
+  const enabled = await Promise.all(
+    children.map(async (child) => {
+      try {
+        return (await getGuideAccess(child.id)).enabled ? child.id : null;
+      } catch (error) {
+        logger.warn("Guide access unavailable", {
+          error: error instanceof Error ? error.name : typeof error,
+        });
+        return null;
+      }
+    }),
+  );
+  return { configured: true, enabledChildIds: enabled.filter((id) => id !== null) };
 }
 
 export async function setGuideAccess(childId: string, enabled: boolean): Promise<void> {
