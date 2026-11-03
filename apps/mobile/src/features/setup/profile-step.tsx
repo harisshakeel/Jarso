@@ -20,10 +20,36 @@ const genders = genderOptions.map((value) => ({ value, label: genderLabels[value
 
 /** Date of birth, country and gender (ADR 0008), as the web's completion dialog asks them. */
 export function ProfileStep() {
+  return (
+    <View className="gap-6">
+      <View className="gap-2">
+        <Text accessibilityRole="header" className="font-sans-extrabold text-h1">
+          {profileCopy.completeTitle}
+        </Text>
+        <Text className="text-ink-2">{profileCopy.completeBody}</Text>
+      </View>
+      <ParentDetailsForm />
+    </View>
+  );
+}
+
+/**
+ * The details form itself (the web's ParentDetailsForm): blank in setup, filled in with the saved
+ * details in settings.
+ */
+export function ParentDetailsForm({
+  defaults,
+  submitLabel = profileCopy.completeSubmit,
+  successMessage = profileCopy.completeSaved,
+}: {
+  defaults?: { dateOfBirth: string; country: string; gender: Gender } | null;
+  submitLabel?: string;
+  successMessage?: string;
+}) {
   const save = useSaveParentDetails();
-  const [dateOfBirth, setDateOfBirth] = useState<string | null>(null);
-  const [country, setCountry] = useState<string | null>(null);
-  const [gender, setGender] = useState<Gender | null>(null);
+  const [dateOfBirth, setDateOfBirth] = useState<string | null>(defaults?.dateOfBirth ?? null);
+  const [country, setCountry] = useState<string | null>(defaults?.country ?? null);
+  const [gender, setGender] = useState<Gender | null>(defaults?.gender ?? null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>();
   const [formError, setFormError] = useState<string>();
 
@@ -42,7 +68,7 @@ export function ProfileStep() {
     setFieldErrors(undefined);
     try {
       await save.mutateAsync(parsed.data);
-      flash(profileCopy.completeSaved);
+      flash(successMessage);
     } catch (error) {
       setFormError(await actionErrorMessage(error));
     }
@@ -50,12 +76,6 @@ export function ProfileStep() {
 
   return (
     <View className="gap-6">
-      <View className="gap-2">
-        <Text accessibilityRole="header" className="font-sans-extrabold text-h1">
-          {profileCopy.completeTitle}
-        </Text>
-        <Text className="text-ink-2">{profileCopy.completeBody}</Text>
-      </View>
       <DateField
         label={profileCopy.dateOfBirth}
         value={dateOfBirth}
@@ -88,16 +108,12 @@ export function ProfileStep() {
       ) : null}
       <Button
         size="lg"
-        accessibilityLabel={profileCopy.completeSubmit}
+        accessibilityLabel={submitLabel}
         accessibilityState={{ busy: save.isPending, disabled: save.isPending }}
         disabled={save.isPending}
         onPress={() => void submit()}
       >
-        {save.isPending ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text>{profileCopy.completeSubmit}</Text>
-        )}
+        {save.isPending ? <ActivityIndicator color="white" /> : <Text>{submitLabel}</Text>}
       </Button>
     </View>
   );

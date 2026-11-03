@@ -1,21 +1,14 @@
 import { offlineCopy } from "@jarso/core/offline";
 import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Card, ScreenHeader } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
 import { MemoryList } from "@/features/guide";
 import { useOutboxItems } from "@/lib/outbox";
-import { cn } from "@/lib/utils";
-import { type ThemeChoice, useThemeChoice } from "./theme";
+import { ThemeSection } from "./theme-section";
 import { useNickname } from "./use-nickname";
-
-const CHOICES: { value: ThemeChoice; label: string }[] = [
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-  { value: "system", label: "Same as my phone" },
-];
 
 /**
  * The child's Me screen: who they are, how it looks, and signing out. With purchases still kept
@@ -30,7 +23,6 @@ export function SettingsScreen() {
     void signOut();
   };
   const signOutLabel = waiting && warned ? offlineCopy.signOutAnyway : "Sign out";
-  const [theme, setTheme] = useThemeChoice();
   const { data: nickname } = useNickname();
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-background">
@@ -45,34 +37,7 @@ export function SettingsScreen() {
             parent can change your nickname or PIN.
           </Text>
         </Card>
-        <Card>
-          <Text accessibilityRole="header" className="font-sans-bold text-h3">
-            Looks
-          </Text>
-          <Text className="text-muted-foreground">Light, dark, or follow your device.</Text>
-          <View accessibilityRole="radiogroup" accessibilityLabel="Looks" className="gap-2">
-            {CHOICES.map(({ value, label }) => {
-              const checked = theme === value;
-              return (
-                <Pressable
-                  key={value}
-                  accessibilityRole="radio"
-                  accessibilityLabel={label}
-                  accessibilityState={{ checked }}
-                  onPress={() => setTheme(value)}
-                  className={cn(
-                    "h-12 justify-center rounded-full border px-5",
-                    checked ? "border-transparent bg-primary" : "border-border bg-background",
-                  )}
-                >
-                  <Text className={cn("font-sans-bold", checked && "text-primary-foreground")}>
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Card>
+        <ThemeSection />
         {/* What Jarso remembers: while the guide is on, or whenever any memory exists. */}
         <MemoryList />
         <Card>

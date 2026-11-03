@@ -58,9 +58,11 @@ function useStepDone() {
 /** Records the parent's date of birth, country and gender (complete_parent_profile). */
 export function useSaveParentDetails() {
   const done = useStepDone();
+  const { userId } = useSession();
   return useMutation({
     mutationFn: (input: ParentDetailsInput) => upsertParentDetails(supabase, input),
-    onSuccess: () => done({ profileComplete: true }),
+    // Settings reads the same details.
+    onSuccess: () => done({ profileComplete: true }, [keys.profile(userId ?? "")]),
   });
 }
 
