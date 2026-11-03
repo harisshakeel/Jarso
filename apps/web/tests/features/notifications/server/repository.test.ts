@@ -14,12 +14,14 @@ describe("toClaimed", () => {
     source_id: "r1",
     payload: { amount_minor: 500 },
     created_at: "2026-10-31T09:00:00+00:00",
+    overnight: true as boolean | null,
   };
-  it("maps the row with its recipient, role and currency", () => {
+  it("maps the row with its recipient, role, currency and overnight", () => {
     expect(toClaimed(claimedRow)).toEqual({
       recipientId: "p1",
       role: "child",
       currency: "GBP",
+      overnight: true,
       notice: {
         id: "n1",
         kind: "withdrawal_decided",
@@ -37,6 +39,10 @@ describe("toClaimed", () => {
     const claimed = toClaimed({ ...claimedRow, recipient_role: null, child_name: null });
     expect(claimed.role).toBe("parent");
     expect(claimed.notice.childName).toBe("");
+  });
+  it("treats a missing overnight flag as not overnight", () => {
+    expect(toClaimed({ ...claimedRow, overnight: null }).overnight).toBe(false);
+    expect(toClaimed({ ...claimedRow, overnight: false }).overnight).toBe(false);
   });
 });
 

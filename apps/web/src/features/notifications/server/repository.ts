@@ -87,6 +87,7 @@ type ClaimedRow = {
   source_id: string;
   payload: unknown;
   created_at: string;
+  overnight: boolean | null;
 };
 
 /** Pure claimed-row mapping. A recipient without a membership row counts as a parent. */
@@ -95,6 +96,7 @@ export function toClaimed(row: ClaimedRow): ClaimedNotice {
     recipientId: row.recipient_id,
     role: row.recipient_role === "child" ? "child" : "parent",
     currency: row.currency,
+    overnight: row.overnight === true,
     notice: toNotice({
       ...row,
       read_at: null,

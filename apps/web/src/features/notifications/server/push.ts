@@ -74,7 +74,7 @@ function statusOf(error: unknown): number | null {
  * the 15-minute cron sweep; both are safe to repeat because claiming is what marks a notice pushed.
  */
 export async function dispatchPush(limit = 50): Promise<PushResult> {
-  const result: PushResult = { claimed: 0, sent: 0, dropped: 0, failed: 0 };
+  const result: PushResult = { claimed: 0, sent: 0, dropped: 0, failed: 0, summarised: 0 };
   if (!isPushConfigured()) return result;
   const admin = createAdminClient();
   const notices = await claimUnpushed(admin, limit);
@@ -127,7 +127,7 @@ export async function dispatchPush(limit = 50): Promise<PushResult> {
  * with more than one batch of notices is still drained before the one-day cutoff passes.
  */
 export async function drainPush(budgetMs: number): Promise<PushResult> {
-  const total: PushResult = { claimed: 0, sent: 0, dropped: 0, failed: 0 };
+  const total: PushResult = { claimed: 0, sent: 0, dropped: 0, failed: 0, summarised: 0 };
   const start = Date.now();
   for (;;) {
     const batch = await dispatchPush(BATCH);

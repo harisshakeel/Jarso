@@ -43,6 +43,7 @@ const claimed = (recipientId: string, id = "n1"): ClaimedNotice => ({
   recipientId,
   role: "parent",
   currency: "GBP",
+  overnight: false,
   notice: {
     id,
     kind: "withdrawal_requested",
@@ -94,7 +95,13 @@ describe("pushPayload", () => {
 describe("dispatchPush", () => {
   it("claims nothing while push is off", async () => {
     env.client.NEXT_PUBLIC_VAPID_PUBLIC_KEY = undefined as unknown as string;
-    expect(await dispatchPush()).toEqual({ claimed: 0, sent: 0, dropped: 0, failed: 0 });
+    expect(await dispatchPush()).toEqual({
+      claimed: 0,
+      sent: 0,
+      dropped: 0,
+      failed: 0,
+      summarised: 0,
+    });
     expect(repo.claimUnpushed).not.toHaveBeenCalled();
   });
 
@@ -104,7 +111,7 @@ describe("dispatchPush", () => {
     const result = await dispatchPush(10);
     expect(repo.claimUnpushed).toHaveBeenCalledWith({ kind: "admin" }, 10);
     expect(repo.subscriptionsFor).toHaveBeenCalledWith({ kind: "admin" }, ["p1", "p2"]);
-    expect(result).toEqual({ claimed: 2, sent: 2, dropped: 0, failed: 0 });
+    expect(result).toEqual({ claimed: 2, sent: 2, dropped: 0, failed: 0, summarised: 0 });
     const endpoints = webpush.sendNotification.mock.calls.map(
       (call) => (call[0] as { endpoint: string }).endpoint,
     );
@@ -132,7 +139,7 @@ describe("dispatchPush", () => {
       .mockRejectedValueOnce(new Error("network"))
       .mockResolvedValueOnce({ statusCode: 201 });
     const result = await dispatchPush();
-    expect(result).toEqual({ claimed: 1, sent: 1, dropped: 1, failed: 1 });
+    expect(result).toEqual({ claimed: 1, sent: 1, dropped: 1, failed: 1, summarised: 0 });
     expect(repo.deleteSubscriptionById).toHaveBeenCalledWith({ kind: "admin" }, "s1");
     expect(log.warn).toHaveBeenCalledWith("Push send failed", { status: null });
   });
@@ -140,7 +147,13 @@ describe("dispatchPush", () => {
   it("does nothing more when nobody subscribed", async () => {
     repo.claimUnpushed.mockResolvedValue([claimed("p1")]);
     repo.subscriptionsFor.mockResolvedValue([]);
-    expect(await dispatchPush()).toEqual({ claimed: 1, sent: 0, dropped: 0, failed: 0 });
+    expect(await dispatchPush()).toEqual({
+      claimed: 1,
+      sent: 0,
+      dropped: 0,
+      failed: 0,
+      summarised: 0,
+    });
     expect(webpush.sendNotification).not.toHaveBeenCalled();
   });
 
@@ -163,12 +176,18 @@ describe("drainPush", () => {
     repo.subscriptionsFor.mockResolvedValue([]);
     const result = await drainPush(60_000);
     expect(repo.claimUnpushed).toHaveBeenCalledTimes(3);
-    expect(result).toEqual({ claimed: 401, sent: 0, dropped: 0, failed: 0 });
+    expect(result).toEqual({ claimed: 401, sent: 0, dropped: 0, failed: 0, summarised: 0 });
   });
 
   it("stops after one batch when nothing is left", async () => {
     repo.claimUnpushed.mockResolvedValue([]);
-    expect(await drainPush(60_000)).toEqual({ claimed: 0, sent: 0, dropped: 0, failed: 0 });
+    expect(await drainPush(60_000)).toEqual({
+      claimed: 0,
+      sent: 0,
+      dropped: 0,
+      failed: 0,
+      summarised: 0,
+    });
     expect(repo.claimUnpushed).toHaveBeenCalledTimes(1);
   });
 

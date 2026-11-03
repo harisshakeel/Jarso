@@ -10,3 +10,18 @@ export const inboxCopy = {
   /** The toast's action when a notice arrives. */
   open: "Open",
 } as const;
+
+/** The phone's one-line reason before Android's notification permission prompt. */
+export const pushPromptCopy = {
+  title: "Get a ping from Jarso?",
+  child: "We'll tell you when money arrives or a parent answers. Never late at night.",
+  parent: "We'll tell you when your child asks for something or a handover is due.",
+  allow: "Turn on",
+  later: "Not now",
+} as const;
+
+/** The single push for a child's notices held overnight (count is always 2 or more). */
+export const summaryPushCopy = {
+  title: (count: number) => `You have ${count} new notices`,
+  detail: "They came in overnight. Open News to see them.",
+} as const;

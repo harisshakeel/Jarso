@@ -28,7 +28,13 @@ beforeEach(() => {
   vi.mocked(auth.assertRequestUser).mockResolvedValue({ id: "u1", email: null });
   vi.mocked(notices.isPushConfigured).mockReturnValue(true);
   vi.mocked(notices.allowDispatch).mockResolvedValue(true);
-  vi.mocked(notices.dispatchPush).mockResolvedValue({ claimed: 0, sent: 0, dropped: 0, failed: 0 });
+  vi.mocked(notices.dispatchPush).mockResolvedValue({
+    claimed: 0,
+    sent: 0,
+    dropped: 0,
+    failed: 0,
+    summarised: 0,
+  });
 });
 
 describe("POST /api/v1/notices/dispatch", () => {
