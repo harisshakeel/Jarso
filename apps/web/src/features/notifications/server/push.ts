@@ -71,7 +71,7 @@ function statusOf(error: unknown): number | null {
 
 /**
  * Sends every unpushed notice from the last day. Runs after actions that write notices and from
- * the daily cron sweep; both are safe to repeat because claiming is what marks a notice pushed.
+ * the 15-minute cron sweep; both are safe to repeat because claiming is what marks a notice pushed.
  */
 export async function dispatchPush(limit = 50): Promise<PushResult> {
   const result: PushResult = { claimed: 0, sent: 0, dropped: 0, failed: 0 };

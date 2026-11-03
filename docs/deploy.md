@@ -165,7 +165,7 @@ Vercel → Deployments → previous Ready deployment → "Promote to Production"
 ## Limits that matter (Hobby plan)
 
 - Serverless function duration is capped; set `maxDuration` on routes that stream (the guide) and keep cron jobs chunked.
-- Cron jobs run at most once a day, so `apps/web/vercel.json` schedules the push sweep daily (01:30 UTC). Requests, decisions and purchases push right after the action regardless; only the hourly allowance reminders wait for the sweep. On a Pro plan shorten the schedule; or have `pg_cron` + `pg_net` call the route hourly (ADR 0012).
+- Cron jobs run at most once a day, so the push sweep is not a Vercel cron: pg_cron (`push-sweep`) calls `/api/cron/push` every 15 minutes through pg_net, with the Vault `app_url` and `cron_secret` that `charge-due-cards` uses. Requests, decisions and purchases push right after the action regardless.
 - One concurrent build; a push during a build queues.
 - Preview deployments may be behind Vercel Authentication (Deployment Protection). Production is public.
 

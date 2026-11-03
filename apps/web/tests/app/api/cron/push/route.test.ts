@@ -9,11 +9,20 @@ const drainPush = vi.hoisted(() => vi.fn());
 vi.mock("@/config/env.server", () => ({ serverEnv: env.server }));
 vi.mock("@/features/notifications/server", () => ({ drainPush }));
 
-const { GET } = await import("@/app/api/cron/push/route");
+const { GET, POST } = await import("@/app/api/cron/push/route");
 
 function get(authorization?: string) {
   return GET(
     new Request("http://localhost:3000/api/cron/push", {
+      headers: authorization ? { authorization } : {},
+    }),
+  );
+}
+
+function post(authorization?: string) {
+  return POST(
+    new Request("http://localhost:3000/api/cron/push", {
+      method: "POST",
       headers: authorization ? { authorization } : {},
     }),
   );
@@ -45,5 +54,21 @@ describe("GET /api/cron/push", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ data: { claimed: 2, sent: 1, dropped: 1, failed: 0 } });
     expect(drainPush).toHaveBeenCalledWith(15_000);
+  });
+});
+
+// pg_cron calls the sweep through pg_net every 15 minutes with a POST.
+describe("POST /api/cron/push", () => {
+  it("POST with the secret drains", async () => {
+    const res = await post("Bearer cron-placeholder-secret-value");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ data: { claimed: 2, sent: 1, dropped: 1, failed: 0 } });
+    expect(drainPush).toHaveBeenCalledWith(15_000);
+  });
+
+  it("POST with a wrong secret is 401", async () => {
+    expect((await post("Bearer cron-placeholder-secret-valu")).status).toBe(401);
+    expect((await post()).status).toBe(401);
+    expect(drainPush).not.toHaveBeenCalled();
   });
 });

@@ -15,11 +15,13 @@ function sameSecret(header: string | null, secret: string): boolean {
 }
 
 /**
- * Daily sweep for web push (FR16): sends any notice of the last day that no action pushed, such
- * as the hourly allowance reminders. Vercel calls it with `Authorization: Bearer $CRON_SECRET`;
+ * Push sweep (FR16, web and phone push): sends any notice of the last day that no action pushed,
+ * such as the hourly allowance reminders and a child's notices held overnight by quiet hours
+ * (released from 07:00). pg_cron calls it every 15 minutes through pg_net (POST, job
+ * `push-sweep`); GET stays for a manual run. Both send `Authorization: Bearer $CRON_SECRET`;
  * without that secret the route does not exist.
  */
-export const GET = withApi(async (request: Request) => {
+const handler = withApi(async (request: Request) => {
   // Read the request first so the route is rendered per request, never prerendered at build.
   const authorization = request.headers.get("authorization");
   const secret = serverEnv.CRON_SECRET;
@@ -27,3 +29,6 @@ export const GET = withApi(async (request: Request) => {
   if (!sameSecret(authorization, secret)) throw new AppError("UNAUTHORIZED", "Unauthorized");
   return json(await drainPush(DRAIN_BUDGET_MS));
 });
+
+export const GET = handler;
+export const POST = handler;

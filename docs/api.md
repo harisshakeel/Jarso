@@ -9,7 +9,7 @@
 
 Both must stay thin and call the feature **service**.
 
-Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. Three cron routes exist today, because their work needs app code: `/api/cron/payments/auto-charge` (charging a card, ADR 0013 card handover), `/api/cron/push` (sending web push, ADR 0012 web push) and `/api/cron/guide/noticed` (Jarso's weekly nudges, which may ask Claude to word a line). All take the same `CRON_SECRET`. More arrive with email delivery in the final demo.
+Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. Three cron routes exist today, because their work needs app code: `/api/cron/payments/auto-charge` (charging a card, ADR 0013 card handover), `/api/cron/push` (sending push, ADR 0012 web push; called every 15 minutes by the pg_cron job `push-sweep`) and `/api/cron/guide/noticed` (Jarso's weekly nudges, which may ask Claude to word a line). All take the same `CRON_SECRET`. More arrive with email delivery in the final demo.
 
 ## Bearer auth for non-browser callers
 
@@ -74,7 +74,7 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | POST | `/api/v1/learning/start` | child (cookie or bearer) | Start or resume a mission (`startMissionSchema`); `{ data }` is `startMission`'s result, `{ attemptId, results }`. 403 for a locked mission, 404 for an unknown one |
 | POST | `/api/v1/payments/webhooks/[provider]` | provider signature | A payment provider's signed event (ADR 0013) |
 | GET, POST | `/api/cron/payments/auto-charge` | `Authorization: Bearer <CRON_SECRET>` | Charge every due item with auto charge on |
-| GET | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Daily web push sweep (ADR 0012); 404 when the secret is unset |
+| GET, POST | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Push sweep (ADR 0012), every 15 minutes from pg_cron (`push-sweep` → `trigger_push_sweep`, POST via pg_net); GET for a manual run; 404 when the secret is unset |
 | GET | `/api/cron/guide/noticed` | `Authorization: Bearer $CRON_SECRET` | Jarso noticed: the weekly nudges (demo 3); 404 when the secret is unset |
 
 ### `POST /api/v1/outbox`
