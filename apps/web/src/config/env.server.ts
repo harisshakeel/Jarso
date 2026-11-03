@@ -48,6 +48,16 @@ const schema = z.object({
       .optional(),
   ),
   STRIPE_WEBHOOK_SECRET: blankAsUnset(z.string().startsWith("whsec_").optional()),
+  /**
+   * Optional, test mode only: the phone's card sheet opens with it (served by the API). Without
+   * it Stripe stays on for the web only.
+   */
+  STRIPE_PUBLISHABLE_KEY: blankAsUnset(
+    z
+      .string()
+      .regex(/^pk_test_/, "Use a Stripe test-mode publishable key (pk_test_…)")
+      .optional(),
+  ),
   /** Test mode only: a live key id is refused. */
   RAZORPAY_KEY_ID: blankAsUnset(
     z

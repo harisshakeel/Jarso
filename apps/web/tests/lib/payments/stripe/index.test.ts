@@ -1,7 +1,7 @@
 // @vitest-environment node
 import Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
-import { createStripePaymentProvider } from "@/lib/payments/stripe/index";
+import { createStripePaymentProvider, STRIPE_API_VERSION } from "@/lib/payments/stripe/index";
 import paymentIntentSucceeded from "./fixtures/payment-intent-succeeded.json";
 
 const SECRET = "whsec_test_secret";
@@ -11,6 +11,7 @@ function setup() {
   const provider = createStripePaymentProvider({
     secretKey: "sk_test_dummy",
     webhookSecret: SECRET,
+    publishableKey: null,
     client,
   });
   return { client, provider };
@@ -128,6 +129,168 @@ describe("stripe ensureCustomer", () => {
       customerRef: "cus_1",
     });
     expect(create.mock.calls[0]?.[1]).toEqual({ idempotencyKey: "customer:p1" });
+  });
+});
+
+function inAppSetup(publishableKey: string | null = "pk_test_X") {
+  const client = new Stripe("sk_test_dummy");
+  const provider = createStripePaymentProvider({
+    secretKey: "sk_test_dummy",
+    webhookSecret: SECRET,
+    publishableKey,
+    client,
+  });
+  const ephemeral = vi
+    .spyOn(client.ephemeralKeys, "create")
+    .mockResolvedValue({ secret: "ek_test_1" } as never);
+  return { client, provider, ephemeral };
+}
+
+const inAppInput = {
+  paymentId: "pay-1",
+  amountMinor: 500,
+  currency: "GBP",
+  customerRef: "cus_1",
+  description: "Allowance for Sam",
+  expiresAt: new Date("2026-11-03T10:31:00Z"),
+};
+
+describe("stripe createInAppPayment", () => {
+  it("creates a card PaymentIntent marked in-app and returns the sheet", async () => {
+    const { client, provider, ephemeral } = inAppSetup();
+    const create = vi
+      .spyOn(client.paymentIntents, "create")
+      .mockResolvedValue({ id: "pi_1", client_secret: "pi_1_secret_x" } as never);
+
+    expect(provider.inApp).toBe(true);
+    expect(await provider.createInAppPayment(inAppInput)).toEqual({
+      providerRef: "pi_1",
+      sheet: {
+        provider: "stripe",
+        mode: "payment",
+        publishableKey: "pk_test_X",
+        customerId: "cus_1",
+        ephemeralKey: "ek_test_1",
+        clientSecret: "pi_1_secret_x",
+      },
+    });
+    expect(create).toHaveBeenCalledWith(
+      {
+        amount: 500,
+        currency: "gbp",
+        customer: "cus_1",
+        allowed_payment_method_types: ["card"],
+        description: "Allowance for Sam",
+        metadata: { paymentId: "pay-1", jarsoInApp: "1" },
+      },
+      { idempotencyKey: "inapp:pay-1" },
+    );
+    expect(ephemeral).toHaveBeenCalledWith(
+      { customer: "cus_1" },
+      { apiVersion: STRIPE_API_VERSION },
+    );
+  });
+
+  it("is off without a publishable key and never calls Stripe", async () => {
+    const { client, provider } = inAppSetup(null);
+    const create = vi.spyOn(client.paymentIntents, "create");
+    expect(provider.inApp).toBe(false);
+    await expect(provider.createInAppPayment(inAppInput)).rejects.toMatchObject({
+      code: "UNAVAILABLE",
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+});
+
+describe("stripe resumeInAppPayment", () => {
+  const input = {
+    paymentId: "pay-1",
+    providerRef: "pi_1",
+    customerRef: "cus_1",
+    amountMinor: 500,
+    currency: "GBP",
+    description: "Allowance for Sam",
+  };
+
+  it("returns the intent's client secret with a fresh ephemeral key", async () => {
+    const { client, provider, ephemeral } = inAppSetup();
+    const retrieve = vi.spyOn(client.paymentIntents, "retrieve").mockResolvedValue({
+      id: "pi_1",
+      status: "requires_payment_method",
+      client_secret: "pi_1_secret_x",
+    } as never);
+    expect(await provider.resumeInAppPayment(input)).toEqual({
+      provider: "stripe",
+      mode: "payment",
+      publishableKey: "pk_test_X",
+      customerId: "cus_1",
+      ephemeralKey: "ek_test_1",
+      clientSecret: "pi_1_secret_x",
+    });
+    expect(retrieve).toHaveBeenCalledWith("pi_1");
+    expect(ephemeral).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses an intent that already succeeded", async () => {
+    const { client, provider } = inAppSetup();
+    vi.spyOn(client.paymentIntents, "retrieve").mockResolvedValue({
+      id: "pi_1",
+      status: "succeeded",
+      client_secret: "pi_1_secret_x",
+    } as never);
+    await expect(provider.resumeInAppPayment(input)).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+});
+
+describe("stripe cancelInAppPayment", () => {
+  it("swallows an intent that can no longer be cancelled", async () => {
+    const { client, provider } = inAppSetup();
+    vi.spyOn(client.paymentIntents, "cancel").mockRejectedValue(
+      new Stripe.errors.StripeInvalidRequestError({
+        type: "invalid_request_error",
+        code: "payment_intent_unexpected_state",
+      } as never),
+    );
+    await expect(provider.cancelInAppPayment("pi_1")).resolves.toBeUndefined();
+  });
+
+  it("turns a connection error into UNAVAILABLE", async () => {
+    const { client, provider } = inAppSetup();
+    vi.spyOn(client.paymentIntents, "cancel").mockRejectedValue(
+      new Stripe.errors.StripeConnectionError({ type: "api_connection_error" } as never),
+    );
+    await expect(provider.cancelInAppPayment("pi_1")).rejects.toMatchObject({
+      code: "UNAVAILABLE",
+    });
+  });
+});
+
+describe("stripe createInAppSetup", () => {
+  it("creates an off-session SetupIntent marked in-app", async () => {
+    const { client, provider } = inAppSetup();
+    const create = vi
+      .spyOn(client.setupIntents, "create")
+      .mockResolvedValue({ id: "seti_1", client_secret: "seti_1_secret_x" } as never);
+    expect(await provider.createInAppSetup({ setupId: "set-1", customerRef: "cus_1" })).toEqual({
+      providerRef: "seti_1",
+      sheet: {
+        provider: "stripe",
+        mode: "setup",
+        publishableKey: "pk_test_X",
+        customerId: "cus_1",
+        ephemeralKey: "ek_test_1",
+        clientSecret: "seti_1_secret_x",
+      },
+    });
+    expect(create).toHaveBeenCalledWith(
+      {
+        customer: "cus_1",
+        allowed_payment_method_types: ["card"],
+        usage: "off_session",
+        metadata: { setupId: "set-1", jarsoInApp: "1" },
+      },
+      { idempotencyKey: "inapp-setup:set-1" },
+    );
   });
 });
 

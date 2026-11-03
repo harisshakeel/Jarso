@@ -1,0 +1,15 @@
+{
+  "id": "evt_10",
+  "object": "event",
+  "type": "setup_intent.succeeded",
+  "livemode": false,
+  "data": {
+    "object": {
+      "id": "seti_1",
+      "object": "setup_intent",
+      "status": "succeeded",
+      "payment_method": "pm_1",
+      "metadata": { "setupId": "set-1", "jarsoInApp": "1" }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { AppError } from "@jarso/core/lib";
 import Stripe from "stripe";
 import { logger } from "../../logger";
-import type { FailureCode, PaymentProvider, PaymentStatus } from "../types";
+import type { FailureCode, InAppSheet, PaymentProvider, PaymentStatus } from "../types";
 import { stripeMinimumChargeMinor } from "./currencies";
 import { mapFailureCode, mapStripeEvent } from "./map-event";
 
@@ -24,9 +24,15 @@ function toAppError(cause: unknown): AppError {
   return unavailable(cause);
 }
 
+// paymentCopy.inProgress / badReturn: lib can't import a feature's copy, so the words are here.
+const IN_PROGRESS = "A card payment is already in progress. Give it a minute and try again.";
+const TRY_AGAIN = "Something went wrong. Please try again.";
+
 export function createStripePaymentProvider(opts: {
   secretKey: string;
   webhookSecret: string;
+  /** Opens the phone's PaymentSheet. Null: Stripe is web-only (`inApp` false). */
+  publishableKey: string | null;
   client?: Stripe;
 }): PaymentProvider {
   const client =
@@ -36,6 +42,34 @@ export function createStripePaymentProvider(opts: {
       maxNetworkRetries: 1,
       timeout: 8000,
     });
+  const publishableKey = opts.publishableKey;
+
+  function requirePublishableKey(): string {
+    if (publishableKey === null) throw unavailable(new Error("No Stripe publishable key"));
+    return publishableKey;
+  }
+
+  /** The PaymentSheet params, with an ephemeral key minted for this open (it is short-lived). */
+  async function paymentSheet(
+    key: string,
+    mode: "payment" | "setup",
+    customerId: string,
+    clientSecret: string,
+  ): Promise<InAppSheet> {
+    const ephemeral = await client.ephemeralKeys.create(
+      { customer: customerId },
+      { apiVersion: STRIPE_API_VERSION },
+    );
+    if (!ephemeral.secret) throw new Error("Ephemeral key has no secret");
+    return {
+      provider: "stripe",
+      mode,
+      publishableKey: key,
+      customerId,
+      ephemeralKey: ephemeral.secret,
+      clientSecret,
+    };
+  }
 
   return {
     id: "stripe",
@@ -154,22 +188,87 @@ export function createStripePaymentProvider(opts: {
       }
     },
 
-    inApp: false,
+    inApp: publishableKey !== null,
 
-    async createInAppPayment() {
-      throw unavailable(null);
+    async createInAppPayment(i) {
+      const key = requirePublishableKey();
+      try {
+        const intent = await client.paymentIntents.create(
+          {
+            amount: i.amountMinor,
+            currency: i.currency.toLowerCase(),
+            customer: i.customerRef,
+            allowed_payment_method_types: ["card"],
+            description: i.description,
+            // The marker tells the webhook mapping the parent may retry in the sheet.
+            metadata: { paymentId: i.paymentId, jarsoInApp: "1" },
+          },
+          { idempotencyKey: `inapp:${i.paymentId}` },
+        );
+        if (!intent.client_secret) throw new Error("PaymentIntent has no client secret");
+        const sheet = await paymentSheet(key, "payment", i.customerRef, intent.client_secret);
+        return { providerRef: intent.id, sheet };
+      } catch (cause) {
+        throw toAppError(cause);
+      }
     },
 
-    async resumeInAppPayment() {
-      throw unavailable(null);
+    async resumeInAppPayment(i) {
+      const key = requirePublishableKey();
+      let intent: Stripe.PaymentIntent;
+      try {
+        intent = await client.paymentIntents.retrieve(i.providerRef);
+      } catch (cause) {
+        throw toAppError(cause);
+      }
+      if (intent.status === "succeeded" || intent.status === "processing") {
+        throw new AppError("CONFLICT", IN_PROGRESS);
+      }
+      if (intent.status === "canceled" || !intent.client_secret) {
+        throw new AppError("CONFLICT", TRY_AGAIN);
+      }
+      try {
+        return await paymentSheet(key, "payment", i.customerRef, intent.client_secret);
+      } catch (cause) {
+        throw toAppError(cause);
+      }
     },
 
-    async cancelInAppPayment() {
-      throw unavailable(null);
+    async cancelInAppPayment(providerRef) {
+      try {
+        await client.paymentIntents.cancel(providerRef);
+      } catch (cause) {
+        const code = (cause as { code?: string } | null)?.code;
+        if (
+          cause instanceof Stripe.errors.StripeInvalidRequestError &&
+          (code === "payment_intent_unexpected_state" || code === "resource_missing")
+        ) {
+          // Already succeeded, cancelled or gone: a success still posts through the webhook.
+          logger.warn("stripe intent not cancellable", { providerRef, code });
+          return;
+        }
+        throw toAppError(cause);
+      }
     },
 
-    async createInAppSetup() {
-      throw unavailable(null);
+    async createInAppSetup(i) {
+      const key = requirePublishableKey();
+      try {
+        const intent = await client.setupIntents.create(
+          {
+            customer: i.customerRef,
+            allowed_payment_method_types: ["card"],
+            usage: "off_session",
+            metadata: { setupId: i.setupId, jarsoInApp: "1" },
+          },
+          { idempotencyKey: `inapp-setup:${i.setupId}` },
+        );
+        if (!intent.client_secret) throw new Error("SetupIntent has no client secret");
+        const sheet = await paymentSheet(key, "setup", i.customerRef, intent.client_secret);
+        return { providerRef: intent.id, sheet };
+      } catch (cause) {
+        throw toAppError(cause);
+      }
     },
 
     async parseWebhook(rawBody, headers) {

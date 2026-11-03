@@ -46,6 +46,23 @@ vi.spyOn(stripeClient.checkout.sessions, "create").mockResolvedValue({
   id: "cs_test_c",
   url: "https://stripe.test/c",
 } as never);
+vi.spyOn(stripeClient.paymentIntents, "create").mockResolvedValue({
+  id: "pi_test_c",
+  client_secret: "pi_test_c_secret_c",
+} as never);
+vi.spyOn(stripeClient.paymentIntents, "retrieve").mockResolvedValue({
+  id: "pi_test_c",
+  status: "requires_payment_method",
+  client_secret: "pi_test_c_secret_c",
+} as never);
+vi.spyOn(stripeClient.paymentIntents, "cancel").mockResolvedValue({ id: "pi_test_c" } as never);
+vi.spyOn(stripeClient.setupIntents, "create").mockResolvedValue({
+  id: "seti_test_c",
+  client_secret: "seti_test_c_secret_c",
+} as never);
+vi.spyOn(stripeClient.ephemeralKeys, "create").mockResolvedValue({
+  secret: "ek_test_c",
+} as never);
 
 const stripe: Adapter = {
   name: "stripe",
@@ -55,6 +72,7 @@ const stripe: Adapter = {
     createStripePaymentProvider({
       secretKey: "sk_test_dummy",
       webhookSecret: WEBHOOK_SECRET,
+      publishableKey: "pk_test_contract",
       client: stripeClient,
     }),
   signedSucceeded: (paymentId) => {
@@ -160,7 +178,7 @@ describe.each([fake, stripe, razorpay])("payment provider contract: $name", (ada
   });
 });
 
-describe.each([fake])("payment provider contract, in-app: $name", (adapter) => {
+describe.each([fake, stripe])("payment provider contract, in-app: $name", (adapter) => {
   const provider = adapter.make();
 
   it("has a native sheet", () => {
