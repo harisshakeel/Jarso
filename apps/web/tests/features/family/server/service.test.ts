@@ -1,4 +1,4 @@
-import { hashSecret } from "@jarso/core/family";
+import { hashSecret, nicknameTaken } from "@jarso/core/family";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppError } from "@/lib";
 
@@ -96,6 +96,48 @@ describe("addChild", () => {
       expect.objectContaining({ consent: false }),
     );
     expect(childAuth.deleteChildAuthUser).toHaveBeenCalledWith("child-1");
+  });
+
+  it("limits each parent to 10 new children an hour", async () => {
+    vi.mocked(childAuth.createChildAuthUser).mockResolvedValue("child-1");
+    vi.mocked(repo.registerChild).mockResolvedValue();
+
+    await service.addChild({ familyId: "fam-1", nickname: "Sam", pin: "1234", consent: true });
+    expect(repo.hitRateLimit).toHaveBeenCalledWith(
+      expect.anything(),
+      "add-child:user:parent-1",
+      "1 hour",
+      10,
+    );
+  });
+
+  it("throws RATE_LIMITED without creating an auth user when the limit is hit", async () => {
+    vi.mocked(repo.hitRateLimit).mockResolvedValue(false);
+
+    await expect(
+      service.addChild({ familyId: "fam-1", nickname: "Sam", pin: "1234", consent: true }),
+    ).rejects.toMatchObject({ code: "RATE_LIMITED" });
+    expect(childAuth.createChildAuthUser).not.toHaveBeenCalled();
+  });
+});
+
+describe("withNicknameConflict", () => {
+  it("puts a CONFLICT on the nickname field", async () => {
+    const error = await service
+      .withNicknameConflict(Promise.reject(new AppError("CONFLICT", "That already exists.")))
+      .catch((e: unknown) => e);
+    expect(error).toMatchObject({
+      code: "CONFLICT",
+      message: "Please fix the highlighted fields.",
+      fieldErrors: { nickname: [nicknameTaken] },
+    });
+  });
+
+  it("passes other errors and results through", async () => {
+    await expect(
+      service.withNicknameConflict(Promise.reject(new AppError("FORBIDDEN", "No."))),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", message: "No." });
+    await expect(service.withNicknameConflict(Promise.resolve(7))).resolves.toBe(7);
   });
 });
 

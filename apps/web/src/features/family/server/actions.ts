@@ -6,7 +6,6 @@ import {
   addChildSchema,
   childSignInSchema,
   createFamilySchema,
-  nicknameTaken,
   removeChildSchema,
   renameChildSchema,
   setChildPinSchema,
@@ -19,7 +18,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { routes } from "@/config";
 import { safeNextPath } from "@/features/auth";
-import { AppError, createAction, isAppError } from "@/lib";
+import { AppError, createAction } from "@/lib";
 import { getClientIp } from "./client-ip";
 import { assertParentOf, assertRole } from "./dal";
 import {
@@ -33,6 +32,7 @@ import {
   setChildPin,
   startChildOnboarding,
   updateFamilySettings,
+  withNicknameConflict,
 } from "./service";
 
 /** `next` lets the invite flow send the parent back to /invite?token=… after setup. */
@@ -47,25 +47,10 @@ export const createFamilyAction = createAction(
   },
 );
 
-/** A duplicate nickname comes back from register_child as CONFLICT; show it on the field. */
-function nicknameConflict(error: unknown): never {
-  if (isAppError(error) && error.code === "CONFLICT") {
-    throw new AppError("CONFLICT", "Please fix the highlighted fields.", {
-      fieldErrors: { nickname: [nicknameTaken] },
-      cause: error,
-    });
-  }
-  throw error;
-}
-
 export const addChildAction = createAction(addChildSchema, async ({ nickname, pin, consent }) => {
   const { membership } = await assertRole("parent");
   if (!membership) throw new AppError("FORBIDDEN", "Set up your family first.");
-  try {
-    await addChild({ familyId: membership.familyId, nickname, pin, consent });
-  } catch (error) {
-    nicknameConflict(error);
-  }
+  await withNicknameConflict(addChild({ familyId: membership.familyId, nickname, pin, consent }));
   redirect(routes.parent);
 });
 
@@ -81,22 +66,14 @@ export const childSignInAction = createAction(childSignInSchema, async (input) =
 });
 
 export const acceptInvitationAction = createAction(acceptInvitationSchema, async (input) => {
-  try {
-    await acceptInvitation(input);
-  } catch (error) {
-    nicknameConflict(error);
-  }
+  await withNicknameConflict(acceptInvitation(input));
   redirect(routes.parent);
 });
 
 export const acceptListedInvitationAction = createAction(
   acceptListedInvitationSchema,
   async (input) => {
-    try {
-      await acceptListedInvitation(input);
-    } catch (error) {
-      nicknameConflict(error);
-    }
+    await withNicknameConflict(acceptListedInvitation(input));
     redirect(routes.parent);
   },
 );
@@ -108,11 +85,7 @@ export const setChildPinAction = createAction(setChildPinSchema, async (input) =
 
 export const renameChildAction = createAction(renameChildSchema, async (input) => {
   await assertParentOf(input.childId);
-  try {
-    await renameChild(input);
-  } catch (error) {
-    nicknameConflict(error);
-  }
+  await withNicknameConflict(renameChild(input));
   refresh();
 });
 

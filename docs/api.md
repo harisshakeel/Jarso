@@ -72,6 +72,11 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | POST | `/api/v1/guide/turns` | child or parent (cookie or bearer) | One message to Jarso, streamed as NDJSON (`askGuideSchema`) |
 | GET | `/api/v1/guide/state` | child (cookie or bearer) | `{ data: { available, introNeeded } }` from `getGuideState`; for the phone, which cannot read the server's guide switch |
 | POST | `/api/v1/learning/start` | child (cookie or bearer) | Start or resume a mission (`startMissionSchema`); `{ data }` is `startMission`'s result, `{ attemptId, results }`. 403 for a locked mission, 404 for an unknown one |
+| POST | `/api/v1/children` | parent (cookie or bearer) | Add a child to the parent's own family (`addChildSchema`; the family is the membership's, never the body's); 201 `{ data: ChildSummary }`. 403 without a family, 409 with `details.nickname` for a taken nickname, 429 past 10 an hour per parent |
+| DELETE | `/api/v1/children/[childId]` | parent (cookie or bearer) | Remove a child (`removeChildSchema` on the path, ADR 0007); `{ data: { ok: true } }`. A retry after a half removal succeeds |
+| PATCH | `/api/v1/children/[childId]/pin` | parent (cookie or bearer) | Reset a child's PIN (`{ pin }`; the child is the path's, `setChildPinSchema`); signs the child's devices out; `{ data: { ok: true } }` |
+| POST | `/api/v1/invitations/lookup` | parent (cookie or bearer) | `{ invite }` (link token or code) → `{ data: { nickname } }`; 404 `INVITATION_GONE` wording for an unknown, used or expired one; 10 an hour per parent |
+| POST | `/api/v1/invitations` | parent (cookie or bearer) | Accept an invitation (`acceptInvitationSchema` or `acceptListedInvitationSchema`) → `{ data: ChildSummary }`; 404 when gone, 409 with `details.nickname` for a taken nickname |
 | POST | `/api/v1/payments/webhooks/[provider]` | provider signature | A payment provider's signed event (ADR 0013) |
 | GET, POST | `/api/cron/payments/auto-charge` | `Authorization: Bearer <CRON_SECRET>` | Charge every due item with auto charge on |
 | GET | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Daily web push sweep (ADR 0012); 404 when the secret is unset |

@@ -17,6 +17,7 @@ import {
   generateCode,
   generateToken,
   hashSecret,
+  nicknameTaken,
   normaliseEmailForLimit,
   normaliseFamilyCode,
 } from "@jarso/core/family";
@@ -104,10 +105,15 @@ export async function addChild(input: {
   consent: boolean;
   invitationId?: string;
 }): Promise<ChildSummary> {
-  const { membership } = await assertRole("parent");
+  const { user, membership } = await assertRole("parent");
   // Fail fast before creating an auth user; register_child re-checks authoritatively.
   if (membership?.familyId !== input.familyId)
     throw new AppError("FORBIDDEN", "You can't do that.");
+  // Each call creates an auth user with the admin client, so a parent's adds are capped.
+  await enforceLimits(
+    [{ key: `add-child:user:${user.id}`, window: "1 hour", max: 10 }],
+    "Too many tries. Please wait a little and try again.",
+  );
   const db = await createClient();
   const childId = await createChildAuthUser();
   try {
@@ -117,6 +123,24 @@ export async function addChild(input: {
     throw error;
   }
   return { id: childId, nickname: input.nickname.trim() };
+}
+
+/**
+ * A duplicate nickname comes back from register_child (and rename) as CONFLICT; this puts it on
+ * the nickname field. For the actions and the phone's routes alike.
+ */
+export async function withNicknameConflict<T>(work: Promise<T>): Promise<T> {
+  try {
+    return await work;
+  } catch (error) {
+    if (isAppError(error) && error.code === "CONFLICT") {
+      throw new AppError("CONFLICT", "Please fix the highlighted fields.", {
+        fieldErrors: { nickname: [nicknameTaken] },
+        cause: error,
+      });
+    }
+    throw error;
+  }
 }
 
 /** Child-started onboarding (signed out). Always returns a link and code; email is a bonus. */
