@@ -67,6 +67,8 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | GET | `/api/v1/me` | user | Current user's profile |
 | PATCH | `/api/v1/me` | user | Update profile (`updateProfileSchema`) |
 | POST | `/api/v1/auth/child-sign-in` | – (rate-limited) | Child PIN sign-in for the phone; returns `{ accessToken, refreshToken, expiresAt }` (ADR 0016) |
+| POST | `/api/v1/push/tokens` | user (bearer; any approved member, parent or child) | Register this phone's Expo push token (`{ token, platform: "android" }`), taking it over from any other account on the phone; at most 10 per member; 201 `{ id }`; 403 outside a family |
+| DELETE | `/api/v1/push/tokens` | user (bearer) | Forget this phone's token for the caller (`{ token }`), before sign-out; `{ removed }` |
 | POST | `/api/v1/notices/dispatch` | user (bearer) | Send web and phone push for pending notices (queued when either transport is on); 30 per 10 min per user; 202 |
 | POST | `/api/v1/outbox` | child (cookie or bearer) | One queued child action from the device outbox (`outboxRequestSchema`) |
 | POST | `/api/v1/guide/turns` | child or parent (cookie or bearer) | One message to Jarso, streamed as NDJSON (`askGuideSchema`) |

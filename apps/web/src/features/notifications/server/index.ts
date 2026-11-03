@@ -17,7 +17,9 @@ export {
   listUnreadNotices,
   markRead,
   ownsPushEndpoint,
+  registerDeviceToken,
   sendChildNote,
   subscribePush,
+  unregisterDeviceToken,
   unsubscribePush,
 } from "./service";

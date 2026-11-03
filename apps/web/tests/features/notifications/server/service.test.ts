@@ -9,11 +9,35 @@ vi.mock("@/features/notifications/server/repository", () => ({
   fetchUnreadCount: vi.fn(),
   markRead: vi.fn(),
   hitRateLimit: vi.fn(),
+  saveDeviceToken: vi.fn(),
+  removeDeviceToken: vi.fn(),
 }));
 
 const repo = await import("@/features/notifications/server/repository");
-const { allowDispatch, listNotices, listUnreadNotices, getUnreadCount, markRead, describeAgent } =
-  await import("@/features/notifications/server/service");
+const auth = await import("@/features/auth/server");
+const {
+  allowDispatch,
+  listNotices,
+  listUnreadNotices,
+  getUnreadCount,
+  markRead,
+  describeAgent,
+  registerDeviceToken,
+  unregisterDeviceToken,
+} = await import("@/features/notifications/server/service");
+
+describe("device tokens", () => {
+  it("register and unregister run as the signed-in user's own client", async () => {
+    vi.mocked(repo.saveDeviceToken).mockResolvedValue("row-1");
+    vi.mocked(repo.removeDeviceToken).mockResolvedValue(true);
+    const input = { token: "ExponentPushToken[abc]", platform: "android" as const };
+    await expect(registerDeviceToken(input)).resolves.toEqual({ id: "row-1" });
+    expect(repo.saveDeviceToken).toHaveBeenCalledWith({ kind: "user" }, input);
+    await expect(unregisterDeviceToken(input.token)).resolves.toEqual({ removed: true });
+    expect(repo.removeDeviceToken).toHaveBeenCalledWith({ kind: "user" }, input.token);
+    expect(auth.assertUser).toHaveBeenCalled();
+  });
+});
 
 const notice = (i: number) => ({
   id: `n${i}`,
