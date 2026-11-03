@@ -1,4 +1,5 @@
 import { fetchUnreadCount } from "@jarso/data/notifications";
+import { findProfileById } from "@jarso/data/profiles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { useRouter } from "expo-router";
@@ -12,6 +13,10 @@ jest.mock("react-native-safe-area-context", () => ({
 jest.mock("@/lib/supabase/client", () => ({ supabase: {} }));
 jest.mock("@/lib/api", () => ({ apiFetch: jest.fn() }));
 jest.mock("@jarso/data/notifications", () => ({ fetchUnreadCount: jest.fn() }));
+jest.mock("@jarso/data/profiles", () => ({
+  findProfileById: jest.fn(),
+  findParentDetails: jest.fn().mockResolvedValue(null),
+}));
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
 jest.mock("@/features/auth/use-session", () => ({
   useSession: () => ({ status: "parent", role: "parent", userId: "parent-1" }),
@@ -109,5 +114,13 @@ describe("parent tabs", () => {
     await renderTabs();
     await user.press(screen.getByRole("button", { name: "Settings" }));
     expect(push).toHaveBeenCalledWith("/(parent)/settings");
+  });
+
+  it("shows the parent's initial on the Settings button once their name loads", async () => {
+    guideState.mockResolvedValue({ configured: false, enabledChildIds: [] });
+    (findProfileById as jest.Mock).mockResolvedValue({ id: "parent-1", fullName: "pat" });
+    await renderTabs();
+    const button = screen.getByRole("button", { name: "Settings" });
+    await waitFor(() => expect(button).toHaveTextContent("P"));
   });
 });

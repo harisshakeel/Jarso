@@ -76,6 +76,12 @@ export const keys = {
   dashboard: (userId: string, days: number) => ["family", userId, "dashboard", days] as const,
   /** Jarso's summary of the family's figures. */
   summary: (userId: string, days: number) => ["family", userId, "summary", days] as const,
+  /** Every child's open requests ("Needs you"). */
+  familyRequests: (userId: string) => ["family", userId, "requests"] as const,
+  /** Every child's due allowances and gifts ("Needs you"). */
+  familyDue: (userId: string) => ["family", userId, "due"] as const,
+  /** The parent's own name and details (settings). */
+  profile: (userId: string) => ["profile", userId] as const,
   invitations: (userId: string) => ["invitations", userId] as const,
   child: (childId: string) => ["child", childId] as const,
   childSchedule: (childId: string) => ["child", childId, "schedule"] as const,

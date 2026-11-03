@@ -2,14 +2,16 @@ import { mobileFontSize } from "@jarso/brand/tokens";
 import resolveConfig from "tailwindcss/resolveConfig";
 import { read, relative, root, sourceFiles } from "./source-files";
 
-// The screen components behind the five tabs and Me.
+// The screen components behind the child's five tabs and Me, and the parent's tabs.
 const TAB_SCREEN_FILES = [
   "diary-screen",
   "history-list",
   "learn-screen",
   "news-screen",
   "guide-screens",
-  "settings-screen",
+  "settings/settings-screen",
+  "parent/family-home-screen",
+  "parent/children-screen",
 ].map((name) => sourceFiles().find((f) => f.endsWith(`/${name}.tsx`)) ?? `${root}/missing/${name}`);
 
 // biome-ignore lint/suspicious/noExplicitAny: the config is plain CommonJS

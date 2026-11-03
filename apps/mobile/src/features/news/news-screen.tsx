@@ -35,7 +35,8 @@ export function NewsScreen({ viewer: role }: { viewer: NoticeRole }) {
   };
 
   return (
-    <SafeAreaView edges={["top"]} className="flex-1 bg-background">
+    // The parent's tabs show a header (Settings), which already clears the status bar.
+    <SafeAreaView edges={role === "child" ? ["top"] : []} className="flex-1 bg-background">
       <ScrollView
         contentContainerClassName="gap-4 px-4 pt-4 pb-10"
         refreshControl={<RefreshControl refreshing={notices.isRefetching} onRefresh={refresh} />}
