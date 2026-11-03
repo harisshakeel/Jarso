@@ -1,11 +1,14 @@
+import { cn } from "cn";
+import { LogOutIcon, PaletteIcon, UserRoundIcon } from "lucide-react";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
 import { CoachSays } from "@/components/brand";
+import { PageContainer, PageHeader, PageSkeleton, toneIcon } from "@/components/layout";
 import { SlowFallback } from "@/components/shell";
 import { SoundsToggle } from "@/components/sounds";
 import { ThemeChoice } from "@/components/theme";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
+import { Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { SignOutButton } from "@/features/auth";
 import { getChildNickname, requireRole } from "@/features/family/server";
@@ -25,62 +28,94 @@ async function ChildSettings() {
     getGuideState(user.id),
     getMemories(user.id),
   ]);
+  const showMemories = guide.available || memories.length > 0;
   return (
-    <>
-      {guide.available || memories.length > 0 ? (
-        <div className="rise-in">
-          <MemoryList memories={memories} whose="you" />
-        </div>
-      ) : null}
-      <Card className="rise-in">
-        <CardHeader>
-          <CardTitle className="text-h2">You</CardTitle>
-          <CardDescription>
-            {nickname ? `You sign in as ${nickname}.` : "Your nickname is how you sign in."} A
-            parent can change your nickname or PIN.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-      <Card className="rise-in" style={rise(1)}>
-        <CardHeader>
-          <CardTitle className="text-h2">Looks</CardTitle>
-          <CardDescription>Light, dark, or follow your device.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ThemeChoice />
-        </CardContent>
-      </Card>
-      <SoundsToggle />
-      <PushToggle />
-      <Card className="rise-in" style={rise(2)}>
-        <CardHeader>
-          <CardTitle className="text-h2">Done for now?</CardTitle>
-          <CardDescription>
-            You can sign back in with your family code, nickname and PIN.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <CoachSays coach={{ key: "settings" }} says={{ moment: "doneForNow" }} size="sm" />
-          <SignOutButton />
-        </CardContent>
-      </Card>
-    </>
+    // Two columns from 1024 px: who you are and how Jarso looks and sounds on the left, what
+    // Jarso remembers and signing out on the right, so the page fits one screen.
+    <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      <div className="grid gap-6">
+        <Card className="rise-in">
+          <CardContent>
+            <section aria-labelledby="me-you" className="flex items-center gap-4">
+              <span
+                aria-hidden
+                className={cn(
+                  "grid size-14 shrink-0 place-items-center rounded-full font-extrabold text-h2",
+                  toneIcon.teal,
+                )}
+              >
+                {nickname ? nickname.charAt(0).toUpperCase() : <UserRoundIcon className="size-7" />}
+              </span>
+              <div className="grid gap-1">
+                <h2 id="me-you" className="text-h3">
+                  You
+                </h2>
+                <p className="text-ink-2">
+                  {nickname ? `You sign in as ${nickname}.` : "Your nickname is how you sign in."} A
+                  parent can change your nickname or PIN.
+                </p>
+              </div>
+            </section>
+          </CardContent>
+        </Card>
+        <Card className="rise-in" style={rise(1)}>
+          <CardContent>
+            <section aria-labelledby="me-looks" className="grid gap-4">
+              <div className="grid gap-1">
+                <h2 id="me-looks" className="flex items-center gap-2 text-h3">
+                  <PaletteIcon aria-hidden className="size-5" />
+                  Looks &amp; sounds
+                </h2>
+                <p className="text-ink-2 text-sm">Light, dark, or follow your device.</p>
+              </div>
+              <ThemeChoice />
+              <SoundsToggle />
+              <PushToggle />
+            </section>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-6">
+        {showMemories ? (
+          <div className="rise-in" style={rise(2)}>
+            <MemoryList memories={memories} whose="you" />
+          </div>
+        ) : null}
+        <Card className="rise-in" style={rise(3)}>
+          <CardContent>
+            <section aria-labelledby="me-done" className="grid gap-4">
+              <div className="grid gap-1">
+                <h2 id="me-done" className="flex items-center gap-2 text-h3">
+                  <LogOutIcon aria-hidden className="size-5" />
+                  Done for now?
+                </h2>
+                <p className="text-ink-2 text-sm">
+                  You can sign back in with your family code, nickname and PIN.
+                </p>
+              </div>
+              <CoachSays coach={{ key: "settings" }} says={{ moment: "doneForNow" }} size="sm" />
+              <SignOutButton />
+            </section>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
 
 export default function ChildSettingsPage() {
   return (
-    <div className="mx-auto grid w-full max-w-4xl gap-6">
-      <h1 className="text-h1">Me</h1>
+    <PageContainer>
+      <PageHeader title="Me" />
       <Suspense
         fallback={
           <SlowFallback>
-            <div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />
+            <PageSkeleton />
           </SlowFallback>
         }
       >
         <ChildSettings />
       </Suspense>
-    </div>
+    </PageContainer>
   );
 }
