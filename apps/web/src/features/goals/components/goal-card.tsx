@@ -1,4 +1,4 @@
-import type { GoalView } from "@jarso/core/goals";
+import { type GoalView, goalCopy } from "@jarso/core/goals";
 import { ChevronRightIcon, TargetIcon } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
@@ -31,18 +31,18 @@ export function GoalCard({
   return (
     <Card className="shadow-raised">
       <CardContent>
-        <section aria-label="Your goal" className="grid gap-3">
+        <section aria-label={goalCopy.card.heading} className="grid gap-3">
           <div className="flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-h3">
               <TargetIcon aria-hidden className="size-5 text-gold-text" />
-              Your goal
+              {goalCopy.card.heading}
             </h2>
             {goal ? (
               <Link
                 href={routes.childGoal}
                 className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 font-semibold text-primary underline-offset-4 hover:underline"
               >
-                See it
+                {goalCopy.card.seeIt}
                 <ChevronRightIcon aria-hidden className="size-4" />
               </Link>
             ) : null}
@@ -50,7 +50,7 @@ export function GoalCard({
           {goal ? (
             <>
               <p className="text-center font-semibold">
-                {goal.goal.emoji} {goal.goal.name}, {money(goal.goal.targetMinor)}.
+                {goalCopy.card.title(goal.goal.emoji, goal.goal.name, money(goal.goal.targetMinor))}
               </p>
               <GoalStaircase
                 goal={goal.goal}
@@ -61,7 +61,7 @@ export function GoalCard({
             </>
           ) : (
             <div className="grid justify-items-center gap-3 text-center">
-              <p className="text-ink-2">Something to save for? Pick it and see the climb.</p>
+              <p className="text-ink-2">{goalCopy.card.empty}</p>
               <GoalSheet
                 goal={null}
                 currency={currency}

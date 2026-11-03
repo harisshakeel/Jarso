@@ -5,7 +5,13 @@ import { SlowFallback } from "@/components/shell";
 import { buttonVariants } from "@/components/ui";
 import { routes } from "@/config";
 import { getFamilyContext } from "@/features/allowance/server";
-import { EntryDetail, PendingPurchases, PurchaseSheet, ReceivedSheet } from "@/features/diary";
+import {
+  diaryCopy,
+  EntryDetail,
+  PendingPurchases,
+  PurchaseSheet,
+  ReceivedSheet,
+} from "@/features/diary";
 import { requireRole } from "@/features/family/server";
 import { HistoryList, historyParamsSchema, WhereItWentCard, whereItWent } from "@/features/ledger";
 import { getHistoryPage, getHistorySince, getJars } from "@/features/ledger/server";
@@ -31,16 +37,16 @@ async function Diary({ searchParams }: PageProps<"/child/diary">) {
   );
   return (
     <>
-      <h1 className="rise-in text-h1">Diary</h1>
+      <h1 className="rise-in text-h1">{diaryCopy.heading}</h1>
       <div className="grid gap-6 lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-10">
         <div className="grid gap-6 lg:sticky lg:top-20">
           {jars ? (
-            <section aria-label="Spend jar" className="text-lg">
-              You have{" "}
+            <section aria-label={diaryCopy.spendJarLabel} className="text-lg">
+              {diaryCopy.youHave}{" "}
               <span className="money font-extrabold">
                 {formatMoney(jars.spend, family.currency, { showMinor: "nonzero" })}
               </span>{" "}
-              in Spend.
+              {diaryCopy.inSpend}
             </section>
           ) : null}
           {week ? (

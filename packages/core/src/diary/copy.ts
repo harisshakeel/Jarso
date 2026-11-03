@@ -1,4 +1,5 @@
 import { formatMoney } from "@jarso/core/lib";
+import type { EntryVersion, FixResult } from "./types";
 
 /** What a child sees when a purchase is more than the Spend jar holds. */
 export function notEnoughSpendMessage(freeMinor: number, currency: string): string {
@@ -53,3 +54,98 @@ export const NAME_HINTS: Record<string, string> = {
   apps: "Which app?",
 };
 export const DEFAULT_NAME_HINT = "What was it?";
+
+/**
+ * What the child sees after a fix that did not go through; null when it was fixed. `currentMinor`
+ * is the line's amount before the fix. "unchanged" is a notice, the rest are refusals.
+ */
+export function fixRefusalMessage(
+  result: FixResult,
+  kind: "purchase" | "received",
+  currency: string,
+  currentMinor: number,
+): string | null {
+  switch (result.status) {
+    case "fixed":
+      return null;
+    case "unchanged":
+      return unchangedMessage;
+    case "not_fixable":
+      return notFixableMessage;
+    case "not_enough_spend":
+      return kind === "received"
+        ? notEnoughSpendToLowerMessage(currentMinor, result.freeMinor, currency)
+        : notEnoughSpendToRaiseMessage(currentMinor, result.freeMinor, currency);
+    case "not_enough_save":
+      return notEnoughSaveToFixMessage;
+  }
+}
+
+/** The database labels a nameless line with these; the forms show them as an empty name. */
+export const FALLBACK_LABELS = ["Purchase", "Money received"];
+
+/** "Got money" sheet copy. */
+export const receivedCopy = {
+  trigger: "Got money",
+  title: "What did you get?",
+  description: "It goes into your jar right away.",
+  categoryLegend: "Where did it come from?",
+  jarLegend: "Which jar?",
+  jars: [
+    { value: "spend", label: "Spend" },
+    { value: "save", label: "Save" },
+  ],
+  saveHint: "Give the cash to your parent to keep.",
+  nameLabel: "Name it (optional)",
+  namePlaceholder: "Who or what was it?",
+  submit: "Write it down",
+  pickCategory: "Pick where it came from",
+} as const;
+
+/** A diary line, opened, and its fix form. */
+export const entryDetailCopy = {
+  /** "Details for Chips": the label of the button that opens a line. */
+  detailsFor: (label: string) => `Details for ${label}`,
+  fix: "Fix this",
+  undo: "Undo",
+  earlierVersions: "Earlier versions",
+  noEarlierVersions: "No earlier versions.",
+  fixed: "Fixed.",
+  purchaseCategoryLegend: "What was it for?",
+  receivedCategoryLegend: "Where did it come from?",
+  nameLabel: "Name it (optional)",
+  jarsHint: "To move money between jars, put it in or take it out.",
+  saveFix: "Save the fix",
+} as const;
+
+/** A line's earlier versions, newest first, without the current one. Input is oldest first. */
+export function earlierVersions(versions: EntryVersion[], currentId: string): EntryVersion[] {
+  return versions.filter((v) => v.id !== currentId).reverse();
+}
+
+/** Purchases kept on the device that the server hasn't taken yet (the pending card). */
+export const pendingCopy = {
+  heading: "Not sent yet",
+  /** A purchase with no name of its own. */
+  fallbackLabel: "Purchase",
+  change: "Change it",
+  askAParent: "Ask a parent",
+  remove: "Remove",
+  /** Accessible names: "Change it: Crisps". */
+  changeFor: (label: string) => `Change it: ${label}`,
+  askAParentFor: (label: string) => `Ask a parent: ${label}`,
+  removeFor: (label: string) => `Remove: ${label}`,
+  askAParentNote: "Show this to a parent and decide together.",
+} as const;
+
+/** The Diary page's own lines. */
+export const diaryCopy = {
+  heading: "Diary",
+  spendJarLabel: "Spend jar",
+  /** "You have" ‹amount› "in Spend." The amount sits between, styled as money. */
+  youHave: "You have",
+  inSpend: "in Spend.",
+  /** One opened line that is no longer there (or was never the child's). */
+  notFound: "We couldn't find that.",
+  backToDiary: "Back to the diary",
+} as const;

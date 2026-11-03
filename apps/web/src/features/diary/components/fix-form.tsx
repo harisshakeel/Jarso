@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  fixSchema,
-  notEnoughSaveToFixMessage,
-  notEnoughSpendToLowerMessage,
-  notEnoughSpendToRaiseMessage,
-  notFixableMessage,
-  unchangedMessage,
-} from "@jarso/core/diary";
+import { entryDetailCopy, FALLBACK_LABELS, fixRefusalMessage, fixSchema } from "@jarso/core/diary";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
@@ -26,9 +19,6 @@ import { correctDiaryEntryAction } from "../server/actions";
 import { CategoryChips } from "./category-chips";
 
 type FormState = { fieldErrors?: FieldErrors; refused?: string; notice?: string } | null;
-
-/** The database labels a nameless line with these; the form shows them as an empty name. */
-const FALLBACK_LABELS = ["Purchase", "Money received"];
 
 /**
  * Fix the amount, the category or the name of one line. No jar picker: a fix never moves money
@@ -74,26 +64,14 @@ export function FixForm({
           : { refused: result.error.message };
       }
       const outcome = result.data;
-      switch (outcome.status) {
-        case "fixed":
-          toast.success("Fixed.");
-          onDone();
-          router.refresh();
-          return null;
-        case "unchanged":
-          return { notice: unchangedMessage };
-        case "not_fixable":
-          return { refused: notFixableMessage };
-        case "not_enough_spend":
-          return {
-            refused:
-              kind === "received"
-                ? notEnoughSpendToLowerMessage(item.amountMinor ?? 0, outcome.freeMinor, currency)
-                : notEnoughSpendToRaiseMessage(item.amountMinor ?? 0, outcome.freeMinor, currency),
-          };
-        case "not_enough_save":
-          return { refused: notEnoughSaveToFixMessage };
+      const message = fixRefusalMessage(outcome, kind, currency, item.amountMinor ?? 0);
+      if (message === null) {
+        toast.success(entryDetailCopy.fixed);
+        onDone();
+        router.refresh();
+        return null;
       }
+      return outcome.status === "unchanged" ? { notice: message } : { refused: message };
     },
     null,
   );
@@ -110,18 +88,22 @@ export function FixForm({
         options={kind === "received" ? RECEIVED_CATEGORIES : SPEND_CATEGORIES}
         value={category}
         onChange={setCategory}
-        legend={kind === "received" ? "Where did it come from?" : "What was it for?"}
+        legend={
+          kind === "received"
+            ? entryDetailCopy.receivedCategoryLegend
+            : entryDetailCopy.purchaseCategoryLegend
+        }
       />
       <Field
         name="label"
-        label="Name it (optional)"
+        label={entryDetailCopy.nameLabel}
         autoComplete="off"
         maxLength={60}
         value={label}
         onChange={(event) => setLabel(event.target.value)}
         errors={state?.fieldErrors?.label}
       />
-      <p className="text-ink-2 text-sm">To move money between jars, put it in or take it out.</p>
+      <p className="text-ink-2 text-sm">{entryDetailCopy.jarsHint}</p>
       <FormError message={state?.refused} />
       {state?.notice ? (
         <p role="status" className="rounded-lg bg-muted px-3.5 py-2.5 text-ink-2 text-sm">
@@ -129,7 +111,7 @@ export function FixForm({
         </p>
       ) : null}
       <Button type="submit" size="lg" className="w-full" loading={pending} disabled={!category}>
-        Save the fix
+        {entryDetailCopy.saveFix}
       </Button>
     </form>
   );

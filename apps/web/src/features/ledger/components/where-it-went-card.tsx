@@ -1,4 +1,4 @@
-import type { WhereItWent } from "@jarso/core/ledger";
+import { type WhereItWent, whereItWentCopy } from "@jarso/core/ledger";
 import { Card, CardContent } from "@/components/ui";
 
 /** This week's spending by category and money in, as sentences. No chart, no table. */
@@ -6,8 +6,8 @@ export function WhereItWentCard({ view }: { view: WhereItWent }) {
   return (
     <Card className="shadow-raised">
       <CardContent>
-        <section aria-label="Where your money went" className="grid gap-2">
-          <h2 className="text-h3">Where your money went</h2>
+        <section aria-label={whereItWentCopy.heading} className="grid gap-2">
+          <h2 className="text-h3">{whereItWentCopy.heading}</h2>
           {view.spent ? (
             <>
               <p className="font-semibold">{view.spent.headline}</p>

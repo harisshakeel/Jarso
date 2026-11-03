@@ -3,7 +3,10 @@
 import type { Goal } from "@jarso/core/goals";
 import {
   explainOutcome,
+  goalCopy,
   type Move,
+  PREDICT_LABEL,
+  PREDICT_QUESTION,
   PREDICTIONS,
   type Prediction,
   predictOutcome,
@@ -24,18 +27,6 @@ type PredictStepProps = {
   maxMinor: number;
   /** Called with the slider's amount when the child wants to use that one instead. */
   onTryAmount?: (amountMinor: number) => void;
-};
-
-const LABEL: Record<Prediction, string> = {
-  further: "Further off",
-  same: "Stays the same",
-  closer: "Closer",
-};
-
-const QUESTION: Record<Move, string> = {
-  take_out: "If you take this out, what happens to your goal?",
-  put_in: "If you put this in, what happens to your goal?",
-  change_plan: "With this plan, what happens to your goal?",
 };
 
 /**
@@ -79,7 +70,7 @@ export function PredictStep({
       className="grid gap-3 rounded-xl border border-hairline bg-secondary p-4"
     >
       <p id={`${groupId}-q`} className="font-semibold">
-        {goal.emoji} {QUESTION[move]}
+        {goal.emoji} {PREDICT_QUESTION[move]}
       </p>
       <fieldset aria-labelledby={`${groupId}-q`} className="flex flex-wrap gap-2">
         {PREDICTIONS.map((option) => (
@@ -93,7 +84,7 @@ export function PredictStep({
             className={guess !== null && option === outcome.actual ? "border-primary" : undefined}
             onClick={() => setGuess(option)}
           >
-            {LABEL[option]}
+            {PREDICT_LABEL[option]}
           </Button>
         ))}
       </fieldset>
@@ -101,13 +92,13 @@ export function PredictStep({
         <div role="status" className="grid gap-3">
           <p>
             <span className="font-semibold">
-              {guess === outcome.actual ? "That's it. " : "Not quite. "}
+              {guess === outcome.actual ? goalCopy.predict.right : goalCopy.predict.wrong}
             </span>
             {explainOutcome(outcome, goal.name, money)}
           </p>
           <div className="grid gap-2">
             <span id={`${groupId}-try`} className="text-ink-2 text-sm">
-              Try another amount. Nothing moves until you decide.
+              {goalCopy.predict.tryAnother}
             </span>
             <Slider
               aria-labelledby={`${groupId}-try`}
@@ -132,7 +123,7 @@ export function PredictStep({
                       className="font-semibold text-primary underline underline-offset-4"
                       onClick={() => onTryAmount(tryMinor)}
                     >
-                      Use this amount
+                      {goalCopy.predict.useAmount}
                     </button>
                   </>
                 ) : null}

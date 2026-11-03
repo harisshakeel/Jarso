@@ -2,6 +2,7 @@
 
 import type { Goal, GoalProgress } from "@jarso/core/goals";
 import {
+  goalCopy,
   goalLine,
   milestoneCrossed,
   staircaseFor,
@@ -181,11 +182,14 @@ export function GoalStaircase({
         {caption ? <p className="text-ink-2 text-sm">{caption}</p> : null}
         <details className="text-ink-2 text-sm">
           <summary className="cursor-pointer rounded-full px-2 py-1 font-semibold hover:bg-muted">
-            The amounts
+            {goalCopy.staircase.amountsSummary}
           </summary>
           <p className="pt-1">
-            {money(progress.countedMinor)} saved · {money(progress.remainingMinor)} to go
-            {goal.planMinor ? ` · ${money(goal.planMinor)} each allowance` : ""}
+            {goalCopy.staircase.amounts(
+              money(progress.countedMinor),
+              money(progress.remainingMinor),
+              goal.planMinor ? money(goal.planMinor) : null,
+            )}
           </p>
         </details>
       </figcaption>

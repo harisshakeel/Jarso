@@ -1,6 +1,6 @@
 "use client";
 
-import { entrySavedMessage, purchaseSchema } from "@jarso/core/diary";
+import { entrySavedMessage, pendingCopy, purchaseSchema } from "@jarso/core/diary";
 import { HourglassIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -17,8 +17,6 @@ import {
 } from "@/features/offline";
 import { formatMoney } from "@/lib";
 import { type PurchaseDraft, PurchaseSheetContent } from "./purchase-sheet";
-
-const ASK_A_PARENT = "Show this to a parent and decide together.";
 
 type PendingPurchasesProps = { userId: string; currency: string };
 
@@ -77,8 +75,8 @@ export function PendingPurchases({ userId, currency }: PendingPurchasesProps) {
       {items.length > 0 ? (
         <Card>
           <CardContent>
-            <section aria-label="Not sent yet" className="grid gap-3">
-              <h2 className="text-h3">Not sent yet</h2>
+            <section aria-label={pendingCopy.heading} className="grid gap-3">
+              <h2 className="text-h3">{pendingCopy.heading}</h2>
               <ul className="grid gap-4">
                 {items.map((item) => (
                   <PendingLine
@@ -129,7 +127,7 @@ function PendingLine({
   const amount = parsed.success
     ? formatMoney(parsed.data.amountMinor, currency, { showMinor: "nonzero" })
     : null;
-  const label = (parsed.success && parsed.data.label) || "Purchase";
+  const label = (parsed.success && parsed.data.label) || pendingCopy.fallbackLabel;
 
   return (
     <li className="grid gap-2">
@@ -143,7 +141,7 @@ function PendingLine({
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              aria-label={`Change it: ${label}`}
+              aria-label={pendingCopy.changeFor(label)}
               loading={checking}
               onClick={() => {
                 if (item.message !== offlineCopy.expired) return onChange();
@@ -153,21 +151,21 @@ function PendingLine({
                 });
               }}
             >
-              Change it
+              {pendingCopy.change}
             </Button>
             <Button
               variant="outline"
-              aria-label={`Ask a parent: ${label}`}
+              aria-label={pendingCopy.askAParentFor(label)}
               onClick={() => setAsked(true)}
             >
-              Ask a parent
+              {pendingCopy.askAParent}
             </Button>
             <Button
               variant="ghost"
-              aria-label={`Remove: ${label}`}
+              aria-label={pendingCopy.removeFor(label)}
               onClick={() => void removeOutboxItem(item.id).catch(() => {})}
             >
-              Remove
+              {pendingCopy.remove}
             </Button>
           </div>
           <div role="status" className="grid gap-2">
@@ -177,7 +175,9 @@ function PendingLine({
               </p>
             ) : null}
             {asked ? (
-              <p className="rounded-lg bg-muted px-3.5 py-2.5 text-ink-2 text-sm">{ASK_A_PARENT}</p>
+              <p className="rounded-lg bg-muted px-3.5 py-2.5 text-ink-2 text-sm">
+                {pendingCopy.askAParentNote}
+              </p>
             ) : null}
           </div>
         </>

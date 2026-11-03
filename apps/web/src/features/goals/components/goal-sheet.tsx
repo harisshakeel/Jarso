@@ -1,7 +1,13 @@
 "use client";
 
 import type { Goal } from "@jarso/core/goals";
-import { GOAL_EMOJI, type GoalEmoji, goalProgress } from "@jarso/core/goals";
+import {
+  GOAL_EMOJI,
+  type GoalEmoji,
+  goalCopy,
+  previewLine as goalPreviewLine,
+  goalProgress,
+} from "@jarso/core/goals";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { AmountField, Field, FieldError, FormError } from "@/components/form";
@@ -43,12 +49,14 @@ export function GoalSheet(props: GoalSheetProps) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger render={<Button variant="outline" size="lg" className="flex-1" />}>
-        {props.goal ? "Change my goal" : "Set a goal"}
+        {props.goal ? goalCopy.sheet.triggerChange : goalCopy.sheet.triggerNew}
       </SheetTrigger>
       <SheetContent side="bottom" className="sm:mx-auto sm:w-full sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>{props.goal ? "Your goal" : "Something to save for"}</SheetTitle>
-          <SheetDescription>Pick something you want and how much it costs.</SheetDescription>
+          <SheetTitle>
+            {props.goal ? goalCopy.sheet.titleChange : goalCopy.sheet.titleNew}
+          </SheetTitle>
+          <SheetDescription>{goalCopy.sheet.description}</SheetDescription>
         </SheetHeader>
         {/* Inside the sheet, so it starts fresh from the saved goal each time it opens. */}
         <GoalForm {...props} onDone={() => setOpen(false)} />
@@ -58,26 +66,16 @@ export function GoalSheet(props: GoalSheetProps) {
 }
 
 /** "About N more allowances", or a nudge to set a plan. Pure arithmetic; never writes. */
-export function previewLine(
+function previewLine(
   input: { target: string; plan: string; saveMinor: number; reservedMinor: number },
   currency: string,
 ): string | null {
   const targetMinor = parseMoney(input.target, currency);
   if (!targetMinor) return null;
   const planMinor = input.plan.trim() === "" ? null : parseMoney(input.plan, currency);
-  const progress = goalProgress({
-    saveMinor: input.saveMinor,
-    reservedMinor: input.reservedMinor,
-    targetMinor,
-    planMinor,
-  });
-  if (progress.reached) return "You've already saved enough for this.";
-  if (progress.paymentsLeft === null) {
-    return "Set how much you'll save each time to see how long it'll take";
-  }
-  return progress.paymentsLeft === 1
-    ? "About 1 more allowance"
-    : `About ${progress.paymentsLeft} more allowances`;
+  // Counted Save, as goalProgress counts it: Save less money waiting to come out.
+  const savedMinor = Math.max(input.saveMinor - input.reservedMinor, 0);
+  return goalPreviewLine({ targetMinor, savedMinor, planMinor, currency });
 }
 
 function GoalForm({
@@ -128,7 +126,7 @@ function GoalForm({
     <form action={action} className="grid gap-6 px-4 pb-4 sm:px-6 sm:pb-6" noValidate>
       <Field
         name="name"
-        label="What is it?"
+        label={goalCopy.sheet.nameLabel}
         autoComplete="off"
         maxLength={40}
         value={name}
@@ -136,7 +134,7 @@ function GoalForm({
         errors={fieldErrors?.name}
       />
       <fieldset className="grid gap-2">
-        <legend className="mb-2 font-semibold text-sm">Pick a picture</legend>
+        <legend className="mb-2 font-semibold text-sm">{goalCopy.sheet.emojiLegend}</legend>
         <div className="grid grid-cols-6 gap-2">
           {GOAL_EMOJI.map((option) => (
             <label
@@ -164,7 +162,7 @@ function GoalForm({
       <AmountField
         currency={currency}
         id="target"
-        label="How much does it cost?"
+        label={goalCopy.sheet.targetLabel}
         value={target}
         onValueChange={setTarget}
         errors={fieldErrors?.target}
@@ -172,7 +170,7 @@ function GoalForm({
       <AmountField
         currency={currency}
         id="plan"
-        label="How much will you save each time?"
+        label={goalCopy.sheet.planLabel}
         value={plan}
         onValueChange={setPlan}
         errors={fieldErrors?.plan}
@@ -180,8 +178,7 @@ function GoalForm({
       />
       {allowanceMinor ? (
         <p id="goal-plan-hint" className="-mt-4 text-ink-2 text-sm">
-          Up to {formatMoney(allowanceMinor, currency, { showMinor: "nonzero" })} from each
-          allowance.
+          {goalCopy.sheet.planHint(formatMoney(allowanceMinor, currency, { showMinor: "nonzero" }))}
         </p>
       ) : null}
       {goal && planChanged && targetMinor !== null ? (
@@ -202,7 +199,7 @@ function GoalForm({
       ) : null}
       <FormError error={fieldErrors ? undefined : state && !state.ok ? state.error : undefined} />
       <Button type="submit" variant="keycap" size="lg" className="w-full" loading={pending}>
-        Save my goal
+        {goalCopy.sheet.submit}
       </Button>
       {goal ? <StartNewGoal goalId={goal.id} onDone={onDone} /> : null}
     </form>
@@ -227,19 +224,17 @@ function StartNewGoal({ goalId, onDone }: { goalId: string; onDone: () => void }
     <div className="grid gap-2">
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger render={<Button type="button" variant="outline" size="lg" />}>
-          Start a new goal
+          {goalCopy.newGoal.trigger}
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Start a new goal?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This goal closes. Your money stays in Save.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{goalCopy.newGoal.title}</AlertDialogTitle>
+            <AlertDialogDescription>{goalCopy.newGoal.description}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep this goal</AlertDialogCancel>
+            <AlertDialogCancel>{goalCopy.newGoal.cancel}</AlertDialogCancel>
             <Button type="button" onClick={confirm}>
-              Yes, start a new goal
+              {goalCopy.newGoal.confirm}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
