@@ -192,6 +192,41 @@ describe("mapRazorpayEvent for saved cards", () => {
   });
 });
 
+describe("mapRazorpayEvent for in-app payments", () => {
+  const payment = (event: RazorpayEvent) => event.payload.payment?.entity ?? {};
+
+  it("maps order.paid for an in-app order to a succeeded payment", () => {
+    const event = asEvent(orderPaidCharge);
+    const order = event.payload.order?.entity;
+    if (!order) throw new Error("fixture has no order");
+    order.notes = { jarsoPay: "pay-3" };
+    expect(mapRazorpayEvent(event, "evt_10")).toEqual({
+      kind: "payment",
+      eventId: "evt_10",
+      paymentId: "pay-3",
+      providerRef: order.id,
+      status: "succeeded",
+    });
+  });
+
+  it("ignores payment.failed for an in-app order so the parent can retry", () => {
+    const event = asEvent(paymentFailedCharge);
+    const orderId = payment(event).order_id as string;
+    expect(
+      mapRazorpayEvent(event, "evt_11", { order: { id: orderId, notes: { jarsoPay: "pay-3" } } }),
+    ).toBeNull();
+  });
+
+  it("ignores jarsoPay on the payment's own notes", () => {
+    const event = asEvent(orderPaidCharge);
+    const order = event.payload.order?.entity;
+    if (!order) throw new Error("fixture has no order");
+    order.notes = [];
+    payment(event).notes = { jarsoPay: "pay-3" };
+    expect(mapRazorpayEvent(event, "evt_12")).toBeNull();
+  });
+});
+
 describe("failedPaymentOrderToFetch", () => {
   it("names the order of a failed payment", () => {
     expect(failedPaymentOrderToFetch(asEvent(paymentFailedCharge))).toBe("order_TESTCHARGE1");

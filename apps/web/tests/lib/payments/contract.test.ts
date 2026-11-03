@@ -99,6 +99,8 @@ vi.spyOn(razorpayClient.paymentLink, "create").mockResolvedValue({
   id: "plink_TEST123",
   short_url: "https://rzp.io/i/TEST123",
 } as never);
+vi.spyOn(razorpayClient.orders, "create").mockResolvedValue({ id: "order_TESTC" } as never);
+vi.spyOn(razorpayClient.customers, "create").mockResolvedValue({ id: "cust_TESTC" } as never);
 
 const razorpay: Adapter = {
   name: "razorpay",
@@ -178,7 +180,7 @@ describe.each([fake, stripe, razorpay])("payment provider contract: $name", (ada
   });
 });
 
-describe.each([fake, stripe])("payment provider contract, in-app: $name", (adapter) => {
+describe.each([fake, stripe, razorpay])("payment provider contract, in-app: $name", (adapter) => {
   const provider = adapter.make();
 
   it("has a native sheet", () => {
