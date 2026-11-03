@@ -1,4 +1,5 @@
-import type { Notice, NoticeKind, NoticeSource } from "@jarso/core/notifications";
+import type { Notice } from "@jarso/core/notifications";
+import { rowToNotice } from "@jarso/data/notifications";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/types";
@@ -6,25 +7,6 @@ import type { Tables } from "@/types";
 type Row = Tables<"notifications">;
 
 export type NoticeChange = { type: "new"; notice: Notice } | { type: "updated" };
-
-/** Raw row to Notice. Realtime rows carry no join, so the child's name is left blank. */
-export function rowToNotice(row: Row): Notice {
-  const { payload } = row;
-  return {
-    id: row.id,
-    kind: row.kind as NoticeKind,
-    childId: row.child_id,
-    childName: "",
-    sourceType: row.source_type as NoticeSource,
-    sourceId: row.source_id,
-    payload:
-      payload && typeof payload === "object" && !Array.isArray(payload)
-        ? (payload as Record<string, unknown>)
-        : {},
-    createdAt: row.created_at,
-    read: row.read_at !== null,
-  };
-}
 
 /**
  * Client-side counterpart of the repository: the only browser code that knows the table name.
