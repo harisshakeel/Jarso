@@ -23,6 +23,7 @@ exports[`dashboard copy > keeps every line 1`] = `
     "chatsIntro": "Every chat, newest first, with any that need a look at the top. Text is kept for 30 days.",
     "child": "Your child",
     "family": "Your family",
+    "gift": "Gift",
     "giftEditIntro": "Change this gift.",
     "giftFor": [Function],
     "giftNewIntro": "A one-time gift.",

@@ -3,6 +3,7 @@
 exports[`parent allowance copy > keeps every line 1`] = `
 {
   "allowanceFormCopy": {
+    "amount": "Amount",
     "cancel": "Cancel",
     "firstOn": "First one on",
     "frequencyLabels": {
@@ -46,6 +47,7 @@ exports[`parent allowance copy > keeps every line 1`] = `
     "on": [Function],
   },
   "giftCopy": {
+    "amount": "Amount",
     "back": "Back",
     "cancel": "Cancel gift",
     "cancelBody": [Function],
@@ -95,6 +97,7 @@ exports[`parent allowance copy > keeps every line 1`] = `
   },
   "pauseCopy": {
     "body": "No allowance falls due while paused. Missed allowances aren't paid later. Anything already due stays due.",
+    "cancel": "Cancel",
     "messageLabel": [Function],
     "pause": "Pause",
     "pauseUntil": "Pause until",

@@ -77,6 +77,7 @@ export const handoverCopy = {
 /** A one-time gift: set up, change or cancel. */
 export const giftCopy = {
   saved: "Gift saved",
+  amount: "Amount",
   giveOn: "Give on",
   noteLabel: (nickname: string) => `Note for ${nickname} (optional)`,
   back: "Back",
@@ -92,6 +93,7 @@ export const giftCopy = {
 /** Setting up or changing an allowance. */
 export const allowanceFormCopy = {
   saved: "Allowance saved",
+  amount: "Amount",
   frequencyLabels: {
     weekly: "Weekly",
     monthly: "Monthly",
@@ -140,4 +142,5 @@ export const pauseCopy = {
   pauseUntil: "Pause until",
   messageLabel: (nickname: string) => `Message for ${nickname} (optional)`,
   paused: "Allowance paused",
+  cancel: "Cancel",
 } as const;

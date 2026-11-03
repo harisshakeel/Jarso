@@ -31,6 +31,8 @@ export const parentPageCopy = {
   seeAll: "See all",
   seeAllHistory: "See all history",
   allowanceFor: (nickname: string) => `Allowance for ${nickname}`,
+  /** A gift page's title before the child's nickname is known. */
+  gift: "Gift",
   giftFor: (nickname: string) => `Gift for ${nickname}`,
   giftNewIntro: "A one-time gift.",
   giftEditIntro: "Change this gift.",
