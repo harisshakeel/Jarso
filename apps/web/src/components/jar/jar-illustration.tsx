@@ -14,7 +14,8 @@ type JarIllustrationProps = {
   reservedMinor?: number;
   /** Money that is due, drawn as a dashed coin beside the lid, never inside the jar. */
   dueCoin?: string | null;
-  size?: "sm" | "lg";
+  /** `shelf` is the Home hero: as wide as its column allows, so it never overflows. */
+  size?: "xs" | "sm" | "lg" | "shelf";
 };
 
 // The mark's artwork is 512 × 512 (components/brand/jar-outline.ts): a 64-wide stroke, the lid
@@ -55,6 +56,14 @@ function Coin({
  * stroke, and gold coins piling up to the share of `capacityMinor`. Decorative only: every
  * amount is also written next to it in text.
  */
+const jarSizes = {
+  xs: "h-12 w-auto",
+  sm: "h-28 w-auto",
+  lg: "h-56 w-auto",
+  // Home's shelf: the jar fits its half of the card at every width, capped at 176 px.
+  shelf: "h-auto w-full max-w-44",
+} as const;
+
 export function JarIllustration({
   jar,
   capacityMinor,
@@ -84,7 +93,7 @@ export function JarIllustration({
     <svg
       aria-hidden="true"
       viewBox="24 40 464 420"
-      className={cn(size === "lg" ? "h-56 w-auto" : "h-28 w-auto", "overflow-visible")}
+      className={cn(jarSizes[size], "overflow-visible")}
       data-jar={jar}
     >
       {waiting > 0 ? (
