@@ -1,4 +1,5 @@
 import "server-only";
+import { checkSummary, type SummaryFacts } from "@jarso/core/dashboard";
 import type {
   AcceptGoalProposal,
   AcceptGoalProposalResult,
@@ -20,6 +21,8 @@ import {
   splitDataUrl,
   tidyPhotoLabel,
 } from "@jarso/core/guide";
+import { cacheLife } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { helplinesFor } from "@/config";
 import { getSchedule } from "@/features/allowance/server";
 import { assertUser } from "@/features/auth/server";
@@ -36,10 +39,11 @@ import { topicTitles } from "@/features/learning";
 import { AppError, familyToday, formatMoney, isAppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { guideBreaker } from "./breaker";
+import { guideBreaker, summaryBreaker } from "./breaker";
 import {
   getGuideProvider,
   getPriceReader,
+  getSummaryWriter,
   guideDailyBudgetCents,
   guideMonthlyBudgetCents,
   guideProviderName,
@@ -535,6 +539,64 @@ export async function readPriceFromPhoto(image: string): Promise<PhotoPriceResul
     allowances: plan.allowances,
     proposal,
   };
+}
+
+/** Summaries one parent may ask for in an hour; every dashboard view and filter is one. */
+const SUMMARIES_PER_HOUR = 30;
+const SUMMARY_DEADLINE_MS = 8_000;
+
+/**
+ * The family summary at the top of the parent's dashboard (spec answer 5): a sentence or two by
+ * Claude Haiku from the dashboard's own facts, checked before it is shown. Null whenever it
+ * can't be written (the guide off, the breaker open, the budget spent, too many in an hour, a
+ * failed call or a failed check): the dashboard reads fine without it, so this never throws.
+ * The same parent and facts can be answered from this server's memory for a few hours; on
+ * serverless that memory often doesn't outlive the instance, so the hourly limit is the real cap.
+ * Its tokens are logged, not yet added to the guide's budget totals.
+ */
+export async function writeFamilySummary(facts: SummaryFacts): Promise<string | null> {
+  const { user } = await assertRole("parent");
+  const writer = getSummaryWriter();
+  if (!writer || facts.lines.length === 0) return null;
+  try {
+    if (summaryBreaker.isOpen() || (writer.name === "anthropic" && (await budgetSpent()))) {
+      return null;
+    }
+    const text = await cachedFamilySummary(facts, user.id);
+    summaryBreaker.recordSuccess();
+    return text !== null && checkSummary(text, facts) ? text : null;
+  } catch (error) {
+    unstable_rethrow(error);
+    if (!isAppError(error)) summaryBreaker.recordFailure();
+    logger.warn("Family summary failed", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    return null;
+  }
+}
+
+/**
+ * One summary per parent and set of facts (the cache key is both arguments). Only a cache miss
+ * reaches the rate limit and Claude, so reloading the same page never uses the hour up. Over the
+ * limit it throws, and a throw is never cached. Tokens only in the log.
+ */
+async function cachedFamilySummary(facts: SummaryFacts, parentId: string): Promise<string | null> {
+  "use cache";
+  cacheLife("hours");
+  const writer = getSummaryWriter();
+  if (!writer) return null;
+  const admin = createAdminClient();
+  if (!(await repo.hitRateLimit(admin, `summary:hour:${parentId}`, "1 hour", SUMMARIES_PER_HOUR))) {
+    throw new AppError("RATE_LIMITED", "Too many summaries this hour.");
+  }
+  const result = await writer.write({ facts, signal: AbortSignal.timeout(SUMMARY_DEADLINE_MS) });
+  logger.info("Family summary written", {
+    writer: writer.name,
+    written: result.text !== null,
+    screenInput: result.usage.screenInput ?? 0,
+    screenOutput: result.usage.screenOutput ?? 0,
+  });
+  return result.text;
 }
 
 /** One message to Jarso, without status lines (the step and topic sheets). */

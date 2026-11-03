@@ -3,12 +3,14 @@ import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui";
 import { routes } from "@/config";
+import { SendNoteSheet } from "@/features/notifications";
 import { cn, formatMoney } from "@/lib";
 import { seriesOf } from "./series";
 
 /**
  * The children, one compact tile each (spec answer 2: each child on tap): their colour, Spend,
- * Save and goal in a line, opening their page. The only per-child block on the dashboard.
+ * Save and goal in a line, opening their page, and a note to send them. The only per-child
+ * block on the dashboard.
  */
 export function ChildTiles({ items, currency }: { items: DashboardChild[]; currency: string }) {
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
@@ -66,6 +68,12 @@ export function ChildTiles({ items, currency }: { items: DashboardChild[]; curre
                   </span>
                 </p>
                 <p className="truncate text-ink-2 text-sm">{goal}</p>
+                {/* Above the tile's link layer, so it opens the sheet, not the child's page. */}
+                <SendNoteSheet
+                  childId={child.id}
+                  nickname={child.nickname}
+                  className="relative z-10 w-fit"
+                />
               </div>
             </li>
           );

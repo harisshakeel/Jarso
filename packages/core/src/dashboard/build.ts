@@ -2,11 +2,12 @@
 // reads each child once and these functions build every section from those reads. Nothing here
 // compares one child with another or judges an amount; figures are stated plainly.
 import type { Frequency, Schedule } from "@jarso/core/allowance";
-import { formatDay } from "@jarso/core/allowance";
+import { formatDay, MATCH_GIFT_NOTE } from "@jarso/core/allowance";
 import { categoryOf, type HistoryItem, SPEND_CATEGORIES } from "@jarso/core/ledger";
 import { addDays, formatMoney, minorDigits, startOfWeek } from "@jarso/core/lib";
 import type {
   Callout,
+  CalloutAction,
   CategoryRow,
   DashboardChild,
   DashboardTotals,
@@ -276,7 +277,7 @@ export function timeline(
 }
 
 /** Net money into Save over the period, from the balance history; null without one. */
-function saveChange(child: DashboardChild, window: DashboardWindow): number | null {
+export function saveChange(child: DashboardChild, window: DashboardWindow): number | null {
   const points = child.balances?.points ?? [];
   const start = points.find((point) => point.date >= window.from);
   const end = points.at(-1);
@@ -285,6 +286,28 @@ function saveChange(child: DashboardChild, window: DashboardWindow): number | nu
   const index = points.indexOf(start);
   const base = index > 0 ? points[index - 1] : start;
   return end.save - (base?.save ?? end.save);
+}
+
+/**
+ * What the child put into Save themselves over the window, which is what a parent can match:
+ * their own put-ins and money they got and chose to save, less what they took out of Save and
+ * less what a parent already matched. The parent's allowance share is not the child's saving, so
+ * it never counts, and a match never offers to match itself.
+ */
+export function savedByChild(child: DashboardChild, window: DashboardWindow): number {
+  let total = 0;
+  for (const item of child.history) {
+    if (!live(item) || item.occurredOn < window.from || item.occurredOn > window.to) continue;
+    const amount = item.amountMinor ?? 0;
+    if (item.kind === "deposit" || (item.kind === "received" && item.jar === "save")) {
+      total += amount;
+    } else if (item.kind === "withdrawal") {
+      total -= amount;
+    } else if (item.kind === "gift" && item.label === MATCH_GIFT_NOTE) {
+      total -= amount;
+    }
+  }
+  return Math.max(0, total);
 }
 
 /** How many times bigger, said the way a parent would: "twice", "3 times". */
@@ -320,6 +343,7 @@ export function callouts(
         id: `chats-${child.id}`,
         text: `${n === 1 ? "A chat" : `${n} chats`} ${child.nickname} had with Jarso this week ${n === 1 ? "was" : "were"} flagged for you to read.`,
         action: "chats",
+        matchMinor: null,
       });
     }
     const view = child.goal;
@@ -329,6 +353,7 @@ export function callouts(
         id: `goal-${child.id}`,
         text: `${child.nickname} has enough for ${view.goal.emoji} ${view.goal.name}.`,
         action: "goal",
+        matchMinor: null,
       });
     } else if (view && view.progress.paymentsLeft !== null && view.progress.paymentsLeft <= 3) {
       const left = view.progress.paymentsLeft;
@@ -337,6 +362,7 @@ export function callouts(
         id: `goal-${child.id}`,
         text: `${child.nickname} is ${left} ${left === 1 ? "allowance" : "allowances"} from ${view.goal.emoji} ${view.goal.name}.`,
         action: "goal",
+        matchMinor: null,
       });
     }
     // At least doubled, and by at least one whole unit, so pennies never make a callout.
@@ -353,6 +379,7 @@ export function callouts(
         id: `spike-${child.id}-${spike.key}`,
         text: `${child.nickname} spent ${times(spike.nowMinor, spike.beforeMinor)} on ${spike.emoji} ${spike.label} ${period.now} as ${period.before}: ${money(spike.nowMinor)}.`,
         action: "limit",
+        matchMinor: null,
       });
     }
     const change = saveChange(child, window);
@@ -362,6 +389,7 @@ export function callouts(
         id: `saved-${child.id}`,
         text: `${child.nickname}'s Save grew by ${money(change)} ${period.now}.`,
         action: "allowance",
+        matchMinor: savedByChild(child, window) || null,
       });
     }
   }
@@ -409,4 +437,22 @@ export function moneyChartSentence(chart: MoneyChartData, currency: string): str
       `${s.nickname} ${money((s.save[last] ?? 0) + (s.spend[last] ?? 0))} (Save ${money(s.save[last] ?? 0)}, Spend ${money(s.spend[last] ?? 0)})`,
   );
   return `${money(total(0))} on ${formatDay(first)}, ${money(total(last))} today: ${parts.join("; ")}.`;
+}
+
+/**
+ * Ready lines for a note from a callout (spec answer 8): warm, short, about the one thing the
+ * callout says, and never comparing the child with anyone. The parent can change every word.
+ * A flagged chat gets none, and no note at all (`offersNote`): a flagged chat can be a child
+ * asking for help, so the parent reads it before anything reaches the child.
+ */
+export const noteIdeas: Record<CalloutAction, readonly string[]> = {
+  allowance: ["Great saving! 🎉", "Your Save is growing. Proud of you!"],
+  goal: ["You're so close to your goal!", "Keep going, nearly there! 💪"],
+  limit: ["Shall we look at your spending together this weekend?"],
+  chats: [],
+};
+
+/** Whether a callout offers "Send a note": every one but a flagged chat. */
+export function offersNote(callout: Callout): boolean {
+  return callout.action !== "chats";
 }

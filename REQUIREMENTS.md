@@ -209,7 +209,7 @@ The initial topics are:
 ## FR16 — Notifications
 
 - Parents and children have an in-app notification inbox that is kept between visits.
-- The inbox covers due allowances, handover reminders, limit notices, new requests, and decisions.
+- The inbox covers due allowances, handover reminders, limit notices, new requests, and decisions. A child's inbox (News) also holds the short notes their parent sends from the dashboard.
 - The inbox ships in the first milestone, in-app only: due badge, handover reminders, limit notices, new-request notices and decision notices all work without push.
 - Web push is offered for the same events, after the user grants permission.
 - The app can be installed on compatible devices.
@@ -303,3 +303,9 @@ The SQL for each measure is in `docs/pilot-measures.md`.
 - **P6 Auto-confirm deposits.** A deposit that fits every auto-confirm rule posts at once. This is a parent-chosen exception to counting only after confirmation, and it is off unless the parent sets it.
 - **P7 Anti-goals.** All four matter equally: a parent buried in notifications, a child who gives up logging, a parent who cannot work out the rules, and a wrong balance.
 - **P8 Undo a purchase.** The child can undo their own purchase within 24 hours. The parent sees it marked "Undone" in history, with no notification.
+
+### Decided for the parent dashboard (2026-11-03)
+
+- **D1 Jarso's summary.** The parent's Home opens with a sentence or two written by AI (Claude Haiku) from the dashboard's own figures, labelled as AI. The facts carry nicknames, fixed category names, figures and dates only, never text a child typed. The app shows the sentence only if every number in it is in the facts, no child is compared with another and nothing is judged; otherwise there is no summary. It runs on the guide's switch, budget and breaker, at most 30 a parent per hour, and the same figures reuse one summary for a few hours.
+- **D2 A note for the child.** From a "Worth knowing" line or a child's tile, a parent sends a note of up to 140 characters. It lands in the child's News, with push when it is on. At most 20 notes per child a day; a resend after a lost response sends one note. The audit log records that a note went, never what it said.
+- **D3 Match their saving.** When a child put money into Save themselves over the period (their own put-ins and money they got and saved, less what they took out and what was already matched; never the parent's allowance share), the parent can match it: the amount (changeable) goes into Save at once as a gift handed over, noted "Matching your saving", with an optional note to their News. A resend adds the money once.

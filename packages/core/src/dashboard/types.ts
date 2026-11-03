@@ -87,6 +87,8 @@ export type Callout = {
   slot: number;
   text: string;
   action: CalloutAction | null;
+  /** Save grew: what the child put in themselves over the period (`savedByChild`), to match. */
+  matchMinor: number | null;
 };
 
 /** One child's band in the money chart: Save underneath, Spend on top, one value per date. */

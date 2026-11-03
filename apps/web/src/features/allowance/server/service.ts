@@ -8,6 +8,7 @@ import type {
   Schedule,
   Split,
 } from "@jarso/core/allowance";
+import { MATCH_GIFT_NOTE } from "@jarso/core/allowance";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertUser } from "@/features/auth/server";
 import {
@@ -360,4 +361,31 @@ export async function markNotGiven(occurrenceId: string): Promise<NotGivenResult
   const db = await createClient();
   await assertParentOfChild(await findOccurrenceChildId(db, occurrenceId));
   return closeOccurrence(db, occurrenceId);
+}
+
+/**
+ * Match their saving (parent dashboard, spec answer 8): a gift of `amountMinor` given today and
+ * handed over at once, all of it into Save. The same key makes one gift; the handover happens
+ * once in the database whatever its key, so a retry after a lost response adds nothing twice.
+ */
+export async function matchSaving(input: {
+  childId: string;
+  amountMinor: number;
+  idempotencyKey: string;
+}): Promise<HandoverResult> {
+  const { today } = await getFamilyContext();
+  const giftId = await createGift({
+    childId: input.childId,
+    amountMinor: input.amountMinor,
+    giveOn: today,
+    note: MATCH_GIFT_NOTE,
+    idempotencyKey: input.idempotencyKey,
+  });
+  return confirmHandover({
+    kind: "gift",
+    id: giftId,
+    cashMinor: 0,
+    savedMinor: input.amountMinor,
+    idempotencyKey: crypto.randomUUID(),
+  });
 }

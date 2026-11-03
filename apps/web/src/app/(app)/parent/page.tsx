@@ -17,6 +17,8 @@ import {
   categoryComparison,
   categorySentence,
   dashboardTotals,
+  FamilySummary,
+  FamilySummarySkeleton,
   FamilyTotals,
   filterHref,
   MoneyChart,
@@ -25,8 +27,10 @@ import {
   moneyChartSentence,
   PeriodSwitch,
   periodOf,
+  type SummaryFacts,
   scopeChildren,
   slotFor,
+  summaryFacts,
   TimelineCard,
   timeline,
   windowFor,
@@ -34,6 +38,7 @@ import {
 import { getFamilyDashboard } from "@/features/dashboard/server";
 import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
+import { isGuideConfigured, writeFamilySummary } from "@/features/guide/server";
 import { type Notice, UnreadNotices } from "@/features/notifications";
 import { listUnreadNotices } from "@/features/notifications/server";
 import { ParentRequestItems, RequestsUnavailable, settleRequestReads } from "@/features/requests";
@@ -191,8 +196,8 @@ async function RequestsSection({ scoped, currency }: { scoped: ChildSummary[]; c
 }
 
 /**
- * The family's money (spec answers 2 to 9): the chart and the totals, what's worth knowing,
- * spending by category, the next two weeks, the children and one merged activity list. Every
+ * The family's money (spec answers 2 to 9): Jarso's summary, the chart and the totals, what's
+ * worth knowing, spending by category, the next two weeks, the children and one merged activity list. Every
  * section is built from one read per child; with a child picked, every section is about them.
  */
 async function Dashboard({
@@ -219,6 +224,17 @@ async function Dashboard({
   const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
   return (
     <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+      {isGuideConfigured() ? (
+        <Suspense
+          fallback={
+            <div className="lg:col-span-3">
+              <FamilySummarySkeleton />
+            </div>
+          }
+        >
+          <SummarySection facts={summaryFacts(scoped, window, currency, today)} />
+        </Suspense>
+      ) : null}
       <div className="rise-in lg:col-span-2" style={rise(2)}>
         <MoneyChart
           chart={chart}
@@ -236,7 +252,11 @@ async function Dashboard({
         />
       </div>
       <div className="rise-in" style={rise(3)}>
-        <CalloutsCard items={callouts(scoped, window, currency)} />
+        <CalloutsCard
+          items={callouts(scoped, window, currency)}
+          currency={currency}
+          period={period.now}
+        />
       </div>
       <div className="rise-in" style={rise(3)}>
         <CategoryCompare
@@ -260,6 +280,17 @@ async function Dashboard({
           seeAllHref={picked ? routes.parentChildHistory(picked.id) : null}
         />
       </div>
+    </div>
+  );
+}
+
+/** Jarso's summary of what the page shows; nothing at all, not even a grid row, without one. */
+async function SummarySection({ facts }: { facts: SummaryFacts }) {
+  const text = await writeFamilySummary(facts);
+  if (!text) return null;
+  return (
+    <div className="rise-in lg:col-span-3" style={rise(2)}>
+      <FamilySummary text={text} />
     </div>
   );
 }

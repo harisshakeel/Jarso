@@ -163,6 +163,12 @@ export function noticeText(
           : "Done without asking, as you set.",
       };
     }
+    case "parent_note": {
+      const text = typeof notice.payload.text === "string" ? notice.payload.text : "";
+      return role === "child"
+        ? { title: "A note from your parent", detail: text }
+        : { title: `Your note to ${name}`, detail: text };
+    }
     default:
       return { title: "Something new", detail: "Take a look." };
   }

@@ -1,5 +1,7 @@
 import "server-only";
 import type {
+  ChildNoteInput,
+  NoteResult,
   Notice,
   NoticeKind,
   NoticePage,
@@ -10,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   encodeCursor,
   fetchUnreadCount,
+  insertChildNote,
   listNoticeRows,
   listUnreadRows,
   ownsSubscription,
@@ -48,6 +51,15 @@ export async function markRead(ids: string[] | null): Promise<number> {
 export async function listUnreadNotices(kinds: NoticeKind[]): Promise<Notice[]> {
   await assertUser();
   return listUnreadRows(await createClient(), kinds, 20);
+}
+
+/**
+ * A parent's note to their child (parent dashboard). It lands in the child's News; the database
+ * checks the caller is the child's parent. Never logs the text.
+ */
+export async function sendChildNote(input: ChildNoteInput): Promise<NoteResult> {
+  await assertUser();
+  return insertChildNote(await createClient(), input);
 }
 
 /**

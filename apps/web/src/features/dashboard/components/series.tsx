@@ -3,13 +3,13 @@ import { cn } from "@/lib";
 type Series = {
   /** Background: dots, avatars, legend keys. */
   dot: string;
-  /** SVG fill: the Save band. */
+  /** SVG fill: the Save band, and the stripes of the Spend band. */
   fill: string;
-  /** SVG fill, lighter: the Spend band. */
-  soft: string;
+  /** SVG fill, pale: the ground under the Spend band's stripes. */
+  tint: string;
   /** A bar's background. */
   bar: string;
-  /** Text on the colour (dark on yellow, as the palette asks). */
+  /** Text on the colour: white on every step (APCA, checked 2026-11-03). */
   ink: string;
 };
 
@@ -21,63 +21,63 @@ export const SERIES: Record<number, Series> = {
   0: {
     dot: "bg-series-0",
     fill: "fill-series-0",
-    soft: "fill-series-0/40",
+    tint: "fill-series-0/20",
     bar: "bg-series-0",
     ink: "text-white",
   },
   1: {
     dot: "bg-series-1",
     fill: "fill-series-1",
-    soft: "fill-series-1/40",
+    tint: "fill-series-1/20",
     bar: "bg-series-1",
     ink: "text-white",
   },
   2: {
     dot: "bg-series-2",
     fill: "fill-series-2",
-    soft: "fill-series-2/40",
+    tint: "fill-series-2/20",
     bar: "bg-series-2",
     ink: "text-white",
   },
   3: {
     dot: "bg-series-3",
     fill: "fill-series-3",
-    soft: "fill-series-3/40",
+    tint: "fill-series-3/20",
     bar: "bg-series-3",
     ink: "text-white",
   },
   4: {
     dot: "bg-series-4",
     fill: "fill-series-4",
-    soft: "fill-series-4/40",
+    tint: "fill-series-4/20",
     bar: "bg-series-4",
-    ink: "text-gold-foreground",
+    ink: "text-white",
   },
   5: {
     dot: "bg-series-5",
     fill: "fill-series-5",
-    soft: "fill-series-5/40",
+    tint: "fill-series-5/20",
     bar: "bg-series-5",
     ink: "text-white",
   },
   6: {
     dot: "bg-series-6",
     fill: "fill-series-6",
-    soft: "fill-series-6/40",
+    tint: "fill-series-6/20",
     bar: "bg-series-6",
     ink: "text-white",
   },
   7: {
     dot: "bg-series-7",
     fill: "fill-series-7",
-    soft: "fill-series-7/40",
+    tint: "fill-series-7/20",
     bar: "bg-series-7",
     ink: "text-white",
   },
   8: {
     dot: "bg-series-8",
     fill: "fill-series-8",
-    soft: "fill-series-8/40",
+    tint: "fill-series-8/20",
     bar: "bg-series-8",
     ink: "text-white",
   },

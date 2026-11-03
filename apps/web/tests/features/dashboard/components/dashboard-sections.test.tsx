@@ -1,10 +1,12 @@
-import type { DashboardChild, MoneyChartData } from "@jarso/core/dashboard";
+import type { Callout, DashboardChild, MoneyChartData } from "@jarso/core/dashboard";
 import { dashboardTotals, mergeActivity } from "@jarso/core/dashboard";
 import type { HistoryItem } from "@jarso/core/ledger";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ActivityList } from "@/features/dashboard/components/activity-list";
+import { CalloutsCard } from "@/features/dashboard/components/callouts-card";
 import { ChildTiles } from "@/features/dashboard/components/child-tiles";
+import { FamilySummary } from "@/features/dashboard/components/family-summary";
 import { FamilyTotals } from "@/features/dashboard/components/family-totals";
 import { MoneyChart } from "@/features/dashboard/components/money-chart";
 
@@ -118,6 +120,7 @@ describe("ChildTiles", () => {
     );
     expect(screen.getByRole("heading", { name: "Zarrar" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Add a child" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Send a note to Zarrar" })).toBeVisible();
     // Aisha has an allowance waiting.
     expect(screen.getByText("due", { exact: false })).toBeInTheDocument();
   });
@@ -179,6 +182,24 @@ describe("MoneyChart", () => {
     expect(push).toHaveBeenCalledWith("/parent?child=a", { scroll: false });
   });
 
+  it("draws Spend as stripes in each child's colour, and the legend shows both jars", () => {
+    const { container } = render(
+      <MoneyChart chart={chart} currency="GBP" hrefs={hrefs} sentence="Words." split={null} />,
+    );
+    const patterns = [...container.querySelectorAll("pattern")];
+    expect(patterns).toHaveLength(2);
+    expect(patterns[0]?.querySelector("rect:last-child")).toHaveClass("fill-series-1");
+    const spend = [...container.querySelectorAll("path")].filter((path) =>
+      path.getAttribute("fill")?.startsWith("url(#"),
+    );
+    expect(spend).toHaveLength(2);
+    expect(spend.map((path) => path.getAttribute("fill"))).toEqual(
+      patterns.map((pattern) => `url(#${pattern.id})`),
+    );
+    expect(screen.getByText("Save")).toBeVisible();
+    expect(screen.getByText("Spend")).toBeVisible();
+  });
+
   it("says so when nothing is recorded", () => {
     render(
       <MoneyChart
@@ -190,5 +211,59 @@ describe("MoneyChart", () => {
       />,
     );
     expect(screen.getByText("No money recorded yet.")).toBeVisible();
+  });
+});
+
+describe("CalloutsCard", () => {
+  const saved: Callout = {
+    id: "saved-a",
+    childId: "a",
+    nickname: "Aisha",
+    slot: 1,
+    text: "Aisha's Save grew by £8.00 this week.",
+    action: "allowance",
+    matchMinor: 800,
+  };
+  const goal: Callout = {
+    id: "goal-z",
+    childId: "z",
+    nickname: "Zarrar",
+    slot: 2,
+    text: "Zarrar is 2 allowances from 🚲 Bike.",
+    action: "goal",
+    matchMinor: null,
+  };
+
+  it("offers a note on every line, and matching only where Save grew", () => {
+    render(<CalloutsCard items={[saved, goal]} currency="GBP" period="this week" />);
+    expect(screen.getByRole("button", { name: "Match it for Aisha" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Match it for Zarrar" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Send a note to Aisha" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Send a note to Zarrar" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "See their goal for Zarrar" })).toBeVisible();
+  });
+
+  it("offers no note from a flagged chat: the parent reads the chat first", () => {
+    const chats: Callout = {
+      id: "chats-a",
+      childId: "a",
+      nickname: "Aisha",
+      slot: 1,
+      text: "A chat Aisha had with Jarso this week was flagged for you to read.",
+      action: "chats",
+      matchMinor: null,
+    };
+    render(<CalloutsCard items={[chats]} currency="GBP" period="this week" />);
+    expect(screen.getByRole("link", { name: "Read the chat for Aisha" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Send a note to Aisha" })).toBeNull();
+  });
+});
+
+describe("FamilySummary", () => {
+  it("labels the summary as written by AI", () => {
+    render(<FamilySummary text="Aisha's £5.00 allowance is waiting for you." />);
+    const region = screen.getByRole("region", { name: "Jarso's summary" });
+    expect(region).toHaveTextContent("written by AI");
+    expect(region).toHaveTextContent("Aisha's £5.00 allowance is waiting for you.");
   });
 });

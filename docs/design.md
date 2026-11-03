@@ -113,7 +113,7 @@ Hard rules:
 
 `chart-1` teal-600, `chart-2` brand gold, `chart-3` cyan-500, `chart-4` teal-300, `chart-5` gold-400. Weekly review uses at most three series.
 
-The parent's dashboard colours each child with `series-1` to `series-8` (the dataviz reference palette in its validated order, light and dark steps in `tokens.css`; `series-0` is the neutral tone past an eighth child). The slot follows the child's place in the family, never their rank, so a filter never repaints anyone. A child's Save is the solid step and Spend the same hue at 40%. Every series is named beside its mark and stated in a sentence, because three light steps and the dark green sit under 3:1 on the card.
+The parent's dashboard colours each child with `series-1` to `series-8` (the dataviz reference palette in its validated order, light and dark steps in `tokens.css`; `series-0` is the neutral tone past an eighth child). The slot follows the child's place in the family, never their rank, so a filter never repaints anyone. Light slots 3 to 5 (aqua `#00a470`, yellow `#c58100`, magenta `#d86d96`) are one step darker than the reference and dark slot 6 (green `#188d15`) one step lighter, so every child clears 3:1 on the card in both themes (3.2:1 at the weakest); the set still passes the validator's adjacent checks (worst colour-blind ΔE 9.0 light / 8.4 dark, normal vision 17.2 / 19.3). A child's Save is the solid colour and Spend the same colour as 45° stripes on a 20% ground, so Spend keeps full colour strength and the two jars differ by texture, not lightness; the legend shows both swatches. Labels on a series fill are white (APCA). Every series is still named beside its mark and stated in a sentence.
 
 ## 3. Typography
 

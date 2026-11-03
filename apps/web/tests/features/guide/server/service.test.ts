@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppError } from "@/lib";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
+// "use cache" is a plain string under Vitest; its lifetime call is a no-op here.
+vi.mock("next/cache", async (original) => ({
+  ...(await original<typeof import("next/cache")>()),
+  cacheLife: vi.fn(),
+}));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn(() => ({ kind: "admin" })) }));
 vi.mock("@/features/family/server", () => ({
   assertParentCanRead: vi.fn(),
@@ -14,6 +19,7 @@ vi.mock("@/features/family/server", () => ({
 vi.mock("@/features/guide/server/config", () => ({
   getGuideProvider: vi.fn(),
   getPriceReader: vi.fn(),
+  getSummaryWriter: vi.fn(),
   guideDailyBudgetCents: vi.fn(() => 1000),
   guideMonthlyBudgetCents: vi.fn(() => 10000),
   guideProviderName: vi.fn(() => "fake"),
@@ -967,5 +973,75 @@ describe("the photo price check", () => {
       message: guideCopy.routes.unavailable,
     });
     expect(read).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("writeFamilySummary", () => {
+  const parent = { id: "parent-1", email: null };
+  const facts = {
+    period: "this week",
+    names: ["Aisha", "Zarrar"],
+    lines: [
+      "One handover for Aisha is waiting for you: £5.00.",
+      "Zarrar's Save went up by £3.00 this week.",
+    ],
+  };
+  const writer = (write: () => Promise<{ text: string | null; usage: object }>) => ({
+    name: "anthropic" as const,
+    write: vi.fn(write),
+  });
+
+  beforeEach(() => {
+    vi.mocked(family.assertRole).mockResolvedValue({ user: parent as never, membership: null });
+  });
+
+  it("shows the writer's sentence when it passes the check", async () => {
+    const summary = writer(async () => ({
+      text: "Aisha's £5.00 allowance is waiting for you, and Zarrar's Save went up by £3.00 this week.",
+      usage: { screenInput: 300, screenOutput: 40 },
+    }));
+    vi.mocked(config.getSummaryWriter).mockReturnValue(summary);
+    await expect(service.writeFamilySummary(facts)).resolves.toBe(
+      "Aisha's £5.00 allowance is waiting for you, and Zarrar's Save went up by £3.00 this week.",
+    );
+    expect(family.assertRole).toHaveBeenCalledWith("parent");
+    expect(repo.hitRateLimit).toHaveBeenCalledWith(
+      { kind: "admin" },
+      "summary:hour:parent-1",
+      "1 hour",
+      30,
+    );
+    expect(summary.write).toHaveBeenCalledWith(expect.objectContaining({ facts }));
+  });
+
+  it("drops a sentence that fails the check: a figure of its own, or children compared", async () => {
+    for (const text of [
+      "The children spent £8.00 between them.",
+      "Aisha is waiting on £5.00, more than Zarrar.",
+    ]) {
+      vi.mocked(config.getSummaryWriter).mockReturnValue(writer(async () => ({ text, usage: {} })));
+      await expect(service.writeFamilySummary(facts)).resolves.toBeNull();
+    }
+  });
+
+  it("writes nothing when the guide is off, the hour's summaries are used or nothing is known", async () => {
+    vi.mocked(config.getSummaryWriter).mockReturnValue(null);
+    await expect(service.writeFamilySummary(facts)).resolves.toBeNull();
+
+    const summary = writer(async () => ({ text: "Never asked.", usage: {} }));
+    vi.mocked(config.getSummaryWriter).mockReturnValue(summary);
+    vi.mocked(repo.hitRateLimit).mockResolvedValueOnce(false);
+    await expect(service.writeFamilySummary(facts)).resolves.toBeNull();
+    await expect(service.writeFamilySummary({ ...facts, lines: [] })).resolves.toBeNull();
+    expect(summary.write).not.toHaveBeenCalled();
+  });
+
+  it("never throws: a failed call leaves the dashboard without a summary", async () => {
+    vi.mocked(config.getSummaryWriter).mockReturnValue(
+      writer(async () => {
+        throw new Error("timeout");
+      }),
+    );
+    await expect(service.writeFamilySummary(facts)).resolves.toBeNull();
   });
 });

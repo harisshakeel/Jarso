@@ -5,6 +5,7 @@ export * from "./components/callouts-card";
 export * from "./components/category-compare";
 export * from "./components/child-filter";
 export * from "./components/child-tiles";
+export * from "./components/family-summary";
 export * from "./components/family-totals";
 export * from "./components/money-chart";
 export * from "./components/period-switch";

@@ -10,6 +10,7 @@ import {
   CreditCardIcon,
   HandCoinsIcon,
   type LucideIcon,
+  MessageCircleHeartIcon,
   PencilIcon,
   PiggyBankIcon,
 } from "lucide-react";
@@ -34,6 +35,7 @@ const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
   money_received: { icon: HandCoinsIcon, tint: "bg-teal-100 text-teal-800" },
   entry_corrected: { icon: PencilIcon, tint: "bg-secondary text-ink-2" },
   jar_moved: { icon: PiggyBankIcon, tint: "bg-teal-100 text-teal-800" },
+  parent_note: { icon: MessageCircleHeartIcon, tint: "bg-cyan-100 text-cyan-700" },
 };
 
 const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
@@ -82,7 +84,15 @@ export function InboxItem({ notice, href, title, detail, onOpen }: InboxItemProp
           {title}
           {notice.read ? null : <span className="sr-only"> (new)</span>}
         </span>
-        <span className="truncate text-ink-2 text-sm">{detail}</span>
+        {/* A parent's note is the message itself, so it is shown whole. */}
+        <span
+          className={cn(
+            "text-ink-2 text-sm",
+            notice.kind === "parent_note" ? "break-words" : "truncate",
+          )}
+        >
+          {detail}
+        </span>
       </span>
       <time
         dateTime={notice.createdAt}

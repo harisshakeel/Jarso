@@ -5,7 +5,7 @@ import type { MoneyChartData } from "@jarso/core/dashboard";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type MouseEvent, type PointerEvent, useMemo, useRef, useState } from "react";
+import { type MouseEvent, type PointerEvent, useId, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui";
 import { cn, formatMoney } from "@/lib";
 import { SeriesDot, seriesOf } from "./series";
@@ -36,14 +36,19 @@ type MoneyChartProps = {
 };
 
 /**
- * Family money over time, stacked by child (spec answer 9): each child's Save underneath and
- * Spend on top in lighter steps of their own colour, one axis, a 2px card-coloured gap between
- * bands. Hover or touch shows the day's figures; tapping a child's band shows only them. Every
- * figure is also in the caption and the table, so nothing rests on colour alone.
+ * Family money over time, stacked by child (spec answer 9): each child's Save underneath, solid
+ * in their colour, and Spend on top as stripes of the same colour on a pale ground, one axis, a
+ * 2px card-coloured gap between bands. The stripes keep Spend at full colour strength, so every
+ * band clears 3:1 on the card, and solid against striped tells the jars apart without leaning on
+ * lightness. Hover or touch shows the day's figures; tapping a child's band shows only them.
+ * Every figure is also in the caption and the table, so nothing rests on colour alone.
  */
 export function MoneyChart({ chart, currency, hrefs, sentence, split }: MoneyChartProps) {
   const router = useRouter();
   const svg = useRef<SVGSVGElement>(null);
+  // Pattern ids must be valid in `url(#…)`, so keep only plain characters.
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const stripes = (childId: string) => `${uid}-spend-${childId}`;
   const [hover, setHover] = useState<number | null>(null);
   const money = (minor: number) => formatMoney(minor, currency);
   const short = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
@@ -136,7 +141,19 @@ export function MoneyChart({ chart, currency, hrefs, sentence, split }: MoneyCha
       <CardContent className="grid gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-h3">Money over time</h2>
-          <p className="text-ink-2 text-sm">Darker: Save · Lighter: Spend</p>
+          <p className="flex items-center gap-3 text-ink-2 text-sm">
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="size-3 rounded-[3px] bg-ink-2" />
+              Save
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="size-3 rounded-[3px] bg-[repeating-linear-gradient(45deg,var(--color-ink-2)_0_2px,transparent_2px_4.5px)] bg-ink-2/20"
+              />
+              Spend
+            </span>
+          </p>
         </div>
         <p className="sr-only">{sentence}</p>
         <div className="relative">
@@ -146,6 +163,21 @@ export function MoneyChart({ chart, currency, hrefs, sentence, split }: MoneyCha
             className="block h-auto w-full touch-pan-y select-none"
             aria-hidden
           >
+            <defs>
+              {chart.series.map((s) => (
+                <pattern
+                  key={s.childId}
+                  id={stripes(s.childId)}
+                  width={7}
+                  height={7}
+                  patternUnits="userSpaceOnUse"
+                  patternTransform="rotate(45)"
+                >
+                  <rect width={7} height={7} className={seriesOf(s.slot).tint} />
+                  <rect width={3} height={7} className={seriesOf(s.slot).fill} />
+                </pattern>
+              ))}
+            </defs>
             {ticks.map((tick) => (
               <g key={tick}>
                 <line
@@ -171,10 +203,9 @@ export function MoneyChart({ chart, currency, hrefs, sentence, split }: MoneyCha
               <path
                 key={`${band.childId}-${band.jar}`}
                 d={band.d}
-                className={cn(
-                  "stroke-card",
-                  band.jar === "save" ? seriesOf(band.slot).fill : seriesOf(band.slot).soft,
-                )}
+                // Spend's fill is its stripe pattern, set as an attribute: a fill class would win.
+                fill={band.jar === "spend" ? `url(#${stripes(band.childId)})` : undefined}
+                className={cn("stroke-card", band.jar === "save" && seriesOf(band.slot).fill)}
                 strokeWidth={2}
                 strokeLinejoin="round"
               />

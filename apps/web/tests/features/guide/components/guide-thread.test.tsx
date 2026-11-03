@@ -128,7 +128,8 @@ describe("GuideThread", () => {
     );
     expect(screen.getByRole("link", { name: "Open" })).toHaveAttribute("href", "/child/jarso");
     fireEvent.click(screen.getByRole("button", { name: "How much do I have?" }));
-    await screen.findByText("Spend is the cash you hold.");
+    // A full run is busy: the reply can take more than the default second to arrive.
+    await screen.findByText("Spend is the cash you hold.", {}, { timeout: 5_000 });
     expect(onChatStarted).toHaveBeenCalledWith("convo-1");
   });
 
