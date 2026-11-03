@@ -144,6 +144,8 @@ type JarGraphProps = {
   title?: string;
   /** Parents see exact amounts ("always"); the child sees "£5" for whole amounts. */
   showMinor?: "always" | "nonzero";
+  /** `compact` draws a smaller picture, for a tile on a dashboard (the parent's Home). */
+  size?: "default" | "compact";
 };
 
 /**
@@ -160,6 +162,7 @@ export function JarGraph({
   currency,
   title = "Your money ride",
   showMinor = "nonzero",
+  size = "default",
 }: JarGraphProps) {
   const id = useId();
   const [days, setDays] = useState<GraphPeriod>(7);
@@ -312,7 +315,10 @@ export function JarGraph({
         tabIndex={0}
         onKeyDown={onKey}
         onBlur={() => setActive(null)}
-        className="relative mx-auto w-full max-w-md rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+        className={cn(
+          "relative mx-auto w-full rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/40",
+          size === "compact" ? "max-w-sm" : "max-w-md",
+        )}
       >
         <svg
           ref={svgRef}

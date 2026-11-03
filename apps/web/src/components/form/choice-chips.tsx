@@ -35,9 +35,11 @@ export function ChoiceChips({
               value={option.value}
               checked={value === option.value}
               onChange={() => onValueChange(option.value)}
-              className="peer sr-only"
+              // Invisible and stretched under the chip, so its centre is the chip's centre: a
+              // 1 px visually-hidden input can sit just outside its chip and miss the click.
+              className="peer absolute inset-0 m-0 size-full appearance-none rounded-full opacity-0"
             />
-            <span className="inline-flex h-11 items-center rounded-full border border-hairline-strong px-4 font-bold text-sm transition-colors hover:bg-muted peer-checked:border-transparent peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring">
+            <span className="relative inline-flex h-11 items-center rounded-full border border-hairline-strong px-4 font-bold text-sm transition-colors hover:bg-muted peer-checked:border-transparent peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring">
               {option.label}
             </span>
           </label>

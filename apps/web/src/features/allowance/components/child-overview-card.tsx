@@ -25,8 +25,9 @@ type ChildOverviewCardProps = {
 };
 
 /**
- * One child on the parent's Home: jars, where the allowance stands, what's due. The whole card
- * opens the child's page; the link is the nickname, so its accessible name stays short, and its
+ * One child on the parent's Home, compact so a whole family fits in a row: small jars beside
+ * the balances, the goal with its bar, where the allowance stands, what's due. Money only, never
+ * learning (invariant 11). The whole card opens the child's page; the link is the nickname, so its accessible name stays short, and its
  * focus ring is drawn on the overlay so it outlines the whole card.
  */
 export function ChildOverviewCard({
@@ -53,13 +54,14 @@ export function ChildOverviewCard({
         .filter(Boolean)
         .join(" · ")
     : "Not saving for anything yet";
+  const ratio = goal && goal.targetMinor > 0 ? Math.min(counted / goal.targetMinor, 1) : 0;
   return (
-    <Card className="relative transition-shadow hover:shadow-raised">
+    <Card size="sm" className="relative h-full transition-shadow hover:shadow-raised">
       <div className="grid gap-3 px-(--card-spacing)">
         <div className="flex items-center gap-3">
           <span
             aria-hidden
-            className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary font-extrabold text-secondary-foreground"
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary font-extrabold text-secondary-foreground"
           >
             {nickname.charAt(0).toUpperCase()}
           </span>
@@ -71,6 +73,7 @@ export function ChildOverviewCard({
               {nickname}
             </Link>
           </h3>
+          <span className="shrink-0 text-ink-2 text-sm">{describeAllowanceState(schedule)}</span>
           {dueCount > 0 ? (
             <Badge variant="count">
               {dueCount}
@@ -78,35 +81,43 @@ export function ChildOverviewCard({
             </Badge>
           ) : null}
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="grid justify-items-center gap-1 text-center">
+        <div className="flex items-end gap-4">
+          <div className="flex items-end gap-2">
             <JarIllustration
               jar="spend"
-              size="sm"
+              size="xs"
               capacityMinor={capacityMinor}
               filledMinor={spendMinor}
             />
             <p className="grid">
-              <span className="text-ink-2">Spend</span>
-              <span className="money font-bold text-money">{money(spendMinor)}</span>
+              <span className="text-ink-2 text-sm">Spend</span>
+              <span className="money font-bold text-money text-primary">{money(spendMinor)}</span>
             </p>
           </div>
-          <div className="grid justify-items-center gap-1 text-center">
+          <div className="flex items-end gap-2">
             <JarIllustration
               jar="save"
-              size="sm"
+              size="xs"
               capacityMinor={goal ? goal.targetMinor : capacityMinor}
               filledMinor={counted}
               reservedMinor={reservedMinor}
             />
             <p className="grid">
-              <span className="text-ink-2">Save</span>
-              <span className="money font-bold text-money">{money(saveMinor)}</span>
+              <span className="text-ink-2 text-sm">Save</span>
+              <span className="money font-bold text-gold-text text-money">{money(saveMinor)}</span>
             </p>
           </div>
         </div>
-        <p>{goalLine}</p>
-        <p className="text-ink-2">{describeAllowanceState(schedule)}</p>
+        <div className="grid gap-1.5">
+          <p className="truncate text-sm" title={goalLine}>
+            {goalLine}
+          </p>
+          {goal ? (
+            <div aria-hidden className="h-2 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-gold" style={{ width: `${ratio * 100}%` }} />
+            </div>
+          ) : null}
+        </div>
       </div>
     </Card>
   );

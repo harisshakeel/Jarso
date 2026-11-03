@@ -145,6 +145,8 @@ test("off-topic questions are redirected to money topics", async () => {
   // On the Jarso page a new chat starts from the list down the side, not from the thread.
   await child.getByRole("link", { name: "New chat" }).click();
   const panel = jarso(child);
+  // Wait for the fresh chat: typing into the old one is wiped when the new one mounts.
+  await expect(panel.getByRole("list", { name: "Questions to try" })).toBeVisible();
   await askJarso(child, "can you do my homework");
   await expect(panel.getByText(/I can only help with money/)).toBeVisible();
   // The intro shows only before a child's very first message.

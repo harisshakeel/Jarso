@@ -6,6 +6,7 @@ import {
   NAME_HINTS,
   purchaseSchema,
 } from "@jarso/core/diary";
+import { ShoppingBagIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
@@ -30,17 +31,23 @@ type PurchaseSheetProps = { currency: string; userId: string };
 
 /**
  * "Spent something?" opens a bottom sheet to record a purchase. A keycap where it is the
- * screen's one primary action (Diary); `outline` where another keycap leads (Home).
+ * screen's one primary action (gold on Home, teal on Diary); `outline` where another keycap leads.
+ * Full width below 768 px, its own width beside a page title from there.
  */
 export function PurchaseSheet({
   currency,
   userId,
   variant = "keycap",
-}: PurchaseSheetProps & { variant?: "keycap" | "keycap-gold" | "outline" }) {
+  size = "lg",
+}: PurchaseSheetProps & {
+  variant?: "keycap" | "keycap-gold" | "outline";
+  size?: "lg" | "xl";
+}) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button variant={variant} size="lg" className="w-full" />}>
+      <SheetTrigger render={<Button variant={variant} size={size} className="w-full md:w-auto" />}>
+        <ShoppingBagIcon aria-hidden />
         Spent something?
       </SheetTrigger>
       <PurchaseSheetContent currency={currency} userId={userId} onDone={() => setOpen(false)} />

@@ -23,7 +23,7 @@ async function RequestsContent() {
   ]);
   return (
     <>
-      <h1 className="text-balance text-display">Move my money</h1>
+      <h1 className="text-balance text-h1">Move my money</h1>
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-10">
         <div className="grid gap-6">
           <RequestActions

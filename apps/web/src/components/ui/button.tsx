@@ -6,7 +6,8 @@ import { Loader2Icon } from "lucide-react";
 /**
  * design.md §6: standalone actions are pills, 44 px tall by default (`default`, `lg`, `icon`)
  * so every child-facing control meets §11. `sm` / `icon-sm` (36 px) only inside parent tables.
- * `keycap` / `keycap-gold` is the child's one primary action per screen. `loading` keeps the
+ * `keycap` / `keycap-gold` is the child's one primary action per screen, usually at `xl`. For a link
+ * that looks like a button, put `buttonVariants(...)` on the `<Link>`. `loading` keeps the
  * button's width and overlays a spinner. Focus ring comes from the global `:focus-visible` rule.
  */
 const buttonVariants = cva(
@@ -33,6 +34,8 @@ const buttonVariants = cva(
         default: "h-11 gap-2 px-5 text-base",
         sm: "h-9 gap-1.5 px-4 text-sm [&_svg:not([class*='size-'])]:size-4",
         lg: "h-11 gap-2 px-6 text-base",
+        /** The child's one primary action on a page: 52 px, larger label. */
+        xl: "h-13 gap-2.5 px-7 text-lg [&_svg:not([class*='size-'])]:size-6",
         icon: "size-11",
         "icon-sm": "size-9 [&_svg:not([class*='size-'])]:size-4",
         "icon-lg": "size-11",

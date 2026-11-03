@@ -69,7 +69,12 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
         Your seven-day journey
       </h2>
       <div
-        className="relative mx-auto w-full max-w-md"
+        className={cn(
+          "relative mx-auto w-full max-w-md",
+          // From 1024 px the road is sized by the screen's height (page padding and the line
+          // under it taken off), so the whole week fits without a scroll.
+          "lg:h-[clamp(28rem,calc(100dvh-8rem),52rem)] lg:w-auto lg:max-w-none",
+        )}
         style={{ aspectRatio: `${WIDTH} / ${height}` }}
       >
         <svg

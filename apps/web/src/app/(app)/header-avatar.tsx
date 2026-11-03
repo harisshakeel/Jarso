@@ -1,7 +1,9 @@
 import { UserRoundIcon } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
+import { RailLink } from "@/components/shell";
 import { routes } from "@/config";
 import { getCurrentUser } from "@/features/auth/server";
 import { currentRole, getChildNickname } from "@/features/family/server";
@@ -36,33 +38,68 @@ async function whoAmI(): Promise<{ name: string | null; initial: string | null }
   }
 }
 
-async function RailName() {
+function Name({ name, label }: { name: string | null; label: string }) {
+  return (
+    <span className="grid min-w-0 text-center lg:text-left">
+      <span className="max-w-20 truncate font-semibold text-xs lg:max-w-none lg:font-bold lg:text-base lg:text-foreground">
+        {name ?? "You"}
+      </span>
+      <span className="hidden text-muted-foreground text-sm lg:block">{label}</span>
+    </span>
+  );
+}
+
+async function RailName({ label }: { label: string }) {
   const me = await whoAmI();
   return (
     <>
       <Disc initial={me.initial} />
-      <span className="max-w-20 truncate font-semibold text-xs">{me.name ?? "You"}</span>
+      <Name name={me.name} label={label} />
     </>
   );
 }
 
-/** The same person at the foot of the left rail, with their first name, opening Settings. */
-export function RailAvatar() {
+/**
+ * The signed-in person at the foot of the sidebar, opening their settings page ("Me" for a
+ * child, "Settings" for a parent): disc over first name from 768 px, a row with the page's name
+ * under the person's from 1024 px. It replaces a settings tab, so it lights up on that page.
+ */
+export function RailAvatar({ href, label }: { href: Route; label: string }) {
   return (
-    <Link
-      href={routes.settings}
-      aria-label="Account"
-      className="mx-auto flex min-h-11 w-20 flex-col items-center gap-1 rounded-xl py-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-3 focus-visible:outline-ring focus-visible:outline-offset-2"
+    <RailLink
+      href={href}
+      label={label}
+      className="mx-auto flex min-h-11 w-20 flex-col items-center gap-1 rounded-2xl py-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:w-full lg:flex-row lg:gap-3 lg:px-3"
     >
       <Suspense
         fallback={
           <>
             <Disc initial={null} />
-            <span className="font-semibold text-xs">You</span>
+            <Name name={null} label={label} />
           </>
         }
       >
-        <RailName />
+        <RailName label={label} />
+      </Suspense>
+    </RailLink>
+  );
+}
+
+async function HeaderDisc() {
+  const me = await whoAmI();
+  return <Disc initial={me.initial} />;
+}
+
+/** The person in the phone header (below 768 px, where the sidebar is a tab bar), opening Settings. */
+export function HeaderAvatar() {
+  return (
+    <Link
+      href={routes.settings}
+      aria-label="Account"
+      className="grid size-11 place-items-center rounded-full transition-colors hover:bg-muted"
+    >
+      <Suspense fallback={<Disc initial={null} />}>
+        <HeaderDisc />
       </Suspense>
     </Link>
   );

@@ -6,15 +6,18 @@ import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { type Tone, toneActive } from "@/components/layout";
 import { Badge } from "@/components/ui";
 
 export type BottomNavItem = {
   href: Route;
   label: string;
   icon: LucideIcon;
+  /** Section colour of the active pill (design.md §2.7). Defaults to teal. */
+  tone?: Tone;
   /** Count badge (Inbox). Shown in full, never abbreviated. */
   count?: number;
-  /** Only in the left rail (from 1024 px); phones reach it another way, so the bar stays four wide. */
+  /** Only in the sidebar (from 768 px); phones reach it another way, so the bar stays five wide. */
   railOnly?: boolean;
 };
 
@@ -29,60 +32,86 @@ function activeHref(pathname: string, items: BottomNavItem[]) {
 }
 
 /**
- * Role-aware tab bar (design.md §5): fixed to the bottom on phones and tablets, a left rail
- * from 1024 px. The caller passes only the tabs that exist for the role.
+ * The app's one navigation (design.md §5), role-aware: a bottom tab bar on phones, a left sidebar
+ * from 768 px (icons over labels), widening to icon-and-label rows from 1024 px. The current
+ * section is a tinted pill in its own colour, so "where am I" never relies on colour alone: the
+ * pill, the filled icon and `aria-current` all say it. The caller passes only the role's tabs.
  */
 export function BottomNav({
   items,
   label = "Main",
+  outside = [],
+  brand,
   footer,
 }: {
   items: BottomNavItem[];
   label?: string;
-  /** Sits at the foot of the left rail (from 1024 px): the signed-in person. */
+  /** Pages no tab owns (settings, reached from the footer): no tab lights up on them. */
+  outside?: Route[];
+  /** Sits at the top of the sidebar (from 768 px): the mark, linking home. */
+  brand?: ReactNode;
+  /** Sits at the foot of the sidebar (from 768 px): the signed-in person. */
   footer?: ReactNode;
 }) {
-  const current = activeHref(usePathname(), items);
+  const pathname = usePathname();
+  const current = outside.some((href) => matches(pathname, href))
+    ? undefined
+    : activeHref(pathname, items);
   return (
-    <nav
-      aria-label={label}
-      data-slot="bottom-nav"
-      className="fixed inset-x-0 bottom-0 z-40 border-hairline border-t bg-background/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-[16px] lg:top-14 lg:right-auto lg:flex lg:w-24 lg:flex-col lg:border-t-0 lg:border-r lg:pt-4 lg:pb-4"
-    >
-      <ul className="mx-auto flex h-16 max-w-xl items-stretch lg:h-auto lg:flex-col lg:gap-2">
-        {items.map(({ href, label: itemLabel, icon: Icon, count, railOnly }) => {
-          const active = href === current;
-          return (
-            <li key={href} className={cn("flex flex-1 lg:flex-none", railOnly && "hidden lg:flex")}>
-              <Link
-                href={href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-xl font-semibold text-xs transition-colors lg:py-3",
-                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
-                )}
+    // The sidebar box exists from 768 px; below that it dissolves and the nav is the bottom bar.
+    // The brand sits outside <nav> so the nav's links are only the tabs.
+    <div className="contents md:fixed md:inset-y-0 md:left-0 md:z-40 md:flex md:w-24 md:flex-col md:border-hairline md:border-r md:bg-card md:px-2 md:py-5 lg:w-64 lg:px-4">
+      {brand ? <div className="hidden md:mb-6 md:block">{brand}</div> : null}
+      <nav
+        aria-label={label}
+        data-slot="bottom-nav"
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-40 border-hairline border-t bg-background/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-[16px]",
+          "md:static md:flex md:flex-1 md:flex-col md:border-t-0 md:bg-transparent md:pb-0 md:backdrop-blur-none",
+        )}
+      >
+        <ul className="mx-auto flex h-16 max-w-xl items-stretch gap-1 px-1 md:mx-0 md:h-auto md:max-w-none md:flex-col md:px-0">
+          {items.map(({ href, label: itemLabel, icon: Icon, count, railOnly, tone = "teal" }) => {
+            const active = href === current;
+            return (
+              <li
+                key={href}
+                className={cn("flex flex-1 md:flex-none", railOnly && "hidden md:flex")}
               >
-                <span className="relative">
-                  <Icon
-                    aria-hidden
-                    className="size-6"
-                    fill={active ? "currentColor" : "none"}
-                    fillOpacity={active ? 0.18 : undefined}
-                  />
-                  {count ? (
-                    <Badge variant="count" className="absolute -top-1.5 -right-3">
-                      {count.toLocaleString("en")}
-                      <span className="sr-only"> new</span>
-                    </Badge>
-                  ) : null}
-                </span>
-                {itemLabel}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      {footer ? <div className="mt-auto hidden lg:block">{footer}</div> : null}
-    </nav>
+                <Link
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "my-1.5 flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-2xl font-semibold text-xs transition-colors",
+                    "md:my-0 md:py-2.5 md:text-sm",
+                    "lg:min-h-12 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-base",
+                    active
+                      ? cn(toneActive[tone], "font-bold")
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  <span className="relative">
+                    <Icon
+                      aria-hidden
+                      className="size-6"
+                      fill={active ? "currentColor" : "none"}
+                      fillOpacity={active ? 0.18 : undefined}
+                    />
+                    {count ? (
+                      <Badge variant="count" className="absolute -top-1.5 -right-3">
+                        {count.toLocaleString("en")}
+                        <span className="sr-only"> new</span>
+                      </Badge>
+                    ) : null}
+                  </span>
+                  {itemLabel}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        {footer ? <div className="mt-auto hidden pt-4 md:block">{footer}</div> : null}
+      </nav>
+    </div>
   );
 }

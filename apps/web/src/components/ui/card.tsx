@@ -1,17 +1,37 @@
 import { cn } from "cn";
 import type * as React from "react";
 
+/**
+ * Card tones (design.md §6). `default` is a white surface with a hairline; `raised` is the page's
+ * primary card; the tints mark a section (Home teal, Diary gold, Learn cyan, Jarso grape) and
+ * keep ink text; `muted` is a quiet inset panel.
+ */
+const cardTones = {
+  default: "bg-card shadow-rest",
+  raised: "bg-card shadow-raised",
+  muted: "bg-muted",
+  teal: "bg-tint-teal",
+  gold: "bg-tint-gold",
+  cyan: "bg-tint-cyan",
+  grape: "bg-tint-grape",
+} as const;
+
+export type CardTone = keyof typeof cardTones;
+
 function Card({
   className,
   size = "default",
+  tone = "default",
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: React.ComponentProps<"div"> & { size?: "default" | "sm"; tone?: CardTone }) {
   return (
     <div
       data-slot="card"
       data-size={size}
+      data-tone={tone}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-base text-card-foreground shadow-rest [--card-spacing:--spacing(4)] sm:[--card-spacing:--spacing(6)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] sm:data-[size=sm]:[--card-spacing:--spacing(4)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl py-(--card-spacing) text-base text-card-foreground [--card-spacing:--spacing(4)] sm:[--card-spacing:--spacing(6)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] sm:data-[size=sm]:[--card-spacing:--spacing(4)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        cardTones[tone],
         className,
       )}
       {...props}

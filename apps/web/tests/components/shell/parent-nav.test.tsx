@@ -31,10 +31,15 @@ describe("ParentNav", () => {
     ["/parent/children/abc", "Home"],
     ["/parent/children/abc/allowance", "Home"],
     ["/parent/allowance", "Allowance"],
-    ["/parent/settings", "Settings"],
   ])("on %s lights %s", (path, tab) => {
     pathname.current = path;
     render(<ParentNav />);
     expect(current()).toEqual([tab]);
+  });
+
+  it("lights no tab on Settings, which the person at the foot of the sidebar opens", () => {
+    pathname.current = "/parent/settings";
+    render(<ParentNav />);
+    expect(current()).toEqual([]);
   });
 });

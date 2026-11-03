@@ -1,10 +1,14 @@
+import { cn } from "cn";
 import { PlusIcon } from "lucide-react";
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { redirect, unstable_rethrow } from "next/navigation";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
+import { z } from "zod";
+import { PageContainer, PageHeader, PageSkeleton } from "@/components/layout";
 import { SlowFallback } from "@/components/shell";
+import { buttonVariants, Card, CardContent, Skeleton } from "@/components/ui";
 import { routes } from "@/config";
 import {
   ChildOverviewCard,
@@ -33,12 +37,14 @@ import {
   settleRequestReads,
 } from "@/features/requests";
 import { getAvailability, listRequestsNeedingParent } from "@/features/requests/server";
-import { ChildWeekCard, weekBounds, weekMoney } from "@/features/review";
+import { ChildWeekCard, familyGrid, weekBounds, weekMoney } from "@/features/review";
 import { fallback, familyToday, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Your family" };
 
-const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
+type Props = PageProps<"/parent">;
+
+const paramsSchema = z.object({ child: z.uuid().optional() });
 
 /** One child's reads, started together and awaited where each section needs them. */
 type ChildReads = {
@@ -50,13 +56,20 @@ type ChildReads = {
   schedule: Promise<Schedule | null>;
 };
 
-async function ParentHome() {
+async function ParentHome({ searchParams }: Pick<Props, "searchParams">) {
   const { membership } = await requireRole("parent", routes.parent);
   if (!membership) redirect(routes.parentSetup);
   const [family, children] = await Promise.all([getFamily(), listChildren()]);
   if (!family) redirect(routes.parentSetup);
 
-  if (children.length === 0) return <FirstChildCard />;
+  if (children.length === 0) {
+    return (
+      <>
+        <PageHeader title="Your family" />
+        <FirstChildCard />
+      </>
+    );
+  }
 
   // Each service runs once per child; "Needs you" and each card stream in as their reads land.
   const reads: ChildReads[] = children.map((child) => ({
@@ -76,78 +89,147 @@ async function ParentHome() {
   });
 
   const today = familyToday(family.timezone);
+  // The child shown in detail: from ?child= when it is one of the family's, else the first.
+  const wanted = paramsSchema.safeParse(await searchParams).data?.child;
+  const selected = reads.find((read) => read.child.id === wanted) ?? reads[0];
 
-  // Three columns on a wide screen: what needs the parent, each child's week, the children.
+  const guideOn = isGuideConfigured();
+  const several = reads.length > 1;
+  const two = familyGrid(reads.length, 2);
+  const three = familyGrid(reads.length, 3);
+
+  // Layout A (design.md §10): "Needs you" first, then one grid of a compact card per child and
+  // the selected child's graph, history and week (?child=, a switcher in the header when there
+  // are several). familyGrid places the tiles in the space the cards leave, for any number of
+  // children; only the selected child's tiles load.
   return (
-    <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8 xl:grid-cols-3">
-      <div className="grid gap-6">
-        <div className="rise-in">
-          <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
-            <NeedsYouSection reads={reads} notices={notices} currency={family.currency} />
-          </Suspense>
-        </div>
-        <div className="rise-in" style={rise(1)}>
-          <Suspense fallback={null}>
-            <RequestsSection reads={reads} currency={family.currency} />
-          </Suspense>
-        </div>
-        <div className="rise-in" style={rise(1)}>
-          <Suspense fallback={null}>
-            <NoticesSection notices={notices} currency={family.currency} />
-          </Suspense>
-        </div>
-      </div>
-      <section aria-labelledby="week-title" className="rise-in grid gap-3" style={rise(2)}>
-        <h2 id="week-title" className="text-h2">
-          This week
-        </h2>
-        <div className="grid gap-4">
-          {reads.map((read) => (
-            <Suspense
-              key={read.child.id}
-              fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}
-            >
-              <ChildWeekSection
-                read={read}
+    <>
+      <PageHeader
+        title="Your family"
+        action={
+          <>
+            {several && selected ? (
+              <ChildSwitcher reads={reads} selectedId={selected.child.id} />
+            ) : null}
+            <Suspense fallback={null}>
+              <NeedsYouSection
+                reads={reads}
+                notices={notices}
                 currency={family.currency}
-                today={today}
-                guideOn={isGuideConfigured()}
+                show="caughtUp"
               />
             </Suspense>
-          ))}
-        </div>
-      </section>
-      <section aria-labelledby="children-title" className="rise-in grid gap-3" style={rise(3)}>
-        <h2 id="children-title" className="text-h2">
-          Children
-        </h2>
-        <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
-          {reads.map((read) => (
-            <li key={read.child.id}>
-              <Suspense fallback={<div aria-hidden className="shimmer h-36 rounded-xl bg-muted" />}>
-                <ChildCard read={read} currency={family.currency} />
-              </Suspense>
-            </li>
-          ))}
-          {reads.map((read) => (
-            <li key={`latest-${read.child.id}`}>
-              <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
-                <LatestSection read={read} currency={family.currency} />
-              </Suspense>
-            </li>
-          ))}
-          <li>
-            <Link
-              href={routes.parentNewChild}
-              className="flex h-full min-h-36 items-center justify-center gap-2 rounded-xl border-2 border-hairline-strong border-dashed px-4 font-semibold text-primary hover:bg-card"
-            >
-              <PlusIcon aria-hidden className="size-5" />
+            <Link href={routes.parentNewChild} className={buttonVariants({ variant: "outline" })}>
+              <PlusIcon aria-hidden />
               Add a child
             </Link>
-          </li>
-        </ul>
-      </section>
-    </div>
+          </>
+        }
+      />
+      <Suspense fallback={null}>
+        <NeedsYouSection
+          reads={reads}
+          notices={notices}
+          currency={family.currency}
+          show="waiting"
+        />
+      </Suspense>
+      <Suspense fallback={null}>
+        <RequestsSection reads={reads} currency={family.currency} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <NoticesSection notices={notices} currency={family.currency} />
+      </Suspense>
+
+      {selected ? (
+        <section
+          aria-labelledby="children-title"
+          className="rise-in grid items-start gap-4 lg:grid-cols-2 lg:[grid-template-areas:var(--areas-2)] lg:[grid-template-rows:var(--rows-2)] 2xl:grid-cols-3 2xl:[grid-template-areas:var(--areas-3)] 2xl:[grid-template-rows:var(--rows-3)]"
+          style={
+            {
+              "--areas-2": two.areas,
+              "--rows-2": two.rows,
+              "--areas-3": three.areas,
+              "--rows-3": three.rows,
+            } as CSSProperties
+          }
+        >
+          <h2 id="children-title" className="sr-only">
+            Children
+          </h2>
+          {reads.map((read, index) => (
+            <div
+              key={read.child.id}
+              className={cn(
+                "grid rounded-xl lg:[grid-area:var(--area)]",
+                several &&
+                  read === selected &&
+                  "ring-2 ring-primary ring-offset-2 ring-offset-background",
+              )}
+              style={{ "--area": `c${index}` } as CSSProperties}
+            >
+              <Suspense fallback={<Skeleton className="h-44" />}>
+                <ChildCard read={read} currency={family.currency} />
+              </Suspense>
+            </div>
+          ))}
+          <div className="grid lg:[grid-area:graph]">
+            <Suspense fallback={<Skeleton className="h-80" />}>
+              <ChildGraphTile read={selected} currency={family.currency} />
+            </Suspense>
+          </div>
+          <div className="grid lg:[grid-area:history]">
+            <Suspense fallback={<Skeleton className="h-40" />}>
+              <LatestSection read={selected} currency={family.currency} />
+            </Suspense>
+          </div>
+          <div className="grid lg:[grid-area:week]">
+            <Suspense fallback={<Skeleton className="h-40" />}>
+              <ChildWeekSection
+                read={selected}
+                currency={family.currency}
+                today={today}
+                guideOn={guideOn}
+              />
+            </Suspense>
+          </div>
+        </section>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * Which child the detail shows: links that keep the choice in the URL. Named "Show <name>" so
+ * the child's own name stays the one link to their page.
+ */
+function ChildSwitcher({ reads, selectedId }: { reads: ChildReads[]; selectedId: string }) {
+  return (
+    <nav
+      aria-label="Show a child"
+      className="flex flex-wrap gap-1 justify-self-start rounded-full bg-muted p-1"
+    >
+      {reads.map(({ child }) => {
+        const on = child.id === selectedId;
+        return (
+          <Link
+            key={child.id}
+            href={`${routes.parent}?child=${child.id}` as Route}
+            scroll={false}
+            aria-label={`Show ${child.nickname}`}
+            aria-current={on ? "true" : undefined}
+            className={cn(
+              "inline-flex min-h-10 items-center rounded-full px-4 font-semibold transition-colors",
+              on
+                ? "bg-card text-foreground shadow-rest"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {child.nickname}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -159,10 +241,13 @@ async function NeedsYouSection({
   reads,
   notices,
   currency,
+  show,
 }: {
   reads: ChildReads[];
   notices: Promise<Notice[]>;
   currency: string;
+  /** The header shows the "All caught up." chip; the panel under it shows what waits. */
+  show: "caughtUp" | "waiting";
 }) {
   const [perChild, requests, unread] = await Promise.all([
     Promise.all(reads.map(async ({ child, due }) => ({ child, due: await due }))),
@@ -173,12 +258,11 @@ async function NeedsYouSection({
     (sum, result) => sum + (result.status === "fulfilled" ? result.value.length : 0),
     0,
   );
+  const items = mergeDue(perChild);
+  const waiting = items.length + waitingRequests + unread.length;
+  if (show === "waiting" ? waiting === 0 : waiting > 0) return null;
   return (
-    <NeedsYou
-      items={mergeDue(perChild)}
-      currency={currency}
-      otherCount={waitingRequests + unread.length}
-    />
+    <NeedsYou items={items} currency={currency} otherCount={waitingRequests + unread.length} />
   );
 }
 
@@ -216,8 +300,8 @@ async function RequestsSection({ reads, currency }: { reads: ChildReads[]; curre
 }
 
 /**
- * One child's week in three sentences (money, learning, Jarso) and how their jars moved. Each
- * read is a nice-to-have on its own: a failed one leaves its line out, never the section.
+ * One child's week in three sentences (money, learning, Jarso). Each read is a nice-to-have
+ * on its own: a failed one leaves its line out, never the tile.
  */
 async function ChildWeekSection({
   read,
@@ -232,51 +316,60 @@ async function ChildWeekSection({
 }) {
   const { child } = read;
   const { weekStart } = weekBounds(today);
-  const [history, learning, chats, balances, due] = await Promise.all([
+  const [history, learning, chats, due] = await Promise.all([
     fallback(getHistory(child.id), null, "History on parent home"),
     fallback(getLearningOverview(child.id), null, "Learning on parent home"),
     guideOn ? fallback(listGuideChats(child.id), null, "Chats on parent home") : null,
-    fallback(getBalanceHistory(child.id), null, "Balances on parent home"),
     read.due,
   ]);
   const stillDue = due.reduce((sum, item) => sum + item.amountMinor, 0);
   const current = learning?.journey.find((mission) => mission.status === "current") ?? null;
   const thisWeek = chats?.filter((chat) => chat.lastMessageAt.slice(0, 10) >= weekStart) ?? null;
+  if (!history || !learning) return null;
   return (
-    <div className="grid gap-4">
-      {history && learning ? (
-        <ChildWeekCard
+    <ChildWeekCard
+      currency={currency}
+      week={{
+        nickname: child.nickname,
+        money: weekMoney(history, stillDue, today),
+        learning: {
+          daysThisWeek: learning.daysThisWeek,
+          missionsDone: learning.completed.length,
+          current: current ? { day: current.day, title: current.title } : null,
+        },
+        chats: thisWeek
+          ? { count: thisWeek.length, flagged: thisWeek.filter((c) => c.flagged).length }
+          : null,
+      }}
+      hrefs={{
+        money: routes.parentChild(child.id),
+        learning: routes.parentChildLearning(child.id),
+        jarso: routes.parentChildGuide(child.id),
+      }}
+    />
+  );
+}
+
+/** How the child's jars moved, as a tall bento tile. A failed read leaves the tile out. */
+async function ChildGraphTile({ read, currency }: { read: ChildReads; currency: string }) {
+  const balances = await fallback(
+    getBalanceHistory(read.child.id),
+    null,
+    "Balances on parent home",
+  );
+  if (!balances) return null;
+  return (
+    <Card className="shadow-raised">
+      <CardContent>
+        <JarGraph
+          history={balances}
           currency={currency}
-          week={{
-            nickname: child.nickname,
-            money: weekMoney(history, stillDue, today),
-            learning: {
-              daysThisWeek: learning.daysThisWeek,
-              missionsDone: learning.completed.length,
-              current: current ? { day: current.day, title: current.title } : null,
-            },
-            chats: thisWeek
-              ? { count: thisWeek.length, flagged: thisWeek.filter((c) => c.flagged).length }
-              : null,
-          }}
-          hrefs={{
-            money: routes.parentChild(child.id),
-            learning: routes.parentChildLearning(child.id),
-            jarso: routes.parentChildGuide(child.id),
-          }}
+          title={`How ${read.child.nickname}'s jars moved`}
+          showMinor="always"
+          size="compact"
         />
-      ) : null}
-      {balances ? (
-        <div className="rounded-xl bg-card p-4 shadow-raised">
-          <JarGraph
-            history={balances}
-            currency={currency}
-            title={`How ${child.nickname}'s jars moved`}
-            showMinor="always"
-          />
-        </div>
-      ) : null}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -285,8 +378,7 @@ async function LatestSection({ read, currency }: { read: ChildReads; currency: s
   const history = await fallback(getHistory(read.child.id), null, "History on parent home");
   if (!history) return null;
   return (
-    <section aria-label={`${read.child.nickname}'s latest`} className="grid gap-2">
-      <h3 className="text-h3">{read.child.nickname}'s latest</h3>
+    <section aria-label={`${read.child.nickname}'s latest`} className="grid">
       <RecentHistory
         items={history}
         currency={currency}
@@ -333,29 +425,18 @@ function errorName(error: unknown): string {
   return error instanceof Error ? error.name : typeof error;
 }
 
-function HomeSkeleton() {
+export default function ParentHomePage({ searchParams }: Props) {
   return (
-    <div aria-hidden className="grid gap-6">
-      <div className="shimmer h-32 rounded-xl bg-muted" />
-      <div className="shimmer h-8 w-40 rounded-lg bg-muted" />
-      <div className="shimmer h-36 rounded-xl bg-muted" />
-    </div>
-  );
-}
-
-export default function ParentHomePage() {
-  return (
-    <div className="grid w-full gap-5">
-      <h1 className="text-h1">Your family</h1>
+    <PageContainer width="wide" className="gap-6">
       <Suspense
         fallback={
           <SlowFallback>
-            <HomeSkeleton />
+            <PageSkeleton />
           </SlowFallback>
         }
       >
-        <ParentHome />
+        <ParentHome searchParams={searchParams} />
       </Suspense>
-    </div>
+    </PageContainer>
   );
 }

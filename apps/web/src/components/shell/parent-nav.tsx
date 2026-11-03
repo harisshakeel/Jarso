@@ -1,23 +1,23 @@
 "use client";
 
-import { CalendarClockIcon, HomeIcon, InboxIcon, SettingsIcon, SparklesIcon } from "lucide-react";
+import { CalendarClockIcon, HomeIcon, InboxIcon, SparklesIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { routes } from "@/config";
 import { BottomNav, type BottomNavItem } from "./bottom-nav";
+import { NavBrand } from "./nav-brand";
 
 // Icons are components, which can't cross the server → client boundary, so the tabs live here.
-// design.md §5: Home · Allowance · Inbox, and Settings in the left rail only; on phones the header
-// avatar opens it.
-// Home stays lit on the child pages (/parent/children/…); Allowance is the deeper match on its tab.
+// design.md §5: Home · Allowance · Jarso · Inbox. Settings is the person at the foot of the
+// sidebar; on phones the header avatar opens it. Home stays lit on the child pages (/parent/children/…); Allowance is
+// the deeper match on its tab. The parent area is calmer: one tone, Jarso keeps its grape.
 const items: BottomNavItem[] = [
   { href: routes.parent, label: "Home", icon: HomeIcon },
   { href: routes.parentAllowanceOverview, label: "Allowance", icon: CalendarClockIcon },
-  { href: routes.parentJarso, label: "Jarso", icon: SparklesIcon },
+  { href: routes.parentJarso, label: "Jarso", icon: SparklesIcon, tone: "grape" },
   { href: routes.parentInbox, label: "Inbox", icon: InboxIcon },
-  { href: routes.parentSettings, label: "Settings", icon: SettingsIcon, railOnly: true },
 ];
 
-/** The parent's tab bar. `unread` badges the Inbox tab. */
+/** The parent's navigation. `unread` badges the Inbox tab. */
 export function ParentNav({ unread, footer }: { unread?: number; footer?: ReactNode }) {
   return (
     <BottomNav
@@ -25,6 +25,8 @@ export function ParentNav({ unread, footer }: { unread?: number; footer?: ReactN
         item.href === routes.parentInbox ? { ...item, count: unread } : item,
       )}
       label="Parent"
+      outside={[routes.parentSettings]}
+      brand={<NavBrand href={routes.parent} tag="Grown-ups" />}
       footer={footer}
     />
   );

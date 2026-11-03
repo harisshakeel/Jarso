@@ -85,6 +85,8 @@ export function GuideThread({
   const [messages, setMessages] = useState<ThreadMessage[]>(reopened?.messages ?? []);
   const [turnsLeft, setTurnsLeft] = useState<number | null>(reopened?.turnsLeft ?? null);
   const [text, setText] = useState("");
+  // The question on its way: shown as sent while Jarso works, put back in the box if it fails.
+  const [sending, setSending] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
   const [full, setFull] = useState(reopened ? reopened.turnsLeft === 0 : false);
@@ -109,6 +111,7 @@ export function GuideThread({
     setMessages([]);
     setTurnsLeft(null);
     setText("");
+    setSending(null);
     setError(null);
     setFull(false);
     unanswered.current = null;
@@ -126,6 +129,8 @@ export function GuideThread({
     const clientMessageId = unanswered.current.id;
     const started = generation.current;
     const firstTurn = conversationId === null;
+    setSending(question);
+    setText("");
     startTransition(async () => {
       const result = await runOnline(
         () =>
@@ -146,7 +151,9 @@ export function GuideThread({
       // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
       startTransition(() => {
         setStatus(null);
+        setSending(null);
         if (!result.ok) {
+          setText(question);
           if (result.error.code === "CONFLICT") setFull(true);
           setError({
             code: result.error.code,
@@ -169,7 +176,6 @@ export function GuideThread({
           { id: `child-${current.length}`, from: "child", text: question },
           { id: reply.messageId ?? `guide-${current.length}`, from: "guide", reply },
         ]);
-        setText("");
         if (firstTurn) onChatStarted?.(result.data.conversationId);
       });
     });
@@ -233,7 +239,7 @@ export function GuideThread({
   return (
     <section
       aria-labelledby="ask-jarso"
-      className={cn("grid gap-4", page && "min-h-full grid-rows-[auto_1fr_auto]")}
+      className={cn("gap-4", page ? "flex min-h-full flex-col" : "grid")}
     >
       <div className="grid gap-1">
         <div className="flex items-center justify-between gap-3">
@@ -298,28 +304,23 @@ export function GuideThread({
         </div>
       ) : (
         <>
-          <div className={cn("grid content-start gap-3", page && "min-h-0 overflow-y-auto")}>
-            {messages.length > 0 ? (
+          <div className={cn("grid content-start gap-3", page && "min-h-0 flex-1 overflow-y-auto")}>
+            {messages.length > 0 || sending ? (
               <ol aria-label="Chat with Jarso" aria-live="polite" className="grid gap-3">
                 {messages.map((message) =>
                   message.from === "child" ? (
-                    <li
-                      key={message.id}
-                      className="ml-8 justify-self-end rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-primary-foreground"
-                    >
-                      <span className="sr-only">You: </span>
-                      {message.text}
-                    </li>
+                    <SentBubble key={message.id} text={message.text} />
                   ) : (
                     <li key={message.id}>
                       <GuideBubble reply={message.reply} />
                     </li>
                   ),
                 )}
+                {sending ? <SentBubble text={sending} /> : null}
               </ol>
             ) : null}
             {pending ? <ThinkingBubble status={status} /> : null}
-            {messages.length === 0 && !pending ? (
+            {messages.length === 0 && !pending && !sending ? (
               <ul aria-label="Questions to try" className="flex flex-wrap gap-2">
                 {copy.suggestions.map((suggestion) => (
                   <li key={suggestion}>
@@ -347,5 +348,15 @@ export function GuideThread({
         </>
       )}
     </section>
+  );
+}
+
+/** A question the person asked, on the right in their colour. */
+function SentBubble({ text }: { text: string }) {
+  return (
+    <li className="ml-8 justify-self-end whitespace-pre-wrap rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-primary-foreground">
+      <span className="sr-only">You: </span>
+      {text}
+    </li>
   );
 }

@@ -9,7 +9,7 @@ type AllowanceLineProps = {
 };
 
 /**
- * The child's allowance in one line under the jars: how much and when, or why not right now.
+ * The child's allowance in one line under the Home greeting: how much and when, or why not right now.
  * Money that is due is already drawn above the jars, so it is not repeated here.
  */
 export function AllowanceLine({ schedule, currency }: AllowanceLineProps) {
@@ -17,21 +17,21 @@ export function AllowanceLine({ schedule, currency }: AllowanceLineProps) {
   if (!schedule) {
     return (
       <section aria-label="Your allowance">
-        <p className="text-center text-ink-2">No allowance set up yet.</p>
+        <p className="text-ink-2">No allowance set up yet.</p>
       </section>
     );
   }
   if (schedule.status === "stopped") {
     return (
       <section aria-label="Your allowance">
-        <p className="text-center text-ink-2">Your allowance has stopped.</p>
+        <p className="text-ink-2">Your allowance has stopped.</p>
       </section>
     );
   }
   if (schedule.status === "paused") {
     return (
-      <section aria-label="Your allowance" className="grid justify-items-center gap-1 text-center">
-        <p className="flex flex-wrap items-center justify-center gap-2">
+      <section aria-label="Your allowance" className="grid gap-1">
+        <p className="flex flex-wrap items-center gap-2">
           <span className="font-semibold">
             {money(schedule.amountMinor)}{" "}
             {cadenceAfterAmount(schedule.frequency, schedule.anchorOn)}
@@ -51,7 +51,7 @@ export function AllowanceLine({ schedule, currency }: AllowanceLineProps) {
   }
   return (
     <section aria-label="Your allowance">
-      <p className="flex flex-wrap items-center justify-center gap-x-2 text-center">
+      <p className="flex flex-wrap items-center gap-x-2">
         <span className="font-semibold">
           {money(schedule.amountMinor)} {cadenceAfterAmount(schedule.frequency, schedule.anchorOn)}
         </span>

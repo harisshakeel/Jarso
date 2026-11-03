@@ -176,3 +176,82 @@ Run 2026-11-03 without Docker or the hosted DB.
 - Not run, CI only: Playwright e2e, pgTAP, `db reset`, `supabase db lint`, `db:types` (need Docker / local Supabase).
 - Not run: device walk-through (above), `code-reviewer` and `security-auditor` agents (the controller runs the whole-branch review).
 - Before deploy: push `supabase/migrations/20261102200146_child_password_guard.sql` to the hosted DB before or with the web deploy.
+
+# Web UI redesign (plan 2026-11-03)
+
+Brief: redesign the web app UI for desktop, laptop and tablet (1280 / 1024 / 768). Kids 10+ first, parents second.
+Keep every route, action, API and data flow. Phones are a later phase, but tokens and components must carry over.
+
+## Direction
+
+- **Brand stays.** Teal, gold and cyan come from the jar logo, and the app icon depends on them. Everything else gets brighter and calmer:
+  - a cooler, whiter canvas;
+  - one section colour per child tab (Home teal, Diary gold, Learn cyan, Jarso violet). Violet is a new scale used only for the AI, never for money;
+  - money keeps its rules: Spend is teal, Save is gold, red is never used for money.
+- **Type.** Nunito stays. One type scale for child and parent screens (16 px body); the 18 px kid scale was tried and dropped at the user's request (2026-11-03) for consistency.
+- **Layout.**
+  - From 768 px, a persistent left sidebar with icon and label, 240 px wide from 1024 px and 88 px from 768 px (labels stay, stacked). Below 768 px the current bottom bar stays.
+  - The sidebar holds the brand, the nav, and at its foot the signed-in person with their Settings link. This fixes the bug where Settings has no link below 1024 px.
+  - Remove the duplicate theme and sign-out controls from the header; they live in Settings.
+  - Content sits in a centred `PageContainer` (`narrow` 640 for forms, `default` 1120), headed by a `PageHeader` (back link, eyebrow, title, one primary action).
+- **One primary action per screen.** Kid screens use a keycap button. Parent screens use a plain primary button.
+- **Parent area.** Neutral and dense: `data-audience="parent"`, a muted "Grown-ups" sidebar tint, multi-column dashboards, and a real table and chart where they help (design.md §10's "never a table" rule is lifted for desktop parents).
+
+## Plan
+
+### P0 Design system (tokens, primitives, docs)
+- [~] Tokens: audience scoping, violet scale, section tints, spacing/radius audit, AA re-measure, update `docs/design.md` in the same change (NOTE: tokens.css/ts done; design.md not yet updated)
+- [x] Primitives: Button (xl kid size 52 px, `asChild`-style link variant via `buttonVariants`), Card variants (`raised`, `flat`, `tinted`; keep `data-slot=card`)
+- [x] New shared components in `components/layout`: PageContainer, PageHeader, BackLink, Section, EmptyState, LoadingState (shimmer), ErrorState, StatTile, DataTable (parent)
+- [ ] Replace the 6 copy-pasted keycap `<Link>`s and the 13 repeated text-link class strings with `buttonVariants` / `TextLink`
+
+### P1 Shell
+- [x] `AppSidebar` (child and parent item sets, active state, count badge, person footer); bottom bar below 768 px unchanged in behaviour
+- [x] `AppHeader` shown only below 768 px; theme and sign-out removed from it
+- [x] Keep the nav labels "Main"/"Child"/"Parent" and the tab names e2e relies on
+
+### P2 Child screens
+- [x] Home: hero row (greeting, jar shelf, one gold keycap). Then a two-column body: next step and goal on the left, money ride on the right. Goal shown once on Home.
+- [ ] Diary: header with balance and action, history table-like list as the main column, Where-it-went side panel
+- [ ] Learn hub, mission/check-in/practice/topic/week pages: one player width, unified back links
+- [~] Goal, Move my money, News, Me, Jarso (Me done): PageHeader plus at most 2–3 sections each; Me is regrouped into "You", "Looks & sounds" and "Done for now?"
+
+### P3 Parent screens
+- [x] Home dashboard (bento): one "Needs you" panel (due, requests, notices merged visually, keeping region names) plus a children overview grouped per child (jars, allowance, this week, latest) with a 2-up chart row
+- [ ] Child detail: header with child summary stats; Money tab in two columns (actions | history table); Learning and Jarso tabs fuller
+- [ ] Allowance overview as a table; allowance/gift/handover/rules forms in narrow containers with a sticky summary aside on desktop
+- [ ] Inbox, Settings (tabs kept; the You tab split into clear groups), setup, add-child, invite
+
+### P4 Auth and system pages
+- [ ] Parent and child sign-in, sign-up and start share one split auth layout (art panel plus form card)
+- [ ] error, not-found and offline states use the shared EmptyState and ErrorState
+- [ ] Marketing landing and privacy/safety pages: tokens only, no restructure (heavily e2e-pinned and outside the app)
+
+### P5 Verify
+- [ ] `pnpm check` green (Biome, typecheck, unit tests); update class-pinned unit tests only where the class change is intentional
+- [ ] `pnpm build`
+- [ ] Visual pass: Playwright screenshots at 1280 / 1024 / 768, light and dark, child and parent (needs local Supabase)
+- [ ] Keyboard and reduced-motion pass; axe check on the main screens
+- [ ] code-reviewer and test-engineer agents on the diff
+- [ ] Review section with what changed, follow-ups and mobile notes
+
+## Constraints (from recon)
+- Copy and accessible names are load-bearing for about 20 e2e specs and for the mobile tests, which mirror the web copy. Keep all of them; restructure around them.
+- Keep `data-slot` (card, button, button-label, bottom-nav), the `dark` class on `<html>`, and the `data-*` hooks on jar, coach and graph components.
+- Class-pinned unit tests: keycap, `bg-teal-100` (unread inbox), `text-ink-2`, `opacity-70`, `fill-gold`, `size-11`.
+- Cache Components rule: content reading the session stays inside `<Suspense>`.
+- No commits until asked.
+
+## Progress notes (2026-11-03)
+- Sidebar brand link renamed "Jarso home" (collided with the Jarso tab; parent-nav test failed).
+- Local DB was 10 migrations behind; applied with `supabase migration up --local --include-all`.
+- `.shots/dev.mjs` now runs `copy-brand.mjs` (mark icon 404'd without it).
+- Jarso chat: the question shows as sent (bubble, box cleared) while Jarso thinks; on failure it goes back in the box. Parent child-picker no longer floats mid-page.
+- Child Home fits one screen from 1536 px (three columns, width-fit jars, staircase viewBox cropped to its drawing). 1024–1535 px still scrolls ~130–260 px: follow-up.
+- Me regrouped: You | Looks & sounds | What Jarso remembers | Done for now?, two columns from 1024 px; fits one screen at 1920, 1280, 768.
+- Jarso corner buddy (`features/guide/components/jarso-buddy.tsx`) on every child page except the Jarso tab, only when Jarso is on: opens the chat in a side sheet. Shelf jars width-fit at every size (fixed phone overflow).
+- Parent Home is layout A (picked from 3 mockups): header with Needs-you chip + Add a child, compact money-only child cards (2-up, 3-up from 1536), ?child= switcher, selected child's graph | latest + week. Fits 1920×930 and 1280×800 (switcher in the header, compact JarGraph `size="compact"`, money-only card with allowance on the name row). Replaced the earlier bento: Needs you band, then per child overview/week/graph/latest tiles (2×2 from 1024, 12-col from 1536). Dropped the "This week"/"Children" column headings; e2e region names kept.
+- Parent Home tiles adapt to family size: `familyGrid(count, cols)` (features/review) builds grid-template-areas/rows so the selected child's graph/history/week fill the slots the cards leave (1 child: card+history | graph | week). Checked with 1, 2, 3 children at 1920 and 1280.
+- GuideSheet ("Help me" beside a step) still adds the question only after the reply: same bug as the thread had. Follow-up.
+- Sidebar: Me / Settings tabs removed; the person at the foot of the sidebar ("Me" for a child, "Settings" for a parent) is the one link, lit on that page (`RailLink`, BottomNav `outside`). Learn roadmap sized by screen height from 1024 px (fits from 1280×800; 1024×768 46 px over).
+- Flaky under full-suite load: `tests/features/rules/components/rule-group.test.tsx` "adds a rule" (6.3 s > 5 s timeout); passes alone.
