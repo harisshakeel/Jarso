@@ -26,6 +26,8 @@ The Supabase **project URL** and its project ref are not secrets; they ship to e
 | `CRON_SECRET` | Vercel env vars (sensitive), and the same value in Supabase Vault as `cron_secret`; Vercel sends it as the cron request's bearer token | `/api/cron/payments/auto-charge`, `app/api/cron/push/route.ts` and `app/api/cron/guide/noticed/route.ts`; pg_cron reads the Vault copy through `trigger_auto_charge` |
 | `VAPID_PRIVATE_KEY` | Vercel env vars (Production, sensitive) | `features/notifications/server/push.ts` only |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Host env vars (public: it is the `applicationServerKey` every browser receives) | the push toggle and the dispatcher |
+| FCM v1 service-account key (Firebase Admin JSON) | EAS credentials only (`eas credentials` → Android → FCM V1); never in the repo, the bundle or Vercel. `*firebase-adminsdk*.json` is git-ignored | Expo's push service, when it sends to FCM |
+| `google-services.json` (Firebase app config; its `AIza…` API key is restricted to the app but still treated as a secret) | EAS file env var `GOOGLE_SERVICES_JSON` (sensitive, per environment); git-ignored, and `AIza…` strings are blocked by `check-secrets.sh` | `apps/mobile/app.config.ts` at build time (`android.googleServicesFile`) |
 | Supabase access token, project DB password | CI repository secrets | migration job |
 | Local copies | `apps/web/.env.local` (gitignored) | `pnpm dev` |
 
