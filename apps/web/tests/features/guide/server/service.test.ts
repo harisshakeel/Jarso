@@ -1036,6 +1036,16 @@ describe("writeFamilySummary", () => {
     expect(summary.write).not.toHaveBeenCalled();
   });
 
+  it("gives a parent with an incomplete profile no summary, never an error page", async () => {
+    vi.mocked(config.getSummaryWriter).mockReturnValue(
+      writer(async () => ({ text: "Never asked.", usage: {} })),
+    );
+    vi.mocked(family.assertRole).mockRejectedValue(
+      new AppError("FORBIDDEN", "Finish your profile first."),
+    );
+    await expect(service.writeFamilySummary(facts)).resolves.toBeNull();
+  });
+
   it("never throws: a failed call leaves the dashboard without a summary", async () => {
     vi.mocked(config.getSummaryWriter).mockReturnValue(
       writer(async () => {

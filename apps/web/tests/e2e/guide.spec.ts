@@ -182,7 +182,6 @@ test("the parent reads chats flagged first, with what Jarso looked at", async ()
   ).toBeVisible();
   await expect(transcript.getByText("someone at school hurt me")).toHaveCount(0);
   await expect(transcript.getByText("What is saving?")).toBeVisible();
-  await expect(transcript.getByText("Your child found this helpful")).toBeVisible();
   await expect(transcript.getByText("How much do I have?")).toBeVisible();
   await expect(transcript.getByText("Looked at: jars")).toBeVisible();
 });

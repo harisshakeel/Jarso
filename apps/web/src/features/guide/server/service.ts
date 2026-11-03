@@ -555,10 +555,12 @@ const SUMMARY_DEADLINE_MS = 8_000;
  * Its tokens are logged, not yet added to the guide's budget totals.
  */
 export async function writeFamilySummary(facts: SummaryFacts): Promise<string | null> {
-  const { user } = await assertRole("parent");
   const writer = getSummaryWriter();
   if (!writer || facts.lines.length === 0) return null;
   try {
+    // Inside the try: a parent whose profile is incomplete is refused here, and must still get
+    // the page (with its profile dialog), just without a summary.
+    const { user } = await assertRole("parent");
     if (summaryBreaker.isOpen() || (writer.name === "anthropic" && (await budgetSpent()))) {
       return null;
     }
