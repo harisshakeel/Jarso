@@ -2,6 +2,7 @@ import { offlineCopy } from "@jarso/core/offline";
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Card, ScreenHeader } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
 import { MemoryList } from "@/features/guide";
@@ -33,21 +34,19 @@ export function SettingsScreen() {
   const { data: nickname } = useNickname();
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-background">
-      <ScrollView contentContainerClassName="gap-6 p-4">
-        <Text accessibilityRole="header" className="font-sans-extrabold text-h2">
-          Me
-        </Text>
-        <View className="gap-1 rounded-xl bg-card p-4">
-          <Text accessibilityRole="header" className="font-sans-extrabold text-h3">
+      <ScrollView contentContainerClassName="gap-4 px-4 pt-4 pb-10">
+        <ScreenHeader title="Me" />
+        <Card className="gap-1">
+          <Text accessibilityRole="header" className="font-sans-bold text-h3">
             You
           </Text>
           <Text className="text-muted-foreground">
             {nickname ? `You sign in as ${nickname}.` : "Your nickname is how you sign in."} A
             parent can change your nickname or PIN.
           </Text>
-        </View>
-        <View className="gap-3 rounded-xl bg-card p-4">
-          <Text accessibilityRole="header" className="font-sans-extrabold text-h3">
+        </Card>
+        <Card>
+          <Text accessibilityRole="header" className="font-sans-bold text-h3">
             Looks
           </Text>
           <Text className="text-muted-foreground">Light, dark, or follow your device.</Text>
@@ -73,11 +72,11 @@ export function SettingsScreen() {
               );
             })}
           </View>
-        </View>
+        </Card>
         {/* What Jarso remembers: while the guide is on, or whenever any memory exists. */}
         <MemoryList />
-        <View className="gap-3 rounded-xl bg-card p-4">
-          <Text accessibilityRole="header" className="font-sans-extrabold text-h3">
+        <Card>
+          <Text accessibilityRole="header" className="font-sans-bold text-h3">
             Done for now?
           </Text>
           <Text className="text-muted-foreground">
@@ -91,7 +90,7 @@ export function SettingsScreen() {
           <Button size="lg" variant="outline" accessibilityLabel={signOutLabel} onPress={onSignOut}>
             <Text>{signOutLabel}</Text>
           </Button>
-        </View>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );

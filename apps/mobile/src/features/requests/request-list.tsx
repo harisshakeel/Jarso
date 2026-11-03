@@ -7,6 +7,7 @@ import {
 import { useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenHeader } from "@/components/screen";
 import { useSendOnce } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
 import { useHome } from "@/features/jars";
@@ -63,12 +64,10 @@ export function RequestList() {
     <SafeAreaView edges={["top"]} className="flex-1 bg-background">
       <ScrollView
         testID="requests-scroll"
-        contentContainerClassName="gap-4 p-4"
+        contentContainerClassName="gap-4 px-4 pt-4 pb-10"
         refreshControl={<RefreshControl refreshing={refetching} onRefresh={refresh} />}
       >
-        <Text accessibilityRole="header" className="font-sans-extrabold text-h2">
-          What you asked for
-        </Text>
+        <ScreenHeader title="What you asked for" />
         {requests.data.length === 0 ? (
           <View className="items-center gap-2 py-6">
             <Text className="font-sans-bold">Nothing here yet.</Text>
