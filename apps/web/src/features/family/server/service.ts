@@ -30,7 +30,8 @@ import {
   deleteChildAuthUser,
   deleteChildIdentity,
   mintChildSession,
-  rotateChildPassword,
+  mintChildSessionTokens,
+  type SessionTokens,
 } from "./child-auth";
 import { assertParentOf, assertRole, getMembership } from "./dal";
 import {
@@ -259,8 +260,12 @@ async function registerFromInvitation(
   }
 }
 
-/** Child PIN sign-in (ADR 0004). Must run where cookies are writable. */
-export async function childSignIn(input: ChildSignInInput, ip: string): Promise<void> {
+/**
+ * Child PIN checks (ADR 0004): rate limits, PIN verify, lockout. Returns the child's id. The
+ * password is left alone so the child's other devices stay signed in; a self-set password can't
+ * skip the PIN because the `scramble_child_password` trigger makes every child password unknowable.
+ */
+async function verifyChildSignIn(input: ChildSignInInput, ip: string): Promise<string> {
   const familyCode = normaliseFamilyCode(input.familyCode);
   // The family limit is per source too, so guessing from one network can't lock a family out.
   const ipHash = await hashSecret(ip);
@@ -286,17 +291,26 @@ export async function childSignIn(input: ChildSignInInput, ip: string): Promise<
     throw new AppError("UNAUTHORIZED", "Hmm, that didn't match. Check with your parent.");
   }
 
-  // Kills any password the child set for themselves (which would skip the PIN and lockout).
-  // Before minting: GoTrue may end the user's existing sessions on a password change.
-  await rotateChildPassword(result.childId);
-  await mintChildSession(result.childId);
+  return result.childId;
 }
 
-/** Parent resets a PIN. The old PIN, any self-set password and every signed-in device stop working. */
+/** Child PIN sign-in (ADR 0004). Must run where cookies are writable. */
+export async function childSignIn(input: ChildSignInInput, ip: string): Promise<void> {
+  await mintChildSession(await verifyChildSignIn(input, ip));
+}
+
+/** Child PIN sign-in for the mobile app: same checks, returns session tokens, no cookies. */
+export async function childSignInForTokens(
+  input: ChildSignInInput,
+  ip: string,
+): Promise<SessionTokens> {
+  return mintChildSessionTokens(await verifyChildSignIn(input, ip));
+}
+
+/** Parent resets a PIN. The old PIN and every signed-in device stop working. */
 export async function setChildPin(input: SetChildPinInput): Promise<void> {
   await assertParentOf(input.childId);
   await updateChildPin(await createClient(), input.childId, input.pin);
-  await rotateChildPassword(input.childId);
   await revokeUserSessions(createAdminClient(), input.childId);
 }
 
