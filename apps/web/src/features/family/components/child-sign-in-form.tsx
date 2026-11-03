@@ -1,5 +1,6 @@
 "use client";
 
+import { childSignInCopy } from "@jarso/core/family";
 import { useState } from "react";
 import { Field, FormError } from "@/components/form";
 import { Button, Card, CardContent } from "@/components/ui";
@@ -32,7 +33,7 @@ export function ChildSignInForm() {
             maxLength={16}
             required
             className="font-bold tracking-widest"
-            description="Your parent can find it on their Jarso home."
+            description={childSignInCopy.familyCodeHint}
             errors={fieldErrors?.familyCode}
           />
           <Field

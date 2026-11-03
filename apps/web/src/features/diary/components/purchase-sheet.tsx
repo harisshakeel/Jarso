@@ -1,6 +1,11 @@
 "use client";
 
-import { purchaseSchema } from "@jarso/core/diary";
+import {
+  DEFAULT_NAME_HINT,
+  entrySavedMessage,
+  NAME_HINTS,
+  purchaseSchema,
+} from "@jarso/core/diary";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
@@ -20,19 +25,6 @@ import { SPEND_CATEGORIES } from "@/features/ledger";
 import { newId, offlineCopy, removeOutboxItem, submitToOutbox } from "@/features/offline";
 import { type FieldErrors, playCoins } from "@/lib";
 import { CategoryChips } from "./category-chips";
-
-/** The name field's hint follows the chip: a snack asks "What snack?". */
-const NAME_HINTS: Record<string, string> = {
-  snacks: "What snack?",
-  games: "What game?",
-  clothes: "What clothes?",
-  going_out: "Where did you go?",
-  gift_for_someone: "What gift?",
-  school: "What for school?",
-  travel: "Where to?",
-  apps: "Which app?",
-};
-const DEFAULT_NAME_HINT = "What was it?";
 
 type PurchaseSheetProps = { currency: string; userId: string };
 
@@ -120,7 +112,7 @@ function PurchaseForm({
       switch (result.status) {
         case "sent":
           await onSaved?.();
-          coinToast("Saved. Nice one.");
+          coinToast(entrySavedMessage);
           playCoins();
           onDone();
           router.refresh();

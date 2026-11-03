@@ -1,6 +1,6 @@
 "use client";
 
-import type { EmergencyResult } from "@jarso/core/requests";
+import { type EmergencyResult, emergencyMessage } from "@jarso/core/requests";
 import { useRouter } from "next/navigation";
 import { useActionState, useRef, useState } from "react";
 import { AmountField, Field, FormError } from "@/components/form";
@@ -60,11 +60,6 @@ export function AskExtraSheet({ currency }: AskExtraSheetProps) {
   );
 }
 
-/** What the child reads once the server has answered. */
-export function emergencyMessage(result: EmergencyResult): string {
-  return result.status === "pending" ? "Sent to your parent" : "Already sent to your parent";
-}
-
 function AskExtraForm({
   currency,
   onSent,
@@ -89,7 +84,7 @@ function AskExtraForm({
     return (
       <div className="grid gap-4 px-4 pb-4 sm:px-6 sm:pb-6">
         <p role="status" className="font-bold text-lg">
-          {emergencyMessage(state.data)}
+          {emergencyMessage(state.data, currency)}
         </p>
         <Button type="button" size="lg" className="w-full" onClick={onDone}>
           Done

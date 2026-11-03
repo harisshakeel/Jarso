@@ -33,3 +33,23 @@ export function notEnoughSpendToLowerMessage(
 ): string {
   return `You've spent some of this already. The least it can be is ${formatMoney(Math.max(currentMinor - freeMinor, 0), currency, { showMinor: "nonzero" })}.`;
 }
+
+/** The line after a purchase or money received is saved. */
+export const entrySavedMessage = "Saved. Nice one.";
+
+/** The line after an undo: a purchase puts the money back in Spend, money received comes out of its jar. */
+export const undoneSpendMessage = "Undone. The money is back in Spend.";
+export const undoneReceivedMessage = "Undone. It's out of your jar.";
+
+/** The name field's hint follows the category chip: a snack asks "What snack?". */
+export const NAME_HINTS: Record<string, string> = {
+  snacks: "What snack?",
+  games: "What game?",
+  clothes: "What clothes?",
+  going_out: "Where did you go?",
+  gift_for_someone: "What gift?",
+  school: "What for school?",
+  travel: "Where to?",
+  apps: "Which app?",
+};
+export const DEFAULT_NAME_HINT = "What was it?";

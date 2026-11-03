@@ -1,6 +1,6 @@
 "use client";
 
-import { receivedSchema } from "@jarso/core/diary";
+import { entrySavedMessage, receivedSchema } from "@jarso/core/diary";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { z } from "zod";
@@ -78,7 +78,7 @@ function ReceivedForm({ currency, onDone }: { currency: string; onDone: () => vo
         recordMoneyReceivedAction(null, payload as Parameters<typeof recordMoneyReceivedAction>[1]),
       );
       if (result.ok) {
-        coinToast("Saved. Nice one.");
+        coinToast(entrySavedMessage);
         onDone();
         router.refresh();
         return null;

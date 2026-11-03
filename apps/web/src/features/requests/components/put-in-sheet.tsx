@@ -1,6 +1,6 @@
 "use client";
 
-import type { DepositResult } from "@jarso/core/requests";
+import { type DepositResult, depositMessage } from "@jarso/core/requests";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { AmountField, FormError } from "@/components/form";
@@ -67,22 +67,6 @@ export function PutInSheet({
       </SheetContent>
     </Sheet>
   );
-}
-
-/** What the child reads once the server has answered. */
-export function depositMessage(result: DepositResult, currency: string): string {
-  switch (result.status) {
-    case "pending":
-      return "Waiting for your parent to confirm";
-    case "confirmed":
-      return "Added to Save";
-    case "done":
-      return "Added to Save. Your parent knows.";
-    case "already_sent":
-      return "Already sent to your parent";
-    case "over_available":
-      return `Spend has ${formatMoney(result.availableMinor, currency, { showMinor: "nonzero" })}`;
-  }
 }
 
 function PutInForm({

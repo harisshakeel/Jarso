@@ -5,3 +5,4 @@ export * from "./errors";
 export * from "./logger";
 export * from "./money";
 export * from "./payments-types";
+export * from "./timed-fetch";

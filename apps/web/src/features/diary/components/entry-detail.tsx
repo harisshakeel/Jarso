@@ -1,7 +1,12 @@
 "use client";
 
 import type { EntryVersion } from "@jarso/core/diary";
-import { notEnoughSaveMessage, notEnoughSpendToUndoMessage } from "@jarso/core/diary";
+import {
+  notEnoughSaveMessage,
+  notEnoughSpendToUndoMessage,
+  undoneReceivedMessage,
+  undoneSpendMessage,
+} from "@jarso/core/diary";
 import { ChevronRightIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -115,11 +120,7 @@ function UndoControl({ item, onDone }: { item: HistoryItem; onDone: () => void }
           case "not_enough_save":
             return setError(notEnoughSaveMessage);
           default:
-            toast.success(
-              item.kind === "received"
-                ? "Undone. It's out of your jar."
-                : "Undone. The money is back in Spend.",
-            );
+            toast.success(item.kind === "received" ? undoneReceivedMessage : undoneSpendMessage);
             onDone();
             router.refresh();
         }

@@ -1,7 +1,7 @@
 "use client";
 
 import type { RequestStatus, SavingsRequest } from "@jarso/core/requests";
-import { statusLabel } from "@jarso/core/requests";
+import { requestAlreadyMovedOnMessage, statusLabel } from "@jarso/core/requests";
 import { ArrowDownToLineIcon, ArrowUpFromLineIcon, HandCoinsIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -93,7 +93,7 @@ function RequestRow({
       // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
       start(() => {
         if (!result.ok) return setError(result.error);
-        if (result.data === "already_closed") toast("This one already moved on.");
+        if (result.data === "already_closed") toast(requestAlreadyMovedOnMessage);
         else toast.success("Cancelled");
         router.refresh();
       });

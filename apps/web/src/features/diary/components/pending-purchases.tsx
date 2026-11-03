@@ -1,6 +1,6 @@
 "use client";
 
-import { purchaseSchema } from "@jarso/core/diary";
+import { entrySavedMessage, purchaseSchema } from "@jarso/core/diary";
 import { HourglassIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -53,7 +53,7 @@ export function PendingPurchases({ userId, currency }: PendingPurchasesProps) {
     const outcome = await sendToServer(item);
     if (outcome.kind === "done") {
       await removeOutboxItem(item.id).catch(() => undefined);
-      toast.success("Saved. Nice one.");
+      toast.success(entrySavedMessage);
       router.refresh();
       return;
     }

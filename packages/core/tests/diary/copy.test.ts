@@ -1,7 +1,12 @@
 import {
+  DEFAULT_NAME_HINT,
+  entrySavedMessage,
+  NAME_HINTS,
   notEnoughSpendMessage,
   notEnoughSpendToLowerMessage,
   notEnoughSpendToRaiseMessage,
+  undoneReceivedMessage,
+  undoneSpendMessage,
 } from "@jarso/core/diary";
 import { describe, expect, it } from "vitest";
 
@@ -33,5 +38,24 @@ describe("fix refusals", () => {
     expect(notEnoughSpendToLowerMessage(200, 500, "GBP")).toBe(
       "You've spent some of this already. The least it can be is £0.",
     );
+  });
+});
+
+describe("saved, undone and name-hint copy", () => {
+  it("keeps the exact lines the web and the phone show", () => {
+    expect(entrySavedMessage).toBe("Saved. Nice one.");
+    expect(undoneSpendMessage).toBe("Undone. The money is back in Spend.");
+    expect(undoneReceivedMessage).toBe("Undone. It's out of your jar.");
+    expect(DEFAULT_NAME_HINT).toBe("What was it?");
+    expect(NAME_HINTS).toEqual({
+      snacks: "What snack?",
+      games: "What game?",
+      clothes: "What clothes?",
+      going_out: "Where did you go?",
+      gift_for_someone: "What gift?",
+      school: "What for school?",
+      travel: "Where to?",
+      apps: "Which app?",
+    });
   });
 });
