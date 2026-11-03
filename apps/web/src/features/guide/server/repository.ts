@@ -92,13 +92,17 @@ export async function setGuideAccess(db: Client, childId: string, enabled: boole
   if (error) throw toAppError(error, "Failed to change the guide setting");
 }
 
-/** Whether the child has ever sent the guide a message (the intro card shows until then). */
+/**
+ * Whether the child has ever sent the guide a message (the intro card shows until then). A chat
+ * a parent had about the child doesn't count.
+ */
 export async function hasAnyMessage(db: Client, childId: string): Promise<boolean> {
   const { data, error } = await db
     .from("guide_messages")
-    .select("id")
+    .select("id, guide_conversations!inner(asked_by)")
     .eq("child_id", childId)
     .eq("role", "child")
+    .is("guide_conversations.asked_by", null)
     .limit(1);
   if (error) throw toAppError(error, "Failed to load the guide");
   return data.length > 0;

@@ -1,6 +1,6 @@
 begin;
 \ir _helpers.psql
-select plan(83);
+select plan(88);
 
 -- Fixtures: family A with parent PA and children C and C2; family B with parent PB and child CB.
 select tests.create_user('pa@example.com') as pa \gset
@@ -191,6 +191,29 @@ select ok((select count(*) from public.guide_messages where child_id = :'c'::uui
 select is(
   (select count(*)::int from public.guide_messages where child_id = :'c'::uuid and text = 'someone hurt me'),
   0, 'but never the message that got a safety response');
+-- A chat PA had about C (asked_by set): the parent reads it, the child does not.
+select tests.clear_auth();
+select gen_random_uuid() as pconvo \gset
+insert into public.guide_conversations (id, family_id, child_id, entry, context_key, asked_by)
+  values (:'pconvo'::uuid, :'fa'::uuid, :'c'::uuid, 'parent', 'parent', :'pa'::uuid);
+insert into public.guide_messages (conversation_id, child_id, role, text)
+  values (:'pconvo'::uuid, :'c'::uuid, 'child', 'how is Sam doing?');
+insert into public.guide_messages (conversation_id, child_id, role, text, route)
+  values (:'pconvo'::uuid, :'c'::uuid, 'guide', 'Sam is saving well.', 'on_topic')
+  returning id as preply \gset
+select tests.authenticate_as(:'c'::uuid);
+select is((select count(*)::int from public.guide_conversations where id = :'pconvo'::uuid), 0,
+  'the child cannot see a chat a parent had about them');
+select is((select count(*)::int from public.guide_messages where conversation_id = :'pconvo'::uuid), 0,
+  'or its messages');
+select tests.authenticate_as(:'pa'::uuid);
+select is(
+  (select count(*)::int from public.guide_conversations where id = :'pconvo'::uuid)
+  + (select count(*)::int from public.guide_messages where conversation_id = :'pconvo'::uuid),
+  2, 'the parent reads their own chat and its messages');
+select tests.authenticate_as(:'c'::uuid);
+select ok((select count(*) from public.guide_messages where conversation_id = :'convo'::uuid) > 0,
+  'the child still reads their own chat');
 select tests.authenticate_as(:'c2'::uuid);
 select is(
   (select count(*)::int from public.guide_messages) + (select count(*)::int from public.guide_conversations)
@@ -243,6 +266,9 @@ select throws_ok(format($$ select public.rate_guide_message(%L, -1::smallint) $$
 select tests.authenticate_as(:'pa'::uuid);
 select throws_ok(format($$ select public.rate_guide_message(%L, -1::smallint) $$, :'reply'), 'JA403', null,
   'nor can a parent');
+select tests.authenticate_as(:'c'::uuid);
+select throws_ok(format($$ select public.rate_guide_message(%L, 1::smallint) $$, :'preply'), 'JA403', null,
+  'a child cannot rate a reply in a chat a parent had about them');
 
 -- ---------------------------------------------------------------------------
 -- Switching off stops new chats
