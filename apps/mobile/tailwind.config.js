@@ -1,9 +1,10 @@
 // NativeWind theme from the shared brand tokens (@jarso/brand/tokens), so the app and the web
-// share one palette, type scale and radius. Semantic colours are CSS variables that switch with
+// share one palette and radius. The type scale is the phone type scale (mobileFontSize), not
+// the web's fontSize. Semantic colours are CSS variables that switch with
 // the colour scheme; everything else is static.
 const { hairlineWidth } = require("nativewind/theme");
 const plugin = require("tailwindcss/plugin");
-const { fontFamily, fontSize, palette, radius, semantic } = require("@jarso/brand/tokens");
+const { fontFamily, mobileFontSize, palette, radius, semantic } = require("@jarso/brand/tokens");
 
 const vars = (scheme) =>
   Object.fromEntries(Object.entries(scheme).map(([key, value]) => [`--${key}`, value]));
@@ -56,7 +57,7 @@ module.exports = {
         mono: ["GeistMono_400Regular"],
       },
       fontSize: Object.fromEntries(
-        Object.entries(fontSize).map(([key, { size, ...rest }]) => [
+        Object.entries(mobileFontSize).map(([key, { size, ...rest }]) => [
           key,
           [
             `${size}px`,

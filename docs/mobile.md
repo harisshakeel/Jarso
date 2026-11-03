@@ -5,7 +5,7 @@ Expo app for children. Wave 1: PIN sign-in, both jars, log a purchase and undo i
 ## Stack
 
 - Expo SDK 58, React 19.3 and React Native 0.88, Expo Router (file routes in `app/`, only routing and composing).
-- NativeWind v4 on Tailwind 3 (v5 is still a release candidate). The theme is built from `@jarso/brand/tokens` in `tailwind.config.js`; a parity test in `packages/brand` keeps `tokens.ts` equal to `tokens.css`.
+- NativeWind v4 on Tailwind 3 (v5 is still a release candidate). The theme is built from `@jarso/brand/tokens` in `tailwind.config.js`; a parity test in `packages/brand` keeps `tokens.ts` equal to `tokens.css`. The theme's type scale is `mobileFontSize` (the phone scale, wave 3 spec §9), not the web `fontSize`.
 - TanStack Query for server state. Hooks live in `src/features/<name>` and call `@jarso/data` with the app's Supabase client. Mutations invalidate the affected keys (`home`, `history`, `requests`).
 - Pure logic, schemas and every line of child copy come from `@jarso/core`. The app never re-words it.
 - react-native-reusables primitives in `src/components/ui` (barrel).
