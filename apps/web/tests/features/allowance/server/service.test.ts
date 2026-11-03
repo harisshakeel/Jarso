@@ -597,3 +597,52 @@ describe("listGifts", () => {
     expect(gifts[0]).not.toHaveProperty("autoChargeBy");
   });
 });
+
+describe("matchSaving", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-30T12:00:00Z"));
+    vi.mocked(repo.insertGift).mockResolvedValue("gift-9");
+    vi.mocked(repo.findGift).mockResolvedValue({ ...gift, id: "gift-9", giveOn: "2026-10-30" });
+  });
+
+  it("gives a gift today, noted as a match, and hands all of it over into Save", async () => {
+    vi.mocked(repo.confirmGiftHandover).mockResolvedValue("confirmed");
+    await expect(
+      service.matchSaving({ childId, amountMinor: 700, idempotencyKey: "key-1" }),
+    ).resolves.toBe("confirmed");
+    expect(repo.insertGift).toHaveBeenCalledWith(
+      { kind: "user" },
+      {
+        childId,
+        amountMinor: 700,
+        giveOn: "2026-10-30",
+        note: "Matching your saving",
+        idempotencyKey: "key-1",
+      },
+    );
+    expect(repo.confirmGiftHandover).toHaveBeenCalledWith(
+      { kind: "user" },
+      expect.objectContaining({ id: "gift-9", cashMinor: 0, savedMinor: 700 }),
+    );
+  });
+
+  it("a retry after a lost response adds nothing twice", async () => {
+    // The same key returns the same gift, and its handover is already done.
+    vi.mocked(repo.confirmGiftHandover).mockResolvedValue("already_confirmed");
+    await expect(
+      service.matchSaving({ childId, amountMinor: 700, idempotencyKey: "key-1" }),
+    ).resolves.toBe("already_confirmed");
+  });
+
+  it("is refused for anyone but the child's parent, before any money moves", async () => {
+    vi.mocked(family.assertParentOf).mockRejectedValue(
+      new AppError("FORBIDDEN", "You can't do that."),
+    );
+    await expect(
+      service.matchSaving({ childId, amountMinor: 700, idempotencyKey: "key-1" }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repo.insertGift).not.toHaveBeenCalled();
+    expect(repo.confirmGiftHandover).not.toHaveBeenCalled();
+  });
+});

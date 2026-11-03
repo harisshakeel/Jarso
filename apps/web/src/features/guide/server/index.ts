@@ -14,5 +14,6 @@ export {
   listMyChats,
   listParentChats,
   prepareGuideTurn,
+  writeFamilySummary,
 } from "./service";
 export { streamGuideTurn } from "./stream";

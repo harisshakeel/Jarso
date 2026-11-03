@@ -5,5 +5,6 @@ export { InboxItem } from "./components/inbox-item";
 export { InboxList } from "./components/inbox-list";
 export { NoticeListener } from "./components/notice-listener";
 export { PushToggle } from "./components/push-toggle";
+export { SendNoteSheet } from "./components/send-note-sheet";
 export { UnreadNotices } from "./components/unread-notices";
 export { noticeHref } from "./links";

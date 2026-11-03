@@ -38,6 +38,11 @@ const answer: AskGuideResult = {
 
 const askJarso = <AskJarso introNeeded={false} suggestions={["How much do I have?"]} />;
 
+/** A reply's paragraph: money figures sit in their own spans, so match the whole paragraph. */
+const paragraph = (text: string) => (_: string, element: Element | null) =>
+  element?.tagName === "P" && element.textContent === text;
+const reply = "You have £12.40 in Spend and £64 in Save.";
+
 beforeEach(() => {
   vi.clearAllMocks();
   newId.mockReturnValue("id-1");
@@ -74,8 +79,9 @@ describe("AskJarso", () => {
     });
 
     finish({ ok: true, data: answer });
-    await screen.findByText("You have £12.40 in Spend and £64 in Save.");
-    expect(screen.getByText("Looked at: jars")).toBeVisible();
+    await screen.findByText(paragraph(reply));
+    expect(screen.getByText("Looked at:")).toBeVisible();
+    expect(screen.getByText("jars")).toBeVisible();
     expect(screen.queryByText(guideCopy.status.get_jars)).toBeNull();
     // The suggestions give way to the chat.
     expect(screen.queryByRole("button", { name: "How much do I have?" })).toBeNull();
@@ -119,14 +125,14 @@ describe("AskJarso", () => {
     expect(screen.getByRole("heading", { name: "Ask Jarso about Sam" })).toBeVisible();
     expect(screen.getByText(guideCopy.parent.disclosure("Sam"))).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "How is Sam doing with saving?" }));
-    await screen.findByText("You have £12.40 in Spend and £64 in Save.");
+    await screen.findByText(paragraph(reply));
     expect(sendGuideTurn.mock.calls[0]?.[0]).toMatchObject({
       context: { entry: "parent", childId: "11111111-1111-4111-8111-111111111111" },
       text: "How is Sam doing with saving?",
     });
     fireEvent.click(screen.getByRole("button", { name: "Mia" }));
     expect(screen.getByRole("heading", { name: "Ask Jarso about Mia" })).toBeVisible();
-    expect(screen.queryByText("You have £12.40 in Spend and £64 in Save.")).toBeNull();
+    expect(screen.queryByText(paragraph(reply))).toBeNull();
     expect(screen.getByRole("button", { name: "Mia" })).toHaveAttribute("aria-pressed", "true");
   });
 });

@@ -1,73 +1,85 @@
-import { PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect, unstable_rethrow } from "next/navigation";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
+import { z } from "zod";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
+import { mergeDue, NeedsYou } from "@/features/allowance";
+import { listDue } from "@/features/allowance/server";
 import {
-  ChildOverviewCard,
-  type DueItem,
-  mergeDue,
-  NeedsYou,
-  runningSchedule,
-  type Schedule,
-} from "@/features/allowance";
-import { getSchedule, listDue } from "@/features/allowance/server";
+  ActivityList,
+  CalloutsCard,
+  CategoryCompare,
+  ChildFilter,
+  ChildTiles,
+  callouts,
+  categoryComparison,
+  categorySentence,
+  dashboardTotals,
+  FamilySummary,
+  FamilySummarySkeleton,
+  FamilyTotals,
+  filterHref,
+  MoneyChart,
+  mergeActivity,
+  moneyChart,
+  moneyChartSentence,
+  PeriodSwitch,
+  periodOf,
+  type SummaryFacts,
+  scopeChildren,
+  slotFor,
+  summaryFacts,
+  TimelineCard,
+  timeline,
+  windowFor,
+} from "@/features/dashboard";
+import { getFamilyDashboard } from "@/features/dashboard/server";
 import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
-import type { GoalView } from "@/features/goals";
-import { getGoalView } from "@/features/goals/server";
-import { isGuideConfigured, listGuideChats } from "@/features/guide/server";
-import { getLearningOverview } from "@/features/learning/server";
-import { JarGraph, jarCapacity, RecentHistory } from "@/features/ledger";
-import { getBalanceHistory, getHistory } from "@/features/ledger/server";
+import { isGuideConfigured, writeFamilySummary } from "@/features/guide/server";
 import { type Notice, UnreadNotices } from "@/features/notifications";
 import { listUnreadNotices } from "@/features/notifications/server";
-import {
-  type Availability,
-  ParentRequestItems,
-  RequestsUnavailable,
-  type SavingsRequest,
-  settleRequestReads,
-} from "@/features/requests";
-import { getAvailability, listRequestsNeedingParent } from "@/features/requests/server";
-import { ChildWeekCard, weekBounds, weekMoney } from "@/features/review";
-import { fallback, familyToday, logger } from "@/lib";
+import { ParentRequestItems, RequestsUnavailable, settleRequestReads } from "@/features/requests";
+import { listRequestsNeedingParent } from "@/features/requests/server";
+import { logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Your family" };
 
+type Props = PageProps<"/parent">;
+
 const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
 
-/** One child's reads, started together and awaited where each section needs them. */
-type ChildReads = {
-  child: ChildSummary;
-  due: Promise<DueItem[]>;
-  availability: Promise<Availability>;
-  goal: Promise<GoalView>;
-  requests: Promise<SavingsRequest[]>;
-  schedule: Promise<Schedule | null>;
-};
+// `child` is a child's id or "all"; anything that isn't one of this family's children reads as
+// everyone. `period` is 7, 30 or 90 days; anything else is the week.
+const paramsSchema = z.object({
+  child: z.string().max(64).optional().catch(undefined),
+  period: z.coerce.number().int().optional().catch(undefined),
+});
 
-async function ParentHome() {
+/**
+ * The parent's Home (spec 2026-11-02): who needs the parent first, then the family's money as
+ * one picture, each child one tap away. A filter at the top re-scopes the whole page to one
+ * child. The shell and the filter render from two light reads; "Needs you" and the dashboard
+ * stream in on their own.
+ */
+async function ParentHome({ searchParams }: Pick<Props, "searchParams">) {
   const { membership } = await requireRole("parent", routes.parent);
   if (!membership) redirect(routes.parentSetup);
-  const [family, children] = await Promise.all([getFamily(), listChildren()]);
+  const [family, children, raw] = await Promise.all([getFamily(), listChildren(), searchParams]);
   if (!family) redirect(routes.parentSetup);
-
   if (children.length === 0) return <FirstChildCard />;
 
-  // Each service runs once per child; "Needs you" and each card stream in as their reads land.
-  const reads: ChildReads[] = children.map((child) => ({
-    child,
-    due: listDue(child.id),
-    availability: getAvailability(child.id),
-    // The goal line is a nice-to-have; the fallback is attached now, so a failure is never unhandled.
-    goal: fallback(getGoalView(child.id), null, "Goal on parent home"),
-    requests: listRequestsNeedingParent(child.id),
-    schedule: getSchedule(child.id),
-  }));
+  const params = paramsSchema.parse(raw);
+  const days = periodOf(params.period ?? 7).days;
+  const current = children.some((child) => child.id === params.child)
+    ? (params.child ?? null)
+    : null;
+  const scoped = scopeChildren(children, current);
+  const keepPeriod = { period: String(days) };
+  const keepChild: Record<string, string> = params.child ? { child: params.child } : {};
+
   // Limit notices are the parent's own rows; a failed read leaves them out, never the page.
   const notices = listUnreadNotices(["limit_exceeded"]).catch((error: unknown) => {
     unstable_rethrow(error);
@@ -75,137 +87,105 @@ async function ParentHome() {
     return [] as Notice[];
   });
 
-  const today = familyToday(family.timezone);
-
-  // Three columns on a wide screen: what needs the parent, each child's week, the children.
   return (
-    <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8 xl:grid-cols-3">
-      <div className="grid gap-6">
+    <div className="grid gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChildFilter
+          basePath={routes.parent}
+          items={children.map((child, index) => ({ ...child, slot: slotFor(index) }))}
+          current={current}
+          explicit={params.child !== undefined}
+          keep={keepPeriod}
+        />
+        <PeriodSwitch basePath={routes.parent} days={days} keep={keepChild} />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <div className="rise-in">
           <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
-            <NeedsYouSection reads={reads} notices={notices} currency={family.currency} />
+            <NeedsYouSection scoped={scoped} notices={notices} currency={family.currency} />
           </Suspense>
         </div>
-        <div className="rise-in" style={rise(1)}>
-          <Suspense fallback={null}>
-            <RequestsSection reads={reads} currency={family.currency} />
-          </Suspense>
-        </div>
-        <div className="rise-in" style={rise(1)}>
-          <Suspense fallback={null}>
-            <NoticesSection notices={notices} currency={family.currency} />
-          </Suspense>
+        <div className="grid gap-6">
+          <div className="rise-in" style={rise(1)}>
+            <Suspense fallback={null}>
+              <RequestsSection scoped={scoped} currency={family.currency} />
+            </Suspense>
+          </div>
+          <div className="rise-in" style={rise(1)}>
+            <Suspense fallback={null}>
+              <NoticesSection notices={notices} scoped={scoped} currency={family.currency} />
+            </Suspense>
+          </div>
         </div>
       </div>
-      <section aria-labelledby="week-title" className="rise-in grid gap-3" style={rise(2)}>
-        <h2 id="week-title" className="text-h2">
-          This week
-        </h2>
-        <div className="grid gap-4">
-          {reads.map((read) => (
-            <Suspense
-              key={read.child.id}
-              fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}
-            >
-              <ChildWeekSection
-                read={read}
-                currency={family.currency}
-                today={today}
-                guideOn={isGuideConfigured()}
-              />
-            </Suspense>
-          ))}
-        </div>
-      </section>
-      <section aria-labelledby="children-title" className="rise-in grid gap-3" style={rise(3)}>
-        <h2 id="children-title" className="text-h2">
-          Children
-        </h2>
-        <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
-          {reads.map((read) => (
-            <li key={read.child.id}>
-              <Suspense fallback={<div aria-hidden className="shimmer h-36 rounded-xl bg-muted" />}>
-                <ChildCard read={read} currency={family.currency} />
-              </Suspense>
-            </li>
-          ))}
-          {reads.map((read) => (
-            <li key={`latest-${read.child.id}`}>
-              <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
-                <LatestSection read={read} currency={family.currency} />
-              </Suspense>
-            </li>
-          ))}
-          <li>
-            <Link
-              href={routes.parentNewChild}
-              className="flex h-full min-h-36 items-center justify-center gap-2 rounded-xl border-2 border-hairline-strong border-dashed px-4 font-semibold text-primary hover:bg-card"
-            >
-              <PlusIcon aria-hidden className="size-5" />
-              Add a child
-            </Link>
-          </li>
-        </ul>
-      </section>
+      <Suspense fallback={<DashboardSkeleton />}>
+        <Dashboard days={days} current={current} keepPeriod={keepPeriod} />
+      </Suspense>
     </div>
   );
 }
 
 /**
- * Everything due across the family, oldest first. Requests and limit notices are listed just
- * below; they count here so "All caught up." only shows when nothing waits.
+ * Everything due across the scoped children, oldest first. Requests and limit notices are listed
+ * beside it; they count here so "All caught up." only shows when nothing waits.
  */
 async function NeedsYouSection({
-  reads,
+  scoped,
   notices,
   currency,
 }: {
-  reads: ChildReads[];
+  scoped: ChildSummary[];
   notices: Promise<Notice[]>;
   currency: string;
 }) {
+  const ids = new Set(scoped.map((child) => child.id));
   const [perChild, requests, unread] = await Promise.all([
-    Promise.all(reads.map(async ({ child, due }) => ({ child, due: await due }))),
-    Promise.allSettled(reads.map(({ requests }) => requests)),
+    Promise.all(scoped.map(async (child) => ({ child, due: await listDue(child.id) }))),
+    Promise.allSettled(scoped.map((child) => listRequestsNeedingParent(child.id))),
     notices,
   ]);
   const waitingRequests = requests.reduce(
     (sum, result) => sum + (result.status === "fulfilled" ? result.value.length : 0),
     0,
   );
+  const waitingNotices = unread.filter((notice) => ids.has(notice.childId)).length;
   return (
     <NeedsYou
       items={mergeDue(perChild)}
       currency={currency}
-      otherCount={waitingRequests + unread.length}
+      otherCount={waitingRequests + waitingNotices}
     />
   );
 }
 
-/** Unread limit notices; View marks each read. */
+/** Unread limit notices for the scoped children; View marks each read. */
 async function NoticesSection({
   notices,
+  scoped,
   currency,
 }: {
   notices: Promise<Notice[]>;
+  scoped: ChildSummary[];
   currency: string;
 }) {
-  return <UnreadNotices items={await notices} currency={currency} />;
+  const ids = new Set(scoped.map((child) => child.id));
+  const items = (await notices).filter((notice) => ids.has(notice.childId));
+  return <UnreadNotices items={items} currency={currency} />;
 }
 
 /** Take-outs and put-ins waiting on a parent. A child whose read fails gets a calm line; the rest still show. */
-async function RequestsSection({ reads, currency }: { reads: ChildReads[]; currency: string }) {
-  const results = await Promise.allSettled(reads.map(({ requests }) => requests));
+async function RequestsSection({ scoped, currency }: { scoped: ChildSummary[]; currency: string }) {
+  const results = await Promise.allSettled(
+    scoped.map((child) => listRequestsNeedingParent(child.id)),
+  );
   const { items, failed } = settleRequestReads(
-    reads.map(({ child }) => child.nickname),
+    scoped.map((child) => child.nickname),
     results,
   );
   for (const result of results) {
     if (result.status !== "rejected") continue;
     unstable_rethrow(result.reason);
-    logger.warn("Parent requests unavailable", {
-      error: result.reason instanceof Error ? result.reason.name : typeof result.reason,
-    });
+    logger.warn("Parent requests unavailable", { error: errorName(result.reason) });
   }
   return (
     <>
@@ -216,116 +196,102 @@ async function RequestsSection({ reads, currency }: { reads: ChildReads[]; curre
 }
 
 /**
- * One child's week in three sentences (money, learning, Jarso) and how their jars moved. Each
- * read is a nice-to-have on its own: a failed one leaves its line out, never the section.
+ * The family's money (spec answers 2 to 9): Jarso's summary, the chart and the totals, what's
+ * worth knowing, spending by category, the next two weeks, the children and one merged activity list. Every
+ * section is built from one read per child; with a child picked, every section is about them.
  */
-async function ChildWeekSection({
-  read,
-  currency,
-  today,
-  guideOn,
+async function Dashboard({
+  days,
+  current,
+  keepPeriod,
 }: {
-  read: ChildReads;
-  currency: string;
-  today: string;
-  guideOn: boolean;
+  days: number;
+  current: string | null;
+  keepPeriod: Record<string, string>;
 }) {
-  const { child } = read;
-  const { weekStart } = weekBounds(today);
-  const [history, learning, chats, balances, due] = await Promise.all([
-    fallback(getHistory(child.id), null, "History on parent home"),
-    fallback(getLearningOverview(child.id), null, "Learning on parent home"),
-    guideOn ? fallback(listGuideChats(child.id), null, "Chats on parent home") : null,
-    fallback(getBalanceHistory(child.id), null, "Balances on parent home"),
-    read.due,
-  ]);
-  const stillDue = due.reduce((sum, item) => sum + item.amountMinor, 0);
-  const current = learning?.journey.find((mission) => mission.status === "current") ?? null;
-  const thisWeek = chats?.filter((chat) => chat.lastMessageAt.slice(0, 10) >= weekStart) ?? null;
+  const data = await getFamilyDashboard(days);
+  if (!data) return null;
+  const { currency, today } = data;
+  const scoped = scopeChildren(data.children, current);
+  const picked = current ? (scoped[0] ?? null) : null;
+  const window = windowFor(days, today);
+  const period = periodOf(days);
+  const chart = moneyChart(scoped, days, today);
+  const rows = categoryComparison(scoped, window);
+  const hrefs = Object.fromEntries(
+    data.children.map((child) => [child.id, filterHref(routes.parent, child.id, keepPeriod)]),
+  );
+  const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
   return (
-    <div className="grid gap-4">
-      {history && learning ? (
-        <ChildWeekCard
+    <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+      {isGuideConfigured() ? (
+        <Suspense
+          fallback={
+            <div className="lg:col-span-3">
+              <FamilySummarySkeleton />
+            </div>
+          }
+        >
+          <SummarySection facts={summaryFacts(scoped, window, currency, today)} />
+        </Suspense>
+      ) : null}
+      <div className="rise-in lg:col-span-2" style={rise(2)}>
+        <MoneyChart
+          chart={chart}
           currency={currency}
-          week={{
-            nickname: child.nickname,
-            money: weekMoney(history, stillDue, today),
-            learning: {
-              daysThisWeek: learning.daysThisWeek,
-              missionsDone: learning.completed.length,
-              current: current ? { day: current.day, title: current.title } : null,
-            },
-            chats: thisWeek
-              ? { count: thisWeek.length, flagged: thisWeek.filter((c) => c.flagged).length }
-              : null,
-          }}
-          hrefs={{
-            money: routes.parentChild(child.id),
-            learning: routes.parentChildLearning(child.id),
-            jarso: routes.parentChildGuide(child.id),
-          }}
+          hrefs={hrefs}
+          sentence={moneyChartSentence(chart, currency)}
+          split={chart.splitAt ? { before: capital(period.before), now: period.label } : null}
         />
-      ) : null}
-      {balances ? (
-        <div className="rounded-xl bg-card p-4 shadow-raised">
-          <JarGraph
-            history={balances}
-            currency={currency}
-            title={`How ${child.nickname}'s jars moved`}
-            showMinor="always"
-          />
-        </div>
-      ) : null}
+      </div>
+      <div className="rise-in" style={rise(2)}>
+        <FamilyTotals
+          totals={dashboardTotals(scoped, today)}
+          currency={currency}
+          who={picked?.nickname ?? null}
+        />
+      </div>
+      <div className="rise-in" style={rise(3)}>
+        <CalloutsCard
+          items={callouts(scoped, window, currency)}
+          currency={currency}
+          period={period.now}
+        />
+      </div>
+      <div className="rise-in" style={rise(3)}>
+        <CategoryCompare
+          rows={rows}
+          days={days}
+          currency={currency}
+          sentence={categorySentence(rows, days, currency, picked?.nickname ?? null)}
+          slot={picked?.slot ?? null}
+        />
+      </div>
+      <div className="rise-in" style={rise(3)}>
+        <TimelineCard events={timeline(scoped, today, currency)} />
+      </div>
+      <div className="rise-in lg:col-span-3" style={rise(4)}>
+        <ChildTiles items={data.children} currency={currency} />
+      </div>
+      <div className="rise-in lg:col-span-2" style={rise(4)}>
+        <ActivityList
+          items={mergeActivity(scoped, 8)}
+          currency={currency}
+          seeAllHref={picked ? routes.parentChildHistory(picked.id) : null}
+        />
+      </div>
     </div>
   );
 }
 
-/** The child's latest money lines, as the parent reads them, with the way to the full history. */
-async function LatestSection({ read, currency }: { read: ChildReads; currency: string }) {
-  const history = await fallback(getHistory(read.child.id), null, "History on parent home");
-  if (!history) return null;
+/** Jarso's summary of what the page shows; nothing at all, not even a grid row, without one. */
+async function SummarySection({ facts }: { facts: SummaryFacts }) {
+  const text = await writeFamilySummary(facts);
+  if (!text) return null;
   return (
-    <section aria-label={`${read.child.nickname}'s latest`} className="grid gap-2">
-      <h3 className="text-h3">{read.child.nickname}'s latest</h3>
-      <RecentHistory
-        items={history}
-        currency={currency}
-        limit={4}
-        skippedLabel="Not given"
-        showMinor="always"
-        seeAllHref={routes.parentChildHistory(read.child.id)}
-        emptyLine={`${read.child.nickname}'s money story starts here.`}
-      />
-    </section>
-  );
-}
-
-async function ChildCard({ read, currency }: { read: ChildReads; currency: string }) {
-  const [due, availability, schedule] = await Promise.all([
-    read.due,
-    read.availability,
-    read.schedule,
-  ]);
-  const goal = await read.goal;
-  const allowanceMinor = runningSchedule(schedule)?.amountMinor ?? null;
-  return (
-    <ChildOverviewCard
-      childId={read.child.id}
-      nickname={read.child.nickname}
-      spendMinor={availability.spendMinor}
-      saveMinor={availability.saveMinor}
-      reservedMinor={availability.reservedSaveMinor}
-      capacityMinor={jarCapacity({
-        spendMinor: availability.spendMinor,
-        saveMinor: availability.saveMinor,
-        allowanceMinor,
-        currency,
-      })}
-      goal={goal?.goal ?? null}
-      schedule={schedule}
-      dueCount={due.length}
-      currency={currency}
-    />
+    <div className="rise-in lg:col-span-3" style={rise(2)}>
+      <FamilySummary text={text} />
+    </div>
   );
 }
 
@@ -333,17 +299,29 @@ function errorName(error: unknown): string {
   return error instanceof Error ? error.name : typeof error;
 }
 
-function HomeSkeleton() {
+function DashboardSkeleton() {
   return (
-    <div aria-hidden className="grid gap-6">
-      <div className="shimmer h-32 rounded-xl bg-muted" />
-      <div className="shimmer h-8 w-40 rounded-lg bg-muted" />
-      <div className="shimmer h-36 rounded-xl bg-muted" />
+    <div aria-hidden className="grid gap-6 lg:grid-cols-3">
+      <div className="shimmer h-72 rounded-xl bg-muted lg:col-span-2" />
+      <div className="shimmer h-72 rounded-xl bg-muted" />
+      <div className="shimmer h-48 rounded-xl bg-muted" />
+      <div className="shimmer h-48 rounded-xl bg-muted" />
+      <div className="shimmer h-48 rounded-xl bg-muted" />
     </div>
   );
 }
 
-export default function ParentHomePage() {
+function HomeSkeleton() {
+  return (
+    <div aria-hidden className="grid gap-6">
+      <div className="shimmer h-11 w-72 rounded-full bg-muted" />
+      <div className="shimmer h-32 rounded-xl bg-muted" />
+      <DashboardSkeleton />
+    </div>
+  );
+}
+
+export default function ParentHomePage({ searchParams }: Props) {
   return (
     <div className="grid w-full gap-5">
       <h1 className="text-h1">Your family</h1>
@@ -354,7 +332,7 @@ export default function ParentHomePage() {
           </SlowFallback>
         }
       >
-        <ParentHome />
+        <ParentHome searchParams={searchParams} />
       </Suspense>
     </div>
   );

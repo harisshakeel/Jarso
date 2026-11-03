@@ -102,7 +102,7 @@ test("parent-started: parent adds Sam, Sam signs in with the family code", async
   await giveConsent(parent);
   await parent.getByRole("button", { name: "Add child" }).click();
   await expect(parent).toHaveURL(at("/parent"));
-  // The child's card; the parent's Home also names Sam in "Sam's week" and "Sam's latest".
+  // The child's tile on the parent's Home: one per child, named exactly by the nickname.
   await expect(parent.getByRole("heading", { name: "Sam", exact: true })).toBeVisible();
 
   const child = await newActor(browser);

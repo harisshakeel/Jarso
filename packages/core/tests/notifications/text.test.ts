@@ -202,4 +202,18 @@ describe("noticeText", () => {
       detail: "Done without asking, as you set.",
     });
   });
+
+  it("parent_note shows the child their parent's note in full", () => {
+    const n = {
+      ...base,
+      kind: "parent_note" as const,
+      sourceType: "note" as const,
+      payload: { text: "Great saving this week! 🎉" },
+    };
+    expect(noticeText(n, "child", "GBP")).toEqual({
+      title: "A note from your parent",
+      detail: "Great saving this week! 🎉",
+    });
+    expect(noticeText({ ...n, payload: {} }, "child", "GBP").detail).toBe("");
+  });
 });

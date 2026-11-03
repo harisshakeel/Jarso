@@ -29,6 +29,10 @@ type HistoryListProps = {
   renderAction?: (item: HistoryItem) => ReactNode;
   /** The empty line; a parent passes the child's name ("Maya's money story starts here."). */
   emptyLine?: string;
+  /** The list's title (default "History"). */
+  heading?: string;
+  /** Something before a line's details, e.g. the child it belongs to on the parent's dashboard. */
+  renderTag?: (item: HistoryItem) => ReactNode;
 };
 
 /**
@@ -114,12 +118,14 @@ export function HistoryList({
   showMinor = "nonzero",
   renderAction,
   emptyLine = "Your money story starts here.",
+  heading = "History",
+  renderTag,
 }: HistoryListProps) {
   return (
     <Card className="shadow-raised">
       <CardContent>
-        <section aria-label="History" className="grid gap-3">
-          <h2 className="text-h3">History</h2>
+        <section aria-label={heading} className="grid gap-3">
+          <h2 className="text-h3">{heading}</h2>
           {items.length === 0 ? (
             <CoachSays coach={{ key: "history" }} says={emptyLine} className="py-2" />
           ) : (
@@ -152,6 +158,7 @@ export function HistoryList({
                       <Icon className="size-5" />
                     </span>
                     <div className="grid min-w-0 flex-1">
+                      {renderTag ? renderTag(item) : null}
                       <span className="flex min-w-0 items-center gap-1.5 font-semibold">
                         {item.kind === "purchase" || item.kind === "received" ? (
                           <span aria-hidden>{categoryOf(item.category, item.kind).emoji}</span>

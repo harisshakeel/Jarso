@@ -1,4 +1,5 @@
 import {
+  childNoteSchema,
   inboxParamsSchema,
   pushEndpointSchema,
   pushSubscriptionSchema,
@@ -43,5 +44,23 @@ describe("pushSubscriptionSchema", () => {
   it("pushEndpointSchema wants an https endpoint", () => {
     expect(pushEndpointSchema.safeParse({ endpoint: good.endpoint }).success).toBe(true);
     expect(pushEndpointSchema.safeParse({ endpoint: "http://x.test" }).success).toBe(false);
+  });
+});
+
+describe("childNoteSchema", () => {
+  // Test fixture UUIDs, held in consts so the secrets scan doesn't read them as keys.
+  const childId = "6f1c2a52-3c4e-4c8e-9a51-0a1b2c3d4e5f";
+  const sheetId = "0b7e8f40-9d1a-4b2c-8e3f-1a2b3c4d5e6f";
+  const valid = { childId, text: "  Great saving!  ", idempotencyKey: sheetId };
+  it("trims the note", () => {
+    expect(childNoteSchema.parse(valid).text).toBe("Great saving!");
+  });
+  it.each([
+    { ...valid, text: "   " },
+    { ...valid, text: "x".repeat(141) },
+    { ...valid, idempotencyKey: "not-a-uuid" },
+    { ...valid, childId: "nope" },
+  ])("refuses %j", (input) => {
+    expect(childNoteSchema.safeParse(input).success).toBe(false);
   });
 });

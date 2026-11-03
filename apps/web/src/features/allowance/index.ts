@@ -8,6 +8,7 @@ export * from "./components/child-overview-card";
 export * from "./components/due-list";
 export * from "./components/gift-form";
 export * from "./components/handover-form";
+export * from "./components/match-saving-sheet";
 export * from "./components/needs-you";
 export * from "./components/parent-allowance-card";
 export * from "./components/pause-sheet";
@@ -18,6 +19,7 @@ export {
   createAllowanceAction,
   createGiftAction,
   markNotGivenAction,
+  matchSavingAction,
   pauseAllowanceAction,
   resumeAllowanceAction,
   stopAllowanceAction,
