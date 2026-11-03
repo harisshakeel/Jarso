@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "e2e": "maestro test e2e"
   },
   "dependencies": {
     "@expo-google-fonts/geist-mono": "^0.4.3",
@@ -22,6 +23,7 @@
     "@jarso/core": "workspace:*",
     "@jarso/data": "workspace:*",
     "@jarso/db": "workspace:*",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@rn-primitives/label": "^1.5.2",
     "@rn-primitives/portal": "^1.5.3",
     "@rn-primitives/slot": "^1.5.2",

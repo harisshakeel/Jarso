@@ -1,7 +1,7 @@
 import { notEnoughSpendMessage } from "@jarso/core/diary";
 import { AppError } from "@jarso/core/lib";
 import { offlineCopy } from "@jarso/core/offline";
-import { callRecordPurchase, undoEntry } from "@jarso/data/diary";
+import { undoEntry } from "@jarso/data/diary";
 import { getFamilyContext } from "@jarso/data/family";
 import { getJars } from "@jarso/data/ledger";
 import { getAvailability } from "@jarso/data/requests";
@@ -12,6 +12,7 @@ import * as Haptics from "expo-haptics";
 import { getNetworkStateAsync } from "expo-network";
 import { PurchaseSheet } from "@/features/diary";
 import { apiFetch } from "@/lib/api";
+import { removeItem, submit } from "@/lib/outbox";
 import { keys } from "@/lib/query";
 
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
@@ -19,7 +20,11 @@ jest.mock("@/lib/api", () => ({ apiFetch: jest.fn() }));
 jest.mock("@/features/auth/use-session", () => ({
   useSession: () => ({ status: "child", userId: "child-1" }),
 }));
-jest.mock("@jarso/data/diary", () => ({ callRecordPurchase: jest.fn(), undoEntry: jest.fn() }));
+jest.mock("@jarso/data/diary", () => ({ undoEntry: jest.fn() }));
+jest.mock("@/lib/outbox", () => ({
+  submit: jest.fn(),
+  removeItem: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock("@jarso/data/ledger", () => ({ getJars: jest.fn() }));
 jest.mock("@jarso/data/requests", () => ({ getAvailability: jest.fn() }));
 jest.mock("@jarso/data/family", () => ({ getFamilyContext: jest.fn() }));
@@ -30,7 +35,8 @@ jest.mock("expo-haptics", () => ({
   NotificationFeedbackType: { Success: "success" },
 }));
 
-const record = callRecordPurchase as jest.Mock;
+const record = submit as jest.Mock;
+const sent = (entryId: string) => ({ status: "sent", data: { status: "recorded", entryId } });
 const undo = undoEntry as jest.Mock;
 const dispatch = apiFetch as jest.Mock;
 const uuid = randomUUID as jest.Mock;
@@ -76,7 +82,7 @@ beforeEach(() => {
 
 describe("PurchaseSheet", () => {
   it("takes the amount on the number pad and parses it like the web", async () => {
-    record.mockResolvedValue({ status: "recorded", entryId: "e1" });
+    record.mockResolvedValue(sent("e1"));
     const user = userEvent.setup();
     await renderSheet();
     const amount = await screen.findByLabelText("Amount");
@@ -84,16 +90,13 @@ describe("PurchaseSheet", () => {
     await fill(user, "2.50");
     await user.press(screen.getByRole("button", { name: "Write it down" }));
     await waitFor(() => expect(record).toHaveBeenCalledTimes(1));
-    expect(record).toHaveBeenCalledWith(
-      { id: "client" },
-      {
-        childId: "child-1",
-        amountMinor: 250,
-        category: "snacks",
-        label: "",
-        idempotencyKey: KEY_1,
-      },
-    );
+    // Through the outbox, with exactly what the web form posts.
+    expect(record).toHaveBeenCalledWith({
+      userId: "child-1",
+      kind: "purchase",
+      payload: { amount: "2.50", category: "snacks", label: "", idempotencyKey: KEY_1 },
+      idempotencyKey: KEY_1,
+    });
   });
 
   it("shows the web's field error for a bad amount and sends nothing", async () => {
@@ -113,8 +116,8 @@ describe("PurchaseSheet", () => {
     expect(screen.getByRole("button", { name: "Write it down" })).toBeDisabled();
   });
 
-  it("shows not_enough_spend verbatim and keeps the sheet open", async () => {
-    record.mockResolvedValue({ status: "not_enough_spend", freeMinor: 300 });
+  it("shows the server's refusal verbatim, drops it from the outbox and keeps the sheet open", async () => {
+    record.mockResolvedValue({ status: "refused", message: notEnoughSpendMessage(300, "GBP") });
     const user = userEvent.setup();
     const { onClose } = await renderSheet();
     await fill(user, "9");
@@ -125,12 +128,63 @@ describe("PurchaseSheet", () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
     expect(Haptics.notificationAsync).not.toHaveBeenCalled();
+    expect(removeItem).toHaveBeenCalledWith(KEY_1);
   });
 
-  it("reuses the idempotency key on a retry after a failed request", async () => {
-    record
-      .mockRejectedValueOnce(new AppError("UNAVAILABLE", "Jarso can't be reached right now."))
-      .mockResolvedValueOnce({ status: "recorded", entryId: "e1" });
+  it("queued: says it waits on the phone, no dispatch", async () => {
+    record.mockResolvedValue({ status: "queued" });
+    const user = userEvent.setup();
+    const { onClose } = await renderSheet();
+    await fill(user, "2.50");
+    await user.press(screen.getByRole("button", { name: "Write it down" }));
+    expect(await screen.findByText(offlineCopy.waiting)).toBeOnTheScreen();
+    expect(dispatch).not.toHaveBeenCalled();
+    await user.press(screen.getByRole("button", { name: "Done" }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it.each([
+    ["unsaved", offlineCopy.offline],
+    ["unsent", offlineCopy.slow],
+  ])("%s: shows core's wording and keeps the fields", async (status, line) => {
+    record.mockResolvedValue({ status });
+    const user = userEvent.setup();
+    await renderSheet();
+    await fill(user, "2.50");
+    await user.press(screen.getByRole("button", { name: "Write it down" }));
+    expect(await screen.findByText(line)).toBeOnTheScreen();
+    expect(screen.getByLabelText("Amount")).toHaveProp("value", "2.50");
+  });
+
+  it("changing a purchase that needs a look prefills it and replaces it once stored", async () => {
+    record.mockResolvedValue({ status: "queued" });
+    const user = userEvent.setup();
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } },
+    });
+    await render(
+      <QueryClientProvider client={client}>
+        <PurchaseSheet
+          onClose={jest.fn()}
+          initial={{ amount: "9", label: "Comic", category: "snacks" }}
+          replaces="old-id"
+        />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByLabelText("Amount")).toHaveProp("value", "9");
+    await user.press(screen.getByRole("button", { name: "Write it down" }));
+    await screen.findByText(offlineCopy.waiting);
+    expect(record.mock.calls[0][0].payload).toEqual({
+      amount: "9",
+      category: "snacks",
+      label: "Comic",
+      idempotencyKey: KEY_1,
+    });
+    expect(removeItem).toHaveBeenCalledWith("old-id");
+  });
+
+  it("reuses the idempotency key on a retry after a failed send", async () => {
+    record.mockResolvedValueOnce({ status: "unsaved" }).mockResolvedValueOnce(sent("e1"));
     const user = userEvent.setup();
     await renderSheet();
     await fill(user, "2.50");
@@ -139,13 +193,13 @@ describe("PurchaseSheet", () => {
     expect(dispatch).not.toHaveBeenCalled();
     await user.press(screen.getByRole("button", { name: "Write it down" }));
     await screen.findByText("Saved. Nice one.");
-    const keysSent = record.mock.calls.map((c) => c[1].idempotencyKey);
+    const keysSent = record.mock.calls.map((c) => c[0].idempotencyKey);
     expect(keysSent).toEqual([KEY_1, KEY_1]);
     expect(uuid).toHaveBeenCalledTimes(1);
   });
 
   it("makes a new idempotency key when the sheet is opened again", async () => {
-    record.mockResolvedValue({ status: "recorded", entryId: "e1" });
+    record.mockResolvedValue(sent("e1"));
     const user = userEvent.setup();
     const first = await renderSheet();
     await fill(user, "1");
@@ -158,11 +212,11 @@ describe("PurchaseSheet", () => {
     await fill(user, "1");
     await user.press(screen.getByRole("button", { name: "Write it down" }));
     await waitFor(() => expect(record).toHaveBeenCalledTimes(2));
-    expect(record.mock.calls.map((c) => c[1].idempotencyKey)).toEqual([KEY_1, KEY_2]);
+    expect(record.mock.calls.map((c) => c[0].idempotencyKey)).toEqual([KEY_1, KEY_2]);
   });
 
   it("on success: undo action, refresh, one dispatch, haptic", async () => {
-    record.mockResolvedValue({ status: "recorded", entryId: "entry-9" });
+    record.mockResolvedValue(sent("entry-9"));
     const user = userEvent.setup();
     const { client } = await renderSheet();
     const invalidate = jest.spyOn(client, "invalidateQueries");
@@ -181,7 +235,7 @@ describe("PurchaseSheet", () => {
   });
 
   it("undo calls undoEntry with the returned entry id and refreshes", async () => {
-    record.mockResolvedValue({ status: "recorded", entryId: "entry-9" });
+    record.mockResolvedValue(sent("entry-9"));
     undo.mockResolvedValue("undone");
     const user = userEvent.setup();
     const { client } = await renderSheet();
@@ -198,7 +252,7 @@ describe("PurchaseSheet", () => {
   });
 
   it("shows the calm message when undo is refused", async () => {
-    record.mockResolvedValue({ status: "recorded", entryId: "entry-9" });
+    record.mockResolvedValue(sent("entry-9"));
     undo.mockRejectedValue(new AppError("CONFLICT", "You can only undo within a day."));
     const user = userEvent.setup();
     await renderSheet();
@@ -210,7 +264,7 @@ describe("PurchaseSheet", () => {
   });
 
   it("does not fail the purchase when the notice dispatch fails", async () => {
-    record.mockResolvedValue({ status: "recorded", entryId: "e1" });
+    record.mockResolvedValue(sent("e1"));
     dispatch.mockRejectedValue(new AppError("UNAVAILABLE", "offline"));
     const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
     const user = userEvent.setup();
@@ -235,7 +289,7 @@ describe("PurchaseSheet", () => {
     await Promise.all([fireEvent.press(button), fireEvent.press(button)]);
     quiet.mockRestore();
     expect(record).toHaveBeenCalledTimes(1);
-    finish({ status: "recorded", entryId: "e1" });
+    finish(sent("e1"));
     await screen.findByText("Saved. Nice one.");
   });
 });

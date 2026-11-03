@@ -7,4 +7,8 @@ export const offlineCopy = {
   updated: "Jarso was updated. Refresh to continue.",
   /** A refused outbox item whose reply carried no message of its own. */
   refused: "Please check what you entered and try again.",
+  /** Signing out on the phone while purchases are still kept on it (they stay, keyed by child). */
+  signOutWaiting:
+    "Some things you wrote down haven't been sent yet. They stay on this phone and send when you sign back in.",
+  signOutAnyway: "Sign out anyway",
 } as const;

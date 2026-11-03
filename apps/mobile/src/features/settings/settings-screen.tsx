@@ -1,7 +1,11 @@
+import { offlineCopy } from "@jarso/core/offline";
+import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
+import { MemoryList } from "@/features/guide";
+import { useOutboxItems } from "@/lib/outbox";
 import { cn } from "@/lib/utils";
 import { type ThemeChoice, useThemeChoice } from "./theme";
 import { useNickname } from "./use-nickname";
@@ -12,9 +16,19 @@ const CHOICES: { value: ThemeChoice; label: string }[] = [
   { value: "system", label: "Same as my phone" },
 ];
 
-/** The child's Me tab: who they are, how it looks, and signing out. */
+/**
+ * The child's Me screen: who they are, how it looks, and signing out. With purchases still kept
+ * on the phone, the first tap on Sign out says so; they stay and send at the next sign-in.
+ */
 export function SettingsScreen() {
-  const { signOut } = useSession();
+  const { signOut, userId } = useSession();
+  const waiting = useOutboxItems(userId).length > 0;
+  const [warned, setWarned] = useState(false);
+  const onSignOut = () => {
+    if (waiting && !warned) return setWarned(true);
+    void signOut();
+  };
+  const signOutLabel = waiting && warned ? offlineCopy.signOutAnyway : "Sign out";
   const [theme, setTheme] = useThemeChoice();
   const { data: nickname } = useNickname();
   return (
@@ -60,6 +74,8 @@ export function SettingsScreen() {
             })}
           </View>
         </View>
+        {/* What Jarso remembers: while the guide is on, or whenever any memory exists. */}
+        <MemoryList />
         <View className="gap-3 rounded-xl bg-card p-4">
           <Text accessibilityRole="header" className="font-sans-extrabold text-h3">
             Done for now?
@@ -67,13 +83,13 @@ export function SettingsScreen() {
           <Text className="text-muted-foreground">
             You can sign back in with your family code, nickname and PIN.
           </Text>
-          <Button
-            size="lg"
-            variant="outline"
-            accessibilityLabel="Sign out"
-            onPress={() => void signOut()}
-          >
-            <Text>Sign out</Text>
+          {waiting && warned ? (
+            <Text accessibilityRole="alert" className="font-sans-bold">
+              {offlineCopy.signOutWaiting}
+            </Text>
+          ) : null}
+          <Button size="lg" variant="outline" accessibilityLabel={signOutLabel} onPress={onSignOut}>
+            <Text>{signOutLabel}</Text>
           </Button>
         </View>
       </ScrollView>

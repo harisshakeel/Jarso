@@ -1,9 +1,11 @@
+import { offlineCopy } from "@jarso/core/offline";
 import { findNickname } from "@jarso/data/family";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import * as SecureStore from "expo-secure-store";
 import { colorScheme } from "nativewind";
 import { loadTheme, SettingsScreen, THEME_KEY } from "@/features/settings";
+import { useOutboxItems } from "@/lib/outbox";
 
 const mockSignOut = jest.fn();
 jest.mock("@/features/auth/use-session", () => ({
@@ -11,6 +13,14 @@ jest.mock("@/features/auth/use-session", () => ({
 }));
 jest.mock("@/lib/supabase/client", () => ({ supabase: {} }));
 jest.mock("@jarso/data/family", () => ({ findNickname: jest.fn() }));
+jest.mock("@/lib/outbox", () => ({ useOutboxItems: jest.fn(() => []) }));
+jest.mock("@/lib/api", () => ({
+  apiFetch: jest.fn().mockResolvedValue({ available: false, introNeeded: false }),
+}));
+jest.mock("@jarso/data/guide", () => ({
+  listMemories: jest.fn().mockResolvedValue([]),
+  deleteMemory: jest.fn(),
+}));
 jest.mock("nativewind", () => ({
   ...jest.requireActual("nativewind"),
   colorScheme: { set: jest.fn() },
@@ -77,6 +87,19 @@ describe("SettingsScreen", () => {
     ).toBeOnTheScreen();
     await act(async () => fireEvent.press(screen.getByLabelText("Sign out")));
     expect(mockSignOut).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("SettingsScreen sign-out with purchases still on the phone", () => {
+  it("warns first, then signs out on the second tap", async () => {
+    (useOutboxItems as jest.Mock).mockReturnValue([{ id: "a" }]);
+    await renderSettings();
+    await act(async () => fireEvent.press(screen.getByLabelText("Sign out")));
+    expect(mockSignOut).not.toHaveBeenCalled();
+    expect(screen.getByText(offlineCopy.signOutWaiting)).toBeOnTheScreen();
+    await act(async () => fireEvent.press(screen.getByLabelText(offlineCopy.signOutAnyway)));
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
+    (useOutboxItems as jest.Mock).mockReturnValue([]);
   });
 });
 
