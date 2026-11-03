@@ -96,6 +96,8 @@ apps/web/src/
 │   │   ├── health/               # shallow + deep health
 │   │   ├── cron/payments/auto-charge/  # CRON_SECRET-guarded auto charge (pg_cron via pg_net, Vercel Cron fallback)
 │   │   ├── cron/push/            # CRON_SECRET-guarded daily push sweep
+│   │   ├── v1/auth/child-sign-in # child PIN sign-in that returns session tokens (mobile; needs the service key)
+│   │   ├── v1/notices/dispatch   # bearer-authed push sweep after a mobile action (needs the service key)
 │   │   ├── v1/payments/…         # webhooks/[provider] (signature-guarded) and razorpay/return (cross-origin form post, redirect only)
 │   │   └── v1/…                  # versioned API for non-UI callers
 │   └── auth/
@@ -177,10 +179,11 @@ No other code path inserts into the ledger. The table's insert policy is `false`
 The repo is a pnpm + Turborepo monorepo. Pure domain code lives in `packages/core` (`@jarso/core`); apps consume it. Tooling enforces these rules where it can.
 
 ```
-apps/web ─┬─> core ─┬─> content
-          │         └─> db (types only)
-          ├─> content, db, brand
-packages never depend on apps; core never depends on brand.
+apps/web ──┬─> data ─┬─> core ─┬─> content
+apps/mobile┘         │         └─> db (types only)
+           ├─────────┘
+           └─> content, db, brand
+packages never depend on apps; core never depends on brand or data.
 ```
 
 1. **One-way dependencies.** apps -> packages, never back. `core` -> `content`, `db`; `brand` and `tsconfig` -> nothing. pnpm's isolated linker fails undeclared imports; Biome `noRestrictedImports`/`noRestrictedGlobals` block `@/*`, React, Next, `server-only` and browser globals inside core and content.
@@ -190,7 +193,9 @@ packages never depend on apps; core never depends on brand.
 5. **Logger.** Core owns `logger` and `configureLogger({ level?, json? })`. `apps/web/src/lib/logger.ts` reads env and configures it, so web code imports `@/lib`, never `@jarso/core/lib` (Biome blocks it outside `apps/web/src/lib/**`).
 6. **Turbo caching per package.** `typecheck`, `test`, `lint` cache per package; CI runs `turbo ... --affected` on PRs.
 7. **When to split a package.** Core stays one package with subpaths until a module needs its own dependency other consumers mustn't get, needs a different release or build, or core's test run passes about 60 s. Then the module becomes `packages/<x>`; its subpath is already the boundary.
-8. **Tests beside their package.** Core tests live in `packages/core/tests/<module>/`, node environment only.
+8. **`packages/data` is the shared repository layer** (`@jarso/data/{requests,diary,family,ledger,rules}`). Each module holds the Supabase reads and writes plus small compositions (`getJars`, `getHistoryPage`, `getAvailability`, `getFamilyContext`, `undoEntry`) that web and mobile both use. Every function takes a Supabase client as its first argument, so web passes its cookie client and the phone passes its own. Same purity rules as core, plus no `@supabase/ssr` and no `idb`. Web `server/repository.ts` files re-export from here behind `server-only`; web services keep the auth check and call the shared function. Depends on `core` and `db` only.
+9. **Mobile reads and writes Supabase directly (ADR 0016).** `apps/mobile` uses `@jarso/data` against Supabase with RLS. Every wave 1 mutation is an existing Postgres function that checks `auth.uid()`. `/api/v1` is only for work that needs a server secret. See `docs/mobile.md`.
+10. **Tests beside their package.** Core tests live in `packages/core/tests/<module>/`, node environment only.
 
 ## 5. Data architecture
 

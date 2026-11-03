@@ -15,7 +15,11 @@
       "!supabase/.temp",
       "!**/playwright-report",
       "!**/test-results",
-      "!**/*.md"
+      "!**/*.md",
+      "!apps/mobile/.expo",
+      "!apps/mobile/ios",
+      "!apps/mobile/android",
+      "!apps/mobile/dist"
     ]
   },
   "formatter": {
@@ -77,7 +81,7 @@
       }
     },
     {
-      "includes": ["packages/core/**", "packages/content/**"],
+      "includes": ["packages/core/**", "packages/content/**", "packages/data/**"],
       "linter": {
         "rules": {
           "style": {
@@ -214,6 +218,33 @@
                     "message": "Leaf modules cannot import composite modules."
                   }
                 ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/mobile/global.css"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUnknownAtRules": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/mobile/{app,src}/**", "!apps/mobile/src/lib/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@jarso/core/lib": "Import from @/lib so the app logger is configured."
+                }
               }
             }
           }

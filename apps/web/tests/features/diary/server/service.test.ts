@@ -3,16 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
 vi.mock("@/features/auth/server", () => ({ assertUser: vi.fn() }));
 vi.mock("@/features/family/server", () => ({ assertRole: vi.fn() }));
+vi.mock("@jarso/data/diary", () => ({ undoEntry: vi.fn() }));
 vi.mock("@/features/diary/server/repository", () => ({
   callRecordPurchase: vi.fn(),
   callRecordMoneyReceived: vi.fn(),
-  callUndoDiaryEntry: vi.fn(),
   callCorrectDiaryEntry: vi.fn(),
   callListEntryVersions: vi.fn(),
 }));
 
 const auth = await import("@/features/auth/server");
 const family = await import("@/features/family/server");
+const shared = await import("@jarso/data/diary");
 const repo = await import("@/features/diary/server/repository");
 const service = await import("@/features/diary/server/service");
 
@@ -103,19 +104,11 @@ describe("recordMoneyReceived", () => {
 });
 
 describe("undoDiaryEntry", () => {
-  it("returns the other results", async () => {
-    for (const r of ["undone", "already_undone", "not_enough_spend", "not_enough_save"] as const) {
-      vi.mocked(repo.callUndoDiaryEntry).mockResolvedValue(r);
-      await expect(service.undoDiaryEntry("e1")).resolves.toBe(r);
-    }
-  });
-
-  it("maps too_late to CONFLICT", async () => {
-    vi.mocked(repo.callUndoDiaryEntry).mockResolvedValue("too_late");
-    await expect(service.undoDiaryEntry("e1")).rejects.toMatchObject({
-      code: "CONFLICT",
-      message: "You can only undo within a day.",
-    });
+  it("checks the user and delegates to the shared undo", async () => {
+    vi.mocked(shared.undoEntry).mockResolvedValue("undone");
+    await expect(service.undoDiaryEntry("e1")).resolves.toBe("undone");
+    expect(auth.assertUser).toHaveBeenCalled();
+    expect(shared.undoEntry).toHaveBeenCalledWith({ kind: "user" }, "e1");
   });
 });
 

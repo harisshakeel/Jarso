@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AppError, toAppError } from "@/lib";
+import { AppError, familyToday, toAppError } from "@/lib";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
 vi.mock("@/features/auth/server", () => ({ assertUser: vi.fn() }));
+vi.mock("@jarso/data/family", () => ({ getFamilyContext: vi.fn() }));
 vi.mock("@/features/family/server", () => ({
   assertParentCanRead: vi.fn(),
   assertParentOf: vi.fn(),
@@ -35,6 +36,8 @@ vi.mock("@/features/allowance/server/repository", () => ({
   stopSchedule: vi.fn(),
 }));
 
+const auth = await import("@/features/auth/server");
+const sharedFamily = await import("@jarso/data/family");
 const family = await import("@/features/family/server");
 const repo = await import("@/features/allowance/server/repository");
 const service = await import("@/features/allowance/server/service");
@@ -60,12 +63,12 @@ beforeEach(() => {
   vi.mocked(family.assertParentOf).mockResolvedValue(parent);
   vi.mocked(family.assertParentCanRead).mockResolvedValue(parent);
   vi.mocked(family.assertRole).mockResolvedValue({ user: parent, membership: null });
-  vi.mocked(family.getFamily).mockResolvedValue({
-    id: "fam-1",
-    code: "ABC234",
+  vi.mocked(auth.assertUser).mockResolvedValue(parent);
+  vi.mocked(sharedFamily.getFamilyContext).mockImplementation(async () => ({
     currency: "GBP",
     timezone: "UTC",
-  });
+    today: familyToday("UTC"),
+  }));
   vi.mocked(repo.findScheduleChildId).mockResolvedValue(childId);
   vi.mocked(repo.findOccurrenceChildId).mockResolvedValue(childId);
   vi.mocked(repo.findGift).mockResolvedValue(gift);

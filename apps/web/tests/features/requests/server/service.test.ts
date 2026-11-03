@@ -15,8 +15,7 @@ vi.mock("@/features/requests/server/repository", () => ({
   callCreateWithdrawal: vi.fn(),
   callDecideDeposit: vi.fn(),
   callDecideWithdrawal: vi.fn(),
-  fetchBalances: vi.fn(),
-  fetchCapRemaining: vi.fn(),
+  getAvailability: vi.fn(),
   findRequestChildId: vi.fn(),
   listRequestsFor: vi.fn(),
   listOpenRequests: vi.fn(),
@@ -121,34 +120,26 @@ describe("createWithdrawal", () => {
 });
 
 describe("getAvailability", () => {
-  const balances = {
-    spendMinor: 500,
-    saveMinor: 5000,
-    reservedSaveMinor: 1000,
-    heldSpendMinor: 0,
-    availableSaveMinor: 4000,
-    availableSpendMinor: 500,
-  };
-
-  beforeEach(() => {
-    vi.mocked(repo.fetchBalances).mockResolvedValue(balances);
-  });
-
-  it("is null without a cap", async () => {
-    vi.mocked(repo.fetchCapRemaining).mockResolvedValue(null);
-    await expect(service.getAvailability("child-1")).resolves.toEqual({
-      ...balances,
+  it("checks self-or-parent access, then reads availability with the user client", async () => {
+    const availability = {
+      spendMinor: 500,
+      saveMinor: 5000,
+      reservedSaveMinor: 1000,
+      heldSpendMinor: 0,
+      availableSaveMinor: 4000,
+      availableSpendMinor: 500,
       takeOutLimitMinor: null,
-    });
+    };
+    vi.mocked(repo.getAvailability).mockResolvedValue(availability);
+    await expect(service.getAvailability("child-1")).resolves.toEqual(availability);
+    expect(family.assertSelfOrParentOf).toHaveBeenCalledWith("child-1");
+    expect(repo.getAvailability).toHaveBeenCalledWith({ kind: "user" }, "child-1");
   });
 
-  it("is the smaller of available Save and the cap that is left", async () => {
-    vi.mocked(repo.fetchCapRemaining).mockResolvedValue(500);
-    expect((await service.getAvailability("child-1")).takeOutLimitMinor).toBe(500);
-    vi.mocked(repo.fetchCapRemaining).mockResolvedValue(99999);
-    expect((await service.getAvailability("child-1")).takeOutLimitMinor).toBe(4000);
-    vi.mocked(repo.fetchCapRemaining).mockResolvedValue(0);
-    expect((await service.getAvailability("child-1")).takeOutLimitMinor).toBe(0);
+  it("does not read when access is refused", async () => {
+    vi.mocked(family.assertSelfOrParentOf).mockRejectedValue(new AppError("FORBIDDEN", "no"));
+    await expect(service.getAvailability("child-2")).rejects.toBeDefined();
+    expect(repo.getAvailability).not.toHaveBeenCalled();
   });
 });
 

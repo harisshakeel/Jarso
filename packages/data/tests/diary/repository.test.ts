@@ -1,10 +1,9 @@
+import {
+  callCorrectDiaryEntry,
+  callListEntryVersions,
+  callRecordMoneyReceived,
+} from "@jarso/data/diary";
 import { describe, expect, it, vi } from "vitest";
-
-vi.mock("server-only", () => ({}));
-
-const { callCorrectDiaryEntry, callListEntryVersions, callRecordMoneyReceived } = await import(
-  "@/features/diary/server/repository"
-);
 
 // biome-ignore lint/suspicious/noExplicitAny: a minimal fake client
 const fake = (data: unknown) => ({ rpc: vi.fn(async () => ({ data, error: null })) }) as any;

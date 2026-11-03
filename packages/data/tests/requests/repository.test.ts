@@ -1,7 +1,7 @@
+import { listRequestsFor } from "@jarso/data/requests";
+import type { Database } from "@jarso/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
-import { listRequestsFor } from "@/features/requests/server/repository";
-import type { Database } from "@/types";
 
 type Row = {
   id: string;

@@ -1,0 +1,27 @@
+{
+  "name": "@jarso/data",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "exports": {
+    "./requests": "./src/requests/index.ts",
+    "./diary": "./src/diary/index.ts",
+    "./family": "./src/family/index.ts",
+    "./ledger": "./src/ledger/index.ts",
+    "./rules": "./src/rules/index.ts"
+  },
+  "dependencies": {
+    "@jarso/core": "workspace:*",
+    "@jarso/db": "workspace:*",
+    "@supabase/supabase-js": "^2.118.0"
+  },
+  "devDependencies": {
+    "@jarso/tsconfig": "workspace:*",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  }
+}
