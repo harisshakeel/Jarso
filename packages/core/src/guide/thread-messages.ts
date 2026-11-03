@@ -16,6 +16,8 @@ export type ThreadMessage =
 export function threadMessagesFrom(
   messages: readonly TranscriptMessage[],
   currency: string,
+  /** On a parent's page: the child the chat is about, named on a reopened action card. */
+  childName?: string | null,
 ): ThreadMessage[] {
   return messages.map((message) =>
     message.role === "child"
@@ -37,7 +39,7 @@ export function threadMessagesFrom(
             // Only a reply that was shown carries its card; a held-back one never offered it.
             proposal:
               message.role === "guide" && message.route === "on_topic"
-                ? proposalFromStored(message.proposed, currency)
+                ? proposalFromStored(message.proposed, currency, childName)
                 : null,
           },
         },

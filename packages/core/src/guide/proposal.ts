@@ -117,17 +117,18 @@ export function makeGoalProposal(
 
 /**
  * The card a stored offer shows again on a reopened chat: a goal from its arguments, an action
- * from its draft (checked again; one that no longer reads is dropped). A parent's card loses the
- * child's name, which isn't stored.
+ * from its draft (checked again; one that no longer reads is dropped). The child's name isn't
+ * stored, so a parent's page passes `childName` to name the child on the card as it first did.
  */
 export function proposalFromStored(
   stored: StoredProposal | null | undefined,
   currency: string,
+  childName?: string | null,
 ): GuideProposal | null {
   if (!stored) return null;
   if (stored.type === "goal") return goalProposalFrom(stored.args, currency);
   const parsed = actionDraftSchema.safeParse(stored.draft);
-  return parsed.success ? describeDraft(parsed.data, currency) : null;
+  return parsed.success ? describeDraft(parsed.data, currency, childName) : null;
 }
 
 /** One line of figures for the card: "£120 · £5 each allowance · about 14 allowances". */

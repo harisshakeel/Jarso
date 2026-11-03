@@ -72,7 +72,7 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
       ? {
           conversationId: transcript.summary.id,
           turnsLeft: Math.max(0, MAX_TURNS - transcript.summary.turns),
-          messages: threadMessagesFrom(transcript.messages, currency),
+          messages: threadMessagesFrom(transcript.messages, currency, about.nickname),
           kid: about,
         }
       : undefined;
