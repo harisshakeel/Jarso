@@ -58,11 +58,24 @@ export const palette = {
   },
   blush: "#f08a6b",
   "kid-ink": "#141c1f",
+  grape: {
+    "50": "#f6f6ff",
+    "100": "#ebeaff",
+    "200": "#d9d8ff",
+    "300": "#b9b3ff",
+    "400": "#998cfc",
+    "500": "#7d66e9",
+    "600": "#6a4fd6",
+    "700": "#5d3ec3",
+    "800": "#473097",
+    "900": "#32236b",
+    "950": "#1e1642",
+  },
 } as const;
 
 export const semantic = {
   light: {
-    background: "#f7f5f0",
+    background: "#f4f8fa",
     foreground: "#141c1f",
     "ink-2": "#3e4b50",
     card: "#ffffff",
@@ -73,14 +86,14 @@ export const semantic = {
     "primary-foreground": "#ffffff",
     secondary: "#c4f4ff",
     "secondary-foreground": "#014b62",
-    muted: "#efece5",
-    "muted-foreground": "#566469",
+    muted: "#ebf1f4",
+    "muted-foreground": "#52636b",
     accent: "#02d8ec",
     "accent-foreground": "#141c1f",
     "accent-text": "#006570",
     destructive: "#e10000",
-    border: "#e6e2da",
-    input: "#8f8c84",
+    border: "#dce5ea",
+    input: "#7d8d95",
     hairline: "#141c1f14",
     "hairline-strong": "#141c1f24",
     ring: "#0098a8",
@@ -94,6 +107,13 @@ export const semantic = {
     "chart-3": "#0098a8",
     "chart-4": "#94c7da",
     "chart-5": "#c99a02",
+    "tint-teal": "#e3f4f8",
+    "tint-gold": "#fff4cc",
+    "tint-cyan": "#ddf8fb",
+    "tint-grape": "#f0ebff",
+    ai: "#6a4fd6",
+    "ai-foreground": "#ffffff",
+    "ai-text": "#5d3ec3",
     sidebar: "#ffffff",
     "sidebar-foreground": "#141c1f",
     "sidebar-primary": "#02627d",
@@ -136,6 +156,13 @@ export const semantic = {
     "chart-3": "#0098a8",
     "chart-4": "#94c7da",
     "chart-5": "#c99a02",
+    "tint-teal": "#123b47",
+    "tint-gold": "#3a3110",
+    "tint-cyan": "#0f3a40",
+    "tint-grape": "#2a2550",
+    ai: "#b9b3ff",
+    "ai-foreground": "#0b1f26",
+    "ai-text": "#b9b3ff",
     sidebar: "#12303a",
     "sidebar-foreground": "#e6f1f4",
     "sidebar-primary": "#6facc2",
@@ -148,7 +175,7 @@ export const semantic = {
 } as const;
 
 /** The `--radius` base from :root, in px. */
-export const radius = { base: 14 } as const;
+export const radius = { base: 16 } as const;
 
 /** `--text-*`: size plus optional lineHeight, letterSpacing and fontWeight. */
 export const fontSize = {
