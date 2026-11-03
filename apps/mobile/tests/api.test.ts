@@ -74,6 +74,34 @@ describe("apiFetch", () => {
     expect(error.message).toBe(message);
   });
 
+  it("keeps the server's field errors (`details`) on the AppError", async () => {
+    const nickname = ["Another child in your family already uses this nickname"];
+    fetchMock.mockResolvedValue(
+      reply(409, {
+        error: {
+          code: "CONFLICT",
+          message: "Please fix the highlighted fields.",
+          details: { nickname },
+        },
+      }),
+    );
+
+    const error = await caught(apiFetch("/api/v1/x"));
+
+    expect(error.code).toBe("CONFLICT");
+    expect(error.fieldErrors).toEqual({ nickname });
+  });
+
+  it("drops field errors that are not lists of strings", async () => {
+    fetchMock.mockResolvedValue(
+      reply(409, { error: { code: "CONFLICT", message: "Conflict", details: { nickname: 3 } } }),
+    );
+
+    const error = await caught(apiFetch("/api/v1/x"));
+
+    expect(error.fieldErrors).toBeUndefined();
+  });
+
   it("maps a network failure to UNAVAILABLE with the web's offline copy", async () => {
     fetchMock.mockRejectedValue(new TypeError("Network request failed"));
 

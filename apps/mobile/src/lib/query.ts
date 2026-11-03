@@ -83,6 +83,9 @@ export const keys = {
   /** The parent's own name and details (settings). */
   profile: (userId: string) => ["profile", userId] as const,
   invitations: (userId: string) => ["invitations", userId] as const,
+  /** The nickname behind one link token or code (looked up once: the route is rate-limited). */
+  invitationLookup: (userId: string, invite: string) =>
+    ["invitations", userId, "lookup", invite] as const,
   child: (childId: string) => ["child", childId] as const,
   childSchedule: (childId: string) => ["child", childId, "schedule"] as const,
   childDue: (childId: string) => ["child", childId, "due"] as const,
