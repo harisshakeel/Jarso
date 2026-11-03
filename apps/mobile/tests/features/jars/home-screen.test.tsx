@@ -3,7 +3,7 @@ import { findNickname, getFamilyContext } from "@jarso/data/family";
 import { getJars } from "@jarso/data/ledger";
 import { getAvailability } from "@jarso/data/requests";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, userEvent, waitFor } from "@testing-library/react-native";
+import { act, render, screen, userEvent, waitFor, within } from "@testing-library/react-native";
 import { useRouter } from "expo-router";
 import { HomeScreen } from "@/features/home";
 import { keys } from "@/lib/query";
@@ -79,16 +79,47 @@ describe("HomeScreen", () => {
     expect(await screen.findByRole("header", { name: "Hi!" })).toBeOnTheScreen();
   });
 
-  it("shows both jars with their amounts and captions", async () => {
+  it("shows both jars in one card with the total", async () => {
+    setup();
+    jars.mockResolvedValue({ spend: 1250, save: 3400 });
+    await renderHome();
+    const card = within(await screen.findByLabelText("Your jars"));
+    expect(card.getByText("£12.50")).toBeOnTheScreen();
+    expect(card.getByText("£34")).toBeOnTheScreen();
+    expect(card.getByText("£46.50")).toBeOnTheScreen();
+    expect(screen.getByLabelText("Spend jar").props.accessibilityHint).toBe("Cash you have");
+    expect(screen.getByLabelText("Save jar").props.accessibilityHint).toBe("Kept by your parent");
+    expect(jars).toHaveBeenCalledWith(expect.anything(), "child-1");
+  });
+
+  it("shows the date over the greeting", async () => {
+    jest.useFakeTimers({ now: new Date("2026-11-03T09:00:00Z"), advanceTimers: true });
+    try {
+      setup();
+      await renderHome();
+      expect(await screen.findByText("Tuesday 3 November")).toBeOnTheScreen();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("big balances stay on one line", async () => {
+    setup();
+    jars.mockResolvedValue({ spend: 1_234_567_800, save: 100 });
+    await renderHome();
+    const amount = await screen.findByText("£12,345,678");
+    expect(amount.props.numberOfLines).toBe(1);
+    expect(amount.props.adjustsFontSizeToFit).toBe(true);
+  });
+
+  it("has two quick actions in the jars card", async () => {
     setup();
     await renderHome();
-    expect(await screen.findByLabelText("Spend jar")).toBeOnTheScreen();
-    expect(screen.getByText("£12.50")).toBeOnTheScreen();
-    expect(screen.getByText("£40")).toBeOnTheScreen();
-    expect(screen.getByText("Cash you have")).toBeOnTheScreen();
-    expect(screen.getByText("Kept by your parent")).toBeOnTheScreen();
-    expect(screen.getByLabelText("Save jar")).toBeOnTheScreen();
-    expect(jars).toHaveBeenCalledWith(expect.anything(), "child-1");
+    const card = within(await screen.findByLabelText("Your jars"));
+    expect(card.getAllByRole("button").map((b) => b.props.accessibilityLabel)).toEqual([
+      "Spent something?",
+      "Put some in Save",
+    ]);
   });
 
   it("says what is waiting to come out and what is held", async () => {
@@ -111,6 +142,8 @@ describe("HomeScreen", () => {
     ["Put some in Save", "/(child)/put-in"],
     ["Take some out", "/(child)/take-out"],
     ["Ask for extra", "/(child)/ask-extra"],
+    ["Got money", "/(child)/received"],
+    ["Move my money", "/(child)/requests"],
   ])("opens %s", async (label, href) => {
     setup();
     await renderHome();

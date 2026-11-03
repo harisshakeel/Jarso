@@ -1,16 +1,17 @@
-import { goalCopy } from "@jarso/core/goals";
+import { goalCopy, goalLine } from "@jarso/core/goals";
 import { useRouter } from "expo-router";
-import { ChevronRightIcon, TargetIcon } from "lucide-react-native";
+import { ChevronRightIcon } from "lucide-react-native";
 import { Pressable, View } from "react-native";
+import { Card, ProgressBar } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { formatMoney, useTokens } from "@/lib";
-import { GoalStaircase } from "./goal-staircase";
 import { useGoal } from "./use-goal";
 
 /**
- * "Your goal" on the child's Home (FR02): the compact staircase and the way to the goal's
- * screen; without a goal, the invitation to set one. Nice to have: if it can't load, Home goes
- * on without it.
+ * "Your goal" on the child's Home (FR02, mockup B): the goal, how much of it is saved, a thin
+ * gold bar and one line saying what is left, with the way to the goal's screen (the staircase
+ * lives there). Without a goal, the invitation to set one. Nice to have: if it can't load, Home
+ * goes on without it.
  */
 export function GoalCard({ currency }: { currency: string }) {
   const router = useRouter();
@@ -20,51 +21,47 @@ export function GoalCard({ currency }: { currency: string }) {
   const view = goal.data;
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
 
-  return (
-    <View
-      accessibilityLabel={goalCopy.card.heading}
-      className="gap-3 rounded-2xl border border-border bg-card p-4"
-    >
-      <View className="flex-row items-center justify-between gap-3">
-        <View className="flex-row items-center gap-2">
-          <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <TargetIcon size={20} color={tokens["gold-text"]} />
-          </View>
-          <Text accessibilityRole="header" className="font-sans-bold text-h3">
-            {goalCopy.card.heading}
-          </Text>
-        </View>
-        {view ? (
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={goalCopy.card.seeIt}
-            onPress={() => router.push("/(child)/goal")}
-            className="min-h-11 flex-row items-center gap-1 rounded-full px-2"
-          >
-            <Text className="font-sans-bold text-primary">{goalCopy.card.seeIt}</Text>
-            <ChevronRightIcon size={16} color={tokens.primary} />
-          </Pressable>
-        ) : null}
-      </View>
-      {view ? (
-        <>
-          <Text className="text-center font-sans-bold">
-            {goalCopy.card.title(view.goal.emoji, view.goal.name, money(view.goal.targetMinor))}
-          </Text>
-          <GoalStaircase
-            goal={view.goal}
-            progress={view.progress}
-            currency={currency}
-            size="compact"
-          />
-        </>
-      ) : (
-        <View className="items-center gap-3">
-          <Text className="text-center text-muted-foreground">{goalCopy.card.empty}</Text>
+  if (!view) {
+    return (
+      <Card accessibilityLabel={goalCopy.card.heading}>
+        <Text accessibilityRole="header" className="font-sans-bold text-h3">
+          {goalCopy.card.heading}
+        </Text>
+        <Text className="text-muted-foreground">{goalCopy.card.empty}</Text>
+        <View className="flex-row">
           <GoalSheetButton hasGoal={false} />
         </View>
-      )}
-    </View>
+      </Card>
+    );
+  }
+
+  const { goal: g, progress } = view;
+  return (
+    <Card accessibilityLabel={goalCopy.card.heading}>
+      <View className="flex-row items-center justify-between gap-3">
+        <Text accessibilityRole="header" className="min-w-0 flex-1 font-sans-bold text-h3">
+          {`${g.emoji} ${g.name}`}
+        </Text>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={goalCopy.card.seeIt}
+          onPress={() => router.push("/(child)/goal")}
+          className="min-h-12 flex-row items-center gap-1 rounded-full pl-2"
+        >
+          <Text className="font-sans-bold text-primary">{goalCopy.card.seeIt}</Text>
+          <ChevronRightIcon size={16} color={tokens.primary} />
+        </Pressable>
+      </View>
+      <Text className="text-small text-muted-foreground">
+        {goalCopy.card.ofTarget(money(progress.countedMinor), money(g.targetMinor))}
+      </Text>
+      <ProgressBar
+        tone="gold"
+        value={progress.fillRatio}
+        accessibilityLabel={goalCopy.card.title(g.emoji, g.name, money(g.targetMinor))}
+      />
+      <Text className="text-muted-foreground">{goalLine(progress, money)}</Text>
+    </Card>
   );
 }
 
