@@ -19,7 +19,7 @@ async function InboxContent({ searchParams }: Pick<Props, "searchParams">) {
     : null;
   return (
     <>
-      <h1 className="text-balance text-display">News</h1>
+      <h1 className="text-balance text-h1">News</h1>
       <PushToggle hideWhenOn />
       <InboxList
         items={page.items}

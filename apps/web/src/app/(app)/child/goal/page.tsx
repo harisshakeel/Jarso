@@ -63,7 +63,7 @@ export default function GoalPage() {
           <ArrowLeftIcon aria-hidden className="size-4" />
           Home
         </Link>
-        <h1 className="text-balance text-display">Your goal</h1>
+        <h1 className="text-balance text-h1">Your goal</h1>
       </div>
       <Suspense
         fallback={
