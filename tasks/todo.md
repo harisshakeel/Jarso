@@ -137,7 +137,7 @@ Spec: `docs/superpowers/specs/2026-11-02-mobile-app-design.md` · Plan: `docs/su
 - [x] 14 requests, history, settings
 - [x] 15 docs, ADR 0016, done-when check
 
-## Mobile wave 2 (child parity) — in progress (SDD)
+## Mobile wave 2 (child parity) — PR #94
 
 Spec `docs/superpowers/specs/2026-11-03-mobile-wave-2-design.md`, plan `docs/superpowers/plans/2026-11-03-mobile-wave-2.md`.
 
