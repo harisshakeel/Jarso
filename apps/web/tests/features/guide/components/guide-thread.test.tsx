@@ -168,7 +168,8 @@ describe("GuideThread", () => {
     fireEvent.click(screen.getByRole("button", { name: "How much do I have?" }));
     // A full run is busy: the reply can take more than the default second to arrive.
     await screen.findByText("Spend is the cash you hold.", {}, { timeout: 5_000 });
-    expect(onChatStarted).toHaveBeenCalledWith("convo-1");
+    // The page hears about the chat from an effect after the reply commits, so wait for it too.
+    await waitFor(() => expect(onChatStarted).toHaveBeenCalledWith("convo-1"));
   });
 
   it("keeps a parent's reopened chat about one child, without the child picker", () => {
