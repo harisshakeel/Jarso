@@ -1,7 +1,7 @@
 import { parentPageCopy } from "@jarso/core/dashboard";
 import { parentLearningCopy } from "@jarso/core/learning";
 import { rulesCopy } from "@jarso/core/rules";
-import { Redirect, Stack, usePathname } from "expo-router";
+import { Redirect, Stack, useGlobalSearchParams, usePathname, useSegments } from "expo-router";
 import type { ComponentProps } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { BodySizeProvider } from "@/components/ui";
@@ -36,14 +36,34 @@ const PAGES: { name: string; title: string }[] = [
 ];
 
 /**
- * Where a signed-out parent returns after sign-in. `/` and `/jarso` exist in both groups, so the
- * parent's own are kept group-qualified; the rest are only the parent's.
+ * Where a signed-out or not-yet-set-up parent returns afterwards: this path with its query (an
+ * invite link's `?code=` or `?token=`). Sign-in and setup still pass it through `safeNextPath`.
  */
-function nextPath(pathname: string): string {
-  if (pathname === "/") return "/(parent)/(tabs)";
-  if (pathname === "/jarso") return "/(parent)/(tabs)/jarso";
-  return pathname;
+function useNextPath(): string {
+  const pathname = usePathname();
+  const segments = useSegments();
+  const params = useGlobalSearchParams();
+  // Global params mix the query with the path's own (`[childId]`); keep only the query.
+  const routeParams = new Set(
+    segments.flatMap((segment) => /^\[(?:\.\.\.)?(.+)\]$/.exec(segment)?.slice(1) ?? []),
+  );
+  const query = Object.entries(params)
+    .filter(([key]) => !routeParams.has(key))
+    .flatMap(([key, value]) =>
+      (Array.isArray(value) ? value : value === undefined ? [] : [value]).map(
+        (one) => `${encodeURIComponent(key)}=${encodeURIComponent(one)}`,
+      ),
+    )
+    .join("&");
+  const path = SHARED_PATHS[pathname] ?? pathname;
+  return query ? `${path}?${query}` : path;
 }
+
+/** Paths both groups own, kept group-qualified so they resolve to the parent's screen. */
+const SHARED_PATHS: Record<string, string> = {
+  "/": "/(parent)/(tabs)",
+  "/jarso": "/(parent)/(tabs)/jarso",
+};
 
 /** Routes open before setup is done: setup itself, and settings (so a parent can sign out). */
 const OPEN_BEFORE_SETUP = new Set(["/setup", "/settings"]);
@@ -63,6 +83,7 @@ function Loading() {
 export default function ParentLayout() {
   const { status, userId } = useSession();
   const pathname = usePathname();
+  const next = useNextPath();
   const setup = useParentSetup();
 
   if (status === "loading") return <Loading />;
@@ -70,7 +91,7 @@ export default function ParentLayout() {
   if (status === "unavailable") return <UnavailableNotice />;
   if (status === "child") return <Redirect href={homeFor("child")} />;
   if (status !== "parent" || !userId) {
-    return <Redirect href={{ pathname: "/sign-in", params: { next: nextPath(pathname) } }} />;
+    return <Redirect href={{ pathname: "/sign-in", params: { next } }} />;
   }
   if (!OPEN_BEFORE_SETUP.has(pathname)) {
     if (!setup.data) {
@@ -79,7 +100,7 @@ export default function ParentLayout() {
       return <Loading />;
     }
     if (!isSetUp(setup.data)) {
-      const params = pathname === "/" ? undefined : { next: nextPath(pathname) };
+      const params = pathname === "/" ? undefined : { next };
       return <Redirect href={{ pathname: "/(parent)/setup", params }} />;
     }
   }

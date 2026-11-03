@@ -5,7 +5,7 @@ import { findParentDetails, upsertParentDetails } from "@jarso/data/profiles";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, screen, userEvent, waitFor } from "@testing-library/react-native";
-import { Stack } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { Text } from "react-native";
 
@@ -65,6 +65,11 @@ function Bare() {
   return <Stack screenOptions={{ headerShown: false }} />;
 }
 
+function InviteStub() {
+  const { code } = useLocalSearchParams<{ code?: string }>();
+  return <Text>{`Invite code=${code ?? "-"}`}</Text>;
+}
+
 function renderApp(initialUrl: string) {
   return renderRouter(
     {
@@ -75,6 +80,7 @@ function renderApp(initialUrl: string) {
       "(parent)/(tabs)/inbox": () => <Text>Inbox</Text>,
       "(parent)/setup": require("../../../app/(parent)/setup"),
       "(parent)/settings": () => <Text>Settings</Text>,
+      "(parent)/invite": InviteStub,
       "(auth)/sign-in": () => <Text>Sign in</Text>,
     },
     { initialUrl },
@@ -167,6 +173,16 @@ describe("setup gate", () => {
     await userEvent.setup().press(screen.getByRole("button", { name: setupCopy.create }));
     expect(await screen.findByText("Inbox")).toBeOnTheScreen();
     expect(screen).toHavePathname("/inbox");
+  });
+
+  it("keeps an invite link's query through setup", async () => {
+    (findMembership as jest.Mock).mockResolvedValue(null);
+    await renderApp("/invite?code=ABCD1234");
+    expect(await screen.findByText(setupCopy.title)).toBeOnTheScreen();
+    (findMembership as jest.Mock).mockResolvedValue(membership);
+    await userEvent.setup().press(screen.getByRole("button", { name: setupCopy.create }));
+    expect(await screen.findByText("Invite code=ABCD1234")).toBeOnTheScreen();
+    expect(screen).toHavePathname("/invite");
   });
 
   it("leaves settings open before setup", async () => {

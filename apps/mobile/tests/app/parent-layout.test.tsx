@@ -47,6 +47,8 @@ function renderApp(initialUrl: string) {
       "(parent)/(tabs)/children": () => <Text>Children</Text>,
       "(parent)/(tabs)/inbox": () => <Text>Inbox</Text>,
       "(parent)/settings": () => <Text>Settings</Text>,
+      "(parent)/invite": () => <Text>Invite</Text>,
+      "(parent)/children/[childId]/history": () => <Text>History</Text>,
       "(auth)/sign-in": SignInStub,
     },
     { initialUrl },
@@ -73,6 +75,20 @@ describe("role guards", () => {
     await renderApp("/inbox");
     expect(await screen.findByText("Sign in next=/inbox")).toBeOnTheScreen();
     expect(screen).toHavePathname("/sign-in");
+  });
+
+  it("keeps a link's query in next, but not a route param", async () => {
+    mockSession = { status: "signed-out" };
+    await renderApp("/invite?code=ABCD1234");
+    expect(await screen.findByText("Sign in next=/invite?code=ABCD1234")).toBeOnTheScreen();
+  });
+
+  it("keeps only the query of a page under a child", async () => {
+    mockSession = { status: "signed-out" };
+    await renderApp("/children/child-1/history?from=hub");
+    expect(
+      await screen.findByText("Sign in next=/children/child-1/history?from=hub"),
+    ).toBeOnTheScreen();
   });
 
   it("shows the offline notice while the role can't be read", async () => {
