@@ -5,11 +5,17 @@ import { getJars } from "@jarso/data/ledger";
 import { fetchUnreadCount, listNotices, markRead } from "@jarso/data/notifications";
 import { getAvailability } from "@jarso/data/requests";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, userEvent, waitFor } from "@testing-library/react-native";
+import { act, render, renderHook, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import { AppState, type AppStateStatus, Text } from "react-native";
-import { NewsScreen, NoticeListener, useUnreadCount } from "@/features/news";
+import {
+  NewsScreen,
+  NoticeListener,
+  noticeTargetRoute,
+  useOpenNotice,
+  useUnreadCount,
+} from "@/features/news";
 import { supabase } from "@/lib/supabase/client";
 
 type Handler = (event: { eventType: string; new?: unknown }) => void;
@@ -103,7 +109,7 @@ describe("news", () => {
       wrap(
         <>
           <Badge />
-          <NewsScreen />
+          <NewsScreen viewer="child" />
         </>,
       ),
     );
@@ -117,7 +123,7 @@ describe("news", () => {
     (listNotices as jest.Mock).mockResolvedValue({ items: [notice()], nextBefore: null });
     (fetchUnreadCount as jest.Mock).mockResolvedValue(1);
     const user = userEvent.setup();
-    await render(wrap(<NewsScreen />));
+    await render(wrap(<NewsScreen viewer="child" />));
     const { title } = noticeText(notice(), "child", "GBP");
     await user.press(await screen.findByRole("link", { name: new RegExp(title) }));
     expect(markRead).toHaveBeenCalledWith(supabase, ["n-1"]);
@@ -130,7 +136,7 @@ describe("news", () => {
       .mockResolvedValue({ items: [notice({ id: "n-2", read: true })], nextBefore: null });
     (fetchUnreadCount as jest.Mock).mockResolvedValue(1);
     const user = userEvent.setup();
-    await render(wrap(<NewsScreen />));
+    await render(wrap(<NewsScreen viewer="child" />));
     await user.press(await screen.findByRole("button", { name: inboxCopy.showMore }));
     await waitFor(() =>
       expect(listNotices).toHaveBeenLastCalledWith(supabase, "child-1", {
@@ -151,7 +157,7 @@ describe("news", () => {
       wrap(
         <>
           <Badge />
-          <NoticeListener userId="child-1" />
+          <NoticeListener userId="child-1" viewer="child" />
         </>,
       ),
     );
@@ -190,7 +196,7 @@ describe("news", () => {
       wrap(
         <>
           <Badge />
-          <NoticeListener userId="child-1" />
+          <NoticeListener userId="child-1" viewer="child" />
         </>,
       ),
     );
@@ -214,7 +220,7 @@ describe("news", () => {
       wrap(
         <>
           <Badge />
-          <NoticeListener userId="child-1" />
+          <NoticeListener userId="child-1" viewer="child" />
         </>,
       ),
     );
@@ -225,5 +231,86 @@ describe("news", () => {
     (fetchUnreadCount as jest.Mock).mockResolvedValue(3);
     await act(async () => appListener?.("active"));
     await waitFor(() => expect(screen.getByTestId("badge")).toHaveTextContent("3"));
+  });
+
+  it("a parent's toast opens the parent inbox", async () => {
+    (fetchUnreadCount as jest.Mock).mockResolvedValue(1);
+    const user = userEvent.setup();
+    await render(wrap(<NoticeListener userId="child-1" viewer="parent" />));
+    await waitFor(() => expect(mockChannel.subscribe).toHaveBeenCalled());
+    const row = {
+      id: "n-9",
+      kind: "withdrawal_requested",
+      child_id: "child-1",
+      recipient_id: "child-1",
+      source_type: "request",
+      source_id: "req-9",
+      payload: { amount_minor: 500 },
+      created_at: now,
+      read_at: null,
+    };
+    await act(async () => mockHandlers[0]?.({ eventType: "INSERT", new: row }));
+    const { title } = noticeText(
+      notice({
+        id: "n-9",
+        kind: "withdrawal_requested",
+        sourceType: "request",
+        sourceId: "req-9",
+        payload: { amount_minor: 500 },
+      }),
+      "parent",
+      "GBP",
+    );
+    await user.press(await screen.findByRole("button", { name: `${title}. ${inboxCopy.open}` }));
+    expect(push).toHaveBeenCalledWith("/(parent)/(tabs)/inbox");
+  });
+});
+
+describe("noticeTargetRoute", () => {
+  it("noticeTargetRoute parent handover target", () => {
+    expect(
+      noticeTargetRoute({ to: "handover", childId: "c-1", kind: "gift", id: "g-1" }, "parent"),
+    ).toBe("/(parent)/children/c-1/handover/gift/g-1");
+  });
+
+  it("noticeTargetRoute parent child target", () => {
+    expect(noticeTargetRoute({ to: "child", childId: "c-1" }, "parent")).toBe(
+      "/(parent)/children/c-1",
+    );
+  });
+
+  it("noticeTargetRoute parent child-history target", () => {
+    expect(noticeTargetRoute({ to: "child-history", childId: "c-1" }, "parent")).toBe(
+      "/(parent)/children/c-1/history",
+    );
+  });
+
+  it("noticeTargetRoute parent home target", () => {
+    expect(noticeTargetRoute({ to: "home" }, "parent")).toBe("/(parent)/(tabs)");
+  });
+
+  it("child mapping unchanged", () => {
+    expect(noticeTargetRoute({ to: "diary" }, "child")).toBe("/(child)/(tabs)/diary");
+    expect(noticeTargetRoute({ to: "goal" }, "child")).toBe("/(child)/goal");
+    expect(noticeTargetRoute({ to: "jarso" }, "child")).toBe("/(child)/(tabs)/jarso");
+    expect(noticeTargetRoute({ to: "home" }, "child")).toBe("/(child)/(tabs)");
+    // Parent records never reach a child; Home is the safe place.
+    expect(noticeTargetRoute({ to: "child", childId: "c-1" }, "child")).toBe("/(child)/(tabs)");
+    expect(
+      noticeTargetRoute({ to: "handover", childId: "c-1", kind: "gift", id: "g-1" }, "child"),
+    ).toBe("/(child)/(tabs)");
+  });
+
+  it('useOpenNotice("parent") marks read and routes', async () => {
+    const { result } = await renderHook(() => useOpenNotice("parent"), {
+      wrapper: ({ children }) => wrap(children),
+    });
+    await act(async () =>
+      result.current(
+        notice({ kind: "allowance_due", sourceType: "allowance_occurrence", sourceId: "occ-1" }),
+      ),
+    );
+    expect(markRead).toHaveBeenCalledWith(supabase, ["n-1"]);
+    expect(push).toHaveBeenCalledWith("/(parent)/children/child-1/handover/allowance/occ-1");
   });
 });

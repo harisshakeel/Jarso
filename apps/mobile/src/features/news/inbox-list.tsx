@@ -1,4 +1,4 @@
-import type { Notice, NoticeKind } from "@jarso/core/notifications";
+import type { Notice, NoticeKind, NoticeRole } from "@jarso/core/notifications";
 import { groupNotices, inboxCopy, noticeText, timeAgo } from "@jarso/core/notifications";
 import {
   BellIcon,
@@ -40,18 +40,20 @@ const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
 /** One inbox row (design.md §6): tinted icon, title, detail, relative time, chevron. */
 function InboxItem({
   notice,
+  viewer,
   currency,
   now,
   onOpen,
 }: {
   notice: Notice;
+  viewer: NoticeRole;
   currency: string;
   now: number;
   onOpen: (notice: Notice) => void;
 }) {
   const tokens = useTokens();
   const { icon: Icon, tint } = kindStyle[notice.kind] ?? kindStyle.limit_exceeded;
-  const { title, detail } = noticeText(notice, "child", currency);
+  const { title, detail } = noticeText(notice, viewer, currency);
   const ago = timeAgo(notice.createdAt, now);
   return (
     <Pressable
@@ -90,11 +92,14 @@ function InboxItem({
 /** The inbox, newest first and grouped by day (core `groupNotices`). */
 export function InboxList({
   items,
+  viewer,
   currency,
   onOpen,
   now = Date.now(),
 }: {
   items: Notice[];
+  /** Whose inbox: the notice's wording differs for a parent and a child. */
+  viewer: NoticeRole;
   currency: string;
   onOpen: (notice: Notice) => void;
   now?: number;
@@ -110,6 +115,7 @@ export function InboxList({
             <InboxItem
               key={notice.id}
               notice={notice}
+              viewer={viewer}
               currency={currency}
               now={now}
               onOpen={onOpen}

@@ -151,7 +151,7 @@ describe("session and role gate", () => {
 
     await renderApp("/diary");
 
-    expect(await screen.findByText("Parents, use Jarso on the web for now")).toBeOnTheScreen();
+    expect(await screen.findByText("Family home")).toBeOnTheScreen();
     expect(screen.queryByText("Diary")).not.toBeOnTheScreen();
     expect(auth.signOut).not.toHaveBeenCalled();
   });

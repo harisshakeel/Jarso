@@ -1,5 +1,4 @@
 export { registerBeforeSignOut, runBeforeSignOut } from "./before-sign-out";
-export * from "./parent-pending-notice";
 export * from "./parent-sign-in-form";
 export { homeFor, type Role } from "./role-home";
 export { loadSignInMode, type SignInMode, saveSignInMode } from "./saved-sign-in";

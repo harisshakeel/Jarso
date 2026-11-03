@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { homeFor } from "@/features/auth";
 import { PurchaseSheet } from "@/features/diary";
 
 type Params = { change?: string; amount?: string; label?: string; category?: string };
@@ -16,7 +17,7 @@ export default function PurchaseRoute() {
       <PurchaseSheet
         initial={change ? { amount: amount ?? "", label: label ?? "", category } : undefined}
         replaces={change}
-        onClose={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+        onClose={() => (router.canGoBack() ? router.back() : router.replace(homeFor("child")))}
       />
     </SafeAreaView>
   );

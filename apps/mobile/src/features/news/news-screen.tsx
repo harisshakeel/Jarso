@@ -1,25 +1,32 @@
-import { inboxCopy } from "@jarso/core/notifications";
+import { parentPageCopy } from "@jarso/core/dashboard";
+import { inboxCopy, type NoticeRole } from "@jarso/core/notifications";
 import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Card, CoachSays, ScreenHeader } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
-import { useHome } from "@/features/jars";
 import { toUserMessage } from "@/lib";
 import { InboxList } from "./inbox-list";
+import { useNoticeCurrency } from "./use-notice-currency";
 import { useMarkRead, useNotices, useUnreadCount } from "./use-notices";
 import { useOpenNotice } from "./use-open-notice";
 
+/** The web's inbox headings: the child's News, the parent's Inbox. */
+const HEADING: Record<NoticeRole, string> = {
+  child: inboxCopy.childHeading,
+  parent: parentPageCopy.inbox,
+};
+
 /**
- * News (the web's child inbox): newest first, grouped by day, 20 at a time with "Show more".
- * Opening a notice saves it as read and goes to the record; "Mark all as read" clears the badge.
+ * The inbox (the web's child News and parent Inbox): newest first, grouped by day, 20 at a time
+ * with "Show more". Opening a notice saves it as read and goes to the record; "Mark all as read"
+ * clears the badge.
  */
-export function NewsScreen() {
-  const home = useHome();
+export function NewsScreen({ viewer: role }: { viewer: NoticeRole }) {
   const notices = useNotices();
   const unread = useUnreadCount();
   const markRead = useMarkRead();
-  const open = useOpenNotice();
-  const currency = home.data?.context.currency ?? "USD";
+  const open = useOpenNotice(role);
+  const currency = useNoticeCurrency(role) ?? "USD";
   const items = notices.data?.pages.flatMap((page) => page.items) ?? [];
   const hasUnread = items.some((item) => !item.read) || (unread.data ?? 0) > 0;
   const refresh = () => {
@@ -33,7 +40,7 @@ export function NewsScreen() {
         contentContainerClassName="gap-4 px-4 pt-4 pb-10"
         refreshControl={<RefreshControl refreshing={notices.isRefetching} onRefresh={refresh} />}
       >
-        <ScreenHeader title={inboxCopy.childHeading} />
+        <ScreenHeader title={HEADING[role]} />
         {!notices.data ? (
           notices.error ? (
             <Text accessibilityRole="alert">{toUserMessage(notices.error)}</Text>
@@ -63,7 +70,7 @@ export function NewsScreen() {
                 {toUserMessage(markRead.error)}
               </Text>
             ) : null}
-            <InboxList items={items} currency={currency} onOpen={open} />
+            <InboxList items={items} viewer={role} currency={currency} onOpen={open} />
             {notices.hasNextPage ? (
               <Button
                 variant="outline"

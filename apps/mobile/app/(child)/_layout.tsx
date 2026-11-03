@@ -1,7 +1,7 @@
 import { Redirect, Stack } from "expo-router";
 import type { ComponentProps } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { ParentPendingNotice, UnavailableNotice, useSession } from "@/features/auth";
+import { homeFor, UnavailableNotice, useSession } from "@/features/auth";
 import { NoticeListener } from "@/features/news";
 import { OutboxSync } from "@/lib/outbox";
 
@@ -52,8 +52,8 @@ export default function ChildLayout() {
   }
   // Jarso can't be reached: the session is kept, but the tabs stay closed until the role is read.
   if (status === "unavailable") return <UnavailableNotice />;
-  // Temporary until the (parent) group lands: a parent keeps the session but sees no child screen.
-  if (status === "parent") return <ParentPendingNotice />;
+  // Both groups own `/`: a parent who lands here (cold start, a link) goes to Family.
+  if (status === "parent") return <Redirect href={homeFor("parent")} />;
   if (status !== "child" || !userId) return <Redirect href="/sign-in" />;
 
   return (
@@ -74,7 +74,7 @@ export default function ChildLayout() {
         ))}
       </Stack>
       {/* The News badge, inbox and toast stay live while the app is in front (over the stack). */}
-      <NoticeListener userId={userId} />
+      <NoticeListener userId={userId} viewer="child" />
     </>
   );
 }
