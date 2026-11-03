@@ -44,7 +44,7 @@ export function JarMovesChoice({ childId, nickname, mode }: JarMovesChoiceProps)
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-2.5">
       <p className="font-semibold">{jarMovesSentence(chosen, nickname)}</p>
       <fieldset className="flex flex-wrap gap-2" disabled={pending}>
         <legend className="sr-only">When {nickname} moves money between jars</legend>

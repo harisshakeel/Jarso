@@ -99,12 +99,15 @@ export function RuleGroup({
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-2">
       {rules.length === 0 && !draft ? <p className="text-ink-2">{emptyLine}</p> : null}
       {rules.length > 0 ? (
         <ul className="grid gap-2">
           {rules.map((rule) => (
-            <li key={rule.period} className="grid gap-2 rounded-xl bg-muted/60 px-4 py-3">
+            <li
+              key={rule.period}
+              className="@container grid gap-2 rounded-xl bg-muted/60 px-4 py-2.5"
+            >
               {editing === rule.period ? (
                 <AmountForm
                   id={`${amountId}-${rule.period}`}
@@ -116,12 +119,13 @@ export function RuleGroup({
                   onCancel={() => setEditing(null)}
                 />
               ) : (
-                <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-col gap-1 @lg:flex-row @lg:items-center @lg:justify-between @lg:gap-3">
                   <p className="font-semibold">{describeRule(rule, nickname, currency)}</p>
-                  <span className="flex gap-1">
+                  <span className="-ml-3 flex shrink-0 gap-1 @lg:-mr-2 @lg:ml-0">
                     <Button
                       type="button"
                       variant="ghost"
+                      size="sm"
                       aria-label={`Change: ${describeRule(rule, nickname, currency)}`}
                       disabled={pending}
                       onClick={() => {
@@ -134,6 +138,7 @@ export function RuleGroup({
                     <Button
                       type="button"
                       variant="ghost"
+                      size="sm"
                       aria-label={`Remove: ${describeRule(rule, nickname, currency)}`}
                       loading={pending}
                       onClick={() => remove(rule.period)}
@@ -182,7 +187,7 @@ export function RuleGroup({
           type="button"
           variant="outline"
           size="lg"
-          className="w-fit"
+          className="h-auto min-h-11 w-fit max-w-full whitespace-normal py-2 text-left"
           onClick={() => {
             setEditing(null);
             setFieldError(undefined);
