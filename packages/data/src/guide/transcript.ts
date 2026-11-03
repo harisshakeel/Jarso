@@ -119,6 +119,92 @@ export async function getMyTranscript(
   };
 }
 
+type Transcript = { summary: ConversationSummary; messages: TranscriptMessage[] };
+
+/** Each chat with its own messages, summarised for the viewer, in the chats' order. */
+async function summarizeAll(
+  db: Client,
+  conversations: ConversationRow[],
+  viewer: "parent" | "asker",
+): Promise<ConversationSummary[]> {
+  const messages = await listMessages(
+    db,
+    conversations.map((c) => c.id),
+  );
+  return conversations.map((conversation) =>
+    summarize(
+      conversation,
+      messages.filter((m) => m.conversationId === conversation.id),
+      viewer,
+    ),
+  );
+}
+
+/** A child's own chats as their parent sees them, flagged first, then newest. */
+export async function listChildChats(db: Client, childId: string): Promise<ConversationSummary[]> {
+  return summarizeAll(db, await listConversations(db, childId), "parent");
+}
+
+/**
+ * One chat about the child, as their parent reads it (any age, not only the latest 50). Null
+ * when it is about another child or has no turns. The caller checks the reader is a parent.
+ */
+export async function getChildTranscript(
+  db: Client,
+  childId: string,
+  conversationId: string,
+): Promise<Transcript | null> {
+  const { data, error } = await db
+    .from("guide_conversations")
+    .select(CONVERSATION_COLUMNS)
+    .eq("id", conversationId)
+    .eq("child_id", childId)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load the chat");
+  if (!data) return null;
+  const conversation = toConversation(data);
+  if (conversation.childId !== childId || conversation.turns === 0) return null;
+  const messages = await listMessages(db, [conversationId]);
+  return { summary: summarize(conversation, messages), messages: forParent(messages) };
+}
+
+/** Chats a parent asked about any of their children, newest first, at most 50. */
+export async function listChatsAskedBy(db: Client, userId: string): Promise<ConversationSummary[]> {
+  const { data, error } = await db
+    .from("guide_conversations")
+    .select(CONVERSATION_COLUMNS)
+    .eq("asked_by", userId)
+    .gt("turns", 0)
+    .order("last_message_at", { ascending: false })
+    .limit(50);
+  if (error) throw toAppError(error, "Failed to load chats");
+  return summarizeAll(db, data.map(toConversation), "asker");
+}
+
+/** One of a parent's own chats about a child. Null when someone else asked it. */
+export async function getAskerTranscript(
+  db: Client,
+  userId: string,
+  conversationId: string,
+): Promise<Transcript | null> {
+  const { data, error } = await db
+    .from("guide_conversations")
+    .select(CONVERSATION_COLUMNS)
+    .eq("id", conversationId)
+    .eq("asked_by", userId)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load the chat");
+  if (!data) return null;
+  const conversation = toConversation(data);
+  // Checked again in code: only the asker reopens their own chat.
+  if (conversation.askedBy !== userId) return null;
+  const messages = await listMessages(db, [conversationId]);
+  return {
+    summary: summarize(conversation, messages, "asker"),
+    messages: transcriptFor(messages, "asker"),
+  };
+}
+
 /** The chat's title: where it was asked from. */
 export function labelFor(entry: string, contextKey: string): string {
   if (entry === "home") return "Asked from Home";

@@ -24,14 +24,15 @@ type Client = SupabaseClient<Database>;
 
 /**
  * Only place that knows the guide tables and functions. Reads use the caller's client (RLS:
- * the child or their parents); the chat reads are shared with the phone (`@jarso/data/guide`).
+ * the child or their parents); the chat reads, the parent's chat reads, guide access and the
+ * flagged count are shared with the phone (`@jarso/data/guide`).
  * Transcript writes and the budget read use the admin client and service_role-only functions,
  * called by the service after its own checks (ADR 0010).
  */
 export * from "@jarso/data/guide";
 
-// Reads by id or by parent, with no `asked_by is null` filter: parent-side flows only, after the
-// service's own checks. Never shared with the phone, where a child could reach a parent's chat.
+// Raw reads by id, with no `asked_by is null` filter: server flows only, after the service's own
+// checks. Never shared with the phone, where a child could reach a parent's chat.
 
 /** One chat by id, whoever asked. The service checks it is the reader's to see. */
 export async function findConversation(
@@ -45,23 +46,6 @@ export async function findConversation(
     .maybeSingle();
   if (error) throw toAppError(error, "Failed to load the chat");
   return data ? toConversation(data) : null;
-}
-
-/** A parent's own chats about any of their children, newest first, at most `limit`. */
-export async function listConversationsAskedBy(
-  db: Client,
-  parentId: string,
-  limit = 50,
-): Promise<ConversationRow[]> {
-  const { data, error } = await db
-    .from("guide_conversations")
-    .select(CONVERSATION_COLUMNS)
-    .eq("asked_by", parentId)
-    .gt("turns", 0)
-    .order("last_message_at", { ascending: false })
-    .limit(limit);
-  if (error) throw toAppError(error, "Failed to load chats");
-  return data.map(toConversation);
 }
 
 /** Messages of the given chats. Ids alone don't say whose chat it is: look the chat up first. */
@@ -81,25 +65,6 @@ export async function listMessages(
 }
 
 /**
- * Whether Jarso is on for the child: on by default, off only when a parent turned it off. (The
- * row's consent_version records which explanation the parent had; it gates nothing.)
- */
-export async function findGuideAccess(db: Client, childId: string): Promise<boolean> {
-  const { data, error } = await db
-    .from("guide_access")
-    .select("enabled")
-    .eq("child_id", childId)
-    .maybeSingle();
-  if (error) throw toAppError(error, "Failed to load the guide setting");
-  return data ? data.enabled : true;
-}
-
-export async function setGuideAccess(db: Client, childId: string, enabled: boolean): Promise<void> {
-  const { error } = await db.rpc("set_guide_access", { p_child_id: childId, p_enabled: enabled });
-  if (error) throw toAppError(error, "Failed to change the guide setting");
-}
-
-/**
  * Whether the child has ever sent the guide a message (the intro card shows until then). A chat
  * a parent had about the child doesn't count.
  */
@@ -113,23 +78,6 @@ export async function hasAnyMessage(db: Client, childId: string): Promise<boolea
     .limit(1);
   if (error) throw toAppError(error, "Failed to load the guide");
   return data.length > 0;
-}
-
-/** Flagged chats with a message since an instant (the parent's badge). */
-export async function countFlaggedSince(
-  db: Client,
-  childId: string,
-  sinceIso: string,
-): Promise<number> {
-  const { count, error } = await db
-    .from("guide_conversations")
-    .select("id", { count: "exact", head: true })
-    .eq("child_id", childId)
-    .is("asked_by", null)
-    .eq("flagged", true)
-    .gte("last_message_at", sinceIso);
-  if (error) throw toAppError(error, "Failed to load chats");
-  return count ?? 0;
 }
 
 // ---------------------------------------------------------------------------

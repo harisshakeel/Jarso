@@ -1,9 +1,12 @@
-import type { HistoryItem } from "@jarso/core/ledger";
+import { type BalanceHistory, balanceHistory, type HistoryItem } from "@jarso/core/ledger";
+import { addDays, familyToday } from "@jarso/core/lib";
 import {
   type Client,
+  fetchBalance,
   type LedgerRow,
   listClosedOccurrences,
   listLedgerRows,
+  listMovementsSince,
   listOccurrenceAmounts,
 } from "./repository";
 
@@ -234,6 +237,36 @@ export async function getHistoryPage(
     items: page.map(({ at: _at, ...item }) => item),
     olderBefore: hasOlder ? (page.at(-1)?.at ?? null) : null,
   };
+}
+
+/** Days the child's graph can look back; the longest period it offers. */
+export const GRAPH_DAYS = 90;
+
+/**
+ * Where both jars stood at the end of each of the last GRAPH_DAYS days in the family's timezone,
+ * ending at today's balances (the graph). One read of the movements; the walk-back is pure.
+ */
+export async function getBalanceHistory(
+  db: Client,
+  childId: string,
+  opts: { timezone: string; now: Date },
+): Promise<BalanceHistory> {
+  const { timezone, now } = opts;
+  const today = familyToday(timezone, now);
+  const from = addDays(today, -(GRAPH_DAYS - 1));
+  // A day earlier than `from` in UTC covers every timezone's start of that day.
+  const [spend, save, rows] = await Promise.all([
+    fetchBalance(db, childId, "spend"),
+    fetchBalance(db, childId, "save"),
+    listMovementsSince(db, childId, `${addDays(from, -1)}T00:00:00Z`),
+  ]);
+  const movements = rows.map((row) => ({
+    jar: row.jar,
+    direction: row.direction,
+    amountMinor: row.amountMinor,
+    occurredOn: localDate(row.occurredAt, timezone),
+  }));
+  return balanceHistory({ spend, save }, movements, from, today);
 }
 
 /** Every history item back to `weekStart`: more pages only when the newest page stops inside it. */

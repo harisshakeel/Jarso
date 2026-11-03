@@ -1,12 +1,22 @@
 import "server-only";
-import type { ChildSummary, PendingInvitation } from "@jarso/core/family";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database } from "@/types";
 
 type Client = SupabaseClient<Database>;
 
-export { findFamilyById, findMembership, findNickname, findProfileRole } from "@jarso/data/family";
+// The caller's-client reads and writes are shared with the phone (`@jarso/data/family`).
+export {
+  findFamilyById,
+  findMembership,
+  findNickname,
+  findProfileRole,
+  insertFamily,
+  listChildMembers,
+  listInvitationsForCaller,
+  renameChildMember,
+  updateFamilyTimezone,
+} from "@jarso/data/family";
 
 /**
  * Only place that knows family table, column and function names. Pure data access, no auth
@@ -21,31 +31,6 @@ export async function isParentOf(db: Client, childId: string): Promise<boolean> 
   const { data, error } = await db.rpc("is_parent_of", { p_child_id: childId });
   if (error) throw toAppError(error, "Failed to check access");
   return data === true;
-}
-
-export async function insertFamily(
-  db: Client,
-  currency: string,
-  timezone: string,
-): Promise<string> {
-  const { data, error } = await db.rpc("create_family", {
-    p_currency: currency,
-    p_timezone: timezone,
-  });
-  if (error) throw toAppError(error, "Failed to create family");
-  return data;
-}
-
-export async function listChildMembers(db: Client, familyId: string): Promise<ChildSummary[]> {
-  const { data, error } = await db
-    .from("family_members")
-    .select("profile_id, created_at, profile:profiles!family_members_profile_id_fkey(nickname)")
-    .eq("family_id", familyId)
-    .eq("role", "child")
-    .eq("status", "approved")
-    .order("created_at", { ascending: true });
-  if (error) throw toAppError(error, "Failed to load children");
-  return data.map((row) => ({ id: row.profile_id, nickname: row.profile?.nickname ?? "" }));
 }
 
 export async function registerChild(
@@ -82,20 +67,6 @@ export async function removeChildMember(db: Client, childId: string): Promise<bo
   return data === true;
 }
 
-export async function renameChildMember(
-  db: Client,
-  childId: string,
-  nickname: string,
-): Promise<void> {
-  const { error } = await db.rpc("rename_child", { p_child_id: childId, p_nickname: nickname });
-  if (error) throw toAppError(error, "Failed to rename the child");
-}
-
-export async function updateFamilyTimezone(db: Client, timezone: string): Promise<void> {
-  const { error } = await db.rpc("update_family_timezone", { p_timezone: timezone });
-  if (error) throw toAppError(error, "Failed to update the family settings");
-}
-
 export async function findInvitationByHash(
   admin: Client,
   hash: string,
@@ -104,18 +75,6 @@ export async function findInvitationByHash(
   if (error) throw toAppError(error, "Failed to look up invite");
   const row = data?.[0];
   return row ? { id: row.id, nickname: row.nickname } : null;
-}
-
-/** Pending invitations to the caller's own confirmed email (parents only; the function checks). */
-export async function listInvitationsForCaller(db: Client): Promise<PendingInvitation[]> {
-  const { data, error } = await db.rpc("list_my_invitations");
-  if (error) throw toAppError(error, "Failed to load invitations");
-  return data.map((row) => ({
-    id: row.id,
-    nickname: row.nickname,
-    createdAt: row.created_at,
-    expiresAt: row.expires_at,
-  }));
 }
 
 /** `window` is a Postgres interval string, e.g. "1 hour". Returns true when the hit is allowed. */

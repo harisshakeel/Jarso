@@ -20,6 +20,7 @@ import {
   normaliseEmailForLimit,
   normaliseFamilyCode,
 } from "@jarso/core/family";
+import * as shared from "@jarso/data/family";
 import { clientEnv, routes } from "@/config";
 import { sendEmail } from "@/features/notifications/server";
 import { AppError, isAppError, logger } from "@/lib";
@@ -39,7 +40,6 @@ import {
   findInvitationByHash,
   findNickname,
   hitRateLimit,
-  insertFamily,
   insertInvitation,
   listChildMembers,
   listInvitationsForCaller,
@@ -71,17 +71,8 @@ async function enforceLimits(limits: Limit[], message: string): Promise<void> {
 
 export async function createFamily(input: CreateFamilyInput): Promise<Family> {
   await assertRole("parent");
-  const db = await createClient();
-  const id = await insertFamily(db, input.currency, input.timezone).catch((error: unknown) => {
-    // create_family raises 22023 (VALIDATION) only for a timezone Postgres doesn't know. The
-    // timezone comes from the device, so the parent can't fix it: use UTC instead of a dead end.
-    if (!isAppError(error) || error.code !== "VALIDATION") throw error;
-    logger.warn("Device timezone rejected, using UTC", { timezone: input.timezone });
-    return insertFamily(db, input.currency, "UTC");
-  });
-  const family = await findFamilyById(db, id);
-  if (!family) throw new AppError("INTERNAL", "Failed to load the new family");
-  return family;
+  // An unknown device timezone falls back to UTC (shared with the phone).
+  return shared.createFamilyWithFallback(await createClient(), input);
 }
 
 export async function getFamily(): Promise<Family | null> {

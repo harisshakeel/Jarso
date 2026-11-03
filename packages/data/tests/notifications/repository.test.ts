@@ -1,6 +1,7 @@
 import {
   encodeCursor,
   fetchUnreadCount,
+  insertChildNote,
   listNotices,
   markRead,
   parseCursor,
@@ -166,5 +167,38 @@ describe("rowToNotice", () => {
     const notice = rowToNotice({ ...realtimeRow, payload: [1], read_at: "2026-10-31T10:00:00Z" });
     expect(notice.payload).toEqual({});
     expect(notice.read).toBe(true);
+  });
+});
+
+describe("insertChildNote", () => {
+  const args = { childId: "c1", text: "Great saving!", idempotencyKey: "k1" };
+  const client = (result: { data: unknown; error: unknown }) =>
+    fakeClient({}, { send_child_note: result });
+
+  it("sends through send_child_note and returns what it did", async () => {
+    const { db, rpc } = client(ok("sent"));
+    await expect(insertChildNote(db, args)).resolves.toBe("sent");
+    expect(rpc).toHaveBeenCalledWith("send_child_note", {
+      p_child_id: "c1",
+      p_text: "Great saving!",
+      p_idempotency_key: "k1",
+    });
+    await expect(insertChildNote(client(ok("already_sent")).db, args)).resolves.toBe(
+      "already_sent",
+    );
+  });
+
+  it("JA429 → RATE_LIMITED with the web line", async () => {
+    const { db } = client({ data: null, error: { code: "JA429", message: "Too many notes" } });
+    await expect(insertChildNote(db, args)).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+      message: "That's a lot of notes today. Send more tomorrow.",
+    });
+  });
+
+  it("refuses an answer it doesn't know", async () => {
+    await expect(insertChildNote(client(ok("maybe")).db, args)).rejects.toMatchObject({
+      code: "INTERNAL",
+    });
   });
 });

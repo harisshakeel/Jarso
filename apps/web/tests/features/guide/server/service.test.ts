@@ -32,11 +32,10 @@ vi.mock("@/features/guide/server/repository", () => ({
   hasAnyMessage: vi.fn(),
   hitRateLimit: vi.fn(),
   listConversations: vi.fn(),
-  listConversationsAskedBy: vi.fn(),
   listMessages: vi.fn(),
   rateMessage: vi.fn(),
   recordTurn: vi.fn(),
-  setGuideAccess: vi.fn(),
+  saveGuideAccess: vi.fn(),
   startConversation: vi.fn(),
   usageSince: vi.fn(),
 }));
@@ -59,10 +58,14 @@ vi.mock("@/features/guide/server/memory", () => ({
   deleteMemory: vi.fn(),
 }));
 
-// The child's own chat reads are shared (tested in packages/data); the rest of the module is real.
+// The chat reads are shared (tested in packages/data); the rest of the module is real.
 vi.mock("@jarso/data/guide", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@jarso/data/guide")>()),
+  getAskerTranscript: vi.fn(),
+  getChildTranscript: vi.fn(),
   getMyTranscript: vi.fn(),
+  listChatsAskedBy: vi.fn(),
+  listChildChats: vi.fn(),
   listMyChats: vi.fn(),
 }));
 
@@ -579,63 +582,23 @@ describe("askGuide retries", () => {
 });
 
 describe("parent views", () => {
-  const conversation = {
-    id: "convo-1",
-    childId: "child-1",
-    entry: "home" as const,
-    contextKey: "home",
-    turns: 3,
-    flagged: true,
-    createdAt: "2026-10-30T10:00:00Z",
-    lastMessageAt: "2026-10-30T10:05:00Z",
-    askedBy: null,
-  };
-  const message = (
-    id: string,
-    role: "child" | "guide" | "fixed_copy",
-    text: string,
-    route: string | null,
-  ) => ({
-    id,
-    conversationId: "convo-1",
-    role,
-    text,
-    route: route as never,
-    flagged: route === "safety",
-    rating: null,
-    createdAt: "2026-10-30T10:00:00Z",
-    checked: role === "guide" ? ["get_jars" as const] : [],
-  });
-
-  it("show a note in place of a message that got a safety or personal-details response", async () => {
-    vi.mocked(repo.findConversation).mockResolvedValue(conversation);
-    vi.mocked(repo.listMessages).mockResolvedValue([
-      message("m1", "child", "", null),
-      message("m2", "fixed_copy", "Thank you for telling me.", "safety"),
-      message("m3", "child", "", null),
-      message("m4", "fixed_copy", "Let's keep personal stuff private.", "personal_info"),
-      message("m5", "child", "what is saving?", null),
-      message("m6", "guide", "Keeping money for later.", "on_topic"),
-    ]);
-    const transcript = await service.getGuideTranscript("child-1", "convo-1");
-    expect(transcript?.messages.map((m) => m.text)).toEqual([
-      "A safety response was shown. The message itself is not kept.",
-      "Thank you for telling me.",
-      "Personal details were shared, so the message is not kept.",
-      "Let's keep personal stuff private.",
-      "what is saving?",
-      "Keeping money for later.",
-    ]);
-    expect(transcript?.messages.map((m) => m.lookedAt)).toEqual([[], [], [], [], [], ["jars"]]);
-    expect(transcript?.summary.preview).toBe(
-      "A safety response was shown. The message itself is not kept.",
-    );
+  // How a chat reads to the parent is shared and tested in packages/data/tests/guide.
+  it("lists and opens a child's chats through the shared reads, after the parent check", async () => {
+    vi.mocked(data.listChildChats).mockResolvedValue([]);
+    vi.mocked(data.getChildTranscript).mockResolvedValue(null);
+    await expect(service.listGuideChats("child-1")).resolves.toEqual([]);
+    await expect(service.getGuideTranscript("child-1", "convo-1")).resolves.toBeNull();
+    expect(data.listChildChats).toHaveBeenCalledWith({ kind: "user" }, "child-1");
+    expect(data.getChildTranscript).toHaveBeenCalledWith({ kind: "user" }, "child-1", "convo-1");
     expect(family.assertParentCanRead).toHaveBeenCalledWith("child-1");
   });
 
-  it("only open a chat that belongs to this child", async () => {
-    vi.mocked(repo.findConversation).mockResolvedValue({ ...conversation, childId: "child-2" });
-    await expect(service.getGuideTranscript("child-1", "convo-1")).resolves.toBeNull();
+  it("reads nothing when the caller can't read the child", async () => {
+    vi.mocked(family.assertParentCanRead).mockRejectedValueOnce(new AppError("FORBIDDEN", "No."));
+    await expect(service.getGuideTranscript("child-1", "convo-1")).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(data.getChildTranscript).not.toHaveBeenCalled();
   });
 
   it("count flagged chats with one query", async () => {
@@ -651,7 +614,7 @@ describe("parent views", () => {
     await expect(service.setGuideAccess("child-1", true)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
-    expect(repo.setGuideAccess).not.toHaveBeenCalled();
+    expect(repo.saveGuideAccess).not.toHaveBeenCalled();
   });
 });
 
@@ -730,31 +693,6 @@ describe("a parent asking about their child", () => {
 });
 
 describe("the Jarso page's own chats", () => {
-  const row = (
-    over: Partial<Awaited<ReturnType<typeof repo.findConversation>>> & { id: string },
-  ) => ({
-    childId: "child-1",
-    entry: "home" as const,
-    contextKey: "home",
-    turns: 2,
-    flagged: false,
-    createdAt: "2026-11-01T10:00:00Z",
-    lastMessageAt: "2026-11-01T10:05:00Z",
-    askedBy: null,
-    ...over,
-  });
-  const line = (id: string, conversationId: string, role: "child" | "guide", text: string) => ({
-    id,
-    conversationId,
-    role,
-    text,
-    route: role === "guide" ? ("on_topic" as const) : null,
-    flagged: false,
-    rating: null,
-    createdAt: "2026-11-01T10:00:00Z",
-    checked: [],
-  });
-
   it("lists the child's own chats through the shared read, children only", async () => {
     vi.mocked(data.listMyChats).mockResolvedValue([]);
     await expect(service.listMyChats()).resolves.toEqual([]);
@@ -770,32 +708,18 @@ describe("the Jarso page's own chats", () => {
     await expect(service.getMyTranscript("convo-1")).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("lists and reopens the parent's own chats about their children", async () => {
+  it("lists and reopens the parent's own chats through the shared reads, parents only", async () => {
     vi.mocked(family.assertRole).mockResolvedValue({
       user: { id: "parent-1", email: "parent@example.test" } as never,
       membership: null,
     });
-    vi.mocked(repo.listConversationsAskedBy).mockResolvedValue([
-      row({ id: "p1", entry: "parent", contextKey: "parent:child-1", askedBy: "parent-1" }),
-    ]);
-    vi.mocked(repo.listMessages).mockResolvedValue([
-      line("m1", "p1", "child", "How is Sam doing with saving?"),
-      line("m2", "p1", "guide", "Sam has £64 in Save."),
-    ]);
-    const chats = await service.listParentChats();
-    expect(repo.listConversationsAskedBy).toHaveBeenCalledWith(expect.anything(), "parent-1");
-    expect(chats[0]).toMatchObject({
-      id: "p1",
-      childId: "child-1",
-      preview: "How is Sam doing with saving?",
-      label: "A parent asked about them",
-    });
-    vi.mocked(repo.findConversation).mockResolvedValue(
-      row({ id: "p1", entry: "parent", contextKey: "parent:child-1", askedBy: "parent-1" }),
-    );
-    expect((await service.getParentTranscript("p1"))?.messages).toHaveLength(2);
-    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "c1" }));
-    await expect(service.getParentTranscript("c1")).resolves.toBeNull();
+    vi.mocked(data.listChatsAskedBy).mockResolvedValue([]);
+    vi.mocked(data.getAskerTranscript).mockResolvedValue(null);
+    await expect(service.listParentChats()).resolves.toEqual([]);
+    await expect(service.getParentTranscript("p1")).resolves.toBeNull();
+    expect(family.assertRole).toHaveBeenCalledWith("parent");
+    expect(data.listChatsAskedBy).toHaveBeenCalledWith({ kind: "user" }, "parent-1");
+    expect(data.getAskerTranscript).toHaveBeenCalledWith({ kind: "user" }, "parent-1", "p1");
   });
 });
 

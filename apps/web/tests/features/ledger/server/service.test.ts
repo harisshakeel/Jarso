@@ -8,17 +8,15 @@ vi.mock("@/features/family/server", () => ({
   getFamily: vi.fn(),
 }));
 vi.mock("@jarso/data/ledger", () => ({
+  getBalanceHistory: vi.fn(),
   getHistoryPage: vi.fn(),
   getHistorySince: vi.fn(),
   getJars: vi.fn(),
-  localDate: vi.fn(),
-  fetchBalance: vi.fn(),
-  listMovementsSince: vi.fn(),
 }));
 
 const family = await import("@/features/family/server");
 const data = await import("@jarso/data/ledger");
-const { getHistory, getHistoryPage, getHistorySince, getJars } = await import(
+const { getBalanceHistory, getHistory, getHistoryPage, getHistorySince, getJars } = await import(
   "@/features/ledger/server/service"
 );
 
@@ -80,6 +78,24 @@ describe("getHistoryPage", () => {
     vi.mocked(family.assertSelfOrParentOf).mockRejectedValue(new AppError("FORBIDDEN", "No."));
     await expect(getHistoryPage(childId)).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(data.getHistoryPage).not.toHaveBeenCalled();
+  });
+});
+
+// The walk-back over GRAPH_DAYS is shared and tested in packages/data/tests/ledger.
+describe("getBalanceHistory", () => {
+  it("passes the family timezone and the server clock", async () => {
+    vi.mocked(data.getBalanceHistory).mockResolvedValue({ points: [], movedOn: [] });
+    await expect(getBalanceHistory(childId)).resolves.toEqual({ points: [], movedOn: [] });
+    expect(data.getBalanceHistory).toHaveBeenCalledWith(db, childId, {
+      timezone: "Asia/Kolkata",
+      now: expect.any(Date),
+    });
+  });
+
+  it("rejects before reading when the caller is not allowed", async () => {
+    vi.mocked(family.assertSelfOrParentOf).mockRejectedValue(new AppError("FORBIDDEN", "No."));
+    await expect(getBalanceHistory(childId)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(data.getBalanceHistory).not.toHaveBeenCalled();
   });
 });
 
