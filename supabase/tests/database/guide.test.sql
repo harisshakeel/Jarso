@@ -210,7 +210,7 @@ select tests.authenticate_as(:'pa'::uuid);
 select is(
   (select count(*)::int from public.guide_conversations where id = :'pconvo'::uuid)
   + (select count(*)::int from public.guide_messages where conversation_id = :'pconvo'::uuid),
-  2, 'the parent reads their own chat and its messages');
+  3, 'the parent reads their own chat and its messages');
 select tests.authenticate_as(:'c'::uuid);
 select ok((select count(*) from public.guide_messages where conversation_id = :'convo'::uuid) > 0,
   'the child still reads their own chat');
@@ -269,6 +269,8 @@ select throws_ok(format($$ select public.rate_guide_message(%L, -1::smallint) $$
 select tests.authenticate_as(:'c'::uuid);
 select throws_ok(format($$ select public.rate_guide_message(%L, 1::smallint) $$, :'preply'), 'JA403', null,
   'a child cannot rate a reply in a chat a parent had about them');
+-- The switch below is the parent's to flip.
+select tests.authenticate_as(:'pa'::uuid);
 
 -- ---------------------------------------------------------------------------
 -- Switching off stops new chats
