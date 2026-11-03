@@ -25,14 +25,14 @@ export type Database = {
           Tables: {
             "allowance_occurrences": {
                   Row: {
-                    "amount_minor": number,"cash_minor": number | null,"child_id": string,"confirmed_at": string | null,"confirmed_by": string | null,"created_at": string,"due_on": string,"family_id": string,"id": string,"period_key": string,"saved_minor": number | null,"schedule_id": string,"shortfall_minor": number,"status": string
+                    "amount_minor": number,"cash_minor": number | null,"child_id": string,"confirmed_at": string | null,"confirmed_by": string | null,"created_at": string,"due_on": string,"family_id": string,"id": string,"period_key": string,"plan_decided_at": string | null,"saved_minor": number | null,"schedule_id": string,"shortfall_minor": number,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_minor": number,"cash_minor"?: number | null,"child_id": string,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"due_on": string,"family_id": string,"id"?: string,"period_key": string,"saved_minor"?: number | null,"schedule_id": string,"shortfall_minor"?: number,"status"?: string
+                    "amount_minor": number,"cash_minor"?: number | null,"child_id": string,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"due_on": string,"family_id": string,"id"?: string,"period_key": string,"plan_decided_at"?: string | null,"saved_minor"?: number | null,"schedule_id": string,"shortfall_minor"?: number,"status"?: string
                   }
                   Update: {
-                    "amount_minor"?: number,"cash_minor"?: number | null,"child_id"?: string,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"due_on"?: string,"family_id"?: string,"id"?: string,"period_key"?: string,"saved_minor"?: number | null,"schedule_id"?: string,"shortfall_minor"?: number,"status"?: string
+                    "amount_minor"?: number,"cash_minor"?: number | null,"child_id"?: string,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"due_on"?: string,"family_id"?: string,"id"?: string,"period_key"?: string,"plan_decided_at"?: string | null,"saved_minor"?: number | null,"schedule_id"?: string,"shortfall_minor"?: number,"status"?: string
                   }
                   Relationships: [
                     {
@@ -1071,6 +1071,9 @@ isOneToOne: false
                            },
 "current_family_id":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"decide_allowance_plan":
+{ Args: { "p_occurrence_id": string }; Returns: undefined
                            },
 "decide_deposit":
 { Args: { "p_note": string,"p_request_id": string }; Returns: string
