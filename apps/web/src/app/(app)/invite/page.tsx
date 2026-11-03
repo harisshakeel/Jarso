@@ -124,7 +124,7 @@ function Gone() {
   return (
     <Notice message={INVITATION_GONE} alert>
       <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
-        Back to your family
+        {inviteCopy.backToFamily}
       </Link>
     </Notice>
   );
@@ -138,15 +138,15 @@ function CodeForm({ style }: { style?: CSSProperties }) {
         <form action={routes.invite} className="grid gap-6">
           <Field
             name="code"
-            label="Invite code"
+            label={inviteCopy.code}
             autoComplete="off"
             autoCapitalize="characters"
             spellCheck={false}
             required
-            description="The 8-letter code on your child's screen or in the email we sent you."
+            description={inviteCopy.codeHelp}
           />
           <Button type="submit" size="lg" className="w-full">
-            Continue
+            {inviteCopy.continue}
           </Button>
         </form>
       </CardContent>

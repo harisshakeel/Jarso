@@ -36,3 +36,11 @@ exports[`parentGuideCopy > keeps every line 1`] = `
   "yourChild": "Your child",
 }
 `;
+
+exports[`parentGuideCopy > keeps the Jarso notice told before a child is added 1`] = `
+{
+  "body": "Your child can ask Jarso money questions. When they ask, it looks at their own jars, allowance, purchases, goal, requests and learning to answer. Their messages, and what Jarso looks up, are sent to Anthropic (Claude) to get answers. You can read every chat, and turn Jarso off at any time on your child's page.",
+  "safetyLink": "How Jarso keeps children safe",
+  "title": "Jarso, the AI helper, is on",
+}
+`;

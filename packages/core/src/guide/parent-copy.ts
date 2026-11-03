@@ -3,6 +3,13 @@ import type { TranscriptMessage } from "./types";
 // What a parent reads about Jarso: the per-child switch, the chats and a transcript. Moved word
 // for word from the web components so the phone says the same.
 
+/** Told to the parent when they add a child (ADR 0011); the safety link follows the body. */
+export const jarsoNoticeCopy = {
+  title: "Jarso, the AI helper, is on",
+  body: "Your child can ask Jarso money questions. When they ask, it looks at their own jars, allowance, purchases, goal, requests and learning to answer. Their messages, and what Jarso looks up, are sent to Anthropic (Claude) to get answers. You can read every chat, and turn Jarso off at any time on your child's page.",
+  safetyLink: "How Jarso keeps children safe",
+} as const;
+
 export const parentGuideCopy = {
   switchLabel: (nickname: string) => `Jarso for ${nickname}`,
   on: "On",

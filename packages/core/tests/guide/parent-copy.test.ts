@@ -1,9 +1,13 @@
-import { chatWhen, parentGuideCopy } from "@jarso/core/guide";
+import { chatWhen, jarsoNoticeCopy, parentGuideCopy } from "@jarso/core/guide";
 import { describe, expect, it } from "vitest";
 
 describe("parentGuideCopy", () => {
   it("keeps every line", () => {
     expect(parentGuideCopy).toMatchSnapshot();
+  });
+
+  it("keeps the Jarso notice told before a child is added", () => {
+    expect(jarsoNoticeCopy).toMatchSnapshot();
   });
 
   it("counts chats and questions as the web did", () => {

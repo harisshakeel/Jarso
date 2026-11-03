@@ -3,6 +3,7 @@
 exports[`parent family copy > keeps every line 1`] = `
 {
   "addChildCopy": {
+    "added": [Function],
     "cancel": "Cancel",
     "consent": "I am this child's parent or guardian",
     "eyebrow": "Your family",
@@ -56,9 +57,15 @@ exports[`parent family copy > keeps every line 1`] = `
     "timezone": "Timezone",
     "timezoneHelp": "Allowance due dates and reminders follow this timezone.",
   },
+  "invitationGone": "This invitation has expired or was already used. Ask your child to start again.",
   "inviteCopy": {
     "accept": "Accept",
+    "added": [Function],
+    "backToFamily": "Back to your family",
+    "code": "Invite code",
+    "codeHelp": "The 8-letter code on your child's screen or in the email we sent you.",
     "consent": "I am this child's parent or guardian",
+    "continue": "Continue",
     "empty": "No invitations waiting. If your child just sent one, refresh.",
     "eyebrow": "Invitation",
     "intro": "Check their nickname and choose a PIN. They sign in with these and your family code.",
@@ -68,6 +75,7 @@ exports[`parent family copy > keeps every line 1`] = `
     "notNow": "Not now",
     "pin": "PIN",
     "pinHelp": "4 to 6 numbers. Your child uses it with the family code to sign in.",
+    "refresh": "Refresh",
     "submit": "Add child",
     "title": "Your child asked to join.",
   },

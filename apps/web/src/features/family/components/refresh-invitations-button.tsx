@@ -1,5 +1,6 @@
 "use client";
 
+import { inviteCopy } from "@jarso/core/family";
 import { RefreshCwIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -18,7 +19,8 @@ export function RefreshInvitationsButton({ className }: { className?: string }) 
       onClick={() => startTransition(() => router.refresh())}
     >
       <RefreshCwIcon aria-hidden />
-      Refresh<span className="sr-only"> invitations</span>
+      {inviteCopy.refresh}
+      <span className="sr-only"> invitations</span>
     </Button>
   );
 }

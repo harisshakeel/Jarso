@@ -4,6 +4,10 @@
 /** Shown on the nickname field when another child in the family has it. */
 export const nicknameTaken = "Another child in your family already uses this nickname";
 
+/** Shown for unknown, expired and used invitations alike, so none can be told apart. */
+export const invitationGone =
+  "This invitation has expired or was already used. Ask your child to start again.";
+
 /** Setting up the family: currency and time zone. */
 export const setupCopy = {
   eyebrow: "Getting started",
@@ -24,6 +28,8 @@ const childFields = {
   pinHelp: "4 to 6 numbers. Your child uses it with the family code to sign in.",
   consent: "I am this child's parent or guardian",
   submit: "Add child",
+  /** The confirmation once the child is in the family. */
+  added: (nickname: string) => `${nickname} is in your family`,
 } as const;
 
 /** Adding a child. */
@@ -48,6 +54,11 @@ export const inviteCopy = {
   listTitle: "Waiting for you",
   empty: "No invitations waiting. If your child just sent one, refresh.",
   accept: "Accept",
+  refresh: "Refresh",
+  code: "Invite code",
+  codeHelp: "The 8-letter code on your child's screen or in the email we sent you.",
+  continue: "Continue",
+  backToFamily: "Back to your family",
 } as const;
 
 /** Family settings: the code, each child's account, the timezone, and the first-child card. */

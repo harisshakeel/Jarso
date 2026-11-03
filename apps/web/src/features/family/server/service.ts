@@ -17,6 +17,7 @@ import {
   generateCode,
   generateToken,
   hashSecret,
+  invitationGone,
   nicknameTaken,
   normaliseEmailForLimit,
   normaliseFamilyCode,
@@ -58,8 +59,7 @@ import {
 const INVITE_CODE_LENGTH = 8;
 
 /** Shown for unknown, expired and used invitations alike, so none can be told apart. */
-export const INVITATION_GONE =
-  "This invitation has expired or was already used. Ask your child to start again.";
+export const INVITATION_GONE = invitationGone;
 
 type Limit = { key: string; window: string; max: number };
 
