@@ -11,10 +11,18 @@ const schema = z.object({
 export type Env = { supabaseUrl: string; supabasePublishableKey: string; apiUrl: string };
 
 /** Validates the raw EXPO_PUBLIC_* values; the error names every bad variable. */
-export function parseEnv(raw: Record<keyof z.input<typeof schema>, string | undefined>): Env {
+export function parseEnv(
+  raw: Record<keyof z.input<typeof schema>, string | undefined>,
+  allowInsecure = false,
+): Env {
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     throw new Error(`Invalid public environment variables:\n${z.prettifyError(parsed.error)}`);
+  }
+  // The API URL carries the bearer token, so release builds need TLS. Dev builds may use the
+  // laptop's http://<LAN IP>:3000.
+  if (!allowInsecure && !parsed.data.EXPO_PUBLIC_API_URL.startsWith("https:")) {
+    throw new Error("Invalid public environment variables:\nEXPO_PUBLIC_API_URL must use https");
   }
   return {
     supabaseUrl: parsed.data.EXPO_PUBLIC_SUPABASE_URL,
@@ -24,8 +32,11 @@ export function parseEnv(raw: Record<keyof z.input<typeof schema>, string | unde
 }
 
 // Each var is written out in full so Expo inlines it at build time.
-export const env = parseEnv({
-  EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
-  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-  EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
-});
+export const env = parseEnv(
+  {
+    EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
+  },
+  __DEV__,
+);
