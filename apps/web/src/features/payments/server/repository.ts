@@ -55,6 +55,10 @@ export type LivePayment = {
   payerId: string | null;
   expiresAt: string | null;
   redirectUrl: string | null;
+  /** Paid in the phone's native sheet rather than a hosted page. */
+  inApp: boolean;
+  /** The provider's checkout, intent or order id; null while it is still opening. */
+  providerRef: string | null;
 };
 
 export type LatestPayment = { status: string; failureCode: FailureCode | null };
@@ -113,7 +117,9 @@ export async function findLivePayment(
 ): Promise<LivePayment | null> {
   const { data, error } = await db
     .from("payments")
-    .select("id, trigger, provider, status, payer_id, expires_at, redirect_url")
+    .select(
+      "id, trigger, provider, status, payer_id, expires_at, redirect_url, in_app, provider_ref",
+    )
     .eq("source_type", source.type)
     .eq("source_id", source.id)
     .in("status", ["pending", "requires_action"])
@@ -130,6 +136,8 @@ export async function findLivePayment(
     payerId: data.payer_id,
     expiresAt: data.expires_at,
     redirectUrl: data.redirect_url,
+    inApp: data.in_app,
+    providerRef: data.provider_ref,
   };
 }
 
@@ -174,6 +182,8 @@ export async function insertPayment(
     trigger: "manual" | "auto";
     status: "pending";
     expiresAt: string | null;
+    /** Paid in the phone's native sheet (manual only). */
+    inApp?: boolean;
   },
 ): Promise<string | null> {
   const { data, error } = await admin
@@ -192,6 +202,7 @@ export async function insertPayment(
       trigger: row.trigger,
       status: row.status,
       expires_at: row.expiresAt,
+      in_app: row.inApp ?? false,
     })
     .select("id")
     .single();
@@ -210,6 +221,25 @@ export async function setPaymentHosted(
     .update({ provider_ref: hosted.providerRef, redirect_url: hosted.redirectUrl })
     .eq("id", paymentId);
   if (error) throw toAppError(error, "Failed to start the card payment");
+}
+
+/**
+ * Stores an in-app payment's PaymentIntent or order id. False when another payment already holds
+ * it (unique index).
+ */
+export async function setPaymentInApp(
+  admin: Client,
+  paymentId: string,
+  providerRef: string,
+): Promise<boolean> {
+  const { error } = await admin
+    .from("payments")
+    .update({ provider_ref: providerRef })
+    .eq("id", paymentId)
+    .eq("in_app", true);
+  if (error?.code === UNIQUE_VIOLATION) return false;
+  if (error) throw toAppError(error, "Failed to start the card payment");
+  return true;
 }
 
 /** A still-pending payment's split (cash + saved = amount, checked by payments_split_check). */
@@ -628,16 +658,29 @@ export async function listDueAutoCharges(
   );
 }
 
+/** A live payment the sweep ends, with what it needs to cancel an in-app intent too. */
+export type StaleLivePayment = {
+  id: string;
+  provider: PaymentProviderId;
+  providerRef: string | null;
+  inApp: boolean;
+};
+
 /** Pending / requires_action payments past their expires_at. */
-export async function listStaleLivePaymentIds(admin: Client, now: Date): Promise<string[]> {
+export async function listStaleLivePayments(admin: Client, now: Date): Promise<StaleLivePayment[]> {
   const { data, error } = await admin
     .from("payments")
-    .select("id")
+    .select("id, provider, provider_ref, in_app")
     .in("status", ["pending", "requires_action"])
     .lt("expires_at", now.toISOString())
     .limit(500);
   if (error) throw toAppError(error, "Failed to load stale card payments");
-  return (data ?? []).map((row) => row.id);
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    provider: asProviderId(row.provider),
+    providerRef: row.provider_ref,
+    inApp: row.in_app,
+  }));
 }
 
 /** Stores the provider's ref. False when another payment already holds it (unique index). */

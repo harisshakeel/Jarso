@@ -14,6 +14,7 @@ vi.mock("@/features/family/server", () => ({
   getFamily: vi.fn(),
   listChildren: vi.fn(),
 }));
+vi.mock("@/features/allowance/server", () => ({ getLastSplitWith: vi.fn() }));
 vi.mock("@/lib/payments", () => ({
   getPaymentProviders: vi.fn(),
   getPaymentProviderById: vi.fn(),
@@ -35,6 +36,7 @@ vi.mock("@/features/payments/server/repository", () => ({
   insertSetup: vi.fn(),
   setAutoChargeFor: vi.fn(),
   setPaymentHosted: vi.fn(),
+  setPaymentInApp: vi.fn(),
   setPendingSplit: vi.fn(),
   setSetupProviderRef: vi.fn(),
 }));
@@ -229,6 +231,8 @@ describe("startCardPayment", () => {
       payerId: parent.id,
       expiresAt: new Date(NOW.getTime() + 30 * MIN).toISOString(),
       redirectUrl: first.redirectUrl,
+      inApp: false,
+      providerRef: null,
     });
     vi.mocked(repo.insertPayment).mockClear();
     const hosted = vi.spyOn(provider, "createHostedPayment");
@@ -251,6 +255,8 @@ describe("startCardPayment", () => {
       payerId: parent.id,
       expiresAt: new Date(NOW.getTime() + 20 * MIN).toISOString(),
       redirectUrl: "https://checkout.example/1",
+      inApp: false,
+      providerRef: null,
     });
     const hosted = vi.spyOn(provider, "createHostedPayment");
 
@@ -274,6 +280,8 @@ describe("startCardPayment", () => {
       payerId: parent.id,
       expiresAt: new Date(NOW.getTime() - MIN).toISOString(),
       redirectUrl: "https://checkout.example/old",
+      inApp: false,
+      providerRef: null,
     });
     vi.mocked(repo.insertPayment).mockResolvedValue("pay-2");
 
@@ -296,6 +304,8 @@ describe("startCardPayment", () => {
       payerId: parent.id,
       expiresAt: null,
       redirectUrl: null,
+      inApp: false,
+      providerRef: null,
     });
     await rejects(pay(), "CONFLICT");
     expect(repo.insertPayment).not.toHaveBeenCalled();
@@ -313,6 +323,8 @@ describe("startCardPayment", () => {
         payerId: parent.id,
         expiresAt: new Date(NOW.getTime() + 30 * MIN).toISOString(),
         redirectUrl: "https://checkout.example/other",
+        inApp: false,
+        providerRef: null,
       });
 
     expect((await pay()).redirectUrl).toBe("https://checkout.example/other");
@@ -391,6 +403,8 @@ describe("startCardPayment: choosing a provider", () => {
     payerId: parent.id,
     expiresAt: new Date(NOW.getTime() + 20 * MIN).toISOString(),
     redirectUrl: "https://checkout.example/a",
+    inApp: false,
+    providerRef: null,
   };
 
   it.each([
@@ -487,6 +501,8 @@ describe("cancelCardPayment", () => {
     payerId: parent.id,
     expiresAt: new Date(NOW.getTime() + 20 * MIN).toISOString(),
     redirectUrl: "https://checkout.example/1",
+    inApp: false,
+    providerRef: null,
   };
 
   it("cancels the parent's live manual checkout after checking they are the child's parent", async () => {
@@ -1168,6 +1184,8 @@ describe("getCardPaymentState", () => {
       payerId: parent.id,
       expiresAt: new Date(NOW.getTime() + 5 * MIN).toISOString(),
       redirectUrl: "https://checkout.example/1",
+      inApp: false,
+      providerRef: null,
     });
     expect((await service.getCardPaymentState(childId, source)).pending).toEqual({
       provider: "stripe",
@@ -1184,6 +1202,8 @@ describe("getCardPaymentState", () => {
       payerId: parent.id,
       expiresAt: new Date(NOW.getTime() - MIN).toISOString(),
       redirectUrl: "https://checkout.example/1",
+      inApp: false,
+      providerRef: null,
     });
     expect((await service.getCardPaymentState(childId, source)).pending).toBeNull();
   });

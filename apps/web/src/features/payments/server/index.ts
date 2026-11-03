@@ -13,5 +13,6 @@ export {
   setAutoCharge,
   startCardPayment,
   startCardSetup,
+  startInAppPayment,
 } from "./service";
 export { handleProviderEvent } from "./webhooks";
