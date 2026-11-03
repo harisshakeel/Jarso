@@ -1,17 +1,21 @@
 import {
+  diaryCopy,
+  entryDetailCopy,
   notEnoughSaveMessage,
   notEnoughSpendToUndoMessage,
   undoneReceivedMessage,
   undoneSpendMessage,
 } from "@jarso/core/diary";
 import { categoryOf, type HistoryItem } from "@jarso/core/ledger";
-import { useState } from "react";
-import { ActivityIndicator, FlatList, RefreshControl, View } from "react-native";
+import { useRouter } from "expo-router";
+import { ChevronRightIcon } from "lucide-react-native";
+import { type ReactElement, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Text } from "@/components/ui";
 import { useUndo } from "@/features/diary";
 import { useSendOnce } from "@/features/requests";
-import { actionErrorMessage, dayOfDate, formatMoney, toUserMessage } from "@/lib";
+import { actionErrorMessage, dayOfDate, formatMoney, toUserMessage, useTokens } from "@/lib";
 import { cn } from "@/lib/utils";
 import { useHistory } from "./use-history";
 
@@ -56,8 +60,17 @@ function amountText(item: HistoryItem, currency: string): string | null {
     : `${given} of ${formatMoney(item.dueMinor, currency, SHOW)}`;
 }
 
-/** Allowances, gifts, purchases, moves and misses, newest first, as a story rather than a statement. */
-export function HistoryList() {
+/** Whether a line opens its detail (fix, undo, earlier versions), as on the web's Diary. */
+export function opensDetail(item: HistoryItem): boolean {
+  return Boolean(item.entryId) && (item.canFix || item.canUndo || item.fixedFrom !== null);
+}
+
+/**
+ * Allowances, gifts, purchases, moves and misses, newest first, as a story rather than a
+ * statement. `header` goes above the lines (the Diary's actions and cards); its default is the
+ * page heading.
+ */
+export function HistoryList({ header }: { header?: ReactElement } = {}) {
   const { history, home } = useHistory();
   const refresh = () => {
     void history.refetch();
@@ -97,9 +110,11 @@ export function HistoryList() {
         keyExtractor={(item) => `${item.kind}-${item.id}`}
         contentContainerClassName="gap-2 p-4"
         ListHeaderComponent={
-          <Text accessibilityRole="header" className="mb-2 font-sans-extrabold text-h2">
-            History
-          </Text>
+          header ?? (
+            <Text accessibilityRole="header" className="mb-2 font-sans-extrabold text-h2">
+              {diaryCopy.heading}
+            </Text>
+          )
         }
         ListEmptyComponent={
           <Text className="py-6 text-center text-muted-foreground">
@@ -128,6 +143,8 @@ export function HistoryList() {
 }
 
 function HistoryRow({ item, currency }: { item: HistoryItem; currency: string }) {
+  const router = useRouter();
+  const tokens = useTokens();
   const undo = useUndo();
   const sendOnce = useSendOnce();
   const [note, setNote] = useState<{ text: string; bad: boolean }>();
@@ -199,6 +216,16 @@ function HistoryRow({ item, currency }: { item: HistoryItem; currency: string })
           >
             {undo.isPending ? <ActivityIndicator /> : <Text>Undo</Text>}
           </Button>
+        ) : null}
+        {opensDetail(item) ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={entryDetailCopy.detailsFor(item.label)}
+            onPress={() => router.push(`/(child)/entry/${item.entryId}`)}
+            className="h-11 w-11 items-center justify-center rounded-full"
+          >
+            <ChevronRightIcon size={20} color={tokens["muted-foreground"]} />
+          </Pressable>
         ) : null}
       </View>
       {note ? (
