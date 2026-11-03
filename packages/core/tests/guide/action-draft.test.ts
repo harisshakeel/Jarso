@@ -240,4 +240,14 @@ describe("proposalFromStored", () => {
       ),
     ).toBeNull();
   });
+
+  it("names the child on a parent's reopened card when the page passes the name", () => {
+    const built = build("record_gift", { amount: "10", jar: "save" }, { childId });
+    if (!built.ok) throw new Error("draft");
+    const stored = { type: "action" as const, draft: built.draft };
+    expect(proposalFromStored(stored, "GBP", "Zarrar")).toMatchObject({
+      title: "Give a gift now for Zarrar",
+    });
+    expect(proposalFromStored(stored, "GBP")).toMatchObject({ title: "Give a gift now" });
+  });
 });
