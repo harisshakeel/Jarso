@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AppError, familyToday, toAppError } from "@/lib";
+import { AppError, familyToday } from "@/lib";
 
+// The write and parent-read logic (conflict lines, handover results, gift dates, splits) is
+// shared and tested in packages/data/tests/allowance; these tests cover auth and wiring.
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
 vi.mock("@/features/auth/server", () => ({ assertUser: vi.fn() }));
 vi.mock("@jarso/data/family", () => ({ getFamilyContext: vi.fn() }));
@@ -12,40 +14,42 @@ vi.mock("@/features/family/server", () => ({
   getFamily: vi.fn(),
 }));
 vi.mock("@/features/allowance/server/repository", () => ({
-  cancelPendingGift: vi.fn(),
-  changeGift: vi.fn(),
-  changeSchedule: vi.fn(),
-  closeOccurrence: vi.fn(),
-  confirmGiftHandover: vi.fn(),
-  confirmOccurrenceHandover: vi.fn(),
   fetchNextDueOn: vi.fn(),
   findGift: vi.fn(),
-  findLatestAllowanceSplit: vi.fn(),
   findLatestConfirmedOccurrence: vi.fn(),
-  findLatestGiftSplit: vi.fn(),
-  findLatestSchedule: vi.fn(),
-  fetchScheduleAutoCharge: vi.fn(),
   findOccurrenceChildId: vi.fn(),
   findScheduleChildId: vi.fn(),
-  findScheduleState: vi.fn(),
-  insertGift: vi.fn(),
-  insertSchedule: vi.fn(),
+  findScheduleRow: vi.fn(),
   listDueForParent: vi.fn(),
-  listPendingGifts: vi.fn(),
   markPlanDecided: vi.fn(),
-  pauseSchedule: vi.fn(),
-  resumeSchedule: vi.fn(),
-  stopSchedule: vi.fn(),
+  sumDueOccurrences: vi.fn(),
+}));
+vi.mock("@jarso/data/allowance", () => ({
+  cancelGift: vi.fn(),
+  changeAllowance: vi.fn(),
+  confirmHandover: vi.fn(),
+  createAllowance: vi.fn(),
+  createGift: vi.fn(),
+  getLastSplitWith: vi.fn(),
+  getParentSchedule: vi.fn(),
+  listGiftsFor: vi.fn(),
+  markNotGiven: vi.fn(),
+  pauseAllowance: vi.fn(),
+  resumeAllowance: vi.fn(),
+  stopAllowance: vi.fn(),
+  updateGift: vi.fn(),
 }));
 
 const auth = await import("@/features/auth/server");
 const sharedFamily = await import("@jarso/data/family");
 const family = await import("@/features/family/server");
 const repo = await import("@/features/allowance/server/repository");
+const shared = await import("@jarso/data/allowance");
 const service = await import("@/features/allowance/server/service");
 
 const parent = { id: "parent-1", email: "p@example.com" };
 const childId = "child-1";
+const db = { kind: "user" };
 const gift = {
   id: "gift-1",
   childId,
@@ -57,7 +61,6 @@ const gift = {
   autoChargeProvider: null,
   autoChargeBy: null,
 };
-const conflict = () => toAppError({ code: "JA409", message: "Allowance has stopped" }, "x");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -146,17 +149,16 @@ const mutations: [string, () => Promise<unknown>][] = [
 ];
 
 const writes = [
-  repo.insertSchedule,
-  repo.changeSchedule,
-  repo.pauseSchedule,
-  repo.resumeSchedule,
-  repo.stopSchedule,
-  repo.insertGift,
-  repo.changeGift,
-  repo.cancelPendingGift,
-  repo.confirmOccurrenceHandover,
-  repo.confirmGiftHandover,
-  repo.closeOccurrence,
+  shared.createAllowance,
+  shared.changeAllowance,
+  shared.pauseAllowance,
+  shared.resumeAllowance,
+  shared.stopAllowance,
+  shared.createGift,
+  shared.updateGift,
+  shared.cancelGift,
+  shared.confirmHandover,
+  shared.markNotGiven,
 ];
 
 describe("parent mutations", () => {
@@ -177,136 +179,20 @@ describe("parent mutations", () => {
 
     await expect(service.stopAllowance("s-1")).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(family.assertRole).toHaveBeenCalledWith("parent");
-    expect(repo.stopSchedule).not.toHaveBeenCalled();
-  });
-});
-
-describe("conflicts", () => {
-  it("turns a JA409 from the repository into a CONFLICT with a fitting message", async () => {
-    vi.mocked(repo.changeSchedule).mockRejectedValue(conflict());
-
-    const error = await service
-      .changeAllowance({
-        scheduleId: "s-1",
-        amountMinor: 500,
-        frequency: "weekly",
-        nextOn: "2026-11-01",
-      })
-      .catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(AppError);
-    expect(error).toMatchObject({
-      code: "CONFLICT",
-      message: "This allowance has stopped. Set up a new one.",
-    });
+    expect(shared.stopAllowance).not.toHaveBeenCalled();
   });
 
-  it("explains a CONFLICT on a duplicate allowance", async () => {
-    vi.mocked(repo.insertSchedule).mockRejectedValue(conflict());
+  it("rejects a gift the caller can't see without writing", async () => {
+    vi.mocked(repo.findGift).mockResolvedValue(null);
 
-    await expect(
-      service.createAllowance({
-        childId,
-        amountMinor: 500,
-        frequency: "weekly",
-        firstOn: "2026-11-01",
-      }),
-    ).rejects.toMatchObject({
-      code: "CONFLICT",
-      message: "There's already an allowance. Change it instead.",
-    });
+    await expect(service.cancelGift("gift-1")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(shared.cancelGift).not.toHaveBeenCalled();
   });
 
-  describe("a repeat that finds its work already done", () => {
-    const state = (status: "active" | "paused" | "stopped", pausedThrough: string | null = null) =>
-      vi.mocked(repo.findScheduleState).mockResolvedValue({ status, pausedThrough });
-    const pause = () =>
-      service.pauseAllowance({ scheduleId: "s-1", through: "2026-11-10", message: null });
-
-    it("stop: already stopped is done", async () => {
-      vi.mocked(repo.stopSchedule).mockRejectedValue(conflict());
-      state("stopped");
-      await expect(service.stopAllowance("s-1")).resolves.toBeUndefined();
-    });
-
-    it("resume: already active is done", async () => {
-      vi.mocked(repo.resumeSchedule).mockRejectedValue(conflict());
-      state("active");
-      await expect(service.resumeAllowance("s-1")).resolves.toBeUndefined();
-    });
-
-    it("resume: stopped is still a CONFLICT", async () => {
-      vi.mocked(repo.resumeSchedule).mockRejectedValue(conflict());
-      state("stopped");
-      await expect(service.resumeAllowance("s-1")).rejects.toMatchObject({
-        code: "CONFLICT",
-        message: "This allowance isn't paused.",
-      });
-    });
-
-    it("pause: already paused through the same date is done", async () => {
-      vi.mocked(repo.pauseSchedule).mockRejectedValue(conflict());
-      state("paused", "2026-11-10");
-      await expect(pause()).resolves.toBeUndefined();
-    });
-
-    it.each([
-      ["stopped", null],
-      ["paused", "2026-12-01"],
-    ] as const)("pause: %s (through %s) is still a CONFLICT", async (status, through) => {
-      vi.mocked(repo.pauseSchedule).mockRejectedValue(conflict());
-      state(status, through);
-      await expect(pause()).rejects.toMatchObject({
-        code: "CONFLICT",
-        message: "This allowance isn't running, so it can't pause.",
-      });
-    });
-
-    it("cancel gift: already cancelled is done", async () => {
-      vi.mocked(repo.cancelPendingGift).mockRejectedValue(conflict());
-      vi.mocked(repo.findGift)
-        .mockResolvedValueOnce(gift)
-        .mockResolvedValueOnce({ ...gift, status: "cancelled" });
-      await expect(service.cancelGift("gift-1")).resolves.toBeUndefined();
-    });
-
-    it("cancel gift: handed over is still a CONFLICT", async () => {
-      vi.mocked(repo.cancelPendingGift).mockRejectedValue(conflict());
-      vi.mocked(repo.findGift)
-        .mockResolvedValueOnce(gift)
-        .mockResolvedValueOnce({ ...gift, status: "given" });
-      await expect(service.cancelGift("gift-1")).rejects.toMatchObject({
-        code: "CONFLICT",
-        message: "This gift was already handed over or cancelled.",
-      });
-    });
-
-    it("a failed re-read keeps the CONFLICT", async () => {
-      vi.mocked(repo.stopSchedule).mockRejectedValue(conflict());
-      vi.mocked(repo.findScheduleState).mockRejectedValue(new AppError("UNAVAILABLE", "slow"));
-      await expect(service.stopAllowance("s-1")).rejects.toMatchObject({ code: "CONFLICT" });
-    });
-  });
-
-  it("leaves other errors alone", async () => {
-    vi.mocked(repo.stopSchedule).mockRejectedValue(new AppError("INTERNAL", "boom"));
-    await expect(service.stopAllowance("s-1")).rejects.toMatchObject({ code: "INTERNAL" });
-  });
-
-  it("puts a refused next date (22023) on the date field", async () => {
-    vi.mocked(repo.changeSchedule).mockRejectedValue(
-      toAppError({ code: "22023", message: "Next date must be after the pause" }, "x"),
-    );
-
-    const message =
-      "Pick a later date: after the last allowance, after any pause, and within a year.";
-    await expect(
-      service.changeAllowance({
-        scheduleId: "s-1",
-        amountMinor: 500,
-        frequency: "weekly",
-        nextOn: "2026-11-01",
-      }),
-    ).rejects.toMatchObject({ code: "VALIDATION", message, fieldErrors: { nextOn: [message] } });
+  it("passes the caller's client and input to the shared write", async () => {
+    const input = { scheduleId: "s-1", through: "2026-11-10", message: null };
+    await service.pauseAllowance(input);
+    expect(shared.pauseAllowance).toHaveBeenCalledWith(db, input);
   });
 });
 
@@ -319,90 +205,36 @@ describe("confirmHandover", () => {
     idempotencyKey: "key-1",
   };
 
-  it("passes already_confirmed through", async () => {
-    vi.mocked(repo.confirmOccurrenceHandover).mockResolvedValue("already_confirmed");
+  it("checks the occurrence's child, then passes the shared result through", async () => {
+    vi.mocked(shared.confirmHandover).mockResolvedValue("already_confirmed");
 
     await expect(service.confirmHandover(input)).resolves.toBe("already_confirmed");
-    expect(repo.confirmOccurrenceHandover).toHaveBeenCalledWith(expect.anything(), {
-      id: "occ-1",
-      cashMinor: 300,
-      savedMinor: 200,
-      idempotencyKey: "key-1",
-    });
+    expect(repo.findOccurrenceChildId).toHaveBeenCalledWith(db, "occ-1");
+    expect(shared.confirmHandover).toHaveBeenCalledWith(db, input);
   });
 
-  it("routes gifts to the gift handover", async () => {
-    vi.mocked(repo.confirmGiftHandover).mockResolvedValue("confirmed");
+  it("checks a gift's child through the gift", async () => {
+    vi.mocked(shared.confirmHandover).mockResolvedValue("confirmed");
 
-    await expect(service.confirmHandover({ ...input, kind: "gift", id: "gift-1" })).resolves.toBe(
-      "confirmed",
-    );
-    expect(repo.confirmOccurrenceHandover).not.toHaveBeenCalled();
-  });
-
-  it("is a CONFLICT, not success, when the allowance was marked not given", async () => {
-    vi.mocked(repo.confirmOccurrenceHandover).mockResolvedValue("not_given");
-
-    await expect(service.confirmHandover(input)).rejects.toMatchObject({
-      code: "CONFLICT",
-      message: "This allowance was marked as not given, so nothing was recorded.",
-    });
-  });
-
-  it("is a CONFLICT, not success, when the gift was cancelled", async () => {
-    vi.mocked(repo.confirmGiftHandover).mockResolvedValue("cancelled");
-
-    await expect(
-      service.confirmHandover({ ...input, kind: "gift", id: "gift-1" }),
-    ).rejects.toMatchObject({
-      code: "CONFLICT",
-      message: "This gift was cancelled, so nothing was recorded.",
-    });
+    await service.confirmHandover({ ...input, kind: "gift", id: "gift-1" });
+    expect(repo.findGift).toHaveBeenCalledWith(db, "gift-1");
+    expect(repo.findOccurrenceChildId).not.toHaveBeenCalled();
   });
 });
 
 describe("markNotGiven", () => {
   it("passes already_handled through", async () => {
-    vi.mocked(repo.closeOccurrence).mockResolvedValue("already_handled");
+    vi.mocked(shared.markNotGiven).mockResolvedValue("already_handled");
     await expect(service.markNotGiven("occ-1")).resolves.toBe("already_handled");
   });
 });
 
-describe("createGift", () => {
-  it("forwards the idempotency key", async () => {
-    vi.mocked(repo.insertGift).mockResolvedValue("gift-1");
-    await service.createGift({
-      childId,
-      amountMinor: 1000,
-      giveOn: "2026-11-01",
-      note: null,
-      idempotencyKey: "gift-key-1",
-    });
-    expect(repo.insertGift).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ idempotencyKey: "gift-key-1" }),
-    );
-  });
-});
-
 describe("updateGift", () => {
-  it("keeps an unchanged past date (a due gift)", async () => {
+  it("gives the shared write the family's today", async () => {
     vi.useFakeTimers({ now: new Date("2026-10-29T12:00:00Z"), toFake: ["Date"] });
-    await service.updateGift({
-      giftId: "gift-1",
-      amountMinor: 900,
-      giveOn: "2026-10-20",
-      note: null,
-    });
-    expect(repo.changeGift).toHaveBeenCalled();
-  });
-
-  it("rejects a changed date before today", async () => {
-    vi.useFakeTimers({ now: new Date("2026-10-29T12:00:00Z"), toFake: ["Date"] });
-    await expect(
-      service.updateGift({ giftId: "gift-1", amountMinor: 900, giveOn: "2026-10-21", note: null }),
-    ).rejects.toMatchObject({ code: "VALIDATION" });
-    expect(repo.changeGift).not.toHaveBeenCalled();
+    const input = { giftId: "gift-1", amountMinor: 900, giveOn: "2026-10-20", note: null };
+    await service.updateGift(input);
+    expect(shared.updateGift).toHaveBeenCalledWith(db, input, "2026-10-29");
   });
 });
 
@@ -414,9 +246,8 @@ describe("parent-only reads", () => {
     ["getLastSplit", () => service.getLastSplit(childId)],
   ])("%s checks parenthood without the profile gate", async (_, run) => {
     vi.mocked(repo.listDueForParent).mockResolvedValue([]);
-    vi.mocked(repo.listPendingGifts).mockResolvedValue([]);
-    vi.mocked(repo.findLatestAllowanceSplit).mockResolvedValue(null);
-    vi.mocked(repo.findLatestGiftSplit).mockResolvedValue(null);
+    vi.mocked(shared.listGiftsFor).mockResolvedValue([]);
+    vi.mocked(shared.getLastSplitWith).mockResolvedValue(null);
 
     await run();
     expect(family.assertParentCanRead).toHaveBeenCalledWith(childId);
@@ -425,107 +256,60 @@ describe("parent-only reads", () => {
 });
 
 describe("getLastSplit", () => {
-  it("uses the most recent of allowance and gift handovers", async () => {
-    vi.mocked(repo.findLatestAllowanceSplit).mockResolvedValue({
-      cash: 300,
-      saved: 200,
-      at: "2026-10-20T10:00:00Z",
-    });
-    vi.mocked(repo.findLatestGiftSplit).mockResolvedValue({
-      cash: 0,
-      saved: 1000,
-      at: "2026-10-25T10:00:00Z",
-    });
-
+  it("reads the shared split with the caller's client", async () => {
+    vi.mocked(shared.getLastSplitWith).mockResolvedValue({ cash: 0, saved: 1000 });
     await expect(service.getLastSplit(childId)).resolves.toEqual({ cash: 0, saved: 1000 });
+    expect(shared.getLastSplitWith).toHaveBeenCalledWith(db, childId);
   });
 
-  it("is null before the first handover", async () => {
-    vi.mocked(repo.findLatestAllowanceSplit).mockResolvedValue(null);
-    vi.mocked(repo.findLatestGiftSplit).mockResolvedValue(null);
-    await expect(service.getLastSplit(childId)).resolves.toBeNull();
-  });
-
-  it("getLastSplitWith reads with the given client and checks no session", async () => {
-    const admin = { kind: "admin" } as never;
-    vi.mocked(repo.findLatestAllowanceSplit).mockResolvedValue({
-      cash: 300,
-      saved: 200,
-      at: "2026-10-20T10:00:00Z",
-    });
-    vi.mocked(repo.findLatestGiftSplit).mockResolvedValue(null);
-
-    await expect(service.getLastSplitWith(admin, childId)).resolves.toEqual({
-      cash: 300,
-      saved: 200,
-    });
-    expect(repo.findLatestAllowanceSplit).toHaveBeenCalledWith(admin, childId);
-    expect(family.assertParentCanRead).not.toHaveBeenCalled();
+  it("getLastSplitWith is the shared read and checks no session", async () => {
+    expect(service.getLastSplitWith).toBe(shared.getLastSplitWith);
   });
 });
 
 describe("getSchedule", () => {
-  it("skips the next date for a stopped schedule", async () => {
-    vi.mocked(family.assertSelfOrParentOf).mockResolvedValue({ id: "parent-1", email: null });
-    vi.mocked(repo.findLatestSchedule).mockResolvedValue({
-      id: "s-1",
-      amountMinor: 500,
-      frequency: "weekly",
-      status: "stopped",
-      anchorOn: "2026-11-01",
-      pausedThrough: null,
-      pauseMessage: null,
-    });
-    vi.mocked(repo.fetchScheduleAutoCharge).mockResolvedValue({
-      autoCharge: false,
-      autoChargeProvider: null,
-      autoChargeBy: null,
-    });
+  const row = {
+    id: "s-1",
+    amountMinor: 500,
+    frequency: "weekly" as const,
+    status: "stopped" as const,
+    anchorOn: "2026-11-01",
+    pausedThrough: null,
+    pauseMessage: null,
+  };
 
-    await expect(service.getSchedule(childId)).resolves.toMatchObject({
-      status: "stopped",
+  it("gives a parent the shared parent schedule for their id", async () => {
+    vi.mocked(family.assertSelfOrParentOf).mockResolvedValue({ id: "parent-1", email: null });
+    const schedule = {
+      ...row,
       nextDueOn: null,
-    });
-    expect(repo.fetchNextDueOn).not.toHaveBeenCalled();
+      autoCharge: true,
+      autoChargeProvider: "stripe" as const,
+      autoChargeMine: true,
+    };
+    vi.mocked(shared.getParentSchedule).mockResolvedValue(schedule);
+
+    await expect(service.getSchedule(childId)).resolves.toBe(schedule);
+    expect(shared.getParentSchedule).toHaveBeenCalledWith(db, childId, "parent-1");
     expect(family.assertSelfOrParentOf).toHaveBeenCalledWith(childId);
   });
 
-  it("shows auto charge to a parent and never to the child", async () => {
-    vi.mocked(repo.findLatestSchedule).mockResolvedValue({
-      id: "s-1",
-      amountMinor: 500,
-      frequency: "weekly",
-      status: "stopped",
-      anchorOn: "2026-11-01",
-      pausedThrough: null,
-      pauseMessage: null,
-    });
-    vi.mocked(repo.fetchScheduleAutoCharge).mockResolvedValue({
-      autoCharge: true,
-      autoChargeProvider: "stripe",
-      autoChargeBy: "parent-1",
-    });
-    vi.mocked(family.assertSelfOrParentOf).mockResolvedValue({ id: "parent-1", email: null });
-    await expect(service.getSchedule(childId)).resolves.toMatchObject({
-      autoCharge: true,
-      autoChargeProvider: "stripe",
-      autoChargeMine: true,
-    });
-    vi.mocked(family.assertSelfOrParentOf).mockResolvedValue({ id: "parent-2", email: null });
-    await expect(service.getSchedule(childId)).resolves.toMatchObject({
-      autoChargeProvider: "stripe",
-      autoChargeMine: false,
-    });
+  it("never shows auto charge to the child, and skips the next date when stopped", async () => {
     vi.mocked(family.assertSelfOrParentOf).mockResolvedValue({ id: childId, email: null });
+    vi.mocked(repo.findScheduleRow).mockResolvedValue(row);
+
     const forChild = await service.getSchedule(childId);
     expect(forChild).toMatchObject({
+      status: "stopped",
+      nextDueOn: null,
       autoCharge: false,
       autoChargeProvider: null,
       autoChargeMine: false,
     });
     expect(forChild).not.toHaveProperty("autoChargeBy");
+    expect(repo.fetchNextDueOn).not.toHaveBeenCalled();
     // The child's read never asks for auto charge: the database would refuse it.
-    expect(repo.fetchScheduleAutoCharge).toHaveBeenCalledTimes(2);
+    expect(shared.getParentSchedule).not.toHaveBeenCalled();
   });
 });
 
@@ -586,18 +370,10 @@ describe("getTodaysAllowance", () => {
 });
 
 describe("listGifts", () => {
-  it("says which provider pays a gift and whether the viewer set it", async () => {
-    const { childId: _, ...pending } = gift;
-    vi.mocked(repo.listPendingGifts).mockResolvedValue([
-      { ...pending, autoCharge: true, autoChargeProvider: "fake", autoChargeBy: "parent-1" },
-      { ...pending, id: "gift-2", autoCharge: true, autoChargeProvider: "fake", autoChargeBy: "x" },
-    ]);
-    const gifts = await service.listGifts(childId);
-    expect(gifts.map((g) => [g.id, g.autoChargeProvider, g.autoChargeMine])).toEqual([
-      ["gift-1", "fake", true],
-      ["gift-2", "fake", false],
-    ]);
-    expect(gifts[0]).not.toHaveProperty("autoChargeBy");
+  it("lists the shared gifts for the viewing parent", async () => {
+    vi.mocked(shared.listGiftsFor).mockResolvedValue([]);
+    await service.listGifts(childId);
+    expect(shared.listGiftsFor).toHaveBeenCalledWith(db, childId, "parent-1");
   });
 });
 
@@ -605,34 +381,31 @@ describe("matchSaving", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-30T12:00:00Z"));
-    vi.mocked(repo.insertGift).mockResolvedValue("gift-9");
+    vi.mocked(shared.createGift).mockResolvedValue("gift-9");
     vi.mocked(repo.findGift).mockResolvedValue({ ...gift, id: "gift-9", giveOn: "2026-10-30" });
   });
 
   it("gives a gift today, noted as a match, and hands all of it over into Save", async () => {
-    vi.mocked(repo.confirmGiftHandover).mockResolvedValue("confirmed");
+    vi.mocked(shared.confirmHandover).mockResolvedValue("confirmed");
     await expect(
       service.matchSaving({ childId, amountMinor: 700, idempotencyKey: "key-1" }),
     ).resolves.toBe("confirmed");
-    expect(repo.insertGift).toHaveBeenCalledWith(
-      { kind: "user" },
-      {
-        childId,
-        amountMinor: 700,
-        giveOn: "2026-10-30",
-        note: "Matching your saving",
-        idempotencyKey: "key-1",
-      },
-    );
-    expect(repo.confirmGiftHandover).toHaveBeenCalledWith(
-      { kind: "user" },
-      expect.objectContaining({ id: "gift-9", cashMinor: 0, savedMinor: 700 }),
+    expect(shared.createGift).toHaveBeenCalledWith(db, {
+      childId,
+      amountMinor: 700,
+      giveOn: "2026-10-30",
+      note: "Matching your saving",
+      idempotencyKey: "key-1",
+    });
+    expect(shared.confirmHandover).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({ kind: "gift", id: "gift-9", cashMinor: 0, savedMinor: 700 }),
     );
   });
 
   it("a retry after a lost response adds nothing twice", async () => {
     // The same key returns the same gift, and its handover is already done.
-    vi.mocked(repo.confirmGiftHandover).mockResolvedValue("already_confirmed");
+    vi.mocked(shared.confirmHandover).mockResolvedValue("already_confirmed");
     await expect(
       service.matchSaving({ childId, amountMinor: 700, idempotencyKey: "key-1" }),
     ).resolves.toBe("already_confirmed");
@@ -645,7 +418,7 @@ describe("matchSaving", () => {
     await expect(
       service.matchSaving({ childId, amountMinor: 700, idempotencyKey: "key-1" }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
-    expect(repo.insertGift).not.toHaveBeenCalled();
-    expect(repo.confirmGiftHandover).not.toHaveBeenCalled();
+    expect(shared.createGift).not.toHaveBeenCalled();
+    expect(shared.confirmHandover).not.toHaveBeenCalled();
   });
 });
