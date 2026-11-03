@@ -1,96 +1,32 @@
 import "server-only";
 import type { GuideEntry, GuideRoute, GuideUsage } from "@jarso/core/guide";
+import {
+  CONVERSATION_COLUMNS,
+  type ConversationRow,
+  MESSAGE_COLUMNS,
+  type MessageRow,
+  toConversation,
+  toMessage,
+} from "@jarso/data/guide";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
 import type { Database, Json } from "@/types";
-import { isToolName, type ToolCall, type ToolName } from "./tool-specs";
+import type { ToolCall } from "./tool-specs";
 
 type Client = SupabaseClient<Database>;
 
 /**
  * Only place that knows the guide tables and functions. Reads use the caller's client (RLS:
- * the child or their parents). Transcript writes and the budget read use the admin client and
- * service_role-only functions, called by the service after its own checks (ADR 0010).
+ * the child or their parents); the chat reads are shared with the phone (`@jarso/data/guide`).
+ * Transcript writes and the budget read use the admin client and service_role-only functions,
+ * called by the service after its own checks (ADR 0010).
  */
+export * from "@jarso/data/guide";
 
-const ROUTES: readonly GuideRoute[] = [
-  "on_topic",
-  "off_topic",
-  "personal_info",
-  "safety",
-  "unsafe",
-  "jailbreak",
-  "blocked_output",
-  "unavailable",
-];
+// Reads by id or by parent, with no `asked_by is null` filter: parent-side flows only, after the
+// service's own checks. Never shared with the phone, where a child could reach a parent's chat.
 
-function asRoute(value: string | null): GuideRoute | null {
-  return value && (ROUTES as readonly string[]).includes(value) ? (value as GuideRoute) : null;
-}
-
-function asEntry(value: string): GuideEntry {
-  return value === "why" || value === "topic" || value === "home" ? value : "step";
-}
-
-/**
- * Whether Jarso is on for the child: on by default, off only when a parent turned it off. (The
- * row's consent_version records which explanation the parent had; it gates nothing.)
- */
-export async function findGuideAccess(db: Client, childId: string): Promise<boolean> {
-  const { data, error } = await db
-    .from("guide_access")
-    .select("enabled")
-    .eq("child_id", childId)
-    .maybeSingle();
-  if (error) throw toAppError(error, "Failed to load the guide setting");
-  return data ? data.enabled : true;
-}
-
-export async function setGuideAccess(db: Client, childId: string, enabled: boolean): Promise<void> {
-  const { error } = await db.rpc("set_guide_access", { p_child_id: childId, p_enabled: enabled });
-  if (error) throw toAppError(error, "Failed to change the guide setting");
-}
-
-export type ConversationRow = {
-  id: string;
-  childId: string;
-  entry: GuideEntry;
-  contextKey: string;
-  turns: number;
-  flagged: boolean;
-  createdAt: string;
-  lastMessageAt: string;
-  /** The parent who asked, for a chat a parent had about the child; null when the child asked. */
-  askedBy: string | null;
-};
-
-const CONVERSATION_COLUMNS =
-  "id, child_id, entry, context_key, turns, flagged, created_at, last_message_at, asked_by";
-
-function toConversation(row: {
-  id: string;
-  child_id: string;
-  entry: string;
-  context_key: string;
-  turns: number;
-  flagged: boolean;
-  created_at: string;
-  last_message_at: string;
-  asked_by?: string | null;
-}): ConversationRow {
-  return {
-    id: row.id,
-    childId: row.child_id,
-    entry: asEntry(row.entry),
-    contextKey: row.context_key,
-    turns: row.turns,
-    flagged: row.flagged,
-    createdAt: row.created_at,
-    lastMessageAt: row.last_message_at,
-    askedBy: row.asked_by ?? null,
-  };
-}
-
+/** One chat by id, whoever asked. The service checks it is the reader's to see. */
 export async function findConversation(
   db: Client,
   conversationId: string,
@@ -102,25 +38,6 @@ export async function findConversation(
     .maybeSingle();
   if (error) throw toAppError(error, "Failed to load the chat");
   return data ? toConversation(data) : null;
-}
-
-/** A child's own chats (not a parent's about them), flagged first then newest, at most `limit`. */
-export async function listConversations(
-  db: Client,
-  childId: string,
-  limit = 50,
-): Promise<ConversationRow[]> {
-  const { data, error } = await db
-    .from("guide_conversations")
-    .select(CONVERSATION_COLUMNS)
-    .eq("child_id", childId)
-    .is("asked_by", null)
-    .gt("turns", 0)
-    .order("flagged", { ascending: false })
-    .order("last_message_at", { ascending: false })
-    .limit(limit);
-  if (error) throw toAppError(error, "Failed to load chats");
-  return data.map(toConversation);
 }
 
 /** A parent's own chats about any of their children, newest first, at most `limit`. */
@@ -140,35 +57,7 @@ export async function listConversationsAskedBy(
   return data.map(toConversation);
 }
 
-export type MessageRow = {
-  id: string;
-  conversationId: string;
-  role: "child" | "guide" | "fixed_copy";
-  text: string;
-  route: GuideRoute | null;
-  flagged: boolean;
-  rating: -1 | 1 | null;
-  createdAt: string;
-  /** What Jarso looked up for this reply, in order (replies only). */
-  checked: ToolName[];
-};
-
-/** Tool names from a stored `tool_calls` array; anything unrecognised is dropped. */
-function asChecked(value: Json | null): ToolName[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((call) =>
-    call && typeof call === "object" && !Array.isArray(call) && typeof call.name === "string"
-      ? isToolName(call.name)
-        ? [call.name]
-        : []
-      : [],
-  );
-}
-
-function asRole(value: string): MessageRow["role"] {
-  return value === "guide" || value === "fixed_copy" ? value : "child";
-}
-
+/** Messages of the given chats. Ids alone don't say whose chat it is: look the chat up first. */
 export async function listMessages(
   db: Client,
   conversationIds: readonly string[],
@@ -176,22 +65,31 @@ export async function listMessages(
   if (conversationIds.length === 0) return [];
   const { data, error } = await db
     .from("guide_messages")
-    .select("id, conversation_id, role, text, route, flagged, rating, created_at, tool_calls")
+    .select(MESSAGE_COLUMNS)
     .in("conversation_id", [...conversationIds])
     .order("created_at", { ascending: true })
     .order("role", { ascending: true });
   if (error) throw toAppError(error, "Failed to load the chat");
-  return data.map((row) => ({
-    id: row.id,
-    conversationId: row.conversation_id,
-    role: asRole(row.role),
-    text: row.text,
-    route: asRoute(row.route),
-    flagged: row.flagged,
-    rating: row.rating === 1 || row.rating === -1 ? row.rating : null,
-    createdAt: row.created_at,
-    checked: asChecked(row.tool_calls),
-  }));
+  return data.map(toMessage);
+}
+
+/**
+ * Whether Jarso is on for the child: on by default, off only when a parent turned it off. (The
+ * row's consent_version records which explanation the parent had; it gates nothing.)
+ */
+export async function findGuideAccess(db: Client, childId: string): Promise<boolean> {
+  const { data, error } = await db
+    .from("guide_access")
+    .select("enabled")
+    .eq("child_id", childId)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load the guide setting");
+  return data ? data.enabled : true;
+}
+
+export async function setGuideAccess(db: Client, childId: string, enabled: boolean): Promise<void> {
+  const { error } = await db.rpc("set_guide_access", { p_child_id: childId, p_enabled: enabled });
+  if (error) throw toAppError(error, "Failed to change the guide setting");
 }
 
 /** Whether the child has ever sent the guide a message (the intro card shows until then). */
@@ -221,14 +119,6 @@ export async function countFlaggedSince(
     .gte("last_message_at", sinceIso);
   if (error) throw toAppError(error, "Failed to load chats");
   return count ?? 0;
-}
-
-export async function rateMessage(db: Client, messageId: string, rating: 1 | -1): Promise<void> {
-  const { error } = await db.rpc("rate_guide_message", {
-    p_message_id: messageId,
-    p_rating: rating,
-  });
-  if (error) throw toAppError(error, "Failed to save your rating");
 }
 
 // ---------------------------------------------------------------------------
