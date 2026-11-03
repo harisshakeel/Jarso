@@ -1,6 +1,6 @@
 "use client";
 
-import type { Gift } from "@jarso/core/allowance";
+import { type Gift, giftCopy } from "@jarso/core/allowance";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useActionState, useEffect, useState, useTransition } from "react";
@@ -57,7 +57,7 @@ export function GiftForm({
         ? await runOnline(() => updateGiftAction(null, formData))
         : await runOnline(() => createGiftAction(null, formData));
       if (result.ok) {
-        toast.success("Gift saved");
+        toast.success(giftCopy.saved);
         router.push(routes.parentChild(childId));
       }
       return result;
@@ -95,7 +95,7 @@ export function GiftForm({
         <CardContent className="grid gap-6">
           <Field
             name="giveOn"
-            label="Give on"
+            label={giftCopy.giveOn}
             type="date"
             min={initial ? undefined : today}
             required
@@ -105,7 +105,7 @@ export function GiftForm({
           />
           <Field
             name="note"
-            label={`Note for ${nickname} (optional)`}
+            label={giftCopy.noteLabel(nickname)}
             autoComplete="off"
             maxLength={140}
             value={note}
@@ -121,10 +121,10 @@ export function GiftForm({
           href={routes.parentChild(childId)}
           className={buttonVariants({ variant: "outline", size: "lg" })}
         >
-          Back
+          {giftCopy.back}
         </Link>
         <Button type="submit" size="lg" loading={pending} disabled={!initial && !idempotencyKey}>
-          Save gift
+          {giftCopy.save}
         </Button>
       </div>
     </form>
@@ -153,7 +153,7 @@ export function CancelGiftForm({
       // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
       start(() => {
         if (result.ok) {
-          toast.success("Gift cancelled");
+          toast.success(giftCopy.cancelled);
           router.push(routes.parentChild(childId));
         } else {
           setError(result.error);
@@ -165,18 +165,18 @@ export function CancelGiftForm({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger render={<Button variant="outline" size="lg" />}>
-        Cancel this gift
+        {giftCopy.cancelTrigger}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Cancel this gift?</AlertDialogTitle>
-          <AlertDialogDescription>{nickname} won't see it.</AlertDialogDescription>
+          <AlertDialogTitle>{giftCopy.cancelTitle}</AlertDialogTitle>
+          <AlertDialogDescription>{giftCopy.cancelBody(nickname)}</AlertDialogDescription>
         </AlertDialogHeader>
         <FormError error={error} />
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep it</AlertDialogCancel>
+          <AlertDialogCancel>{giftCopy.keep}</AlertDialogCancel>
           <Button variant="destructive" loading={pending} onClick={confirm}>
-            Cancel gift
+            {giftCopy.cancel}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

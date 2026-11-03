@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`parentGuideCopy > keeps every line 1`] = `
+{
+  "cardTitle": "Jarso, the AI helper",
+  "chatLabel": "Chat",
+  "chatsLabel": "Chats",
+  "fixedCopy": "Jarso (set reply)",
+  "flagged": [Function],
+  "fullBody": [Function],
+  "fullLink": "How Jarso keeps children safe",
+  "guide": "Jarso (AI)",
+  "helpful": "Your child found this helpful",
+  "lookedAt": [Function],
+  "memoriesIntro": [Function],
+  "noChats": "No chats yet.",
+  "notHelpful": "Your child didn't find this helpful",
+  "off": "Off",
+  "on": "On",
+  "questions": [Function],
+  "readChats": [Function],
+  "routeNotes": {
+    "blocked_output": "Jarso's reply was held back",
+    "jailbreak": "Jarso stayed Jarso",
+    "off_topic": "Jarso steered back to money",
+    "personal_info": "Personal details were not kept",
+    "safety": "Jarso showed the helplines",
+    "unavailable": "Jarso was not available",
+    "unsafe": "Jarso said no to this",
+  },
+  "shortBody": [Function],
+  "shortLink": "What Jarso can and can't do",
+  "switchLabel": [Function],
+  "worthALook": "Worth a look",
+  "yourChild": "Your child",
+}
+`;

@@ -6,6 +6,7 @@ import {
   addChildSchema,
   childSignInSchema,
   createFamilySchema,
+  nicknameTaken,
   removeChildSchema,
   renameChildSchema,
   setChildPinSchema,
@@ -50,7 +51,7 @@ export const createFamilyAction = createAction(
 function nicknameConflict(error: unknown): never {
   if (isAppError(error) && error.code === "CONFLICT") {
     throw new AppError("CONFLICT", "Please fix the highlighted fields.", {
-      fieldErrors: { nickname: ["Another child in your family already uses this nickname"] },
+      fieldErrors: { nickname: [nicknameTaken] },
       cause: error,
     });
   }

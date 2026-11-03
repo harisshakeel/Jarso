@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { safeNextPath } from "@/features/auth";
-import { CreateFamilyForm } from "@/features/family";
+import { CreateFamilyForm, setupCopy } from "@/features/family";
 import { requireRole } from "@/features/family/server";
 
 export const metadata: Metadata = { title: "Set up your family" };
@@ -27,11 +27,9 @@ export default function ParentSetupPage({ searchParams }: PageProps<"/parent/set
   return (
     <div className="mx-auto grid w-full max-w-lg gap-6">
       <header className="grid gap-3">
-        <p className="eyebrow">Getting started</p>
-        <h1 className="text-balance text-h1">Set up your family.</h1>
-        <p className="text-ink-2">
-          Pick the currency your family uses. You can add your children next.
-        </p>
+        <p className="eyebrow">{setupCopy.eyebrow}</p>
+        <h1 className="text-balance text-h1">{setupCopy.title}</h1>
+        <p className="text-ink-2">{setupCopy.intro}</p>
       </header>
       <Card className="rise-in shadow-raised">
         <CardContent>

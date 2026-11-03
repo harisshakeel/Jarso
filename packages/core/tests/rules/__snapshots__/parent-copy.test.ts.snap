@@ -1,0 +1,43 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`rulesCopy > keeps every line 1`] = `
+{
+  "addAuto": [Function],
+  "addCap": "Add a limit",
+  "addDeposit": "Let put-ins count before I confirm",
+  "addSpendLimit": "Add a spending limit",
+  "autoEmpty": "Nothing yet: every take-out waits for your yes.",
+  "autoTitle": [Function],
+  "capEmpty": "No limit: any amount can be asked for.",
+  "capTitle": [Function],
+  "depositEmpty": [Function],
+  "depositNote": [Function],
+  "intro": [Function],
+  "jarMovesAsk": "Take-outs wait for your yes and the hand-over; put-ins wait until you have the cash.",
+  "jarMovesLegend": [Function],
+  "jarMovesNotify": "Take-outs and put-ins are recorded at once and you get a note each time. Asking for extra money still waits for you.",
+  "jarMovesOptions": [
+    {
+      "label": "Ask me first",
+      "mode": "ask",
+    },
+    {
+      "label": "Just tell me",
+      "mode": "notify",
+    },
+  ],
+  "moves": "Moving money between jars",
+  "noSpendingLimits": "No spending limits yet",
+  "overspend": [Function],
+  "overspendOff": [Function],
+  "overspendOn": [Function],
+  "putIn": "Putting money into Save",
+  "putInNotify": "Put-ins count in Save at once and you get a note.",
+  "spendLimitEmpty": [Function],
+  "spending": "Spending",
+  "spendingNotes": [Function],
+  "takeOut": "Taking money out of Save",
+  "takeOutNotify": "Take-outs are recorded at once and you get a note; the limits below still hold.",
+  "title": "Money rules",
+}
+`;

@@ -1,5 +1,5 @@
 import type { ChildDueItem } from "@jarso/core/allowance";
-import { formatDay } from "@jarso/core/allowance";
+import { dueKindLabel, formatDay, needsYouCopy } from "@jarso/core/allowance";
 import { CheckIcon, GiftIcon, HandCoinsIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge, buttonVariants, Card } from "@/components/ui";
@@ -17,7 +17,7 @@ type NeedsYouProps = {
 function What({ item }: { item: ChildDueItem }) {
   return (
     <>
-      {item.kind === "gift" ? "Gift" : "Allowance"}
+      {dueKindLabel(item.kind)}
       {item.note ? <span className="font-normal text-ink-2"> · {item.note}</span> : null}
     </>
   );
@@ -36,11 +36,11 @@ export function NeedsYou({ items, currency, otherCount = 0 }: NeedsYouProps) {
     return (
       <section aria-labelledby="needs-you-title">
         <h2 id="needs-you-title" className="sr-only">
-          Needs you
+          {needsYouCopy.title}
         </h2>
         <p className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-tint-teal px-3 font-semibold text-primary text-sm">
           <CheckIcon aria-hidden className="size-4" />
-          All caught up.
+          {needsYouCopy.allCaughtUp}
         </p>
       </section>
     );
@@ -48,11 +48,11 @@ export function NeedsYou({ items, currency, otherCount = 0 }: NeedsYouProps) {
   return (
     <section id="needs-you" aria-labelledby="needs-you-title" className="grid scroll-mt-6 gap-3">
       <h2 id="needs-you-title" className="flex items-center gap-2 text-h2">
-        Needs you
+        {needsYouCopy.title}
         {waiting > 0 ? (
           <Badge variant="count">
             {waiting}
-            <span className="sr-only"> waiting</span>
+            <span className="sr-only">{needsYouCopy.waiting}</span>
           </Badge>
         ) : null}
       </h2>
@@ -76,7 +76,7 @@ export function NeedsYou({ items, currency, otherCount = 0 }: NeedsYouProps) {
                         <p className="font-semibold">
                           <What item={item} />
                         </p>
-                        <p className="text-ink-2">Due {formatDay(item.dueOn)}</p>
+                        <p className="text-ink-2">{needsYouCopy.due(formatDay(item.dueOn))}</p>
                       </div>
                       <span className="money font-bold text-money-l">
                         {money(item.amountMinor)}
@@ -84,10 +84,14 @@ export function NeedsYou({ items, currency, otherCount = 0 }: NeedsYouProps) {
                     </div>
                     <Link
                       href={routes.parentHandover(item.childId, item.kind, item.id)}
-                      aria-label={`Hand over ${item.kind} to ${item.nickname}, due ${formatDay(item.dueOn)}`}
+                      aria-label={needsYouCopy.handOverLabel(
+                        item.kind,
+                        item.nickname,
+                        formatDay(item.dueOn),
+                      )}
                       className={buttonVariants({ size: "lg" })}
                     >
-                      Hand over
+                      {needsYouCopy.handOver}
                     </Link>
                   </div>
                 </Card>

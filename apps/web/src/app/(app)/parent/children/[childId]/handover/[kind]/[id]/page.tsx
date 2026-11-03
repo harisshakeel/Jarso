@@ -6,6 +6,7 @@ import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { HandoverForm, handoverParamsSchema, prefillSplit } from "@/features/allowance";
 import { getLastSplit, listDue } from "@/features/allowance/server";
+import { parentPageCopy } from "@/features/dashboard";
 import { planNote } from "@/features/goals";
 import { getGoalView } from "@/features/goals/server";
 import {
@@ -68,7 +69,7 @@ async function HandoverContent({
 
   if (!item) {
     return (
-      <PageShell title={`Hand over to ${child.nickname}`} back={back}>
+      <PageShell title={parentPageCopy.handOverTo(child.nickname)} back={back}>
         {cancelledCard}
         {card?.lastOutcome?.status === "succeeded_unapplied" ? (
           <PaymentStatusNote state={card} />
@@ -87,7 +88,7 @@ async function HandoverContent({
     );
   }
   return (
-    <PageShell title={`Hand over to ${child.nickname}`} back={back}>
+    <PageShell title={parentPageCopy.handOverTo(child.nickname)} back={back}>
       {cancelledCard}
       {returnedFromCard ? <CardReturnedBanner /> : null}
       <HandoverForm

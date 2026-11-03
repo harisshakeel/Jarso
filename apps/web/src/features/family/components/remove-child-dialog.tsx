@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChildSummary } from "@jarso/core/family";
+import { type ChildSummary, familySettingsCopy } from "@jarso/core/family";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { FormError } from "@/components/form";
@@ -29,7 +29,7 @@ export function RemoveChildDialog({ child }: { child: ChildSummary }) {
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await runOnline(() => removeChildAction(prev, formData));
     if (result.ok) {
-      toast.success(`${child.nickname} was removed from your family`);
+      toast.success(familySettingsCopy.removed(child.nickname));
       setOpen(false);
     }
     return result;
@@ -39,24 +39,25 @@ export function RemoveChildDialog({ child }: { child: ChildSummary }) {
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger render={<Button variant="ghost" />}>
-        Remove<span className="sr-only"> {child.nickname}</span>
+        {familySettingsCopy.remove}
+        <span className="sr-only"> {child.nickname}</span>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove {child.nickname} from your family?</AlertDialogTitle>
+          <AlertDialogTitle>{familySettingsCopy.removeTitle(child.nickname)}</AlertDialogTitle>
           <AlertDialogDescription>
-            {child.nickname} will be signed out on every device and their PIN will stop working.
-            Their account is deleted. You can add {child.nickname} again later with a new PIN. This
-            can't be undone.
+            {familySettingsCopy.removeBody(child.nickname)}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <form action={action} onSubmit={submit} className="contents" noValidate>
           <input type="hidden" name="childId" value={child.id} />
           <FormError error={state?.ok === false ? state.error : undefined} />
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>Keep {child.nickname}</AlertDialogCancel>
+            <AlertDialogCancel disabled={pending}>
+              {familySettingsCopy.keepChild(child.nickname)}
+            </AlertDialogCancel>
             <Button type="submit" variant="destructive" size="lg" loading={pending}>
-              Remove {child.nickname}
+              {familySettingsCopy.removeChild(child.nickname)}
             </Button>
           </AlertDialogFooter>
         </form>

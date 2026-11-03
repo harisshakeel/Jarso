@@ -1,6 +1,6 @@
 "use client";
 
-import { NOTE_MAX, type NoteResult } from "@jarso/core/notifications";
+import { NOTE_MAX, type NoteResult, noteCopy } from "@jarso/core/notifications";
 import { MessageCircleHeartIcon } from "lucide-react";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
@@ -48,14 +48,12 @@ export function SendNoteSheet({
         )}
       >
         <MessageCircleHeartIcon aria-hidden className="size-4" />
-        Send a note <span className="sr-only">to {nickname}</span>
+        {noteCopy.trigger} <span className="sr-only">{noteCopy.triggerTo(nickname)}</span>
       </SheetTrigger>
       <SheetContent side="bottom" className="sm:mx-auto sm:w-full sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>A note for {nickname}</SheetTitle>
-          <SheetDescription>
-            It shows in {nickname}'s News. Keep it short and kind.
-          </SheetDescription>
+          <SheetTitle>{noteCopy.title(nickname)}</SheetTitle>
+          <SheetDescription>{noteCopy.body(nickname)}</SheetDescription>
         </SheetHeader>
         {/* Lives inside the sheet, so it unmounts on close and opens fresh, with a new key. */}
         <NoteForm
@@ -82,7 +80,7 @@ function NoteForm({
     async (_prev: ActionState<{ status: NoteResult }>, formData: FormData) => {
       const result = await runOnline(() => sendChildNoteAction(null, formData));
       if (result.ok) {
-        toast.success(`Note sent to ${nickname}`);
+        toast.success(noteCopy.sent(nickname));
         onDone();
       }
       return result;
@@ -96,7 +94,7 @@ function NoteForm({
       <input type="hidden" name="childId" value={childId} />
       <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       {suggestions.length > 0 ? (
-        <ul className="flex flex-wrap gap-2" aria-label="Ideas to start from">
+        <ul className="flex flex-wrap gap-2" aria-label={noteCopy.ideas}>
           {suggestions.map((line) => (
             <li key={line}>
               <Button
@@ -113,18 +111,18 @@ function NoteForm({
       ) : null}
       <Field
         name="text"
-        label="Your note"
+        label={noteCopy.label}
         autoComplete="off"
         required
         maxLength={NOTE_MAX}
         value={text}
         onChange={(event) => setText(event.target.value)}
-        description={`${text.length} of ${NOTE_MAX} characters`}
+        description={noteCopy.count(text.length, NOTE_MAX)}
         errors={fieldErrors?.text}
       />
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
-        Send to {nickname}
+        {noteCopy.send(nickname)}
       </Button>
     </form>
   );

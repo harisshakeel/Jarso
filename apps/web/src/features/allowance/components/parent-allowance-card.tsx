@@ -1,5 +1,10 @@
 import type { Schedule } from "@jarso/core/allowance";
-import { cadenceAfterAmount, describeAllowanceState, runningSchedule } from "@jarso/core/allowance";
+import {
+  allowanceSummaryCopy,
+  cadenceAfterAmount,
+  describeAllowanceState,
+  runningSchedule,
+} from "@jarso/core/allowance";
 import Link from "next/link";
 import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
@@ -20,7 +25,7 @@ export function ParentAllowanceCard({ childId, schedule, currency }: ParentAllow
       <CardContent>
         <section aria-labelledby="allowance-title" className="grid gap-3">
           <h2 id="allowance-title" className="text-h3">
-            Allowance
+            {allowanceSummaryCopy.title}
           </h2>
           {running ? (
             <p className="flex flex-wrap items-baseline gap-x-2">
@@ -43,7 +48,7 @@ export function ParentAllowanceCard({ childId, schedule, currency }: ParentAllow
               className: "w-fit",
             })}
           >
-            {running ? "Manage" : "Set up allowance"}
+            {running ? allowanceSummaryCopy.manage : allowanceSummaryCopy.setUp}
           </Link>
         </section>
       </CardContent>

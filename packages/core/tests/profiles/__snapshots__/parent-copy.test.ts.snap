@@ -1,0 +1,30 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`profileCopy > keeps every line 1`] = `
+{
+  "accountTitle": "Your account",
+  "completeBody": "Tell us a bit about you. Only you can see it, and it never shows to your child.",
+  "completeSaved": "Thanks, you're all set",
+  "completeSubmit": "Save and continue",
+  "completeTitle": "One more thing.",
+  "country": "Country",
+  "countryHelp": "So Jarso shows the right helplines and money for where you live.",
+  "countryPlaceholder": "Choose your country",
+  "dateOfBirth": "Date of birth",
+  "dateOfBirthHelp": "Parents need to be 18 or over.",
+  "detailsBody": "Only you can see these.",
+  "detailsSaved": "Details saved",
+  "detailsSubmit": "Save details",
+  "detailsTitle": "Your details",
+  "gender": "Gender",
+  "genderHelp": "Helps us see who the pilot reached. "Prefer not to say" is fine.",
+  "genderPlaceholder": "Choose an option",
+  "looksBody": "Light, dark, or follow your device.",
+  "looksTitle": "Looks",
+  "name": "Your name",
+  "nameSaved": "Name saved",
+  "saveName": "Save name",
+  "signOutBody": "Sign out of Jarso on this device.",
+  "signOutTitle": "Done for now?",
+}
+`;

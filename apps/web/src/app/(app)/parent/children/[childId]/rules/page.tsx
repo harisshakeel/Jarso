@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { BackLink, PageContainer, PageHeader } from "@/components/layout";
 import { Skeleton } from "@/components/ui";
 import { routes } from "@/config";
-import { RulesForm } from "@/features/rules";
+import { RulesForm, rulesCopy } from "@/features/rules";
 import { getChildRules } from "@/features/rules/server";
 import { loadChild } from "../load-child";
 
@@ -18,8 +18,8 @@ async function RulesContent({ params }: { params: Promise<{ childId: string }> }
     <>
       <PageHeader
         back={<BackLink href={routes.parentChild(childId)}>{child.nickname}</BackLink>}
-        title="Money rules"
-        description={`Set how ${child.nickname} spends. Limits send you a note. They never stop a purchase.`}
+        title={rulesCopy.title}
+        description={rulesCopy.intro(child.nickname)}
       />
       <RulesForm childId={childId} nickname={child.nickname} currency={currency} rules={rules} />
     </>
@@ -30,7 +30,7 @@ async function RulesContent({ params }: { params: Promise<{ childId: string }> }
 function RulesSkeleton() {
   return (
     <>
-      <PageHeader title="Money rules" />
+      <PageHeader title={rulesCopy.title} />
       <div aria-hidden className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Skeleton className="h-80" />
         <Skeleton className="h-56" />

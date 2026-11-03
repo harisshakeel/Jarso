@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
-import { AddChildForm } from "@/features/family";
+import { AddChildForm, addChildCopy } from "@/features/family";
 import { requireRole } from "@/features/family/server";
 import { JarsoNotice } from "@/features/guide";
 import { isGuideConfigured } from "@/features/guide/server";
@@ -26,12 +26,9 @@ export default function AddChildPage() {
   return (
     <div className="mx-auto grid w-full max-w-lg gap-6">
       <header className="grid gap-3">
-        <p className="eyebrow">Your family</p>
-        <h1 className="text-balance text-h1">Add a child.</h1>
-        <p className="text-ink-2">
-          Choose a nickname and a PIN. Your child signs in with these and your family code, which is
-          in Settings.
-        </p>
+        <p className="eyebrow">{addChildCopy.eyebrow}</p>
+        <h1 className="text-balance text-h1">{addChildCopy.title}</h1>
+        <p className="text-ink-2">{addChildCopy.intro}</p>
       </header>
       <Card className="rise-in shadow-raised">
         <CardContent>

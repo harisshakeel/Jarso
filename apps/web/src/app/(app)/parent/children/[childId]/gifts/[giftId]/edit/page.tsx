@@ -5,6 +5,7 @@ import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { CancelGiftForm, GiftForm } from "@/features/allowance";
 import { listGifts } from "@/features/allowance/server";
+import { parentPageCopy } from "@/features/dashboard";
 import { AutoChargeToggle } from "@/features/payments";
 import { getAutoChargeCard } from "@/features/payments/server";
 import { loadChild } from "../../../load-child";
@@ -24,7 +25,7 @@ async function EditGiftContent({
   );
   const [gifts, autoChargeCards] = await Promise.all([listGifts(childId), getAutoChargeCard()]);
   const gift = gifts.find((g) => g.id === giftId);
-  const title = `Gift for ${child.nickname}`;
+  const title = parentPageCopy.giftFor(child.nickname);
   const back = { href: routes.parentChild(childId), label: child.nickname };
 
   if (gift?.status !== "pending") {
@@ -42,7 +43,7 @@ async function EditGiftContent({
     );
   }
   return (
-    <PageShell title={title} intro="Change this gift." back={back}>
+    <PageShell title={title} intro={parentPageCopy.giftEditIntro} back={back}>
       <GiftForm
         childId={childId}
         nickname={child.nickname}

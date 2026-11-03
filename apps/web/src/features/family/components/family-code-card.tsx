@@ -1,5 +1,6 @@
 "use client";
 
+import { familySettingsCopy } from "@jarso/core/family";
 import { CopyIcon } from "lucide-react";
 import type { CSSProperties } from "react";
 import { toast } from "sonner";
@@ -19,26 +20,24 @@ export function FamilyCodeCard({ code, raised, className, style }: FamilyCodeCar
   async function copy() {
     try {
       await navigator.clipboard.writeText(code);
-      toast.success("Family code copied");
+      toast.success(familySettingsCopy.codeCopied);
     } catch {
-      toast("Couldn't copy. You can type the code instead.");
+      toast(familySettingsCopy.codeCopyFailed);
     }
   }
 
   return (
     <Card className={cn(raised && "shadow-raised", className)} style={style}>
       <CardHeader>
-        <p className="eyebrow">Family code</p>
-        <CardTitle>Give this code to your child</CardTitle>
-        <CardDescription>
-          They sign in with this code, their nickname and their PIN.
-        </CardDescription>
+        <p className="eyebrow">{familySettingsCopy.codeEyebrow}</p>
+        <CardTitle>{familySettingsCopy.codeTitle}</CardTitle>
+        <CardDescription>{familySettingsCopy.codeBody}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap items-center justify-between gap-4">
         <p className="money font-extrabold text-display tracking-[0.2em]">{code}</p>
         <Button variant="outline" onClick={copy}>
           <CopyIcon aria-hidden />
-          Copy code
+          {familySettingsCopy.copyCode}
         </Button>
       </CardContent>
     </Card>

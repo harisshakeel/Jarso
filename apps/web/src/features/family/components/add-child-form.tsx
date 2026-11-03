@@ -1,5 +1,6 @@
 "use client";
 
+import { addChildCopy } from "@jarso/core/family";
 import Link from "next/link";
 import { useState } from "react";
 import { Field, FieldError, FormError } from "@/components/form";
@@ -20,25 +21,25 @@ export function AddChildForm() {
     <form action={formAction} onSubmit={submit} className="grid gap-6" noValidate>
       <Field
         name="nickname"
-        label="Nickname"
+        label={addChildCopy.nickname}
         autoComplete="off"
         maxLength={20}
         required
         value={nickname}
         onChange={(event) => setNickname(event.target.value)}
-        description="What your child likes to be called. They type it to sign in."
+        description={addChildCopy.nicknameHelp}
         errors={fieldErrors?.nickname}
       />
       <Field
         name="pin"
-        label="PIN"
+        label={addChildCopy.pin}
         type="password"
         inputMode="numeric"
         pattern="[0-9]*"
         autoComplete="off"
         maxLength={6}
         required
-        description="4 to 6 numbers. Your child uses it with the family code to sign in."
+        description={addChildCopy.pinHelp}
         errors={fieldErrors?.pin}
       />
 
@@ -53,7 +54,7 @@ export function AddChildForm() {
             aria-invalid={consentErrors?.length ? true : undefined}
             aria-describedby={consentErrors?.length ? "consent-error" : undefined}
           />
-          I am this child's parent or guardian
+          {addChildCopy.consent}
         </Label>
         <FieldError id="consent-error" errors={consentErrors} />
       </div>
@@ -61,10 +62,10 @@ export function AddChildForm() {
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
-          Cancel
+          {addChildCopy.cancel}
         </Link>
         <Button type="submit" size="lg" loading={pending} disabled={!ready}>
-          Add child
+          {addChildCopy.submit}
         </Button>
       </div>
     </form>

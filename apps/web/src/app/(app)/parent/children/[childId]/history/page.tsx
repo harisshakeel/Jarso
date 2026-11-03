@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui";
 import { routes } from "@/config";
+import { parentPageCopy } from "@/features/dashboard";
 import { HistoryList, historyParamsSchema, WhereItWentCard, whereItWent } from "@/features/ledger";
 import { getHistoryPage, getHistorySince } from "@/features/ledger/server";
 import { startOfWeek } from "@/lib";
@@ -24,7 +25,7 @@ async function HistoryContent({ params, searchParams }: Props) {
   const path = routes.parentChildHistory(childId);
   return (
     <PageShell
-      title={`${child.nickname}'s history`}
+      title={parentPageCopy.history(child.nickname)}
       back={{ href: routes.parentChild(childId), label: child.nickname }}
     >
       <WhereItWentCard view={whereItWent(week, today, currency, { showMinor: "always" })} />
@@ -33,7 +34,7 @@ async function HistoryContent({ params, searchParams }: Props) {
         currency={currency}
         skippedLabel="Not given"
         showMinor="always"
-        emptyLine={`${child.nickname}'s money story starts here.`}
+        emptyLine={parentPageCopy.historyEmpty(child.nickname)}
       />
       {before || olderBefore ? (
         <nav aria-label="History pages" className="flex flex-wrap justify-between gap-3">

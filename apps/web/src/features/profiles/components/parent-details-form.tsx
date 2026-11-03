@@ -1,7 +1,7 @@
 "use client";
 
 import type { ParentDetails } from "@jarso/core/profiles";
-import { EARLIEST_BIRTH_DATE, latestAdultBirthDate } from "@jarso/core/profiles";
+import { EARLIEST_BIRTH_DATE, latestAdultBirthDate, profileCopy } from "@jarso/core/profiles";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { Field, FieldError, FormError } from "@/components/form";
@@ -60,7 +60,7 @@ export function ParentDetailsForm({
     <form action={action} className="grid gap-5" noValidate>
       <Field
         name="dateOfBirth"
-        label="Date of birth"
+        label={profileCopy.dateOfBirth}
         type="date"
         min={EARLIEST_BIRTH_DATE}
         max={latestAdultBirthDate()}
@@ -68,12 +68,12 @@ export function ParentDetailsForm({
         onChange={(event) => setDateOfBirth(event.target.value)}
         autoComplete="bday"
         required
-        description="Parents need to be 18 or over."
+        description={profileCopy.dateOfBirthHelp}
         errors={fieldErrors?.dateOfBirth}
       />
 
       <div className="grid gap-2">
-        <Label htmlFor="country">Country</Label>
+        <Label htmlFor="country">{profileCopy.country}</Label>
         <Select
           name="country"
           items={countryItems}
@@ -88,7 +88,7 @@ export function ParentDetailsForm({
               fieldErrors?.country?.length ? "country-hint country-error" : "country-hint"
             }
           >
-            <SelectValue placeholder="Choose your country" />
+            <SelectValue placeholder={profileCopy.countryPlaceholder} />
           </SelectTrigger>
           <SelectContent>
             {countries.map(({ code, name }) => (
@@ -99,13 +99,13 @@ export function ParentDetailsForm({
           </SelectContent>
         </Select>
         <p id="country-hint" className="text-muted-foreground">
-          So Jarso shows the right helplines and money for where you live.
+          {profileCopy.countryHelp}
         </p>
         <FieldError id="country-error" errors={fieldErrors?.country} />
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="gender">Gender</Label>
+        <Label htmlFor="gender">{profileCopy.gender}</Label>
         <Select
           name="gender"
           items={genderLabels}
@@ -120,7 +120,7 @@ export function ParentDetailsForm({
               fieldErrors?.gender?.length ? "gender-hint gender-error" : "gender-hint"
             }
           >
-            <SelectValue placeholder="Choose an option" />
+            <SelectValue placeholder={profileCopy.genderPlaceholder} />
           </SelectTrigger>
           <SelectContent>
             {genderOptions.map((option: Gender) => (
@@ -131,7 +131,7 @@ export function ParentDetailsForm({
           </SelectContent>
         </Select>
         <p id="gender-hint" className="text-muted-foreground">
-          Helps us see who the pilot reached. "Prefer not to say" is fine.
+          {profileCopy.genderHelp}
         </p>
         <FieldError id="gender-error" errors={fieldErrors?.gender} />
       </div>

@@ -2,6 +2,7 @@ import type { Metadata, Route } from "next";
 import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
+import { parentPageCopy } from "@/features/dashboard";
 import { getFamily, requireRole } from "@/features/family/server";
 import { InboxList, inboxParamsSchema, PushToggle } from "@/features/notifications";
 import { listNotices } from "@/features/notifications/server";
@@ -19,7 +20,7 @@ async function InboxContent({ searchParams }: Pick<Props, "searchParams">) {
     : null;
   return (
     <>
-      <h1 className="text-balance text-h1">Inbox</h1>
+      <h1 className="text-balance text-h1">{parentPageCopy.inbox}</h1>
       <PushToggle hideWhenOn />
       <InboxList
         items={page.items}

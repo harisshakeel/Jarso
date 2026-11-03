@@ -1,4 +1,9 @@
-import type { ConversationSummary, TranscriptMessage } from "@jarso/core/guide";
+import {
+  type ConversationSummary,
+  chatWhen as formatWhen,
+  parentGuideCopy,
+  type TranscriptMessage,
+} from "@jarso/core/guide";
 import {
   BotIcon,
   ChevronRightIcon,
@@ -12,17 +17,6 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib";
 import { GuideSwitch } from "./guide-switch";
-
-/** Times in the family's timezone, not the server's. */
-function formatWhen(iso: string, timezone: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: timezone,
-  }).format(new Date(iso));
-}
 
 /** The parent's Jarso card on a child's page: the switch, flagged chats, and a link to all chats. */
 export function GuideCard({
@@ -44,20 +38,20 @@ export function GuideCard({
         <section aria-labelledby="guide-card" className="grid gap-3">
           <h2 id="guide-card" className="flex items-center gap-2 text-h3">
             <BotIcon aria-hidden className="size-5" />
-            Jarso, the AI helper
+            {parentGuideCopy.cardTitle}
           </h2>
           <GuideSwitch childId={childId} nickname={nickname} enabled={enabled} detail="short" />
           {flagged > 0 ? (
             <p className="flex items-center gap-2 font-semibold text-gold-700 dark:text-gold-200">
               <FlagIcon aria-hidden className="size-4" />
-              {flagged === 1 ? "1 chat is worth a look." : `${flagged} chats are worth a look.`}
+              {parentGuideCopy.flagged(flagged)}
             </p>
           ) : null}
           <Link
             href={href}
             className="inline-flex min-h-11 w-fit items-center gap-1 rounded-full font-semibold text-primary underline-offset-4 hover:underline"
           >
-            Read {nickname}'s chats
+            {parentGuideCopy.readChats(nickname)}
             <ChevronRightIcon aria-hidden className="size-5" />
           </Link>
         </section>
@@ -76,9 +70,9 @@ export function ChatList({
   hrefFor: (id: string) => Route;
   timezone: string;
 }) {
-  if (chats.length === 0) return <p className="text-ink-2">No chats yet.</p>;
+  if (chats.length === 0) return <p className="text-ink-2">{parentGuideCopy.noChats}</p>;
   return (
-    <ul className="grid gap-2" aria-label="Chats">
+    <ul className="grid gap-2" aria-label={parentGuideCopy.chatsLabel}>
       {chats.map((chat) => (
         <li key={chat.id}>
           <Link
@@ -95,13 +89,11 @@ export function ChatList({
             {chat.flagged ? (
               <span className="flex items-center gap-1 font-semibold text-gold-700 dark:text-gold-200">
                 <FlagIcon aria-hidden className="size-4" />
-                Worth a look
+                {parentGuideCopy.worthALook}
               </span>
             ) : null}
             <span className="line-clamp-2 text-ink-2">{chat.preview}</span>
-            <span className="text-ink-2">
-              {chat.turns} {chat.turns === 1 ? "question" : "questions"}
-            </span>
+            <span className="text-ink-2">{parentGuideCopy.questions(chat.turns)}</span>
           </Link>
         </li>
       ))}
@@ -109,21 +101,13 @@ export function ChatList({
   );
 }
 
-const ROUTE_NOTES: Partial<Record<NonNullable<TranscriptMessage["route"]>, string>> = {
-  off_topic: "Jarso steered back to money",
-  personal_info: "Personal details were not kept",
-  safety: "Jarso showed the helplines",
-  unsafe: "Jarso said no to this",
-  jailbreak: "Jarso stayed Jarso",
-  blocked_output: "Jarso's reply was held back",
-  unavailable: "Jarso was not available",
-};
+const ROUTE_NOTES = parentGuideCopy.routeNotes;
 
 /** One chat as the parent reads it. Messages that got a safety response stay private. */
 export function Transcript({
   messages,
   timezone,
-  nickname = "Your child",
+  nickname = parentGuideCopy.yourChild,
 }: {
   messages: TranscriptMessage[];
   timezone: string;
@@ -131,7 +115,7 @@ export function Transcript({
   nickname?: string;
 }) {
   return (
-    <ol className="grid gap-3" aria-label="Chat">
+    <ol className="grid gap-3" aria-label={parentGuideCopy.chatLabel}>
       {messages.map((message) => (
         <li
           key={message.id}
@@ -146,8 +130,8 @@ export function Transcript({
             {message.role === "child"
               ? nickname
               : message.role === "guide"
-                ? "Jarso (AI)"
-                : "Jarso (set reply)"}
+                ? parentGuideCopy.guide
+                : parentGuideCopy.fixedCopy}
             {" · "}
             {formatWhen(message.createdAt, timezone)}
           </span>
@@ -157,7 +141,7 @@ export function Transcript({
           {message.lookedAt.length > 0 ? (
             <span className="flex items-center gap-1 text-ink-2">
               <ScanSearchIcon aria-hidden className="size-4" />
-              Looked at: {message.lookedAt.join(", ")}
+              {parentGuideCopy.lookedAt(message.lookedAt)}
             </span>
           ) : null}
           {message.route && ROUTE_NOTES[message.route] ? (
@@ -178,9 +162,7 @@ export function Transcript({
               ) : (
                 <ThumbsDownIcon aria-hidden className="size-4" />
               )}
-              {message.rating === 1
-                ? "Your child found this helpful"
-                : "Your child didn't find this helpful"}
+              {message.rating === 1 ? parentGuideCopy.helpful : parentGuideCopy.notHelpful}
             </span>
           ) : null}
         </li>

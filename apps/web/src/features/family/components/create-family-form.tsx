@@ -6,6 +6,7 @@ import {
   currencyLabels,
   DEFAULT_CURRENCY,
   isCurrency,
+  setupCopy,
 } from "@jarso/core/family";
 import { useState, useSyncExternalStore } from "react";
 import { FieldError, FormError } from "@/components/form";
@@ -45,7 +46,7 @@ export function CreateFamilyForm({ next }: { next?: string }) {
       <input type="hidden" name="timezone" value={timezone} />
 
       <div className="grid gap-2">
-        <Label htmlFor="currency">Currency</Label>
+        <Label htmlFor="currency">{setupCopy.currency}</Label>
         <Select
           name="currency"
           items={currencyLabels}
@@ -73,17 +74,15 @@ export function CreateFamilyForm({ next }: { next?: string }) {
           </SelectContent>
         </Select>
         <p id="currency-help" className="text-muted-foreground text-sm">
-          Pocket money, savings and goals all use this currency.
+          {setupCopy.currencyHelp}
         </p>
         <FieldError id="currency-error" errors={currencyErrors} />
       </div>
 
       <div className="grid gap-1">
-        <p className="font-bold">Time zone</p>
-        <p className="text-ink-2 text-sm">{timezone || "Finding your time zone…"}</p>
-        <p className="text-muted-foreground text-sm">
-          Taken from this device, so allowance days line up with your week.
-        </p>
+        <p className="font-bold">{setupCopy.timezone}</p>
+        <p className="text-ink-2 text-sm">{timezone || setupCopy.findingTimezone}</p>
+        <p className="text-muted-foreground text-sm">{setupCopy.timezoneHelp}</p>
         <FieldError errors={timezoneErrors} />
       </div>
 
@@ -95,7 +94,7 @@ export function CreateFamilyForm({ next }: { next?: string }) {
         loading={pending}
         disabled={!timezone || !ready}
       >
-        Create family
+        {setupCopy.create}
       </Button>
     </form>
   );

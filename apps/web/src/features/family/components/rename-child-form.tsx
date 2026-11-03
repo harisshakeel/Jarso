@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChildSummary } from "@jarso/core/family";
+import { type ChildSummary, familySettingsCopy } from "@jarso/core/family";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { Field, FormError } from "@/components/form";
@@ -23,14 +23,13 @@ export function RenameChildForm({ child }: { child: ChildSummary }) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger render={<Button variant="outline" />}>
-        Rename<span className="sr-only"> {child.nickname}</span>
+        {familySettingsCopy.rename}
+        <span className="sr-only"> {child.nickname}</span>
       </SheetTrigger>
       <SheetContent side="bottom" className="sm:mx-auto sm:w-full sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>New nickname for {child.nickname}</SheetTitle>
-          <SheetDescription>
-            {child.nickname} signs in with their nickname, so tell them the new one.
-          </SheetDescription>
+          <SheetTitle>{familySettingsCopy.renameTitle(child.nickname)}</SheetTitle>
+          <SheetDescription>{familySettingsCopy.renameBody(child.nickname)}</SheetDescription>
         </SheetHeader>
         <NicknameForm child={child} onDone={() => setOpen(false)} />
       </SheetContent>
@@ -42,7 +41,7 @@ function NicknameForm({ child, onDone }: { child: ChildSummary; onDone: () => vo
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await runOnline(() => renameChildAction(prev, formData));
     if (result.ok) {
-      toast.success("Nickname updated");
+      toast.success(familySettingsCopy.renamed);
       onDone();
     }
     return result;
@@ -60,18 +59,18 @@ function NicknameForm({ child, onDone }: { child: ChildSummary; onDone: () => vo
       <input type="hidden" name="childId" value={child.id} />
       <Field
         name="nickname"
-        label="Nickname"
+        label={familySettingsCopy.nickname}
         defaultValue={child.nickname}
         autoComplete="off"
         maxLength={20}
         required
         autoFocus
-        description="Up to 20 letters, numbers, spaces, dots, dashes or apostrophes."
+        description={familySettingsCopy.nicknameHelp}
         errors={fieldErrors?.nickname}
       />
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
-        Save nickname
+        {familySettingsCopy.saveNickname}
       </Button>
     </form>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { inviteCopy } from "@jarso/core/family";
 import Link from "next/link";
 import { useState } from "react";
 import { Field, FieldError, FormError } from "@/components/form";
@@ -51,25 +52,25 @@ export function AcceptInvitationForm({
       )}
       <Field
         name="nickname"
-        label="Nickname"
+        label={inviteCopy.nickname}
         autoComplete="off"
         maxLength={20}
         required
         value={nickname}
         onChange={(event) => setNickname(event.target.value)}
-        description="Your child picked this. You can change it. They type it to sign in."
+        description={inviteCopy.nicknameHelp}
         errors={fieldErrors?.nickname}
       />
       <Field
         name="pin"
-        label="PIN"
+        label={inviteCopy.pin}
         type="password"
         inputMode="numeric"
         pattern="[0-9]*"
         autoComplete="off"
         maxLength={6}
         required
-        description="4 to 6 numbers. Your child uses it with the family code to sign in."
+        description={inviteCopy.pinHelp}
         errors={fieldErrors?.pin}
       />
 
@@ -84,7 +85,7 @@ export function AcceptInvitationForm({
             aria-invalid={consentErrors?.length ? true : undefined}
             aria-describedby={consentErrors?.length ? "consent-error" : undefined}
           />
-          I am this child's parent or guardian
+          {inviteCopy.consent}
         </Label>
         <FieldError id="consent-error" errors={consentErrors} />
       </div>
@@ -92,10 +93,10 @@ export function AcceptInvitationForm({
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
-          Not now
+          {inviteCopy.notNow}
         </Link>
         <Button type="submit" size="lg" loading={pending} disabled={!ready}>
-          Add child
+          {inviteCopy.submit}
         </Button>
       </div>
     </form>

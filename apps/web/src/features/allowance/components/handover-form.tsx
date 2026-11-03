@@ -1,7 +1,14 @@
 "use client";
 
 import type { HandoverResult, Split } from "@jarso/core/allowance";
-import { cashForSaved, checkSplit, formatDay, shareOf, splitAtShare } from "@jarso/core/allowance";
+import {
+  cashForSaved,
+  checkSplit,
+  formatDay,
+  handoverCopy,
+  shareOf,
+  splitAtShare,
+} from "@jarso/core/allowance";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useTransition } from "react";
@@ -50,7 +57,7 @@ type HandoverFormProps = {
   card?: CardPaymentState | null;
 };
 
-const MONEY_ERROR = "Enter an amount like 5 or 5.50.";
+const MONEY_ERROR = handoverCopy.moneyError;
 
 /** Parent confirmation: how the due money was split into cash (Spend) and kept (Save). Spec §5.2. */
 export function HandoverForm({
@@ -82,8 +89,8 @@ export function HandoverForm({
       setDirty(false);
       const result = await runOnline(() => confirmHandoverAction(null, formData));
       if (result.ok) {
-        if (result.data === "confirmed") coinToast(`Handed over to ${nickname}.`);
-        else toast.success("Already handled.");
+        if (result.data === "confirmed") coinToast(handoverCopy.handedOver(nickname));
+        else toast.success(handoverCopy.alreadyHandled);
         router.push(routes.parentChild(childId));
       }
       return result;
@@ -102,9 +109,7 @@ export function HandoverForm({
   const fieldErrors = !dirty && state?.ok === false ? state.error.fieldErrors : undefined;
   const cashError = cash.trim() && cashMinor === null ? MONEY_ERROR : fieldErrors?.cash?.[0];
   const savedError = saved.trim() && savedMinor === null ? MONEY_ERROR : fieldErrors?.saved?.[0];
-  const totalError = over
-    ? `That's more than ${formatMoney(amountMinor, currency)}, which was due.`
-    : undefined;
+  const totalError = over ? handoverCopy.over(formatMoney(amountMinor, currency)) : undefined;
 
   function setShare(percent: number) {
     setDirty(true);
@@ -143,9 +148,7 @@ export function HandoverForm({
       <Card className="rise-in shadow-raised">
         <CardContent className="grid gap-1">
           <div className="flex items-center gap-2">
-            <p className="flex-1 font-bold">
-              {isAllowance ? "Allowance" : "Gift"} · Due {formatDay(dueOn)}
-            </p>
+            <p className="flex-1 font-bold">{handoverCopy.heading(kind, formatDay(dueOn))}</p>
             <StatusChip status="due" />
           </div>
           {note ? <p className="text-ink-2">{note}</p> : null}
@@ -164,7 +167,7 @@ export function HandoverForm({
             <div className="bg-gold-300 transition-[width]" style={{ width: `${saveWidth}%` }} />
           </div>
           <Slider
-            aria-label={`Save share of ${formatMoney(amountMinor, currency)}`}
+            aria-label={handoverCopy.saveShareLabel(formatMoney(amountMinor, currency))}
             min={0}
             max={100}
             step={5}
@@ -174,7 +177,7 @@ export function HandoverForm({
           <div className="grid grid-cols-2 gap-4">
             <Field
               name="cash"
-              label={`Spend (cash to ${nickname})`}
+              label={handoverCopy.cashLabel(nickname)}
               inputMode="decimal"
               autoComplete="off"
               value={cash}
@@ -183,7 +186,7 @@ export function HandoverForm({
             />
             <Field
               name="saved"
-              label="Save (you keep)"
+              label={handoverCopy.savedLabel}
               inputMode="decimal"
               autoComplete="off"
               value={saved}
@@ -192,21 +195,20 @@ export function HandoverForm({
             />
           </div>
           <p className="text-ink-2">
-            {hasPrevious
-              ? "Same split as last time. Drag or type to change."
-              : "Drag or type to change."}
+            {hasPrevious ? handoverCopy.hintPrevious : handoverCopy.hint}
           </p>
           {goalNote ? <p className="text-ink-2">{goalNote}</p> : null}
           <FieldError errors={totalError ? [totalError] : undefined} />
           {short > 0 ? (
             <p role="status" className="text-ink-2">
-              {nickname} gets{" "}
+              {nickname} {handoverCopy.short.gets}{" "}
               <span className="money font-bold">{formatMoney(amountMinor - short, currency)}</span>{" "}
-              this time, <span className="money font-bold">{formatMoney(short, currency)}</span>{" "}
-              less than was due.
+              {handoverCopy.short.thisTime}{" "}
+              <span className="money font-bold">{formatMoney(short, currency)}</span>{" "}
+              {handoverCopy.short.less}
             </p>
           ) : isAllowance ? (
-            <p className="text-ink-2">Gave less? Enter what you gave.</p>
+            <p className="text-ink-2">{handoverCopy.gaveLess}</p>
           ) : null}
         </CardContent>
       </Card>
@@ -221,7 +223,7 @@ export function HandoverForm({
           loading={pending}
           disabled={!idempotencyKey || !valid || over || notGivenPending}
         >
-          Confirm I handed it over
+          {handoverCopy.confirm}
         </Button>
         {card ? (
           <PayByCard
@@ -252,7 +254,7 @@ export function HandoverForm({
           href={routes.parentChild(childId)}
           className={buttonVariants({ variant: "ghost", size: "lg" })}
         >
-          Back
+          {handoverCopy.back}
         </Link>
       </div>
     </form>
@@ -286,7 +288,9 @@ function NotGivenButton({
       // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
       start(() => {
         if (result.ok) {
-          toast.success(result.data === "closed" ? "Marked as not given." : "Already handled.");
+          toast.success(
+            result.data === "closed" ? handoverCopy.markedNotGiven : handoverCopy.alreadyHandled,
+          );
           router.push(routes.parentChild(childId));
         } else {
           setError(result.error);
@@ -300,20 +304,18 @@ function NotGivenButton({
       <AlertDialogTrigger
         render={<Button type="button" variant="outline" size="lg" disabled={disabled} />}
       >
-        Mark as not given
+        {handoverCopy.notGiven}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Mark as not given?</AlertDialogTitle>
-          <AlertDialogDescription>
-            {nickname} won't get this one, and it won't be paid later.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{handoverCopy.notGivenTitle}</AlertDialogTitle>
+          <AlertDialogDescription>{handoverCopy.notGivenBody(nickname)}</AlertDialogDescription>
         </AlertDialogHeader>
         <FormError error={error} />
         <AlertDialogFooter>
-          <AlertDialogCancel>Go back</AlertDialogCancel>
+          <AlertDialogCancel>{handoverCopy.goBack}</AlertDialogCancel>
           <Button variant="destructive" loading={pending} onClick={confirm}>
-            Mark as not given
+            {handoverCopy.notGiven}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

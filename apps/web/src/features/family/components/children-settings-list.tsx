@@ -1,4 +1,4 @@
-import type { ChildSummary } from "@jarso/core/family";
+import { type ChildSummary, familySettingsCopy } from "@jarso/core/family";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants, Card } from "@/components/ui";
@@ -12,7 +12,7 @@ export function ChildrenSettingsList({ items }: { items: ChildSummary[] }) {
   return (
     <div className="grid gap-4">
       {items.length === 0 ? (
-        <p className="text-ink-2">No children yet.</p>
+        <p className="text-ink-2">{familySettingsCopy.noChildren}</p>
       ) : (
         <Card size="sm">
           <ul className="divide-y divide-hairline">
@@ -43,7 +43,7 @@ export function ChildrenSettingsList({ items }: { items: ChildSummary[] }) {
         className={buttonVariants({ variant: "secondary", size: "lg", className: "sm:w-fit" })}
       >
         <PlusIcon aria-hidden />
-        Add a child
+        {familySettingsCopy.addChild}
       </Link>
     </div>
   );

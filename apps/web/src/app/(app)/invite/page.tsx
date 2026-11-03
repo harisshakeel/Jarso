@@ -5,7 +5,12 @@ import { type CSSProperties, type ReactNode, Suspense } from "react";
 import { Field } from "@/components/form";
 import { Button, buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
-import { AcceptInvitationForm, InvitationList, inviteParamsSchema } from "@/features/family";
+import {
+  AcceptInvitationForm,
+  InvitationList,
+  inviteCopy,
+  inviteParamsSchema,
+} from "@/features/family";
 import {
   findInvitation,
   findMyInvitation,
@@ -186,11 +191,9 @@ export default function InvitePage({ searchParams }: PageProps<"/invite">) {
   return (
     <div className="mx-auto grid w-full max-w-lg gap-6">
       <header className="grid gap-3">
-        <p className="eyebrow">Invitation</p>
-        <h1 className="text-balance text-h1">Your child asked to join.</h1>
-        <p className="text-ink-2">
-          Check their nickname and choose a PIN. They sign in with these and your family code.
-        </p>
+        <p className="eyebrow">{inviteCopy.eyebrow}</p>
+        <h1 className="text-balance text-h1">{inviteCopy.title}</h1>
+        <p className="text-ink-2">{inviteCopy.intro}</p>
       </header>
       <Suspense fallback={<FormSkeleton />}>
         <InviteContent searchParams={searchParams} />
