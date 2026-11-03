@@ -180,7 +180,7 @@ Not run in the build session (no phone or simulator). Tick each on an Android ph
 | A child-set password (`updateUser({ password })`) cannot be used to sign in | [ ] | [ ] |
 | Wrong PIN shows the web's wording | [ ] | [ ] |
 | Five wrong PINs lock that source with the web's wording | [ ] | [ ] |
-| "I'm a parent" leads to the "use the web" screen | [ ] | [ ] |
+| "I'm a parent" leads to the parent sign-in (wave 3: then Family) | [ ] | [ ] |
 | A non-child session never reaches the child tabs | [ ] | [ ] |
 | Intl output looks right on Hermes (money, dates, "x ago") | [ ] | [ ] |
 | Web unchanged for users (existing e2e green in CI) | n/a | n/a |
@@ -277,3 +277,37 @@ Keep every route, action, API and data flow. Phones are a later phase, but token
 - GuideSheet ("Help me" beside a step) still adds the question only after the reply: same bug as the thread had. Follow-up.
 - Sidebar: Me / Settings tabs removed; the person at the foot of the sidebar ("Me" for a child, "Settings" for a parent) is the one link, lit on that page (`RailLink`, BottomNav `outside`). Learn roadmap sized by screen height from 1024 px (fits from 1280×800; 1024×768 46 px over).
 - Flaky under full-suite load: `tests/features/rules/components/rule-group.test.tsx` "adds a rule" (6.3 s > 5 s timeout); passes alone.
+
+# Mobile wave 3 (plans 2026-11-03: type scale, parents on the phone)
+
+Spec `docs/superpowers/specs/2026-11-03-mobile-wave-3-design.md`. Plan 1 (phone type scale) and plan 2 (parents on the phone) are built; card payments and push come in later plans.
+
+## Wave 3 parent device checklist
+
+Build with `npx expo run:android`, then `pnpm --filter @jarso/mobile e2e` with the child and parent `-e` flags (`docs/testing.md`), against `pnpm dev` and the hosted project. Tick each for a test parent on an Android phone; the child sees the results on their phone and the web.
+
+- [ ] Parent signs in with email and password ("I'm a parent") and lands on Family; a child session never reaches a parent screen, a parent never a child one
+- [ ] Setup: a parent without details or a family goes to setup, sees only the missing step, and moves on without a loop
+- [ ] Family home: Needs you (approve / not now, confirm handover, hand over), Jarso's summary, children rows, the next two weeks
+- [ ] Inbox: notices in the parent's wording, unread badge, mark all as read, a notice opens its screen
+- [ ] Child hub: jars, requests, due allowance, gifts coming up, allowance card, Jarso card, learning summary, send a note
+- [ ] Handover: cash with the Spend · Save split, and mark as not given (card is a later plan)
+- [ ] History and where it went
+- [ ] Gift: new, edit, cancel
+- [ ] Allowance: set up, change, pause, resume, stop
+- [ ] Rules
+- [ ] Learning (read only)
+- [ ] Child's Jarso chats and memories
+- [ ] Parent's Jarso chat (the tab shows only when the guide is on); "Do it" on a draft
+- [ ] Add a child
+- [ ] Settings: names, details, family code, time zone, per child rename, PIN, remove, Jarso access; sign out (also offline)
+- [ ] Accept an invitation by code, and by a `jarso://invite?...` link opened while signed out (lands on the invite after sign-in and setup)
+- [ ] Maestro parent flows pass: parent-sign-in, parent-approve-request, parent-cash-handover, parent-allowance, parent-add-child (selectors are unchecked on a device)
+- [ ] Before/after screenshot of the parent Family home at 360 dp, attached to the PR
+
+## Wave 3 type scale — pending device checks (plan 1 Task 8)
+
+- [ ] Before (on `main`) and after screenshots of Home, Diary and Learn on an Android dev build at 360 dp, kept out of the repo and attached to the PR
+- [ ] Home at system font size "Largest": titles and money cap at 1.3x, nothing breaks
+- [ ] Maestro child flows pass with the new Home (sign-in, money-loop, diary, goal, learn, news, guide, offline)
+- [ ] Nunito's tabular figures line up in the jars card and diary amounts (if not, note it here; `docs/design.md` §3 allows a fallback)
