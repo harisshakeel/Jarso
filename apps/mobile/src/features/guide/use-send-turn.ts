@@ -19,7 +19,7 @@ const unavailable = (message: string): Failure => ({
 
 class SignedOut extends Error {}
 
-/** The child's bearer for /api/v1/guide/turns. Never logged. */
+/** The signed-in child's or parent's bearer for /api/v1/guide/turns. Never logged. */
 async function bearer(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;

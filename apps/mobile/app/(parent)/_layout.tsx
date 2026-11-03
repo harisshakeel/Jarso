@@ -1,5 +1,6 @@
 import { parentPageCopy } from "@jarso/core/dashboard";
 import { familySettingsCopy } from "@jarso/core/family";
+import { parentGuideCopy } from "@jarso/core/guide";
 import { parentLearningCopy } from "@jarso/core/learning";
 import { rulesCopy } from "@jarso/core/rules";
 import { Redirect, Stack, useGlobalSearchParams, usePathname, useSegments } from "expo-router";
@@ -36,6 +37,9 @@ const PAGES: { name: string; title: string }[] = [
   { name: "children/[childId]/allowance", title: parentPageCopy.allowance },
   { name: "children/[childId]/gifts/new", title: parentPageCopy.gift },
   { name: "children/[childId]/gifts/[giftId]", title: parentPageCopy.gift },
+  // The chats page adds the child's nickname, and a chat its own label, once loaded.
+  { name: "children/[childId]/guide/index", title: parentGuideCopy.cardTitle },
+  { name: "children/[childId]/guide/[conversationId]", title: parentGuideCopy.chatLabel },
 ];
 
 /**

@@ -5,18 +5,13 @@ import {
   renameChildSchema,
   setChildPinSchema,
 } from "@jarso/core/family";
-import { parentGuideCopy } from "@jarso/core/guide";
 import { useState } from "react";
-import { ActivityIndicator, Modal, Switch, View } from "react-native";
+import { ActivityIndicator, Modal, View } from "react-native";
 import { z } from "zod";
 import { Button, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
-import {
-  useRemoveChild,
-  useRenameChild,
-  useSetChildPin,
-  useSetGuideAccess,
-} from "@/features/family";
+import { useRemoveChild, useRenameChild, useSetChildPin } from "@/features/family";
+import { GuideSwitch } from "@/features/guide";
 import { actionErrorMessage, flash, isAppError } from "@/lib";
 
 type Mode = "rename" | "pin" | null;
@@ -82,7 +77,14 @@ export function ChildSettingsRow({
       </View>
       {mode === "rename" ? <RenameForm child={child} onDone={() => setMode(null)} /> : null}
       {mode === "pin" ? <PinForm child={child} onDone={() => setMode(null)} /> : null}
-      {guide ? <GuideSwitch child={child} enabled={guide.enabled} /> : null}
+      {guide ? (
+        <GuideSwitch
+          childId={child.id}
+          nickname={child.nickname}
+          enabled={guide.enabled}
+          detail="none"
+        />
+      ) : null}
       {removing ? <RemoveDialog child={child} onClose={() => setRemoving(false)} /> : null}
     </View>
   );
@@ -269,39 +271,5 @@ function RemoveDialog({ child, onClose }: { child: ChildSummary; onClose: () => 
         </View>
       </View>
     </Modal>
-  );
-}
-
-/** Jarso for this child: flips at once, flips back with the error if the save fails. */
-function GuideSwitch({ child, enabled }: { child: ChildSummary; enabled: boolean }) {
-  const save = useSetGuideAccess();
-  const [on, setOn] = useState(enabled);
-  const [error, setError] = useState<string>();
-  const label = parentGuideCopy.switchLabel(child.nickname);
-
-  async function change(next: boolean) {
-    setError(undefined);
-    setOn(next);
-    try {
-      await save.mutateAsync({ childId: child.id, enabled: next });
-    } catch (cause) {
-      setOn(!next);
-      setError(await actionErrorMessage(cause));
-    }
-  }
-
-  return (
-    <View className="gap-1">
-      <View className="min-h-12 flex-row items-center justify-between gap-3">
-        <Text className="min-w-0 flex-1 font-sans-semibold">{label}</Text>
-        <Switch
-          accessibilityLabel={label}
-          value={on}
-          disabled={save.isPending}
-          onValueChange={(next) => void change(next)}
-        />
-      </View>
-      <FormError message={error} />
-    </View>
   );
 }

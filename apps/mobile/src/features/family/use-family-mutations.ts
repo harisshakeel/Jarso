@@ -1,6 +1,5 @@
 import type { AddChildInput, ChildSummary } from "@jarso/core/family";
 import { renameChildMember, updateFamilyTimezone } from "@jarso/data/family";
-import { saveGuideAccess } from "@jarso/data/guide";
 import { updateProfileById } from "@jarso/data/profiles";
 import { type QueryKey, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/features/auth";
@@ -100,17 +99,5 @@ export function useRemoveChild() {
       apiFetch<{ ok: true }>(`/api/v1/children/${childId}`, { method: "DELETE", auth: true }),
     onSuccess: (_result, childId) =>
       refresh(keys.family(userId ?? ""), keys.child(childId), keys.parentGuide(userId ?? "")),
-  });
-}
-
-/** Jarso on or off for one child (`set_guide_access` checks the parent). */
-export function useSetGuideAccess() {
-  const { userId } = useSession();
-  const refresh = useRefresh();
-  return useMutation({
-    mutationFn: ({ childId, enabled }: { childId: string; enabled: boolean }) =>
-      saveGuideAccess(supabase, childId, enabled),
-    onSettled: (_result, _error, { childId }) =>
-      refresh(keys.parentGuide(userId ?? ""), keys.childGuideAccess(childId)),
   });
 }

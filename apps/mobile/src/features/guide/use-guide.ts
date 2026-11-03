@@ -34,23 +34,35 @@ export function useTranscript(conversationId: string | null) {
   });
 }
 
-/** What Jarso remembers about the child (shown in Me, each with Forget). */
-export function useMemories() {
+/** The memories' key: the child's own (Me), or one child's as their parent reads them. */
+function useMemoriesKey(childId?: string) {
   const { userId } = useSession();
+  return {
+    queryKey: childId ? keys.childMemories(childId) : keys.memories(userId ?? ""),
+    whose: childId ?? userId,
+  };
+}
+
+/**
+ * What Jarso remembers about the child (shown in Me, each with Forget). With `childId`: one of
+ * the parent's children (RLS lets their parent read and delete them too).
+ */
+export function useMemories(childId?: string) {
+  const { queryKey, whose } = useMemoriesKey(childId);
   return useQuery({
-    queryKey: keys.memories(userId ?? ""),
-    enabled: Boolean(userId),
-    queryFn: () => listMemories(supabase, userId as string),
+    queryKey,
+    enabled: Boolean(whose),
+    queryFn: () => listMemories(supabase, whose as string),
   });
 }
 
-/** Forgets one memory (RLS: the child's own), then refreshes the list. */
-export function useForgetMemory() {
-  const { userId } = useSession();
+/** Forgets one memory (RLS: the child's own, or their parent), then refreshes the list. */
+export function useForgetMemory(childId?: string) {
+  const { queryKey } = useMemoriesKey(childId);
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (memoryId: string) => deleteMemory(supabase, memoryId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.memories(userId ?? "") }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 }
 
