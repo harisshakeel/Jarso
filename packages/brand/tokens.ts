@@ -1,4 +1,5 @@
 // Native mirror of tokens.css for NativeWind. tests/tokens.test.ts keeps them equal.
+// Exception: mobileFontSize is the phone's own type scale and has no CSS twin.
 // Colours are #rrggbb (#rrggbbaa with alpha): oklch converted, var() aliases resolved, and
 // .dark inherits :root-only keys, so light and dark share one key set.
 // Sizes, line heights, letter spacing and radius are px numbers (rem x 16, em x font size).
@@ -236,6 +237,23 @@ export const fontSize = {
     fontWeight: 700,
   },
 } as const;
+
+/** Phone type scale (wave 3 spec §9). Not in tokens.css; the web never reads it. */
+export const mobileFontSize = {
+  display: { size: 26, lineHeight: 32, fontWeight: 800, letterSpacing: -0.4 },
+  h1: { size: 22, lineHeight: 28, fontWeight: 800, letterSpacing: -0.3 },
+  h2: { size: 18, lineHeight: 24, fontWeight: 700 },
+  h3: { size: 16, lineHeight: 22, fontWeight: 700 },
+  body: { size: 16, lineHeight: 22 },
+  "body-parent": { size: 15, lineHeight: 21 },
+  small: { size: 13, lineHeight: 18 },
+  caption: { size: 12, lineHeight: 16 },
+  "money-xl": { size: 32, lineHeight: 36, fontWeight: 800, letterSpacing: -0.64 },
+  "money-l": { size: 22, lineHeight: 26, fontWeight: 700 },
+  money: { size: 17, lineHeight: 22, fontWeight: 700 },
+} as const;
+
+export type MobileFontToken = keyof typeof mobileFontSize;
 
 /** Hand-copied from docs/design.md section 3 (tokens.css has no --font-*); not parity-tested. */
 export const fontFamily = {

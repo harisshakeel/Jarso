@@ -121,21 +121,24 @@ The parent's dashboard colours each child with `series-1` to `series-8` (the dat
 
 Money is set with `font-variant-numeric: tabular-nums lining-nums` so columns of amounts align. Verify once in the browser that Nunito's tabular figures align; if they do not, load Manrope for the `.money` class only.
 
-| Style | Size / line | Weight | Use |
-| --- | --- | --- | --- |
-| Display | 40 / 44 | 800 | Home greeting, milestone screens |
-| H1 | 32 / 38 | 800 | Page titles |
-| H2 | 24 / 30 | 700 | Section titles, card titles on home |
-| H3 | 20 / 26 | 700 | Card titles |
-| Body | 16 / 24 | 400 | Default. Never smaller for children's reading text |
-| Body strong | 16 / 24 | 700 | Labels, button text |
-| Small | 14 / 20 | 400–600 | Timestamps and meta only. Not for anything a child must read: card and sheet descriptions, field helpers and errors are Body |
-| Caption | 12 / 16 | 600 | Chips, timestamps. Not for instructions |
-| Money XL | 44 / 48 | 800 tabular | Jar balance on jar screen |
-| Money L | 28 / 32 | 700 tabular | Balances on home cards |
-| Money | 20 / 24 | 700 tabular | Diary rows, request amounts |
+| Style | Web size / line | Phone size / line | Weight | Use |
+| --- | --- | --- | --- | --- |
+| Display | 40 / 44 | 26 / 32 | 800 | Home greeting, milestone screens |
+| H1 | 32 / 38 | 22 / 28 | 800 | Page titles |
+| H2 | 24 / 30 | 18 / 24 | 700 | Section titles, card titles on home |
+| H3 | 20 / 26 | 16 / 22 | 700 | Card titles |
+| Body | 16 / 24 | 16 / 22 | 400 | Default. Never smaller for children's reading text. Phone: 16 / 22 on child screens |
+| Body (parent) | — | 15 / 21 | 400 | Parent screens only |
+| Body strong | 16 / 24 | 16 / 22 | 700 | Labels, button text |
+| Small | 14 / 20 | 13 / 18 | 400–600 | Timestamps and meta only. Not for anything a child must read: card and sheet descriptions, field helpers and errors are Body |
+| Caption | 12 / 16 | 12 / 16 | 600 | Chips, timestamps. Not for instructions |
+| Money XL | 44 / 48 | 32 / 36 | 800 tabular | Jar balance on jar screen |
+| Money L | 28 / 32 | 22 / 26 | 700 tabular | Balances on home cards |
+| Money | 20 / 24 | 17 / 22 | 700 tabular | Diary rows, request amounts |
 
-Large headlines (Display, H1, Money XL) are set tight, `letter-spacing: -0.02em`, line-height 1.1, as every reference site does; body stays at normal tracking. An **eyebrow** style (12 / 16, 600, teal-700, `letter-spacing: 0.08em`, sentence case) labels sections and steps ("Step 2 of 3", "Due Friday"). The reference sites set eyebrows in all caps with 0.14em tracking; we keep sentence case for children and allow all caps only on parent tables and the marketing page.
+Phone sizes come from `mobileFontSize` in `packages/brand/tokens.ts` (the phone app never uses the web `fontSize`). Titles and money cap system font scaling at 1.3× (`maxFontSizeMultiplier`); body, small and caption keep scaling. The phone's calm rules: hierarchy comes from weight and space rather than size; one accent (teal action or gold money) per card; meta text in the muted colour; spacing on the 4 dp grid with 16 dp gutters and 12–16 dp card padding; no more than one Display or Money XL per screen; lists over stacked cards where items repeat.
+
+Large headlines (Display, H1, Money XL) are set tight, `letter-spacing: -0.02em`, line-height 1.1, as every reference site does; body stays at normal tracking. An **eyebrow** style (12 / 16, 600, teal-700, `letter-spacing: 0.08em`, sentence case) labels sections and steps ("Step 2 of 3", "Due Friday"); phone: same 12 / 16. The reference sites set eyebrows in all caps with 0.14em tracking; we keep sentence case for children and allow all caps only on parent tables and the marketing page.
 
 Currency symbol sits before the number at 60 % of the number's size, aligned to the cap height. Minor units are shown only when non-zero on child screens ("£12" not "£12.00"), always on parent confirmation screens.
 

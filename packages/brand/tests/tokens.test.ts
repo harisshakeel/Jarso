@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { formatHex, formatHex8, parse } from "culori";
 import { describe, expect, it } from "vitest";
-import { fontSize, palette, radius, semantic } from "../tokens";
+import { fontSize, mobileFontSize, palette, radius, semantic } from "../tokens";
 
 const css = readFileSync(new URL("../tokens.css", import.meta.url), "utf8").replace(
   /\/\*[\s\S]*?\*\//g,
@@ -109,5 +109,51 @@ describe("brand tokens parity with tokens.css", () => {
       if (entry) entry.letterSpacing = Number.parseFloat(value) * (entry.size ?? 0);
     }
     expect(fontSize).toEqual(expected);
+  });
+});
+
+describe("phone type scale", () => {
+  it("covers every web size token plus body, body-parent, small and caption", () => {
+    expect(Object.keys(mobileFontSize).sort()).toEqual(
+      [...Object.keys(fontSize), "body", "body-parent", "small", "caption"].sort(),
+    );
+  });
+
+  it("matches the spec table", () => {
+    expect(mobileFontSize.display).toEqual({
+      size: 26,
+      lineHeight: 32,
+      fontWeight: 800,
+      letterSpacing: -0.4,
+    });
+    expect(mobileFontSize.h1).toEqual({
+      size: 22,
+      lineHeight: 28,
+      fontWeight: 800,
+      letterSpacing: -0.3,
+    });
+    expect(mobileFontSize.h2).toEqual({ size: 18, lineHeight: 24, fontWeight: 700 });
+    expect(mobileFontSize.h3).toEqual({ size: 16, lineHeight: 22, fontWeight: 700 });
+    expect(mobileFontSize.body).toEqual({ size: 16, lineHeight: 22 });
+    expect(mobileFontSize["body-parent"]).toEqual({ size: 15, lineHeight: 21 });
+    expect(mobileFontSize.small).toEqual({ size: 13, lineHeight: 18 });
+    expect(mobileFontSize.caption).toEqual({ size: 12, lineHeight: 16 });
+    expect(mobileFontSize["money-xl"]).toEqual({
+      size: 32,
+      lineHeight: 36,
+      fontWeight: 800,
+      letterSpacing: -0.64,
+    });
+    expect(mobileFontSize["money-l"]).toEqual({ size: 22, lineHeight: 26, fontWeight: 700 });
+    expect(mobileFontSize.money).toEqual({ size: 17, lineHeight: 22, fontWeight: 700 });
+  });
+
+  it("is never larger than the web for a shared token", () => {
+    for (const key of Object.keys(fontSize) as (keyof typeof fontSize)[])
+      expect(mobileFontSize[key].size).toBeLessThanOrEqual(fontSize[key].size);
+  });
+
+  it("keeps child reading text at 16 or more", () => {
+    expect(mobileFontSize.body.size).toBeGreaterThanOrEqual(16);
   });
 });
