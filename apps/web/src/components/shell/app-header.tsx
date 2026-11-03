@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { SettingsIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -11,16 +12,23 @@ type AppHeaderProps = {
   homeHref: Route;
   /** What sits at the right end: the signed-in person's avatar. Defaults to a settings link. */
   end?: ReactNode;
+  className?: string;
 };
 
 /**
  * Sticky 56 px header: mark plus name on the left, the signed-in person's avatar on the right
- * (design.md §4, §5). Sign out and the theme switch live in Settings, so a child never has a
- * destructive button a thumb away from Home.
+ * (design.md §4, §5). Where the sidebar shows (from 768 px) the app layout hides it. Sign out and
+ * the theme switch live in Settings, so a child never has a destructive button a thumb away from
+ * Home.
  */
-export function AppHeader({ homeHref, end }: AppHeaderProps) {
+export function AppHeader({ homeHref, end, className }: AppHeaderProps) {
   return (
-    <header className="sticky top-0 z-40 border-hairline border-b bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-[16px]">
+    <header
+      className={cn(
+        "sticky top-0 z-40 border-hairline border-b bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-[16px]",
+        className,
+      )}
+    >
       <div className="flex h-14 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           href={homeHref}
