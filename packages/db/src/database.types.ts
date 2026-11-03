@@ -225,14 +225,14 @@ isOneToOne: false
                   ]
                 },"device_push_tokens": {
                   Row: {
-                    "created_at": string,"id": string,"last_seen_at": string,"platform": string,"profile_id": string,"token": string
+                    "created_at": string,"id": string,"last_seen_at": string,"muted_groups": string[],"paused": boolean,"platform": string,"profile_id": string,"token": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"last_seen_at"?: string,"platform": string,"profile_id": string,"token": string
+                    "created_at"?: string,"id"?: string,"last_seen_at"?: string,"muted_groups"?: string[],"paused"?: boolean,"platform": string,"profile_id": string,"token": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"last_seen_at"?: string,"platform"?: string,"profile_id"?: string,"token"?: string
+                    "created_at"?: string,"id"?: string,"last_seen_at"?: string,"muted_groups"?: string[],"paused"?: boolean,"platform"?: string,"profile_id"?: string,"token"?: string
                   }
                   Relationships: [
                     {
@@ -1123,7 +1123,7 @@ isOneToOne: false
                            },
 "device_push_tokens_for":
 { Args: { "p_recipient_ids": (string)[] }; Returns: {
-              "id": string,"profile_id": string,"token": string
+              "id": string,"muted_groups": string[],"paused": boolean,"profile_id": string,"token": string
             }[]
                            },
 "diary_chain_root":
@@ -1435,6 +1435,9 @@ isOneToOne: false
                            },
 "set_child_pin":
 { Args: { "p_child_id": string,"p_pin": string }; Returns: undefined
+                           },
+"set_device_push_prefs":
+{ Args: { "p_muted_groups": (string)[],"p_paused": boolean,"p_token": string }; Returns: boolean
                            },
 "set_guide_access":
 { Args: { "p_child_id": string,"p_enabled": boolean }; Returns: undefined
