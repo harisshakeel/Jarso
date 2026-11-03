@@ -1,13 +1,11 @@
 import { learnCopy, weeklyRhythmLine } from "@jarso/core/learning";
 import { useRouter } from "expo-router";
-import { CalendarCheckIcon, ChevronRightIcon } from "lucide-react-native";
-import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CoachSays } from "@/components/screen";
+import { Card, CoachSays, ListRow, ScreenHeader } from "@/components/screen";
 import { Text } from "@/components/ui";
 import { useHome } from "@/features/jars";
 import { NextStepCard, PageWait, Roadmap, useLearningOverview } from "@/features/learning";
-import { useTokens } from "@/lib";
 
 /**
  * Learn (the web's child/learn): the week's rhythm, a coach, whatever comes before a mission
@@ -15,7 +13,6 @@ import { useTokens } from "@/lib";
  */
 export function LearnScreen() {
   const router = useRouter();
-  const tokens = useTokens();
   const home = useHome();
   const overview = useLearningOverview(home.data?.context.timezone);
   const refresh = () => {
@@ -34,18 +31,13 @@ export function LearnScreen() {
         <Text className="text-muted-foreground">{weeklyRhythmLine(daysThisWeek)}</Text>
         <CoachSays coachKey="learn" moment="learn" />
         {cardFirst ? <NextStepCard step={nextStep} /> : null}
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={learnCopy.yourWeek}
-          onPress={() => router.push("/(child)/learn/week")}
-          className="min-h-11 flex-row items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3"
-        >
-          <View className="flex-row items-center gap-2">
-            <CalendarCheckIcon size={20} color={tokens.primary} />
-            <Text className="font-sans-semibold">{learnCopy.yourWeek}</Text>
-          </View>
-          <ChevronRightIcon size={20} color={tokens.foreground} />
-        </Pressable>
+        <Card className="py-1">
+          <ListRow
+            accessibilityRole="link"
+            label={learnCopy.yourWeek}
+            onPress={() => router.push("/(child)/learn/week")}
+          />
+        </Card>
         <Roadmap journey={journey} />
       </>
     );
@@ -54,12 +46,10 @@ export function LearnScreen() {
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-background">
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-10"
+        contentContainerClassName="gap-4 px-4 pt-4 pb-10"
         refreshControl={<RefreshControl refreshing={overview.isRefetching} onRefresh={refresh} />}
       >
-        <Text accessibilityRole="header" className="font-sans-extrabold text-h2">
-          {learnCopy.heading}
-        </Text>
+        <ScreenHeader title={learnCopy.heading} />
         {body}
       </ScrollView>
     </SafeAreaView>

@@ -37,6 +37,7 @@ import {
 } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
+import { Eyebrow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { cn, isAppError, useTokens } from "@/lib";
 import { outboxPlatform, submit, useOnline, useOutboxItems } from "@/lib/outbox";
@@ -312,9 +313,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
   if (stage === "intro" && intro) {
     return (
       <View className="gap-4 rounded-2xl bg-card p-5">
-        <Text className="font-sans-bold text-muted-foreground text-caption uppercase">
-          {intro.eyebrow}
-        </Text>
+        <Eyebrow tone="muted">{intro.eyebrow}</Eyebrow>
         <Text accessibilityRole="header" className="font-sans-extrabold text-h2">
           {resumed ? playerCopy.resumedHeading : intro.heading}
         </Text>
@@ -524,9 +523,7 @@ function InfoView({
 }) {
   return (
     <View className="gap-4 rounded-2xl bg-card p-5">
-      <Text className="font-sans-bold text-muted-foreground text-caption uppercase">
-        {position}
-      </Text>
+      <Eyebrow tone="muted">{position}</Eyebrow>
       <Text accessibilityRole="header" className="font-sans-extrabold text-h2">
         {step.title ?? playerCopy.infoTitle}
       </Text>
@@ -646,9 +643,7 @@ function StepView({
         </CoachBubble>
 
         <View className="gap-2 rounded-2xl border-[6px] border-gold-800 bg-teal-950 p-4">
-          <Text className="font-sans-semibold text-caption text-teal-200 uppercase">
-            {position}
-          </Text>
+          <Eyebrow className="text-teal-200">{position}</Eyebrow>
           <Text accessibilityRole="header" className="font-sans-extrabold text-h1 text-teal-50">
             {renderText(body.prompt, currency)}
           </Text>

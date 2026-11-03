@@ -2,6 +2,7 @@ import { type WeeklyReview, weekCopy, weekDay, weekSentence } from "@jarso/core/
 import { useRouter } from "expo-router";
 import { CalendarCheckIcon } from "lucide-react-native";
 import { View } from "react-native";
+import { Card, Eyebrow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { formatMoney, useTokens } from "@/lib";
 
@@ -15,13 +16,13 @@ export function WeekCard({ review, currency }: { review: WeeklyReview; currency:
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
   const { money: week, goal, topCategory, decision, understood, practise, question } = review;
   return (
-    <View className="gap-4 rounded-2xl bg-card p-5">
+    <Card className="gap-4">
       <View className="gap-1">
         <View className="flex-row items-center gap-2">
           <CalendarCheckIcon size={16} color={tokens["muted-foreground"]} />
-          <Text className="font-sans-bold text-muted-foreground text-caption uppercase">
+          <Eyebrow tone="muted">
             {weekCopy.range(weekDay(week.weekStart), weekDay(week.weekEnd))}
-          </Text>
+          </Eyebrow>
         </View>
         <Text accessibilityRole="header" className="font-sans-extrabold text-h2">
           {weekCopy.heading}
@@ -56,12 +57,9 @@ export function WeekCard({ review, currency }: { review: WeeklyReview; currency:
 
       {decision ? (
         <View className="gap-1 rounded-xl bg-secondary p-4">
-          <Text
-            accessibilityRole="header"
-            className="font-sans-bold text-secondary-foreground text-caption uppercase"
-          >
+          <Eyebrow header className="text-secondary-foreground">
             {weekCopy.oneDecision}
-          </Text>
+          </Eyebrow>
           <Text className="font-sans-semibold text-secondary-foreground">{decision.what}</Text>
           <Text className="text-secondary-foreground">{decision.effect}</Text>
         </View>
@@ -70,12 +68,9 @@ export function WeekCard({ review, currency }: { review: WeeklyReview; currency:
       )}
 
       <View className="gap-2">
-        <Text
-          accessibilityRole="header"
-          className="font-sans-bold text-muted-foreground text-caption uppercase"
-        >
+        <Eyebrow header tone="muted">
           {weekCopy.learning}
-        </Text>
+        </Eyebrow>
         {understood ? (
           <Text>
             {`${weekCopy.showedYouCan} `}
@@ -102,6 +97,6 @@ export function WeekCard({ review, currency }: { review: WeeklyReview; currency:
           <Text>{weekCopy.freshQuestion}</Text>
         </Button>
       ) : null}
-    </View>
+    </Card>
   );
 }
