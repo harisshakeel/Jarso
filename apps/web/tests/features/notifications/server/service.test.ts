@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn(() => ({ kind: "admin" })) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ kind: "user" })) }));
 vi.mock("@/features/auth/server", () => ({ assertUser: vi.fn(async () => ({ id: "u1" })) }));
 vi.mock("@/features/notifications/server/repository", () => ({
@@ -8,12 +9,12 @@ vi.mock("@/features/notifications/server/repository", () => ({
   listUnreadRows: vi.fn(),
   fetchUnreadCount: vi.fn(),
   setRead: vi.fn(),
+  hitRateLimit: vi.fn(),
 }));
 
 const repo = await import("@/features/notifications/server/repository");
-const { listNotices, listUnreadNotices, getUnreadCount, markRead, describeAgent } = await import(
-  "@/features/notifications/server/service"
-);
+const { allowDispatch, listNotices, listUnreadNotices, getUnreadCount, markRead, describeAgent } =
+  await import("@/features/notifications/server/service");
 
 const notice = (i: number) => ({
   id: `n${i}`,
@@ -99,5 +100,18 @@ describe("describeAgent", () => {
     [null, null],
   ])("%s → %s", (agent, expected) => {
     expect(describeAgent(agent)).toBe(expected);
+  });
+});
+
+describe("allowDispatch", () => {
+  it("hits the per-user limit: 30 per 10 minutes", async () => {
+    vi.mocked(repo.hitRateLimit).mockResolvedValue(false);
+    await expect(allowDispatch("u1")).resolves.toBe(false);
+    expect(repo.hitRateLimit).toHaveBeenCalledWith(
+      expect.anything(),
+      "push:dispatch:u1",
+      "10 minutes",
+      30,
+    );
   });
 });

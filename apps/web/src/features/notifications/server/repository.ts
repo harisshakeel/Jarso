@@ -210,3 +210,19 @@ export async function deleteSubscriptionById(admin: Client, id: string): Promise
   const { error } = await admin.from("push_subscriptions").delete().eq("id", id);
   if (error) throw toAppError(error, "Failed to remove the subscription");
 }
+
+/** `window` is a Postgres interval string, e.g. "10 minutes". Returns true when the hit is allowed. */
+export async function hitRateLimit(
+  admin: Client,
+  key: string,
+  window: string,
+  max: number,
+): Promise<boolean> {
+  const { data, error } = await admin.rpc("hit_rate_limit", {
+    p_key: key,
+    p_window: window,
+    p_max: max,
+  });
+  if (error) throw toAppError(error, "Failed to check rate limit");
+  return data === true;
+}

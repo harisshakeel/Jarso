@@ -4,6 +4,7 @@ import "server-only";
 export { sendEmail } from "./email";
 export { dispatchPush, drainPush, isPushConfigured, pushAfterNotices } from "./push";
 export {
+  allowDispatch,
   getUnreadCount,
   listNotices,
   listUnreadNotices,

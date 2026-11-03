@@ -6,10 +6,12 @@ import type {
   PushSubscriptionInput,
 } from "@jarso/core/notifications";
 import { assertUser } from "@/features/auth/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   encodeCursor,
   fetchUnreadCount,
+  hitRateLimit,
   listNoticeRows,
   listUnreadRows,
   ownsSubscription,
@@ -88,4 +90,9 @@ export function describeAgent(userAgent: string | null): string | null {
   if (!browser && !device) return null;
   const name = browser === "Edg" ? "Edge" : browser === "OPR" ? "Opera" : browser;
   return [name, device].filter(Boolean).join(" on ");
+}
+
+/** The mobile app's push trigger: 30 per user per 10 minutes. Counts every call; true if allowed. */
+export async function allowDispatch(userId: string): Promise<boolean> {
+  return hitRateLimit(createAdminClient(), `push:dispatch:${userId}`, "10 minutes", 30);
 }

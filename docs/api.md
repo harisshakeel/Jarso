@@ -11,6 +11,12 @@ Both must stay thin and call the feature **service**.
 
 Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. Two cron routes exist today, because their work needs app code: `/api/cron/payments/auto-charge` (charging a card, ADR 0013 card handover) and `/api/cron/push` (sending web push, ADR 0012 web push). Both take the same `CRON_SECRET`. More arrive with email delivery in the final demo.
 
+## Bearer auth for non-browser callers
+
+`assertRequestUser()` (`apps/web/src/features/auth/server/request-user.ts`) is the Route Handler counterpart of `assertUser()`. With an `Authorization: Bearer <jwt>` header it verifies the token with `getClaims(jwt)` on a stateless client (`createStatelessClient`, `@/lib/supabase/stateless`: no cookies, no session persistence, the app's timed fetch). A malformed or invalid header is `UNAUTHORIZED` and never falls back to cookies. With no header it falls back to `assertUser()`. `withApi`'s same-origin check stays: React Native sends no `Origin` and a bearer request carries no cookies, so it passes and is not CSRF-exposed.
+
+**When to add a `/api/v1` route for mobile.** Only when the work needs a server secret (service key, Claude, payment provider, `CRON_SECRET`). Anything RLS and a Postgres function can authorise is a direct Supabase call from `@jarso/data` (ADR 0016).
+
 ## Server Actions
 
 ```ts
@@ -53,6 +59,8 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | GET | `/api/health` | – | Liveness |
 | GET | `/api/v1/me` | user | Current user's profile |
 | PATCH | `/api/v1/me` | user | Update profile (`updateProfileSchema`) |
+| POST | `/api/v1/auth/child-sign-in` | – (rate-limited) | Child PIN sign-in for the phone; returns `{ accessToken, refreshToken, expiresAt }` (ADR 0016) |
+| POST | `/api/v1/notices/dispatch` | user (bearer) | Send web push for the caller's pending notices; 30 per 10 min per user; 202 |
 | POST | `/api/v1/outbox` | child | One queued child action from the device outbox (`outboxRequestSchema`) |
 | POST | `/api/v1/guide/turns` | child | One message to Jarso, streamed as NDJSON (`askGuideSchema`) |
 | POST | `/api/v1/payments/webhooks/[provider]` | provider signature | A payment provider's signed event (ADR 0013) |

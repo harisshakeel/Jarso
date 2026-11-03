@@ -1,6 +1,6 @@
 # 0015. Monorepo and a shared core for the mobile app
 
-- Status: Accepted
+- Status: Accepted; the open question on mobile reads and writes (twin routes) is settled by 0016
 - Date: 2026-11-02
 
 ## Context

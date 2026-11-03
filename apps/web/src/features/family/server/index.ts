@@ -16,6 +16,7 @@ export {
   acceptListedInvitation,
   addChild,
   childSignIn,
+  childSignInForTokens,
   createFamily,
   findInvitation,
   findMyInvitation,
