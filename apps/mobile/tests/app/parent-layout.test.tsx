@@ -13,6 +13,11 @@ jest.mock("@/features/auth/use-session", () => ({
 jest.mock("@/features/news", () => ({ NoticeListener: () => null }));
 jest.mock("@/lib/outbox", () => ({ OutboxSync: () => null }));
 jest.mock("@/lib/supabase/client", () => ({ supabase: {} }));
+// The setup gate is under test in tests/features/setup; here the parent is set up.
+jest.mock("@/features/setup", () => ({
+  useParentSetup: () => ({ data: { profileComplete: true, familyId: "family-1" } }),
+  isSetUp: () => true,
+}));
 
 function Root() {
   return <Stack screenOptions={{ headerShown: false }} />;

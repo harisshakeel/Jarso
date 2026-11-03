@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from "react-native";
 import { BodySizeProvider } from "@/components/ui";
 import { homeFor, UnavailableNotice, useSession } from "@/features/auth";
 import { NoticeListener } from "@/features/news";
+import { isSetUp, useParentSetup } from "@/features/setup";
 
 type Options = ComponentProps<typeof Stack.Screen>["options"];
 
@@ -35,23 +36,43 @@ function nextPath(pathname: string): string {
   return pathname;
 }
 
-/** The parent's area (tabs, then pages and sheets). Only a `parent` session gets past this guard. */
+/** Routes open before setup is done: setup itself, and settings (so a parent can sign out). */
+const OPEN_BEFORE_SETUP = new Set(["/setup", "/settings"]);
+
+function Loading() {
+  return (
+    <View className="flex-1 items-center justify-center bg-background">
+      <ActivityIndicator accessibilityLabel="Loading" />
+    </View>
+  );
+}
+
+/**
+ * The parent's area (tabs, then pages and sheets). Only a `parent` session gets past this guard,
+ * and until the parent's details and family exist (ADR 0008) only setup and settings open.
+ */
 export default function ParentLayout() {
   const { status, userId } = useSession();
   const pathname = usePathname();
+  const setup = useParentSetup();
 
-  if (status === "loading") {
-    return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator accessibilityLabel="Loading" />
-      </View>
-    );
-  }
+  if (status === "loading") return <Loading />;
   // Jarso can't be reached: the session is kept, but the parent's screens stay closed.
   if (status === "unavailable") return <UnavailableNotice />;
   if (status === "child") return <Redirect href={homeFor("child")} />;
   if (status !== "parent" || !userId) {
     return <Redirect href={{ pathname: "/sign-in", params: { next: nextPath(pathname) } }} />;
+  }
+  if (!OPEN_BEFORE_SETUP.has(pathname)) {
+    if (!setup.data) {
+      // Never a parent screen while the gate can't be read.
+      if (setup.isError) return <UnavailableNotice onRetry={() => void setup.refetch()} />;
+      return <Loading />;
+    }
+    if (!isSetUp(setup.data)) {
+      const params = pathname === "/" ? undefined : { next: nextPath(pathname) };
+      return <Redirect href={{ pathname: "/(parent)/setup", params }} />;
+    }
   }
 
   return (
