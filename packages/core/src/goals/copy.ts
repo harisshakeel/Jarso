@@ -79,6 +79,8 @@ export const goalCopy = {
     empty: "Something to save for? Pick it and see the climb.",
     /** "⚽ Football boots, ₹450." `target` is already formatted. */
     title: (emoji: string, name: string, target: string) => `${emoji} ${name}, ${target}.`,
+    /** "£34 of £60" on the phone goal card. Amounts are already formatted. */
+    ofTarget: (saved: string, target: string) => `${saved} of ${target}`,
   },
   staircase: {
     amountsSummary: "The amounts",
