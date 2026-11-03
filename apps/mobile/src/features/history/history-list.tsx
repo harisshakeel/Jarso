@@ -12,6 +12,7 @@ import { ChevronRightIcon } from "lucide-react-native";
 import { type ReactElement, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenHeader } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { useUndo } from "@/features/diary";
 import { useSendOnce } from "@/features/requests";
@@ -108,12 +109,12 @@ export function HistoryList({ header }: { header?: ReactElement } = {}) {
         testID="history-list"
         data={items}
         keyExtractor={(item) => `${item.kind}-${item.id}`}
-        contentContainerClassName="gap-2 p-4"
+        contentContainerClassName="gap-2 px-4 pt-4 pb-10"
         ListHeaderComponent={
           header ?? (
-            <Text accessibilityRole="header" className="mb-2 font-sans-extrabold text-h2">
-              {diaryCopy.heading}
-            </Text>
+            <View className="mb-2">
+              <ScreenHeader title={diaryCopy.heading} />
+            </View>
           )
         }
         ListEmptyComponent={

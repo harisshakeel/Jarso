@@ -14,6 +14,7 @@ import {
   SparklesIcon,
 } from "lucide-react-native";
 import { Pressable, View } from "react-native";
+import { Eyebrow } from "@/components/screen";
 import { Text } from "@/components/ui";
 import { cn, useTokens } from "@/lib";
 
@@ -102,12 +103,9 @@ export function InboxList({
     <View className="gap-4">
       {groupNotices(items, now).map((group) => (
         <View key={group.label} accessibilityLabel={group.label} className="gap-2">
-          <Text
-            accessibilityRole="header"
-            className="font-sans-bold text-muted-foreground text-caption uppercase"
-          >
+          <Eyebrow header tone="muted">
             {group.label}
-          </Text>
+          </Eyebrow>
           {group.items.map((notice) => (
             <InboxItem
               key={notice.id}

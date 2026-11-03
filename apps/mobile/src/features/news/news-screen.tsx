@@ -1,7 +1,7 @@
 import { inboxCopy } from "@jarso/core/notifications";
 import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CoachSays } from "@/components/screen";
+import { Card, CoachSays, ScreenHeader } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { useHome } from "@/features/jars";
 import { toUserMessage } from "@/lib";
@@ -30,12 +30,10 @@ export function NewsScreen() {
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-background">
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-10"
+        contentContainerClassName="gap-4 px-4 pt-4 pb-10"
         refreshControl={<RefreshControl refreshing={notices.isRefetching} onRefresh={refresh} />}
       >
-        <Text accessibilityRole="header" className="font-sans-extrabold text-h2">
-          {inboxCopy.childHeading}
-        </Text>
+        <ScreenHeader title={inboxCopy.childHeading} />
         {!notices.data ? (
           notices.error ? (
             <Text accessibilityRole="alert">{toUserMessage(notices.error)}</Text>
@@ -43,9 +41,9 @@ export function NewsScreen() {
             <ActivityIndicator accessibilityLabel="Loading" />
           )
         ) : items.length === 0 ? (
-          <View className="rounded-xl border border-border bg-card p-5">
+          <Card>
             <CoachSays coachKey="inbox" moment="nothingNew" />
-          </View>
+          </Card>
         ) : (
           <>
             {hasUnread ? (

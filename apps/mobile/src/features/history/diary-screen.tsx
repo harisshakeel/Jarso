@@ -1,6 +1,7 @@
 import { diaryCopy, receivedCopy } from "@jarso/core/diary";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
+import { ScreenHeader } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
 import { PendingPurchases, WhereItWentCard } from "@/features/diary";
@@ -23,9 +24,7 @@ export function DiaryScreen() {
     <HistoryList
       header={
         <View className="mb-2 gap-4">
-          <Text accessibilityRole="header" className="font-sans-extrabold text-h2">
-            {diaryCopy.heading}
-          </Text>
+          <ScreenHeader title={diaryCopy.heading} />
           {jars && context ? (
             <Text accessibilityLabel={diaryCopy.spendJarLabel}>
               {`${diaryCopy.youHave} ${formatMoney(jars.spend, context.currency, { showMinor: "nonzero" })} ${diaryCopy.inSpend}`}

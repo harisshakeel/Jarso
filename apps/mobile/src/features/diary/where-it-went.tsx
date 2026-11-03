@@ -2,7 +2,7 @@ import { whereItWent, whereItWentCopy } from "@jarso/core/ledger";
 import type { FamilyContext } from "@jarso/data/family";
 import { getHistorySince } from "@jarso/data/ledger";
 import { useQuery } from "@tanstack/react-query";
-import { View } from "react-native";
+import { Card } from "@/components/screen";
 import { Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
 import { startOfWeek } from "@/lib";
@@ -27,10 +27,7 @@ export function WhereItWentCard({ context }: { context: FamilyContext }) {
   if (!week.data) return null;
   const view = whereItWent(week.data, context.today, context.currency);
   return (
-    <View
-      accessibilityLabel={whereItWentCopy.heading}
-      className="gap-2 rounded-2xl border border-border bg-card p-4"
-    >
+    <Card accessibilityLabel={whereItWentCopy.heading} className="gap-2">
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
         {whereItWentCopy.heading}
       </Text>
@@ -45,6 +42,6 @@ export function WhereItWentCard({ context }: { context: FamilyContext }) {
         <Text className="font-sans-bold">{view.empty}</Text>
       )}
       {view.moneyIn ? <Text className="text-muted-foreground">{view.moneyIn}</Text> : null}
-    </View>
+    </Card>
   );
 }
