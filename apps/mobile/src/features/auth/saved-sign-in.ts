@@ -31,3 +31,18 @@ export async function saveSignIn(input: ChildSignInInput): Promise<void> {
 export async function forgetSignIn(): Promise<void> {
   await SecureStore.deleteItemAsync(KEY, OPTIONS).catch(() => undefined);
 }
+
+export type SignInMode = "child" | "parent";
+
+/** The last "I'm a child" / "I'm a parent" choice on this phone. Not a secret. */
+const MODE_KEY = "jarso.sign-in-mode";
+
+/** The last sign-in choice; `child` when none was kept or it can't be read. */
+export async function loadSignInMode(): Promise<SignInMode> {
+  const raw = await SecureStore.getItemAsync(MODE_KEY).catch(() => null);
+  return raw === "parent" ? "parent" : "child";
+}
+
+export async function saveSignInMode(mode: SignInMode): Promise<void> {
+  await SecureStore.setItemAsync(MODE_KEY, mode).catch(() => undefined);
+}

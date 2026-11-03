@@ -1,7 +1,7 @@
 import { Redirect, Stack } from "expo-router";
 import type { ComponentProps } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { UnavailableNotice, useSession } from "@/features/auth";
+import { ParentPendingNotice, UnavailableNotice, useSession } from "@/features/auth";
 import { NoticeListener } from "@/features/news";
 import { OutboxSync } from "@/lib/outbox";
 
@@ -52,6 +52,8 @@ export default function ChildLayout() {
   }
   // Jarso can't be reached: the session is kept, but the tabs stay closed until the role is read.
   if (status === "unavailable") return <UnavailableNotice />;
+  // Temporary until the (parent) group lands: a parent keeps the session but sees no child screen.
+  if (status === "parent") return <ParentPendingNotice />;
   if (status !== "child" || !userId) return <Redirect href="/sign-in" />;
 
   return (

@@ -1,6 +1,6 @@
 # Mobile app (`apps/mobile`, `@jarso/mobile`)
 
-Expo app for children. Wave 1: PIN sign-in, both jars, log a purchase and undo it, put in, take out, ask for extra, requests, history, settings. Wave 2 (parity with the web child app): goals, diary (got money, fix, versions, where it went), Learn, Jarso, News with live notices, and the offline outbox. Parents see a "use the web for now" screen. Specs: `docs/superpowers/specs/2026-11-02-mobile-app-design.md`, `2026-11-03-mobile-wave-2-design.md`. Decisions: ADR 0016, 0017 (and 0015).
+Expo app for children. Wave 1: PIN sign-in, both jars, log a purchase and undo it, put in, take out, ask for extra, requests, history, settings. Wave 2 (parity with the web child app): goals, diary (got money, fix, versions, where it went), Learn, Jarso, News with live notices, and the offline outbox. Wave 3: parents sign in with email and password on the same screen ("I'm a child" / "I'm a parent"); until the parent screens land, a signed-in parent keeps the session and sees a "use the web for now" screen. Specs: `docs/superpowers/specs/2026-11-02-mobile-app-design.md`, `2026-11-03-mobile-wave-2-design.md`. Decisions: ADR 0016, 0017 (and 0015).
 
 ## Stack
 
@@ -43,7 +43,7 @@ Wave 1 should run in Expo Go because every native module in use ships in it; con
 ```
 apps/mobile/
   index.ts                 # entry: Intl polyfills, then expo-router/entry
-  app/                     # (auth)/sign-in, (auth)/parents, (child)/(tabs)/{index,diary,learn,jarso,news}, pages: requests, me, goal, entry/[entryId], learn/{[missionKey],practice,check-in,week,week-question,topics/[topicKey]}, jarso/[conversationId]; sheets: purchase, put-in, take-out, ask-extra, received, goal-sheet, guide-sheet
+  app/                     # (auth)/sign-in, (parent)/(tabs)/index (temporary), (child)/(tabs)/{index,diary,learn,jarso,news}, pages: requests, me, goal, entry/[entryId], learn/{[missionKey],practice,check-in,week,week-question,topics/[topicKey]}, jarso/[conversationId]; sheets: purchase, put-in, take-out, ask-extra, received, goal-sheet, guide-sheet
   src/features/<name>/     # auth, jars, diary, goals, learning, guide, news, requests, history, settings; home and learn (composites)
   src/components/          # ui (primitives), sheet (shared sheet parts), screen
   src/lib/                 # supabase client + storage, api, outbox, query keys, errors, notices, logger, intl
