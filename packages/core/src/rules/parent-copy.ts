@@ -44,6 +44,18 @@ export const rulesCopy = {
   overspend: (nickname: string) => `Let ${nickname}'s Spend go below zero`,
   overspendOn: (nickname: string) => `${nickname} can record a purchase even if Spend is short.`,
   overspendOff: (nickname: string) => `${nickname} can only spend what is in Spend.`,
+  /** A rule's period as a choice. */
+  periodLabels: { item: "Each time", week: "A week", month: "A month" },
+  howOften: "How often?",
+  amount: "Amount",
+  save: "Save",
+  cancel: "Cancel",
+  change: "Change",
+  remove: "Remove",
+  changeLabel: (rule: string) => `Change: ${rule}`,
+  removeLabel: (rule: string) => `Remove: ${rule}`,
+  saved: "Saved",
+  removed: "Rule removed",
 } as const;
 
 /** One line on what the spending limits do: they send a note, they never block. */

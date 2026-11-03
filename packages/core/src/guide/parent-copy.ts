@@ -16,6 +16,8 @@ export const parentGuideCopy = {
     `Jarso is an AI helper made with Anthropic's Claude. It answers ${nickname}'s money questions, gives hints in missions, and, when ${nickname} asks, looks at their own jars, allowance, purchases, goal, requests and learning to answer. It can't see anyone else's money or your planned gifts, and it can't move money. It never asks for personal details, never recommends products or tells them to buy anything, and points them to help if they seem unsafe. Messages, and what Jarso looks up for them, are sent to Anthropic to get answers. Chats are kept here for 30 days and you can read every one, with what Jarso looked at, except a message that needed a safety response, which isn't kept. It's on unless you turn it off, and you can turn it off or back on at any time.`,
   fullLink: "How Jarso keeps children safe",
   cardTitle: "Jarso, the AI helper",
+  /** The child page when Jarso is not set up on this deployment. */
+  notConfigured: "Jarso, the AI helper, is not switched on for this app yet.",
   flagged: (count: number) =>
     count === 1 ? "1 chat is worth a look." : `${count} chats are worth a look.`,
   readChats: (nickname: string) => `Read ${nickname}'s chats`,

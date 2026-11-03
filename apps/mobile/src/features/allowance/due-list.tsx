@@ -56,7 +56,7 @@ export function DueList({
 }
 
 /**
- * Gifts set for a later day, each opening its edit page, then "Add a gift". Shown with no gifts
+ * Gifts set for a later day, each opening its edit page, then "Give a gift". Shown with no gifts
  * too, so adding one is always a tap away.
  */
 export function GiftList({
@@ -94,10 +94,10 @@ export function GiftList({
       <Button
         className="mt-2 self-start"
         variant="secondary"
-        accessibilityLabel="Add a gift"
+        accessibilityLabel={dueListCopy.giveGift}
         onPress={() => router.push(`/(parent)/children/${childId}/gifts/new`)}
       >
-        <Text>Add a gift</Text>
+        <Text>{dueListCopy.giveGift}</Text>
       </Button>
     </Card>
   );

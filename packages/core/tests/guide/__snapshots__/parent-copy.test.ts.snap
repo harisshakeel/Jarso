@@ -14,6 +14,7 @@ exports[`parentGuideCopy > keeps every line 1`] = `
   "lookedAt": [Function],
   "memoriesIntro": [Function],
   "noChats": "No chats yet.",
+  "notConfigured": "Jarso, the AI helper, is not switched on for this app yet.",
   "notHelpful": "Your child didn't find this helpful",
   "off": "Off",
   "on": "On",

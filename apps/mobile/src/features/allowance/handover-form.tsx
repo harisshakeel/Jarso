@@ -287,10 +287,10 @@ export function HandoverForm({
       ) : (
         <Button
           variant="ghost"
-          accessibilityLabel="Change or cancel this gift"
+          accessibilityLabel={handoverCopy.changeGift}
           onPress={() => router.push(`/(parent)/children/${childId}/gifts/${id}`)}
         >
-          <Text>Change or cancel this gift</Text>
+          <Text>{handoverCopy.changeGift}</Text>
         </Button>
       )}
     </ScrollView>

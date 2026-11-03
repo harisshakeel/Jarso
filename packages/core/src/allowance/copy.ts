@@ -44,6 +44,7 @@ export const dueListCopy = {
   on: (day: string) => `On ${day}`,
   handOver: "Hand over",
   edit: "Edit",
+  giveGift: "Give a gift",
 } as const;
 
 /** Handing over an allowance or a gift, and marking an allowance as not given. */
@@ -70,6 +71,7 @@ export const handoverCopy = {
   notGivenBody: (nickname: string) => `${nickname} won't get this one, and it won't be paid later.`,
   goBack: "Go back",
   markedNotGiven: "Marked as not given.",
+  changeGift: "Change or cancel this gift",
 } as const;
 
 /** A one-time gift: set up, change or cancel. */

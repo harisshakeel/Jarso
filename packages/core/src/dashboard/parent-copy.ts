@@ -23,6 +23,13 @@ export const parentPageCopy = {
   inbox: "Inbox",
   allowance: "Allowance",
   settings: "Settings",
+  /** The child page's title before the child's nickname is known. */
+  child: "Your child",
+  historyTitle: "History",
+  /** How a skipped allowance reads to a parent. */
+  notGiven: "Not given",
+  seeAll: "See all",
+  seeAllHistory: "See all history",
   allowanceFor: (nickname: string) => `Allowance for ${nickname}`,
   giftFor: (nickname: string) => `Gift for ${nickname}`,
   giftNewIntro: "A one-time gift.",

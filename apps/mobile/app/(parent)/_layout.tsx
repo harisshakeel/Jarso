@@ -22,7 +22,7 @@ const SHEETS: string[] = ["children/[childId]/handover/[kind]/[id]"];
 const PAGES: { name: string; title: string }[] = [
   { name: "settings", title: parentPageCopy.settings },
   // The hub sets its own title (the child's nickname) once the family has loaded.
-  { name: "children/[childId]/index", title: "Your child" },
+  { name: "children/[childId]/index", title: parentPageCopy.child },
 ];
 
 /**

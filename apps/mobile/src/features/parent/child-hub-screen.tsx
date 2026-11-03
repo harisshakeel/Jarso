@@ -2,7 +2,9 @@ import { upcomingGifts } from "@jarso/core/allowance";
 import { parentPageCopy } from "@jarso/core/dashboard";
 import type { ChildSummary, Family } from "@jarso/core/family";
 import { parentGuideCopy } from "@jarso/core/guide";
+import { parentLearningCopy } from "@jarso/core/learning";
 import type { HistoryItem } from "@jarso/core/ledger";
+import { rulesCopy } from "@jarso/core/rules";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { FlagIcon } from "lucide-react-native";
@@ -126,7 +128,7 @@ function Hub({ child, family }: { child: ChildSummary; family: Family }) {
       ) : null}
 
       <Card className="py-1">
-        <ListRow label="Money rules" onPress={() => router.push(`${base}/rules`)} />
+        <ListRow label={rulesCopy.title} onPress={() => router.push(`${base}/rules`)} />
       </Card>
 
       <LearningCard childId={childId} nickname={nickname} timezone={timezone} />
@@ -187,16 +189,17 @@ function LearningCard({
   return (
     <Card className="gap-1">
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
-        Learning
+        {parentLearningCopy.title}
       </Text>
       <Text>
-        {done} of {learning.data.journey.length} missions done.{" "}
-        {days === 0
-          ? `${nickname} hasn't learned yet this week.`
-          : `Learned on ${days} ${days === 1 ? "day" : "days"} this week.`}
+        {`${parentLearningCopy.missionsDone(done, learning.data.journey.length)} ${
+          days === 0
+            ? parentLearningCopy.notYetThisWeek(nickname)
+            : parentLearningCopy.learnedOn(days)
+        }`}
       </Text>
       <ListRow
-        label="See learning progress"
+        label={parentLearningCopy.seeProgress}
         onPress={() => router.push(`/(parent)/children/${childId}/learning`)}
       />
     </Card>
@@ -212,11 +215,7 @@ function GuideCard({ childId, nickname }: { childId: string; nickname: string })
   const flagged = useFlaggedChats(childId, configured);
   if (!state.data) return null;
   if (!configured) {
-    return (
-      <Text className="text-muted-foreground">
-        Jarso, the AI helper, is not switched on for this app yet.
-      </Text>
-    );
+    return <Text className="text-muted-foreground">{parentGuideCopy.notConfigured}</Text>;
   }
   const on = state.data.enabledChildIds.includes(childId);
   const count = flagged.data ?? 0;
@@ -282,7 +281,7 @@ function RecentHistory({
       ) : null}
       {items.map((item) => {
         const amount = amountOf(item, currency);
-        const label = item.kind === "skipped" ? "Not given" : item.label;
+        const label = item.kind === "skipped" ? parentPageCopy.notGiven : item.label;
         const detail = `${dayOfDate(item.occurredOn)}${item.undone ? " · Undone" : ""}`;
         return (
           <Fragment key={`${item.kind}-${item.id}`}>
@@ -296,8 +295,8 @@ function RecentHistory({
         );
       })}
       <ListRow
-        label="See all"
-        accessibilityLabel="See all history"
+        label={parentPageCopy.seeAll}
+        accessibilityLabel={parentPageCopy.seeAllHistory}
         onPress={() => router.push(`/(parent)/children/${childId}/history`)}
       />
     </Card>
