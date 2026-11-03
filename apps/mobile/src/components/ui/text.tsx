@@ -1,89 +1,55 @@
 import { Slot } from "@rn-primitives/slot";
-import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
-import { Platform, Text as RNText, type Role } from "react-native";
+import { Platform, Text as RNText, type TextStyle } from "react-native";
+import { fontScaleCap, isMoneyClass } from "@/lib/font-scale";
 import { cn } from "@/lib/utils";
 
-const textVariants = cva(
-  cn(
-    "font-sans text-base text-foreground",
-    Platform.select({
-      web: "select-text",
-    }),
-  ),
-  {
-    variants: {
-      variant: {
-        default: "",
-        h1: cn(
-          "text-center text-4xl font-extrabold tracking-tight",
-          Platform.select({ web: "scroll-m-20 text-balance" }),
-        ),
-        h2: cn(
-          "border-border border-b pb-2 text-3xl font-semibold tracking-tight",
-          Platform.select({ web: "scroll-m-20 first:mt-0" }),
-        ),
-        h3: cn("text-2xl font-semibold tracking-tight", Platform.select({ web: "scroll-m-20" })),
-        h4: cn("text-xl font-semibold tracking-tight", Platform.select({ web: "scroll-m-20" })),
-        p: "mt-3 leading-7 sm:mt-6",
-        blockquote: "mt-4 border-l-2 pl-3 italic sm:mt-6 sm:pl-6",
-        code: cn(
-          "bg-muted relative rounded px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold",
-        ),
-        lead: "text-muted-foreground text-xl",
-        large: "text-lg font-semibold",
-        small: "text-sm font-medium leading-none",
-        muted: "text-muted-foreground text-sm",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
-);
+type BodySize = "child" | "parent";
 
-type TextVariantProps = VariantProps<typeof textVariants>;
+// Child reading text is 16; parent screens set 15 with a provider at their layout.
+const BodySizeContext = React.createContext<BodySize>("child");
 
-type TextVariant = NonNullable<TextVariantProps["variant"]>;
+function BodySizeProvider({ size, children }: { size: BodySize; children: React.ReactNode }) {
+  return <BodySizeContext.Provider value={size}>{children}</BodySizeContext.Provider>;
+}
 
-const ROLE: Partial<Record<TextVariant, Role>> = {
-  h1: "heading",
-  h2: "heading",
-  h3: "heading",
-  h4: "heading",
-  blockquote: Platform.select({ web: "blockquote" as Role }),
-  code: Platform.select({ web: "code" as Role }),
-};
+/** The body size class for the nearest `BodySizeProvider` (child body when there is none). */
+function useBodySizeClass(): "text-body" | "text-body-parent" {
+  return React.useContext(BodySizeContext) === "parent" ? "text-body-parent" : "text-body";
+}
 
-const ARIA_LEVEL: Partial<Record<TextVariant, string>> = {
-  h1: "1",
-  h2: "2",
-  h3: "3",
-  h4: "4",
-};
+const TABULAR: TextStyle = { fontVariant: ["tabular-nums"] };
 
 const TextClassContext = React.createContext<string | undefined>(undefined);
 
 function Text({
   className,
   asChild = false,
-  variant = "default",
+  maxFontSizeMultiplier,
+  style,
   ...props
 }: React.ComponentProps<typeof RNText> &
-  React.RefAttributes<typeof RNText> &
-  TextVariantProps & {
+  React.RefAttributes<typeof RNText> & {
     asChild?: boolean;
   }) {
   const textClass = React.useContext(TextClassContext);
+  const bodyClass = useBodySizeClass();
   const Component = asChild ? Slot : RNText;
+  const merged = cn(
+    "font-sans text-foreground",
+    bodyClass,
+    Platform.select({ web: "select-text" }),
+    textClass,
+    className,
+  );
   return (
     <Component
-      className={cn(textVariants({ variant }), textClass, className)}
-      role={variant ? ROLE[variant] : undefined}
-      aria-level={variant ? ARIA_LEVEL[variant] : undefined}
+      className={merged}
+      maxFontSizeMultiplier={maxFontSizeMultiplier ?? fontScaleCap(merged)}
+      style={isMoneyClass(merged) ? [TABULAR, style] : style}
       {...props}
     />
   );
 }
 
-export { Text, TextClassContext };
+export { BodySizeProvider, Text, TextClassContext, useBodySizeClass };

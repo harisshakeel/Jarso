@@ -28,7 +28,7 @@ function Label({
     >
       <LabelPrimitive.Text
         className={cn(
-          "font-sans-semibold text-base text-foreground",
+          "font-sans-semibold text-foreground",
           Platform.select({ web: "leading-none" }),
           className,
         )}
