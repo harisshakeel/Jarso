@@ -9,9 +9,6 @@ import { randomUUID } from "expo-crypto";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { z } from "zod";
-import { Text } from "@/components/ui";
-import { useHome } from "@/features/jars";
-import { actionErrorMessage, formatMoney } from "@/lib";
 import {
   AmountInput,
   HomeWait,
@@ -21,7 +18,11 @@ import {
   SentView,
   SubmitButton,
   useSendOnce,
-} from "./sheet-parts";
+} from "@/components/sheet";
+import { Text } from "@/components/ui";
+import { PredictStep, useGoal } from "@/features/goals";
+import { useHome } from "@/features/jars";
+import { actionErrorMessage, formatMoney, parseMoney, toMajorString } from "@/lib";
 import { useChildRules, useCreateWithdrawal } from "./use-request-mutations";
 
 type FieldErrors = { amount?: string[]; reason?: string[] };
@@ -38,6 +39,7 @@ function isSent(result: WithdrawalResult) {
 export function TakeOutSheet({ onClose }: { onClose: () => void }) {
   const home = useHome();
   const rules = useChildRules();
+  const goal = useGoal();
   const [idempotencyKey] = useState(() => randomUUID());
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
@@ -111,6 +113,19 @@ export function TakeOutSheet({ onClose }: { onClose: () => void }) {
         onChange={setAmount}
         error={fieldErrors?.amount?.[0]}
       />
+      {goal.data && !goal.data.progress.reached ? (
+        // FR05: with an unreached goal, the child predicts the effect first.
+        <PredictStep
+          move="take_out"
+          amountMinor={parseMoney(amount, currency)}
+          goal={goal.data.goal}
+          saveMinor={home.data.availability.saveMinor}
+          reservedMinor={home.data.availability.reservedSaveMinor}
+          currency={currency}
+          maxMinor={limitMinor}
+          onTryAmount={(minor) => setAmount(toMajorString(minor, currency))}
+        />
+      ) : null}
       <ReasonInput
         id="take-out"
         value={reason}

@@ -1,3 +1,3 @@
-import { HomeScreen } from "@/features/jars";
+import { HomeScreen } from "@/features/home";
 
 export default HomeScreen;

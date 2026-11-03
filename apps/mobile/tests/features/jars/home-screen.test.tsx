@@ -5,7 +5,7 @@ import { getAvailability } from "@jarso/data/requests";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { useRouter } from "expo-router";
-import { HomeScreen } from "@/features/jars";
+import { HomeScreen } from "@/features/home";
 import { keys } from "@/lib/query";
 
 jest.mock("@/lib/supabase/client", () => ({ supabase: {} }));

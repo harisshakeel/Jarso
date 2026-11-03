@@ -4,9 +4,6 @@ import { randomUUID } from "expo-crypto";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { z } from "zod";
-import { Text } from "@/components/ui";
-import { useHome } from "@/features/jars";
-import { actionErrorMessage, formatMoney } from "@/lib";
 import {
   AmountInput,
   HomeWait,
@@ -15,7 +12,11 @@ import {
   SentView,
   SubmitButton,
   useSendOnce,
-} from "./sheet-parts";
+} from "@/components/sheet";
+import { Text } from "@/components/ui";
+import { PredictStep, useGoal } from "@/features/goals";
+import { useHome } from "@/features/jars";
+import { actionErrorMessage, formatMoney, parseMoney, toMajorString } from "@/lib";
 import { useChildRules, useCreateDeposit } from "./use-request-mutations";
 
 /**
@@ -25,6 +26,7 @@ import { useChildRules, useCreateDeposit } from "./use-request-mutations";
 export function PutInSheet({ onClose }: { onClose: () => void }) {
   const home = useHome();
   const rules = useChildRules();
+  const goal = useGoal();
   const [idempotencyKey] = useState(() => randomUUID());
   const [amount, setAmount] = useState("");
   const [amountError, setAmountError] = useState<string>();
@@ -92,6 +94,19 @@ export function PutInSheet({ onClose }: { onClose: () => void }) {
       </View>
       <RuleLines lines={ruleLines} />
       <AmountInput id="put-in" value={amount} onChange={setAmount} error={amountError} />
+      {goal.data && !goal.data.progress.reached ? (
+        // FR05: with an unreached goal, the child predicts the effect first.
+        <PredictStep
+          move="put_in"
+          amountMinor={parseMoney(amount, currency)}
+          goal={goal.data.goal}
+          saveMinor={home.data.availability.saveMinor}
+          reservedMinor={home.data.availability.reservedSaveMinor}
+          currency={currency}
+          maxMinor={availability.availableSpendMinor}
+          onTryAmount={(minor) => setAmount(toMajorString(minor, currency))}
+        />
+      ) : null}
       <Notice message={notice} />
       <SubmitButton label="Put in" pending={send.isPending} onPress={() => void submit()} />
     </ScrollView>
