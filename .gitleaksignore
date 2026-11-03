@@ -17,3 +17,7 @@ af83decee73b18692375f6bf755018fbfae06028:src/app/api/v1/outbox/route.test.ts:gen
 # Test fixture UUID (stored outbox item in core flush test), not a secret. Now held in a const.
 1394ffac5ff39b9bdf5f3dc62f1ab1e18496cf62:packages/core/tests/offline/flush.test.ts:generic-api-key:174
 1394ffac5ff39b9bdf5f3dc62f1ab1e18496cf62:packages/core/tests/offline/flush.test.ts:generic-api-key:176
+# Test fixture UUIDs (idempotency keys in the match action and child note schema tests), not secrets.
+# Held in consts in current files; these entries cover the commit that still has them inline.
+450f0b30f31dbea0d1048fd06f60c036406d7936:apps/web/tests/features/allowance/server/actions.test.ts:generic-api-key:22
+450f0b30f31dbea0d1048fd06f60c036406d7936:packages/core/tests/notifications/schemas.test.ts:generic-api-key:54

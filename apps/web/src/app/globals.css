@@ -24,6 +24,15 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-series-0: var(--series-0);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
+  --color-series-5: var(--series-5);
+  --color-series-6: var(--series-6);
+  --color-series-7: var(--series-7);
+  --color-series-8: var(--series-8);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -336,5 +345,157 @@
     animation-iteration-count: 1;
     transition-duration: 0.01ms;
     scroll-behavior: auto;
+  }
+}
+
+/* Jarso's face (design.md §7, §8): the jar mark with eyes. A blink every 5 s, the one idle loop
+   the app allows; the pupils look down at the composer, wander, or look up while coins drop in.
+   Units are the mark's artwork units (the svg's viewBox is 440 wide). Reduced motion stills it. */
+[data-jarso-eyes] .eyes-lids {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+[data-jarso-eyes] .eyes-pupils {
+  transition: translate 250ms var(--ease-brand);
+}
+[data-jarso-eyes][data-look="down"] .eyes-pupils {
+  translate: 3px 16px;
+}
+[data-jarso-eyes][data-look="up"] .eyes-pupils {
+  translate: 0 -20px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-jarso-eyes] .eyes-lids {
+    animation: eyes-blink 5s ease-in-out infinite;
+  }
+  [data-jarso-eyes][data-look="around"] .eyes-pupils {
+    animation: eyes-wander 4s ease-in-out infinite;
+  }
+}
+@keyframes eyes-blink {
+  0%,
+  93%,
+  100% {
+    scale: 1 1;
+  }
+  96% {
+    scale: 1 0.08;
+  }
+}
+@keyframes eyes-wander {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: -16px 3px;
+  }
+  55% {
+    translate: 13px -13px;
+  }
+  80% {
+    translate: 3px 14px;
+  }
+}
+
+/* While Jarso thinks (a loading state, so it may loop): the lid tips open, a coin drops in every
+   0.7 s, the jar wobbles as each one lands, and the mark's pile grows by a coin at a time.
+   Reduced motion: none of it. */
+[data-jarso-eyes] .jar-lid {
+  transform-box: view-box;
+  transform-origin: 100px 89px;
+  transition: rotate 300ms var(--ease-brand);
+}
+[data-jarso-eyes] .jar-body {
+  transform-box: view-box;
+  transform-origin: 256px 450px;
+}
+[data-jarso-eyes] .jar-drop,
+[data-jarso-eyes] .jar-land {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-jarso-eyes][data-filling] .jar-lid {
+    rotate: -40deg;
+  }
+  [data-jarso-eyes][data-filling] .jar-body {
+    animation: jar-wobble 0.7s ease-in-out infinite;
+  }
+  [data-jarso-eyes] .jar-drop {
+    animation: jar-drop 1.4s cubic-bezier(0.45, 0, 0.8, 0.4) infinite;
+  }
+  [data-jarso-eyes] .jar-land {
+    animation: jar-land 300ms var(--ease-brand) forwards;
+  }
+}
+@keyframes jar-drop {
+  0% {
+    opacity: 0;
+    translate: 0 -170px;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 320px;
+  }
+}
+/* A coin lands at 85% of each 1.4 s drop, so every 0.7 s at the same point of this loop. */
+@keyframes jar-wobble {
+  0%,
+  60%,
+  100% {
+    rotate: 0deg;
+  }
+  72% {
+    rotate: -3deg;
+  }
+  86% {
+    rotate: 2deg;
+  }
+}
+@keyframes jar-land {
+  from {
+    opacity: 0;
+    translate: 0 -24px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* While a reply is on its way (design.md §8, a loading state, so it may loop): the status line
+   fades in, the current step pulses, and a check draws itself while the answer is
+   double-checked. */
+@utility fade-up {
+  animation: fade-up 250ms var(--ease-brand) both;
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+@utility check-draw {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: check-draw 600ms var(--ease-brand) 150ms forwards;
+}
+@keyframes check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@utility pulse-soft {
+  animation: pulse-soft 1.2s ease-in-out infinite;
+}
+@keyframes pulse-soft {
+  50% {
+    opacity: 0.45;
   }
 }

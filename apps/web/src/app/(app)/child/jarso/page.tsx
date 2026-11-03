@@ -1,10 +1,11 @@
+import { randomUUID } from "node:crypto";
 import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { z } from "zod";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
-import { getFamily, requireRole } from "@/features/family/server";
+import { getChildNickname, getFamily, requireRole } from "@/features/family/server";
 import {
   guideCopy,
   guideUi,
@@ -14,21 +15,23 @@ import {
   threadMessagesFrom,
 } from "@/features/guide";
 import { getGuideState, getMyTranscript, listMyChats } from "@/features/guide/server";
+import { fallback } from "@/lib";
 
 export const metadata: Metadata = { title: "Jarso" };
 
 type Props = PageProps<"/child/jarso">;
 
-const paramsSchema = z.object({ chat: z.uuid().optional() });
-const hrefFor = (id: string) => `${routes.childJarso}?chat=${id}` as Route;
+const paramsSchema = z.object({ chat: z.uuid().optional(), new: z.string().max(16).optional() });
 
 /**
- * The child's Jarso page (FR07): every chat they have had down the side, the open one in the
- * middle. A chat they pick up again keeps its turns; a full one offers a new chat.
+ * The child's Jarso page (FR07): the chat filling the page, past chats behind "History". A chat
+ * they pick up again keeps its turns; a full one offers a new chat.
  */
 async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
   const { user } = await requireRole("child", routes.childJarso);
-  const { chat } = paramsSchema.parse(await searchParams);
+  const { chat, new: nonce } = paramsSchema.parse(await searchParams);
+  // A fresh nonce each render, so "New chat" starts over even from an unsaved new chat.
+  const newHref = `${routes.childJarso}?new=${randomUUID().slice(0, 8)}` as Route;
   const [state, family] = await Promise.all([getGuideState(user.id), getFamily()]);
   if (!state.available) {
     return (
@@ -44,9 +47,10 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
     );
   }
   const currency = family?.currency ?? "USD";
-  const [chats, transcript] = await Promise.all([
+  const [chats, transcript, nickname] = await Promise.all([
     listMyChats(),
     chat ? getMyTranscript(chat) : null,
+    fallback(getChildNickname(), "", "The child's nickname on the Jarso page"),
   ]);
   const reopened = transcript
     ? {
@@ -60,12 +64,11 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
     <JarsoChatPage
       chats={chats}
       currentId={transcript?.summary.id ?? null}
-      hrefFor={hrefFor}
-      newHref={routes.childJarso}
+      chatHref={routes.childJarso}
+      newHref={newHref}
       timezone={family?.timezone ?? "UTC"}
     >
       <JarsoPageThread
-        key={transcript?.summary.id ?? "new"}
         introNeeded={state.introNeeded}
         suggestions={[
           suggestions.jars,
@@ -73,8 +76,11 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
           suggestions.saving,
           suggestions.learning,
         ]}
+        person={nickname}
         reopened={reopened}
         chatHref={routes.childJarso}
+        chatId={chat ?? null}
+        nonce={nonce ?? null}
       />
     </JarsoChatPage>
   );

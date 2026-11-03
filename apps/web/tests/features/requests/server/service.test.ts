@@ -22,7 +22,12 @@ vi.mock("@/features/requests/server/repository", () => ({
 }));
 
 vi.mock("@/features/auth/server", () => ({ assertUser: vi.fn() }));
+vi.mock("@/features/allowance/server", () => ({
+  decideAllowancePlan: vi.fn(),
+  getTodaysAllowance: vi.fn(),
+}));
 
+const allowance = await import("@/features/allowance/server");
 const auth = await import("@/features/auth/server");
 const family = await import("@/features/family/server");
 const repo = await import("@/features/requests/server/repository");
@@ -149,5 +154,55 @@ describe("parent reads", () => {
     await service.listRequestsNeedingParent("child-1");
     expect(family.assertParentCanRead).toHaveBeenCalledWith("child-1");
     expect(family.assertParentOf).not.toHaveBeenCalled();
+  });
+});
+
+describe("allowance-day plan", () => {
+  const today = {
+    occurrenceId: "occ-1",
+    cashMinor: 1000,
+    savedMinor: 0,
+    confirmedAt: "2026-11-03T09:00:00Z",
+    planDecided: false,
+  };
+  const input = { occurrenceId: "occ-1", amountMinor: 400, idempotencyKey: "key-1" };
+
+  beforeEach(() => {
+    vi.mocked(allowance.getTodaysAllowance).mockResolvedValue(today);
+  });
+
+  it("puts the plan's figure into Save as an ordinary deposit, then retires the card", async () => {
+    vi.mocked(repo.callCreateDeposit).mockResolvedValue({ status: "done", requestId: "r1" });
+    await expect(service.acceptAllowancePlan(input)).resolves.toEqual({
+      status: "done",
+      requestId: "r1",
+    });
+    expect(repo.callCreateDeposit).toHaveBeenCalledWith(
+      { kind: "user" },
+      { childId: "child-1", amountMinor: 400, idempotencyKey: "key-1" },
+    );
+    expect(allowance.decideAllowancePlan).toHaveBeenCalledWith("occ-1");
+  });
+
+  it("keeps the card open when Spend no longer has the amount", async () => {
+    vi.mocked(repo.callCreateDeposit).mockResolvedValue({
+      status: "over_available",
+      availableMinor: 250,
+    });
+    await service.acceptAllowancePlan(input);
+    expect(allowance.decideAllowancePlan).not.toHaveBeenCalled();
+  });
+
+  it("refuses a plan for any allowance but today's", async () => {
+    vi.mocked(allowance.getTodaysAllowance).mockResolvedValue(null);
+    await expect(service.acceptAllowancePlan(input)).rejects.toMatchObject({ code: "CONFLICT" });
+    vi.mocked(allowance.getTodaysAllowance).mockResolvedValue({ ...today, occurrenceId: "occ-0" });
+    await expect(service.acceptAllowancePlan(input)).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(repo.callCreateDeposit).not.toHaveBeenCalled();
+  });
+
+  it("dismisses through the allowance feature", async () => {
+    await service.dismissAllowancePlan({ occurrenceId: "occ-1" });
+    expect(allowance.decideAllowancePlan).toHaveBeenCalledWith("occ-1");
   });
 });

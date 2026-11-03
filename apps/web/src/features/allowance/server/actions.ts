@@ -6,11 +6,13 @@ import {
   giftSchema,
   handoverSchema,
   idSchema,
+  matchSavingSchema,
   pauseSchema,
   updateGiftSchema,
 } from "@jarso/core/allowance";
 import { refresh } from "next/cache";
-import { createAction } from "@/lib";
+import { pushAfterNotices, sendChildNote } from "@/features/notifications/server";
+import { createAction, logger } from "@/lib";
 import {
   cancelGift,
   changeAllowance,
@@ -19,6 +21,7 @@ import {
   createGift,
   getFamilyContext,
   markNotGiven,
+  matchSaving,
   pauseAllowance,
   resumeAllowance,
   stopAllowance,
@@ -114,3 +117,33 @@ export const markNotGivenAction = createAction(idSchema, async ({ id }) => {
   refresh();
   return result;
 });
+
+/**
+ * Match their saving: the money goes into Save at once, then the parent's note (if any) goes to
+ * the child's News. The note is a nice-to-have: if it fails, the money is still in, and the
+ * parent is told the note didn't go.
+ */
+export const matchSavingAction = createAction(
+  async () => matchSavingSchema((await getFamilyContext()).currency),
+  async ({ message, ...input }) => {
+    const result = await matchSaving(input);
+    let noted = false;
+    if (message) {
+      try {
+        await sendChildNote({
+          childId: input.childId,
+          text: message,
+          idempotencyKey: input.idempotencyKey,
+        });
+        noted = true;
+        pushAfterNotices();
+      } catch (error) {
+        logger.warn("Match note not sent", {
+          error: error instanceof Error ? error.name : typeof error,
+        });
+      }
+    }
+    refresh();
+    return { result, noted };
+  },
+);

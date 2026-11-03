@@ -10,15 +10,18 @@ import {
   CreditCardIcon,
   HandCoinsIcon,
   type LucideIcon,
+  MessageCircleHeartIcon,
   PencilIcon,
   PiggyBankIcon,
+  SparklesIcon,
 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import type { MouseEvent } from "react";
+import { JarsoMark } from "@/components/brand";
 
 // Tinted circles follow design.md §2.5: cyan for due, gold for limits and failed card charges,
-// teal for decisions.
+// teal for decisions. A "Jarso noticed" nudge shows the Jarso mark instead of an icon.
 const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
   allowance_due: { icon: CalendarClockIcon, tint: "bg-cyan-100 text-cyan-700" },
   handover_reminder: { icon: HandCoinsIcon, tint: "bg-cyan-100 text-cyan-700" },
@@ -34,6 +37,8 @@ const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
   money_received: { icon: HandCoinsIcon, tint: "bg-teal-100 text-teal-800" },
   entry_corrected: { icon: PencilIcon, tint: "bg-secondary text-ink-2" },
   jar_moved: { icon: PiggyBankIcon, tint: "bg-teal-100 text-teal-800" },
+  guide_noticed: { icon: SparklesIcon, tint: "bg-secondary text-ink-2" },
+  parent_note: { icon: MessageCircleHeartIcon, tint: "bg-cyan-100 text-cyan-700" },
 };
 
 type InboxItemProps = {
@@ -62,14 +67,22 @@ export function InboxItem({ notice, href, title, detail, onOpen }: InboxItemProp
         aria-hidden
         className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", tint)}
       >
-        <Icon className="size-5" />
+        {notice.kind === "guide_noticed" ? <JarsoMark size={28} /> : <Icon className="size-5" />}
       </span>
       <span className="grid min-w-0 flex-1 gap-0.5">
         <span className={cn("truncate", notice.read ? "font-semibold" : "font-extrabold")}>
           {title}
           {notice.read ? null : <span className="sr-only">{inboxCopy.unread}</span>}
         </span>
-        <span className="truncate text-ink-2 text-sm">{detail}</span>
+        {/* A parent's note is the message itself, so it is shown whole. */}
+        <span
+          className={cn(
+            "text-ink-2 text-sm",
+            notice.kind === "parent_note" ? "break-words" : "truncate",
+          )}
+        >
+          {detail}
+        </span>
       </span>
       <time
         dateTime={notice.createdAt}

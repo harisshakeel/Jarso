@@ -14,9 +14,21 @@ export type NoticeKind =
   | "card_charge_failed"
   | "money_received"
   | "entry_corrected"
-  | "jar_moved";
+  | "jar_moved"
+  | "guide_noticed"
+  | "parent_note";
 
-export type NoticeSource = "ledger_entry" | "request" | "allowance_occurrence" | "payment";
+/**
+ * `guide_noticed`: a weekly "Jarso noticed" nudge. `note`: a parent's note to their child;
+ * `sourceId` is the parent who wrote it.
+ */
+export type NoticeSource =
+  | "ledger_entry"
+  | "request"
+  | "allowance_occurrence"
+  | "payment"
+  | "guide_noticed"
+  | "note";
 
 export type Notice = {
   id: string;

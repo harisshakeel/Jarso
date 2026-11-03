@@ -16,7 +16,42 @@ env:
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
 
 jobs:
+  # What a pull request touched, so jobs a change cannot affect are skipped: docs, session logs
+  # and Claude config run nothing but the secrets scan; the database jobs run only for schema
+  # changes. A push to main runs everything.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      db: ${{ steps.filter.outputs.db }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: filter
+        run: |
+          code=false; db=false
+          if [ "${{ github.event_name }}" = "push" ]; then
+            code=true; db=true
+          else
+            git fetch -q origin "${{ github.base_ref }}"
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              case "$f" in
+                docs/*|.claude-logs/*|.claude/*|*.md|LICENSE) ;;
+                *) code=true ;;
+              esac
+              case "$f" in supabase/*|packages/db/*) db=true ;; esac
+            done <<< "$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)"
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "db=$db" >> "$GITHUB_OUTPUT"
+          echo "code changed: $code · schema changed: $db" >> "$GITHUB_STEP_SUMMARY"
+
   verify:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -29,6 +64,16 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Turbo's task cache and Next's build cache from the last run on this branch (or main), so
+      # unchanged packages replay and the app build is incremental.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/web/.next/cache
+          key: verify-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            verify-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
       - name: Lint commit messages
         if: github.event_name == 'pull_request'
         run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
@@ -42,30 +87,68 @@ jobs:
           fi
 
   e2e:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    needs: verify
+    # Starts alongside verify (a failed verify still fails the run). A pull request runs one job
+    # with only the projects its changes touch (see "Pick the projects"); a push to main runs
+    # the whole suite in two shards. Each job builds the app and starts its own local Supabase.
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ github.event_name == 'push' && fromJSON('[1, 2]') || fromJSON('[1]') }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # A pull request runs only the projects its changes touch (scripts/e2e-projects.sh); a
+      # change shared by every page, and every push to main, runs the whole suite.
+      - name: Pick the projects
+        id: pick
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch -q origin "${{ github.base_ref }}"
+          args=$(bash scripts/e2e-projects.sh "origin/${{ github.base_ref }}")
+          echo "args=$args" >> "$GITHUB_OUTPUT"
+          echo "e2e projects: ${args:-all}" >> "$GITHUB_STEP_SUMMARY"
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @jarso/web exec playwright install --with-deps chromium
+      - name: Cache the Playwright browser
+        id: browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - if: steps.browser.outputs.cache-hit != 'true'
+        run: pnpm --filter @jarso/web exec playwright install --with-deps chromium
+      - if: steps.browser.outputs.cache-hit == 'true'
+        run: pnpm --filter @jarso/web exec playwright install-deps chromium
+      # Next's build cache from the last run, so the app build Playwright starts is incremental.
+      - uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
       - uses: supabase/setup-cli@v1
         with:
           version: 2.122.0 # keep in sync with the `supabase` devDependency
-      # stdout carries the local keys, so it is discarded; errors still reach stderr. The
-      # Playwright config reads the keys itself via `supabase status -o json`, in memory.
+      # Only the services the app uses: database, gateway, auth, REST, Realtime and the mail
+      # catcher. Studio, analytics, the edge runtime, image proxy, storage and the meta API are
+      # left out, which is most of the boot time. stdout carries the local keys, so it is
+      # discarded; the Playwright config reads the keys itself via `supabase status -o json`.
       - name: Start local Supabase
-        run: supabase start > /dev/null
-      - run: pnpm test:e2e
+        run: supabase start -x studio,logflare,vector,imgproxy,postgres-meta,edge-runtime,storage-api > /dev/null
+      - run: pnpm --filter @jarso/web exec playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }} --pass-with-no-tests ${{ steps.pick.outputs.args }}
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: apps/web/playwright-report
           retention-days: 7
 
@@ -84,6 +167,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   migrations:
+    needs: changes
+    if: needs.changes.outputs.db == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

@@ -9,7 +9,7 @@
 
 Both must stay thin and call the feature **service**.
 
-Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. Two cron routes exist today, because their work needs app code: `/api/cron/payments/auto-charge` (charging a card, ADR 0013 card handover) and `/api/cron/push` (sending web push, ADR 0012 web push). Both take the same `CRON_SECRET`. More arrive with email delivery in the final demo.
+Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. Three cron routes exist today, because their work needs app code: `/api/cron/payments/auto-charge` (charging a card, ADR 0013 card handover), `/api/cron/push` (sending web push, ADR 0012 web push) and `/api/cron/guide/noticed` (Jarso's weekly nudges, which may ask Claude to word a line). All take the same `CRON_SECRET`. More arrive with email delivery in the final demo.
 
 ## Bearer auth for non-browser callers
 
@@ -75,6 +75,7 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | POST | `/api/v1/payments/webhooks/[provider]` | provider signature | A payment provider's signed event (ADR 0013) |
 | GET, POST | `/api/cron/payments/auto-charge` | `Authorization: Bearer <CRON_SECRET>` | Charge every due item with auto charge on |
 | GET | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Daily web push sweep (ADR 0012); 404 when the secret is unset |
+| GET | `/api/cron/guide/noticed` | `Authorization: Bearer $CRON_SECRET` | Jarso noticed: the weekly nudges (demo 3); 404 when the secret is unset |
 
 ### `POST /api/v1/outbox`
 
@@ -110,6 +111,16 @@ No model text ever streams. `maxDuration` 60 s (the turn's own deadline is 45 s)
 
 The Jarso pages (`/child/jarso`, `/parent/jarso`) read past chats through the guide's server barrel, never a Route Handler: `listMyChats()` / `getMyTranscript(id)` for the signed-in child's own chats (a parent's chat about them, `asked_by` set, is never theirs), and `listParentChats()` / `getParentTranscript(id)` for the signed-in parent's own chats about their children. A reopened chat continues with its `conversationId` through the same `POST /api/v1/guide/turns`.
 
+#### What Jarso offers, and the user's tap (ADR 0011, amendment of 2026-11-03)
+
+A reply's `proposal` is a goal (`{ kind: "goal", … }`, from `propose_goal`) or a prepared action (`{ kind: "action", draft, title, lines }`, from `propose_action`). The model never writes: only these Server Actions, called from the card under the reply, do anything, and each runs as the signed-in user.
+
+| Server Action (`features/guide/server/actions.ts`) | Who | Schema | What it does |
+| --- | --- | --- | --- |
+| `acceptGoalProposalAction` | child | `acceptGoalProposalSchema` | Saves the offered goal through the goals service. A different active goal returns `{ status: "has_goal", existing }` until the child sends `replace: true`, which archives it first. A plan over the allowance is left off (`planKept: false`). |
+| `confirmActionDraftAction` | child or parent | `confirmActionDraftSchema` (`{ draft: ActionDraft }`) | Runs the draft through the feature service the app's own form uses (diary, requests, allowance), after checking it against that form's schema again. Children may run only `money_received`, `purchase`, `jar_move`, `savings_request`; parents only `hand_over_allowance`, `record_gift`, `change_allowance`, `decide_request`. The draft's `id` is the idempotency key, so a double tap records once. Returns `ActionOutcome`: `status` `done`, `waiting` (a parent still has to act) or `declined` (a refusal the form would show), one line of text from the service's result, and the child's jars after it. A service's `AppError` comes back as the usual failure with its safe message. |
+| `readPriceFromPhotoAction` | child | `readPriceSchema` (`{ image }`: a JPEG, PNG or WebP data URL, at most 700 KB, which keeps it under the 1 MB Server Action body limit) | Reads the main price on a photo with Claude Haiku 5.5 (structured output; the price is parsed in code) and returns `PhotoPriceResult`: a ready question for Jarso and a goal offer, or `{ found: false, reason }`. Same switches, rate limits (it counts as a message), budget and breaker as a turn. The photo is never stored or logged. |
+
 ### `POST /api/v1/payments/webhooks/[provider]`
 
 Called by the payment provider, never by our UI (`apps/web/src/app/api/v1/payments/webhooks/[provider]/route.ts`). `[provider]` must be a provider that is on (all its env keys set; `fake` needs `PAYMENTS_ALLOW_FAKE=true`); an unknown or inactive one, or no provider on, returns 404. The route reads the raw body once with `req.text()`, passes it and the headers to `provider.parseWebhook` (signature check, live-mode rejection, event mapping), then calls `handleProviderEvent`. There is no session: the signature is the authentication, and the signing secret is `STRIPE_WEBHOOK_SECRET` for Stripe and `RAZORPAY_WEBHOOK_SECRET` for Razorpay (HMAC-SHA256 of the raw body in `x-razorpay-signature`; the event id comes from `x-razorpay-event-id`).
@@ -124,6 +135,10 @@ Called by the payment provider, never by our UI (`apps/web/src/app/api/v1/paymen
 ### `POST /api/v1/payments/razorpay/return`
 
 Where Razorpay Checkout posts its form after the save-card page (`apps/web/src/app/api/v1/payments/razorpay/return/route.ts`). It is the only `withApi` route with `{ crossOrigin: true }`: the post comes from Razorpay's site, so the same-origin check would refuse it. That is safe because the route reads no session, writes nothing and only redirects. Query: `success` and `cancel`, absolute URLs on `NEXT_PUBLIC_APP_URL`'s origin. It answers 303 to `success` when the form has `razorpay_payment_id`, else to `cancel`; with either URL missing or off-origin it answers 303 to `/parent`. The `order.paid` webhook, not this redirect, saves the card. 404 when Razorpay is off.
+
+### `GET /api/cron/guide/noticed`
+
+Calls `runGuideNoticed()` (`features/guide/server/noticed.ts`). A weekly Vercel Cron (`apps/web/vercel.json`, `0 17 * * 0`, Sunday 17:00 UTC) calls it with `Authorization: Bearer $CRON_SECRET` (constant-time compare); 404 when `CRON_SECRET` is unset, 401 for a wrong secret. For each approved child it reads `guide_noticed_inputs`, picks at most one signal in code (a goal quarter mark, a saving streak of 3, 5, 8 or 12 allowances, a parent-only spending week over twice the one before, or 14 quiet days), and records it with `guide_noticed_record`, which writes the child's and the parents' notices. Where Jarso is on for the child and the guide is up, under its breaker and within budget, Claude Haiku may reword the child's line; the reworded line must keep exactly the fixed line's figure refs and pass the output screen, or the fixed line goes out. Nothing about a child whose parent turned Jarso off is sent to Anthropic. A repeat is harmless (a signal is sent once; one nudge per child in 6 days). Stops starting children after 40 s; `maxDuration` 60 s. Returns counts only: `{children, nudged, notices, worded, quiet, failed, timedOut}`.
 
 ### `GET|POST /api/cron/payments/auto-charge`
 

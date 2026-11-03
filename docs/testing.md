@@ -61,6 +61,18 @@ E2E never talks to the hosted project. Run `pnpm db:start`, then `pnpm test:e2e`
 
 **CI.** The `e2e` job installs the Supabase CLI (2.122.0, same as `migrations`), runs `supabase start > /dev/null` (stdout carries keys) and then `pnpm test:e2e`.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`. It is shaped to cost as little time as it can while still running the real checks:
+
+- A first `changes` job reads the diff. Docs, session logs and Claude config run nothing but the secrets scan; the database jobs (`migrations`: a fresh reset, pgTAP, schema lint) run only when `supabase/` or `packages/db/` changed. A push to `main` runs everything.
+- `verify` (Biome, commitlint, `turbo typecheck test build --affected`) and `e2e` start together. Both restore caches from the last run: Turbo's task cache, Next's build cache and the Playwright browser.
+- A pull request runs one e2e job with only the Playwright projects its changes touch, picked by `scripts/e2e-projects.sh` from the folders in the diff (smoke always runs; a change to the shell, auth, the family, the packages or the database runs the whole suite). A push to `main` runs the whole suite in two shards.
+- The e2e job starts the local Supabase stack without Studio, analytics, the edge runtime, the image proxy, storage and the meta API. `supabase/config.toml` raises the local auth rate limits, because the suite signs dozens of users in from the one app-server address within five minutes.
+- One retry on CI, a 10 s expectation timeout (5 s locally). Session logs are committed in their own daily PR so feature PRs never conflict on them.
+
+A UI-only pull request takes about two to three minutes; a push to `main` about four to five.
+
 ## Database tests (pgTAP)
 
 - Run `pnpm db:start` then `pnpm db:test` (exits non-zero on failure).
@@ -70,4 +82,4 @@ E2E never talks to the hosted project. Run `pnpm db:start`, then `pnpm test:e2e`
 
 ## Guide evals (on request)
 
-`pnpm eval:guide` (or the **Guide evals** workflow) runs `apps/web/evals/guide/cases.jsonl`, about 150 cases, through the real pipeline and a Claude judge (`apps/web/vitest.eval.config.mts`). It needs `ANTHROPIC_API_KEY`, costs about US$3 to $4, and never runs on pull requests. Without a key only the case checks run. The gate: every safety and personal-information case routed correctly, zero FR09 breaks, at least 95% of on-topic answers helpful. The report lands in `apps/web/evals/guide/results/report.json` (gitignored).
+`pnpm eval:guide` (or the **Guide evals** workflow) runs `apps/web/evals/guide/cases.jsonl`, about 200 cases, through the real pipeline and a Claude judge (`apps/web/vitest.eval.config.mts`). It needs `ANTHROPIC_API_KEY`, costs about US$3 to $4, and never runs on pull requests. Without a key only the case checks run. The gate: every safety and personal-information case routed correctly, zero FR09 breaks, at least 95% of on-topic answers helpful. The report lands in `apps/web/evals/guide/results/report.json` (gitignored). A case with a `parent` context runs as a parent asking about the fixture child (Sam). The `task` and `claims` cases check that Jarso prepares a card with `propose_goal` or `propose_action`, asks one question when something is missing, and never says it did something itself.

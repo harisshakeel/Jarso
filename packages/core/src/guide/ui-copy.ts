@@ -5,6 +5,8 @@ import type { ConversationSummary } from "./types";
 export const guideUi = {
   beforeWeStart: "Before we start",
   lookedAt: (list: string) => `Looked at: ${list}`,
+  /** Before the "Looked at" chips on the web. */
+  lookedAtLabel: "Looked at:",
   helplines: "People you can talk to",
   topics: "Topics",
   helpfulLegend: "Was this helpful?",

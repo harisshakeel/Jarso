@@ -8,6 +8,7 @@ import type {
   Schedule,
   Split,
 } from "@jarso/core/allowance";
+import { MATCH_GIFT_NOTE } from "@jarso/core/allowance";
 import { type FamilyContext, getFamilyContext as getSharedFamilyContext } from "@jarso/data/family";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertUser } from "@/features/auth/server";
@@ -16,8 +17,9 @@ import {
   assertParentOf,
   assertRole,
   assertSelfOrParentOf,
+  getFamily,
 } from "@/features/family/server";
-import { AppError, isAppError } from "@/lib";
+import { AppError, familyToday, isAppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types";
 import {
@@ -31,6 +33,7 @@ import {
   fetchScheduleAutoCharge,
   findGift,
   findLatestAllowanceSplit,
+  findLatestConfirmedOccurrence,
   findLatestGiftSplit,
   findLatestSchedule,
   findOccurrenceChildId,
@@ -40,6 +43,7 @@ import {
   insertSchedule,
   listDueForParent,
   listPendingGifts,
+  markPlanDecided,
   pauseSchedule,
   resumeSchedule,
   stopSchedule,
@@ -140,6 +144,56 @@ export async function listDueForChild(
 ): Promise<{ totalMinor: number; count: number }> {
   await assertSelfOrParentOf(childId);
   return sumDueOccurrences(await createClient(), childId);
+}
+
+/** An allowance handed over today (family time), for the allowance-day plan. */
+export type TodaysAllowance = {
+  occurrenceId: string;
+  cashMinor: number;
+  savedMinor: number;
+  confirmedAt: string;
+  /** The child already took or dismissed the plan for it: the card offers nothing new. */
+  planDecided: boolean;
+};
+
+/**
+ * The allowance that landed today, for the allowance-day plan on the child's Home: null when the
+ * latest handover was another day or nothing went to Spend. A decided plan still comes back
+ * (flagged), so the card that was just used stays on screen to say what happened. Child or parent.
+ */
+export async function getTodaysAllowance(childId: string): Promise<TodaysAllowance | null> {
+  await assertSelfOrParentOf(childId);
+  const db = await createClient();
+  const [occurrence, family] = await Promise.all([
+    findLatestConfirmedOccurrence(db, childId),
+    getFamily(),
+  ]);
+  if (!occurrence || occurrence.cashMinor <= 0) return null;
+  const timezone = family?.timezone ?? "UTC";
+  if (localDate(occurrence.confirmedAt, timezone) !== familyToday(timezone)) return null;
+  return {
+    occurrenceId: occurrence.id,
+    cashMinor: occurrence.cashMinor,
+    savedMinor: occurrence.savedMinor,
+    confirmedAt: occurrence.confirmedAt,
+    planDecided: occurrence.planDecidedAt !== null,
+  };
+}
+
+/** ISO date of an instant in the family's timezone. */
+function localDate(instant: string, timezone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(instant));
+}
+
+/** The child took or dismissed the plan for one of their allowances; the card stops showing. */
+export async function decideAllowancePlan(occurrenceId: string): Promise<void> {
+  await assertRole("child");
+  await markPlanDecided(await createClient(), occurrenceId);
 }
 
 /** Due allowances and due gifts, oldest first. Parent only: it reveals pending gifts. */
@@ -354,4 +408,31 @@ export async function markNotGiven(occurrenceId: string): Promise<NotGivenResult
   const db = await createClient();
   await assertParentOfChild(await findOccurrenceChildId(db, occurrenceId));
   return closeOccurrence(db, occurrenceId);
+}
+
+/**
+ * Match their saving (parent dashboard, spec answer 8): a gift of `amountMinor` given today and
+ * handed over at once, all of it into Save. The same key makes one gift; the handover happens
+ * once in the database whatever its key, so a retry after a lost response adds nothing twice.
+ */
+export async function matchSaving(input: {
+  childId: string;
+  amountMinor: number;
+  idempotencyKey: string;
+}): Promise<HandoverResult> {
+  const { today } = await getFamilyContext();
+  const giftId = await createGift({
+    childId: input.childId,
+    amountMinor: input.amountMinor,
+    giveOn: today,
+    note: MATCH_GIFT_NOTE,
+    idempotencyKey: input.idempotencyKey,
+  });
+  return confirmHandover({
+    kind: "gift",
+    id: giftId,
+    cashMinor: 0,
+    savedMinor: input.amountMinor,
+    idempotencyKey: crypto.randomUUID(),
+  });
 }

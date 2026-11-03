@@ -202,4 +202,39 @@ describe("noticeText", () => {
       detail: "Done without asking, as you set.",
     });
   });
+
+  it("guide_noticed shows the lines written when the nudge was sent", () => {
+    const n = { ...base, kind: "guide_noticed" as const, sourceType: "guide_noticed" as const };
+    expect(
+      noticeText(
+        {
+          ...n,
+          payload: { title: "Halfway to Bike", detail: "£50 of £100 counts toward it now." },
+        },
+        "child",
+        "GBP",
+      ),
+    ).toEqual({ title: "Halfway to Bike", detail: "£50 of £100 counts toward it now." });
+    expect(noticeText({ ...n, payload: { title: "  " } }, "parent", "GBP")).toEqual({
+      title: "Jarso noticed something",
+      detail: "Take a look.",
+    });
+    expect(
+      noticeText({ ...n, payload: { title: "x".repeat(300) } }, "child", "GBP").title,
+    ).toHaveLength(140);
+  });
+
+  it("parent_note shows the child their parent's note in full", () => {
+    const n = {
+      ...base,
+      kind: "parent_note" as const,
+      sourceType: "note" as const,
+      payload: { text: "Great saving this week! 🎉" },
+    };
+    expect(noticeText(n, "child", "GBP")).toEqual({
+      title: "A note from your parent",
+      detail: "Great saving this week! 🎉",
+    });
+    expect(noticeText({ ...n, payload: {} }, "child", "GBP").detail).toBe("");
+  });
 });

@@ -8,8 +8,10 @@ import {
   CreditCardIcon,
   HandCoinsIcon,
   type LucideIcon,
+  MessageCircleHeartIcon,
   PencilIcon,
   PiggyBankIcon,
+  SparklesIcon,
 } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui";
@@ -30,6 +32,8 @@ const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
   money_received: { icon: HandCoinsIcon, tint: "bg-teal-100" },
   entry_corrected: { icon: PencilIcon, tint: "bg-secondary" },
   jar_moved: { icon: PiggyBankIcon, tint: "bg-teal-100" },
+  guide_noticed: { icon: SparklesIcon, tint: "bg-secondary" },
+  parent_note: { icon: MessageCircleHeartIcon, tint: "bg-cyan-100" },
 };
 
 /** One inbox row (design.md §6): tinted icon, title, detail, relative time, chevron. */
@@ -69,7 +73,10 @@ function InboxItem({
         >
           {title}
         </Text>
-        <Text numberOfLines={1} className="text-muted-foreground text-sm">
+        <Text
+          numberOfLines={notice.kind === "parent_note" ? undefined : 1}
+          className="text-muted-foreground text-sm"
+        >
           {detail}
         </Text>
       </View>

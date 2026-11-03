@@ -1,11 +1,12 @@
 import "server-only";
-import type { GuideCheck, GuideRoute, GuideUsage } from "@jarso/core/guide";
+import type { GuideCheck, GuideProposal, GuideRoute, GuideUsage } from "@jarso/core/guide";
 import { guideCopy } from "@jarso/core/guide";
 import type { TopicKey } from "@/features/learning";
 import { logger } from "@/lib";
 import { addUsage, zeroUsage } from "./cost";
 import { describeFacts, type Facts, fillFacts } from "./facts";
 import {
+  type Asker,
   type GuideProvider,
   type MainReply,
   type MainResult,
@@ -50,6 +51,12 @@ export type PipelineResult = {
   /** Facts this turn stored, as written; shown to the child under the reply. */
   remembered: string[];
   /**
+   * The goal or action Jarso offered (`propose_goal`, `propose_action`), shown as a card under an on-topic reply that passed
+   * the output screen and dropped with any other reply. Its figures come from the tool's
+   * validated arguments, parsed in code, never from the model's text.
+   */
+  proposal: GuideProposal | null;
+  /**
    * Why a reply was held back (`blocked_output` only): the output screen's problem, or
    * "unknown_ref: <keys>" / "malformed_ref" / "empty" / "too_long". Ref keys only, never text.
    */
@@ -90,6 +97,7 @@ function fixed(
     flagged: FLAGGED_ROUTES.has(route),
     failed,
     blocked,
+    proposal: null,
   };
 }
 
@@ -185,7 +193,14 @@ async function settled(main: Promise<MainOutcome>): Promise<MainOutcome | null> 
 }
 
 export async function runGuidePipeline(
-  input: { text: string; history: Turn[]; context: string; tools: TurnTools },
+  input: {
+    text: string;
+    history: Turn[];
+    context: string;
+    tools: TurnTools;
+    /** Who is asking (default the child). A parent's message is screened as a parent's. */
+    asker?: Asker;
+  },
   provider: GuideProvider,
   {
     deadlineMs = TURN_DEADLINE_MS,
@@ -257,7 +272,12 @@ export async function runGuidePipeline(
 
   let route: Awaited<ReturnType<GuideProvider["screenInput"]>>["route"];
   try {
-    const screen = await provider.screenInput({ text: childText, history, signal });
+    const screen = await provider.screenInput({
+      text: childText,
+      history,
+      asker: input.asker ?? "child",
+      signal,
+    });
     usage = addUsage(usage, screen.usage);
     route = screen.route;
   } catch (error) {
@@ -346,6 +366,7 @@ export async function runGuidePipeline(
     flagged: false,
     failed: false,
     blocked: null,
+    proposal: input.tools.proposal,
   };
 }
 

@@ -47,8 +47,14 @@ export const signUp = createAction(signUpSchema, async ({ email, password, fullN
     );
   }
 
-  // Email confirmation enabled → no session yet.
-  if (!data.session) return { needsConfirmation: true };
+  // Email confirmation enabled → no session yet. Logged, because a deployment with
+  // confirmations off (the local stack, CI) should never land here.
+  if (!data.session) {
+    logger.info("Sign-up needs confirmation", {
+      confirmedAt: data.user?.email_confirmed_at ?? null,
+    });
+    return { needsConfirmation: true };
+  }
 
   redirect(target as Route);
 });

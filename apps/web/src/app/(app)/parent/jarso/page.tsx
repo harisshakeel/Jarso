@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -19,23 +20,25 @@ import {
   isGuideConfigured,
   listParentChats,
 } from "@/features/guide/server";
+import { getProfile } from "@/features/profiles/server";
 import { fallback } from "@/lib";
 
 export const metadata: Metadata = { title: "Jarso" };
 
 type Props = PageProps<"/parent/jarso">;
 
-const paramsSchema = z.object({ chat: z.uuid().optional() });
-const hrefFor = (id: string) => `${routes.parentJarso}?chat=${id}` as Route;
+const paramsSchema = z.object({ chat: z.uuid().optional(), new: z.string().max(16).optional() });
 
 /**
- * The parent's Jarso page: their own chats about their children down the side, the open one in
- * the middle, with a chip per child Jarso is on for when starting a new chat.
+ * The parent's Jarso page: the chat filling the page, their past chats about their children
+ * behind "History", with a chip per child Jarso is on for when starting a new chat.
  */
 async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
-  const { membership } = await requireRole("parent", routes.parentJarso);
+  const { user, membership } = await requireRole("parent", routes.parentJarso);
   if (!membership) redirect(routes.parentSetup);
-  const { chat } = paramsSchema.parse(await searchParams);
+  const { chat, new: nonce } = paramsSchema.parse(await searchParams);
+  // A fresh nonce each render, so "New chat" starts over even from an unsaved new chat.
+  const newHref = `${routes.parentJarso}?new=${randomUUID().slice(0, 8)}` as Route;
   if (!isGuideConfigured()) {
     return <p className="rounded-xl bg-muted p-4 text-ink-2">{guideCopy.switchedOff}</p>;
   }
@@ -53,17 +56,23 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
   );
   const kids = access.filter((a) => a.enabled).map((a) => a.child);
   const names = Object.fromEntries(children.map((child) => [child.id, child.nickname]));
-  const [chats, transcript] = await Promise.all([
+  const [chats, transcript, fullName] = await Promise.all([
     listParentChats(),
     chat ? getParentTranscript(chat) : null,
+    fallback(
+      getProfile(user.id).then((profile) => profile.fullName),
+      null,
+      "The parent's name on the Jarso page",
+    ),
   ]);
+  const firstName = fullName?.trim().split(/\s+/)[0] ?? "";
   const about = transcript ? children.find((c) => c.id === transcript.summary.childId) : null;
   const reopened =
     transcript && about
       ? {
           conversationId: transcript.summary.id,
           turnsLeft: Math.max(0, MAX_TURNS - transcript.summary.turns),
-          messages: threadMessagesFrom(transcript.messages, currency),
+          messages: threadMessagesFrom(transcript.messages, currency, about.nickname),
           kid: about,
         }
       : undefined;
@@ -71,18 +80,20 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
     <JarsoChatPage
       chats={chats}
       currentId={reopened?.conversationId ?? null}
-      hrefFor={hrefFor}
-      newHref={routes.parentJarso}
+      chatHref={routes.parentJarso}
+      newHref={newHref}
       timezone={family?.timezone ?? "UTC"}
       names={names}
     >
       {kids.length > 0 || reopened ? (
         <JarsoPageThread
-          key={reopened?.conversationId ?? "new"}
           audience="parent"
           kids={kids}
+          person={firstName}
           reopened={reopened}
           chatHref={routes.parentJarso}
+          chatId={chat ?? null}
+          nonce={nonce ?? null}
         />
       ) : (
         <p className="rounded-xl bg-muted p-4 text-ink-2">

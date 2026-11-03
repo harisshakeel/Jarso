@@ -116,6 +116,7 @@ apps/web/src/
 │   ├── diary/           diary UI over ledger entries (add, correct, undo)
 │   ├── learning/     ✅ missions, topics, hints, spaced review, check-in, skill progress (ADR 0009)
 │   ├── review/       ✅ weekly review (FR11) built in code from the week's history, goal, skills and review pool
+│   ├── dashboard/    ✅ the parent's Home: family totals, money chart by child, category comparison, callouts, timeline, merged activity (one read per child)
 │   ├── notifications/   inbox, web push (subscriptions, dispatcher, toggle), invitation email adapter
 │   ├── payments/        card handover and auto charge: pay by card, saved card, webhook state machine, auto-charge run (ADR 0013)
 │   └── guide/        ✅ Jarso: Claude-backed guide with read-only look-ups and FR09 boundaries (ADR 0010, 0011)

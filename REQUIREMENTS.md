@@ -109,6 +109,11 @@ The initial topics are:
 - Basic conceptual questions receive a direct answer.
 - The guide can offer a short follow-up activity to check understanding.
 - When the child asks, the guide (Jarso) looks up the child's own jars, allowance, money history, money rules and learning progress, and can work out how far Save is from a price the child gives. Figures it shows come from the app, never from the model (ADR 0011).
+- When the child says they want to save up for something with a price, the guide can offer to make it their goal; a photo of a price tag or receipt can stand in for typing the price. The child decides with a card under the reply.
+- When asked, the guide can prepare an action for the user to confirm: for a child, writing down money they got, recording a purchase, moving money between Spend and Save, or asking their parent; for a parent, handing over the allowance, giving a gift now, changing the allowance, or saying yes or no to a request. It asks one short question for anything missing, shows every field on a card, and the app states the result after the tap.
+- Once a week the guide can notice something worth a word and say it in the inbox, to the child and to their parents: a goal crossing a quarter mark, a saving streak, spending over twice the week before (parents only) or two quiet weeks. The figures are the app's own; the model may only reword the child's line and nothing about a child goes to it when their parent turned Jarso off. At most one nudge a child a week, each signal once.
+- On the day an allowance lands, the child's Home offers a Save and Spend split worked out in code, as one tap; it moves money through the same put-in as typing it, under the family's jar-move setting.
+- **Closed for the pilot (2026-11-03).** FR07 and FR09 are complete for the pilot. Dropped, not planned: counting the photo check, the parent summary and the weekly nudges in the guide's budget totals (each has its own cap), evals for those three, a nudge switch separate from the guide switch, turning a receipt photo into a purchase, daily missions written by the guide, and memory consolidation.
 
 ## FR08 — Related learning material
 
@@ -123,7 +128,7 @@ The initial topics are:
 - Unrelated requests receive a brief redirection toward relevant learning.
 - The guide acknowledges uncertainty or missing information.
 - It does not request sensitive personal or account information, recommend specific investments, or instruct the child to make purchases.
-- It states the child's own figures plainly when asked, but never judges an amount or compares it with anyone else's. It cannot see other children's money, a parent's planned gifts, or anything outside Jarso, and it cannot move money.
+- It states the child's own figures plainly when asked, but never judges an amount or compares it with anyone else's. It cannot see other children's money, a parent's planned gifts, or anything outside Jarso. It cannot move money itself: it can prepare an action the child or parent confirms with a tap, and only that tap carries it out. It never says it did something; only the app's outcome line does.
 - Safety concerns receive a supportive response and appropriate guidance toward help.
 
 ## FR10 — Learning progress
@@ -207,7 +212,7 @@ The initial topics are:
 ## FR16 — Notifications
 
 - Parents and children have an in-app notification inbox that is kept between visits.
-- The inbox covers due allowances, handover reminders, limit notices, new requests, and decisions.
+- The inbox covers due allowances, handover reminders, limit notices, new requests, and decisions. A child's inbox (News) also holds the short notes their parent sends from the dashboard.
 - The inbox ships in the first milestone, in-app only: due badge, handover reminders, limit notices, new-request notices and decision notices all work without push.
 - Web push is offered for the same events, after the user grants permission.
 - The app can be installed on compatible devices.
@@ -301,3 +306,9 @@ The SQL for each measure is in `docs/pilot-measures.md`.
 - **P6 Auto-confirm deposits.** A deposit that fits every auto-confirm rule posts at once. This is a parent-chosen exception to counting only after confirmation, and it is off unless the parent sets it.
 - **P7 Anti-goals.** All four matter equally: a parent buried in notifications, a child who gives up logging, a parent who cannot work out the rules, and a wrong balance.
 - **P8 Undo a purchase.** The child can undo their own purchase within 24 hours. The parent sees it marked "Undone" in history, with no notification.
+
+### Decided for the parent dashboard (2026-11-03)
+
+- **D1 Jarso's summary.** The parent's Home opens with a sentence or two written by AI (Claude Haiku) from the dashboard's own figures, labelled as AI. The facts carry nicknames, fixed category names, figures and dates only, never text a child typed. The app shows the sentence only if every number in it is in the facts, no child is compared with another and nothing is judged; otherwise there is no summary. It runs on the guide's switch, budget and breaker, at most 30 a parent per hour, and the same figures reuse one summary for a few hours.
+- **D2 A note for the child.** From a "Worth knowing" line or a child's tile, a parent sends a note of up to 140 characters. It lands in the child's News, with push when it is on. At most 20 notes per child a day; a resend after a lost response sends one note. The audit log records that a note went, never what it said.
+- **D3 Match their saving.** When a child put money into Save themselves over the period (their own put-ins and money they got and saved, less what they took out and what was already matched; never the parent's allowance share), the parent can match it: the amount (changeable) goes into Save at once as a gift handed over, noted "Matching your saving", with an optional note to their News. A resend adds the money once.

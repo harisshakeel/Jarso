@@ -9,8 +9,17 @@ import { routes } from "@/config";
 import { useOnlineActionState } from "@/features/offline";
 import { signUp } from "../server/actions";
 
+/**
+ * Creating or opening an account hashes a password and sets cookies on a cold server; under load
+ * that can pass the usual 15 s, after which the page would say "taking a while" while the server
+ * finished anyway. Auth waits longer before giving up.
+ */
+const SLOW_AUTH_MS = 45_000;
+
 export function SignUpForm({ next }: { next?: string }) {
-  const [state, formAction, pending, submit, ready] = useOnlineActionState(signUp);
+  const [state, formAction, pending, submit, ready] = useOnlineActionState(signUp, {
+    timeoutMs: SLOW_AUTH_MS,
+  });
   const fieldErrors = state?.ok === false ? state.error.fieldErrors : undefined;
 
   if (state?.ok && state.data?.needsConfirmation) {

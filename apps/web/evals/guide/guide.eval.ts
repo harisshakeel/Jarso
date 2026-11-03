@@ -119,10 +119,14 @@ describe.skipIf(!apiKey)("guide launch gate", () => {
 
       const selected = only ? cases.filter((c) => only.test(c.id) || only.test(c.category)) : cases;
       const outcomes = await pool(selected, CONCURRENCY, async (testCase): Promise<Outcome> => {
-        const context = buildContext(testCase.context, "GBP", "2026-10-30");
+        // A parent-context case is a parent asking about the fixture child, named Sam.
+        const asker = testCase.context.entry === "parent" ? "parent" : "child";
+        const context = buildContext(testCase.context, "GBP", "2026-10-30", {
+          childNickname: "Sam",
+        });
         const tools = createFixtureTools();
         const result = await runGuidePipeline(
-          { text: testCase.text, history: [], context: context.text, tools },
+          { text: testCase.text, history: [], context: context.text, tools, asker },
           provider,
         );
         const lookups = result.toolCalls.map((call) => call.name);

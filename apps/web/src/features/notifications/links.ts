@@ -14,6 +14,10 @@ export function noticeHref(notice: Notice, role: NoticeRole): Route {
       return routes.parentChildHistory(target.childId);
     case "diary":
       return routes.childDiary;
+    case "goal":
+      return routes.childGoal;
+    case "jarso":
+      return routes.childJarso;
     case "home":
       return role === "parent" ? routes.parent : routes.child;
   }

@@ -11,11 +11,29 @@ export type NoticeTarget =
   | { to: "child-history"; childId: string }
   /** The child's own diary. */
   | { to: "diary" }
+  /** The child's savings goal. */
+  | { to: "goal" }
+  /** The child's chats with Jarso. */
+  | { to: "jarso" }
   /** The viewer's own Home (parent or child). */
   | { to: "home" };
 
+/** Where a "Jarso noticed" nudge opens: the page it is about, named when it was sent. */
+function noticedTarget(notice: Notice, role: NoticeRole): NoticeTarget {
+  const { open } = notice.payload;
+  if (role === "parent") {
+    return open === "history"
+      ? { to: "child-history", childId: notice.childId }
+      : { to: "child", childId: notice.childId };
+  }
+  if (open === "goal") return { to: "goal" };
+  if (open === "jarso") return { to: "jarso" };
+  return { to: "home" };
+}
+
 /** Where a notice opens: the record as it is now, not as it was when the notice was sent. */
 export function noticeTarget(notice: Notice, role: NoticeRole): NoticeTarget {
+  if (notice.kind === "guide_noticed") return noticedTarget(notice, role);
   if (role === "parent") {
     if (notice.sourceType === "payment") {
       const item = paymentItem(notice);

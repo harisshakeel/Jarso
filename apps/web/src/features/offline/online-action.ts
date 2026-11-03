@@ -112,9 +112,11 @@ const noSubscribe = () => () => {};
  */
 export function useOnlineActionState<T>(
   action: (prev: ActionState<T>, payload: FormData) => Promise<ActionResult<T>>,
+  options: { timeoutMs?: number } = {},
 ) {
+  const { timeoutMs } = options;
   const [state, formAction, pending] = useActionState<ActionState<T>, FormData>(
-    (prev, payload) => runOnline(() => action(prev, payload)),
+    (prev, payload) => runOnline(() => action(prev, payload), { timeoutMs }),
     null,
   );
   const submit = useFormSubmit(formAction, state);

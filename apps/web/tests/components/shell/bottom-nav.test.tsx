@@ -1,5 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { HomeIcon, InboxIcon } from "lucide-react";
+import { HomeIcon, InboxIcon, SettingsIcon } from "lucide-react";
 import type { Route } from "next";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BottomNav } from "@/components/shell/bottom-nav";
@@ -37,5 +37,24 @@ describe("BottomNav", () => {
     const account = screen.getByRole("link", { name: "Account" });
     expect(nav).toContainElement(account);
     expect(nav.lastElementChild).toContainElement(account);
+  });
+
+  it("puts rail-only tabs (Settings) at the rail's foot, just above the signed-in person", () => {
+    render(
+      <BottomNav
+        items={[
+          ...items,
+          { href: "/child/settings" as Route, label: "Me", icon: SettingsIcon, railOnly: true },
+        ]}
+        footer={<a href="/profile">Account</a>}
+      />,
+    );
+    const nav = screen.getByRole("navigation", { name: "Main" });
+    const foot = nav.lastElementChild as HTMLElement;
+    const links = screen.getAllByRole("link").map((link) => link.textContent);
+    expect(links.slice(2)).toEqual(["Me", "Account"]);
+    expect(foot).toContainElement(screen.getByRole("link", { name: "Me" }));
+    expect(foot).toContainElement(screen.getByRole("link", { name: "Account" }));
+    expect(nav.firstElementChild).not.toContainElement(screen.getByRole("link", { name: "Me" }));
   });
 });

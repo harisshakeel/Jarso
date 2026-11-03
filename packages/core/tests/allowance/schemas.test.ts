@@ -5,6 +5,7 @@ import {
   handoverParamsSchema,
   handoverSchema,
   idSchema,
+  matchSavingSchema,
   pauseSchema,
   updateGiftSchema,
 } from "@jarso/core/allowance";
@@ -202,5 +203,26 @@ describe("handoverParamsSchema", () => {
   it("rejects an unknown kind or a non-uuid id", () => {
     expect(handoverParamsSchema.safeParse({ kind: "foo", id }).success).toBe(false);
     expect(handoverParamsSchema.safeParse({ kind: "gift", id: "123" }).success).toBe(false);
+  });
+});
+
+describe("matchSavingSchema", () => {
+  const valid = { childId, amount: "8", message: "  I matched it!  ", idempotencyKey: id };
+  it("reads the amount in minor units and trims the note", () => {
+    expect(matchSavingSchema("GBP").parse(valid)).toEqual({
+      childId,
+      amountMinor: 800,
+      message: "I matched it!",
+      idempotencyKey: id,
+    });
+  });
+  it("treats a blank note as none", () => {
+    expect(matchSavingSchema("GBP").parse({ ...valid, message: "" }).message).toBeNull();
+  });
+  it("refuses nothing to add, a long note and a missing key", () => {
+    const schema = matchSavingSchema("GBP");
+    expect(schema.safeParse({ ...valid, amount: "0" }).success).toBe(false);
+    expect(schema.safeParse({ ...valid, message: "x".repeat(141) }).success).toBe(false);
+    expect(schema.safeParse({ ...valid, idempotencyKey: undefined }).success).toBe(false);
   });
 });

@@ -9,6 +9,10 @@ export function noticeRoute(notice: Notice): Href {
   switch (target.to) {
     case "diary":
       return "/(child)/(tabs)/diary";
+    case "goal":
+      return "/(child)/goal";
+    case "jarso":
+      return "/(child)/(tabs)/jarso";
     // Parent records (handover, a child's page) never reach a child; Home is the safe place.
     case "home":
     case "handover":

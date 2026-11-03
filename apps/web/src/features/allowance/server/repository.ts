@@ -43,6 +43,15 @@ export type ScheduleRow = {
 export type GiftRecord = Omit<Gift, "autoChargeMine"> & { autoChargeBy: string | null };
 export type GiftRow = GiftRecord & { childId: string };
 export type LatestSplit = Split & { at: string };
+/** The child's most recent handed-over allowance, for the allowance-day plan. */
+export type ConfirmedOccurrence = {
+  id: string;
+  cashMinor: number;
+  savedMinor: number;
+  confirmedAt: string;
+  /** Set once the child took or dismissed the plan for it. */
+  planDecidedAt: string | null;
+};
 
 function asFrequency(value: string): Frequency {
   if ((frequencies as readonly string[]).includes(value)) return value as Frequency;
@@ -248,6 +257,37 @@ export async function findLatestAllowanceSplit(
     saved: Number(data.saved_minor ?? 0),
     at: data.confirmed_at,
   };
+}
+
+/** The child's latest confirmed allowance occurrence, or null before the first handover. */
+export async function findLatestConfirmedOccurrence(
+  db: Client,
+  childId: string,
+): Promise<ConfirmedOccurrence | null> {
+  const { data, error } = await db
+    .from("allowance_occurrences")
+    .select("id, cash_minor, saved_minor, confirmed_at, plan_decided_at")
+    .eq("child_id", childId)
+    .eq("status", "confirmed")
+    .not("confirmed_at", "is", null)
+    .order("confirmed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load the last handover");
+  if (!data?.confirmed_at) return null;
+  return {
+    id: data.id,
+    cashMinor: Number(data.cash_minor ?? 0),
+    savedMinor: Number(data.saved_minor ?? 0),
+    confirmedAt: data.confirmed_at,
+    planDecidedAt: data.plan_decided_at,
+  };
+}
+
+/** Records that the child took or dismissed the allowance-day plan (the function checks it is theirs). */
+export async function markPlanDecided(db: Client, occurrenceId: string): Promise<void> {
+  const { error } = await db.rpc("decide_allowance_plan", { p_occurrence_id: occurrenceId });
+  if (error) throw toAppError(error, "Failed to save your choice");
 }
 
 export async function findLatestGiftSplit(

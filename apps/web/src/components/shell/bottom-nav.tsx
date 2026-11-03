@@ -17,7 +17,10 @@ export type BottomNavItem = {
   tone?: Tone;
   /** Count badge (Inbox). Shown in full, never abbreviated. */
   count?: number;
-  /** Only in the sidebar (from 768 px); phones reach it another way, so the bar stays five wide. */
+  /**
+   * Only in the sidebar (from 768 px), at its foot just above the signed-in person; phones reach
+   * it another way, so the bar stays five wide.
+   */
   railOnly?: boolean;
 };
 
@@ -57,6 +60,8 @@ export function BottomNav({
   const current = outside.some((href) => matches(pathname, href))
     ? undefined
     : activeHref(pathname, items);
+  const tabs = items.filter((item) => !item.railOnly);
+  const railOnly = items.filter((item) => item.railOnly);
   return (
     // The sidebar box exists from 768 px; below that it dissolves and the nav is the bottom bar.
     // The brand sits outside <nav> so the nav's links are only the tabs.
@@ -71,47 +76,60 @@ export function BottomNav({
         )}
       >
         <ul className="mx-auto flex h-16 max-w-xl items-stretch gap-1 px-1 md:mx-0 md:h-auto md:max-w-none md:flex-col md:px-0">
-          {items.map(({ href, label: itemLabel, icon: Icon, count, railOnly, tone = "teal" }) => {
-            const active = href === current;
-            return (
-              <li
-                key={href}
-                className={cn("flex flex-1 md:flex-none", railOnly && "hidden md:flex")}
-              >
-                <Link
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "my-1.5 flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-2xl font-semibold text-xs transition-colors",
-                    "md:my-0 md:py-2.5 md:text-sm",
-                    "lg:min-h-12 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-base",
-                    active
-                      ? cn(toneActive[tone], "font-bold")
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <span className="relative">
-                    <Icon
-                      aria-hidden
-                      className="size-6"
-                      fill={active ? "currentColor" : "none"}
-                      fillOpacity={active ? 0.18 : undefined}
-                    />
-                    {count ? (
-                      <Badge variant="count" className="absolute -top-1.5 -right-3">
-                        {count.toLocaleString("en")}
-                        <span className="sr-only"> new</span>
-                      </Badge>
-                    ) : null}
-                  </span>
-                  {itemLabel}
-                </Link>
-              </li>
-            );
-          })}
+          {tabs.map((item) => (
+            <NavTab key={item.href} item={item} active={item.href === current} />
+          ))}
         </ul>
-        {footer ? <div className="mt-auto hidden pt-4 md:block">{footer}</div> : null}
+        {/* The sidebar's foot: rail-only tabs, then the signed-in person. */}
+        {railOnly.length > 0 || footer ? (
+          <div className="mt-auto hidden pt-4 md:grid md:gap-1">
+            {railOnly.length > 0 ? (
+              <ul className="grid gap-1">
+                {railOnly.map((item) => (
+                  <NavTab key={item.href} item={item} active={item.href === current} />
+                ))}
+              </ul>
+            ) : null}
+            {footer ?? null}
+          </div>
+        ) : null}
       </nav>
     </div>
+  );
+}
+
+function NavTab({ item, active }: { item: BottomNavItem; active: boolean }) {
+  const { href, label, icon: Icon, count, tone = "teal" } = item;
+  return (
+    <li className="flex flex-1 md:flex-none">
+      <Link
+        href={href}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "my-1.5 flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-2xl font-semibold text-xs transition-colors",
+          "md:my-0 md:py-2.5 md:text-sm",
+          "lg:min-h-12 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-base",
+          active
+            ? cn(toneActive[tone], "font-bold")
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
+      >
+        <span className="relative">
+          <Icon
+            aria-hidden
+            className="size-6"
+            fill={active ? "currentColor" : "none"}
+            fillOpacity={active ? 0.18 : undefined}
+          />
+          {count ? (
+            <Badge variant="count" className="absolute -top-1.5 -right-3">
+              {count.toLocaleString("en")}
+              <span className="sr-only"> new</span>
+            </Badge>
+          ) : null}
+        </span>
+        {label}
+      </Link>
+    </li>
   );
 }

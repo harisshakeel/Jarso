@@ -1,4 +1,4 @@
-import { moneySchema } from "@jarso/core/lib";
+import { MAX_AMOUNT_MINOR, moneySchema } from "@jarso/core/lib";
 import { z } from "zod";
 
 const MAX_TEXT = 140;
@@ -41,6 +41,19 @@ export const depositSchema = (currency: string) =>
     .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));
 
 export const requestIdSchema = z.object({ requestId: z.uuid("We couldn't find that.") });
+
+/**
+ * Taking the allowance-day plan: the amount is the app's own figure in minor units (a form
+ * field, so a string to coerce). It is an ordinary deposit, so the database checks it as one.
+ */
+export const allowancePlanSchema = z.object({
+  occurrenceId: z.uuid("We couldn't find that."),
+  amountMinor: z.coerce.number().int().min(1).max(MAX_AMOUNT_MINOR),
+  idempotencyKey: z.uuid(),
+});
+
+/** Dismissing the allowance-day plan for one allowance. */
+export const dismissPlanSchema = z.object({ occurrenceId: z.uuid("We couldn't find that.") });
 
 export const decideSchema = z.object({
   requestId: z.uuid("We couldn't find that."),

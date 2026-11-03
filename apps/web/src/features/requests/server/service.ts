@@ -11,6 +11,7 @@ import type {
   WithdrawalResult,
 } from "@jarso/core/requests";
 import { cache } from "react";
+import { decideAllowancePlan, getTodaysAllowance } from "@/features/allowance/server";
 import { assertUser } from "@/features/auth/server";
 // Savings requests: a child asks to take money out of Save or records money put into it.
 import {
@@ -102,6 +103,36 @@ export async function createDeposit(input: {
     amountMinor: input.amountMinor,
     idempotencyKey: input.idempotencyKey,
   });
+}
+
+/**
+ * The child takes the allowance-day plan: an ordinary deposit of the app's own figure (so the
+ * parent's ask/notify setting and the auto-confirm rules apply as for a typed put-in), then the
+ * card is retired for that allowance. Only today's own allowance is honoured. A decided plan is
+ * still accepted, so a retry whose first reply was lost finds its deposit by the same key.
+ */
+export async function acceptAllowancePlan(input: {
+  occurrenceId: string;
+  amountMinor: number;
+  idempotencyKey: string;
+}): Promise<DepositResult> {
+  const { user } = await assertRole("child");
+  const today = await getTodaysAllowance(user.id);
+  if (!today || today.occurrenceId !== input.occurrenceId) {
+    throw new AppError("CONFLICT", "That plan is no longer open. Refresh to see your jars.");
+  }
+  const result = await callCreateDeposit(await createClient(), {
+    childId: user.id,
+    amountMinor: input.amountMinor,
+    idempotencyKey: input.idempotencyKey,
+  });
+  if (result.status !== "over_available") await decideAllowancePlan(input.occurrenceId);
+  return result;
+}
+
+/** The child says "not today" to the allowance-day plan; the card stops showing. */
+export async function dismissAllowancePlan(input: { occurrenceId: string }): Promise<void> {
+  await decideAllowancePlan(input.occurrenceId);
 }
 
 /** Approves or rejects a pending withdrawal or emergency ask (the same database function). */

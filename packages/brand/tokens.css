@@ -141,6 +141,18 @@
   --ai: #6a4fd6;
   --ai-foreground: #ffffff;
   --ai-text: #5d3ec3;
+  /* One colour per child on the parent's dashboard (dataviz reference palette, fixed order;
+     never by rank). 0 is the neutral tone for a ninth child on. Slots 3 to 5 are one step
+     darker than the reference so every child clears 3:1 on the white card (2026-11-03). */
+  --series-0: oklch(0.6 0.012 223);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #00a470;
+  --series-4: #c58100;
+  --series-5: #d86d96;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
   --sidebar: var(--card);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
@@ -194,4 +206,13 @@
   --chart-3: oklch(0.622 0.107 208);
   --chart-4: oklch(0.8 0.06 223);
   --chart-5: oklch(0.711 0.145 87);
+  --series-0: oklch(0.62 0.02 223);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #188d15; /* one step lighter than the reference: 3.2:1 on the dark card */
+  --series-7: #9085e9;
+  --series-8: #e66767;
 }

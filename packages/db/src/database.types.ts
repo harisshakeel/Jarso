@@ -25,14 +25,14 @@ export type Database = {
           Tables: {
             "allowance_occurrences": {
                   Row: {
-                    "amount_minor": number,"cash_minor": number | null,"child_id": string,"confirmed_at": string | null,"confirmed_by": string | null,"created_at": string,"due_on": string,"family_id": string,"id": string,"period_key": string,"saved_minor": number | null,"schedule_id": string,"shortfall_minor": number,"status": string
+                    "amount_minor": number,"cash_minor": number | null,"child_id": string,"confirmed_at": string | null,"confirmed_by": string | null,"created_at": string,"due_on": string,"family_id": string,"id": string,"period_key": string,"plan_decided_at": string | null,"saved_minor": number | null,"schedule_id": string,"shortfall_minor": number,"status": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_minor": number,"cash_minor"?: number | null,"child_id": string,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"due_on": string,"family_id": string,"id"?: string,"period_key": string,"saved_minor"?: number | null,"schedule_id": string,"shortfall_minor"?: number,"status"?: string
+                    "amount_minor": number,"cash_minor"?: number | null,"child_id": string,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"due_on": string,"family_id": string,"id"?: string,"period_key": string,"plan_decided_at"?: string | null,"saved_minor"?: number | null,"schedule_id": string,"shortfall_minor"?: number,"status"?: string
                   }
                   Update: {
-                    "amount_minor"?: number,"cash_minor"?: number | null,"child_id"?: string,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"due_on"?: string,"family_id"?: string,"id"?: string,"period_key"?: string,"saved_minor"?: number | null,"schedule_id"?: string,"shortfall_minor"?: number,"status"?: string
+                    "amount_minor"?: number,"cash_minor"?: number | null,"child_id"?: string,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"due_on"?: string,"family_id"?: string,"id"?: string,"period_key"?: string,"plan_decided_at"?: string | null,"saved_minor"?: number | null,"schedule_id"?: string,"shortfall_minor"?: number,"status"?: string
                   }
                   Relationships: [
                     {
@@ -407,6 +407,32 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "guide_conversations"
       referencedColumns: ["id","child_id"]
+    }
+                  ]
+                },"guide_noticed_runs": {
+                  Row: {
+                    "child_id": string,"family_id": string,"id": string,"noticed_at": string,"payload": NonNullable<Json>,"signal_key": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"family_id": string,"id"?: string,"noticed_at"?: string,"payload"?: NonNullable<Json>,"signal_key": string
+                  }
+                  Update: {
+                    "child_id"?: string,"family_id"?: string,"id"?: string,"noticed_at"?: string,"payload"?: NonNullable<Json>,"signal_key"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "guide_noticed_runs_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "guide_noticed_runs_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
     }
                   ]
                 },"invitations": {
@@ -1046,6 +1072,9 @@ isOneToOne: false
 "current_family_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"decide_allowance_plan":
+{ Args: { "p_occurrence_id": string }; Returns: undefined
+                           },
 "decide_deposit":
 { Args: { "p_note": string,"p_request_id": string }; Returns: string
                            },
@@ -1117,6 +1146,14 @@ isOneToOne: false
 { Args: { "p_child_id": string,"p_client_message_id": string }; Returns: {
               "conversation_id": string,"reply_id": string
             }[]
+                           },
+"guide_noticed_inputs":
+{ Args: { "p_now"?: string }; Returns: {
+              "allowance_days": Json,"child_id": string,"currency": string,"family_id": string,"goal": Json,"guide_on": boolean,"last_move_on": string,"last_noticed_at": string,"nickname": string,"signal_keys": string[],"spent_7_days_before_minor": number,"spent_last_7_days_minor": number,"timezone": string,"today": string
+            }[]
+                           },
+"guide_noticed_record":
+{ Args: { "p_child_id": string,"p_child_payload": Json,"p_parent_payload": Json,"p_signal_key": string }; Returns: number
                            },
 "guide_record_turn":
 { Args: { "p_child_id": string,"p_child_text": string,"p_client_message_id"?: string,"p_conversation_id": string,"p_flagged": boolean,"p_latency_ms": number,"p_model": string,"p_reply_role": string,"p_reply_text": string,"p_route": string,"p_tool_calls"?: Json,"p_usage": Json }; Returns: string
@@ -1332,6 +1369,9 @@ isOneToOne: false
                            },
 "save_goal":
 { Args: { "p_emoji": string,"p_name": string,"p_plan_minor": number,"p_target_minor": number }; Returns: string
+                           },
+"send_child_note":
+{ Args: { "p_child_id": string,"p_idempotency_key": string,"p_text": string }; Returns: string
                            },
 "send_handover_reminders":
 { Args: { "p_now"?: string }; Returns: number
