@@ -9,6 +9,7 @@ vi.mock("@/features/family/server", () => ({
 }));
 vi.mock("@jarso/data/ledger", () => ({
   getHistoryPage: vi.fn(),
+  getHistorySince: vi.fn(),
   getJars: vi.fn(),
   localDate: vi.fn(),
   fetchBalance: vi.fn(),
@@ -17,7 +18,9 @@ vi.mock("@jarso/data/ledger", () => ({
 
 const family = await import("@/features/family/server");
 const data = await import("@jarso/data/ledger");
-const { getHistory, getHistoryPage, getJars } = await import("@/features/ledger/server/service");
+const { getHistory, getHistoryPage, getHistorySince, getJars } = await import(
+  "@/features/ledger/server/service"
+);
 
 const childId = "child-1";
 
@@ -77,5 +80,17 @@ describe("getHistoryPage", () => {
     vi.mocked(family.assertSelfOrParentOf).mockRejectedValue(new AppError("FORBIDDEN", "No."));
     await expect(getHistoryPage(childId)).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(data.getHistoryPage).not.toHaveBeenCalled();
+  });
+});
+
+describe("getHistorySince", () => {
+  it("checks the caller once, then reads every page back to the week's start", async () => {
+    vi.mocked(data.getHistorySince).mockResolvedValue([]);
+    await expect(getHistorySince(childId, "2026-11-02")).resolves.toEqual([]);
+    expect(family.assertSelfOrParentOf).toHaveBeenCalledTimes(1);
+    expect(data.getHistorySince).toHaveBeenCalledWith(db, childId, "2026-11-02", {
+      timezone: "Asia/Kolkata",
+      now: expect.any(Number),
+    });
   });
 });

@@ -8,6 +8,7 @@ import {
 import {
   type HistoryPage,
   getHistoryPage as loadHistoryPage,
+  getHistorySince as loadHistorySince,
   getJars as loadJars,
   localDate,
 } from "@jarso/data/ledger";
@@ -76,14 +77,11 @@ export async function getHistory(childId: string): Promise<HistoryItem[]> {
 
 /** Every history item back to the week's start: more pages only when the newest page stops inside the week. */
 export async function getHistorySince(childId: string, weekStart: string): Promise<HistoryItem[]> {
-  const items: HistoryItem[] = [];
-  let before: string | undefined;
-  for (let page = 0; page < 10; page++) {
-    const result = await getHistoryPage(childId, before);
-    items.push(...result.items);
-    const oldest = result.items.at(-1);
-    if (!result.olderBefore || !oldest || oldest.occurredOn < weekStart) break;
-    before = result.olderBefore;
-  }
-  return items;
+  await assertSelfOrParentOf(childId);
+  const db = await createClient();
+  const family = await getFamily();
+  return loadHistorySince(db, childId, weekStart, {
+    timezone: family?.timezone ?? "UTC",
+    now: Date.now(), // Server clock decides canUndo.
+  });
 }

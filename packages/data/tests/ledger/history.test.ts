@@ -1,5 +1,5 @@
 import type { Client } from "@jarso/data/ledger";
-import { getHistoryPage } from "@jarso/data/ledger";
+import { getHistoryPage, getHistorySince } from "@jarso/data/ledger";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/ledger/repository", () => ({
@@ -491,5 +491,17 @@ describe("history windows", () => {
   it("allows a fix at 6d23h", async () => {
     vi.mocked(repo.listLedgerRows).mockResolvedValue([purchase(minutes(6 * 24 * 60 + 23 * 60))]);
     expect((await getHistory(childId))[0]).toMatchObject({ canFix: true });
+  });
+});
+
+describe("getHistorySince", () => {
+  it("stops after the newest page when it is the last one", async () => {
+    vi.mocked(repo.listLedgerRows).mockResolvedValue([]);
+    vi.mocked(repo.listClosedOccurrences).mockResolvedValue([]);
+    vi.mocked(repo.listOccurrenceAmounts).mockResolvedValue([]);
+    await expect(
+      getHistorySince(db, childId, "2026-10-26", { timezone: TIMEZONE, now: NOW }),
+    ).resolves.toEqual([]);
+    expect(repo.listLedgerRows).toHaveBeenCalledTimes(1);
   });
 });

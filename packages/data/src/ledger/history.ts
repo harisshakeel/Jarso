@@ -235,3 +235,22 @@ export async function getHistoryPage(
     olderBefore: hasOlder ? (page.at(-1)?.at ?? null) : null,
   };
 }
+
+/** Every history item back to `weekStart`: more pages only when the newest page stops inside it. */
+export async function getHistorySince(
+  db: Client,
+  childId: string,
+  weekStart: string,
+  opts: { timezone: string; now: number },
+): Promise<HistoryItem[]> {
+  const items: HistoryItem[] = [];
+  let before: string | undefined;
+  for (let page = 0; page < 10; page++) {
+    const result = await getHistoryPage(db, childId, { ...opts, before });
+    items.push(...result.items);
+    const oldest = result.items.at(-1);
+    if (!result.olderBefore || !oldest || oldest.occurredOn < weekStart) break;
+    before = result.olderBefore;
+  }
+  return items;
+}
