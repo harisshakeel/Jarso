@@ -1,6 +1,6 @@
 import type { AskGuideResult, ThreadMessage } from "@jarso/core/guide";
 import { guideCopy } from "@jarso/core/guide";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { Route } from "next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GuideThread } from "@/features/guide/components/guide-thread";
@@ -62,6 +62,45 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("GuideThread", () => {
+  it("shows the question as sent and clears the box while Jarso thinks", async () => {
+    let finish: (value: { ok: true; data: AskGuideResult }) => void = () => {};
+    sendGuideTurn.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(<GuideThread />);
+    const box = screen.getByLabelText("Your question for Jarso");
+    fireEvent.change(box, { target: { value: "What is Spend?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    const chat = await screen.findByRole("list", { name: "Chat with Jarso" });
+    expect(within(chat).getByText("What is Spend?")).toBeVisible();
+    expect(box).toHaveValue("");
+
+    finish({ ok: true, data: answer });
+    await screen.findByText("Spend is the cash you hold.");
+    // Sent once, not twice, once the reply lands.
+    expect(within(chat).getAllByText("What is Spend?")).toHaveLength(1);
+  });
+
+  it("takes a failed question back into the box to send again", async () => {
+    sendGuideTurn.mockResolvedValue({
+      ok: false,
+      error: { code: "RATE_LIMITED", message: guideCopy.rateLimitedMinute },
+    });
+    render(<GuideThread />);
+    fireEvent.change(screen.getByLabelText("Your question for Jarso"), {
+      target: { value: "What is Spend?" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await screen.findByText(guideCopy.rateLimitedMinute);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Your question for Jarso")).toHaveValue("What is Spend?"),
+    );
+    expect(screen.queryByRole("list", { name: "Chat with Jarso" })).toBeNull();
+  });
   it("picks a chat up again: its messages, thumbs and turns, and continues it", async () => {
     sendGuideTurn.mockResolvedValue({ ok: true, data: answer });
     render(
