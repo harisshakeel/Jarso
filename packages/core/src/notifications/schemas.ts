@@ -21,3 +21,22 @@ export const inboxParamsSchema = z.object({
     .preprocess((v) => (Array.isArray(v) ? v[0] : v), z.string().regex(CURSOR).optional())
     .catch(undefined),
 });
+
+/** Longest note a parent can send their child, as the database function also checks. */
+export const NOTE_MAX = 140;
+
+/** A parent's note to their child (parent dashboard). Lands in the child's News. */
+export const childNoteSchema = z.object({
+  childId: z.uuid(),
+  text: z
+    .string({ error: "Write a note first." })
+    .trim()
+    .min(1, "Write a note first.")
+    .max(NOTE_MAX, `Keep it to ${NOTE_MAX} characters.`),
+  /** One per sheet open, so a re-send after a lost response sends one note. */
+  idempotencyKey: z.uuid("Please reload the page and try again."),
+});
+export type ChildNoteInput = z.infer<typeof childNoteSchema>;
+
+/** What sending a note did: `already_sent` for a repeat of the same key. */
+export type NoteResult = "sent" | "already_sent";

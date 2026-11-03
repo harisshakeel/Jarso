@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  childNoteSchema,
   markReadSchema,
   pushEndpointSchema,
   pushSubscriptionSchema,
@@ -9,7 +10,14 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { routes } from "@/config";
 import { createAction } from "@/lib";
-import { markRead, ownsPushEndpoint, subscribePush, unsubscribePush } from "./service";
+import { pushAfterNotices } from "./push";
+import {
+  markRead,
+  ownsPushEndpoint,
+  sendChildNote,
+  subscribePush,
+  unsubscribePush,
+} from "./service";
 
 export const markNoticesReadAction = createAction(markReadSchema, async ({ ids }) => {
   const changed = await markRead(ids);
@@ -31,3 +39,10 @@ export const unsubscribePushAction = createAction(pushEndpointSchema, async ({ e
 export const pushOwnedAction = createAction(pushEndpointSchema, async ({ endpoint }) =>
   ownsPushEndpoint(endpoint),
 );
+
+/** A parent's note to their child; the child's devices get a push when push is on. */
+export const sendChildNoteAction = createAction(childNoteSchema, async (input) => {
+  const status = await sendChildNote(input);
+  pushAfterNotices();
+  return { status };
+});

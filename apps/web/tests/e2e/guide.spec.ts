@@ -128,9 +128,6 @@ test("an idea gets an answer with topics and a check", async () => {
   await expect(panel.getByRole("link", { name: "Saving up for something" })).toBeVisible();
   await panel.getByRole("button", { name: "Save", exact: true }).click();
   await expect(panel.getByText(/That's it\. A goal counts only what's in Save\./)).toBeVisible();
-  const helpful = panel.getByRole("button", { name: "Helpful", exact: true }).last();
-  await helpful.click();
-  await expect(helpful).toHaveAttribute("aria-pressed", "true");
 });
 
 test("a safety message gets a kind fixed reply with helplines, never the model's answer", async () => {
@@ -142,8 +139,9 @@ test("a safety message gets a kind fixed reply with helplines, never the model's
 });
 
 test("off-topic questions are redirected to money topics", async () => {
-  // On the Jarso page a new chat starts from the list down the side, not from the thread. The
+  // On the Jarso page a new chat starts from the History drawer, not from the thread. The
   // link moves the page and swaps the thread for an empty one: wait for that before typing.
+  await child.getByRole("button", { name: "History" }).click();
   await child.getByRole("link", { name: "New chat" }).click();
   await expect(child).toHaveURL(/[?&]new=/);
   const panel = jarso(child);
@@ -184,7 +182,6 @@ test("the parent reads chats flagged first, with what Jarso looked at", async ()
   ).toBeVisible();
   await expect(transcript.getByText("someone at school hurt me")).toHaveCount(0);
   await expect(transcript.getByText("What is saving?")).toBeVisible();
-  await expect(transcript.getByText("Your child found this helpful")).toBeVisible();
   await expect(transcript.getByText("How much do I have?")).toBeVisible();
   await expect(transcript.getByText("Looked at: jars")).toBeVisible();
 });

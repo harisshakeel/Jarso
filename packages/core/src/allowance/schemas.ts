@@ -120,9 +120,28 @@ export const handoverSchema = (currency: string) =>
     })
     .transform(({ cash, saved, ...rest }) => ({ ...rest, cashMinor: cash, savedMinor: saved }));
 
+/**
+ * Match their saving (parent dashboard): the parent adds money to the child's Save today, as a
+ * gift handed over at once, with an optional note for the child's News.
+ */
+export const matchSavingSchema = (currency: string) =>
+  z
+    .object({
+      childId: z.uuid(),
+      amount: moneySchema(currency),
+      message: childText,
+      /** One per sheet open, so a re-send after a lost response adds the money once. */
+      idempotencyKey: z.uuid("Please reload the page and try again."),
+    })
+    .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));
+
+/** The gift note on a match: what the child reads on the gift in their history. */
+export const MATCH_GIFT_NOTE = "Matching your saving";
+
 export type AllowanceInput = z.infer<ReturnType<typeof allowanceSchema>>;
 export type ChangeAllowanceInput = z.infer<ReturnType<typeof changeAllowanceSchema>>;
 export type PauseInput = z.infer<ReturnType<typeof pauseSchema>>;
 export type GiftInput = z.infer<ReturnType<typeof giftSchema>>;
 export type UpdateGiftInput = z.infer<ReturnType<typeof updateGiftSchema>>;
 export type HandoverInput = z.infer<ReturnType<typeof handoverSchema>>;
+export type MatchSavingInput = z.infer<ReturnType<typeof matchSavingSchema>>;
