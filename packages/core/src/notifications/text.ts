@@ -29,6 +29,13 @@ function minor(payload: Record<string, unknown>, key: string): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+/** A stored line, trimmed and capped; null when there is none. */
+function text(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const line = value.trim();
+  return line ? line.slice(0, max) : null;
+}
+
 function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
@@ -163,11 +170,19 @@ export function noticeText(
           : "Done without asking, as you set.",
       };
     }
+    case "guide_noticed": {
+      // The lines were written (and, for a child, screened) when the nudge was sent.
+      const { title, detail } = notice.payload;
+      return {
+        title: text(title, 140) ?? "Jarso noticed something",
+        detail: text(detail, 200) ?? "Take a look.",
+      };
+    }
     case "parent_note": {
-      const text = typeof notice.payload.text === "string" ? notice.payload.text : "";
+      const note = typeof notice.payload.text === "string" ? notice.payload.text : "";
       return role === "child"
-        ? { title: "A note from your parent", detail: text }
-        : { title: `Your note to ${name}`, detail: text };
+        ? { title: "A note from your parent", detail: note }
+        : { title: `Your note to ${name}`, detail: note };
     }
     default:
       return { title: "Something new", detail: "Take a look." };

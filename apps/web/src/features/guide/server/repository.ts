@@ -4,10 +4,13 @@ import {
   type GuideEntry,
   type GuideRoute,
   type GuideUsage,
+  type NoticedInput,
+  type NoticedPayload,
   proposedGoalArgsSchema,
   type StoredProposal,
 } from "@jarso/core/guide";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import { AppError, toAppError } from "@/lib";
 import type { Database, Json } from "@/types";
 import { isToolName, type ToolCall, type ToolName } from "./tool-specs";
@@ -361,6 +364,85 @@ export async function usageSince(
       screenOutput: Number(row.screen_output ?? 0),
     },
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Jarso noticed (demo 3): admin client only, from the weekly job
+// ---------------------------------------------------------------------------
+
+/** One child, as the weekly job sees them. */
+export type NoticedRow = {
+  childId: string;
+  nickname: string;
+  currency: string;
+  guideOn: boolean;
+  lastNoticedAt: string | null;
+  input: NoticedInput;
+};
+
+const allowanceDaysSchema = z.array(z.object({ on: z.string(), saved: z.boolean() })).catch([]);
+const goalSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    target_minor: z.number(),
+    counted_minor: z.number(),
+  })
+  .nullable()
+  .catch(null);
+
+/** Every approved child with what the week's signals need (`guide_noticed_inputs`). */
+export async function listNoticedInputs(admin: Client, nowIso: string): Promise<NoticedRow[]> {
+  const { data, error } = await admin.rpc("guide_noticed_inputs", { p_now: nowIso });
+  if (error) throw toAppError(error, "Failed to load what Jarso noticed");
+  return (data ?? []).map((row) => {
+    const goal = goalSchema.parse(row.goal ?? null);
+    return {
+      childId: row.child_id,
+      nickname: row.nickname ?? "",
+      currency: row.currency,
+      guideOn: row.guide_on,
+      lastNoticedAt: row.last_noticed_at ?? null,
+      input: {
+        today: row.today,
+        allowances: allowanceDaysSchema.parse(row.allowance_days),
+        goal: goal && {
+          id: goal.id,
+          name: goal.name,
+          targetMinor: goal.target_minor,
+          countedMinor: goal.counted_minor,
+        },
+        spentLast7DaysMinor: Number(row.spent_last_7_days_minor ?? 0),
+        spent7DaysBeforeMinor: Number(row.spent_7_days_before_minor ?? 0),
+        lastMoveOn: row.last_move_on ?? null,
+        sentKeys: row.signal_keys ?? [],
+      },
+    };
+  });
+}
+
+/**
+ * Records one nudge and writes its notices (`guide_noticed_record`): to the child when `child`
+ * is given, to every parent when `parent` is. Returns the notices written; 0 when the child had
+ * a nudge in the last 6 days or this signal was sent before.
+ */
+export async function recordNoticed(
+  admin: Client,
+  input: {
+    childId: string;
+    signalKey: string;
+    child: NoticedPayload | null;
+    parent: NoticedPayload | null;
+  },
+): Promise<number> {
+  const { data, error } = await admin.rpc("guide_noticed_record", {
+    p_child_id: input.childId,
+    p_signal_key: input.signalKey,
+    p_child_payload: input.child as unknown as Json,
+    p_parent_payload: input.parent as unknown as Json,
+  });
+  if (error) throw toAppError(error, "Failed to record what Jarso noticed");
+  return Number(data ?? 0);
 }
 
 export async function hitRateLimit(

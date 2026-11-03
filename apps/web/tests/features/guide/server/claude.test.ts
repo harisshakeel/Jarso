@@ -270,3 +270,30 @@ describe("output screen", () => {
     );
   });
 });
+
+describe("weekly note (Jarso noticed)", () => {
+  it("sends only the fixed line to Haiku and returns the reworded one", async () => {
+    parse.mockResolvedValue({
+      stop_reason: "end_turn",
+      parsed_output: { line: "  {{goal.saved}} counts now.  " },
+      usage,
+    });
+    const result = await provider.wordNotice({ line: "{{goal.saved}} counts <now>." });
+    expect(result).toEqual({
+      line: "{{goal.saved}} counts now.",
+      usage: { screenInput: 100, screenOutput: 20 },
+    });
+    const [request] = parse.mock.calls[0] ?? [];
+    expect(request).toMatchObject({
+      model: "claude-haiku-5-5",
+      messages: [{ role: "user", content: "<line>\n{{goal.saved}} counts ‹now›.\n</line>" }],
+    });
+  });
+
+  it("returns no line when Haiku refuses or its output can't be read", async () => {
+    parse.mockResolvedValueOnce({ stop_reason: "refusal", parsed_output: null, usage });
+    expect((await provider.wordNotice({ line: "x" })).line).toBeNull();
+    parse.mockRejectedValueOnce(new Error("Failed to parse structured output"));
+    expect((await provider.wordNotice({ line: "x" })).line).toBeNull();
+  });
+});

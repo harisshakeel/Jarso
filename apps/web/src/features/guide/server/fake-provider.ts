@@ -139,6 +139,11 @@ export function createFakeProvider(): GuideProvider {
       };
     },
 
+    async wordNotice({ line }) {
+      // The fixed line back, unchanged: e2e runs see the same note as when the guide is off.
+      return { line, usage: {} };
+    },
+
     async screenOutput({ reply }) {
       if (CLAIMS_ACTION.test(reply)) return { pass: false, problem: "claims_action", usage: {} };
       const pass = !/\bbuy\b/i.test(reply);

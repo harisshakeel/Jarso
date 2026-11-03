@@ -5,6 +5,7 @@ import { MAIN_EFFORT, MAIN_MODEL, SCREEN_MODEL } from "./cost";
 import {
   GUIDE_SYSTEM_PROMPT,
   INPUT_SCREEN_PROMPT,
+  NOTICE_PROMPT,
   OUTPUT_SCREEN_PROMPT,
   PARENT_INPUT_SCREEN_PROMPT,
 } from "./prompts";
@@ -14,6 +15,7 @@ import {
   MAX_TOOL_ROUNDS,
   type MainResult,
   mainReplySchema,
+  noticeLineSchema,
   outputScreenSchema,
   type Toolbox,
   type Turn,
@@ -233,6 +235,29 @@ export function createAnthropicProvider(apiKey: string): GuideProvider {
       } catch (error) {
         throw withUsage(error, counted);
       }
+    },
+
+    async wordNotice({ line, signal }) {
+      const response = await parsed(() =>
+        client.messages.parse(
+          {
+            model: SCREEN_MODEL,
+            max_tokens: 512,
+            system: NOTICE_PROMPT,
+            messages: [{ role: "user", content: `<line>\n${escapeTags(line)}\n</line>` }],
+            output_config: { effort: "low", format: zodOutputFormat(noticeLineSchema) },
+          },
+          { signal },
+        ),
+      );
+      const usage = response ? tokens(response.usage) : null;
+      // Refused or unreadable: no line, and the fixed one goes out.
+      const worded =
+        response && response.stop_reason !== "refusal" ? response.parsed_output?.line.trim() : "";
+      return {
+        line: worded || null,
+        usage: { screenInput: usage?.input ?? 0, screenOutput: usage?.output ?? 0 },
+      };
     },
 
     async screenOutput({ reply, childText, context, signal }) {

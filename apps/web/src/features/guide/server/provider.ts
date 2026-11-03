@@ -71,6 +71,9 @@ export const outputScreenSchema = z.object({
   reason: z.string(),
 });
 
+/** Jarso noticed: the child's weekly note, reworded. */
+export const noticeLineSchema = z.object({ line: z.string() });
+
 export type MainResult =
   | { kind: "ok"; reply: MainReply; usage: Partial<GuideUsage>; model: string }
   | { kind: "refused"; usage: Partial<GuideUsage>; model: string };
@@ -127,6 +130,14 @@ export interface GuideProvider {
     tools: Toolbox;
     signal?: AbortSignal;
   }): Promise<MainResult>;
+  /**
+   * Jarso noticed: rewords a weekly note for a child, keeping its `{{refs}}`. `line` is null when
+   * the model refused or its output can't be read; a throw is an infrastructure failure.
+   */
+  wordNotice(args: {
+    line: string;
+    signal?: AbortSignal;
+  }): Promise<{ line: string | null; usage: Partial<GuideUsage> }>;
   /** `reply` is everything the child would see: the answer plus any quick check. */
   screenOutput(args: {
     reply: string;
