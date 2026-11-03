@@ -18,7 +18,8 @@
     "./learning": "./src/learning/index.ts",
     "./notifications": "./src/notifications/index.ts",
     "./profiles": "./src/profiles/index.ts",
-    "./guide": "./src/guide/index.ts"
+    "./guide": "./src/guide/index.ts",
+    "./dashboard": "./src/dashboard/index.ts"
   },
   "dependencies": {
     "@jarso/core": "workspace:*",
