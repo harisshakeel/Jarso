@@ -1,0 +1,19 @@
+# Diary: open a line, fix it, see the earlier version. The seeded child's first (newest) diary row must be fixable (a purchase or got-money line, not an allowance or a transfer).
+appId: app.jarso.mobile
+---
+- runFlow: sign-in.yaml
+- tapOn: "Diary"
+- assertVisible:
+    id: "history-list"
+- tapOn:
+    text: "Details for .*"
+    index: 0
+- tapOn: "Fix this"
+- tapOn: "Name it (optional)"
+- inputText: " fixed"
+- hideKeyboard
+- tapOn: "Save the fix"
+- assertVisible: "Fixed."
+- tapOn: "Earlier versions"
+- assertVisible:
+    id: "earlier-version"

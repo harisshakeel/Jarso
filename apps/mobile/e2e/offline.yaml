@@ -1,0 +1,17 @@
+# A purchase made offline waits, then replays when the network is back (Android).
+appId: app.jarso.mobile
+---
+- runFlow: sign-in.yaml
+- setAirplaneMode: enabled
+- tapOn: "Spent something?"
+- tapOn: "Amount"
+- inputText: "1"
+- hideKeyboard
+- tapOn: "Snacks"
+- tapOn: "Write it down"
+- tapOn: "Done"
+- assertVisible: "Not sent yet"
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    notVisible: "Not sent yet"
+    timeout: 60000
