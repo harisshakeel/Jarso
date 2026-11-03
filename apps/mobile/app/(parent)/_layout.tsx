@@ -29,6 +29,10 @@ const PAGES: { name: string; title: string }[] = [
   { name: "children/[childId]/history", title: parentPageCopy.historyTitle },
   { name: "children/[childId]/learning", title: parentLearningCopy.title },
   { name: "children/[childId]/rules", title: rulesCopy.title },
+  // Allowance and gifts add the child's nickname once the family has loaded.
+  { name: "children/[childId]/allowance", title: parentPageCopy.allowance },
+  { name: "children/[childId]/gifts/new", title: parentPageCopy.gift },
+  { name: "children/[childId]/gifts/[giftId]", title: parentPageCopy.gift },
 ];
 
 /**
