@@ -44,7 +44,9 @@ function asRoute(value: string | null): GuideRoute | null {
 }
 
 function asEntry(value: string): GuideEntry {
-  return value === "why" || value === "topic" || value === "home" ? value : "step";
+  return value === "why" || value === "topic" || value === "home" || value === "parent"
+    ? value
+    : "step";
 }
 
 export type ConversationRow = {

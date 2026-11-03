@@ -153,6 +153,7 @@ describe("the parent's own chats", () => {
       id: "p1",
       childId: "child-1",
       preview: "How is Sam doing with saving?",
+      label: "A parent asked about them",
     });
   });
 
