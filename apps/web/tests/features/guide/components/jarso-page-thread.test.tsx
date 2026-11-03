@@ -85,6 +85,32 @@ describe("JarsoPageThread", () => {
     expect(screen.getByRole("link", { name: "Saving up for something" })).toBeVisible();
   });
 
+  it("keeps the live reply when a chat started from New chat moves to its address", async () => {
+    const { rerender } = render(
+      <JarsoPageThread chatHref={href} chatId={null} nonce="a1b2" introNeeded={false} />,
+    );
+    fireEvent.change(screen.getByLabelText("Your question for Jarso"), {
+      target: { value: "What is saving?" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await screen.findByText("Saving means keeping some money for later.");
+    await waitFor(() =>
+      expect(replace).toHaveBeenCalledWith("/child/jarso?chat=convo-1", { scroll: false }),
+    );
+    // The new address drops `?new=`, so the nonce is gone: the thread must not be re-keyed.
+    rerender(
+      <JarsoPageThread
+        chatHref={href}
+        chatId="convo-1"
+        nonce={null}
+        introNeeded={false}
+        reopened={{ conversationId: "convo-1", turnsLeft: 11, messages: stored }}
+      />,
+    );
+    expect(screen.getByText("Saving means keeping some money for later.")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Saving up for something" })).toBeVisible();
+  });
+
   it("starts over on New chat, and reopens a chat picked from the list", () => {
     const { rerender } = render(
       <JarsoPageThread
