@@ -11,8 +11,9 @@ import {
 import { useRouter } from "expo-router";
 import { BotIcon, MessageSquarePlusIcon } from "lucide-react-native";
 import { type ReactNode, useEffect } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Card, CardSeparator, ListRow, ScreenHeader } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { useHome } from "@/features/jars";
 import { toUserMessage, useTokens } from "@/lib";
@@ -64,17 +65,15 @@ function ChatList() {
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-background">
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-10"
+        contentContainerClassName="gap-4 px-4 pt-4 pb-10"
         refreshControl={
           <RefreshControl refreshing={chats.isRefetching} onRefresh={() => void chats.refetch()} />
         }
       >
-        <View className="flex-row items-center gap-2">
-          <BotIcon size={24} color={tokens.foreground} />
-          <Text accessibilityRole="header" className="font-sans-extrabold text-h2">
-            {guideCopy.name}
-          </Text>
-        </View>
+        <ScreenHeader
+          title={guideCopy.name}
+          trailing={<BotIcon size={24} color={tokens["muted-foreground"]} />}
+        />
         <Text className="text-muted-foreground">{guideCopy.disclosure}</Text>
         <Button
           size="lg"
@@ -101,31 +100,28 @@ function ChatList() {
         ) : chats.data.length === 0 ? (
           <Text className="text-muted-foreground">{guideUi.noChats}</Text>
         ) : (
-          <View className="gap-2">
-            {chats.data.map((chat) => {
+          <Card accessibilityLabel={guideUi.pastChats} className="gap-0 py-1">
+            {chats.data.map((chat, i) => {
               const title = chatTitle(chat);
               const day = chatDay(chat.lastMessageAt, timezone);
               return (
-                <Pressable
-                  key={chat.id}
-                  accessibilityRole="link"
-                  accessibilityLabel={`${title}, ${day}`}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(child)/jarso/[conversationId]",
-                      params: { conversationId: chat.id },
-                    })
-                  }
-                  className="min-h-11 gap-0.5 rounded-xl border border-border bg-card px-4 py-3"
-                >
-                  <Text numberOfLines={1} className="font-sans-semibold">
-                    {title}
-                  </Text>
-                  <Text className="text-muted-foreground text-small">{day}</Text>
-                </Pressable>
+                <View key={chat.id}>
+                  {i > 0 ? <CardSeparator /> : null}
+                  <ListRow
+                    label={title}
+                    detail={day}
+                    accessibilityLabel={`${title}, ${day}`}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(child)/jarso/[conversationId]",
+                        params: { conversationId: chat.id },
+                      })
+                    }
+                  />
+                </View>
               );
             })}
-          </View>
+          </Card>
         )}
       </ScrollView>
     </SafeAreaView>
