@@ -84,5 +84,17 @@ export type PushResult = {
 /** What the phone posts to register for push (`POST /api/v1/push/tokens`). */
 export type DevicePushTokenInput = { token: string; platform: "android" };
 
-/** One stored phone push token, as the dispatcher reads it. */
-export type DeviceTokenRow = { id: string; profileId: string; token: string };
+/** Groups of notices a phone can mute (per-phone settings). Every `NoticeKind` is in one. */
+export type PushGroup = "requests" | "money" | "learning" | "notes";
+
+/** A phone's own push settings: muted groups, or everything paused. The inbox is unchanged. */
+export type DevicePushPrefs = { mutedGroups: PushGroup[]; paused: boolean };
+
+/** One stored phone push token with its settings, as the dispatcher reads it. */
+export type DeviceTokenRow = {
+  id: string;
+  profileId: string;
+  token: string;
+  mutedGroups: PushGroup[];
+  paused: boolean;
+};

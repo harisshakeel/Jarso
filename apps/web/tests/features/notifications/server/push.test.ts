@@ -1,4 +1,4 @@
-import type { ClaimedNotice } from "@jarso/core/notifications";
+import type { ClaimedNotice, NoticeKind, PushGroup } from "@jarso/core/notifications";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const env = vi.hoisted(() => ({
@@ -77,14 +77,18 @@ const claimed = (recipientId: string, id = "n1"): ClaimedNotice => ({
 });
 
 /** A child's notice written overnight (held until 07:00). */
-const overnight = (recipientId: string, id: string): ClaimedNotice => ({
+const overnight = (
+  recipientId: string,
+  id: string,
+  kind: NoticeKind = "allowance_due",
+): ClaimedNotice => ({
   recipientId,
   role: "child",
   currency: "GBP",
   overnight: true,
   notice: {
     id,
-    kind: "allowance_due",
+    kind,
     childId: recipientId,
     childName: "Sam",
     sourceType: "allowance_occurrence",
@@ -103,10 +107,16 @@ const sub = (id: string, profileId: string) => ({
   auth: "a",
 });
 
-const token = (id: string, profileId: string) => ({
+const token = (
+  id: string,
+  profileId: string,
+  prefs: { mutedGroups?: PushGroup[]; paused?: boolean } = {},
+) => ({
   id,
   profileId,
   token: `ExponentPushToken[${id}-device]`,
+  mutedGroups: prefs.mutedGroups ?? [],
+  paused: prefs.paused ?? false,
 });
 
 /** Answers every Expo message with an ok ticket named after its index. */
@@ -364,6 +374,53 @@ describe("dispatchPush", () => {
     await dispatchPush();
     const logged = JSON.stringify([...log.info.mock.calls, ...log.warn.mock.calls]);
     expect(logged).not.toMatch(/push\.example\.test|ExponentPushToken|t1-device|Sam|Save|p1/);
+  });
+});
+
+describe("per-phone settings", () => {
+  it("Expo skips a token whose group is muted, still sends to the account's other phone", async () => {
+    // A parent's withdrawal request is in the "requests" group.
+    repo.claimUnpushed.mockResolvedValue([claimed("p1")]);
+    repo.deviceTokensFor.mockResolvedValue([
+      token("t1", "p1", { mutedGroups: ["requests"] }),
+      token("t2", "p1", { mutedGroups: ["money"] }),
+    ]);
+    const result = await dispatchPush();
+    expect(sentMessages().map((m) => m.to)).toEqual(["ExponentPushToken[t2-device]"]);
+    expect(result).toMatchObject({ claimed: 1, sent: 1, failed: 0 });
+  });
+
+  it("a paused phone gets nothing while web push still sends", async () => {
+    repo.claimUnpushed.mockResolvedValue([claimed("p1")]);
+    repo.subscriptionsFor.mockResolvedValue([sub("s1", "p1")]);
+    repo.deviceTokensFor.mockResolvedValue([token("t1", "p1", { paused: true })]);
+    const result = await dispatchPush();
+    expect(expo.sendExpoMessages).not.toHaveBeenCalled();
+    expect(webpush.sendNotification).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ claimed: 1, sent: 1 });
+  });
+
+  it("a summary to a phone that muted money counts only the other notices", async () => {
+    repo.claimUnpushed.mockResolvedValue([
+      overnight("c1", "a", "allowance_due"),
+      overnight("c1", "b", "withdrawal_decided"),
+      overnight("c1", "c", "money_received"),
+      overnight("c1", "d", "parent_note"),
+    ]);
+    repo.subscriptionsFor.mockResolvedValue([sub("s1", "c1")]);
+    repo.deviceTokensFor.mockResolvedValue([token("t1", "c1", { mutedGroups: ["money"] })]);
+    const result = await dispatchPush();
+    expect(sentMessages()).toEqual([
+      expect.objectContaining({
+        title: "You have 2 new notices",
+        data: { kind: "summary", recipientId: "c1", role: "child", count: 2 },
+      }),
+    ]);
+    // Web push has no per-phone settings: the browser still gets all four.
+    expect(JSON.parse(webpush.sendNotification.mock.calls[0]?.[1] as string).title).toBe(
+      "You have 4 new notices",
+    );
+    expect(result.summarised).toBe(4);
   });
 });
 

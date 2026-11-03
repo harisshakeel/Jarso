@@ -6,7 +6,7 @@ import type {
   PushResult,
   PushSubscriptionRow,
 } from "@jarso/core/notifications";
-import { noticeText, planPushes, summaryPushText } from "@jarso/core/notifications";
+import { noticeText, planForDevice, planPushes, summaryPushText } from "@jarso/core/notifications";
 import { after } from "next/server";
 import * as webpush from "web-push";
 import { clientEnv, routes } from "@/config";
@@ -174,14 +174,22 @@ async function sendExpo(
 ): Promise<void> {
   if (tokens.length === 0) return;
   const byRecipient = groupBy(tokens);
+  // Each phone's own settings first: a paused phone or a muted group gets no message, and a
+  // summary shrinks to the notices this phone still wants.
   const sends: { message: ExpoMessage; tokenId: string }[] = plans.flatMap((plan) =>
-    (byRecipient.get(planRecipient(plan)) ?? []).map((row) => ({
-      tokenId: row.id,
-      message:
-        plan.kind === "notice"
-          ? expoMessage(plan.claimed, row.token)
-          : expoSummaryMessage(plan.recipientId, plan.notices.length, row.token),
-    })),
+    (byRecipient.get(planRecipient(plan)) ?? []).flatMap((row) => {
+      const mine = planForDevice(plan, row);
+      if (!mine) return [];
+      return [
+        {
+          tokenId: row.id,
+          message:
+            mine.kind === "notice"
+              ? expoMessage(mine.claimed, row.token)
+              : expoSummaryMessage(mine.recipientId, mine.notices.length, row.token),
+        },
+      ];
+    }),
   );
   if (sends.length === 0) return;
 

@@ -25,6 +25,16 @@ export const devicePushTokenSchema = z.object({
 /** `DELETE /api/v1/push/tokens`. */
 export const devicePushTokenDeleteSchema = z.object({ token: z.string().regex(EXPO_PUSH_TOKEN) });
 
+/** Notice groups a phone can mute, as the `device_push_tokens.muted_groups` check allows. */
+export const NOTICE_GROUPS = ["requests", "money", "learning", "notes"] as const;
+
+/** A phone's push settings, sent with its own token (only the owner's row changes). */
+export const devicePushPrefsSchema = z.object({
+  token: z.string().regex(EXPO_PUSH_TOKEN),
+  mutedGroups: z.array(z.enum(NOTICE_GROUPS)).max(NOTICE_GROUPS.length),
+  paused: z.boolean(),
+});
+
 /** A `NoticeTarget` read back from a push payload on the phone. */
 export const noticeTargetSchema = z.discriminatedUnion("to", [
   z.object({

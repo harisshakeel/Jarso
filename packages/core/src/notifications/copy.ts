@@ -20,6 +20,27 @@ export const pushPromptCopy = {
   later: "Not now",
 } as const;
 
+/**
+ * The phone's notification settings page: one switch per notice group, and a pause. Children's
+ * wording that also reads well for parents (docs/design.md voice).
+ */
+export const noticeGroupCopy = {
+  groups: {
+    requests: {
+      label: "Requests and answers",
+      hint: "When someone asks for money, or gets an answer.",
+    },
+    money: {
+      label: "Allowance and money",
+      hint: "Allowance days, money coming in and changes to the jars.",
+    },
+    learning: { label: "Learning and Jarso", hint: "Nudges from Jarso about learning." },
+    notes: { label: "Notes from family", hint: "Short notes from your family." },
+  },
+  pause: { label: "Pause all", hint: "No pings on this phone until you turn them back on." },
+  inboxStillShows: "Notices still show in your inbox.",
+} as const;
+
 /** The single push for a child's notices held overnight (count is always 2 or more). */
 export const summaryPushCopy = {
   title: (count: number) => `You have ${count} new notices`,

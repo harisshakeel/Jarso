@@ -4,9 +4,11 @@ import type {
   DevicePushTokenInput,
   DeviceTokenRow,
   NoteResult,
+  PushGroup,
   PushSubscriptionInput,
   PushSubscriptionRow,
 } from "@jarso/core/notifications";
+import { NOTICE_GROUPS } from "@jarso/core/notifications";
 import { toNotice } from "@jarso/data/notifications";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError, toAppError } from "@/lib";
@@ -179,7 +181,16 @@ export async function deviceTokensFor(
     p_recipient_ids: recipientIds,
   });
   if (error) throw toAppError(error, "Failed to load device tokens");
-  return (data ?? []).map((row) => ({ id: row.id, profileId: row.profile_id, token: row.token }));
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    profileId: row.profile_id,
+    token: row.token,
+    // The table check allows only known groups; anything else is ignored rather than trusted.
+    mutedGroups: (row.muted_groups ?? []).filter((g): g is PushGroup =>
+      (NOTICE_GROUPS as readonly string[]).includes(g),
+    ),
+    paused: row.paused === true,
+  }));
 }
 
 /** Admin only: forgets a token Expo reports as `DeviceNotRegistered`. */

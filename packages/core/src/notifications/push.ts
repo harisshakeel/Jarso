@@ -3,7 +3,7 @@
 import { summaryPushCopy } from "./copy";
 import { type NoticeTarget, noticeTarget } from "./links";
 import type { NoticeRole } from "./text";
-import type { ClaimedNotice } from "./types";
+import type { ClaimedNotice, DevicePushPrefs, NoticeKind, PushGroup } from "./types";
 
 /**
  * The `data` of a phone push. `notice`: one notice, opened at its target and marked read on tap.
@@ -74,4 +74,54 @@ export function planPushes(batch: ClaimedNotice[]): PushPlan[] {
     });
   }
   return plans;
+}
+
+/**
+ * The settings group a notice kind belongs to. Exhaustive: a new kind fails typecheck until it
+ * is placed.
+ */
+export function noticeGroup(kind: NoticeKind): PushGroup {
+  switch (kind) {
+    case "limit_exceeded":
+    case "withdrawal_requested":
+    case "withdrawal_decided":
+    case "deposit_requested":
+    case "deposit_decided":
+    case "emergency_requested":
+    case "emergency_decided":
+      return "requests";
+    case "allowance_due":
+    case "handover_reminder":
+    case "card_charge_failed":
+    case "money_received":
+    case "entry_corrected":
+    case "jar_moved":
+      return "money";
+    case "guide_noticed":
+      return "learning";
+    case "parent_note":
+      return "notes";
+    default: {
+      const unplaced: never = kind;
+      return unplaced;
+    }
+  }
+}
+
+/**
+ * What one phone gets of a plan under its own settings: nothing while paused or for a muted
+ * group; a summary keeps only its unmuted notices (one left is pushed as itself).
+ */
+export function planForDevice(plan: PushPlan, prefs: DevicePushPrefs): PushPlan | null {
+  if (prefs.paused) return null;
+  const muted = (claimed: ClaimedNotice) =>
+    prefs.mutedGroups.includes(noticeGroup(claimed.notice.kind));
+  if (plan.kind === "notice") return muted(plan.claimed) ? null : plan;
+
+  const kept = plan.notices.filter((claimed) => !muted(claimed));
+  if (kept.length === plan.notices.length) return plan;
+  const [only] = kept;
+  if (!only) return null;
+  if (kept.length === 1) return { kind: "notice", claimed: only };
+  return { ...plan, notices: kept };
 }
