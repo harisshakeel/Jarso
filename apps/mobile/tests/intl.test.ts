@@ -43,6 +43,17 @@ describe("family dates", () => {
     expect(localDateOf("2026-10-30T20:00:00+00:00", "Asia/Karachi")).toBe("2026-10-31");
   });
 
+  it("familyToday returns expected fixed values", () => {
+    // Expected days are node's (full ICU). This runs on node with the polyfills, not on Hermes:
+    // Hermes parity needs the device run.
+    expect(familyToday("Asia/Kolkata", new Date("2026-03-28T18:29:00Z"))).toBe("2026-03-28");
+    expect(familyToday("Asia/Kolkata", new Date("2026-03-28T18:30:00Z"))).toBe("2026-03-29");
+    // British Summer Time: midnight is 23:00 UTC.
+    expect(familyToday("Europe/London", new Date("2026-07-01T22:59:00Z"))).toBe("2026-07-01");
+    expect(familyToday("Europe/London", new Date("2026-07-01T23:00:00Z"))).toBe("2026-07-02");
+    expect(familyToday("Europe/London", new Date("2026-12-31T23:59:00Z"))).toBe("2026-12-31");
+  });
+
   it("describes allowance schedules", () => {
     expect(describeCadence("weekly", "2025-11-02", "en-GB")).toBe("Every Sunday");
     expect(describeCadence("monthly", "2026-01-31", "en-GB")).toBe("Every month on the 31st");

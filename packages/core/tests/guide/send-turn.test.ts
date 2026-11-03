@@ -79,6 +79,33 @@ describe("sendGuideTurn", () => {
     );
   });
 
+  it("sends the headers() it is given, as the phone sends its bearer", async () => {
+    const line = { type: "reply", data };
+    const mockFetch = vi.fn<typeof fetch>(async () =>
+      streamed([new TextEncoder().encode(`${JSON.stringify(line)}\n`)]),
+    );
+    await expect(
+      sendGuideTurn(request, () => {}, {
+        baseUrl: "https://api.example",
+        fetch: mockFetch,
+        headers: async () => ({ authorization: "Bearer phone-token" }),
+      }),
+    ).resolves.toEqual({ ok: true, data });
+    expect(mockFetch.mock.calls[0]?.[1]?.headers).toEqual({
+      "content-type": "application/json",
+      authorization: "Bearer phone-token",
+    });
+  });
+
+  it("posts to the same origin when no base URL is given", async () => {
+    const line = { type: "reply", data };
+    const mockFetch = vi.fn<typeof fetch>(async () =>
+      streamed([new TextEncoder().encode(`${JSON.stringify(line)}\n`)]),
+    );
+    await sendGuideTurn(request, () => {}, { fetch: mockFetch });
+    expect(mockFetch.mock.calls[0]?.[0]).toBe("/api/v1/guide/turns");
+  });
+
   it("returns an error line as a failed result", async () => {
     const line = { type: "error", error: { code: "CONFLICT", message: guideCopy.chatFull } };
     stub(streamed([new TextEncoder().encode(`${JSON.stringify(line)}\n`)]));
