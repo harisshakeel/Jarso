@@ -12,7 +12,12 @@
     "./diary": "./src/diary/index.ts",
     "./family": "./src/family/index.ts",
     "./ledger": "./src/ledger/index.ts",
-    "./rules": "./src/rules/index.ts"
+    "./rules": "./src/rules/index.ts",
+    "./goals": "./src/goals/index.ts",
+    "./allowance": "./src/allowance/index.ts",
+    "./learning": "./src/learning/index.ts",
+    "./notifications": "./src/notifications/index.ts",
+    "./guide": "./src/guide/index.ts"
   },
   "dependencies": {
     "@jarso/core": "workspace:*",
