@@ -15,15 +15,14 @@ const SHEET: Options = {
   sheetGrabberVisible: true,
 };
 
-/**
- * Sheets over the tabs. Each opening mounts the screen anew. Later tasks add their routes here
- * as they land (the handover sheet, `children/[childId]/handover/[kind]/[id]`, in Task 5).
- */
-const SHEETS: string[] = [];
+/** Sheets over the tabs. Each opening mounts the screen anew (one idempotency key per opening). */
+const SHEETS: string[] = ["children/[childId]/handover/[kind]/[id]"];
 
 /** Pages pushed over the tabs, with the native back button and the web's page title. */
 const PAGES: { name: string; title: string }[] = [
   { name: "settings", title: parentPageCopy.settings },
+  // The hub sets its own title (the child's nickname) once the family has loaded.
+  { name: "children/[childId]/index", title: "Your child" },
 ];
 
 /**

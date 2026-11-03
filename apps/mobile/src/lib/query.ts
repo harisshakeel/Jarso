@@ -90,6 +90,15 @@ export const keys = {
   childRequests: (childId: string) => ["child", childId, "requests"] as const,
   childRules: (childId: string) => ["child", childId, "rules"] as const,
   childHistory: (childId: string) => ["child", childId, "history"] as const,
+  /** The newest few history lines on the child hub (one page, not the paged list). */
+  childRecent: (childId: string) => ["child", childId, "recent"] as const,
+  childJars: (childId: string) => ["child", childId, "jars"] as const,
+  /** The last handover's cash/save split (the handover prefill). */
+  childSplit: (childId: string) => ["child", childId, "split"] as const,
+  /** The child's goal, for the handover's plan note. */
+  childGoal: (childId: string) => ["child", childId, "goal"] as const,
+  /** How many of the child's chats in the last 30 days are worth a look. */
+  childFlagged: (childId: string) => ["child", childId, "flagged"] as const,
   childLearning: (childId: string) => ["child", childId, "learning"] as const,
   childChats: (childId: string) => ["child", childId, "chats"] as const,
   /** One of the child's chats. Refreshed with `childChats` (it shares the prefix). */

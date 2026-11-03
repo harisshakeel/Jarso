@@ -26,3 +26,11 @@ export function useFamilyDue(children: ChildSummary[] | undefined) {
     },
   });
 }
+
+/** One child's allowances and gifts waiting to be handed over, oldest first. */
+export function useChildDue(childId: string) {
+  return useQuery({
+    queryKey: keys.childDue(childId),
+    queryFn: () => listDueForParent(supabase, childId),
+  });
+}
