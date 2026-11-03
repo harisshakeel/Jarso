@@ -10,3 +10,13 @@ export function dayInZone(iso: string, timeZone: string): string {
 export function dayOfDate(isoDate: string): string {
   return dayFormat("UTC").format(new Date(`${isoDate}T00:00:00Z`));
 }
+
+/** Today as "Tuesday 3 November" in the family's timezone (the line over a screen title). */
+export function todayLine(now: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone,
+  }).format(now);
+}
