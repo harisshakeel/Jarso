@@ -1,0 +1,4 @@
+/* Colour variables come from @jarso/brand/tokens through tailwind.config.js. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

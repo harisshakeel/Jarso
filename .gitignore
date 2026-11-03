@@ -71,3 +71,19 @@ evals/guide/results/
 
 # brand assets copied from packages/brand by apps/web/scripts/copy-brand.mjs
 apps/web/public/brand/
+
+# expo (apps/mobile): dev cache, prebuild output, export output; env files are ignored by .env*
+.expo/
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/dist/
+apps/mobile/.env*
+!apps/mobile/.env.example
+apps/mobile/expo-env.d.ts
+.metro-health-check*
+# native signing material
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
