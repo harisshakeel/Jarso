@@ -19,7 +19,8 @@ type Input<T extends (db: Client, input: never) => unknown> = Omit<Parameters<T>
 /**
  * One mutation per request kind. `sent` says whether the server took the request: a refusal
  * (`over_available`, `over_cap`) resolves too, but nothing was asked, so nothing refreshes or
- * dispatches. On a sent request: refresh Home, Requests and History, tell the parent, a haptic.
+ * dispatches. On a sent request: refresh Home, Requests, History and the goal (a move in or out
+ * of Save changes its climb), tell the parent, a haptic.
  */
 function useSendRequest<V, R>(
   call: (db: Client, input: V & { childId: string }) => Promise<R>,
@@ -35,6 +36,7 @@ function useSendRequest<V, R>(
       void queryClient.invalidateQueries({ queryKey: keys.home(id) });
       void queryClient.invalidateQueries({ queryKey: keys.requests(id) });
       void queryClient.invalidateQueries({ queryKey: keys.history(id) });
+      void queryClient.invalidateQueries({ queryKey: keys.goal(id) });
       dispatchNotices();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     },

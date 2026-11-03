@@ -11,6 +11,13 @@ import { SessionProvider } from "@/features/auth";
 import { supabase } from "@/lib/supabase/client";
 
 // These tests are about being offline: the notice reads the phone's connection to pick its wording.
+// The outbox's sync has its own tests (tests/lib/outbox); here only the gate is under test.
+jest.mock("@/lib/outbox", () => ({ OutboxSync: () => null }));
+// The live notices need Realtime and the query client; not under test here.
+jest.mock("@/features/news", () => ({
+  NoticeListener: () => null,
+  useUnreadCount: () => ({ data: undefined }),
+}));
 jest.mock("expo-network", () => ({
   getNetworkStateAsync: async () => ({ isConnected: false, isInternetReachable: false }),
 }));
@@ -69,9 +76,9 @@ function renderApp() {
       ),
       "(child)/_layout": require("../app/(child)/_layout"),
       "(child)/(tabs)/index": () => <Text>Child home</Text>,
-      "(child)/(tabs)/history": () => <Text>History</Text>,
-      "(child)/(tabs)/requests": () => <Text>Requests</Text>,
-      "(child)/(tabs)/settings": () => <Text>Settings</Text>,
+      "(child)/(tabs)/diary": () => <Text>Diary</Text>,
+      "(child)/requests": () => <Text>Requests</Text>,
+      "(child)/me": () => <Text>Settings</Text>,
       "(auth)/sign-in": require("../app/(auth)/sign-in"),
       "(auth)/parents": require("../app/(auth)/parents"),
     },

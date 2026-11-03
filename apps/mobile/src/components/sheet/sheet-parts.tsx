@@ -135,17 +135,20 @@ export function SubmitButton({
   label,
   pending,
   onPress,
+  disabled = false,
 }: {
   label: string;
   pending: boolean;
   onPress: () => void;
+  /** Not ready to send yet (a required choice is missing). */
+  disabled?: boolean;
 }) {
   return (
     <Button
       size="lg"
       accessibilityLabel={label}
-      accessibilityState={{ busy: pending, disabled: pending }}
-      disabled={pending}
+      accessibilityState={{ busy: pending, disabled: pending || disabled }}
+      disabled={pending || disabled}
       onPress={onPress}
     >
       {pending ? <ActivityIndicator color="white" /> : <Text>{label}</Text>}

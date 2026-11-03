@@ -1,15 +1,19 @@
 import { Tabs } from "expo-router/js-tabs";
 import {
-  HandCoinsIcon,
+  GraduationCapIcon,
   HomeIcon,
+  InboxIcon,
   type LucideIcon,
   NotebookPenIcon,
-  SettingsIcon,
+  SparklesIcon,
 } from "lucide-react-native";
 import type { ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useGuideState } from "@/features/guide";
+import { useUnreadCount } from "@/features/news";
 
-// Same icons as the web's child nav (Home, Diary → History); the active one is filled softly.
+// The web's child nav (design.md §5): Home · Diary · Learn · Jarso · News, same icons; the
+// active one is filled softly. Requests and Me are stack screens (from Home).
 const icon =
   (Icon: LucideIcon) =>
   ({ color, focused }: { color: ColorValue; focused: boolean }) => (
@@ -21,11 +25,16 @@ const icon =
     />
   );
 
-/** The child's four tabs. The role guard is in the parent `(child)/_layout`. */
+/** The child's five tabs. The role guard is in the parent `(child)/_layout`. */
 export default function TabsLayout() {
   // Nunito's descenders (y, g, q) clip in the default bar; give the label a line height and the
   // bar room for it above the system navigation area.
   const { bottom } = useSafeAreaInsets();
+  // The Jarso tab shows only once the server says the guide is on for this child.
+  const guide = useGuideState();
+  const guideOn = guide.data?.available === true;
+  // The News badge: unread notices, kept live by the NoticeListener. Nothing shows for 0.
+  const unread = useUnreadCount().data;
   return (
     <Tabs
       screenOptions={{
@@ -36,17 +45,23 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: icon(HomeIcon) }} />
+      <Tabs.Screen name="diary" options={{ title: "Diary", tabBarIcon: icon(NotebookPenIcon) }} />
+      <Tabs.Screen name="learn" options={{ title: "Learn", tabBarIcon: icon(GraduationCapIcon) }} />
       <Tabs.Screen
-        name="history"
-        options={{ title: "History", tabBarIcon: icon(NotebookPenIcon) }}
+        name="jarso"
+        options={{
+          title: "Jarso",
+          tabBarIcon: icon(SparklesIcon),
+          href: guideOn ? undefined : null,
+        }}
       />
       <Tabs.Screen
-        name="requests"
-        options={{ title: "Requests", tabBarIcon: icon(HandCoinsIcon) }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{ title: "Settings", tabBarIcon: icon(SettingsIcon) }}
+        name="news"
+        options={{
+          title: "News",
+          tabBarIcon: icon(InboxIcon),
+          tabBarBadge: unread ? unread : undefined,
+        }}
       />
     </Tabs>
   );

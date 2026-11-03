@@ -22,6 +22,13 @@ jest.mock("@/lib/supabase/client", () => ({
     },
   },
 }));
+// The outbox's sync has its own tests (tests/lib/outbox); here only the gate is under test.
+jest.mock("@/lib/outbox", () => ({ OutboxSync: () => null }));
+// The live notices need Realtime and the query client; not under test here.
+jest.mock("@/features/news", () => ({
+  NoticeListener: () => null,
+  useUnreadCount: () => ({ data: undefined }),
+}));
 jest.mock("@jarso/data/family", () => ({ findProfileRole: jest.fn() }));
 
 const auth = supabase.auth as unknown as {
@@ -86,9 +93,9 @@ function renderApp() {
       _layout: Root,
       "(child)/_layout": require("../app/(child)/_layout"),
       "(child)/(tabs)/index": () => <Text>Child home</Text>,
-      "(child)/(tabs)/history": () => <Text>History</Text>,
-      "(child)/(tabs)/requests": () => <Text>Requests</Text>,
-      "(child)/(tabs)/settings": SettingsStub,
+      "(child)/(tabs)/diary": () => <Text>Diary</Text>,
+      "(child)/requests": () => <Text>Requests</Text>,
+      "(child)/me": SettingsStub,
       "(auth)/sign-in": require("../app/(auth)/sign-in"),
       "(auth)/parents": require("../app/(auth)/parents"),
     },
@@ -162,7 +169,7 @@ describe("session and role gate", () => {
     role.mockResolvedValue("child");
     await renderApp();
     expect(await screen.findByText("Child home")).toBeOnTheScreen();
-    await act(async () => router.navigate("/settings"));
+    await act(async () => router.navigate("/me"));
 
     await act(async () => (await screen.findByText("Sign out")).props.onPress());
 
@@ -175,7 +182,7 @@ describe("session and role gate", () => {
     role.mockResolvedValue("child");
     await renderApp();
     expect(await screen.findByText("Child home")).toBeOnTheScreen();
-    await act(async () => router.navigate("/settings"));
+    await act(async () => router.navigate("/me"));
     auth.signOut.mockReset().mockRejectedValue(new Error("network down"));
 
     await act(async () => (await screen.findByText("Sign out")).props.onPress());

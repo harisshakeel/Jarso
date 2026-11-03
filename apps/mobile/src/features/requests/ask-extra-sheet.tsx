@@ -3,9 +3,6 @@ import { randomUUID } from "expo-crypto";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { z } from "zod";
-import { Text } from "@/components/ui";
-import { useHome } from "@/features/jars";
-import { actionErrorMessage } from "@/lib";
 import {
   AmountInput,
   HomeWait,
@@ -14,7 +11,10 @@ import {
   SentView,
   SubmitButton,
   useSendOnce,
-} from "./sheet-parts";
+} from "@/components/sheet";
+import { Text } from "@/components/ui";
+import { useHome } from "@/features/jars";
+import { actionErrorMessage } from "@/lib";
 import { useCreateEmergency } from "./use-request-mutations";
 
 type FieldErrors = { amount?: string[]; reason?: string[] };

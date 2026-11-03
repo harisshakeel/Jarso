@@ -1,5 +1,6 @@
 import { semantic } from "@jarso/brand/tokens";
 import { DarkTheme, DefaultTheme, type Theme } from "expo-router";
+import { useColorScheme } from "nativewind";
 
 export type ColorScheme = keyof typeof semantic;
 
@@ -28,3 +29,11 @@ export const NAV_THEME: Record<ColorScheme, Theme> = {
     },
   },
 };
+
+export type Tokens = (typeof semantic)[ColorScheme];
+
+/** The brand's semantic colours for the current scheme, for what a class can't style (SVG, icons). */
+export function useTokens(): Tokens {
+  const { colorScheme } = useColorScheme();
+  return semantic[colorScheme === "dark" ? "dark" : "light"];
+}
