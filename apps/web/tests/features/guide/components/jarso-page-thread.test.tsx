@@ -83,6 +83,8 @@ describe("JarsoPageThread", () => {
       />,
     );
     expect(screen.getByRole("link", { name: "Saving up for something" })).toBeVisible();
+    // The re-render hands the thread a new callback; the started chat must not move the page again.
+    expect(replace).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the live reply when a chat started from New chat moves to its address", async () => {
