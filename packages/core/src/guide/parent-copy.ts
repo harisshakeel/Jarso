@@ -49,6 +49,10 @@ export const parentGuideCopy = {
     blocked_output: "Jarso's reply was held back",
     unavailable: "Jarso was not available",
   } as Partial<Record<NonNullable<TranscriptMessage["route"]>, string>>,
+  /** The parent's Jarso page when Jarso is off for every child; the Home link follows it. */
+  offForEveryChild:
+    "Jarso is off for every child. Turn it on from a child's page to ask about them.",
+  backHome: "Back to Home",
   /** "What Jarso remembers", as the parent reads it. */
   memoriesIntro: (nickname: string) =>
     `Short notes Jarso keeps about ${nickname} so it can pick up where they left off. You or ${nickname} can delete any.`,

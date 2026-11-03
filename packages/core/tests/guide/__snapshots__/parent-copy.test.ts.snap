@@ -2,6 +2,7 @@
 
 exports[`parentGuideCopy > keeps every line 1`] = `
 {
+  "backHome": "Back to Home",
   "cardTitle": "Jarso, the AI helper",
   "chatLabel": "Chat",
   "chatsLabel": "Chats",
@@ -17,6 +18,7 @@ exports[`parentGuideCopy > keeps every line 1`] = `
   "notConfigured": "Jarso, the AI helper, is not switched on for this app yet.",
   "notHelpful": "Your child didn't find this helpful",
   "off": "Off",
+  "offForEveryChild": "Jarso is off for every child. Turn it on from a child's page to ask about them.",
   "on": "On",
   "questions": [Function],
   "readChats": [Function],
