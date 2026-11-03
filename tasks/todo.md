@@ -137,6 +137,28 @@ Spec: `docs/superpowers/specs/2026-11-02-mobile-app-design.md` · Plan: `docs/su
 - [x] 14 requests, history, settings
 - [x] 15 docs, ADR 0016, done-when check
 
+## Mobile wave 2 (child parity) — in progress (SDD)
+
+Spec `docs/superpowers/specs/2026-11-03-mobile-wave-2-design.md`, plan `docs/superpowers/plans/2026-11-03-mobile-wave-2.md`.
+
+- [x] 1 Web bearer access + core Hermes fixes (plan 1a–1c)
+- [x] 2 Shared copy and data: goals, diary, learning, notices, guide (2a–2c)
+- [x] 3 Phone outbox, tabs, Home, goals, rest of diary (3a–3c)
+- [x] 4 Phone Learn, Jarso, News (4a–4c)
+- [x] 5 Maestro flows, docs, wave 2 check (device run below is still open)
+
+### Wave 2 — pending device checks
+
+Build with `npx expo run:android`, then `pnpm --filter @jarso/mobile e2e` (flags in `docs/testing.md`). Unverified so far:
+
+- [ ] Maestro flows pass: sign-in, money-loop, diary, goal, learn, news, guide, offline (selectors are unchecked on a device)
+- [ ] Jarso: `expo/fetch` streams the NDJSON reply and the 52 s abort works on Android
+- [ ] News: Realtime `setAuth` works with the SecureStore session; a new notice toasts and bumps the badge
+- [ ] Offline: a purchase and a practice answer queue, show as waiting, replay on reconnect; a purchase that no longer fits shows "needs a look"
+- [ ] Hermes: `Intl` and `familyToday` give the web's day and wording
+- [ ] Every row of the spec's screens table works for a test child and the parent sees it on the web
+- [ ] Same on an iOS simulator
+
 ## Wave 1 — pending device checks
 
 Not run in the build session (no phone or simulator). Tick each on an Android phone and an iOS simulator, against `pnpm dev` (`EXPO_PUBLIC_API_URL` = laptop LAN IP or tunnel) and the hosted project. Push the `child_password_guard` migration first.
