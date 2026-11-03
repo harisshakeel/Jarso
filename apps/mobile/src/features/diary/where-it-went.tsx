@@ -11,21 +11,31 @@ import { supabase } from "@/lib/supabase/client";
 
 /**
  * This week's spending by category and money in, as sentences (the web's card). No chart, no
- * table. Nice to have: hidden if this week's lines can't load.
+ * table. Nice to have: hidden if this week's lines can't load. With `childId` it is a parent
+ * reading that child's week, with exact amounts as on the web's parent page.
  */
-export function WhereItWentCard({ context }: { context: FamilyContext }) {
+export function WhereItWentCard({
+  context,
+  childId,
+}: {
+  context: FamilyContext;
+  childId?: string;
+}) {
   const { userId } = useSession();
+  const whose = childId ?? userId;
   const week = useQuery({
-    queryKey: keys.week(userId ?? ""),
-    enabled: Boolean(userId),
+    queryKey: childId ? keys.childWeek(childId) : keys.week(userId ?? ""),
+    enabled: Boolean(whose),
     queryFn: () =>
-      getHistorySince(supabase, userId as string, startOfWeek(context.today), {
+      getHistorySince(supabase, whose as string, startOfWeek(context.today), {
         timezone: context.timezone,
         now: Date.now(),
       }),
   });
   if (!week.data) return null;
-  const view = whereItWent(week.data, context.today, context.currency);
+  const view = whereItWent(week.data, context.today, context.currency, {
+    showMinor: childId ? "always" : "nonzero",
+  });
   return (
     <Card accessibilityLabel={whereItWentCopy.heading} className="gap-2">
       <Text accessibilityRole="header" className="font-sans-bold text-h3">

@@ -27,3 +27,22 @@ export function useHistory() {
   });
   return { history, home };
 }
+
+/**
+ * A parent's read of one child's history, paged the same way. Days are the family's `timezone`
+ * (from the family read), so it waits for it.
+ */
+export function useChildHistory(childId: string, timezone: string | undefined) {
+  return useInfiniteQuery({
+    queryKey: keys.childHistory(childId),
+    enabled: Boolean(timezone),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      getHistoryPage(supabase, childId, {
+        timezone: timezone as string,
+        now: Date.now(),
+        before: pageParam,
+      }),
+    getNextPageParam: (last) => last.olderBefore ?? undefined,
+  });
+}

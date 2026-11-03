@@ -90,6 +90,8 @@ export const keys = {
   childRequests: (childId: string) => ["child", childId, "requests"] as const,
   childRules: (childId: string) => ["child", childId, "rules"] as const,
   childHistory: (childId: string) => ["child", childId, "history"] as const,
+  /** This week's lines for the parent's "Where it went". Refreshed with `childHistory`. */
+  childWeek: (childId: string) => ["child", childId, "history", "week"] as const,
   /** The newest few history lines on the child hub (one page, not the paged list). */
   childRecent: (childId: string) => ["child", childId, "recent"] as const,
   childJars: (childId: string) => ["child", childId, "jars"] as const,

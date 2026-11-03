@@ -1,4 +1,6 @@
 import { parentPageCopy } from "@jarso/core/dashboard";
+import { parentLearningCopy } from "@jarso/core/learning";
+import { rulesCopy } from "@jarso/core/rules";
 import { Redirect, Stack, usePathname } from "expo-router";
 import type { ComponentProps } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -23,6 +25,10 @@ const PAGES: { name: string; title: string }[] = [
   { name: "settings", title: parentPageCopy.settings },
   // The hub sets its own title (the child's nickname) once the family has loaded.
   { name: "children/[childId]/index", title: parentPageCopy.child },
+  // History and learning add the child's nickname once the family has loaded.
+  { name: "children/[childId]/history", title: parentPageCopy.historyTitle },
+  { name: "children/[childId]/learning", title: parentLearningCopy.title },
+  { name: "children/[childId]/rules", title: rulesCopy.title },
 ];
 
 /**

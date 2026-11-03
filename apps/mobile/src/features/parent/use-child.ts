@@ -1,6 +1,5 @@
 import type { ChildSummary } from "@jarso/core/family";
 import { countFlaggedSince } from "@jarso/data/guide";
-import { getLearningOverview } from "@jarso/data/learning";
 import { getHistoryPage, getJars } from "@jarso/data/ledger";
 import { useQuery } from "@tanstack/react-query";
 import { useFamily } from "@/features/family";
@@ -34,13 +33,8 @@ export function useRecentHistory(childId: string, timezone: string) {
   });
 }
 
-/** The child's learning overview, read only. */
-export function useChildLearning(childId: string, timezone: string) {
-  return useQuery({
-    queryKey: keys.childLearning(childId),
-    queryFn: () => getLearningOverview(supabase, childId, { timezone, now: new Date() }),
-  });
-}
+// The child's learning overview lives with learning (the summary page reads it too).
+export { useChildLearning } from "@/features/learning";
 
 /** How many of the child's chats in the last 30 days are worth a look. Only while Jarso is set up. */
 export function useFlaggedChats(childId: string, enabled: boolean) {
