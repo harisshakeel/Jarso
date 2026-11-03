@@ -8,7 +8,7 @@ import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
 import { StepGuide } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
-import { MissionPlayer } from "@/features/learning";
+import { learnCopy, MissionPlayer } from "@/features/learning";
 import { getPracticeSet } from "@/features/learning/server";
 
 // The guide action runs on this page: allow a full guide turn (45 s) plus saving it.
@@ -27,15 +27,13 @@ async function PracticeContent() {
   if (items.length === 0) {
     return (
       <section className="grid gap-4 rounded-2xl bg-card p-6 shadow-raised">
-        <h1 className="text-h1">All caught up.</h1>
-        <p className="text-ink-2">
-          Nothing to practise right now. Skills come back here a day or more after a mission.
-        </p>
+        <h1 className="text-h1">{learnCopy.practice.caughtUpHeading}</h1>
+        <p className="text-ink-2">{learnCopy.practice.caughtUpBody}</p>
         <Link
           href={routes.childLearn}
           className="keycap inline-flex h-11 w-fit items-center rounded-full bg-primary px-6 font-bold text-primary-foreground"
         >
-          Back to Learn
+          {learnCopy.backToLearn}
         </Link>
       </section>
     );
@@ -43,8 +41,8 @@ async function PracticeContent() {
   return (
     <>
       <header className="grid gap-1">
-        <p className="eyebrow">Practice</p>
-        <h1 className="text-h1">Quick review. New examples.</h1>
+        <p className="eyebrow">{learnCopy.practice.eyebrow}</p>
+        <h1 className="text-h1">{learnCopy.practice.heading}</h1>
       </header>
       <MissionPlayer
         mode={{ kind: "practice" }}
@@ -52,7 +50,7 @@ async function PracticeContent() {
         currency={family.currency}
         userId={user.id}
         doneHref={routes.childLearn}
-        doneLabel="Back to Learn"
+        doneLabel={learnCopy.backToLearn}
         stepAside={guide.available ? <StepGuide introNeeded={guide.introNeeded} /> : undefined}
       />
     </>
@@ -67,7 +65,7 @@ export default function PracticePage() {
         className="-ml-1 inline-flex min-h-11 w-fit items-center gap-1 rounded-full pr-2 font-semibold text-primary text-sm hover:underline hover:underline-offset-4"
       >
         <ChevronLeftIcon aria-hidden className="size-5" />
-        Learn
+        {learnCopy.back}
       </Link>
       <Suspense
         fallback={

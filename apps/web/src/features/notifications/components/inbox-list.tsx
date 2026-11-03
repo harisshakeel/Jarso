@@ -1,7 +1,7 @@
 "use client";
 
 import type { Notice } from "@jarso/core/notifications";
-import { noticeText } from "@jarso/core/notifications";
+import { groupNotices, inboxCopy, noticeText } from "@jarso/core/notifications";
 import type { Route } from "next";
 import Link from "next/link";
 import { useTransition } from "react";
@@ -14,6 +14,8 @@ import { markNoticesReadAction } from "../server/actions";
 import { InboxItem } from "./inbox-item";
 import { useOpenNotice } from "./use-open-notice";
 
+export { groupNotices, type NoticeGroup } from "@jarso/core/notifications";
+
 type InboxListProps = {
   items: Notice[];
   currency: string;
@@ -21,25 +23,6 @@ type InboxListProps = {
   /** Link to the next older page, when there is one. */
   moreHref?: Route | null;
 };
-
-const DAY = 24 * 60 * 60 * 1000;
-
-export type NoticeGroup = { label: "Today" | "This week" | "Older"; items: Notice[] };
-
-/** Splits notices (newest first) into Today, This week and Older, keeping the order; empty groups are left out. */
-export function groupNotices(items: Notice[], now = Date.now()): NoticeGroup[] {
-  const groups: NoticeGroup[] = [
-    { label: "Today", items: [] },
-    { label: "This week", items: [] },
-    { label: "Older", items: [] },
-  ];
-  for (const notice of items) {
-    const age = now - new Date(notice.createdAt).getTime();
-    const group = age < DAY ? groups[0] : age < 7 * DAY ? groups[1] : groups[2];
-    group?.items.push(notice);
-  }
-  return groups.filter((group) => group.items.length > 0);
-}
 
 /** The inbox, newest first and grouped by day. Opening a row saves it as read, then goes to the record. */
 export function InboxList({ items, currency, viewer, moreHref }: InboxListProps) {
@@ -67,7 +50,7 @@ export function InboxList({ items, currency, viewer, moreHref }: InboxListProps)
       {hasUnread ? (
         <div className="flex justify-end">
           <Button type="button" variant="outline" disabled={pending} onClick={markAll}>
-            Mark all as read
+            {inboxCopy.markAll}
           </Button>
         </div>
       ) : null}
@@ -94,7 +77,7 @@ export function InboxList({ items, currency, viewer, moreHref }: InboxListProps)
       ))}
       {moreHref ? (
         <Link href={moreHref} className={buttonVariants({ variant: "outline" })}>
-          Show more
+          {inboxCopy.showMore}
         </Link>
       ) : null}
     </div>

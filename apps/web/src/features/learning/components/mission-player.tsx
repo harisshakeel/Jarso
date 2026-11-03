@@ -18,6 +18,7 @@ import {
   draftToAnswer,
   emptyDraft,
   gradeStep,
+  playerCopy,
   praiseLine,
   renderText,
   resumePosition,
@@ -84,14 +85,9 @@ type Problem = { text: string; calm: boolean };
 /** Saved means sent, or stored on the device to send later (`data` is then null). */
 type Saved = { ok: true; data: unknown } | { ok: false; problem: Problem };
 
-const SAVE_FAILED = "We couldn't save that. Check your connection and try again.";
+const SAVE_FAILED = playerCopy.saveFailed;
 
-const PROGRESS_LABEL: Record<PlayerMode["kind"], string> = {
-  mission: "Mission progress",
-  practice: "Practice progress",
-  "check-in": "Check-in progress",
-  topic: "Practice progress",
-};
+const PROGRESS_LABEL: Record<PlayerMode["kind"], string> = playerCopy.progressLabel;
 
 type Summary = ReturnType<typeof attemptSummary>;
 
@@ -221,17 +217,14 @@ export function MissionPlayer(props: MissionPlayerProps) {
     if (mode.kind === "practice") {
       const right = allResults.filter((r) => r.correct && r.tries === 1).length;
       setFinishText({
-        heading: "Practice done. Nicely kept fresh.",
+        heading: playerCopy.practiceDone,
         body: praiseLine({ answerable: allResults.length, firstTry: right }),
       });
       setStage("finished");
       return;
     }
     if (mode.kind === "topic") {
-      setFinishText({
-        heading: "Nice. You've practised it.",
-        body: "Opening a topic never changes your progress. Missions and practice do.",
-      });
+      setFinishText(playerCopy.topicDone);
       setStage("finished");
       return;
     }
@@ -246,10 +239,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
             return;
           }
           // The intro promised no score, so the finish never counts the answers back.
-          setFinishText({
-            heading: "Thanks. That helps pick where you start.",
-            body: "Mission 1 is ready for you.",
-          });
+          setFinishText(playerCopy.checkInDone);
           setStage("finished");
         });
         return;
@@ -266,7 +256,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
           return;
         }
         const summary = isSummary(saved.data) ? saved.data : attemptSummary(allResults);
-        setFinishText({ heading: "Mission done. Nice work.", body: praiseLine(summary) });
+        setFinishText({ heading: playerCopy.missionDone, body: praiseLine(summary) });
         setStage("finished");
       });
     });
@@ -348,7 +338,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
       >
         <p className="eyebrow">{intro.eyebrow}</p>
         <h1 id="player-intro" className="text-balance text-h1">
-          {resumed ? "Pick up where you left off." : intro.heading}
+          {resumed ? playerCopy.resumedHeading : intro.heading}
         </h1>
         <p className="text-ink-2">{intro.body}</p>
         <ProblemText problem={error} />
@@ -360,10 +350,10 @@ export function MissionPlayer(props: MissionPlayerProps) {
           loading={pending}
         >
           {resumed
-            ? "Continue"
+            ? playerCopy.continue
             : mode.kind === "check-in"
-              ? "Start the questions"
-              : "Start mission"}
+              ? playerCopy.startQuestions
+              : playerCopy.startMission}
         </Button>
       </section>
     );
@@ -382,7 +372,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
           tabIndex={-1}
           className="text-balance text-h1 outline-none"
         >
-          {stage === "finished" && finishText ? finishText.heading : "Saving your answers…"}
+          {stage === "finished" && finishText ? finishText.heading : playerCopy.saving}
         </h1>
         {stage === "finished" && finishText ? (
           <p className="text-ink-2">{finishText.body}</p>
@@ -397,7 +387,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
               loading={pending}
             >
               <RotateCcwIcon aria-hidden />
-              Try again
+              {playerCopy.tryAgain}
             </Button>
           </div>
         ) : null}
@@ -415,7 +405,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-hairline-strong px-5 font-bold"
               >
                 <BookOpenIcon aria-hidden className="size-5" />
-                Read the topic
+                {playerCopy.readTopic}
               </Link>
             ) : null}
           </div>
@@ -431,12 +421,12 @@ export function MissionPlayer(props: MissionPlayerProps) {
   const stepIndex = steps.findIndex((s) => s.key === item.step.key);
   const position =
     item.phase === "replay"
-      ? `One more look: ${index - replayStart + 1} of ${queue.length - replayStart}`
+      ? playerCopy.replayPosition(index - replayStart + 1, queue.length - replayStart)
       : mode.kind === "mission"
-        ? `Step ${stepIndex + 1} of ${mainTotal}`
+        ? playerCopy.stepPosition(stepIndex + 1, mainTotal)
         : queue.length === 1
-          ? "Your turn."
-          : `Question ${index + 1} of ${queue.length}`;
+          ? playerCopy.yourTurn
+          : playerCopy.questionPosition(index + 1, queue.length);
 
   return (
     <div className="grid gap-4">
@@ -486,7 +476,7 @@ function SavedOnDevice({ userId }: { userId: string }) {
   return (
     <p className="flex items-center gap-1.5 text-ink-2 text-sm">
       <HourglassIcon aria-hidden className="size-4 shrink-0" />
-      Saved on this device.
+      {playerCopy.savedOnDevice}
     </p>
   );
 }
@@ -561,7 +551,7 @@ function InfoView({
         tabIndex={-1}
         className="text-balance text-h2 outline-none"
       >
-        {step.title ?? "Here's the idea"}
+        {step.title ?? playerCopy.infoTitle}
       </h2>
       <p className="text-lg">{renderText(step.body, currency)}</p>
       {step.example ? (
@@ -570,7 +560,7 @@ function InfoView({
         </p>
       ) : null}
       <Button variant="keycap" size="lg" className="w-full sm:w-fit" onClick={onContinue}>
-        Continue
+        {playerCopy.continue}
       </Button>
     </section>
   );
@@ -704,7 +694,7 @@ function StepView({
           promptId={`${idBase}-prompt`}
           promptRef={heading}
           prompt={renderText(body.prompt, currency)}
-          note={body.type === "predict" ? "What do you think happens?" : undefined}
+          note={body.type === "predict" ? playerCopy.predictNote : undefined}
         />
 
         <StepInput
@@ -721,21 +711,21 @@ function StepView({
         <div className="flex flex-wrap items-center gap-3">
           {!outcome ? (
             <Button variant="keycap" size="lg" onClick={check} disabled={!answer} loading={saving}>
-              {checkIn ? "Next" : "Check"}
+              {checkIn ? playerCopy.next : playerCopy.check}
             </Button>
           ) : outcome.final ? (
             <Button variant="keycap" size="lg" onClick={continueOn} loading={saving}>
-              Continue
+              {playerCopy.continue}
             </Button>
           ) : (
             <Button variant="keycap" size="lg" onClick={tryAgain}>
-              Try again
+              {playerCopy.tryAgain}
             </Button>
           )}
           {!checkIn && !outcome?.final && hintsShown < hints.length ? (
             <Button variant="outline" onClick={() => setHintsShown((n) => n + 1)}>
               <LightbulbIcon aria-hidden />
-              {hintsShown === 0 ? "Hint" : "Another hint"}
+              {hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}
             </Button>
           ) : null}
           {!checkIn ? stepAside : null}
@@ -775,15 +765,11 @@ function Feedback({
         ) : (
           <LightbulbIcon aria-hidden className="size-6" />
         )}
-        {outcome.correct
-          ? "That's it."
-          : outcome.final
-            ? "Here's how it works."
-            : "Have another go."}
+        {outcome.correct ? playerCopy.right : outcome.final ? playerCopy.final : playerCopy.again}
       </h3>
       <p>{renderText(outcome.feedback, currency)}</p>
       {outcome.final && !outcome.correct ? (
-        <p className="font-semibold">The answer: {describeAnswer(body, currency)}.</p>
+        <p className="font-semibold">{playerCopy.answerLine(describeAnswer(body, currency))}</p>
       ) : null}
       {outcome.final && body.type === "predict" ? (
         <p className="font-semibold">{renderText(body.outcome, currency)}</p>
@@ -793,7 +779,7 @@ function Feedback({
           href={topicHref}
           className="inline-flex min-h-11 w-fit items-center font-semibold underline underline-offset-4"
         >
-          Read about this topic
+          {playerCopy.readAboutTopic}
         </Link>
       ) : null}
     </div>

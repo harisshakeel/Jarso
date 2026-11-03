@@ -1,7 +1,7 @@
 "use client";
 
 import type { StepBody } from "@jarso/core/learning";
-import { type Draft, renderText, stableShuffle } from "@jarso/core/learning";
+import { type Draft, inputCopy, renderText, stableShuffle } from "@jarso/core/learning";
 import { Slider } from "@/components/ui";
 import { cn, formatMoney, minorDigits } from "@/lib";
 
@@ -31,7 +31,7 @@ export function OptionInput({
   if (body.type !== "choice" && body.type !== "predict" && body.type !== "reason") return null;
   return (
     <fieldset className="grid gap-3" disabled={disabled}>
-      <legend className="sr-only">Pick one answer</legend>
+      <legend className="sr-only">{inputCopy.pickOne}</legend>
       {body.options.map((option) => (
         <label key={option.id} className={optionCard}>
           <input
@@ -69,7 +69,7 @@ export function NumberInput({
   return (
     <div className="grid gap-2">
       <label htmlFor={`${idBase}-number`} className="font-semibold">
-        Your answer
+        {inputCopy.yourAnswer}
       </label>
       <div className="flex items-center gap-2">
         {symbol ? (
@@ -114,20 +114,20 @@ export function SplitInput({
     <div className="grid gap-4">
       <div className="grid grid-cols-2 gap-3" aria-live="polite">
         <div className="rounded-xl bg-teal-100 p-3 text-teal-800 dark:bg-teal-900 dark:text-teal-100">
-          <p className="font-semibold text-sm">Spend</p>
+          <p className="font-semibold text-sm">{inputCopy.spend}</p>
           <p className="money font-extrabold text-2xl">{money(spend)}</p>
         </div>
         <div className="rounded-xl bg-gold-100 p-3 text-gold-700 dark:bg-gold-900 dark:text-gold">
-          <p className="font-semibold text-sm">Save</p>
+          <p className="font-semibold text-sm">{inputCopy.save}</p>
           <p className="money font-extrabold text-2xl">{money(draft.save)}</p>
         </div>
       </div>
       <div className="grid gap-2 px-1">
         <span id={`${idBase}-split-label`} className="font-semibold">
-          Move the slider to choose how much goes to Save
+          {inputCopy.splitLabel}
         </span>
         <Slider
-          aria-label="Save amount"
+          aria-label={inputCopy.saveAmount}
           aria-describedby={`${idBase}-split-label`}
           min={0}
           max={body.total}
@@ -140,8 +140,8 @@ export function SplitInput({
           disabled={disabled}
         />
         <div className="flex justify-between text-ink-2 text-sm">
-          <span>All to Spend</span>
-          <span>All to Save</span>
+          <span>{inputCopy.allSpend}</span>
+          <span>{inputCopy.allSave}</span>
         </div>
       </div>
     </div>
@@ -229,7 +229,7 @@ export function MatchInput({
             className="h-11 w-full rounded-xl border border-hairline-strong bg-card px-3 font-semibold outline-none focus-visible:border-primary disabled:opacity-70"
           >
             <option value="" disabled>
-              Choose a meaning
+              {inputCopy.chooseMeaning}
             </option>
             {meanings.map((meaning) => (
               <option key={meaning.id} value={meaning.id}>

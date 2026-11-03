@@ -8,7 +8,7 @@ import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
 import { GuideSheet, StepGuide } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
-import { MissionPlayer, TopicView } from "@/features/learning";
+import { learnCopy, MissionPlayer, TopicView } from "@/features/learning";
 import { findMission, findTopic } from "@/features/learning/server";
 
 // The guide action runs on this page: allow a full guide turn (45 s) plus saving it.
@@ -30,8 +30,8 @@ async function TopicContent({ params, searchParams }: Props) {
   // FR08: the child can explore a topic and return to their unfinished mission.
   const from = typeof query.from === "string" ? findMission(query.from) : undefined;
   const back = from
-    ? { href: routes.childMission(from.key), label: `Back to "${from.title}"` }
-    : { href: routes.childLearn, label: "Learn" };
+    ? { href: routes.childMission(from.key), label: learnCopy.topic.backTo(from.title) }
+    : { href: routes.childLearn, label: learnCopy.back };
   return (
     <>
       <Link
@@ -50,13 +50,13 @@ async function TopicContent({ params, searchParams }: Props) {
           <GuideSheet
             context={{ entry: "topic", topicKey: topic.key }}
             introNeeded={guide.introNeeded}
-            triggerLabel="Ask about this"
+            triggerLabel={learnCopy.topic.askAbout}
           />
         </div>
       ) : null}
       <section aria-labelledby="topic-practice" className="grid gap-3">
         <h2 id="topic-practice" className="text-h3">
-          Have a go.
+          {learnCopy.topic.haveAGo}
         </h2>
         <MissionPlayer
           mode={{ kind: "topic" }}
@@ -64,7 +64,7 @@ async function TopicContent({ params, searchParams }: Props) {
           currency={family.currency}
           userId={user.id}
           doneHref={back.href}
-          doneLabel={from ? "Back to your mission" : "Back to Learn"}
+          doneLabel={from ? learnCopy.topic.backToMission : learnCopy.backToLearn}
           stepAside={guide.available ? <StepGuide introNeeded={guide.introNeeded} /> : undefined}
         />
       </section>

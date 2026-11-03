@@ -5,6 +5,7 @@ import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { getFamilyContext } from "@/features/allowance/server";
 import { requireRole } from "@/features/family/server";
+import { learnCopy } from "@/features/learning";
 import { WeekCard } from "@/features/review";
 import { getWeeklyReview } from "@/features/review/server";
 
@@ -23,7 +24,7 @@ export default function WeekPage() {
         href={routes.childLearn}
         className="-mb-2 inline-flex min-h-11 w-fit items-center rounded-full px-2 font-semibold text-primary underline-offset-4 hover:underline"
       >
-        Back to Learn
+        {learnCopy.backToLearn}
       </Link>
       <Suspense
         fallback={

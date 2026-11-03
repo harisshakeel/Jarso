@@ -1,6 +1,6 @@
 "use client";
 
-import type { Notice, NoticeKind } from "@jarso/core/notifications";
+import { inboxCopy, type Notice, type NoticeKind, timeAgo } from "@jarso/core/notifications";
 import { cn } from "cn";
 import {
   BellIcon,
@@ -36,19 +36,6 @@ const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
   jar_moved: { icon: PiggyBankIcon, tint: "bg-teal-100 text-teal-800" },
 };
 
-const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-const MINUTE = 60_000;
-const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
-
-function timeAgo(createdAt: string, now: number): string {
-  const elapsed = Math.max(0, now - new Date(createdAt).getTime());
-  if (elapsed < MINUTE) return "just now";
-  if (elapsed < HOUR) return relative.format(-Math.floor(elapsed / MINUTE), "minute");
-  if (elapsed < DAY) return relative.format(-Math.floor(elapsed / HOUR), "hour");
-  return relative.format(-Math.floor(elapsed / DAY), "day");
-}
-
 type InboxItemProps = {
   notice: Notice;
   href: Route | string;
@@ -80,7 +67,7 @@ export function InboxItem({ notice, href, title, detail, onOpen }: InboxItemProp
       <span className="grid min-w-0 flex-1 gap-0.5">
         <span className={cn("truncate", notice.read ? "font-semibold" : "font-extrabold")}>
           {title}
-          {notice.read ? null : <span className="sr-only"> (new)</span>}
+          {notice.read ? null : <span className="sr-only">{inboxCopy.unread}</span>}
         </span>
         <span className="truncate text-ink-2 text-sm">{detail}</span>
       </span>
