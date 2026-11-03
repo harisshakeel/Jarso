@@ -1,6 +1,6 @@
 "use client";
 
-import type { GuideContextRef } from "@jarso/core/guide";
+import { type GuideContextRef, guideUi } from "@jarso/core/guide";
 import { useCurrentStep } from "@/features/learning";
 import { GuideSheet } from "./guide-sheet";
 
@@ -26,7 +26,7 @@ export function StepGuide({ introNeeded }: { introNeeded: boolean }) {
       key={`${step.stepKey}:${step.phase}:${step.answered}`}
       context={context}
       introNeeded={introNeeded}
-      triggerLabel={step.answered ? "Why?" : "Help me"}
+      triggerLabel={step.answered ? guideUi.why : guideUi.helpMe}
       compact
     />
   );

@@ -7,6 +7,7 @@ import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
 import {
   guideCopy,
+  guideUi,
   JarsoChatPage,
   JarsoPageThread,
   MAX_TURNS,
@@ -37,7 +38,7 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
           href={routes.child}
           className="font-semibold text-primary underline-offset-4 hover:underline"
         >
-          Back to Home
+          {guideUi.backToHome}
         </Link>
       </p>
     );

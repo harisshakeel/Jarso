@@ -1,26 +1,13 @@
-import type { ConversationSummary } from "@jarso/core/guide";
+import { type ConversationSummary, chatDay, chatTitle, guideUi } from "@jarso/core/guide";
 import { MessageSquarePlusIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib";
 
-/** "Mon 2 Nov" in the family's timezone, not the server's. */
-function formatDay(iso: string, timezone: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: timezone,
-  }).format(new Date(iso));
-}
+export { chatTitle } from "@jarso/core/guide";
 
-/** The first message, shortened, as the chat's title; a stored chat always has one. */
-export function chatTitle(chat: ConversationSummary): string {
-  const text = chat.preview.trim();
-  if (!text) return chat.label;
-  return text.length > 48 ? `${text.slice(0, 47)}…` : text;
-}
+const formatDay = chatDay;
 
 function ChatLinks({
   chats,
@@ -39,7 +26,7 @@ function ChatLinks({
   names?: Record<string, string>;
 }) {
   return (
-    <nav aria-label="Past chats" className="grid gap-1">
+    <nav aria-label={guideUi.pastChats} className="grid gap-1">
       <Link
         href={newHref}
         className={cn(
@@ -48,10 +35,10 @@ function ChatLinks({
         )}
       >
         <MessageSquarePlusIcon aria-hidden className="size-5" />
-        New chat
+        {guideUi.newChat}
       </Link>
       {chats.length === 0 ? (
-        <p className="px-3 py-2 text-ink-2 text-sm">No chats yet.</p>
+        <p className="px-3 py-2 text-ink-2 text-sm">{guideUi.noChats}</p>
       ) : (
         <ul className="grid gap-1">
           {chats.map((chat) => (
@@ -114,7 +101,9 @@ export function JarsoChatPage({
   return (
     <div className="grid min-h-[calc(100svh-3.5rem-3rem)] gap-4 lg:grid-cols-[16rem_1fr] lg:gap-8">
       <details className="rounded-xl border border-hairline bg-card p-2 lg:hidden">
-        <summary className="min-h-11 cursor-pointer px-2 py-2 font-semibold">Past chats</summary>
+        <summary className="min-h-11 cursor-pointer px-2 py-2 font-semibold">
+          {guideUi.pastChats}
+        </summary>
         {links}
       </details>
       <aside className="hidden lg:block">

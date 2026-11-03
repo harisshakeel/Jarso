@@ -1,7 +1,7 @@
 "use client";
 
 import type { ThreadMessage } from "@jarso/core/guide";
-import { guideCopy, MAX_MESSAGE_LENGTH, sendGuideTurn } from "@jarso/core/guide";
+import { guideCopy, guideUi, MAX_MESSAGE_LENGTH, sendGuideTurn } from "@jarso/core/guide";
 import { BotIcon, ExternalLinkIcon, SendHorizontalIcon, SparklesIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -196,7 +196,7 @@ export function GuideThread({
   ) : (
     <form onSubmit={submit} className="grid gap-2">
       <label htmlFor="ask-jarso-question" className="sr-only">
-        Your question for Jarso
+        {guideUi.questionLabel}
       </label>
       <textarea
         id="ask-jarso-question"
@@ -217,19 +217,19 @@ export function GuideThread({
       />
       <div className="flex items-center justify-between gap-3">
         <span id="ask-jarso-count" className="text-ink-2 text-sm">
-          {text.length}/{MAX_MESSAGE_LENGTH}
-          {turnsLeft !== null && turnsLeft <= 3 ? ` · ${turnsLeft} left in this chat` : ""}
+          {guideUi.count(text.length, MAX_MESSAGE_LENGTH)}
+          {turnsLeft !== null && turnsLeft <= 3 ? guideUi.turnsLeft(turnsLeft) : ""}
         </span>
         <div className="flex items-center gap-2">
           {messages.length > 0 && !pending && !page ? (
             <Button type="button" variant="ghost" onClick={newChat}>
-              New chat
+              {guideUi.newChat}
             </Button>
           ) : null}
           {/* Not a keycap: Home keeps its one keycap for the next step. */}
           <Button type="submit" size="lg" loading={pending} disabled={!text.trim()}>
             <SendHorizontalIcon aria-hidden />
-            Ask
+            {guideUi.ask}
           </Button>
         </div>
       </div>
@@ -252,7 +252,7 @@ export function GuideThread({
               href={openHref}
               className="inline-flex min-h-11 items-center gap-1 rounded-full px-3 font-semibold text-primary text-sm underline-offset-4 hover:underline"
             >
-              Open
+              {guideUi.open}
               <ExternalLinkIcon aria-hidden className="size-4" />
             </Link>
           ) : null}
@@ -286,7 +286,7 @@ export function GuideThread({
         <div className="grid gap-3 self-start rounded-2xl bg-secondary p-5">
           <p className="flex items-center gap-2 font-bold">
             <BotIcon aria-hidden className="size-5" />
-            Before we start
+            {guideUi.beforeWeStart}
           </p>
           {guideCopy.intro.map((line) => (
             <p key={line}>{line}</p>
@@ -306,7 +306,7 @@ export function GuideThread({
         <>
           <div className={cn("grid content-start gap-3", page && "min-h-0 flex-1 overflow-y-auto")}>
             {messages.length > 0 || sending ? (
-              <ol aria-label="Chat with Jarso" aria-live="polite" className="grid gap-3">
+              <ol aria-label={guideUi.chatLabel} aria-live="polite" className="grid gap-3">
                 {messages.map((message) =>
                   message.from === "child" ? (
                     <SentBubble key={message.id} text={message.text} />
@@ -321,7 +321,7 @@ export function GuideThread({
             ) : null}
             {pending ? <ThinkingBubble status={status} /> : null}
             {messages.length === 0 && !pending && !sending ? (
-              <ul aria-label="Questions to try" className="flex flex-wrap gap-2">
+              <ul aria-label={guideUi.tryThese} className="flex flex-wrap gap-2">
                 {copy.suggestions.map((suggestion) => (
                   <li key={suggestion}>
                     <Button
@@ -355,7 +355,7 @@ export function GuideThread({
 function SentBubble({ text }: { text: string }) {
   return (
     <li className="ml-8 justify-self-end whitespace-pre-wrap rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-primary-foreground">
-      <span className="sr-only">You: </span>
+      <span className="sr-only">{guideUi.you}</span>
       {text}
     </li>
   );

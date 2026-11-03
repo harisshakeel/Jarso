@@ -1,7 +1,7 @@
 "use client";
 
 import type { GuideCheck, GuideReply } from "@jarso/core/guide";
-import { guideCopy } from "@jarso/core/guide";
+import { guideCopy, guideUi } from "@jarso/core/guide";
 import {
   BotIcon,
   BrainIcon,
@@ -41,7 +41,7 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
       {reply.lookedAt.length > 0 ? (
         <p className="flex items-center gap-1.5 text-ink-2 text-sm">
           <ScanSearchIcon aria-hidden className="size-4 shrink-0" />
-          Looked at: {reply.lookedAt.join(", ")}
+          {guideUi.lookedAt(reply.lookedAt.join(", "))}
         </p>
       ) : null}
       {reply.remembered.length > 0 ? (
@@ -51,7 +51,7 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
         </p>
       ) : null}
       {reply.helplines.length > 0 ? (
-        <ul className="grid gap-2" aria-label="People you can talk to">
+        <ul className="grid gap-2" aria-label={guideUi.helplines}>
           {reply.helplines.map((line) => (
             <li key={line.name} className="grid gap-0.5 rounded-xl bg-secondary p-3">
               <a
@@ -72,7 +72,7 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
         <p className="font-semibold">{guideCopy.routes.safetyEmergency}</p>
       ) : null}
       {reply.topics.length > 0 ? (
-        <ul className="flex flex-wrap gap-2" aria-label="Topics">
+        <ul className="flex flex-wrap gap-2" aria-label={guideUi.topics}>
           {reply.topics.map((topic) => (
             <li key={topic.key}>
               <Link
@@ -88,11 +88,11 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
       {reply.check ? <CheckQuestion check={reply.check} /> : null}
       {reply.role === "guide" && reply.messageId ? (
         <fieldset className="flex items-center gap-1">
-          <legend className="sr-only">Was this helpful?</legend>
+          <legend className="sr-only">{guideUi.helpfulLegend}</legend>
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Helpful"
+            aria-label={guideUi.helpful}
             aria-pressed={rating === 1}
             onClick={() => rate(1)}
             className={cn(rating === 1 && "bg-muted")}
@@ -102,7 +102,7 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Not helpful"
+            aria-label={guideUi.notHelpful}
             aria-pressed={rating === -1}
             onClick={() => rate(-1)}
             className={cn(rating === -1 && "bg-muted")}
@@ -125,7 +125,7 @@ function CheckQuestion({ check }: { check: GuideCheck }) {
   }, [picked]);
   return (
     <fieldset className="grid gap-2 rounded-xl border border-hairline p-3">
-      <legend className="px-1 font-semibold">Quick check: {check.question}</legend>
+      <legend className="px-1 font-semibold">{guideUi.quickCheck(check.question)}</legend>
       {check.options.map((option, index) => (
         <Button
           // Options are distinct (the pipeline drops a check with repeats).
@@ -148,7 +148,7 @@ function CheckQuestion({ check }: { check: GuideCheck }) {
             <CircleCheckIcon aria-hidden className="mt-0.5 size-5 shrink-0 text-primary" />
           ) : null}
           <span>
-            {picked === check.answerIndex ? "That's it. " : "Not quite. "}
+            {picked === check.answerIndex ? guideUi.checkRight : guideUi.checkWrong}
             {check.explanation}
           </span>
         </p>
