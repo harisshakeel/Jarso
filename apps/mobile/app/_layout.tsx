@@ -1,5 +1,6 @@
 // Intl polyfills: already loaded by index.ts; kept first here so the layout never runs without them.
 import "@/lib/intl";
+import "@/lib/crypto";
 import "../global.css";
 
 import { PortalHost } from "@rn-primitives/portal";
