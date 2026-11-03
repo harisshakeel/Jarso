@@ -141,6 +141,48 @@ export async function findLivePayment(
   };
 }
 
+export type PaymentRow = {
+  id: string;
+  childId: string;
+  payerId: string | null;
+  provider: PaymentProviderId;
+  providerRef: string | null;
+  status: StoredStatus;
+  failureCode: FailureCode | null;
+  trigger: "manual" | "auto";
+  inApp: boolean;
+  expiresAt: string | null;
+};
+
+/**
+ * One payment by id, read with the user's client: null when there is none or RLS hides it (only
+ * the child's parents read a payment).
+ */
+export async function findPaymentById(db: Client, paymentId: string): Promise<PaymentRow | null> {
+  const { data, error } = await db
+    .from("payments")
+    .select(
+      "id, child_id, payer_id, provider, provider_ref, status, failure_code, trigger, in_app, expires_at",
+    )
+    .eq("id", paymentId)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load the card payment");
+  if (!data || !isStoredStatus(data.status)) return null;
+  const code = data.failure_code as FailureCode | null;
+  return {
+    id: data.id,
+    childId: data.child_id,
+    payerId: data.payer_id,
+    provider: asProviderId(data.provider),
+    providerRef: data.provider_ref,
+    status: data.status,
+    failureCode: code === null ? null : failureCodes.includes(code) ? code : "other",
+    trigger: data.trigger === "auto" ? "auto" : "manual",
+    inApp: data.in_app,
+    expiresAt: data.expires_at,
+  };
+}
+
 /** The source's newest payment of any status. */
 export async function findLatestPayment(
   db: Client,

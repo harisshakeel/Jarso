@@ -3,11 +3,15 @@ import type {
   AutoChargeCard,
   AutoChargeTarget,
   CardPaymentState,
+  FakeInAppCompleteInput,
   InAppPaymentStart,
+  InAppProviders,
+  InAppSetupStart,
   PaymentSource,
+  PaymentStatusView,
   SavedCard,
 } from "@jarso/core/payments";
-import { paymentCopy, phoneSchema, returnToSchema } from "@jarso/core/payments";
+import { isFinalStatus, paymentCopy, phoneSchema, returnToSchema } from "@jarso/core/payments";
 import { clientEnv } from "@/config";
 import { prefillSplit } from "@/features/allowance";
 import { getLastSplitWith } from "@/features/allowance/server";
@@ -31,6 +35,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { endLivePayment } from "./end-payment";
+import { fakeEventFor } from "./fake-events";
 import {
   cancelPayment,
   clearAutoChargeBy,
@@ -40,7 +45,9 @@ import {
   findCustomer,
   findLatestPayment,
   findLivePayment,
+  findPaymentById,
   findPaymentSource,
+  findSetupForWebhook,
   insertCustomer,
   insertPayment,
   insertSetup,
@@ -53,6 +60,7 @@ import {
   setPendingSplit,
   setSetupProviderRef,
 } from "./repository";
+import { handleProviderEvent } from "./webhooks";
 
 /**
  * Card handover: pay a due allowance or gift by card, save a card, toggle auto charge. Parents
@@ -733,16 +741,57 @@ export async function setAutoCharge(
     returnTo: string;
   } & ContactInput,
 ): Promise<{ redirectUrl: string | null }> {
-  if (!input.on) return turnAutoChargeOff({ type: input.type, id: input.id });
+  return setAutoChargeWith<{ redirectUrl: string | null }>(
+    input,
+    (provider, parent, target) => openSetup(provider, parent, target, input.returnTo, input),
+    { redirectUrl: null },
+  );
+}
+
+/**
+ * The phone's auto-charge toggle: as `setAutoCharge`, but with no saved card it returns the
+ * native sheet's params for saving one (carrying the same `arm` target) instead of a URL. Only a
+ * provider with an in-app sheet can be turned on here.
+ */
+export async function setAutoChargeInApp(
+  input: AutoChargeTarget & { on: boolean; provider?: PaymentProviderId } & ContactInput,
+): Promise<{ setup: InAppSetupStart | null }> {
+  if (input.on && input.provider && !requireProvider(input.provider).inApp) {
+    throw new AppError("NOT_FOUND", paymentCopy.off);
+  }
+  return setAutoChargeWith<{ setup: InAppSetupStart | null }>(
+    input,
+    (provider, parent, target) => openInAppSetup(provider, parent, target, input),
+    { setup: null },
+  );
+}
+
+/**
+ * Turns auto charge on (charging the chosen provider's saved card) or off (no provider needed).
+ * On with no saved card there calls `open` to save one first; `none` is the answer otherwise.
+ */
+async function setAutoChargeWith<T>(
+  input: AutoChargeTarget & { on: boolean; provider?: PaymentProviderId },
+  open: (
+    provider: PaymentProvider,
+    parent: { id: string; email: string | null },
+    target: AutoChargeTarget,
+  ) => Promise<T>,
+  none: T,
+): Promise<T> {
+  const target: AutoChargeTarget = { type: input.type, id: input.id };
+  if (!input.on) {
+    await turnAutoChargeOff(target);
+    return none;
+  }
   if (!input.provider) throw new AppError("VALIDATION", paymentCopy.chooseProvider);
   const provider = requireProvider(input.provider);
-  const target: AutoChargeTarget = { type: input.type, id: input.id };
   const parent = await assertParentOfTarget(target);
   await assertChargesFamilyCurrency(provider);
   const db = await createClient();
 
   const customer = await findCustomer(db, parent.id, provider.id);
-  if (!customer?.methodRef) return openSetup(provider, parent, target, input.returnTo, input);
+  if (!customer?.methodRef) return open(provider, parent, target);
   let result: "ok" | "no_card";
   try {
     result = await setAutoChargeFor(db, target, true, provider.id);
@@ -753,15 +802,160 @@ export async function setAutoCharge(
     throw error;
   }
   // The card was removed between the read and the write.
-  if (result === "no_card") return openSetup(provider, parent, target, input.returnTo, input);
-  return { redirectUrl: null };
+  if (result === "no_card") return open(provider, parent, target);
+  return none;
 }
 
-async function turnAutoChargeOff(target: AutoChargeTarget): Promise<{ redirectUrl: null }> {
+async function turnAutoChargeOff(target: AutoChargeTarget): Promise<void> {
   if (!paymentsEnabled()) throw new AppError("NOT_FOUND", paymentCopy.off);
   await assertParentOfTarget(target);
   await setAutoChargeFor(await createClient(), target, false, null);
-  return { redirectUrl: null };
+}
+
+/**
+ * Starts saving a card in the phone's native sheet, as `openSetup` does for the hosted page:
+ * the contact check comes first, so a missing phone leaves no customer or setup behind. With
+ * `arm`, the webhook turns that toggle on once the card is saved.
+ */
+async function openInAppSetup(
+  provider: PaymentProvider,
+  parent: { id: string; email: string | null },
+  arm: AutoChargeTarget | null,
+  contactInput: ContactInput,
+): Promise<{ setup: InAppSetupStart }> {
+  const contact = setupContact(provider, parent, contactInput);
+  const customerRef = await ensureCustomerRef(provider, parent);
+  const admin = createAdminClient();
+  const setupId = await insertSetup(admin, { parentId: parent.id, provider: provider.id, arm });
+
+  let created: { providerRef: string; sheet: InAppSheet };
+  try {
+    created = await provider.createInAppSetup({
+      setupId,
+      customerRef,
+      ...(contact ? { contact } : {}),
+    });
+  } catch (error) {
+    try {
+      await failSetup(admin, setupId);
+    } catch (cause) {
+      logger.error("Failed to mark a card setup failed after a provider error", { setupId, cause });
+    }
+    throw error;
+  }
+  await setSetupProviderRef(admin, setupId, created.providerRef);
+  logger.info("In-app card setup started", { setupId, providerRef: created.providerRef });
+  return { setup: { setupId, sheet: created.sheet } };
+}
+
+// ---------------------------------------------------------------------------
+// The phone: payment status, cancel, providers, the dev test card
+// ---------------------------------------------------------------------------
+
+const NOT_FOUND = "We couldn't find that.";
+
+/**
+ * A payment's status for the phone to poll after its sheet closes. A live in-app payment past its
+ * window is ended as expired first, so a closed sheet reads expired without waiting for the
+ * hourly sweep. Parent only; another family's payment is NOT_FOUND (RLS hides it).
+ */
+export async function getPaymentStatus(paymentId: string): Promise<PaymentStatusView> {
+  await assertRole("parent");
+  const db = await createClient();
+  let row = await findPaymentById(db, paymentId);
+  if (!row) throw new AppError("NOT_FOUND", NOT_FOUND);
+  if (
+    row.inApp &&
+    !isFinalStatus(row.status) &&
+    row.expiresAt !== null &&
+    Date.parse(row.expiresAt) <= Date.now()
+  ) {
+    await endLivePayment(createAdminClient(), row, "expired");
+    // Read back: a success that landed meanwhile wins over the expiry.
+    row = (await findPaymentById(db, paymentId)) ?? row;
+  }
+  return {
+    id: row.id,
+    status: row.status,
+    failureCode: row.failureCode,
+    final: isFinalStatus(row.status),
+  };
+}
+
+/**
+ * The parent cancels their own pending in-app payment (and its PaymentIntent). Anything else (a
+ * hosted checkout, an auto charge, another parent's payment, one waiting on the bank or already
+ * ended) is left alone: `{ canceled: false }`. A payment that still completes at the provider
+ * posts anyway.
+ */
+export async function cancelInAppPaymentById(paymentId: string): Promise<{ canceled: boolean }> {
+  if (!paymentsEnabled()) throw new AppError("NOT_FOUND", paymentCopy.off);
+  const { user } = await assertRole("parent");
+  const row = await findPaymentById(await createClient(), paymentId);
+  if (!row) throw new AppError("NOT_FOUND", NOT_FOUND);
+  if (
+    !row.inApp ||
+    row.trigger !== "manual" ||
+    row.status !== "pending" ||
+    row.payerId !== user.id
+  ) {
+    return { canceled: false };
+  }
+  await endLivePayment(createAdminClient(), row, "canceled");
+  logger.info("In-app card payment cancelled", { paymentId });
+  return { canceled: true };
+}
+
+/**
+ * What the phone's card buttons need: the auto-charge cards of providers with an in-app sheet,
+ * and, for one item, its handover card state with only those providers. Parent only.
+ */
+export async function getInAppProviders(item?: {
+  childId: string;
+  kind: "allowance" | "gift";
+  id: string;
+}): Promise<InAppProviders> {
+  await assertRole("parent");
+  const inApp = new Set(
+    getPaymentProviders()
+      .filter((provider) => provider.inApp)
+      .map((provider) => provider.id),
+  );
+  const cards = ((await getAutoChargeCard()) ?? []).filter((card) => inApp.has(card.provider));
+  if (!item) return { cards, item: null };
+  const source: PaymentSource = {
+    type: item.kind === "allowance" ? "occurrence" : "parent_gift",
+    id: item.id,
+  };
+  const state = await getCardPaymentState(item.childId, source);
+  return {
+    cards,
+    item: { ...state, providers: state.providers.filter((entry) => inApp.has(entry.id)) },
+  };
+}
+
+/**
+ * The phone's test-card dialog (dev builds only): completes the parent's own fake payment or card
+ * setup through the same path as the fake provider's webhook. NOT_FOUND unless the fake provider
+ * is on; FORBIDDEN for anything that isn't the caller's own fake payment or setup.
+ */
+export async function completeFakeInApp(input: FakeInAppCompleteInput): Promise<void> {
+  if (!getPaymentProviderById("fake")) throw new AppError("NOT_FOUND", "Not found");
+  const { user } = await assertRole("parent");
+  const db = await createClient();
+  if (input.mode === "payment") {
+    const row = await findPaymentById(db, input.ref);
+    if (row?.provider !== "fake" || row.payerId !== user.id) {
+      throw new AppError("FORBIDDEN", FORBIDDEN);
+    }
+  } else {
+    // Read through RLS: a parent sees only their own setups.
+    const setup = await findSetupForWebhook(db, input.ref);
+    if (setup?.provider !== "fake" || setup.parentId !== user.id) {
+      throw new AppError("FORBIDDEN", FORBIDDEN);
+    }
+  }
+  await handleProviderEvent("fake", fakeEventFor(input));
 }
 
 /**
