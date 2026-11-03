@@ -1,6 +1,6 @@
 # 0012. Web push from the notice row itself, with no delivery table
 
-- Status: Accepted
+- Status: Accepted; amended 2026-11-03
 - Date: 2026-10-31
 - Amends: [0006](./0006-notifications-as-derived-records.md) (channels and the dispatcher)
 
@@ -26,3 +26,11 @@ ADR 0006 planned `notification_deliveries` rows per channel, a webhook-triggered
 - A member keeps at most 10 subscriptions and the dispatcher sends a few at a time, so one account cannot turn a notice into thousands of requests. The claim skips a recipient who is no longer an approved member, matching what the inbox's RLS shows.
 - On a browser profile two accounts share, the switch shows "on" only when the signed-in account owns the browser's subscription (`pushOwnedAction`); otherwise it shows "off" and turning it on takes the endpoint over. Signing out does not unsubscribe the browser, so the previous account keeps its pings on that device until the next account turns them on.
 - Each send has a 10 s timeout and the daily sweep drains batch after batch within its time budget, so a stalled push service or a busy day cannot leave claimed notices unsent.
+
+## Amendment (2026-11-03, mobile wave 3)
+
+- **Phones are a second transport.** A phone that allowed notifications stores its Expo push token in `device_push_tokens` (its own table, so the web-push shape and tests stay as they were; same rules: at most 10 per member, a token moves to whichever account registers it). The dispatcher sends each claimed notice to the recipient's web subscriptions and phone tokens; phone sends go through the Expo Push API in chunks of 100. Expo's tickets are stored in `device_push_tickets` and their receipts checked on the next sweep; a `DeviceNotRegistered` ticket or receipt deletes the token.
+- **Each transport is gated on its own config.** Web push still needs both VAPID keys; phone push needs no Jarso secret (Expo holds the FCM key uploaded to EAS) and is on unless `EXPO_PUSH=off`. Claiming runs when either is on, so phone push works with VAPID unset.
+- **Child quiet hours.** A child's notices are not claimed while it is 21:00–07:00 in the family's timezone; the first sweep at or after 07:00 claims them. Two or more of one child's overnight notices go as one summary push ("You have N new notices", opening News); a single one is pushed as itself. Every notice stays unread in the inbox. Parents are never held. Applies to both transports.
+- **The sweep moves to pg_cron every 15 minutes** (`push-sweep` → `trigger_push_sweep` → `POST /api/cron/push` through pg_net), replacing the daily Vercel cron.
+- `notifications.pushed_at` stays the only delivery state: each notice is pushed at most once, across both transports.

@@ -1,6 +1,7 @@
 import "server-only";
 import type {
   ClaimedNotice,
+  DeviceTokenRow,
   NoteResult,
   PushSubscriptionInput,
   PushSubscriptionRow,
@@ -135,6 +136,71 @@ export async function subscriptionsFor(
 export async function deleteSubscriptionById(admin: Client, id: string): Promise<void> {
   const { error } = await admin.from("push_subscriptions").delete().eq("id", id);
   if (error) throw toAppError(error, "Failed to remove the subscription");
+}
+
+/** Admin only: the phone push tokens of these recipients. */
+export async function deviceTokensFor(
+  admin: Client,
+  recipientIds: string[],
+): Promise<DeviceTokenRow[]> {
+  if (recipientIds.length === 0) return [];
+  const { data, error } = await admin.rpc("device_push_tokens_for", {
+    p_recipient_ids: recipientIds,
+  });
+  if (error) throw toAppError(error, "Failed to load device tokens");
+  return (data ?? []).map((row) => ({ id: row.id, profileId: row.profile_id, token: row.token }));
+}
+
+/** Admin only: forgets a token Expo reports as `DeviceNotRegistered`. */
+export async function deleteDeviceTokenById(admin: Client, id: string): Promise<void> {
+  const { error } = await admin.from("device_push_tokens").delete().eq("id", id);
+  if (error) throw toAppError(error, "Failed to remove the device token");
+}
+
+/** Admin only: Expo ticket ids to check for a receipt on a later sweep. */
+export async function recordExpoTickets(
+  admin: Client,
+  rows: { id: string; tokenId: string }[],
+): Promise<void> {
+  if (rows.length === 0) return;
+  const { error } = await admin.from("device_push_tickets").upsert(
+    rows.map((row) => ({ id: row.id, token_id: row.tokenId })),
+    { onConflict: "id", ignoreDuplicates: true },
+  );
+  if (error) throw toAppError(error, "Failed to record push tickets");
+}
+
+/** Receipts are ready some minutes after a send; older tickets are due for a check. */
+const RECEIPT_DELAY_MS = 15 * 60 * 1000;
+
+/** Admin only: the oldest tickets sent at least 15 minutes ago. */
+export async function takeDueExpoTickets(
+  admin: Client,
+  limit = 1000,
+): Promise<{ id: string; tokenId: string }[]> {
+  const cutoff = new Date(Date.now() - RECEIPT_DELAY_MS).toISOString();
+  const { data, error } = await admin
+    .from("device_push_tickets")
+    .select("id, token_id")
+    .lt("created_at", cutoff)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  if (error) throw toAppError(error, "Failed to load push tickets");
+  return (data ?? []).map((row) => ({ id: row.id, tokenId: row.token_id }));
+}
+
+/** Ids per delete request, so the filter stays well inside URL limits. */
+const DELETE_CHUNK = 200;
+
+/** Admin only: forgets checked tickets. */
+export async function deleteExpoTickets(admin: Client, ids: string[]): Promise<void> {
+  for (let i = 0; i < ids.length; i += DELETE_CHUNK) {
+    const { error } = await admin
+      .from("device_push_tickets")
+      .delete()
+      .in("id", ids.slice(i, i + DELETE_CHUNK));
+    if (error) throw toAppError(error, "Failed to remove push tickets");
+  }
 }
 
 /** `window` is a Postgres interval string, e.g. "10 minutes". Returns true when the hit is allowed. */

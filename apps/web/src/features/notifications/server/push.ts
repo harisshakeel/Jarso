@@ -1,20 +1,45 @@
 import "server-only";
-import type { ClaimedNotice, PushResult } from "@jarso/core/notifications";
-import { noticeText } from "@jarso/core/notifications";
+import type {
+  ClaimedNotice,
+  DeviceTokenRow,
+  PushPlan,
+  PushResult,
+  PushSubscriptionRow,
+} from "@jarso/core/notifications";
+import { noticeText, planPushes, summaryPushText } from "@jarso/core/notifications";
 import { after } from "next/server";
 import * as webpush from "web-push";
-import { clientEnv } from "@/config";
+import { clientEnv, routes } from "@/config";
 import { serverEnv } from "@/config/env.server";
 import { AppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { noticeHref } from "../links";
-import { claimUnpushed, deleteSubscriptionById, subscriptionsFor } from "./repository";
+import {
+  type ExpoMessage,
+  expoMessage,
+  expoSummaryMessage,
+  fetchExpoReceipts,
+  sendExpoMessages,
+} from "./expo-push";
+import {
+  claimUnpushed,
+  deleteDeviceTokenById,
+  deleteExpoTickets,
+  deleteSubscriptionById,
+  deviceTokensFor,
+  recordExpoTickets,
+  subscriptionsFor,
+  takeDueExpoTickets,
+} from "./repository";
 
 /**
- * Web push delivery (FR16). Optional: nothing runs unless both VAPID keys are set, and the inbox
- * row stays the record either way. Each notice is claimed once (`claim_unpushed_notifications`)
- * and sent to every subscription of its recipient; a dead endpoint (404/410) is forgotten.
- * Never logs a recipient, an endpoint or the notice text: the logs are public.
+ * Push delivery (FR16; phones since mobile wave 3). Two transports, each gated on its own
+ * config: web push (both VAPID keys) and phones through the Expo Push API (`EXPO_PUSH`, on by
+ * default). The inbox row stays the record either way. Each notice is claimed once
+ * (`claim_unpushed_notifications`, which also holds a child's notices overnight) and sent to
+ * every web subscription and phone token of its recipient; two or more of a child's overnight
+ * notices go as one summary push. A dead endpoint (404/410) or token (`DeviceNotRegistered`) is
+ * forgotten. Never logs a recipient, an endpoint, a token or the notice text: the logs are public.
  */
 
 /** How long a push service keeps an undelivered notice for an offline device. */
@@ -38,8 +63,19 @@ async function runLimited(tasks: Array<() => Promise<void>>): Promise<void> {
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
 }
 
-export function isPushConfigured(): boolean {
+/** Web push needs both VAPID keys. */
+export function isWebPushConfigured(): boolean {
   return Boolean(serverEnv.VAPID_PRIVATE_KEY && clientEnv.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
+}
+
+/** Phone push needs no secret; `EXPO_PUSH=off` turns it off. */
+export function isExpoPushConfigured(): boolean {
+  return serverEnv.EXPO_PUSH !== "off";
+}
+
+/** Claiming runs when either transport is on. */
+export function isPushConfigured(): boolean {
+  return isWebPushConfigured() || isExpoPushConfigured();
 }
 
 let vapidSet = false;
@@ -64,42 +100,52 @@ export function pushPayload(claimed: ClaimedNotice): string {
   });
 }
 
+/** The web payload for a child's overnight summary: opens News, marks nothing read. */
+function summaryPayload(recipientId: string, count: number): string {
+  const text = summaryPushText(count);
+  return JSON.stringify({
+    title: text.title,
+    body: text.detail,
+    url: routes.childInbox,
+    tag: `summary:${recipientId}`,
+  });
+}
+
+function planRecipient(plan: PushPlan): string {
+  return plan.kind === "notice" ? plan.claimed.recipientId : plan.recipientId;
+}
+
 function statusOf(error: unknown): number | null {
   const status = (error as { statusCode?: unknown } | null)?.statusCode;
   return typeof status === "number" ? status : null;
 }
 
-/**
- * Sends every unpushed notice from the last day. Runs after actions that write notices and from
- * the 15-minute cron sweep; both are safe to repeat because claiming is what marks a notice pushed.
- */
-export async function dispatchPush(limit = 50): Promise<PushResult> {
-  const result: PushResult = { claimed: 0, sent: 0, dropped: 0, failed: 0, summarised: 0 };
-  if (!isPushConfigured()) return result;
-  const admin = createAdminClient();
-  const notices = await claimUnpushed(admin, limit);
-  result.claimed = notices.length;
-  if (notices.length === 0) return result;
+function groupBy<T extends { profileId: string }>(rows: T[]): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const row of rows) map.set(row.profileId, [...(map.get(row.profileId) ?? []), row]);
+  return map;
+}
 
-  const recipients = [...new Set(notices.map((n) => n.recipientId))];
-  const subscriptions = await subscriptionsFor(admin, recipients);
-  if (subscriptions.length === 0) {
-    logger.info("Push dispatched", result);
-    return result;
-  }
-  const byRecipient = new Map<string, typeof subscriptions>();
-  for (const sub of subscriptions) {
-    byRecipient.set(sub.profileId, [...(byRecipient.get(sub.profileId) ?? []), sub]);
-  }
-
+async function sendWeb(
+  admin: ReturnType<typeof createAdminClient>,
+  plans: PushPlan[],
+  subscriptions: PushSubscriptionRow[],
+  result: PushResult,
+): Promise<void> {
+  if (subscriptions.length === 0) return;
+  const byRecipient = groupBy(subscriptions);
   configureVapid();
   await runLimited(
-    notices.flatMap((claimed) =>
-      (byRecipient.get(claimed.recipientId) ?? []).map((sub) => async () => {
+    plans.flatMap((plan) => {
+      const payload =
+        plan.kind === "notice"
+          ? pushPayload(plan.claimed)
+          : summaryPayload(plan.recipientId, plan.notices.length);
+      return (byRecipient.get(planRecipient(plan)) ?? []).map((sub) => async () => {
         try {
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-            pushPayload(claimed),
+            payload,
             { TTL: TTL_SECONDS, urgency: "normal", timeout: SEND_TIMEOUT_MS },
           );
           result.sent += 1;
@@ -115,9 +161,92 @@ export async function dispatchPush(limit = 50): Promise<PushResult> {
             logger.warn("Push send failed", { status });
           }
         }
-      }),
-    ),
+      });
+    }),
   );
+}
+
+async function sendExpo(
+  admin: ReturnType<typeof createAdminClient>,
+  plans: PushPlan[],
+  tokens: DeviceTokenRow[],
+  result: PushResult,
+): Promise<void> {
+  if (tokens.length === 0) return;
+  const byRecipient = groupBy(tokens);
+  const sends: { message: ExpoMessage; tokenId: string }[] = plans.flatMap((plan) =>
+    (byRecipient.get(planRecipient(plan)) ?? []).map((row) => ({
+      tokenId: row.id,
+      message:
+        plan.kind === "notice"
+          ? expoMessage(plan.claimed, row.token)
+          : expoSummaryMessage(plan.recipientId, plan.notices.length, row.token),
+    })),
+  );
+  if (sends.length === 0) return;
+
+  const tickets = await sendExpoMessages(sends.map((s) => s.message));
+  const accepted: { id: string; tokenId: string }[] = [];
+  const gone = new Set<string>();
+  const failures = new Map<string, number>();
+  tickets.forEach((ticket, i) => {
+    const tokenId = sends[i]?.tokenId;
+    if (!tokenId) return;
+    if (ticket.status === "ok") {
+      accepted.push({ id: ticket.id, tokenId });
+      result.sent += 1;
+    } else if (ticket.error === "DeviceNotRegistered") {
+      gone.add(tokenId);
+      result.dropped += 1;
+    } else {
+      failures.set(ticket.error, (failures.get(ticket.error) ?? 0) + 1);
+      result.failed += 1;
+    }
+  });
+  for (const [error, count] of failures) logger.warn("Expo push failed", { error, count });
+
+  await Promise.all([
+    accepted.length > 0
+      ? recordExpoTickets(admin, accepted).catch(() => logger.warn("Could not record push tickets"))
+      : undefined,
+    ...[...gone].map((id) =>
+      deleteDeviceTokenById(admin, id).catch(() => logger.warn("Could not drop a gone token")),
+    ),
+  ]);
+}
+
+/**
+ * Sends every unpushed notice from the last day. Runs after actions that write notices and from
+ * the 15-minute cron sweep; both are safe to repeat because claiming is what marks a notice pushed.
+ */
+export async function dispatchPush(limit = 50): Promise<PushResult> {
+  const result: PushResult = { claimed: 0, sent: 0, dropped: 0, failed: 0, summarised: 0 };
+  if (!isPushConfigured()) return result;
+  const admin = createAdminClient();
+  const notices = await claimUnpushed(admin, limit);
+  // Every claimed row counts, summarised or not, so drainPush sees a full batch as full.
+  result.claimed = notices.length;
+  if (notices.length === 0) return result;
+
+  const plans = planPushes(notices);
+  for (const plan of plans) if (plan.kind === "summary") result.summarised += plan.notices.length;
+
+  const recipients = [...new Set(notices.map((n) => n.recipientId))];
+  const subscriptions = isWebPushConfigured() ? await subscriptionsFor(admin, recipients) : [];
+  // A token lookup failure must not cost the web pushes of notices already claimed.
+  const tokens = isExpoPushConfigured()
+    ? await deviceTokensFor(admin, recipients).catch((error: unknown) => {
+        logger.warn("Could not load device tokens", {
+          code: error instanceof AppError ? error.code : "UNKNOWN",
+        });
+        return [];
+      })
+    : [];
+
+  await Promise.all([
+    sendWeb(admin, plans, subscriptions, result),
+    sendExpo(admin, plans, tokens, result).catch(() => logger.warn("Expo push run failed")),
+  ]);
   logger.info("Push dispatched", result);
   return result;
 }
@@ -135,8 +264,39 @@ export async function drainPush(budgetMs: number): Promise<PushResult> {
     total.sent += batch.sent;
     total.dropped += batch.dropped;
     total.failed += batch.failed;
+    total.summarised += batch.summarised;
     if (batch.claimed < BATCH || Date.now() - start >= budgetMs) return total;
   }
+}
+
+/**
+ * Expo receipts for tickets sent at least 15 minutes ago: a `DeviceNotRegistered` receipt
+ * forgets its token. Every taken ticket is deleted, checked or not (Expo keeps receipts a day).
+ */
+export async function checkExpoReceipts(): Promise<{ checked: number; dropped: number }> {
+  if (!isExpoPushConfigured()) return { checked: 0, dropped: 0 };
+  const admin = createAdminClient();
+  const taken = await takeDueExpoTickets(admin);
+  if (taken.length === 0) return { checked: 0, dropped: 0 };
+
+  const receipts = await fetchExpoReceipts(taken.map((t) => t.id));
+  const gone = new Set<string>();
+  for (const ticket of taken) {
+    const receipt = receipts.get(ticket.id);
+    if (receipt?.status === "error" && receipt.error === "DeviceNotRegistered") {
+      gone.add(ticket.tokenId);
+    }
+  }
+  for (const id of gone) {
+    await deleteDeviceTokenById(admin, id).catch(() => logger.warn("Could not drop a gone token"));
+  }
+  await deleteExpoTickets(
+    admin,
+    taken.map((t) => t.id),
+  );
+  const result = { checked: receipts.size, dropped: gone.size };
+  logger.info("Expo receipts checked", result);
+  return result;
 }
 
 /**

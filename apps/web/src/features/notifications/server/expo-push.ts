@@ -1,6 +1,6 @@
 import "server-only";
 import type { ClaimedNotice, PushData } from "@jarso/core/notifications";
-import { noticeText, pushData } from "@jarso/core/notifications";
+import { noticeText, pushData, summaryPushData, summaryPushText } from "@jarso/core/notifications";
 import { logger } from "@/lib";
 
 /**
@@ -46,6 +46,20 @@ export function expoMessage(claimed: ClaimedNotice, token: string): ExpoMessage 
     title: text.title,
     body: text.detail,
     data: pushData(claimed),
+    channelId: "notices",
+    ttl: TTL_SECONDS,
+    priority: "high",
+  };
+}
+
+/** A phone push for a child's notices held overnight: one line, opens News, marks nothing read. */
+export function expoSummaryMessage(recipientId: string, count: number, token: string): ExpoMessage {
+  const text = summaryPushText(count);
+  return {
+    to: token,
+    title: text.title,
+    body: text.detail,
+    data: summaryPushData(recipientId, count),
     channelId: "notices",
     ttl: TTL_SECONDS,
     priority: "high",

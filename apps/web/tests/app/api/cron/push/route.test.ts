@@ -5,11 +5,20 @@ const env = vi.hoisted(() => ({
   server: { CRON_SECRET: "cron-placeholder-secret-value" as string | undefined },
 }));
 const drainPush = vi.hoisted(() => vi.fn());
+const checkExpoReceipts = vi.hoisted(() => vi.fn());
+const log = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
 
 vi.mock("@/config/env.server", () => ({ serverEnv: env.server }));
-vi.mock("@/features/notifications/server", () => ({ drainPush }));
+vi.mock("@/features/notifications/server", () => ({ drainPush, checkExpoReceipts }));
+vi.mock("@/lib", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib")>()),
+  logger: log,
+}));
 
 const { GET, POST } = await import("@/app/api/cron/push/route");
+
+const drained = { claimed: 2, sent: 1, dropped: 1, failed: 0, summarised: 0 };
+const receipts = { checked: 3, dropped: 1 };
 
 function get(authorization?: string) {
   return GET(
@@ -31,7 +40,8 @@ function post(authorization?: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   env.server.CRON_SECRET = "cron-placeholder-secret-value";
-  drainPush.mockResolvedValue({ claimed: 2, sent: 1, dropped: 1, failed: 0 });
+  drainPush.mockResolvedValue(drained);
+  checkExpoReceipts.mockResolvedValue(receipts);
 });
 
 describe("GET /api/cron/push", () => {
@@ -47,13 +57,25 @@ describe("GET /api/cron/push", () => {
     expect((await get("Bearer cron-placeholder-secret-valu")).status).toBe(401);
     expect((await get("Bearer cron-placeholder-secret-value!")).status).toBe(401);
     expect(drainPush).not.toHaveBeenCalled();
+    expect(checkExpoReceipts).not.toHaveBeenCalled();
   });
 
-  it("dispatches with the right token and reports the counts", async () => {
+  it("returns the drain result with receipts", async () => {
     const res = await get("Bearer cron-placeholder-secret-value");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ data: { claimed: 2, sent: 1, dropped: 1, failed: 0 } });
+    expect(await res.json()).toEqual({ data: { ...drained, receipts } });
     expect(drainPush).toHaveBeenCalledWith(15_000);
+    expect(checkExpoReceipts).toHaveBeenCalledTimes(1);
+  });
+
+  it("a receipts failure still returns 200 with the drain result", async () => {
+    checkExpoReceipts.mockRejectedValue(new Error("db down"));
+    const res = await get("Bearer cron-placeholder-secret-value");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      data: { ...drained, receipts: { checked: 0, dropped: 0 } },
+    });
+    expect(log.warn).toHaveBeenCalledWith("Expo receipt check failed", { code: "UNKNOWN" });
   });
 });
 
@@ -62,7 +84,7 @@ describe("POST /api/cron/push", () => {
   it("POST with the secret drains", async () => {
     const res = await post("Bearer cron-placeholder-secret-value");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ data: { claimed: 2, sent: 1, dropped: 1, failed: 0 } });
+    expect(await res.json()).toEqual({ data: { ...drained, receipts } });
     expect(drainPush).toHaveBeenCalledWith(15_000);
   });
 

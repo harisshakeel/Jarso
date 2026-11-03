@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { serverEnv } from "@/config/env.server";
-import { drainPush } from "@/features/notifications/server";
-import { AppError } from "@/lib";
+import { checkExpoReceipts, drainPush } from "@/features/notifications/server";
+import { AppError, logger } from "@/lib";
 import { json, withApi } from "@/lib/api";
 
 export const maxDuration = 30;
@@ -27,7 +27,16 @@ const handler = withApi(async (request: Request) => {
   const secret = serverEnv.CRON_SECRET;
   if (!secret) throw new AppError("NOT_FOUND", "Not found");
   if (!sameSecret(authorization, secret)) throw new AppError("UNAUTHORIZED", "Unauthorized");
-  return json(await drainPush(DRAIN_BUDGET_MS));
+  const drained = await drainPush(DRAIN_BUDGET_MS);
+  // Phone receipts after the drain: one Expo request (≤1000 tickets, 10 s timeout) fits in the
+  // rest of maxDuration. A failure here is logged and never fails the sweep.
+  const receipts = await checkExpoReceipts().catch((error: unknown) => {
+    logger.warn("Expo receipt check failed", {
+      code: error instanceof AppError ? error.code : "UNKNOWN",
+    });
+    return { checked: 0, dropped: 0 };
+  });
+  return json({ ...drained, receipts });
 });
 
 export const GET = handler;
