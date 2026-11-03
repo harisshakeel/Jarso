@@ -145,7 +145,8 @@ Functions:
 - Web push (ADR 0012):
   - `push_subscribe(endpoint, p256dh, auth, user_agent default null) → uuid` — `authenticated`, approved member only (`42501`); upserts the caller's row for the endpoint and takes the endpoint over from any other account that used the device.
   - `push_unsubscribe(endpoint) → boolean` — deletes the caller's row for the endpoint.
-  - `claim_unpushed_notifications(limit default 50) → table(...)` — **service_role only**; marks up to 1..200 unpushed notices of the last day as pushed (`for update skip locked`) and returns them with `recipient_role`, `currency` and `child_name`.
+  - `claim_unpushed_notifications(limit default 50, now default now()) → table(...)` — **service_role only**; marks up to 1..200 unpushed notices of the last day as pushed (`for update skip locked`) and returns them with `recipient_role`, `currency`, `child_name` and `overnight`. Child quiet hours (migration `push_quiet_hours`): a child's notices are not claimed while it is 21:00–07:00 in `families.timezone`, so they wait for the first sweep at or after 07:00; parents are never held. `overnight` is true for a child notice written in that window (the dispatcher sends two or more of one child's as one summary push). `now` is for pgTAP only.
+  - `is_child_quiet_hour(at, timezone) → boolean` — **internal, no grants**; true when `at` is in [21:00, 07:00) of the IANA timezone.
   - `push_subscriptions_for(recipient_ids) → table(id, profile_id, endpoint, p256dh, auth)` — **service_role only**; the dispatcher's read.
 - Phone push (mobile wave 3):
   - `register_device_push_token(token, platform) → uuid` — `authenticated`, approved member only (`42501`); deletes the token from any other account, upserts the caller's row (refreshing `platform` and `last_seen_at`) and keeps the caller's newest 10.
