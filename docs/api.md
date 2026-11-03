@@ -13,7 +13,14 @@ Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs i
 
 ## Bearer auth for non-browser callers
 
-`assertRequestUser()` (`apps/web/src/features/auth/server/request-user.ts`) is the Route Handler counterpart of `assertUser()`. With an `Authorization: Bearer <jwt>` header it verifies the token with `getClaims(jwt)` on a stateless client (`createStatelessClient`, `@/lib/supabase/stateless`: no cookies, no session persistence, the app's timed fetch). A malformed or invalid header is `UNAUTHORIZED` and never falls back to cookies. With no header it falls back to `assertUser()`. `withApi`'s same-origin check stays: React Native sends no `Origin` and a bearer request carries no cookies, so it passes and is not CSRF-exposed.
+One token path, `verifyBearer()` in `apps/web/src/lib/supabase/request-scope.ts`: it reads `Authorization: Bearer <jwt>`, verifies it with `getClaims(jwt)` on a stateless client (`createStatelessClient`, `@/lib/supabase/stateless`: no cookies, no session persistence, the app's timed fetch), and accepts only a signed-in user's access token (`sub` a UUID, `role` and `aud` `authenticated`, not anonymous). A malformed, invalid or wrong-kind token is `UNAUTHORIZED` and never falls back to cookies; a slow verify is `UNAVAILABLE`. The token is never logged or put in an error.
+
+Two ways to use it:
+
+- **`withApi(handler, { bearer: true })`** (the outbox, guide and learning start routes). With the header, the handler runs in a request scope (`AsyncLocalStorage`): `getCurrentUser()` returns the token's user and `createClient()` returns a client acting as them (`accessToken` option, so RLS applies and any `client.auth.*` call throws), so `assertUser`, `assertRole`, `getMembership` and every service work unchanged. Cookies are never read, even if the request also carries them: the bearer wins. Without the header the route runs on the cookie session, as before. A route without `bearer: true` ignores the header. A guide turn's work runs in its stream's `start()`, which keeps the scope; `after()` callbacks inherit it too.
+- **`assertRequestUser(request)`** (`apps/web/src/features/auth/server/request-user.ts`, used by `/api/v1/notices/dispatch`): the bearer's `{ id, email }`, or `assertUser()` with no header. It opens no scope, so only use it where the handler needs nothing past the user's id.
+
+`withApi`'s same-origin check stays: React Native sends no `Origin` and a bearer request carries no cookies, so it passes and is not CSRF-exposed. Expo web in development (`localhost:8081`) does send an `Origin`, so its POSTs get `403 FORBIDDEN`; that is expected, test on a device or simulator.
 
 **When to add a `/api/v1` route for mobile.** Only when the work needs a server secret (service key, Claude, payment provider, `CRON_SECRET`). Anything RLS and a Postgres function can authorise is a direct Supabase call from `@jarso/data` (ADR 0016).
 
@@ -61,15 +68,17 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | PATCH | `/api/v1/me` | user | Update profile (`updateProfileSchema`) |
 | POST | `/api/v1/auth/child-sign-in` | – (rate-limited) | Child PIN sign-in for the phone; returns `{ accessToken, refreshToken, expiresAt }` (ADR 0016) |
 | POST | `/api/v1/notices/dispatch` | user (bearer) | Send web push for the caller's pending notices; 30 per 10 min per user; 202 |
-| POST | `/api/v1/outbox` | child | One queued child action from the device outbox (`outboxRequestSchema`) |
-| POST | `/api/v1/guide/turns` | child | One message to Jarso, streamed as NDJSON (`askGuideSchema`) |
+| POST | `/api/v1/outbox` | child (cookie or bearer) | One queued child action from the device outbox (`outboxRequestSchema`) |
+| POST | `/api/v1/guide/turns` | child or parent (cookie or bearer) | One message to Jarso, streamed as NDJSON (`askGuideSchema`) |
+| GET | `/api/v1/guide/state` | child (cookie or bearer) | `{ data: { available, introNeeded } }` from `getGuideState`; for the phone, which cannot read the server's guide switch |
+| POST | `/api/v1/learning/start` | child (cookie or bearer) | Start or resume a mission (`startMissionSchema`); `{ data }` is `startMission`'s result, `{ attemptId, results }`. 403 for a locked mission, 404 for an unknown one |
 | POST | `/api/v1/payments/webhooks/[provider]` | provider signature | A payment provider's signed event (ADR 0013) |
 | GET, POST | `/api/cron/payments/auto-charge` | `Authorization: Bearer <CRON_SECRET>` | Charge every due item with auto charge on |
 | GET | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Daily web push sweep (ADR 0012); 404 when the secret is unset |
 
 ### `POST /api/v1/outbox`
 
-Called only by the device outbox (`apps/web/src/features/offline/outbox/send.ts`), one item at a time.
+Called only by the device outbox (`packages/core/src/offline/outbox/send.ts`, on the web and the phone), one item at a time.
 Body: `{ kind, userId, ageMs, payload }`, `kind` one of `purchase | practice | step |
 completeMission | checkIn`. `payload` is exactly that feature's schema input
 (`purchaseSchema(currency)`, `recordPracticeSchema`, `recordStepSchema`, `completeMissionSchema`,

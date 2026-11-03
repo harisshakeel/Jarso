@@ -21,6 +21,7 @@ Full-stack Next.js 16 (App Router) + Supabase in a pnpm + Turborepo workspace (w
 ```bash
 pnpm dev                 # dev server (apps/web)
 pnpm mobile              # Expo dev server (apps/mobile); see docs/mobile.md
+pnpm --filter @jarso/mobile e2e  # Maestro flows on a device (docs/testing.md)
 pnpm check               # lint + typecheck + unit tests — run before declaring work done
 pnpm build               # needs NEXT_PUBLIC_* env (copy .env.example to apps/web/.env.local)
 pnpm test:e2e            # Playwright
@@ -30,9 +31,9 @@ pnpm db:migration <name> # new migration → then pnpm db:reset && pnpm db:types
 
 ## Hard rules
 
-1. **Feature modules.** Pure domain code (schemas, types, rules, copy) lives in `packages/core/src/<name>` (`@jarso/core/<name>`). `apps/web/src/features/<name>/` holds `components/`, `server/{actions,service,repository}.ts` and a barrel that does `export * from "@jarso/core/<name>"`. `apps/web/src/app` only routes and composes. Supabase repositories that the phone also needs (requests, diary, family, ledger, rules) live in `packages/data` (`@jarso/data/<name>`) and take a Supabase client as an argument; web `server/repository.ts` files re-export them behind `import "server-only"`.
+1. **Feature modules.** Pure domain code (schemas, types, rules, copy) lives in `packages/core/src/<name>` (`@jarso/core/<name>`). `apps/web/src/features/<name>/` holds `components/`, `server/{actions,service,repository}.ts` and a barrel that does `export * from "@jarso/core/<name>"`. `apps/web/src/app` only routes and composes. Supabase repositories that the phone also needs (requests, diary, family, ledger, rules, goals, allowance, learning, notifications, guide) live in `packages/data` (`@jarso/data/<name>`) and take a Supabase client as an argument; web `server/repository.ts` files re-export them behind `import "server-only"`.
 2. **Index barrels.** Every module exposes an `index.ts`. Cross-module imports go through the barrel (`@/features/auth`, `@/lib`, `@/components/ui`, `@/config`, `@/types`) — never deep paths into another module. Inside a module use relative imports.
-3. **Never mix server and client in a barrel.** Server-only API lives in `features/<f>/server/index.ts` beginning with `import "server-only"`. Direct-import exceptions: `@/lib/supabase/{client,server,admin,proxy,stateless}`, `@/lib/payments`, `@/config/env.server`.
+3. **Never mix server and client in a barrel.** Server-only API lives in `features/<f>/server/index.ts` beginning with `import "server-only"`. Direct-import exceptions: `@/lib/supabase/{client,server,admin,proxy,stateless,request-scope}`, `@/lib/payments`, `@/config/env.server`.
 4. **Layering:** route/action → service → repository → Supabase. Only repositories touch table/column names. No business logic in `app/`.
 5. **Auth:** call `requireUser()` (pages) or `assertUser()` (actions/APIs) from `@/features/auth/server`. Proxy redirects are optimistic only. Never use `getSession()` on the server.
 6. **Cache Components are on.** Anything reading cookies/headers/searchParams/Supabase-server renders inside `<Suspense>`. Don't await the session at a layout's top level.

@@ -7,6 +7,7 @@
 | Data unit | Vitest (node) | `packages/data/tests/<module>/*.test.ts` | `pnpm --filter @jarso/data test` |
 | Mobile unit / component | jest-expo + `@testing-library/react-native` | `apps/mobile/tests/**` | `pnpm --filter @jarso/mobile test` |
 | End-to-end | Playwright (Chromium) | `apps/web/tests/e2e/*.spec.ts` | `pnpm test:e2e` |
+| Mobile device e2e | Maestro (YAML flows) | `apps/mobile/e2e/*.yaml` | `pnpm --filter @jarso/mobile e2e` |
 | DB | pgTAP (`pnpm db:test`), plus `supabase db reset` + `supabase db lint` | `supabase/tests/database/*.test.sql`; migrations in `supabase/migrations` | CI `migrations` job |
 
 ## What to test
@@ -20,7 +21,7 @@
 
 - Pure domain logic (schemas, rules, copy, outbox logic) is tested in `packages/core/tests/<module>/` in the node environment: no jsdom, no `server-only` mock, no browser globals. Core tests import the module under test relatively or by `@jarso/core/<m>`. Web tests cover components, services, repositories and platform adapters (e.g. `webOutboxPlatform`). `pnpm test` runs every package via Turbo.
 
-- Mobile tests run under jest-expo (not Vitest). They render screens with the React Native Testing Library, mock `@jarso/data` calls and native modules (`expo-secure-store`, `expo-haptics`, `expo-network`), and assert the web's copy verbatim. `pnpm test` runs them through Turbo. Mobile is not covered by Playwright; the phone is checked by hand (`tasks/todo.md`).
+- Mobile tests run under jest-expo (not Vitest). They render screens with the React Native Testing Library, mock `@jarso/data` calls and native modules (`expo-secure-store`, `expo-haptics`, `expo-network`), and assert the web's copy verbatim. `pnpm test` runs them through Turbo. Mobile is not covered by Playwright. Maestro flows in `apps/mobile/e2e/` (sign-in, money-loop, diary, goal, learn, news, guide, offline) run on a device or emulator against a development build (`npx expo run:android`) and the hosted test family; they are not run in CI. Pass the test child's credentials from your shell, never the repo: `maestro test -e CHILD_FAMILY_CODE=… -e CHILD_NICKNAME=… -e CHILD_PIN=… apps/mobile/e2e` (the script needs the same `-e` flags). Selectors are the labels the screens expose, taken from core copy. Seed requirements: the child's first diary row is a fixable purchase or got-money line, and the family's rules allow a 1-unit put-in and take-out (a refused sheet is closed and the flow carries on). What only a device can show is listed in `tasks/todo.md`.
 - `packages/data` tests use a fake Supabase client and pass `now` and `timezone` explicitly, so no fake timers are needed.
 - `apps/web/tests/setup.ts` mocks `server-only` and loads jest-dom matchers. Public env vars are stubbed in `apps/web/vitest.config.mts`.
 - Unit tests live under `apps/web/tests/`, not next to the source. They import the code under test by `@/` alias, including deep paths into a module's internals (`@/features/<f>/server/service`), and mock by the same specifier (`vi.mock("@/features/<f>/server/repository")`). Test-only helpers and fixtures sit beside the tests that use them (`apps/web/tests/features/offline/outbox/test-utils.ts`, `apps/web/tests/lib/payments/stripe/fixtures/`).

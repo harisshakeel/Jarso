@@ -20,3 +20,4 @@ Short records of significant decisions. Copy `0000-template.md`, increment the n
 | [0014](./0014-several-payment-providers-razorpay.md) | Several payment providers at once, and Razorpay | Accepted |
 | [0015](./0015-monorepo-and-mobile.md) | Monorepo with a shared core for the mobile app | Accepted; twin-route part superseded by 0016 |
 | [0016](./0016-mobile-direct-supabase.md) | Mobile reads and writes through Supabase directly; /api/v1 only for server secrets | Accepted; supersedes the twin-route part of 0015 |
+| [0017](./0017-bearer-request-scope.md) | Request-scoped bearer auth: routes opt in, services run unchanged | Accepted; extends 0016 |

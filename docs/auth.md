@@ -90,3 +90,5 @@ Keep it identical to `supabase/templates/confirmation.html`; the push reads that
 ## Adding OAuth providers
 
 Enable in `supabase/config.toml` (`[auth.external.<provider>]`) and the dashboard, then call `supabase.auth.signInWithOAuth({ provider, options: { redirectTo: <APP_URL>/auth/callback } })` from a client component.
+
+**Bearer scope for the phone (ADR 0017).** `/api/v1` routes registered with `withApi(handler, { bearer: true })` accept `Authorization: Bearer <access token>`. The token is verified with `getClaims` (`sub` a UUID, `role` and `aud` `authenticated`, not anonymous) and the handler then runs in an `AsyncLocalStorage` scope where `getCurrentUser()` and `createClient()` act as that user, so `assertUser` and every service work unchanged and RLS still applies. A bad token is `UNAUTHORIZED` and never falls back to cookies; a route without `bearer: true` ignores the header. See `docs/api.md`. Because `getClaims` does not check revocation, a bearer access token stays valid until it expires even after sign-out.
