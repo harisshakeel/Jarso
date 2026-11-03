@@ -53,19 +53,23 @@ async function run(request: OutboxRequest, currency: string) {
 
 /**
  * Takes one queued child action from the device outbox and runs it through the same feature
- * service (and its `assertRole("child")`) as the online form.
+ * service (and its `assertRole("child")`) as the online form. The web sends its cookie session;
+ * the phone sends `Authorization: Bearer <access token>`.
  */
-export const POST = withApi(async (request: Request) => {
-  const user = await assertUser();
-  const body: unknown = await request.json().catch(() => {
-    throw new AppError("VALIDATION", CHECK_INPUT);
-  });
-  // A stale tab of another child must not post into this child's jar.
-  const userId = (body as { userId?: unknown } | null)?.userId;
-  if (userId !== user.id) throw new AppError("UNAUTHORIZED", "Please sign in again.");
+export const POST = withApi(
+  async (request: Request) => {
+    const user = await assertUser();
+    const body: unknown = await request.json().catch(() => {
+      throw new AppError("VALIDATION", CHECK_INPUT);
+    });
+    // A stale tab of another child must not post into this child's jar.
+    const userId = (body as { userId?: unknown } | null)?.userId;
+    if (userId !== user.id) throw new AppError("UNAUTHORIZED", "Please sign in again.");
 
-  const { currency } = await getFamilyContext();
-  const parsed = outboxRequestSchema(currency).safeParse(body);
-  if (!parsed.success) throw new AppError("VALIDATION", CHECK_INPUT);
-  return json(await run(parsed.data, currency));
-});
+    const { currency } = await getFamilyContext();
+    const parsed = outboxRequestSchema(currency).safeParse(body);
+    if (!parsed.success) throw new AppError("VALIDATION", CHECK_INPUT);
+    return json(await run(parsed.data, currency));
+  },
+  { bearer: true },
+);

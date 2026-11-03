@@ -1,0 +1,36 @@
+# Learn: the next-step card opens whatever step the seeded child is on, then practice if it is
+# due. Answers depend on the seeded child's step, so the flow only opens each screen.
+appId: app.jarso.mobile
+---
+- runFlow: sign-in.yaml
+- tapOn: "Learn"
+- extendedWaitUntil:
+    visible: "Continue|Start|Let's go|Practise|Start mission|See your skills"
+    timeout: 15000
+# Journey done: the card stays on Learn, with the road below it.
+- runFlow:
+    when:
+      visible: "See your skills"
+    commands:
+      - tapOn: "See your skills"
+      - assertVisible: "Your week"
+# Anything else opens a step: a mission, the check-in, a comeback question or practice.
+- runFlow:
+    when:
+      notVisible: "See your skills"
+    commands:
+      - tapOn: "Continue|Start|Let's go|Practise|Start mission"
+      - extendedWaitUntil:
+          visible: "Check|Next|Start the questions|Read the topic|Quick review\\. New examples\\.|All caught up\\.|Check-in done\\.|Start mission"
+          timeout: 15000
+      - back
+# Practice, when a skill is due (the card's button reads "Practise").
+- tapOn: "Learn"
+- runFlow:
+    when:
+      visible: "Practise"
+    commands:
+      - tapOn: "Practise"
+      - extendedWaitUntil:
+          visible: "Quick review\\. New examples\\.|All caught up\\."
+          timeout: 15000

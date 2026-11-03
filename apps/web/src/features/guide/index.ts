@@ -5,6 +5,7 @@ export * from "./components/chat-history";
 export * from "./components/guide-sheet";
 export * from "./components/guide-switch";
 export * from "./components/guide-thread";
+export * from "./components/jarso-buddy";
 export * from "./components/jarso-chat-page";
 export * from "./components/jarso-notice";
 export * from "./components/jarso-page-thread";

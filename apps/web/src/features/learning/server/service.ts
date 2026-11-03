@@ -1,42 +1,39 @@
 import "server-only";
-import type {
-  AnswerableStep,
-  LearningOverview,
-  Phase,
-  StepAnswer,
-  StepResult,
-} from "@jarso/core/learning";
+import type { AnswerableStep, LearningOverview, Phase, StepAnswer } from "@jarso/core/learning";
 import {
   answerableSteps,
   attemptSummary,
   bodyFor,
   buildJourney,
   canOpenMission,
-  chooseNextStep,
-  daysLearnedThisWeek,
   gradeStep,
-  isComeback,
-  pickPracticeItems,
   resumePosition,
 } from "@jarso/core/learning";
+import {
+  getLearningOverview as loadLearningOverview,
+  getMissionSession as loadMissionSession,
+  getPracticeSet as loadPracticeSet,
+  type MissionSession,
+} from "@jarso/data/learning";
 import { cache } from "react";
 import { assertRole, assertSelfOrParentOf, getFamily } from "@/features/family/server";
-import { AppError, addDays, familyToday, localDateOf, startOfWeek } from "@/lib";
+import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
-import { checkIn, findMission, findReviewItem, missions, reviewPool } from "./content";
+import { checkIn, findMission, findReviewItem, missions } from "./content";
 import * as repo from "./repository";
+
+export type { MissionSession };
 
 /**
  * Learning rules on the server. Children write their own progress; a child or their parent
  * reads it. Every answer is graded again here with the same gradeStep the player uses.
  */
 
-type FamilyClock = { timezone: string; today: string };
-
-async function familyClock(): Promise<FamilyClock> {
+/** The family's timezone; the shared reads take it with the server's clock. */
+async function familyClock(): Promise<{ timezone: string }> {
   const family = await getFamily();
   if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
-  return { timezone: family.timezone, today: familyToday(family.timezone) };
+  return { timezone: family.timezone };
 }
 
 /** The signed-in child. Learning writes are the child's own. */
@@ -49,70 +46,13 @@ async function assertChild() {
 export const getLearningOverview = cache(async (childId: string): Promise<LearningOverview> => {
   await assertSelfOrParentOf(childId);
   const db = await createClient();
-  const { timezone, today } = await familyClock();
-  const weekStart = startOfWeek(today);
-  const [attempts, skills, reviews, checkInResult, activity, lastActivity] = await Promise.all([
-    repo.listAttempts(db, childId),
-    repo.listSkillProgress(db, childId),
-    repo.listReviewItems(db, childId),
-    repo.findCheckIn(db, childId),
-    // A day of slack either side of the week covers every timezone; the count filters by date.
-    repo.listActivity(db, childId, `${addDays(weekStart, -1)}T00:00:00Z`),
-    repo.findLastActivity(db, childId),
-  ]);
-  const completedAttempts = attempts.filter((a) => a.status === "completed");
-  const results = await repo.listStepResults(
-    db,
-    completedAttempts.map((a) => a.id),
-  );
-
-  const journey = buildJourney(missions, attempts, timezone);
-  const practiceDue = reviews.filter((r) => r.dueOn <= today).length;
-  const completed = completedAttempts
-    .flatMap((attempt) => {
-      const mission = findMission(attempt.missionKey);
-      if (!mission || !attempt.completedAt) return [];
-      const summary = attemptSummary(results.get(attempt.id) ?? []);
-      return [
-        {
-          attemptId: attempt.id,
-          missionKey: mission.key,
-          title: mission.title,
-          // Each attempt's own day: a replayed mission has a row per finish.
-          completedOn: localDateOf(attempt.completedAt, timezone),
-          completedAt: attempt.completedAt,
-          ...summary,
-        },
-      ];
-    })
-    .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
-    .map(({ completedAt: _completedAt, ...rest }) => rest);
-
-  return {
-    journey,
-    skills,
-    checkIn: checkInResult,
-    practiceDue,
-    daysThisWeek: daysLearnedThisWeek(activity, timezone, today),
-    lastLearnedOn: lastActivity ? localDateOf(lastActivity, timezone) : null,
-    nextStep: chooseNextStep(
-      journey,
-      checkInResult !== null,
-      practiceDue,
-      isComeback(lastActivity ? localDateOf(lastActivity, timezone) : null, today),
-    ),
-    completed,
-  };
+  const { timezone } = await familyClock();
+  return loadLearningOverview(db, childId, { timezone, now: new Date() });
 });
 
 // ---------------------------------------------------------------------------
 // Missions
 // ---------------------------------------------------------------------------
-
-export type MissionSession = {
-  attemptId: string | null;
-  results: StepResult[];
-};
 
 /** The child's attempts, and whether a mission is open to them (done, or the current one). */
 async function missionAccess(childId: string, missionKey: string) {
@@ -130,15 +70,11 @@ export async function getMissionSession(missionKey: string): Promise<MissionSess
   const user = await assertChild();
   const mission = findMission(missionKey);
   if (!mission) throw new AppError("NOT_FOUND", "We couldn't find that mission.");
-  const { db, attempts, canOpen } = await missionAccess(user.id, missionKey);
-  if (!canOpen) throw new AppError("NOT_FOUND", "Finish the mission before this one first.");
-  const open = attempts.find(
-    (a) =>
-      a.missionKey === missionKey && a.status === "started" && a.contentVersion === mission.version,
-  );
-  if (!open) return { attemptId: null, results: [] };
-  const results = await repo.listStepResults(db, [open.id]);
-  return { attemptId: open.id, results: results.get(open.id) ?? [] };
+  const db = await createClient();
+  const { timezone } = await familyClock();
+  const session = await loadMissionSession(db, user.id, mission.key, { now: new Date(), timezone });
+  if (!session) throw new AppError("NOT_FOUND", "Finish the mission before this one first.");
+  return session;
 }
 
 /** Starts the mission or resumes its open attempt. */
@@ -210,13 +146,8 @@ export async function completeMission(attemptId: string, occurredAt?: string) {
 export async function getPracticeSet(): Promise<AnswerableStep[]> {
   const user = await assertChild();
   const db = await createClient();
-  const { today } = await familyClock();
-  const [reviews, history] = await Promise.all([
-    repo.listReviewItems(db, user.id),
-    repo.listPracticeHistory(db, user.id, addDays(today, -60)),
-  ]);
-  const due = reviews.filter((r) => r.dueOn <= today).map((r) => r.skillKey);
-  return pickPracticeItems(due, reviewPool, history, today);
+  const { timezone } = await familyClock();
+  return loadPracticeSet(db, user.id, { timezone, now: new Date() });
 }
 
 export async function recordPractice(input: {

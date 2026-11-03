@@ -1,6 +1,12 @@
 "use client";
 
-import { purchaseSchema } from "@jarso/core/diary";
+import {
+  DEFAULT_NAME_HINT,
+  entrySavedMessage,
+  NAME_HINTS,
+  purchaseSchema,
+} from "@jarso/core/diary";
+import { ShoppingBagIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
@@ -21,34 +27,27 @@ import { newId, offlineCopy, removeOutboxItem, submitToOutbox } from "@/features
 import { type FieldErrors, playCoins } from "@/lib";
 import { CategoryChips } from "./category-chips";
 
-/** The name field's hint follows the chip: a snack asks "What snack?". */
-const NAME_HINTS: Record<string, string> = {
-  snacks: "What snack?",
-  games: "What game?",
-  clothes: "What clothes?",
-  going_out: "Where did you go?",
-  gift_for_someone: "What gift?",
-  school: "What for school?",
-  travel: "Where to?",
-  apps: "Which app?",
-};
-const DEFAULT_NAME_HINT = "What was it?";
-
 type PurchaseSheetProps = { currency: string; userId: string };
 
 /**
  * "Spent something?" opens a bottom sheet to record a purchase. A keycap where it is the
- * screen's one primary action (Diary); `outline` where another keycap leads (Home).
+ * screen's one primary action (gold on Home, teal on Diary); `outline` where another keycap leads.
+ * Full width below 768 px, its own width beside a page title from there.
  */
 export function PurchaseSheet({
   currency,
   userId,
   variant = "keycap",
-}: PurchaseSheetProps & { variant?: "keycap" | "keycap-gold" | "outline" }) {
+  size = "lg",
+}: PurchaseSheetProps & {
+  variant?: "keycap" | "keycap-gold" | "outline";
+  size?: "lg" | "xl";
+}) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button variant={variant} size="lg" className="w-full" />}>
+      <SheetTrigger render={<Button variant={variant} size={size} className="w-full md:w-auto" />}>
+        <ShoppingBagIcon aria-hidden />
         Spent something?
       </SheetTrigger>
       <PurchaseSheetContent currency={currency} userId={userId} onDone={() => setOpen(false)} />
@@ -120,7 +119,7 @@ function PurchaseForm({
       switch (result.status) {
         case "sent":
           await onSaved?.();
-          coinToast("Saved. Nice one.");
+          coinToast(entrySavedMessage);
           playCoins();
           onDone();
           router.refresh();

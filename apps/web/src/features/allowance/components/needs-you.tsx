@@ -1,6 +1,6 @@
 import type { ChildDueItem } from "@jarso/core/allowance";
 import { formatDay } from "@jarso/core/allowance";
-import { GiftIcon, HandCoinsIcon } from "lucide-react";
+import { CheckIcon, GiftIcon, HandCoinsIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge, buttonVariants, Card } from "@/components/ui";
 import { routes } from "@/config";
@@ -25,13 +25,28 @@ function What({ item }: { item: ChildDueItem }) {
 
 /**
  * The first thing on the parent's Home (design.md §5, §10): what is waiting to be handed over,
- * one card per item at every width, each with its own action. Never a table.
+ * one card per item at every width, each with its own action. Never a table. With nothing
+ * waiting it shrinks to an "All caught up." chip.
  */
 export function NeedsYou({ items, currency, otherCount = 0 }: NeedsYouProps) {
   const money = (minor: number) => formatMoney(minor, currency);
   const waiting = items.length + otherCount;
+  if (waiting === 0) {
+    // Nothing waits: a quiet chip (the page puts it in its header), still a named region.
+    return (
+      <section aria-labelledby="needs-you-title">
+        <h2 id="needs-you-title" className="sr-only">
+          Needs you
+        </h2>
+        <p className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-tint-teal px-3 font-semibold text-primary text-sm">
+          <CheckIcon aria-hidden className="size-4" />
+          All caught up.
+        </p>
+      </section>
+    );
+  }
   return (
-    <section aria-labelledby="needs-you-title" className="grid gap-3">
+    <section id="needs-you" aria-labelledby="needs-you-title" className="grid scroll-mt-6 gap-3">
       <h2 id="needs-you-title" className="flex items-center gap-2 text-h2">
         Needs you
         {waiting > 0 ? (
@@ -41,11 +56,7 @@ export function NeedsYou({ items, currency, otherCount = 0 }: NeedsYouProps) {
           </Badge>
         ) : null}
       </h2>
-      {waiting === 0 ? (
-        <Card size="sm">
-          <p className="px-(--card-spacing) font-semibold">All caught up.</p>
-        </Card>
-      ) : items.length === 0 ? null : (
+      {items.length === 0 ? null : (
         <ul className="grid gap-3 md:grid-cols-2">
           {items.map((item) => {
             const Icon = item.kind === "gift" ? GiftIcon : HandCoinsIcon;

@@ -1,6 +1,6 @@
 "use client";
 
-import type { JourneyMission } from "@jarso/core/learning";
+import { type JourneyMission, roadmapCopy } from "@jarso/core/learning";
 import { CheckIcon, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -66,10 +66,15 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
   return (
     <section aria-labelledby="road-heading" className="grid gap-3">
       <h2 id="road-heading" className="sr-only">
-        Your seven-day journey
+        {roadmapCopy.heading}
       </h2>
       <div
-        className="relative mx-auto w-full max-w-md"
+        className={cn(
+          "relative mx-auto w-full max-w-md",
+          // From 1024 px the road is sized by the screen's height (page padding and the line
+          // under it taken off), so the whole week fits without a scroll.
+          "lg:h-[clamp(28rem,calc(100dvh-8rem),52rem)] lg:w-auto lg:max-w-none",
+        )}
         style={{ aspectRatio: `${WIDTH} / ${height}` }}
       >
         <svg
@@ -102,11 +107,11 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
             />
           ) : null}
         </svg>
-        <ol aria-label="Your seven-day journey" className="absolute inset-0">
+        <ol aria-label={roadmapCopy.heading} className="absolute inset-0">
           {stops.map(({ mission, x, y }) => {
             const done = mission.status === "done";
             const current = mission.status === "current";
-            const name = `Day ${mission.day} · ${mission.title}`;
+            const name = roadmapCopy.stopName(mission.day, mission.title);
             const dot = (
               <span
                 className={cn(
@@ -137,7 +142,7 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
                   current && "text-foreground",
                 )}
               >
-                <span className="block text-ink-2 text-sm">Day {mission.day}</span>
+                <span className="block text-ink-2 text-sm">{roadmapCopy.day(mission.day)}</span>
                 {mission.title}
               </span>
             );
@@ -161,7 +166,7 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
                   <span className="relative block rounded-full">
                     {dot}
                     {label}
-                    <span className="sr-only">{name}, locked</span>
+                    <span className="sr-only">{roadmapCopy.locked(name)}</span>
                   </span>
                 )}
               </li>
@@ -183,11 +188,11 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
       </div>
       {currentIndex >= 0 ? (
         <p className="text-center text-ink-2">
-          Tap the gold stop to play Day {journey[currentIndex]?.day}.
-          {anyLocked ? " Unlocks after the mission before it." : ""}
+          {roadmapCopy.tapGold(journey[currentIndex]?.day)}
+          {anyLocked ? roadmapCopy.unlocksAfter : ""}
         </p>
       ) : (
-        <p className="text-center text-ink-2">Journey done. Every stop is yours to replay.</p>
+        <p className="text-center text-ink-2">{roadmapCopy.journeyDone}</p>
       )}
     </section>
   );

@@ -1,0 +1,65 @@
+# Purchase + undo, put in, take out, ask extra, cancel a request, got money.
+# Needs a seeded family whose rules let a 1-unit put-in and take-out through (or ask a parent);
+# a refused sheet is closed with `back` so the flow carries on.
+appId: app.jarso.mobile
+---
+- runFlow: sign-in.yaml
+# Purchase, then undo it from the sheet.
+- tapOn: "Spent something?"
+- tapOn: "Amount"
+- inputText: "1"
+- hideKeyboard
+- tapOn: "Snacks"
+- tapOn: "Write it down"
+- assertVisible: "Undo"
+- tapOn: "Undo"
+- tapOn: "Done"
+# Put in (Save) and take out; either result ends on "Done", a refusal keeps the sheet (closed with back).
+- tapOn: "Put some in Save"
+- tapOn: "Amount"
+- inputText: "1"
+- hideKeyboard
+- tapOn: "Put in"
+- tapOn:
+    text: "Done"
+    optional: true
+- runFlow:
+    when:
+      visible: "Amount"
+    commands:
+      - back
+- tapOn: "Take some out"
+- tapOn: "Amount"
+- inputText: "1"
+- hideKeyboard
+- tapOn: "Ask"
+- tapOn:
+    text: "Done"
+    optional: true
+- runFlow:
+    when:
+      visible: "Amount"
+    commands:
+      - back
+# Ask extra, then cancel it from Requests.
+- tapOn: "Ask for extra"
+- tapOn: "Amount"
+- inputText: "1"
+- hideKeyboard
+- tapOn: "What's it for?"
+- inputText: "A book"
+- hideKeyboard
+- tapOn: "Ask"
+- tapOn: "Done"
+- tapOn: "Move my money"
+- tapOn:
+    text: "Cancel .* of .*"
+    index: 0
+- back
+# Got money.
+- tapOn: "Got money"
+- tapOn: "Amount"
+- inputText: "1"
+- hideKeyboard
+- tapOn: "Write it down"
+- tapOn: "Done"

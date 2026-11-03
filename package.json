@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo dev --filter @jarso/web",
+    "mobile": "pnpm --filter @jarso/mobile start",
     "build": "turbo build",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

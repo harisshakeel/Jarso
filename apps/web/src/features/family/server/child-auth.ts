@@ -3,12 +3,16 @@ import { childEmail, generateToken } from "@jarso/core/family";
 import { AppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { createStatelessClient } from "@/lib/supabase/stateless";
 
 /**
  * Child auth users (ADR 0004). A child is a real auth user with a synthetic, non-deliverable
  * email and a random password nobody knows. Sessions are minted server-side after the PIN
  * check: admin generateLink → verifyOtp on the user's cookie client. Verified against local
- * GoTrue: the `.invalid` domain is accepted and `type: "magiclink"` verifies.
+ * GoTrue: the `.invalid` domain is accepted and `type: "magiclink"` verifies. Any later
+ * password change (even one a child session makes for itself) is replaced with an unknowable
+ * hash by the `scramble_child_password` trigger on auth.users, so password sign-in never
+ * skips the PIN.
  */
 
 const signInFailed = "We couldn't sign you in. Please try again.";
@@ -56,37 +60,53 @@ export async function deleteChildIdentity(id: string): Promise<void> {
   }
 }
 
-/**
- * Replaces the child's password with a fresh random one nobody knows. A child session could set
- * its own password and then sign in without the PIN; rotating on every PIN sign-in and PIN reset
- * ends that. GoTrue may also end the user's other sessions here.
- */
-export async function rotateChildPassword(childId: string): Promise<void> {
-  const { error } = await createAdminClient().auth.admin.updateUserById(childId, {
-    password: generateToken(),
-  });
-  if (error) {
-    logger.error("Child password rotation failed", {
-      code: error.code,
-      status: error.status,
-      message: error.message,
-    });
-    throw new AppError("INTERNAL", "Something went wrong. Please try again.", { cause: error });
-  }
-}
+export type SessionTokens = { accessToken: string; refreshToken: string; expiresAt: number };
 
-/** Signs the current request in as the child. Needs writable cookies (Server Action / Route Handler). */
-export async function mintChildSession(childId: string): Promise<void> {
+/** Admin-generated magiclink hash for the child, to be exchanged by verifyOtp. */
+async function generateChildTokenHash(childId: string): Promise<string> {
   const { data, error } = await createAdminClient().auth.admin.generateLink({
     type: "magiclink",
     email: childEmail(childId),
   });
-  if (error) throw new AppError("INTERNAL", signInFailed, { cause: error });
+  if (error) {
+    logger.error("Child sign-in link failed", { code: error.code, status: error.status });
+    throw new AppError("INTERNAL", signInFailed, { cause: error });
+  }
+  return data.properties.hashed_token;
+}
 
+/** Signs the current request in as the child. Needs writable cookies (Server Action / Route Handler). */
+export async function mintChildSession(childId: string): Promise<void> {
+  const tokenHash = await generateChildTokenHash(childId);
   const supabase = await createClient();
   const { error: verifyError } = await supabase.auth.verifyOtp({
     type: "magiclink",
-    token_hash: data.properties.hashed_token,
+    token_hash: tokenHash,
   });
   if (verifyError) throw new AppError("INTERNAL", signInFailed, { cause: verifyError });
+}
+
+/**
+ * Mints a session for a non-cookie client (the mobile app) and returns its tokens. Uses a
+ * stateless client so nothing is persisted and no cookie is touched.
+ */
+export async function mintChildSessionTokens(childId: string): Promise<SessionTokens> {
+  const tokenHash = await generateChildTokenHash(childId);
+  const supabase = createStatelessClient();
+  const { data, error } = await supabase.auth.verifyOtp({
+    type: "magiclink",
+    token_hash: tokenHash,
+  });
+  if (error || !data.session) {
+    logger.error("Child session verification failed", {
+      code: error?.code,
+      status: error?.status,
+    });
+    throw new AppError("INTERNAL", signInFailed, { cause: error ?? undefined });
+  }
+  return {
+    accessToken: data.session.access_token,
+    refreshToken: data.session.refresh_token,
+    expiresAt: data.session.expires_at ?? Math.floor(Date.now() / 1000) + data.session.expires_in,
+  };
 }

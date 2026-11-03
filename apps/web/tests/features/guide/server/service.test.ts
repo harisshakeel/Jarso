@@ -59,7 +59,15 @@ vi.mock("@/features/guide/server/memory", () => ({
   deleteMemory: vi.fn(),
 }));
 
+// The child's own chat reads are shared (tested in packages/data); the rest of the module is real.
+vi.mock("@jarso/data/guide", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@jarso/data/guide")>()),
+  getMyTranscript: vi.fn(),
+  listMyChats: vi.fn(),
+}));
+
 const family = await import("@/features/family/server");
+const data = await import("@jarso/data/guide");
 const config = await import("@/features/guide/server/config");
 const repo = await import("@/features/guide/server/repository");
 const tools = await import("@/features/guide/server/tools");
@@ -747,35 +755,19 @@ describe("the Jarso page's own chats", () => {
     checked: [],
   });
 
-  it("lists the child's own chats newest first, titled by their first message", async () => {
-    vi.mocked(repo.listConversations).mockResolvedValue([
-      row({ id: "old", lastMessageAt: "2026-10-30T10:00:00Z" }),
-      row({ id: "new" }),
-    ]);
-    vi.mocked(repo.listMessages).mockResolvedValue([
-      line("m1", "old", "child", "what is saving?"),
-      line("m2", "old", "guide", "Keeping money for later."),
-      line("m3", "new", "child", "How much do I have?"),
-      line("m4", "new", "guide", "You have £12.40 in Spend."),
-    ]);
-    const chats = await service.listMyChats();
+  it("lists the child's own chats through the shared read, children only", async () => {
+    vi.mocked(data.listMyChats).mockResolvedValue([]);
+    await expect(service.listMyChats()).resolves.toEqual([]);
     expect(family.assertRole).toHaveBeenCalledWith("child");
-    expect(repo.listConversations).toHaveBeenCalledWith(expect.anything(), "child-1");
-    expect(chats.map((c) => [c.id, c.preview, c.childId])).toEqual([
-      ["new", "How much do I have?", "child-1"],
-      ["old", "what is saving?", "child-1"],
-    ]);
+    expect(data.listMyChats).toHaveBeenCalledWith({ kind: "user" }, "child-1");
   });
 
-  it("reopens only the child's own chat, never a parent's chat about them", async () => {
-    vi.mocked(repo.listMessages).mockResolvedValue([line("m1", "convo-1", "child", "")]);
-    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "convo-1" }));
-    const mine = await service.getMyTranscript("convo-1");
-    expect(mine?.summary.id).toBe("convo-1");
-    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "convo-2", askedBy: "parent-1" }));
+  it("reopens a chat through the shared read, which keeps it to the child's own", async () => {
+    vi.mocked(data.getMyTranscript).mockResolvedValue(null);
     await expect(service.getMyTranscript("convo-2")).resolves.toBeNull();
-    vi.mocked(repo.findConversation).mockResolvedValue(row({ id: "convo-3", childId: "child-2" }));
-    await expect(service.getMyTranscript("convo-3")).resolves.toBeNull();
+    expect(data.getMyTranscript).toHaveBeenCalledWith({ kind: "user" }, "child-1", "convo-2");
+    vi.mocked(family.assertRole).mockRejectedValueOnce(new AppError("FORBIDDEN", "No."));
+    await expect(service.getMyTranscript("convo-1")).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("lists and reopens the parent's own chats about their children", async () => {

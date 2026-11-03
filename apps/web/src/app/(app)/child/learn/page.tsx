@@ -6,7 +6,7 @@ import { CoachSays } from "@/components/brand";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { requireRole } from "@/features/family/server";
-import { NextStepCard, Roadmap, weeklyRhythmLine } from "@/features/learning";
+import { learnCopy, NextStepCard, Roadmap, weeklyRhythmLine } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 
 export const metadata: Metadata = { title: "Learn" };
@@ -23,7 +23,7 @@ async function LearnContent() {
     <div className="grid gap-6 lg:grid-cols-[2fr_3fr] lg:items-start">
       <div className="grid gap-6 lg:sticky lg:top-20">
         <header className="grid gap-2">
-          <h1 className="text-balance text-display">Seven days. Small missions.</h1>
+          <h1 className="text-balance text-h1">{learnCopy.heading}</h1>
           <p className="text-ink-2">{weeklyRhythmLine(overview.daysThisWeek)}</p>
         </header>
         <CoachSays coach={{ key: "learn" }} says={{ moment: "learn" }} />
@@ -34,7 +34,7 @@ async function LearnContent() {
         >
           <span className="flex items-center gap-2">
             <CalendarCheckIcon aria-hidden className="size-5 text-primary" />
-            Your week
+            {learnCopy.yourWeek}
           </span>
           <ChevronRightIcon aria-hidden className="size-5" />
         </Link>

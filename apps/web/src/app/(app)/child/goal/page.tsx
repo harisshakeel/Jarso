@@ -7,7 +7,7 @@ import { routes } from "@/config";
 import { runningSchedule } from "@/features/allowance";
 import { getFamilyContext, getSchedule } from "@/features/allowance/server";
 import { requireRole } from "@/features/family/server";
-import { GoalSheet, GoalStaircase } from "@/features/goals";
+import { GoalSheet, GoalStaircase, goalCopy } from "@/features/goals";
 import { getGoalView } from "@/features/goals/server";
 import { getAvailability } from "@/features/requests/server";
 import { formatMoney } from "@/lib";
@@ -36,7 +36,7 @@ async function GoalContent() {
   if (!goal) {
     return (
       <div className="grid justify-items-center gap-4 rounded-2xl bg-card p-6 text-center shadow-raised">
-        <p className="text-balance text-lg">Something to save for? Pick it and see the climb.</p>
+        <p className="text-balance text-lg">{goalCopy.card.empty}</p>
         {sheet}
       </div>
     );
@@ -44,7 +44,7 @@ async function GoalContent() {
   return (
     <div className="grid gap-6">
       <p className="text-center font-semibold text-h3">
-        {goal.goal.emoji} {goal.goal.name}, {money(goal.goal.targetMinor)}.
+        {goalCopy.card.title(goal.goal.emoji, goal.goal.name, money(goal.goal.targetMinor))}
       </p>
       <GoalStaircase goal={goal.goal} progress={goal.progress} currency={family.currency} />
       <div className="flex justify-center">{sheet}</div>
@@ -63,7 +63,7 @@ export default function GoalPage() {
           <ArrowLeftIcon aria-hidden className="size-4" />
           Home
         </Link>
-        <h1 className="text-balance text-display">Your goal</h1>
+        <h1 className="text-balance text-h1">{goalCopy.card.heading}</h1>
       </div>
       <Suspense
         fallback={

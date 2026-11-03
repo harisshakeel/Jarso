@@ -30,11 +30,10 @@ import {
   callCreateWithdrawal,
   callDecideDeposit,
   callDecideWithdrawal,
-  fetchBalances,
-  fetchCapRemaining,
   findRequestChildId,
   listOpenRequests,
   listRequestsFor,
+  getAvailability as loadAvailability,
 } from "./repository";
 
 const CHANGED = "This request changed. Refresh to see where it is.";
@@ -49,16 +48,7 @@ async function childOf(requestId: string): Promise<string> {
 /** Jar balances, what is promised, and how much more the child may take out right now. */
 export const getAvailability = cache(async (childId: string): Promise<Availability> => {
   await assertSelfOrParentOf(childId);
-  const db = await createClient();
-  const [balances, capRemaining] = await Promise.all([
-    fetchBalances(db, childId),
-    fetchCapRemaining(db, childId),
-  ]);
-  return {
-    ...balances,
-    takeOutLimitMinor:
-      capRemaining === null ? null : Math.min(balances.availableSaveMinor, capRemaining),
-  };
+  return loadAvailability(await createClient(), childId);
 });
 
 /** A child's requests, newest first. The child or a parent. */

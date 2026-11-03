@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
-import { MissionPlayer } from "@/features/learning";
+import { learnCopy, MissionPlayer } from "@/features/learning";
 import { checkIn, getLearningOverview } from "@/features/learning/server";
 
 export const metadata: Metadata = { title: "Check-in" };
@@ -18,13 +18,13 @@ async function CheckInContent() {
   if (overview.checkIn) {
     return (
       <section className="grid gap-4 rounded-2xl bg-card p-6 shadow-raised">
-        <h1 className="text-h1">Check-in done.</h1>
-        <p className="text-ink-2">You only do it once. Your missions are waiting.</p>
+        <h1 className="text-h1">{learnCopy.checkIn.doneHeading}</h1>
+        <p className="text-ink-2">{learnCopy.checkIn.doneBody}</p>
         <Link
           href={routes.childLearn}
           className="keycap inline-flex h-11 w-fit items-center rounded-full bg-primary px-6 font-bold text-primary-foreground"
         >
-          Back to Learn
+          {learnCopy.backToLearn}
         </Link>
       </section>
     );
@@ -36,12 +36,12 @@ async function CheckInContent() {
       currency={family.currency}
       userId={user.id}
       intro={{
-        eyebrow: "Before mission 1",
-        heading: "Five quick questions.",
-        body: "This helps pick where you start. There's no score and nothing is locked.",
+        eyebrow: learnCopy.checkIn.eyebrow,
+        heading: learnCopy.checkIn.heading,
+        body: learnCopy.checkIn.body,
       }}
       doneHref={routes.childLearn}
-      doneLabel="Go to your missions"
+      doneLabel={learnCopy.checkIn.doneLabel}
     />
   );
 }
@@ -54,7 +54,7 @@ export default function CheckInPage() {
         className="-ml-1 inline-flex min-h-11 w-fit items-center gap-1 rounded-full pr-2 font-semibold text-primary text-sm hover:underline hover:underline-offset-4"
       >
         <ChevronLeftIcon aria-hidden className="size-5" />
-        Learn
+        {learnCopy.back}
       </Link>
       <Suspense
         fallback={

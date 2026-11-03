@@ -1,6 +1,7 @@
 import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { ParentNav } from "@/components/shell";
+import { routes } from "@/config";
 import { getCurrentUser } from "@/features/auth/server";
 import { currentRole, getFamily } from "@/features/family/server";
 import { NoticeListener } from "@/features/notifications";
@@ -17,7 +18,11 @@ export default function ParentLayout({ children }: LayoutProps<"/parent">) {
     <>
       {children}
       <Suspense fallback={null}>
-        <Suspense fallback={<ParentNav footer={<RailAvatar />} />}>
+        <Suspense
+          fallback={
+            <ParentNav footer={<RailAvatar href={routes.parentSettings} label="Settings" />} />
+          }
+        >
           <ParentNavWithCount />
         </Suspense>
       </Suspense>
@@ -31,10 +36,15 @@ export default function ParentLayout({ children }: LayoutProps<"/parent">) {
 /** The tab bar with the Inbox count. Without a session or on a read error it shows no count. */
 async function ParentNavWithCount() {
   try {
-    return <ParentNav unread={await getUnreadCount()} footer={<RailAvatar />} />;
+    return (
+      <ParentNav
+        unread={await getUnreadCount()}
+        footer={<RailAvatar href={routes.parentSettings} label="Settings" />}
+      />
+    );
   } catch (error) {
     unstable_rethrow(error);
-    return <ParentNav footer={<RailAvatar />} />;
+    return <ParentNav footer={<RailAvatar href={routes.parentSettings} label="Settings" />} />;
   }
 }
 

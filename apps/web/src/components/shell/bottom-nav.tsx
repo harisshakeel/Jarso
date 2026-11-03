@@ -6,17 +6,20 @@ import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { type Tone, toneActive } from "@/components/layout";
 import { Badge } from "@/components/ui";
 
 export type BottomNavItem = {
   href: Route;
   label: string;
   icon: LucideIcon;
+  /** Section colour of the active pill (design.md §2.7). Defaults to teal. */
+  tone?: Tone;
   /** Count badge (Inbox). Shown in full, never abbreviated. */
   count?: number;
   /**
-   * Only in the left rail (from 1024 px), at its foot with the signed-in person (Settings);
-   * phones reach it another way, so the bar stays four wide.
+   * Only in the sidebar (from 768 px), at its foot just above the signed-in person; phones reach
+   * it another way, so the bar stays five wide.
    */
   railOnly?: boolean;
 };
@@ -32,58 +35,83 @@ function activeHref(pathname: string, items: BottomNavItem[]) {
 }
 
 /**
- * Role-aware tab bar (design.md §5): fixed to the bottom on phones and tablets, a left rail
- * from 1024 px. The caller passes only the tabs that exist for the role.
+ * The app's one navigation (design.md §5), role-aware: a bottom tab bar on phones, a left sidebar
+ * from 768 px (icons over labels), widening to icon-and-label rows from 1024 px. The current
+ * section is a tinted pill in its own colour, so "where am I" never relies on colour alone: the
+ * pill, the filled icon and `aria-current` all say it. The caller passes only the role's tabs.
  */
 export function BottomNav({
   items,
   label = "Main",
+  outside = [],
+  brand,
   footer,
 }: {
   items: BottomNavItem[];
   label?: string;
-  /** Sits at the foot of the left rail (from 1024 px): the signed-in person. */
+  /** Pages no tab owns (settings, reached from the footer): no tab lights up on them. */
+  outside?: Route[];
+  /** Sits at the top of the sidebar (from 768 px): the mark, linking home. */
+  brand?: ReactNode;
+  /** Sits at the foot of the sidebar (from 768 px): the signed-in person. */
   footer?: ReactNode;
 }) {
-  const current = activeHref(usePathname(), items);
+  const pathname = usePathname();
+  const current = outside.some((href) => matches(pathname, href))
+    ? undefined
+    : activeHref(pathname, items);
+  const tabs = items.filter((item) => !item.railOnly);
+  const railOnly = items.filter((item) => item.railOnly);
   return (
-    <nav
-      aria-label={label}
-      data-slot="bottom-nav"
-      className="fixed inset-x-0 bottom-0 z-40 border-hairline border-t bg-background/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-[16px] lg:top-14 lg:right-auto lg:flex lg:w-24 lg:flex-col lg:border-t-0 lg:border-r lg:pt-4 lg:pb-4"
-    >
-      <ul className="mx-auto flex h-16 max-w-xl items-stretch lg:h-auto lg:flex-col lg:gap-2">
-        {items
-          .filter((item) => !item.railOnly)
-          .map((item) => (
+    // The sidebar box exists from 768 px; below that it dissolves and the nav is the bottom bar.
+    // The brand sits outside <nav> so the nav's links are only the tabs.
+    <div className="contents md:fixed md:inset-y-0 md:left-0 md:z-40 md:flex md:w-24 md:flex-col md:border-hairline md:border-r md:bg-card md:px-2 md:py-5 lg:w-64 lg:px-4">
+      {brand ? <div className="hidden md:mb-6 md:block">{brand}</div> : null}
+      <nav
+        aria-label={label}
+        data-slot="bottom-nav"
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-40 border-hairline border-t bg-background/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-[16px]",
+          "md:static md:flex md:flex-1 md:flex-col md:border-t-0 md:bg-transparent md:pb-0 md:backdrop-blur-none",
+        )}
+      >
+        <ul className="mx-auto flex h-16 max-w-xl items-stretch gap-1 px-1 md:mx-0 md:h-auto md:max-w-none md:flex-col md:px-0">
+          {tabs.map((item) => (
             <NavTab key={item.href} item={item} active={item.href === current} />
           ))}
-      </ul>
-      {/* The rail's foot: Settings, then the signed-in person. */}
-      <div className="mt-auto hidden lg:grid lg:gap-2">
-        <ul className="grid gap-2">
-          {items
-            .filter((item) => item.railOnly)
-            .map((item) => (
-              <NavTab key={item.href} item={item} active={item.href === current} />
-            ))}
         </ul>
-        {footer ?? null}
-      </div>
-    </nav>
+        {/* The sidebar's foot: rail-only tabs, then the signed-in person. */}
+        {railOnly.length > 0 || footer ? (
+          <div className="mt-auto hidden pt-4 md:grid md:gap-1">
+            {railOnly.length > 0 ? (
+              <ul className="grid gap-1">
+                {railOnly.map((item) => (
+                  <NavTab key={item.href} item={item} active={item.href === current} />
+                ))}
+              </ul>
+            ) : null}
+            {footer ?? null}
+          </div>
+        ) : null}
+      </nav>
+    </div>
   );
 }
 
 function NavTab({ item, active }: { item: BottomNavItem; active: boolean }) {
-  const { href, label, icon: Icon, count } = item;
+  const { href, label, icon: Icon, count, tone = "teal" } = item;
   return (
-    <li className="flex flex-1 lg:flex-none">
+    <li className="flex flex-1 md:flex-none">
       <Link
         href={href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-xl font-semibold text-xs transition-colors lg:py-3",
-          active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+          "my-1.5 flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-2xl font-semibold text-xs transition-colors",
+          "md:my-0 md:py-2.5 md:text-sm",
+          "lg:min-h-12 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-base",
+          active
+            ? cn(toneActive[tone], "font-bold")
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
         )}
       >
         <span className="relative">

@@ -1,5 +1,6 @@
 "use client";
 
+import { goalCopy } from "@jarso/core/goals";
 import type { HomeStep } from "@jarso/core/learning";
 import { CircleCheckIcon } from "lucide-react";
 import { type ComponentProps, useEffect, useRef } from "react";
@@ -26,7 +27,9 @@ export function HomeStepCard({ step, currency, takeOutLimitMinor, goalSheet }: H
       <CardContent>
         <section aria-labelledby="home-step-heading" className="grid gap-3">
           <p className="eyebrow">
-            {step.kind === "goal-reached" ? "Goal reached" : "Do this next"}
+            {step.kind === "goal-reached"
+              ? goalCopy.home.goalReachedEyebrow
+              : goalCopy.home.doThisNext}
           </p>
           <StepBody
             step={step}
@@ -46,7 +49,7 @@ function StepBody({ step, currency, takeOutLimitMinor, goalSheet }: HomeStepCard
       return (
         <GoalReached
           goalId={step.goalId}
-          title={`Saved up. ${step.emoji} ${step.name}.`}
+          title={goalCopy.home.reachedTitle(step.emoji, step.name)}
           currency={currency}
           takeOutLimitMinor={takeOutLimitMinor}
         />
@@ -55,11 +58,12 @@ function StepBody({ step, currency, takeOutLimitMinor, goalSheet }: HomeStepCard
       return (
         <>
           <h2 id="home-step-heading" className="text-h3">
-            Your parent said yes
+            {goalCopy.home.approvedTitle}
           </h2>
           <p className="text-ink-2">
-            {formatMoney(step.amountMinor, currency, { showMinor: "nonzero" })} from Save, coming
-            soon.
+            {goalCopy.home.approvedBody(
+              formatMoney(step.amountMinor, currency, { showMinor: "nonzero" }),
+            )}
           </p>
         </>
       );
@@ -67,9 +71,9 @@ function StepBody({ step, currency, takeOutLimitMinor, goalSheet }: HomeStepCard
       return (
         <>
           <h2 id="home-step-heading" className="text-h3">
-            Something to save for?
+            {goalCopy.home.setGoalTitle}
           </h2>
-          <p className="text-ink-2">Pick something you want and how much it costs.</p>
+          <p className="text-ink-2">{goalCopy.home.setGoalBody}</p>
           <div className="flex">
             <GoalSheet {...goalSheet} goal={null} />
           </div>
@@ -79,9 +83,9 @@ function StepBody({ step, currency, takeOutLimitMinor, goalSheet }: HomeStepCard
       return (
         <>
           <h2 id="home-step-heading" className="text-h3">
-            All done for today.
+            {goalCopy.home.allDoneTitle}
           </h2>
-          <p className="text-ink-2">Your jars are up to date. Come back any time.</p>
+          <p className="text-ink-2">{goalCopy.home.allDoneBody}</p>
         </>
       );
     default:
@@ -118,12 +122,12 @@ function GoalReached({
       <h2 id="home-step-heading" className="text-h3">
         {title}
       </h2>
-      <p className="text-ink-2">You did it by saving a bit each time.</p>
+      <p className="text-ink-2">{goalCopy.home.reachedBody}</p>
       <div className="flex">
         <TakeOutSheet
           currency={currency}
           limitMinor={takeOutLimitMinor}
-          trigger={{ label: "Ask to use my savings", variant: "keycap-gold" }}
+          trigger={{ label: goalCopy.home.askToUse, variant: "keycap-gold" }}
         />
       </div>
     </>

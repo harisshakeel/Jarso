@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Jarso",
+    "slug": "jarso",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "../../packages/brand/assets/icons/jarso-mark-512.png",
+    "scheme": "jarso",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "app.jarso.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#f7f5f0",
+        "foregroundImage": "../../packages/brand/assets/icons/jarso-mark-512.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#f7f5f0",
+          "image": "../../packages/brand/assets/icons/jarso-mark-512.png",
+          "imageWidth": 120,
+          "dark": {
+            "backgroundColor": "#0b1f26",
+            "image": "../../packages/brand/assets/icons/jarso-mark-512.png"
+          }
+        }
+      ],
+      "expo-font",
+      "expo-secure-store",
+      "expo-status-bar"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "9516ebca-716e-4327-b26e-06e6db0d5f6c"
+      }
+    },
+    "owner": "pratyush618"
+  }
+}

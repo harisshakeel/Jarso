@@ -1,9 +1,11 @@
+import "server-only";
 import { AppError, isAppError } from "@jarso/core/lib";
 import { unstable_rethrow } from "next/navigation";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { clientEnv } from "@/config";
 import { logger } from "../logger";
+import { runInBearerScope } from "../supabase/request-scope";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
@@ -52,17 +54,25 @@ function toErrorResponse(error: unknown) {
 /**
  * Wraps a route handler with the CSRF guard and uniform error → JSON mapping. `crossOrigin`
  * skips the guard, for a route another site must post to (a provider's form post back to Jarso)
- * that reads no session and changes nothing.
+ * that reads no session and changes nothing. `bearer` lets the phone call the route with
+ * `Authorization: Bearer <access token>`: the handler then runs as that user (`getCurrentUser()`,
+ * `createClient()`), a bad header is a 401 and cookies are never read. Without `bearer` the
+ * header is ignored and the route runs on the cookie session.
  */
 export function withApi<Args extends unknown[]>(
   handler: (...args: Args) => Promise<Response>,
-  options: { crossOrigin?: boolean } = {},
+  options: { crossOrigin?: boolean; bearer?: boolean } = {},
 ) {
   return async (...args: Args): Promise<Response> => {
     try {
       const [request] = args;
       if (request instanceof Request && !options.crossOrigin) assertSameOrigin(request);
-      return await handler(...args);
+      const run = () => handler(...args);
+      // Inside the try, so a bad token or a slow verify maps to JSON 401 / 503.
+      if (options.bearer && request instanceof Request) {
+        return await runInBearerScope(request, run);
+      }
+      return await run();
     } catch (error) {
       // Next's own signals (a prerender bailing out on `request.headers`, redirects) must pass.
       unstable_rethrow(error);

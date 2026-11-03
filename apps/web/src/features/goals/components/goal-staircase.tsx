@@ -2,6 +2,7 @@
 
 import type { Goal, GoalProgress } from "@jarso/core/goals";
 import {
+  goalCopy,
   goalLine,
   milestoneCrossed,
   staircaseFor,
@@ -95,6 +96,10 @@ export function GoalStaircase({
           const step = stepAt(stair.coachAt - 1, stair.steps);
           return { x: step.x, y: step.top - COIN_RY };
         })();
+  const itemSize = size === "compact" ? 34 : 44;
+  // Crop the box to what is drawn (the item on the top step, or the coach if higher), so a short
+  // staircase leaves no empty band above it.
+  const viewTop = Math.floor(Math.min(top.top - 14 - itemSize, stand.y - coachHeight) - 4);
   const caption = stepsCaption(stair);
   const steps = Array.from({ length: stair.steps }, (_, index) => {
     const step = stepAt(index, stair.steps);
@@ -113,10 +118,10 @@ export function GoalStaircase({
       <svg
         role="img"
         aria-label={staircaseLabel(goal, stair, money)}
-        viewBox={`0 0 ${W} ${BASE + 6}`}
+        viewBox={`0 ${viewTop} ${W} ${BASE + 6 - viewTop}`}
         className={cn(
           "mx-auto h-auto w-full select-none overflow-visible",
-          size === "compact" ? "max-w-sm" : "max-w-xl",
+          size === "compact" ? "max-w-xs" : "max-w-xl",
         )}
       >
         <line
@@ -153,7 +158,7 @@ export function GoalStaircase({
           x={top.x}
           y={top.top - 14}
           textAnchor="middle"
-          fontSize={size === "compact" ? 34 : 44}
+          fontSize={itemSize}
           className={cn(!stair.reached && "opacity-80")}
         >
           {goal.emoji}
@@ -177,11 +182,14 @@ export function GoalStaircase({
         {caption ? <p className="text-ink-2 text-sm">{caption}</p> : null}
         <details className="text-ink-2 text-sm">
           <summary className="cursor-pointer rounded-full px-2 py-1 font-semibold hover:bg-muted">
-            The amounts
+            {goalCopy.staircase.amountsSummary}
           </summary>
           <p className="pt-1">
-            {money(progress.countedMinor)} saved · {money(progress.remainingMinor)} to go
-            {goal.planMinor ? ` · ${money(goal.planMinor)} each allowance` : ""}
+            {goalCopy.staircase.amounts(
+              money(progress.countedMinor),
+              money(progress.remainingMinor),
+              goal.planMinor ? money(goal.planMinor) : null,
+            )}
           </p>
         </details>
       </figcaption>

@@ -1,45 +1,83 @@
 import "server-only";
-import {
-  actionDraftSchema,
-  type GuideEntry,
-  type GuideRoute,
-  type GuideUsage,
-  type NoticedInput,
-  type NoticedPayload,
-  proposedGoalArgsSchema,
-  type StoredProposal,
+import type {
+  GuideEntry,
+  GuideRoute,
+  GuideUsage,
+  NoticedInput,
+  NoticedPayload,
 } from "@jarso/core/guide";
+import {
+  CONVERSATION_COLUMNS,
+  type ConversationRow,
+  MESSAGE_COLUMNS,
+  type MessageRow,
+  toConversation,
+  toMessage,
+} from "@jarso/data/guide";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { AppError, toAppError } from "@/lib";
 import type { Database, Json } from "@/types";
-import { isToolName, type ToolCall, type ToolName } from "./tool-specs";
+import type { ToolCall } from "./tool-specs";
 
 type Client = SupabaseClient<Database>;
 
 /**
  * Only place that knows the guide tables and functions. Reads use the caller's client (RLS:
- * the child or their parents). Transcript writes and the budget read use the admin client and
- * service_role-only functions, called by the service after its own checks (ADR 0010).
+ * the child or their parents); the chat reads are shared with the phone (`@jarso/data/guide`).
+ * Transcript writes and the budget read use the admin client and service_role-only functions,
+ * called by the service after its own checks (ADR 0010).
  */
+export * from "@jarso/data/guide";
 
-const ROUTES: readonly GuideRoute[] = [
-  "on_topic",
-  "off_topic",
-  "personal_info",
-  "safety",
-  "unsafe",
-  "jailbreak",
-  "blocked_output",
-  "unavailable",
-];
+// Reads by id or by parent, with no `asked_by is null` filter: parent-side flows only, after the
+// service's own checks. Never shared with the phone, where a child could reach a parent's chat.
 
-function asRoute(value: string | null): GuideRoute | null {
-  return value && (ROUTES as readonly string[]).includes(value) ? (value as GuideRoute) : null;
+/** One chat by id, whoever asked. The service checks it is the reader's to see. */
+export async function findConversation(
+  db: Client,
+  conversationId: string,
+): Promise<ConversationRow | null> {
+  const { data, error } = await db
+    .from("guide_conversations")
+    .select(CONVERSATION_COLUMNS)
+    .eq("id", conversationId)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load the chat");
+  return data ? toConversation(data) : null;
 }
 
-function asEntry(value: string): GuideEntry {
-  return value === "why" || value === "topic" || value === "home" ? value : "step";
+/** A parent's own chats about any of their children, newest first, at most `limit`. */
+export async function listConversationsAskedBy(
+  db: Client,
+  parentId: string,
+  limit = 50,
+): Promise<ConversationRow[]> {
+  const { data, error } = await db
+    .from("guide_conversations")
+    .select(CONVERSATION_COLUMNS)
+    .eq("asked_by", parentId)
+    .gt("turns", 0)
+    .order("last_message_at", { ascending: false })
+    .limit(limit);
+  if (error) throw toAppError(error, "Failed to load chats");
+  return data.map(toConversation);
+}
+
+/** Messages of the given chats. Ids alone don't say whose chat it is: look the chat up first. */
+export async function listMessages(
+  db: Client,
+  conversationIds: readonly string[],
+): Promise<MessageRow[]> {
+  if (conversationIds.length === 0) return [];
+  const { data, error } = await db
+    .from("guide_messages")
+    .select(MESSAGE_COLUMNS)
+    .in("conversation_id", [...conversationIds])
+    .order("created_at", { ascending: true })
+    .order("role", { ascending: true });
+  if (error) throw toAppError(error, "Failed to load the chat");
+  return data.map(toMessage);
 }
 
 /**
@@ -61,184 +99,17 @@ export async function setGuideAccess(db: Client, childId: string, enabled: boole
   if (error) throw toAppError(error, "Failed to change the guide setting");
 }
 
-export type ConversationRow = {
-  id: string;
-  childId: string;
-  entry: GuideEntry;
-  contextKey: string;
-  turns: number;
-  flagged: boolean;
-  createdAt: string;
-  lastMessageAt: string;
-  /** The parent who asked, for a chat a parent had about the child; null when the child asked. */
-  askedBy: string | null;
-};
-
-const CONVERSATION_COLUMNS =
-  "id, child_id, entry, context_key, turns, flagged, created_at, last_message_at, asked_by";
-
-function toConversation(row: {
-  id: string;
-  child_id: string;
-  entry: string;
-  context_key: string;
-  turns: number;
-  flagged: boolean;
-  created_at: string;
-  last_message_at: string;
-  asked_by?: string | null;
-}): ConversationRow {
-  return {
-    id: row.id,
-    childId: row.child_id,
-    entry: asEntry(row.entry),
-    contextKey: row.context_key,
-    turns: row.turns,
-    flagged: row.flagged,
-    createdAt: row.created_at,
-    lastMessageAt: row.last_message_at,
-    askedBy: row.asked_by ?? null,
-  };
-}
-
-export async function findConversation(
-  db: Client,
-  conversationId: string,
-): Promise<ConversationRow | null> {
-  const { data, error } = await db
-    .from("guide_conversations")
-    .select(CONVERSATION_COLUMNS)
-    .eq("id", conversationId)
-    .maybeSingle();
-  if (error) throw toAppError(error, "Failed to load the chat");
-  return data ? toConversation(data) : null;
-}
-
-/** A child's own chats (not a parent's about them), flagged first then newest, at most `limit`. */
-export async function listConversations(
-  db: Client,
-  childId: string,
-  limit = 50,
-): Promise<ConversationRow[]> {
-  const { data, error } = await db
-    .from("guide_conversations")
-    .select(CONVERSATION_COLUMNS)
-    .eq("child_id", childId)
-    .is("asked_by", null)
-    .gt("turns", 0)
-    .order("flagged", { ascending: false })
-    .order("last_message_at", { ascending: false })
-    .limit(limit);
-  if (error) throw toAppError(error, "Failed to load chats");
-  return data.map(toConversation);
-}
-
-/** A parent's own chats about any of their children, newest first, at most `limit`. */
-export async function listConversationsAskedBy(
-  db: Client,
-  parentId: string,
-  limit = 50,
-): Promise<ConversationRow[]> {
-  const { data, error } = await db
-    .from("guide_conversations")
-    .select(CONVERSATION_COLUMNS)
-    .eq("asked_by", parentId)
-    .gt("turns", 0)
-    .order("last_message_at", { ascending: false })
-    .limit(limit);
-  if (error) throw toAppError(error, "Failed to load chats");
-  return data.map(toConversation);
-}
-
-export type MessageRow = {
-  id: string;
-  conversationId: string;
-  role: "child" | "guide" | "fixed_copy";
-  text: string;
-  route: GuideRoute | null;
-  flagged: boolean;
-  rating: -1 | 1 | null;
-  createdAt: string;
-  /** What Jarso looked up for this reply, in order (replies only). */
-  checked: ToolName[];
-  /** What Jarso offered with this reply: a goal's arguments or an action's checked draft. */
-  proposed?: StoredProposal | null;
-};
-
 /**
- * The last offer on a reply (`propose_goal` arguments or a `propose_action` draft), while it is
- * still stored (the retention job keeps only tool names after 30 days) and well formed.
+ * Whether the child has ever sent the guide a message (the intro card shows until then). A chat
+ * a parent had about the child doesn't count.
  */
-function asProposed(value: Json | null): StoredProposal | null {
-  if (!Array.isArray(value)) return null;
-  for (let i = value.length - 1; i >= 0; i--) {
-    const call = value[i];
-    if (!call || typeof call !== "object" || Array.isArray(call)) continue;
-    if (call.name === "propose_goal") {
-      const parsed = proposedGoalArgsSchema.safeParse(call.input);
-      return parsed.success ? { type: "goal", args: parsed.data } : null;
-    }
-    if (call.name === "propose_action") {
-      const input = call.input;
-      const draft =
-        input && typeof input === "object" && !Array.isArray(input) ? input.draft : undefined;
-      const parsed = actionDraftSchema.safeParse(draft);
-      // A call that made no card (fields were missing) is skipped, so an earlier card still shows.
-      if (parsed.success) return { type: "action", draft: parsed.data };
-    }
-  }
-  return null;
-}
-
-/** Tool names from a stored `tool_calls` array; anything unrecognised is dropped. */
-function asChecked(value: Json | null): ToolName[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((call) =>
-    call && typeof call === "object" && !Array.isArray(call) && typeof call.name === "string"
-      ? isToolName(call.name)
-        ? [call.name]
-        : []
-      : [],
-  );
-}
-
-function asRole(value: string): MessageRow["role"] {
-  return value === "guide" || value === "fixed_copy" ? value : "child";
-}
-
-export async function listMessages(
-  db: Client,
-  conversationIds: readonly string[],
-): Promise<MessageRow[]> {
-  if (conversationIds.length === 0) return [];
-  const { data, error } = await db
-    .from("guide_messages")
-    .select("id, conversation_id, role, text, route, flagged, rating, created_at, tool_calls")
-    .in("conversation_id", [...conversationIds])
-    .order("created_at", { ascending: true })
-    .order("role", { ascending: true });
-  if (error) throw toAppError(error, "Failed to load the chat");
-  return data.map((row) => ({
-    id: row.id,
-    conversationId: row.conversation_id,
-    role: asRole(row.role),
-    text: row.text,
-    route: asRoute(row.route),
-    flagged: row.flagged,
-    rating: row.rating === 1 || row.rating === -1 ? row.rating : null,
-    createdAt: row.created_at,
-    checked: asChecked(row.tool_calls),
-    proposed: asProposed(row.tool_calls),
-  }));
-}
-
-/** Whether the child has ever sent the guide a message (the intro card shows until then). */
 export async function hasAnyMessage(db: Client, childId: string): Promise<boolean> {
   const { data, error } = await db
     .from("guide_messages")
-    .select("id")
+    .select("id, guide_conversations!inner(asked_by)")
     .eq("child_id", childId)
     .eq("role", "child")
+    .is("guide_conversations.asked_by", null)
     .limit(1);
   if (error) throw toAppError(error, "Failed to load the guide");
   return data.length > 0;
@@ -259,14 +130,6 @@ export async function countFlaggedSince(
     .gte("last_message_at", sinceIso);
   if (error) throw toAppError(error, "Failed to load chats");
   return count ?? 0;
-}
-
-export async function rateMessage(db: Client, messageId: string, rating: 1 | -1): Promise<void> {
-  const { error } = await db.rpc("rate_guide_message", {
-    p_message_id: messageId,
-    p_rating: rating,
-  });
-  if (error) throw toAppError(error, "Failed to save your rating");
 }
 
 // ---------------------------------------------------------------------------

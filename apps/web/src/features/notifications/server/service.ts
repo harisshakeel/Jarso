@@ -8,32 +8,24 @@ import type {
   PushSubscriptionInput,
 } from "@jarso/core/notifications";
 import { assertUser } from "@/features/auth/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
-  encodeCursor,
   fetchUnreadCount,
+  hitRateLimit,
   insertChildNote,
-  listNoticeRows,
   listUnreadRows,
+  listNotices as loadNotices,
   ownsSubscription,
   removeSubscription,
   saveSubscription,
-  setRead,
+  markRead as setRead,
 } from "./repository";
 
-const PAGE_SIZE = 20;
-
-/**
- * The caller's notices, newest first. `before` is the previous page's `nextBefore` (`<created_at>|<id>`).
- * Fetches one extra row only to learn whether another page exists, so an exactly full last page
- * gets no "Show more".
- */
-export async function listNotices(limit = PAGE_SIZE, before?: string): Promise<NoticePage> {
-  await assertUser();
-  const rows = await listNoticeRows(await createClient(), limit + 1, before);
-  const items = rows.slice(0, limit);
-  const last = items.at(-1);
-  return { items, nextBefore: rows.length > limit && last ? encodeCursor(last) : null };
+/** The caller's notices, newest first. `before` is the previous page's `nextBefore`. */
+export async function listNotices(limit?: number, before?: string): Promise<NoticePage> {
+  const user = await assertUser();
+  return loadNotices(await createClient(), user.id, { limit, before });
 }
 
 export async function getUnreadCount(): Promise<number> {
@@ -100,4 +92,9 @@ export function describeAgent(userAgent: string | null): string | null {
   if (!browser && !device) return null;
   const name = browser === "Edg" ? "Edge" : browser === "OPR" ? "Opera" : browser;
   return [name, device].filter(Boolean).join(" on ");
+}
+
+/** The mobile app's push trigger: 30 per user per 10 minutes. Counts every call; true if allowed. */
+export async function allowDispatch(userId: string): Promise<boolean> {
+  return hitRateLimit(createAdminClient(), `push:dispatch:${userId}`, "10 minutes", 30);
 }

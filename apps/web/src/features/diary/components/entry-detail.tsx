@@ -1,7 +1,14 @@
 "use client";
 
 import type { EntryVersion } from "@jarso/core/diary";
-import { notEnoughSaveMessage, notEnoughSpendToUndoMessage } from "@jarso/core/diary";
+import {
+  earlierVersions,
+  entryDetailCopy,
+  notEnoughSaveMessage,
+  notEnoughSpendToUndoMessage,
+  undoneReceivedMessage,
+  undoneSpendMessage,
+} from "@jarso/core/diary";
 import { ChevronRightIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -38,7 +45,7 @@ export function EntryDetail({ item, currency }: { item: HistoryItem; currency: s
           <Button
             variant="ghost"
             size="icon"
-            aria-label={`Details for ${item.label}`}
+            aria-label={entryDetailCopy.detailsFor(item.label)}
             className="after:absolute after:inset-0 after:content-['']"
           >
             <ChevronRightIcon aria-hidden />
@@ -85,7 +92,7 @@ function Detail({
       <div className="flex flex-wrap gap-2">
         {item.canFix ? (
           <Button type="button" size="lg" onClick={() => setFixing(true)}>
-            Fix this
+            {entryDetailCopy.fix}
           </Button>
         ) : null}
         {item.canUndo && item.entryId ? <UndoControl item={item} onDone={onDone} /> : null}
@@ -115,11 +122,7 @@ function UndoControl({ item, onDone }: { item: HistoryItem; onDone: () => void }
           case "not_enough_save":
             return setError(notEnoughSaveMessage);
           default:
-            toast.success(
-              item.kind === "received"
-                ? "Undone. It's out of your jar."
-                : "Undone. The money is back in Spend.",
-            );
+            toast.success(item.kind === "received" ? undoneReceivedMessage : undoneSpendMessage);
             onDone();
             router.refresh();
         }
@@ -130,7 +133,7 @@ function UndoControl({ item, onDone }: { item: HistoryItem; onDone: () => void }
   return (
     <div className="grid gap-2">
       <Button type="button" variant="outline" size="lg" loading={pending} onClick={undo}>
-        Undo
+        {entryDetailCopy.undo}
       </Button>
       <FormError message={error} />
     </div>
@@ -157,7 +160,7 @@ function EarlierVersions({ item, currency }: { item: HistoryItem; currency: stri
       start(() => {
         if (!result.ok) return setError(result.error.message);
         // Newest first, so the oldest version is last; the current line is not "earlier".
-        setVersions(result.data.filter((v) => v.id !== item.entryId).reverse());
+        setVersions(earlierVersions(result.data, item.entryId ?? ""));
       });
     });
   }
@@ -167,9 +170,9 @@ function EarlierVersions({ item, currency }: { item: HistoryItem; currency: stri
     <div className="grid gap-2">
       {versions ? (
         versions.length === 0 ? (
-          <p className="text-ink-2">No earlier versions.</p>
+          <p className="text-ink-2">{entryDetailCopy.noEarlierVersions}</p>
         ) : (
-          <ul className="grid gap-1" aria-label="Earlier versions">
+          <ul className="grid gap-1" aria-label={entryDetailCopy.earlierVersions}>
             {versions.map((v) => (
               <li key={v.id} data-testid="earlier-version" className="text-ink-2">
                 <span className="money font-semibold">
@@ -184,7 +187,7 @@ function EarlierVersions({ item, currency }: { item: HistoryItem; currency: stri
         )
       ) : (
         <Button type="button" variant="ghost" loading={pending} onClick={load}>
-          Earlier versions
+          {entryDetailCopy.earlierVersions}
         </Button>
       )}
       <FormError message={error} />

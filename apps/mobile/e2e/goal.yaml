@@ -1,0 +1,33 @@
+# Set a savings goal (when the child has none), then see it on Home. A child who already has a
+# goal just sees the goal card.
+appId: app.jarso.mobile
+---
+- runFlow: sign-in.yaml
+- scrollUntilVisible:
+    element:
+      text: "Set a goal|See it"
+    direction: DOWN
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Set a goal"
+    commands:
+      - tapOn: "Set a goal"
+      - tapOn: "What is it?"
+      - inputText: "Bike"
+      - hideKeyboard
+      - tapOn: "⚽"
+      - tapOn: "How much does it cost?"
+      - inputText: "100"
+      - hideKeyboard
+      - tapOn: "How much will you save each time?"
+      - inputText: "5"
+      - hideKeyboard
+      - tapOn: "Save my goal"
+      - extendedWaitUntil:
+          visible: "See it"
+          timeout: 15000
+- assertVisible: "See it"
+- tapOn: "See it"
+- assertVisible:
+    id: "goal-scroll"

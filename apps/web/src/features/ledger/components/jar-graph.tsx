@@ -5,9 +5,12 @@ import {
   type BalancePoint,
   type GraphPeriod,
   graphCaption,
+  graphCopy,
   graphPeriods,
   lastDays,
+  niceTop,
   riderTrack,
+  smoothPath,
 } from "@jarso/core/ledger";
 import {
   type KeyboardEvent,
@@ -20,6 +23,9 @@ import {
 } from "react";
 import { CoachFigure, CoachSays, coachIdFor } from "@/components/brand";
 import { cn, formatMoney } from "@/lib";
+
+// Re-exported: the curve's maths lives in core, shared with the phone's graph.
+export { smoothPath } from "@jarso/core/ledger";
 
 // The drawing box. Text and marks are in these units; the SVG scales to its column.
 /** The ride starts after the track has drawn, and lasts about a second. */
@@ -39,11 +45,11 @@ type Series = "spend" | "save";
 const SERIES: { key: Series; name: string; line: string; post: string }[] = [
   {
     key: "spend",
-    name: "Spend",
+    name: graphCopy.spend,
     line: "stroke-teal-600 dark:stroke-teal-300",
     post: "stroke-teal-600/40 dark:stroke-teal-300/40",
   },
-  { key: "save", name: "Save", line: "stroke-gold", post: "stroke-gold/50" },
+  { key: "save", name: graphCopy.save, line: "stroke-gold", post: "stroke-gold/50" },
 ];
 
 /** "Fri 30 Oct" for an ISO date; a calendar day, so formatted in UTC. */
@@ -56,68 +62,6 @@ function showDate(isoDate: string): string {
   }).format(new Date(`${isoDate}T00:00:00Z`));
 }
 
-/** A round top for the picture: 1, 2, 5 × 10ⁿ in whole currency units, above the highest point. */
-function niceTop(maxMinor: number): number {
-  const rough = Math.max(100, maxMinor / 3);
-  const power = 10 ** Math.floor(Math.log10(rough));
-  const unit = [1, 2, 5, 10].find((u) => u * power >= rough) ?? 10;
-  const step = unit * power;
-  return Math.max(step, Math.ceil(maxMinor / step) * step);
-}
-
-/**
- * A smooth curve through the points (monotone cubic, so it never overshoots a value): the line
- * passes exactly through every day's balance and bends gently between them.
- */
-export function smoothPath(xs: number[], ys: number[]): string {
-  const n = xs.length;
-  if (n === 0) return "";
-  if (n === 1) return `M${xs[0]} ${ys[0]}`;
-  const dx: number[] = [];
-  const slope: number[] = [];
-  for (let i = 0; i < n - 1; i++) {
-    const dxi = (xs[i + 1] as number) - (xs[i] as number);
-    dx.push(dxi);
-    slope.push(((ys[i + 1] as number) - (ys[i] as number)) / dxi);
-  }
-  const m: number[] = [slope[0] as number];
-  for (let i = 1; i < n - 1; i++) {
-    const a = slope[i - 1] as number;
-    const b = slope[i] as number;
-    m.push(a * b <= 0 ? 0 : (a + b) / 2);
-  }
-  m.push(slope[n - 2] as number);
-  for (let i = 0; i < n - 1; i++) {
-    const s = slope[i] as number;
-    if (s === 0) {
-      m[i] = 0;
-      m[i + 1] = 0;
-      continue;
-    }
-    const a = (m[i] as number) / s;
-    const b = (m[i + 1] as number) / s;
-    const k = a * a + b * b;
-    if (k > 9) {
-      const t = 3 / Math.sqrt(k);
-      m[i] = t * a * s;
-      m[i + 1] = t * b * s;
-    }
-  }
-  let d = `M${xs[0]} ${ys[0]}`;
-  for (let i = 0; i < n - 1; i++) {
-    const h = dx[i] as number;
-    const x0 = xs[i] as number;
-    const x1 = xs[i + 1] as number;
-    const y0 = ys[i] as number;
-    const y1 = ys[i + 1] as number;
-    const c1x = x0 + h / 3;
-    const c1y = y0 + ((m[i] as number) * h) / 3;
-    const c2x = x1 - h / 3;
-    const c2y = y1 - ((m[i + 1] as number) * h) / 3;
-    d += ` C${r(c1x)} ${r(c1y)}, ${r(c2x)} ${r(c2y)}, ${r(x1)} ${r(y1)}`;
-  }
-  return d;
-}
 const r = (value: number) => Math.round(value * 100) / 100;
 
 /** A gold coin on the track, as the mark draws them, with a card ring so it reads over the line. */
@@ -144,6 +88,8 @@ type JarGraphProps = {
   title?: string;
   /** Parents see exact amounts ("always"); the child sees "£5" for whole amounts. */
   showMinor?: "always" | "nonzero";
+  /** `compact` draws a smaller picture, for a tile on a dashboard (the parent's Home). */
+  size?: "default" | "compact";
 };
 
 /**
@@ -158,8 +104,9 @@ type JarGraphProps = {
 export function JarGraph({
   history,
   currency,
-  title = "Your money ride",
+  title = graphCopy.title,
   showMinor = "nonzero",
+  size = "default",
 }: JarGraphProps) {
   const id = useId();
   const [days, setDays] = useState<GraphPeriod>(7);
@@ -270,7 +217,7 @@ export function JarGraph({
           {title}
         </h2>
         <fieldset className="flex gap-1 rounded-full bg-muted p-1">
-          <legend className="sr-only">Show</legend>
+          <legend className="sr-only">{graphCopy.show}</legend>
           {graphPeriods.map((option) => (
             <button
               key={option.days}
@@ -293,7 +240,7 @@ export function JarGraph({
         </fieldset>
       </div>
 
-      <ul aria-label="Tracks" className="flex gap-4 text-sm">
+      <ul aria-label={graphCopy.tracks} className="flex gap-4 text-sm">
         {SERIES.map((series) => (
           <li key={series.key} className="flex items-center gap-2 font-semibold">
             <svg aria-hidden viewBox="0 0 20 8" className="h-2 w-5">
@@ -312,7 +259,10 @@ export function JarGraph({
         tabIndex={0}
         onKeyDown={onKey}
         onBlur={() => setActive(null)}
-        className="relative mx-auto w-full max-w-md rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+        className={cn(
+          "relative mx-auto w-full rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/40",
+          size === "compact" ? "max-w-sm" : "max-w-md",
+        )}
       >
         <svg
           ref={svgRef}
@@ -504,18 +454,20 @@ export function JarGraph({
       />
 
       <details className="text-sm">
-        <summary className="cursor-pointer font-semibold text-ink-2">See the numbers</summary>
+        <summary className="cursor-pointer font-semibold text-ink-2">
+          {graphCopy.seeNumbers}
+        </summary>
         <table className="mt-2 w-full text-left">
           <thead>
             <tr className="text-ink-2">
               <th scope="col" className="py-1 font-semibold">
-                Day
+                {graphCopy.day}
               </th>
               <th scope="col" className="py-1 font-semibold">
-                Spend
+                {graphCopy.spend}
               </th>
               <th scope="col" className="py-1 font-semibold">
-                Save
+                {graphCopy.save}
               </th>
             </tr>
           </thead>

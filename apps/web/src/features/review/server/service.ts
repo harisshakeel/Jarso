@@ -1,49 +1,20 @@
 import "server-only";
-import { buildWeeklyReview, type WeeklyReview, weekBounds } from "@jarso/core/review";
-// Weekly review (FR11): read what the week's screens already read, then build in code.
+import type { WeeklyReview } from "@jarso/core/review";
+import { getWeeklyReview as loadWeeklyReview } from "@jarso/data/learning";
+// Weekly review (FR11): the shared read builds it from what the week's screens already read.
 import { cache } from "react";
-import { listDueForChild } from "@/features/allowance/server";
 import { assertSelfOrParentOf, getFamily } from "@/features/family/server";
-import { getGoalView } from "@/features/goals/server";
-import { getLearningOverview, reviewPool } from "@/features/learning/server";
-import { getHistorySince } from "@/features/ledger/server";
-import { AppError, addDays, familyToday, localDateOf } from "@/lib";
+import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
-import { listRecentPracticeKeys, listReviewItems } from "./repository";
 
 /** This week's review for the child, readable by the child and their parents. */
 export const getWeeklyReview = cache(async (childId: string): Promise<WeeklyReview> => {
   await assertSelfOrParentOf(childId);
   const family = await getFamily();
   if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
-  const today = familyToday(family.timezone);
-  const { weekStart } = weekBounds(today);
-  const db = await createClient();
-  const [history, due, goal, learning, reviews, recentItemKeys] = await Promise.all([
-    getHistorySince(childId, weekStart),
-    listDueForChild(childId),
-    getGoalView(childId),
-    getLearningOverview(childId),
-    listReviewItems(db, childId),
-    listRecentPracticeKeys(db, childId, addDays(today, -14)),
-  ]);
-  // A skill's row changes whenever the child answers on it, so one updated this week (in the
-  // family's own days) was worked on this week.
-  const workedOnThisWeek = learning.skills
-    .filter(
-      (skill) => skill.updatedAt && localDateOf(skill.updatedAt, family.timezone) >= weekStart,
-    )
-    .map((skill) => skill.skillKey);
-  return buildWeeklyReview({
-    today,
+  return loadWeeklyReview(await createClient(), childId, {
+    timezone: family.timezone,
     currency: family.currency,
-    history,
-    stillDueMinor: due.totalMinor,
-    goal,
-    skills: learning.skills,
-    workedOnThisWeek,
-    reviews,
-    pool: reviewPool,
-    recentItemKeys,
+    now: new Date(),
   });
 });

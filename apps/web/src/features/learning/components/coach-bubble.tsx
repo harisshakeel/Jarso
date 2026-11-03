@@ -1,7 +1,7 @@
 "use client";
 
 import type { Coach } from "@jarso/core/learning";
-import { renderText } from "@jarso/core/learning";
+import { playerCopy, renderText } from "@jarso/core/learning";
 import { LightbulbIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { CoachFigure, type CoachReaction } from "@/components/brand";
@@ -51,7 +51,7 @@ export function CoachBubble({
         {!checkIn && hints.length > 0 ? (
           <div className="grid gap-2">
             {!children ? null : <p className="font-semibold">{coach.says.hint}</p>}
-            <ul className="grid gap-2" aria-label="Hints">
+            <ul className="grid gap-2" aria-label={playerCopy.hints}>
               {hints.map((hint) => (
                 <li
                   key={hint}

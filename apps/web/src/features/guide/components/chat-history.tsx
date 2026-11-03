@@ -1,7 +1,7 @@
 "use client";
 
 import type { ConversationSummary } from "@jarso/core/guide";
-import { guideCopy } from "@jarso/core/guide";
+import { chatDay, chatTitle, guideCopy, guideUi } from "@jarso/core/guide";
 import { HistoryIcon, MessageSquarePlusIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -18,15 +18,9 @@ import {
 } from "@/components/ui";
 import { cn } from "@/lib";
 
-/** "Mon 2 Nov" in the family's timezone, not the device's. */
-function formatDay(iso: string, timezone: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: timezone,
-  }).format(new Date(iso));
-}
+export { chatTitle } from "@jarso/core/guide";
+
+const formatDay = chatDay;
 
 /** The calendar day ("2026-11-03") an instant falls on in a timezone. */
 function dayOf(instant: Date, timezone: string): string {
@@ -36,13 +30,6 @@ function dayOf(instant: Date, timezone: string): string {
     day: "2-digit",
     timeZone: timezone,
   }).format(instant);
-}
-
-/** The first message, shortened, as the chat's title; a stored chat always has one. */
-export function chatTitle(chat: ConversationSummary): string {
-  const text = chat.preview.trim();
-  if (!text) return chat.label;
-  return text.length > 48 ? `${text.slice(0, 47)}…` : text;
 }
 
 export type ChatGroup = {
@@ -104,14 +91,14 @@ export function ChatHistory({
           <SheetTitle>{guideCopy.history.title}</SheetTitle>
           <SheetDescription className="sr-only">Past chats with Jarso.</SheetDescription>
         </SheetHeader>
-        <nav aria-label="Past chats" className="grid gap-4 px-4 pb-4">
+        <nav aria-label={guideUi.pastChats} className="grid gap-4 px-4 pb-4">
           <Link
             href={newHref}
             onClick={() => setOpen(false)}
             className="flex min-h-11 items-center gap-2 rounded-xl border border-hairline-strong px-3 font-semibold hover:bg-muted"
           >
             <MessageSquarePlusIcon aria-hidden className="size-5" />
-            New chat
+            {guideUi.newChat}
           </Link>
           {groups.length === 0 ? (
             <p className="px-1 text-ink-2 text-sm">{guideCopy.history.empty}</p>

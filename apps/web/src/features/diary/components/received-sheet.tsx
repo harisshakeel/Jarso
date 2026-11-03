@@ -1,6 +1,6 @@
 "use client";
 
-import { receivedSchema } from "@jarso/core/diary";
+import { entrySavedMessage, receivedCopy, receivedSchema } from "@jarso/core/diary";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { z } from "zod";
@@ -21,11 +21,6 @@ import type { FieldErrors } from "@/lib";
 import { recordMoneyReceivedAction } from "../server/actions";
 import { CategoryChips } from "./category-chips";
 
-const JARS = [
-  { value: "spend", label: "Spend" },
-  { value: "save", label: "Save" },
-] as const;
-
 /**
  * "Got money" opens a bottom sheet to record money from another source (a gift, a job, a find).
  * It counts at once: no parent approval. Online only, like Undo.
@@ -35,12 +30,12 @@ export function ReceivedSheet({ currency }: { currency: string }) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger render={<Button variant="outline" size="lg" className="w-full" />}>
-        Got money
+        {receivedCopy.trigger}
       </SheetTrigger>
       <SheetContent side="bottom" className="sm:mx-auto sm:w-full sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>What did you get?</SheetTitle>
-          <SheetDescription>It goes into your jar right away.</SheetDescription>
+          <SheetTitle>{receivedCopy.title}</SheetTitle>
+          <SheetDescription>{receivedCopy.description}</SheetDescription>
         </SheetHeader>
         {/* Lives inside the sheet, so it unmounts on close: each open gets a new key. */}
         <ReceivedForm currency={currency} onDone={() => setOpen(false)} />
@@ -78,7 +73,7 @@ function ReceivedForm({ currency, onDone }: { currency: string; onDone: () => vo
         recordMoneyReceivedAction(null, payload as Parameters<typeof recordMoneyReceivedAction>[1]),
       );
       if (result.ok) {
-        coinToast("Saved. Nice one.");
+        coinToast(entrySavedMessage);
         onDone();
         router.refresh();
         return null;
@@ -102,24 +97,22 @@ function ReceivedForm({ currency, onDone }: { currency: string; onDone: () => vo
         options={RECEIVED_CATEGORIES}
         value={category}
         onChange={setCategory}
-        legend="Where did it come from?"
+        legend={receivedCopy.categoryLegend}
       />
       <div className="grid gap-2">
         <ChoiceChips
           name="jar"
-          legend="Which jar?"
-          options={JARS}
+          legend={receivedCopy.jarLegend}
+          options={receivedCopy.jars}
           value={jar}
           onValueChange={(value) => setJar(value === "save" ? "save" : "spend")}
         />
-        {jar === "save" ? (
-          <p className="text-ink-2 text-sm">Give the cash to your parent to keep.</p>
-        ) : null}
+        {jar === "save" ? <p className="text-ink-2 text-sm">{receivedCopy.saveHint}</p> : null}
       </div>
       <Field
         name="label"
-        label="Name it (optional)"
-        placeholder="Who or what was it?"
+        label={receivedCopy.nameLabel}
+        placeholder={receivedCopy.namePlaceholder}
         autoComplete="off"
         maxLength={60}
         value={label}
@@ -134,10 +127,10 @@ function ReceivedForm({ currency, onDone }: { currency: string; onDone: () => vo
       ) : null}
       <div className="grid gap-2">
         <Button type="submit" size="lg" className="w-full" loading={pending} disabled={!category}>
-          Write it down
+          {receivedCopy.submit}
         </Button>
         {category ? null : (
-          <p className="text-center text-muted-foreground">Pick where it came from</p>
+          <p className="text-center text-muted-foreground">{receivedCopy.pickCategory}</p>
         )}
       </div>
     </form>

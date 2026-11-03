@@ -18,10 +18,43 @@ function body(item: OutboxItem): string {
   });
 }
 
+/**
+ * The body as JSON, or undefined when it is not JSON or the deadline passes first. Raced against
+ * the signal, not only passed to fetch: a stub or an engine whose body read ignores the abort
+ * would otherwise hang the queue on a body that stalls after the headers.
+ */
+function readJson(response: Response, signal: AbortSignal): Promise<unknown> {
+  return new Promise((resolve) => {
+    if (signal.aborted) return resolve(undefined);
+    const onAbort = () => resolve(undefined);
+    signal.addEventListener("abort", onAbort, { once: true });
+    response
+      .json()
+      .then(resolve, () => resolve(undefined))
+      .finally(() => signal.removeEventListener("abort", onAbort));
+  });
+}
+
 /** Sends one item to `POST {baseUrl}/api/v1/outbox`. Never throws. */
 export async function sendToServer(
   platform: OutboxPlatform,
   item: OutboxItem,
+): Promise<SendOutcome> {
+  // A controller + timer rather than AbortSignal.timeout(), which Hermes does not have. The
+  // deadline covers the body too, so it is cleared only once the body is read.
+  const deadline = new AbortController();
+  const timer = setTimeout(() => deadline.abort(), SEND_TIMEOUT_MS);
+  try {
+    return await send(platform, item, deadline.signal);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function send(
+  platform: OutboxPlatform,
+  item: OutboxItem,
+  signal: AbortSignal,
 ): Promise<SendOutcome> {
   // Called unbound: a browser's `fetch` throws "Illegal invocation" with a non-window `this`.
   const { fetch: post, baseUrl } = platform;
@@ -32,17 +65,20 @@ export async function sendToServer(
       method: "POST",
       headers: { "content-type": "application/json", ...headers },
       body: body(item),
-      signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
+      signal,
     });
   } catch (error) {
-    const reason = error instanceof DOMException && error.name === "TimeoutError";
-    logger.warn("Outbox send failed", { kind: item.kind, reason: reason ? "timeout" : "network" });
+    const timedOut = signal.aborted || (error instanceof Error && error.name === "TimeoutError");
+    logger.warn("Outbox send failed", {
+      kind: item.kind,
+      reason: timedOut ? "timeout" : "network",
+    });
     // A timeout is a slow link, not a lost one: only a fetch that never got out reports offline.
-    if (isNetworkFailure(error)) platform.onNetworkFailure();
+    if (!timedOut && isNetworkFailure(error)) platform.onNetworkFailure();
     return { kind: "retry" };
   }
 
-  const json: unknown = await response.json().catch(() => undefined);
+  const json = await readJson(response, signal);
 
   if (response.ok) {
     // A 200 whose body never arrived whole: resend, the key makes it a replay.

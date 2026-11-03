@@ -8,7 +8,7 @@ import { routes } from "@/config";
 import { getFamily, requireRole } from "@/features/family/server";
 import { StepGuide } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
-import { MissionPlayer, topicTitles } from "@/features/learning";
+import { learnCopy, MissionPlayer, topicTitles } from "@/features/learning";
 import { findMission, getMissionSession, missionTopicKey } from "@/features/learning/server";
 import { isAppError } from "@/lib";
 
@@ -46,12 +46,12 @@ async function MissionContent({ params }: { params: Promise<{ missionKey: string
       currency={family.currency}
       userId={user.id}
       intro={{
-        eyebrow: `Day ${mission.day} · ${topicTitles[mission.topic]}`,
+        eyebrow: learnCopy.mission.eyebrow(mission.day, topicTitles[mission.topic]),
         heading: mission.title,
-        body: `${mission.summary} About three minutes. Hints are free.`,
+        body: learnCopy.mission.body(mission.summary),
       }}
       doneHref={routes.childLearn}
-      doneLabel="Back to Learn"
+      doneLabel={learnCopy.backToLearn}
       topicHref={routes.childTopic(topicKey, mission.key)}
       stepAside={guide.available ? <StepGuide introNeeded={guide.introNeeded} /> : undefined}
     />
@@ -66,7 +66,7 @@ export default function MissionPage({ params }: PageProps<"/child/learn/[mission
         className="-ml-1 inline-flex min-h-11 w-fit items-center gap-1 rounded-full pr-2 font-semibold text-primary text-sm hover:underline hover:underline-offset-4"
       >
         <ChevronLeftIcon aria-hidden className="size-5" />
-        Learn
+        {learnCopy.back}
       </Link>
       <Suspense
         fallback={

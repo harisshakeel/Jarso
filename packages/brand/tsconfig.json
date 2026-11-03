@@ -1,0 +1,4 @@
+{
+  "extends": "@jarso/tsconfig/library.json",
+  "include": ["tokens.ts", "tests", "vitest.config.mts"]
+}

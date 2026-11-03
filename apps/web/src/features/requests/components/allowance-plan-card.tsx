@@ -1,7 +1,7 @@
 "use client";
 
 import { type AllowancePlan, allowancePlanCopy, allowancePlanLine } from "@jarso/core/guide";
-import type { DepositResult } from "@jarso/core/requests";
+import { type DepositResult, depositMessage } from "@jarso/core/requests";
 import { useId, useState } from "react";
 import { CoachSays, coachIdFor } from "@/components/brand";
 import { FormError } from "@/components/form";
@@ -9,7 +9,6 @@ import { Button, Card, CardContent } from "@/components/ui";
 import { newId, useOnlineActionState } from "@/features/offline";
 import { formatMoney } from "@/lib";
 import { acceptAllowancePlanAction, dismissAllowancePlanAction } from "../server/actions";
-import { depositMessage } from "./put-in-sheet";
 
 /** The Home's coach is the one riding the jar graph, so Home keeps one coach (design.md §7). */
 const HOME_COACH_KEY = "jar-graph";

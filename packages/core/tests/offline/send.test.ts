@@ -92,6 +92,75 @@ describe("outcome", () => {
     expect(platform.onNetworkFailure).not.toHaveBeenCalled();
   });
 
+  it("times out after 15 s without AbortSignal.timeout (Hermes has none)", async () => {
+    vi.useFakeTimers();
+    const timeout = Object.getOwnPropertyDescriptor(AbortSignal, "timeout");
+    delete (AbortSignal as { timeout?: unknown }).timeout;
+    try {
+      let signal: AbortSignal | undefined;
+      platform.fetch = vi.fn<typeof fetch>(
+        (_url, init) =>
+          new Promise<Response>((_resolve, reject) => {
+            signal = init?.signal ?? undefined;
+            signal?.addEventListener("abort", () =>
+              reject(Object.assign(new Error("Aborted"), { name: "AbortError" })),
+            );
+          }),
+      );
+      const outcome = sendToServer(platform, makeItem());
+      await vi.advanceTimersByTimeAsync(14_999);
+      expect(signal?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await outcome).toEqual({ kind: "retry" });
+      expect(signal?.aborted).toBe(true);
+      // A slow link, not a lost one.
+      expect(platform.onNetworkFailure).not.toHaveBeenCalled();
+    } finally {
+      if (timeout) Object.defineProperty(AbortSignal, "timeout", timeout);
+      vi.useRealTimers();
+    }
+  });
+
+  it("times out a 200 whose body stalls after the headers, as a retry", async () => {
+    vi.useFakeTimers();
+    try {
+      const stalled = new Response(null, { status: 200 });
+      vi.spyOn(stalled, "json").mockReturnValue(new Promise(() => {}));
+      platform.fetch = vi.fn<typeof fetch>().mockResolvedValue(stalled);
+      let settled = false;
+      const outcome = sendToServer(platform, makeItem()).finally(() => {
+        settled = true;
+      });
+      await vi.advanceTimersByTimeAsync(14_999);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await outcome).toEqual({ kind: "retry" });
+      expect(platform.onNetworkSuccess).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("clears its timer once the server answers", async () => {
+    vi.useFakeTimers();
+    try {
+      respond(200, { data: {} });
+      await sendToServer(platform, makeItem());
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("an expo/fetch FetchError is a retry and reports the connection lost", async () => {
+    platform.fetch = vi
+      .fn<typeof fetch>()
+      .mockRejectedValue(Object.assign(new Error("fetch failed: offline"), { name: "FetchError" }));
+    expect(await sendToServer(platform, makeItem())).toEqual({ kind: "retry" });
+    expect(platform.onNetworkFailure).toHaveBeenCalledOnce();
+  });
+
   it("a 503 is a retry", async () => {
     respond(503, { error: { code: "UNAVAILABLE", message: "Jarso is taking a while." } });
     expect(await sendToServer(platform, makeItem())).toEqual({ kind: "retry" });

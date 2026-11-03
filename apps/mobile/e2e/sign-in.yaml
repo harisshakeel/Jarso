@@ -1,0 +1,22 @@
+# Signs the test child in (or does nothing if a session is already saved), then lands on Home.
+# Credentials come from the developer's shell, never the repo:
+#   maestro test -e CHILD_FAMILY_CODE=... -e CHILD_NICKNAME=... -e CHILD_PIN=... e2e
+appId: app.jarso.mobile
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Family code"
+    commands:
+      - tapOn: "Family code"
+      - inputText: ${CHILD_FAMILY_CODE}
+      - tapOn: "Your nickname"
+      - inputText: ${CHILD_NICKNAME}
+      - tapOn: "Your PIN"
+      - inputText: ${CHILD_PIN}
+      - hideKeyboard
+      - tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "Spent something?"
+    timeout: 20000
+- assertVisible: "Put some in Save"

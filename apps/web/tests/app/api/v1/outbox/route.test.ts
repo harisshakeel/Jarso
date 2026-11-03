@@ -20,6 +20,7 @@ const completeCheckIn = vi.fn();
 const pushAfterNotices = vi.fn();
 
 vi.mock("@/features/auth/server", () => ({ assertUser }));
+vi.mock("@/lib/supabase/request-scope", () => import("../fake-bearer-scope"));
 vi.mock("@/features/allowance/server", () => ({ getFamilyContext }));
 vi.mock("@/features/diary/server", () => ({ recordPurchase }));
 vi.mock("@/features/notifications/server", () => ({ pushAfterNotices }));
@@ -30,6 +31,7 @@ vi.mock("@/features/learning/server", () => ({
   completeCheckIn,
 }));
 
+const { PHONE_HEADERS, scope } = await import("../fake-bearer-scope");
 const { POST } = await import("@/app/api/v1/outbox/route");
 
 function post(body: unknown, headers: Record<string, string> = {}) {
@@ -57,6 +59,7 @@ const answer = { kind: "option", optionId: "x" };
 describe("POST /api/v1/outbox", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    scope.entered = 0;
     assertUser.mockResolvedValue({ id: USER_ID });
     getFamilyContext.mockResolvedValue({ currency: "GBP" });
     recordPurchase.mockResolvedValue({ status: "recorded", entryId: uuid });
@@ -215,6 +218,36 @@ describe("POST /api/v1/outbox", () => {
     );
     const res = await post(purchase());
     expect(res.status).toBe(503);
+  });
+
+  describe("from the phone (bearer)", () => {
+    const COOKIE_ID = "6a5b4c3d-2e1f-4a0b-9c8d-7e6f5a4b3c2d";
+    beforeEach(() => {
+      scope.phoneUser = { id: USER_ID, email: null };
+      // As the real getCurrentUser: the scope's user inside a bearer scope, else the cookie user.
+      assertUser.mockImplementation(async () => scope.user ?? { id: COOKIE_ID, email: null });
+    });
+
+    it("runs the item as the token's user", async () => {
+      const res = await post(purchase(), PHONE_HEADERS);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ data: { status: "recorded", entryId: uuid } });
+      expect(scope.entered).toBe(1);
+      expect(recordPurchase).toHaveBeenCalledTimes(1);
+    });
+
+    it("still refuses an item queued by another child with 401", async () => {
+      const res = await post(purchase({ userId: OTHER_ID }), PHONE_HEADERS);
+      expect(res.status).toBe(401);
+      expect(recordPurchase).not.toHaveBeenCalled();
+    });
+
+    it("refuses a bad token with 401 and never runs as the cookie user", async () => {
+      const res = await post(purchase({ userId: COOKIE_ID }), { authorization: "Bearer stale" });
+      expect(res.status).toBe(401);
+      expect(assertUser).not.toHaveBeenCalled();
+      expect(recordPurchase).not.toHaveBeenCalled();
+    });
   });
 
   it("rejects a cross-origin POST with 403", async () => {

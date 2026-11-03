@@ -1,6 +1,6 @@
 import type { AskGuideResult, ThreadMessage } from "@jarso/core/guide";
 import { guideCopy } from "@jarso/core/guide";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { Route } from "next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GuideThread } from "@/features/guide/components/guide-thread";
@@ -72,6 +72,44 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("GuideThread", () => {
+  it("shows the question as sent while Jarso thinks", async () => {
+    let finish: (value: { ok: true; data: AskGuideResult }) => void = () => {};
+    sendGuideTurn.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(<GuideThread />);
+    const box = screen.getByLabelText("Your question for Jarso");
+    fireEvent.change(box, { target: { value: "What is Spend?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    const chat = await screen.findByRole("list", { name: "Chat with Jarso" });
+    expect(within(chat).getByText("What is Spend?")).toBeVisible();
+
+    finish({ ok: true, data: answer });
+    await screen.findByText("Spend is the cash you hold.");
+    // Sent once, not twice, once the reply lands.
+    expect(within(chat).getAllByText("What is Spend?")).toHaveLength(1);
+  });
+
+  it("takes a failed question back into the box to send again", async () => {
+    sendGuideTurn.mockResolvedValue({
+      ok: false,
+      error: { code: "RATE_LIMITED", message: guideCopy.rateLimitedMinute },
+    });
+    render(<GuideThread />);
+    fireEvent.change(screen.getByLabelText("Your question for Jarso"), {
+      target: { value: "What is Spend?" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await screen.findByText(guideCopy.rateLimitedMinute);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Your question for Jarso")).toHaveValue("What is Spend?"),
+    );
+    expect(screen.queryByRole("list", { name: "Chat with Jarso" })).toBeNull();
+  });
   it("picks a chat up again: its messages, thumbs and turns, and continues it", async () => {
     sendGuideTurn.mockResolvedValue({ ok: true, data: answer });
     render(
@@ -130,7 +168,8 @@ describe("GuideThread", () => {
     fireEvent.click(screen.getByRole("button", { name: "How much do I have?" }));
     // A full run is busy: the reply can take more than the default second to arrive.
     await screen.findByText("Spend is the cash you hold.", {}, { timeout: 5_000 });
-    expect(onChatStarted).toHaveBeenCalledWith("convo-1");
+    // The page hears about the chat from an effect after the reply commits, so wait for it too.
+    await waitFor(() => expect(onChatStarted).toHaveBeenCalledWith("convo-1"));
   });
 
   it("keeps a parent's reopened chat about one child, without the child picker", () => {

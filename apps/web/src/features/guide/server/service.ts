@@ -21,6 +21,14 @@ import {
   splitDataUrl,
   tidyPhotoLabel,
 } from "@jarso/core/guide";
+import {
+  forParent,
+  listMyChats as loadMyChats,
+  getMyTranscript as loadMyTranscript,
+  lookedAt,
+  summarize,
+  transcriptFor,
+} from "@jarso/data/guide";
 import { cacheLife } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { helplinesFor } from "@/config";
@@ -49,7 +57,6 @@ import { fallbackResult, type PipelineResult, runGuidePipeline } from "./pipelin
 import { GUIDE_PROMPT_VERSION } from "./prompts";
 import type { GuideProvider, Turn } from "./provider";
 import * as repo from "./repository";
-import type { ToolName } from "./tool-specs";
 import { cleanLabel, createTurnTools, savingPlan } from "./tools";
 
 /** Spec §5.2: 5 messages a minute and 30 a day per child. */
@@ -137,11 +144,6 @@ async function storedTurn(
     },
     turnsLeft: Math.max(0, MAX_TURNS - turns),
   };
-}
-
-/** What Jarso looked at, in plain words, each once. */
-function lookedAt(names: readonly ToolName[]): string[] {
-  return [...new Set(names.map((name) => guideCopy.checked[name]))];
 }
 
 /**
@@ -627,62 +629,6 @@ export async function setGuideAccess(childId: string, enabled: boolean): Promise
   await repo.setGuideAccess(await createClient(), childId, enabled);
 }
 
-const SAFETY_HIDDEN = "A safety response was shown. The message itself is not kept.";
-const PERSONAL_HIDDEN = "Personal details were shared, so the message is not kept.";
-const EXPIRED = "Older than 30 days, so deleted.";
-/** What the asker sees in place of their own message that was not kept. */
-const NOT_KEPT = "This message wasn't kept.";
-
-/**
- * A chat as a reader sees it. A child message that got a safety or personal-details response
- * is stored blank (spec decision 3, ADR 0010); the parent sees a note in its place, and the
- * asker (the child, or a parent reading their own chat) a plain line.
- */
-function transcriptFor(
-  messages: repo.MessageRow[],
-  viewer: "parent" | "asker",
-): TranscriptMessage[] {
-  return messages.map(({ checked, ...message }, index) => {
-    if (message.role !== "child") {
-      const text = message.text || EXPIRED;
-      return { ...message, hidden: false, text, lookedAt: lookedAt(checked) };
-    }
-    const shown = { ...message, lookedAt: [] };
-    const reply = messages[index + 1];
-    if (reply?.route === "safety") {
-      return { ...shown, hidden: true, text: viewer === "parent" ? SAFETY_HIDDEN : NOT_KEPT };
-    }
-    if (reply?.route === "personal_info") {
-      return { ...shown, hidden: true, text: viewer === "parent" ? PERSONAL_HIDDEN : NOT_KEPT };
-    }
-    return { ...shown, hidden: false, text: message.text || EXPIRED };
-  });
-}
-
-/** A chat as the parent reads it. */
-function forParent(messages: repo.MessageRow[]): TranscriptMessage[] {
-  return transcriptFor(messages, "parent");
-}
-
-function summarize(
-  conversation: repo.ConversationRow,
-  messages: repo.MessageRow[],
-  viewer: "parent" | "asker" = "parent",
-): ConversationSummary {
-  const first = transcriptFor(messages, viewer).find((m) => m.role === "child");
-  return {
-    id: conversation.id,
-    childId: conversation.childId,
-    entry: conversation.entry,
-    label: labelFor(conversation.entry, conversation.contextKey),
-    createdAt: conversation.createdAt,
-    lastMessageAt: conversation.lastMessageAt,
-    turns: conversation.turns,
-    flagged: conversation.flagged,
-    preview: first?.text ?? "",
-  };
-}
-
 /** A child's chats for the parent, flagged first. */
 export async function listGuideChats(childId: string): Promise<ConversationSummary[]> {
   await assertParentCanRead(childId);
@@ -716,21 +662,7 @@ export async function getGuideTranscript(
 /** The signed-in child's own chats (not a parent's about them), newest first (the Jarso page). */
 export async function listMyChats(): Promise<ConversationSummary[]> {
   const { user } = await assertRole("child");
-  const db = await createClient();
-  const conversations = await repo.listConversations(db, user.id);
-  const messages = await repo.listMessages(
-    db,
-    conversations.map((c) => c.id),
-  );
-  return conversations
-    .map((conversation) =>
-      summarize(
-        conversation,
-        messages.filter((m) => m.conversationId === conversation.id),
-        "asker",
-      ),
-    )
-    .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
+  return loadMyChats(await createClient(), user.id);
 }
 
 /** One of the signed-in child's own chats, to pick it up again. Null when it isn't theirs. */
@@ -738,16 +670,7 @@ export async function getMyTranscript(
   conversationId: string,
 ): Promise<{ summary: ConversationSummary; messages: TranscriptMessage[] } | null> {
   const { user } = await assertRole("child");
-  const db = await createClient();
-  const conversation = await repo.findConversation(db, conversationId);
-  if (!conversation || conversation.childId !== user.id || conversation.askedBy !== null) {
-    return null;
-  }
-  const messages = await repo.listMessages(db, [conversationId]);
-  return {
-    summary: summarize(conversation, messages, "asker"),
-    messages: transcriptFor(messages, "asker"),
-  };
+  return loadMyTranscript(await createClient(), user.id, conversationId);
 }
 
 /** The signed-in parent's own chats about their children, newest first (the Jarso page). */
@@ -788,17 +711,4 @@ export async function countFlaggedChats(childId: string): Promise<number> {
   await assertParentCanRead(childId);
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   return repo.countFlaggedSince(await createClient(), childId, since);
-}
-
-function labelFor(entry: string, contextKey: string): string {
-  if (entry === "home") return "Asked from Home";
-  if (entry === "parent") return "A parent asked about them";
-  if (entry === "topic") {
-    const key = contextKey.replace(/^topic:/, "") as keyof typeof topicTitles;
-    return topicTitles[key] ? `Topic: ${topicTitles[key]}` : "A topic page";
-  }
-  const [, source] = contextKey.split(":");
-  const where =
-    source === "mission" ? "a mission" : source === "practice" ? "practice" : "a topic question";
-  return entry === "why" ? `Asked "Why?" in ${where}` : `Help in ${where}`;
 }

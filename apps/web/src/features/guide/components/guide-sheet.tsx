@@ -1,7 +1,7 @@
 "use client";
 
 import type { AskGuideResult, GuideReply } from "@jarso/core/guide";
-import { type GuideContextRef, guideCopy, MAX_MESSAGE_LENGTH } from "@jarso/core/guide";
+import { type GuideContextRef, guideCopy, guideUi, MAX_MESSAGE_LENGTH } from "@jarso/core/guide";
 import { BotIcon, SendHorizontalIcon, SparklesIcon } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { FormError } from "@/components/form";
@@ -175,7 +175,7 @@ export function GuideSheet({
             >
               <h2 id="guide-intro" className="flex items-center gap-2 font-bold text-h3">
                 <BotIcon aria-hidden className="size-6" />
-                Before we start
+                {guideUi.beforeWeStart}
               </h2>
               {guideCopy.intro.map((line) => (
                 <p key={line}>{line}</p>
@@ -194,14 +194,14 @@ export function GuideSheet({
             </section>
           ) : (
             <>
-              <ol aria-label="Chat" aria-live="polite" className="grid gap-3">
+              <ol aria-label={guideUi.sheetChatLabel} aria-live="polite" className="grid gap-3">
                 {messages.map((message) =>
                   message.from === "child" ? (
                     <li
                       key={message.id}
                       className="ml-8 justify-self-end rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-primary-foreground"
                     >
-                      <span className="sr-only">You: </span>
+                      <span className="sr-only">{guideUi.you}</span>
                       {message.text}
                     </li>
                   ) : (
@@ -230,7 +230,7 @@ export function GuideSheet({
               ) : (
                 <form onSubmit={send} className="grid gap-2">
                   <label htmlFor="guide-question" className="sr-only">
-                    Your question
+                    {guideUi.sheetQuestionLabel}
                   </label>
                   <textarea
                     id="guide-question"
@@ -251,10 +251,8 @@ export function GuideSheet({
                   />
                   <div className="flex items-center justify-between gap-3">
                     <span id="guide-count" className="text-ink-2 text-sm">
-                      {text.length}/{MAX_MESSAGE_LENGTH}
-                      {turnsLeft !== null && turnsLeft <= 3
-                        ? ` · ${turnsLeft} left in this chat`
-                        : ""}
+                      {guideUi.count(text.length, MAX_MESSAGE_LENGTH)}
+                      {turnsLeft !== null && turnsLeft <= 3 ? guideUi.turnsLeft(turnsLeft) : ""}
                     </span>
                     <Button
                       type="submit"
@@ -263,7 +261,7 @@ export function GuideSheet({
                       disabled={!text.trim()}
                     >
                       <SendHorizontalIcon aria-hidden />
-                      Send
+                      {guideUi.send}
                     </Button>
                   </div>
                 </form>

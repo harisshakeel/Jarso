@@ -3,6 +3,7 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
 import { z } from "zod";
+import { PageContainer, PageHeader } from "@/components/layout";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { mergeDue, NeedsYou } from "@/features/allowance";
@@ -323,8 +324,8 @@ function HomeSkeleton() {
 
 export default function ParentHomePage({ searchParams }: Props) {
   return (
-    <div className="grid w-full gap-5">
-      <h1 className="text-h1">Your family</h1>
+    <PageContainer width="wide" className="gap-6">
+      <PageHeader title="Your family" />
       <Suspense
         fallback={
           <SlowFallback>
@@ -334,6 +335,6 @@ export default function ParentHomePage({ searchParams }: Props) {
       >
         <ParentHome searchParams={searchParams} />
       </Suspense>
-    </div>
+    </PageContainer>
   );
 }

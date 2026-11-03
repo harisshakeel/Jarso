@@ -1,8 +1,11 @@
 import { AppError, type ErrorCode } from "./errors";
 import { logger } from "./logger";
 
+/** What a child or parent reads when their session has ended and they must sign in again. */
+export const SIGN_IN_AGAIN = "Please sign in again.";
+
 const mapped: Record<string, { code: ErrorCode; message: string }> = {
-  JA401: { code: "UNAUTHORIZED", message: "Please sign in again." },
+  JA401: { code: "UNAUTHORIZED", message: SIGN_IN_AGAIN },
   JA403: { code: "FORBIDDEN", message: "You can't do that." },
   JA404: { code: "NOT_FOUND", message: "We couldn't find that." },
   JA409: { code: "CONFLICT", message: "That already exists." },

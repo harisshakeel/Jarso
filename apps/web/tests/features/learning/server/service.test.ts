@@ -24,7 +24,14 @@ vi.mock("@/features/learning/server/repository", () => ({
   startMission: vi.fn(),
 }));
 
+vi.mock("@jarso/data/learning", () => ({
+  getLearningOverview: vi.fn(),
+  getMissionSession: vi.fn(),
+  getPracticeSet: vi.fn(),
+}));
+
 const family = await import("@/features/family/server");
+const data = await import("@jarso/data/learning");
 const repo = await import("@/features/learning/server/repository");
 const service = await import("@/features/learning/server/service");
 const content = await import("@/features/learning/server/content");
@@ -262,11 +269,36 @@ describe("completeCheckIn", () => {
   });
 });
 
-describe("getLearningOverview", () => {
-  it("asks for the check-in first, then mission 1", async () => {
-    const overview = await service.getLearningOverview(child.id);
-    expect(overview.nextStep).toEqual({ kind: "check-in" });
-    expect(overview.journey[0]?.status).toBe("current");
+describe("shared reads", () => {
+  it("getLearningOverview checks the caller and passes the family's timezone", async () => {
+    const overview = { journey: [] } as never;
+    vi.mocked(data.getLearningOverview).mockResolvedValue(overview);
+    await expect(service.getLearningOverview(child.id)).resolves.toBe(overview);
     expect(family.assertSelfOrParentOf).toHaveBeenCalledWith(child.id);
+    expect(data.getLearningOverview).toHaveBeenCalledWith({ kind: "user" }, child.id, {
+      timezone: "Europe/London",
+      now: expect.any(Date),
+    });
+  });
+
+  it("getMissionSession tells an unknown mission from a locked one", async () => {
+    await expect(service.getMissionSession("no-such-mission")).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "We couldn't find that mission.",
+    });
+    vi.mocked(data.getMissionSession).mockResolvedValue(null);
+    await expect(service.getMissionSession(firstMission.key)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Finish the mission before this one first.",
+    });
+    const session = { attemptId: null, results: [] };
+    vi.mocked(data.getMissionSession).mockResolvedValue(session);
+    await expect(service.getMissionSession(firstMission.key)).resolves.toBe(session);
+  });
+
+  it("getPracticeSet is children only", async () => {
+    vi.mocked(family.assertRole).mockRejectedValue(new AppError("FORBIDDEN", "You can't do that."));
+    await expect(service.getPracticeSet()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(data.getPracticeSet).not.toHaveBeenCalled();
   });
 });

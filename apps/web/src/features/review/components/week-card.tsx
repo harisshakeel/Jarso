@@ -1,4 +1,5 @@
-import type { WeeklyReview, WeekMoney } from "@jarso/core/review";
+import type { WeeklyReview } from "@jarso/core/review";
+import { weekDay as day, weekCopy, weekSentence } from "@jarso/core/review";
 import { ArrowRightIcon, CalendarCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
@@ -14,30 +15,7 @@ type WeekCardProps = {
   titleAs?: "h1" | "h2";
 };
 
-/** "Fri 30 Oct" for the week's edges. Calendar days, so formatted in UTC. */
-function day(isoDate: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(new Date(`${isoDate}T00:00:00Z`));
-}
-
-/**
- * The week's money as one sentence instead of a grid of figures (design.md §10): what came in,
- * what went out, what moved to Save. Nothing moved reads as a calm line, never four zeros.
- */
-export function weekSentence(week: WeekMoney, money: (minor: number) => string): string {
-  const parts: string[] = [];
-  if (week.receivedMinor > 0) parts.push(`${money(week.receivedMinor)} came in`);
-  if (week.spentMinor > 0) parts.push(`you spent ${money(week.spentMinor)}`);
-  if (week.savedMinor > 0) parts.push(`${money(week.savedMinor)} went into Save`);
-  if (week.savedMinor < 0) parts.push(`${money(-week.savedMinor)} came out of Save`);
-  if (parts.length === 0) return "No money moved this week.";
-  const last = parts.pop();
-  const body = parts.length ? `${parts.join(", ")} and ${last}` : last;
-  return `This week ${body}.`;
-}
+export { weekSentence } from "@jarso/core/review";
 
 /**
  * The weekly review (FR11): the week in a sentence; the goal; one decision and its effect; a
@@ -59,34 +37,35 @@ export function WeekCard({
           <div className="grid gap-1">
             <p className="eyebrow flex items-center gap-2">
               <CalendarCheckIcon aria-hidden className="size-4" />
-              {day(week.weekStart)} to {day(week.weekEnd)}
+              {weekCopy.range(day(week.weekStart), day(week.weekEnd))}
             </p>
             <Title id="week-heading" className="text-balance text-h2">
-              Your week
+              {weekCopy.heading}
             </Title>
           </div>
 
           <p className="text-lg">{weekSentence(week, money)}</p>
           {topCategory ? (
-            <p className="text-ink-2">This week most went on {topCategory.label}.</p>
+            <p className="text-ink-2">{weekCopy.mostWentOn(topCategory.label)}</p>
           ) : null}
           {week.stillDueMinor > 0 ? (
-            <p className="text-ink-2">
-              {money(week.stillDueMinor)} of allowance is still on its way from your parent.
-            </p>
+            <p className="text-ink-2">{weekCopy.stillDue(money(week.stillDueMinor))}</p>
           ) : null}
 
           {goal.kind === "progress" ? (
             <p>
-              {goal.emoji} {goal.name}: {money(goal.countedMinor)} of {money(goal.targetMinor)}.
+              {weekCopy.goalProgress(
+                goal.emoji,
+                goal.name,
+                money(goal.countedMinor),
+                money(goal.targetMinor),
+              )}
               {goal.paymentsLeft !== null
-                ? ` About ${goal.paymentsLeft} allowance${goal.paymentsLeft === 1 ? "" : "s"} to go.`
-                : ` ${money(goal.remainingMinor)} to go.`}
+                ? weekCopy.paymentsLeft(goal.paymentsLeft)
+                : weekCopy.remaining(money(goal.remainingMinor))}
             </p>
           ) : goal.kind === "reached" ? (
-            <p>
-              {goal.emoji} {goal.name}: saved up.
-            </p>
+            <p>{weekCopy.goalReached(goal.emoji, goal.name)}</p>
           ) : null}
 
           {compact ? (
@@ -94,7 +73,7 @@ export function WeekCard({
               href={routes.childWeek}
               className="inline-flex min-h-11 w-fit items-center gap-1 rounded-full font-semibold text-primary underline-offset-4 hover:underline"
             >
-              See your whole week
+              {weekCopy.seeWhole}
               <ArrowRightIcon aria-hidden className="size-5" />
             </Link>
           ) : (
@@ -105,30 +84,32 @@ export function WeekCard({
                   className="grid gap-1 rounded-xl bg-secondary p-4"
                 >
                   <h3 id="week-decision" className="eyebrow">
-                    One decision
+                    {weekCopy.oneDecision}
                   </h3>
                   <p className="font-semibold">{decision.what}</p>
                   <p className="text-ink-2">{decision.effect}</p>
                 </section>
               ) : (
-                <p className="text-ink-2">The plan stays as it was.</p>
+                <p className="text-ink-2">{weekCopy.planSame}</p>
               )}
 
               <section aria-labelledby="week-skills" className="grid gap-2">
                 <h3 id="week-skills" className="eyebrow">
-                  Learning
+                  {weekCopy.learning}
                 </h3>
                 {understood ? (
                   <p>
-                    You showed you can{" "}
-                    <span className="font-semibold">{understood.label.toLowerCase()}</span>. Good
-                    thinking.
+                    {weekCopy.showedYouCan}{" "}
+                    <span className="font-semibold">{understood.label.toLowerCase()}</span>
+                    {weekCopy.goodThinking}
                   </p>
                 ) : null}
                 {practise ? (
-                  <p className="text-ink-2">Worth another look: {practise.label.toLowerCase()}.</p>
+                  <p className="text-ink-2">
+                    {weekCopy.worthAnotherLook(practise.label.toLowerCase())}
+                  </p>
                 ) : !understood ? (
-                  <p className="text-ink-2">Your first skill is one mission away.</p>
+                  <p className="text-ink-2">{weekCopy.firstSkill}</p>
                 ) : null}
               </section>
 
@@ -137,7 +118,7 @@ export function WeekCard({
                   href={routes.childWeekQuestion}
                   className="keycap inline-flex h-11 w-fit items-center gap-2 rounded-full bg-primary px-6 font-bold text-primary-foreground"
                 >
-                  One fresh question
+                  {weekCopy.freshQuestion}
                   <ArrowRightIcon aria-hidden className="size-5" />
                 </Link>
               ) : null}

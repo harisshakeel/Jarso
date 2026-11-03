@@ -6,13 +6,17 @@ import { connection } from "next/server";
 import { cache } from "react";
 import { routes } from "@/config";
 import { AppError } from "@/lib";
+import { currentScope } from "@/lib/supabase/request-scope";
 import { createClient } from "@/lib/supabase/server";
 
 /**
  * Data Access Layer entry point for auth. Verifies the JWT and returns the current user,
  * or null. Memoised per request. Reads cookies, so callers must sit behind <Suspense>.
+ * Inside a bearer scope it is the token's user, already verified, and cookies are never read.
  */
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
+  const scope = currentScope();
+  if (scope) return scope.user;
   // Partial prefetching prerenders the cookie-dependent shell, and auth-js calls Date.now()
   // synchronously in getClaims(). Stop prerendering here so the session is read per request.
   await connection();

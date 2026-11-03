@@ -9,6 +9,7 @@ import type {
   Split,
 } from "@jarso/core/allowance";
 import { MATCH_GIFT_NOTE } from "@jarso/core/allowance";
+import { type FamilyContext, getFamilyContext as getSharedFamilyContext } from "@jarso/data/family";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertUser } from "@/features/auth/server";
 import {
@@ -56,18 +57,12 @@ import {
 
 const FORBIDDEN = "You can't do that.";
 
-export type FamilyContext = { currency: string; timezone: string; today: string };
+export type { FamilyContext };
 
 /** The signed-in user's family currency and local today, for schemas and default dates. */
 export async function getFamilyContext(): Promise<FamilyContext> {
-  await assertUser();
-  const family = await getFamily();
-  if (!family) throw new AppError("FORBIDDEN", "Set up your family first.");
-  return {
-    currency: family.currency,
-    timezone: family.timezone,
-    today: familyToday(family.timezone),
-  };
+  const user = await assertUser();
+  return getSharedFamilyContext(await createClient(), user.id);
 }
 
 /**

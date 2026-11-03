@@ -21,4 +21,5 @@ export {
   type MissionSession,
   recordPractice,
   recordStep,
+  startMission,
 } from "./service";

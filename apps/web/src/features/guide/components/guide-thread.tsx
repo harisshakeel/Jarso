@@ -1,7 +1,7 @@
 "use client";
 
 import type { GuideProposal, SuggestionCard, ThreadMessage } from "@jarso/core/guide";
-import { guideCopy, MAX_MESSAGE_LENGTH, sendGuideTurn } from "@jarso/core/guide";
+import { guideCopy, guideUi, MAX_MESSAGE_LENGTH, sendGuideTurn } from "@jarso/core/guide";
 import {
   BookOpenIcon,
   CalendarDaysIcon,
@@ -293,7 +293,7 @@ export function GuideThread({
   ) : (
     <form onSubmit={submit} className="grid gap-2">
       <label htmlFor="ask-jarso-question" className="sr-only">
-        Your question for Jarso
+        {guideUi.questionLabel}
       </label>
       <div
         className={cn(
@@ -322,13 +322,13 @@ export function GuideThread({
         />
         <div className="flex items-center justify-between gap-3">
           <span id="ask-jarso-count" className="px-2 text-ink-2 text-sm">
-            {text.length}/{MAX_MESSAGE_LENGTH}
-            {turnsLeft !== null && turnsLeft <= 3 ? ` · ${turnsLeft} left in this chat` : ""}
+            {guideUi.count(text.length, MAX_MESSAGE_LENGTH)}
+            {turnsLeft !== null && turnsLeft <= 3 ? guideUi.turnsLeft(turnsLeft) : ""}
           </span>
           <div className="flex items-center gap-2">
             {messages.length > 0 && !pending && !page ? (
               <Button type="button" variant="ghost" onClick={newChat}>
-                New chat
+                {guideUi.newChat}
               </Button>
             ) : null}
             {forParent ? null : (
@@ -355,7 +355,7 @@ export function GuideThread({
             {/* Not a keycap: Home keeps its one keycap for the next step. */}
             <Button type="submit" size="lg" loading={pending} disabled={!text.trim()}>
               <SendHorizontalIcon aria-hidden />
-              Ask
+              {guideUi.ask}
             </Button>
           </div>
         </div>
@@ -396,7 +396,7 @@ export function GuideThread({
     <div className="grid gap-3 self-start rounded-2xl bg-secondary p-5 text-left">
       <p className="flex items-center gap-2 font-bold">
         <JarsoEyes size="sm" />
-        Before we start
+        {guideUi.beforeWeStart}
       </p>
       {guideCopy.intro.map((line) => (
         <p key={line}>{line}</p>
@@ -415,7 +415,7 @@ export function GuideThread({
   );
 
   const cards = (
-    <ul aria-label="Questions to try" className="grid gap-2 sm:grid-cols-2">
+    <ul aria-label={guideUi.tryThese} className="grid gap-2 sm:grid-cols-2">
       {copy.suggestions.map((question) => {
         const card = copy.cards.find((c) => c.question === question);
         const Icon = card ? cardIcons[card.key] : SparklesIcon;
@@ -506,7 +506,7 @@ export function GuideThread({
               href={openHref}
               className="inline-flex min-h-11 items-center gap-1 rounded-full px-3 font-semibold text-primary text-sm underline-offset-4 hover:underline"
             >
-              Open
+              {guideUi.open}
               <ExternalLinkIcon aria-hidden className="size-4" />
             </Link>
           ) : null}
@@ -528,14 +528,14 @@ export function GuideThread({
             )}
           >
             {messages.length > 0 || pending ? (
-              <ol aria-label="Chat with Jarso" aria-live="polite" className="grid gap-3">
+              <ol aria-label={guideUi.chatLabel} aria-live="polite" className="grid gap-3">
                 {messages.map((message) =>
                   message.from === "child" ? (
                     <li
                       key={message.id}
                       className="rise-in ml-8 max-w-[85%] justify-self-end rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-primary-foreground"
                     >
-                      <span className="sr-only">You: </span>
+                      <span className="sr-only">{guideUi.you}</span>
                       {message.text}
                     </li>
                   ) : (
@@ -551,7 +551,7 @@ export function GuideThread({
                 )}
                 {pending && unanswered.current ? (
                   <li className="rise-in ml-8 max-w-[85%] justify-self-end rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-primary-foreground">
-                    <span className="sr-only">You: </span>
+                    <span className="sr-only">{guideUi.you}</span>
                     {unanswered.current.text}
                   </li>
                 ) : null}

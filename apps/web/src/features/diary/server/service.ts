@@ -7,16 +7,15 @@ import type {
   UndoResult,
 } from "@jarso/core/diary";
 // Spending and money received, recorded in the money diary.
+import { undoEntry } from "@jarso/data/diary";
 import { assertUser } from "@/features/auth/server";
 import { assertRole } from "@/features/family/server";
-import { AppError } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
 import {
   callCorrectDiaryEntry,
   callListEntryVersions,
   callRecordMoneyReceived,
   callRecordPurchase,
-  callUndoDiaryEntry,
 } from "./repository";
 
 /** Records a purchase for the signed-in child. `not_enough_spend` is a result, not an error. */
@@ -61,11 +60,7 @@ export async function recordMoneyReceived(input: {
 export async function undoDiaryEntry(entryId: string): Promise<UndoResult> {
   await assertUser();
   // Ownership is enforced by the SQL function (RLS-style check on the entry).
-  const result = await callUndoDiaryEntry(await createClient(), entryId);
-  if (result === "too_late") {
-    throw new AppError("CONFLICT", "You can only undo within a day.");
-  }
-  return result;
+  return undoEntry(await createClient(), entryId);
 }
 
 /** Fixes the amount, category or name of the child's own line. Refusals are results. */

@@ -1,5 +1,5 @@
 import type { Topic } from "@jarso/core/learning";
-import { renderText } from "@jarso/core/learning";
+import { learnCopy, renderText } from "@jarso/core/learning";
 
 /** A topic's explanation and worked example (FR08). The practice question renders below it. */
 export function TopicView({ topic, currency }: { topic: Topic; currency: string }) {
@@ -13,8 +13,8 @@ export function TopicView({ topic, currency }: { topic: Topic; currency: string 
         {topic.explanation.length > 2 ? (
           <details className="group grid gap-3">
             <summary className="inline-flex min-h-11 w-fit cursor-pointer list-none items-center rounded-full font-semibold text-primary underline-offset-4 hover:underline">
-              <span className="group-open:hidden">Tell me more</span>
-              <span className="hidden group-open:inline">That's enough</span>
+              <span className="group-open:hidden">{learnCopy.topic.tellMore}</span>
+              <span className="hidden group-open:inline">{learnCopy.topic.enough}</span>
             </summary>
             {topic.explanation.slice(2).map((paragraph) => (
               <p key={paragraph}>{renderText(paragraph, currency)}</p>

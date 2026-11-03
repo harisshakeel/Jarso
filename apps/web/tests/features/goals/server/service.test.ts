@@ -7,14 +7,14 @@ vi.mock("@/features/family/server", () => ({
 }));
 vi.mock("@/features/goals/server/repository", () => ({
   callArchiveGoal: vi.fn(),
-  callGoalProgress: vi.fn(),
   callMarkCelebrated: vi.fn(),
   callSaveGoal: vi.fn(),
-  findActiveGoal: vi.fn(),
 }));
+vi.mock("@jarso/data/goals", () => ({ getGoalView: vi.fn() }));
 
 const family = await import("@/features/family/server");
 const repo = await import("@/features/goals/server/repository");
+const data = await import("@jarso/data/goals");
 const service = await import("@/features/goals/server/service");
 
 const goal = {
@@ -30,24 +30,18 @@ const goal = {
 beforeEach(() => vi.resetAllMocks());
 
 describe("getGoalView", () => {
-  it("is null when the child has no active goal", async () => {
-    vi.mocked(repo.callGoalProgress).mockResolvedValue(null);
-    vi.mocked(repo.findActiveGoal).mockResolvedValue(null);
-    await expect(service.getGoalView("child-1")).resolves.toBeNull();
+  it("checks the caller, then delegates to the shared read", async () => {
+    const view = { goal, progress: { countedMinor: 0 } } as never;
+    vi.mocked(data.getGoalView).mockResolvedValue(view);
+    await expect(service.getGoalView("child-1")).resolves.toBe(view);
     expect(family.assertSelfOrParentOf).toHaveBeenCalledWith("child-1");
+    expect(data.getGoalView).toHaveBeenCalledWith({ kind: "user" }, "child-1");
   });
 
-  it("combines the goal with progress from counted Save", async () => {
-    vi.mocked(repo.callGoalProgress).mockResolvedValue({ goalId: "g1", countedMinor: 2600 });
-    vi.mocked(repo.findActiveGoal).mockResolvedValue(goal);
-    const view = await service.getGoalView("child-1");
-    expect(view?.goal).toEqual(goal);
-    expect(view?.progress).toMatchObject({
-      countedMinor: 2600,
-      remainingMinor: 1900,
-      paymentsLeft: 5,
-      reached: false,
-    });
+  it("does not read when the caller may not see the child", async () => {
+    vi.mocked(family.assertSelfOrParentOf).mockRejectedValue(new Error("forbidden"));
+    await expect(service.getGoalView("child-1")).rejects.toThrow("forbidden");
+    expect(data.getGoalView).not.toHaveBeenCalled();
   });
 });
 

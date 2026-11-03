@@ -18,15 +18,22 @@ function fieldErrorsOf(details: unknown): Record<string, string[] | undefined> |
  * Sends one message to Jarso and reads the NDJSON stream (`POST /api/v1/guide/turns`): calls
  * `onStatus` for each look-up, and resolves with the reply as an ActionResult, the shape
  * `runOnline` expects. A dropped connection rejects, so `runOnline` shows the offline note.
+ * The web posts to its own origin with its cookie; the phone passes its `baseUrl`, `expo/fetch`
+ * and `headers()` returning its bearer.
  */
 export async function sendGuideTurn(
   request: GuideTurnRequest,
   onStatus: (text: string) => void,
-  opts: { baseUrl: string; fetch?: typeof fetch } = { baseUrl: "" },
+  opts: {
+    baseUrl?: string;
+    fetch?: typeof fetch;
+    headers?: () => Promise<Record<string, string>>;
+  } = {},
 ): Promise<ActionResult<AskGuideResult>> {
-  const response = await (opts.fetch ?? fetch)(`${opts.baseUrl}/api/v1/guide/turns`, {
+  const headers = await opts.headers?.();
+  const response = await (opts.fetch ?? fetch)(`${opts.baseUrl ?? ""}/api/v1/guide/turns`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...headers },
     body: JSON.stringify(request),
   });
   if (!response.ok || !response.body) {

@@ -54,7 +54,7 @@ Rules:
 1. **Never mix server-only and client-safe exports in one barrel.** Server-only goes in `server/index.ts`, which starts with `import "server-only"`.
 2. **Inside a module, use relative imports** (`./service`, `../schemas`) — never import your own barrel (causes cycles).
 3. **Across modules, use the barrel** (`@/features/auth`, `@/lib`), never a deep path like `@/features/auth/components/sign-in-form`.
-4. **Exceptions — environment entry points:** `@/lib/supabase/{client,server,admin,proxy}`, `@/lib/payments` and `@/config/env.server` are imported directly. They're intentionally separate so the wrong client can't be pulled into the wrong runtime.
+4. **Exceptions — environment entry points:** `@/lib/supabase/{client,server,admin,proxy,stateless,request-scope}`, `@/lib/payments` and `@/config/env.server` are imported directly. They're intentionally separate so the wrong client can't be pulled into the wrong runtime.
 5. Prefer `export *` for files you fully own; use named re-exports (`export { a, b } from`) when you want to hide internals (e.g. `server/actions`).
 6. After `pnpm dlx shadcn add <x>` (run in `apps/web`), add `export * from "./<x>";` to `apps/web/src/components/ui/index.ts`.
 8. **Core modules.** Web feature barrels re-export pure code with `export * from "@jarso/core/<m>"`. Import core by subpath (`@jarso/core/goals`), never a file inside it. Each core module's `index.ts` is its public API; inside core, use relative imports and obey the layers (`lib`/`config` < leaves < composites; upward imports fail Biome).

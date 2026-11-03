@@ -1,0 +1,19 @@
+# Ask Jarso a question. Needs the guide switched on for the test family.
+appId: app.jarso.mobile
+---
+- runFlow: sign-in.yaml
+- tapOn: "Jarso"
+# First visit shows the intro card before the chat.
+- runFlow:
+    when:
+      visible: "Before we start"
+    commands:
+      - tapOn: "Got it"
+- tapOn: "Chat with Jarso"
+- inputText: "What is a budget?"
+- hideKeyboard
+- tapOn: "Ask"
+# The rating row only appears under a finished reply.
+- extendedWaitUntil:
+    visible: "Helpful"
+    timeout: 90000

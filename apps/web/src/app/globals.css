@@ -46,6 +46,13 @@
   --color-gold-foreground: var(--gold-foreground);
   --color-gold-text: var(--gold-text);
   --color-ink-2: var(--ink-2);
+  --color-tint-teal: var(--tint-teal);
+  --color-tint-gold: var(--tint-gold);
+  --color-tint-cyan: var(--tint-cyan);
+  --color-tint-grape: var(--tint-grape);
+  --color-ai: var(--ai);
+  --color-ai-foreground: var(--ai-foreground);
+  --color-ai-text: var(--ai-text);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -254,6 +261,25 @@
   }
   70% {
     rotate: 4deg;
+  }
+}
+
+/* Jarso's corner buddy floats gently, and its sparkles twinkle. */
+@keyframes buddy-bob {
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+@keyframes buddy-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+  50% {
+    opacity: 0.35;
+    scale: 0.6;
   }
 }
 

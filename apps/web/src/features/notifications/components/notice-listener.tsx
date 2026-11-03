@@ -1,6 +1,6 @@
 "use client";
 
-import { noticeText } from "@jarso/core/notifications";
+import { inboxCopy, noticeText } from "@jarso/core/notifications";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -38,7 +38,7 @@ export function NoticeListener({ userId, viewer, currency }: NoticeListenerProps
         refresh();
         if (change.type !== "new") return;
         const { title } = noticeText(change.notice, viewer, currency);
-        toast(title, { action: { label: "Open", onClick: () => router.push(inbox) } });
+        toast(title, { action: { label: inboxCopy.open, onClick: () => router.push(inbox) } });
       },
       (isConnected) => {
         if (isConnected && !connected) refresh();

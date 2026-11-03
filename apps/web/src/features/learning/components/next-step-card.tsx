@@ -1,4 +1,4 @@
-import type { NextStep } from "@jarso/core/learning";
+import { describeStep, NEXT_STEP_EYEBROW, type NextStep } from "@jarso/core/learning";
 import { ArrowRightIcon, GraduationCapIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -6,66 +6,34 @@ import { CoachSays } from "@/components/brand";
 import { Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 
-function describeStep(step: NextStep): { heading: string; body: string; href: Route; cta: string } {
+/** Where each next step leads on the web. */
+function hrefFor(step: NextStep): Route {
   switch (step.kind) {
     case "resume":
-      return {
-        heading: "Halfway there. Keep going.",
-        body: `Pick up "${step.title}" where you left off.`,
-        href: routes.childMission(step.missionKey),
-        cta: "Continue",
-      };
-    case "check-in":
-      return {
-        heading: "Five quick questions. Then your first mission.",
-        body: "They help pick where you start. Nothing is locked.",
-        href: routes.childCheckIn,
-        cta: "Start",
-      };
-    case "comeback":
-      return {
-        heading: "Welcome back. One quick question?",
-        body: "A fresh example of something you learned. About a minute.",
-        href: routes.childWeekQuestion,
-        cta: "Let's go",
-      };
-    case "practice":
-      return {
-        heading: "Practice time. About a minute.",
-        body:
-          step.count === 1
-            ? "One skill is ready for a quick review."
-            : `${step.count} skills are ready for a quick review.`,
-        href: routes.childPractice,
-        cta: "Practise",
-      };
     case "mission":
-      return {
-        heading: `Day ${step.day}. ${step.title}`,
-        body: "Two or three minutes. Hints are free.",
-        href: routes.childMission(step.missionKey),
-        cta: "Start mission",
-      };
+      return routes.childMission(step.missionKey);
+    case "check-in":
+      return routes.childCheckIn;
+    case "comeback":
+      return routes.childWeekQuestion;
+    case "practice":
+      return routes.childPractice;
     case "done":
-      return {
-        heading: "Journey done. Nicely learned.",
-        body: "Practice comes back when a skill is due, so it stays fresh.",
-        href: routes.childLearn,
-        cta: "See your skills",
-      };
+      return routes.childLearn;
   }
 }
 
 /** The first thing on the child's Home (design.md §5, FR12): one clear next step, a coach beside it. */
 export function NextStepCard({ step }: { step: NextStep }) {
-  const { heading, body, href, cta } = describeStep(step);
+  const { title: heading, body, cta } = describeStep(step);
+  const href = hrefFor(step);
   return (
     <Card className="shadow-raised">
       <CardContent>
         <section aria-labelledby="next-step-heading" className="grid gap-3">
           <p className="eyebrow flex items-center gap-2">
             <GraduationCapIcon aria-hidden className="size-4" />
-            Next step
+            {NEXT_STEP_EYEBROW}
           </p>
           <h2 id="next-step-heading" className="text-balance text-h3">
             {heading}

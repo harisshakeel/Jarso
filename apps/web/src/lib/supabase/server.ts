@@ -4,12 +4,18 @@ import { cookies } from "next/headers";
 import { clientEnv } from "@/config/env.client";
 import type { Database } from "@/types";
 import { supabaseFetch } from "../timed-fetch";
+import { currentScope } from "./request-scope";
 
 /**
  * Supabase client for Server Components, Server Actions and Route Handlers.
  * Runs as the signed-in user (RLS applies). Create per request — never cache globally.
+ * Inside a bearer scope (an `/api/v1` route with `bearer: true`) it is the scope's client, acting
+ * as the token's user, and cookies are never read.
  */
 export async function createClient() {
+  const scope = currentScope();
+  if (scope) return scope.client;
+
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
