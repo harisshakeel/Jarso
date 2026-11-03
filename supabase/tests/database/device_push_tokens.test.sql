@@ -80,7 +80,10 @@ select tests.clear_auth();
 
 set local role service_role;
 select results_eq(
-  $$ select token from public.device_push_tokens_for(array[:'pa'::uuid, :'pb'::uuid]) order by token $$,
+  format(
+    $$ select token from public.device_push_tokens_for(array[%L::uuid, %L::uuid]) order by token $$,
+    :'pa', :'pb'
+  ),
   $$ select 'ExponentPushToken[many-' || i || ']' from generate_series(3, 12) as i order by 1 $$,
   'device_push_tokens_for returns exactly the recipients'' 10 tokens'
 );
