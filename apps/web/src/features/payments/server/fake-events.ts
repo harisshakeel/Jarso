@@ -11,6 +11,8 @@ export function fakeEventFor(input: {
   mode: "payment" | "setup";
   ref: string;
   outcome: "pay" | "fail" | "ok" | "decline";
+  /** The ref the fake adapter gave the payment; defaults to its hosted checkout's. */
+  providerRef?: string;
 }): ProviderEvent {
   const eventId = randomUUID();
   if (input.mode === "payment") {
@@ -18,8 +20,7 @@ export function fakeEventFor(input: {
       kind: "payment",
       eventId,
       paymentId: input.ref,
-      // The ref the fake adapter gave this checkout in createHostedPayment.
-      providerRef: `fake_cs_${input.ref}`,
+      providerRef: input.providerRef ?? `fake_cs_${input.ref}`,
       ...(input.outcome === "pay"
         ? { status: "succeeded" as const }
         : { status: "failed" as const, failureCode: "declined" as const }),

@@ -244,6 +244,31 @@ describe("startInAppPayment", () => {
     expect(repo.insertPayment).not.toHaveBeenCalled();
   });
 
+  it("does not let a co-parent cancel the payer's sheet from another provider", async () => {
+    on = [otherProvider(), provider];
+    vi.mocked(repo.findLivePayment).mockResolvedValue(liveInApp({ payerId: "parent-2" }));
+    const cancel = vi.spyOn(provider, "cancelInAppPayment");
+    await rejects(payInApp({ provider: "stripe" }), "CONFLICT", paymentCopy.inProgress);
+    expect(repo.cancelPayment).not.toHaveBeenCalled();
+    expect(cancel).not.toHaveBeenCalled();
+  });
+
+  it("does not let a co-parent's hosted checkout cancel the payer's sheet", async () => {
+    vi.mocked(repo.findLivePayment).mockResolvedValue(liveInApp({ payerId: "parent-2" }));
+    await rejects(
+      service.startCardPayment({
+        kind: "allowance",
+        id: occurrenceId,
+        provider: "fake",
+        cashMinor: 1000,
+        savedMinor: 0,
+      }),
+      "CONFLICT",
+      paymentCopy.inProgress,
+    );
+    expect(repo.cancelPayment).not.toHaveBeenCalled();
+  });
+
   it("expires a past-window in-app payment, cancels its intent, and starts a new one", async () => {
     vi.mocked(repo.findLivePayment).mockResolvedValue(
       liveInApp({ expiresAt: new Date(NOW.getTime() - MIN).toISOString() }),
@@ -401,6 +426,12 @@ describe("getPaymentStatus", () => {
   it("answers NOT_FOUND for a payment the caller cannot read", async () => {
     vi.mocked(repo.findPaymentById).mockResolvedValue(null);
     await rejects(service.getPaymentStatus(PAYMENT_ID), "NOT_FOUND", "We couldn't find that.");
+  });
+
+  it("answers NOT_FOUND when payments are off", async () => {
+    on = [];
+    await rejects(service.getPaymentStatus(PAYMENT_ID), "NOT_FOUND");
+    expect(repo.findPaymentById).not.toHaveBeenCalled();
   });
 
   it("refuses a child", async () => {
@@ -590,7 +621,12 @@ describe("completeFakeInApp", () => {
     expect(repo.findPaymentById).toHaveBeenCalledWith(USER, PAYMENT_ID);
     expect(webhooks.handleProviderEvent).toHaveBeenCalledWith(
       "fake",
-      expect.objectContaining({ kind: "payment", paymentId: PAYMENT_ID, status: "succeeded" }),
+      expect.objectContaining({
+        kind: "payment",
+        paymentId: PAYMENT_ID,
+        providerRef: `fake_pi_${PAYMENT_ID}`,
+        status: "succeeded",
+      }),
     );
   });
 

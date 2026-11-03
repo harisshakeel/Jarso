@@ -497,11 +497,12 @@ async function reuseLive(
   }
   const ready = live.trigger === "manual" ? reusable(live) : null;
   if (ready) {
+    // Another parent's sheet is theirs alone: never reused, never cancelled from here.
+    if (ready.kind === "in_app" && live.payerId !== payerId) {
+      throw new AppError("CONFLICT", paymentCopy.inProgress);
+    }
     const sameChannel = (ready.kind === "in_app") === (channel === "in_app");
     if (live.provider === providerId && sameChannel) {
-      if (ready.kind === "in_app" && live.payerId !== payerId) {
-        throw new AppError("CONFLICT", paymentCopy.inProgress);
-      }
       await setPendingSplit(admin, live.id, split);
       return ready;
     }
@@ -860,6 +861,7 @@ const NOT_FOUND = "We couldn't find that.";
  * hourly sweep. Parent only; another family's payment is NOT_FOUND (RLS hides it).
  */
 export async function getPaymentStatus(paymentId: string): Promise<PaymentStatusView> {
+  if (!paymentsEnabled()) throw new AppError("NOT_FOUND", paymentCopy.off);
   await assertRole("parent");
   const db = await createClient();
   let row = await findPaymentById(db, paymentId);
@@ -948,12 +950,14 @@ export async function completeFakeInApp(input: FakeInAppCompleteInput): Promise<
     if (row?.provider !== "fake" || row.payerId !== user.id) {
       throw new AppError("FORBIDDEN", FORBIDDEN);
     }
-  } else {
-    // Read through RLS: a parent sees only their own setups.
-    const setup = await findSetupForWebhook(db, input.ref);
-    if (setup?.provider !== "fake" || setup.parentId !== user.id) {
-      throw new AppError("FORBIDDEN", FORBIDDEN);
-    }
+    const providerRef = row.providerRef ?? undefined;
+    await handleProviderEvent("fake", fakeEventFor({ ...input, providerRef }));
+    return;
+  }
+  // Read through RLS: a parent sees only their own setups.
+  const setup = await findSetupForWebhook(db, input.ref);
+  if (setup?.provider !== "fake" || setup.parentId !== user.id) {
+    throw new AppError("FORBIDDEN", FORBIDDEN);
   }
   await handleProviderEvent("fake", fakeEventFor(input));
 }
