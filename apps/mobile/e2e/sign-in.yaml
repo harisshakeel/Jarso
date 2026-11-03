@@ -4,6 +4,25 @@
 appId: app.jarso.mobile
 ---
 - launchApp
+- extendedWaitUntil:
+    visible: "Family code|I'm a child|Your family|Spent something\\?"
+    timeout: 20000
+# A parent session left by a parent flow: clear the app so the sign-in screen shows.
+- runFlow:
+    when:
+      visible: "Your family"
+    commands:
+      - launchApp:
+          clearState: true
+      - extendedWaitUntil:
+          visible: "I'm a child"
+          timeout: 20000
+# The sign-in screen keeps the last choice: pick the child form if the parent one shows.
+- runFlow:
+    when:
+      visible: "Email"
+    commands:
+      - tapOn: "I'm a child"
 - runFlow:
     when:
       visible: "Family code"

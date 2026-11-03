@@ -1,0 +1,24 @@
+# Hand over a due allowance in cash from "Needs you" on Family. Needs the test parent to have an
+# allowance due for a child (an allowance whose day has come and not been handed over yet).
+#   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... e2e/parent-cash-handover.yaml
+appId: app.jarso.mobile
+---
+- runFlow: parent-sign-in.yaml
+- scrollUntilVisible:
+    element:
+      text: "Hand over allowance to .*"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    text: "Hand over allowance to .*"
+    index: 0
+# The sheet fills Spend and Save from last time; confirming it records the cash.
+- extendedWaitUntil:
+    visible: "Confirm I handed it over"
+    timeout: 15000
+- tapOn: "Confirm I handed it over"
+# Done, the sheet closes back to Family.
+- extendedWaitUntil:
+    visible: "Your family"
+    timeout: 15000
+- assertNotVisible: "Confirm I handed it over"

@@ -1,0 +1,35 @@
+# The test child asks for extra, then the parent approves it from "Needs you" on Family.
+# Needs both the child vars (sign-in.yaml) and the parent vars (parent-sign-in.yaml), for a child
+# in the parent's family:
+#   maestro test -e CHILD_FAMILY_CODE=... -e CHILD_NICKNAME=... -e CHILD_PIN=...
+#     -e PARENT_EMAIL=... -e PARENT_PASSWORD=... e2e/parent-approve-request.yaml
+appId: app.jarso.mobile
+---
+- evalScript: ${output.reason = 'Book ' + Math.floor(Math.random() * 100000)}
+# The child asks (an ask for extra always waits for a parent, whatever the family's rules).
+- runFlow: sign-in.yaml
+- tapOn: "Ask for extra"
+- tapOn: "Amount"
+- inputText: "1"
+- hideKeyboard
+- tapOn: "What's it for?"
+- inputText: ${output.reason}
+- hideKeyboard
+- tapOn: "Ask"
+- tapOn: "Done"
+# parent-sign-in.yaml clears the child's session, then the parent decides.
+- runFlow: parent-sign-in.yaml
+- scrollUntilVisible:
+    element:
+      text: "${CHILD_NICKNAME} asks for .* extra: ${output.reason}"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    text: "Approve"
+    below:
+      text: "${CHILD_NICKNAME} asks for .* extra: ${output.reason}"
+    index: 0
+# Approved, the row turns into the handover: "Hand over … extra to {nickname}".
+- extendedWaitUntil:
+    visible: "Hand over .* extra to ${CHILD_NICKNAME}"
+    timeout: 15000
