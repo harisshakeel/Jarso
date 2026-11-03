@@ -112,14 +112,12 @@ export function GoalStaircase({ goal, progress, currency, size = "full" }: GoalS
       </View>
       <Text
         className={
-          size === "full" ? "text-center font-sans-bold text-lg" : "text-center font-sans-bold"
+          size === "full" ? "text-center font-sans-bold text-h3" : "text-center font-sans-bold"
         }
       >
         {goalLine(progress, money)}
       </Text>
-      {caption ? (
-        <Text className="text-center text-muted-foreground text-sm">{caption}</Text>
-      ) : null}
+      {caption ? <Text className="text-center text-muted-foreground">{caption}</Text> : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={goalCopy.staircase.amountsSummary}
@@ -127,12 +125,12 @@ export function GoalStaircase({ goal, progress, currency, size = "full" }: GoalS
         onPress={() => setShowAmounts((open) => !open)}
         className="min-h-11 justify-center rounded-full px-3"
       >
-        <Text className="font-sans-bold text-muted-foreground text-sm">
+        <Text className="font-sans-bold text-muted-foreground text-small">
           {goalCopy.staircase.amountsSummary}
         </Text>
       </Pressable>
       {showAmounts ? (
-        <Text className="text-center text-muted-foreground text-sm">
+        <Text className="text-center text-muted-foreground">
           {goalCopy.staircase.amounts(
             money(progress.countedMinor),
             money(progress.remainingMinor),

@@ -312,7 +312,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
   if (stage === "intro" && intro) {
     return (
       <View className="gap-4 rounded-2xl bg-card p-5">
-        <Text className="font-sans-bold text-muted-foreground text-sm uppercase">
+        <Text className="font-sans-bold text-muted-foreground text-caption uppercase">
           {intro.eyebrow}
         </Text>
         <Text accessibilityRole="header" className="font-sans-extrabold text-h2">
@@ -470,7 +470,7 @@ function SavedOnDevice({ userId }: { userId: string }) {
   return (
     <View className="flex-row items-center gap-1.5">
       <HourglassIcon size={16} color={tokens["muted-foreground"]} />
-      <Text className="text-muted-foreground text-sm">{playerCopy.savedOnDevice}</Text>
+      <Text className="text-muted-foreground">{playerCopy.savedOnDevice}</Text>
     </View>
   );
 }
@@ -480,7 +480,7 @@ function ProblemText({ problem }: { problem: Problem | null }) {
   return problem.calm ? (
     <Text
       accessibilityLiveRegion="polite"
-      className="rounded-lg bg-muted px-3.5 py-2.5 text-muted-foreground text-sm"
+      className="rounded-lg bg-muted px-3.5 py-2.5 text-muted-foreground"
     >
       {problem.text}
     </Text>
@@ -524,11 +524,13 @@ function InfoView({
 }) {
   return (
     <View className="gap-4 rounded-2xl bg-card p-5">
-      <Text className="font-sans-bold text-muted-foreground text-sm uppercase">{position}</Text>
+      <Text className="font-sans-bold text-muted-foreground text-caption uppercase">
+        {position}
+      </Text>
       <Text accessibilityRole="header" className="font-sans-extrabold text-h2">
         {step.title ?? playerCopy.infoTitle}
       </Text>
-      <Text className="text-lg">{renderText(step.body, currency)}</Text>
+      <Text>{renderText(step.body, currency)}</Text>
       {step.example ? (
         <Text className="rounded-xl bg-secondary p-4 font-sans-semibold text-secondary-foreground">
           {renderText(step.example, currency)}
@@ -644,8 +646,10 @@ function StepView({
         </CoachBubble>
 
         <View className="gap-2 rounded-2xl border-[6px] border-gold-800 bg-teal-950 p-4">
-          <Text className="font-sans-semibold text-sm text-teal-200 uppercase">{position}</Text>
-          <Text accessibilityRole="header" className="font-sans-extrabold text-2xl text-teal-50">
+          <Text className="font-sans-semibold text-caption text-teal-200 uppercase">
+            {position}
+          </Text>
+          <Text accessibilityRole="header" className="font-sans-extrabold text-h1 text-teal-50">
             {renderText(body.prompt, currency)}
           </Text>
           {body.type === "predict" ? (
@@ -722,7 +726,7 @@ function CoachBubble({
   const line = checkIn ? coach.says.checkIn : hints.length > 0 ? coach.says.hint : coach.says.idle;
   return (
     <View className="gap-1">
-      <Text className="font-sans-semibold text-muted-foreground text-sm">{coach.name}</Text>
+      <Text className="font-sans-semibold text-muted-foreground text-small">{coach.name}</Text>
       <View className="gap-2 rounded-2xl rounded-bl-sm bg-secondary p-4">
         {!children || hints.length > 0 ? (
           <Text className="font-sans-semibold text-secondary-foreground">{line}</Text>
@@ -773,7 +777,7 @@ function Feedback({
         )}
         <Text
           accessibilityRole="header"
-          className={cn("font-sans-bold text-lg", outcome.correct && "text-teal-800")}
+          className={cn("font-sans-bold text-h3", outcome.correct && "text-teal-800")}
         >
           {heading}
         </Text>

@@ -91,9 +91,7 @@ function PendingLine({ item, currency }: { item: OutboxItem; currency: string })
       </View>
       {item.status === "needs_look" ? (
         <>
-          <Text className="text-muted-foreground text-sm">
-            {item.message ?? offlineCopy.refused}
-          </Text>
+          <Text className="text-muted-foreground">{item.message ?? offlineCopy.refused}</Text>
           <View className="flex-row flex-wrap gap-2">
             <Button
               variant="outline"
@@ -120,18 +118,12 @@ function PendingLine({ item, currency }: { item: OutboxItem; currency: string })
             </Button>
           </View>
           {note ? (
-            <Text
-              accessibilityLiveRegion="polite"
-              className="rounded-lg bg-muted px-3.5 py-2.5 text-sm"
-            >
+            <Text accessibilityLiveRegion="polite" className="rounded-lg bg-muted px-3.5 py-2.5">
               {note}
             </Text>
           ) : null}
           {asked ? (
-            <Text
-              accessibilityLiveRegion="polite"
-              className="rounded-lg bg-muted px-3.5 py-2.5 text-sm"
-            >
+            <Text accessibilityLiveRegion="polite" className="rounded-lg bg-muted px-3.5 py-2.5">
               {pendingCopy.askAParentNote}
             </Text>
           ) : null}
@@ -141,9 +133,7 @@ function PendingLine({ item, currency }: { item: OutboxItem; currency: string })
           <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <HourglassIcon size={16} color={tokens["muted-foreground"]} />
           </View>
-          <Text className="min-w-0 flex-1 text-muted-foreground text-sm">
-            {offlineCopy.waiting}
-          </Text>
+          <Text className="min-w-0 flex-1 text-muted-foreground">{offlineCopy.waiting}</Text>
         </View>
       )}
     </View>

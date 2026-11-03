@@ -96,7 +96,7 @@ function NumberInput({ body, draft, onChange, currency, disabled, idBase }: Inpu
           <Text
             accessibilityElementsHidden
             importantForAccessibility="no"
-            className="font-sans-bold text-muted-foreground text-xl"
+            className="font-sans-bold text-muted-foreground text-money"
           >
             {symbol}
           </Text>
@@ -110,7 +110,7 @@ function NumberInput({ body, draft, onChange, currency, disabled, idBase }: Inpu
           keyboardType={money ? "decimal-pad" : "number-pad"}
           autoComplete="off"
           placeholder={placeholder}
-          className="h-14 w-40 font-sans-bold text-xl"
+          className="h-14 w-40 font-sans-bold text-money"
         />
         {body.suffix ? (
           <Text className="font-sans-semibold text-muted-foreground">{body.suffix}</Text>
@@ -133,12 +133,12 @@ function SplitInput({ body, draft, onChange, currency, disabled }: InputProps<"s
     <View className="gap-4">
       <View accessibilityLiveRegion="polite" className="flex-row gap-3">
         <View className="flex-1 rounded-xl bg-secondary p-3">
-          <Text className="font-sans-semibold text-sm">{inputCopy.spend}</Text>
-          <Text className="font-sans-extrabold text-2xl">{money(spend)}</Text>
+          <Text className="font-sans-semibold">{inputCopy.spend}</Text>
+          <Text className="font-sans-extrabold text-money-l">{money(spend)}</Text>
         </View>
         <View className="flex-1 rounded-xl bg-accent p-3">
-          <Text className="font-sans-semibold text-sm">{inputCopy.save}</Text>
-          <Text className="font-sans-extrabold text-2xl">{money(draft.save)}</Text>
+          <Text className="font-sans-semibold">{inputCopy.save}</Text>
+          <Text className="font-sans-extrabold text-money-l">{money(draft.save)}</Text>
         </View>
       </View>
       <Text className="font-sans-semibold">{inputCopy.splitLabelStepper}</Text>
@@ -165,8 +165,8 @@ function SplitInput({ body, draft, onChange, currency, disabled }: InputProps<"s
           <Text>−</Text>
         </Button>
         <View className="flex-1 flex-row justify-between">
-          <Text className="text-muted-foreground text-sm">{inputCopy.allSpend}</Text>
-          <Text className="text-muted-foreground text-sm">{inputCopy.allSave}</Text>
+          <Text className="text-muted-foreground">{inputCopy.allSpend}</Text>
+          <Text className="text-muted-foreground">{inputCopy.allSave}</Text>
         </View>
         <Button
           variant="outline"
@@ -235,7 +235,7 @@ function MatchInput({ body, draft, onChange, currency, disabled, idBase }: Input
           className="gap-2"
         >
           <Text className="font-sans-bold">{pair.term}</Text>
-          <Text className="text-muted-foreground text-sm">{inputCopy.chooseMeaning}</Text>
+          <Text className="text-muted-foreground">{inputCopy.chooseMeaning}</Text>
           {meanings.map((meaning) => (
             <Radio
               key={meaning.id}

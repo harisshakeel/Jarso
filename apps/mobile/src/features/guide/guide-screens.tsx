@@ -75,7 +75,7 @@ function ChatList() {
             {guideCopy.name}
           </Text>
         </View>
-        <Text className="text-muted-foreground text-sm">{guideCopy.disclosure}</Text>
+        <Text className="text-muted-foreground">{guideCopy.disclosure}</Text>
         <Button
           size="lg"
           accessibilityLabel={guideUi.newChat}
@@ -121,7 +121,7 @@ function ChatList() {
                   <Text numberOfLines={1} className="font-sans-semibold">
                     {title}
                   </Text>
-                  <Text className="text-muted-foreground text-xs">{day}</Text>
+                  <Text className="text-muted-foreground text-small">{day}</Text>
                 </Pressable>
               );
             })}

@@ -12,9 +12,9 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Button, Text } from "@/components/ui";
+import { Button, Text, useBodySizeClass } from "@/components/ui";
 import { useSession } from "@/features/auth";
-import { useTokens } from "@/lib";
+import { cn, useTokens } from "@/lib";
 import { keys } from "@/lib/query";
 import { GuideIntro } from "./intro";
 import { GuideBubble } from "./reply";
@@ -56,6 +56,7 @@ export function GuideThread({
   variant = "page",
 }: GuideThreadProps) {
   const tokens = useTokens();
+  const bodyClass = useBodySizeClass();
   const queryClient = useQueryClient();
   const { userId } = useSession();
   const turn = useSendTurn();
@@ -133,7 +134,7 @@ export function GuideThread({
   if (!introSeen) {
     return (
       <ScrollView contentContainerClassName="gap-4 p-4">
-        <Text className="text-muted-foreground text-sm">{guideCopy.disclosure}</Text>
+        <Text className="text-muted-foreground">{guideCopy.disclosure}</Text>
         <GuideIntro
           onDone={() => {
             if (userId) introAcknowledged.add(userId);
@@ -159,7 +160,7 @@ export function GuideThread({
         keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}
       >
-        <Text className="text-muted-foreground text-sm">{guideCopy.disclosure}</Text>
+        <Text className="text-muted-foreground">{guideCopy.disclosure}</Text>
         {messages.length > 0 || sending ? (
           <View
             accessibilityLabel={sheet ? guideUi.sheetChatLabel : guideUi.chatLabel}
@@ -222,10 +223,13 @@ export function GuideThread({
               multiline
               placeholder={sheet ? guideCopy.placeholder : guideCopy.homePlaceholder}
               placeholderTextColor={tokens["muted-foreground"]}
-              className="min-h-14 rounded-xl border border-input bg-card px-3 py-2 font-sans text-base text-foreground"
+              className={cn(
+                "min-h-14 rounded-xl border border-input bg-card px-3 py-2 font-sans text-foreground",
+                bodyClass,
+              )}
             />
             <View className="flex-row items-center justify-between gap-3">
-              <Text className="text-muted-foreground text-sm">
+              <Text className="text-muted-foreground">
                 {`${guideUi.count(text.length, MAX_MESSAGE_LENGTH)}${
                   turnsLeft !== null && turnsLeft <= 3 ? guideUi.turnsLeft(turnsLeft) : ""
                 }`}

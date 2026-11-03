@@ -80,5 +80,7 @@ export function EndCard({
 
 /** The small grey label over a page's heading. */
 export function Eyebrow({ children }: { children: string }) {
-  return <Text className="font-sans-bold text-muted-foreground text-sm uppercase">{children}</Text>;
+  return (
+    <Text className="font-sans-bold text-muted-foreground text-caption uppercase">{children}</Text>
+  );
 }

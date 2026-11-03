@@ -75,12 +75,12 @@ function InboxItem({
         </Text>
         <Text
           numberOfLines={notice.kind === "parent_note" ? undefined : 1}
-          className="text-muted-foreground text-sm"
+          className="text-muted-foreground"
         >
           {detail}
         </Text>
       </View>
-      <Text className="text-muted-foreground text-xs">{ago}</Text>
+      <Text className="text-muted-foreground text-small">{ago}</Text>
       <ChevronRightIcon size={20} color={tokens["muted-foreground"]} />
     </Pressable>
   );
@@ -104,7 +104,7 @@ export function InboxList({
         <View key={group.label} accessibilityLabel={group.label} className="gap-2">
           <Text
             accessibilityRole="header"
-            className="font-sans-bold text-muted-foreground text-sm uppercase"
+            className="font-sans-bold text-muted-foreground text-caption uppercase"
           >
             {group.label}
           </Text>

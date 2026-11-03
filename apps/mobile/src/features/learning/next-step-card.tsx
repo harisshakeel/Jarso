@@ -33,7 +33,7 @@ export function NextStepCard({ step }: { step: NextStep }) {
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <GraduationCapIcon size={16} color={tokens["muted-foreground"]} />
         </View>
-        <Text className="font-sans-bold text-muted-foreground text-sm uppercase">
+        <Text className="font-sans-bold text-muted-foreground text-caption uppercase">
           {NEXT_STEP_EYEBROW}
         </Text>
       </View>

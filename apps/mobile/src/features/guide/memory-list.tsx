@@ -25,7 +25,7 @@ export function MemoryList() {
           {guideCopy.memories.title}
         </Text>
       </View>
-      <Text className="text-muted-foreground text-sm">{guideCopy.memories.intro}</Text>
+      <Text className="text-muted-foreground">{guideCopy.memories.intro}</Text>
       {list.length === 0 ? (
         <Text className="text-muted-foreground">{guideCopy.memories.empty}</Text>
       ) : (
@@ -47,7 +47,7 @@ function MemoryRow({ memory }: { memory: Memory }) {
     <View className="gap-1 rounded-xl border border-border px-4 py-3">
       <View className="flex-row items-center justify-between gap-3">
         <Text className="flex-1">
-          <Text className="text-muted-foreground text-sm">
+          <Text className="text-muted-foreground">
             {`${guideCopy.memories.kinds[memory.kind]}: `}
           </Text>
           {memory.text}
@@ -70,7 +70,7 @@ function MemoryRow({ memory }: { memory: Memory }) {
         </Button>
       </View>
       {forget.error ? (
-        <Text accessibilityRole="alert" className="text-destructive text-sm">
+        <Text accessibilityRole="alert" className="text-destructive">
           {toUserMessage(forget.error)}
         </Text>
       ) : null}

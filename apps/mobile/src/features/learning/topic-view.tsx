@@ -10,7 +10,7 @@ export function TopicView({ topic, currency }: { topic: Topic; currency: string 
   const shown = more ? topic.explanation : topic.explanation.slice(0, 2);
   return (
     <View className="gap-5">
-      <Text className="text-lg text-muted-foreground">{renderText(topic.intro, currency)}</Text>
+      <Text className="text-muted-foreground">{renderText(topic.intro, currency)}</Text>
       <View className="gap-3">
         {shown.map((paragraph) => (
           <Text key={paragraph}>{renderText(paragraph, currency)}</Text>

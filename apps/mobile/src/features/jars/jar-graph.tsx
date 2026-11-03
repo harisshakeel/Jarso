@@ -123,7 +123,9 @@ export function JarGraph({ jars, context }: { jars: Jars; context: FamilyContext
               onPress={() => setDays(option.days)}
               className={cn("min-h-11 justify-center rounded-full px-3", checked && "bg-card")}
             >
-              <Text className={cn("font-sans-bold text-sm", !checked && "text-muted-foreground")}>
+              <Text
+                className={cn("font-sans-bold text-small", !checked && "text-muted-foreground")}
+              >
                 {option.label}
               </Text>
             </Pressable>
@@ -134,7 +136,7 @@ export function JarGraph({ jars, context }: { jars: Jars; context: FamilyContext
         {series.map((s) => (
           <View key={s.key} className="flex-row items-center gap-2">
             <View className="h-1.5 w-5 rounded-full" style={{ backgroundColor: s.color }} />
-            <Text className="font-sans-bold text-sm">{s.name}</Text>
+            <Text className="font-sans-bold text-small">{s.name}</Text>
           </View>
         ))}
       </View>
@@ -223,14 +225,16 @@ export function JarGraph({ jars, context }: { jars: Jars; context: FamilyContext
         onPress={() => setNumbers((open) => !open)}
         className="min-h-11 justify-center self-start"
       >
-        <Text className="font-sans-bold text-muted-foreground text-sm">{graphCopy.seeNumbers}</Text>
+        <Text className="font-sans-bold text-muted-foreground text-small">
+          {graphCopy.seeNumbers}
+        </Text>
       </Pressable>
       {numbers ? (
         <View className="gap-1">
           {points
             .filter((p, index) => moved.has(p.date) || index === last)
             .map((p) => (
-              <Text key={p.date} className="text-sm">
+              <Text key={p.date}>
                 {`${showDate(p.date)} · ${graphCopy.spend} ${money(p.spend)} · ${graphCopy.save} ${money(p.save)}`}
               </Text>
             ))}

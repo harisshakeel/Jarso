@@ -91,7 +91,7 @@ export function PredictStep({
             </Text>
             {explainOutcome(outcome, goal.name, money)}
           </Text>
-          <Text className="text-muted-foreground text-sm">{goalCopy.predict.tryAnother}</Text>
+          <Text className="text-muted-foreground">{goalCopy.predict.tryAnother}</Text>
           <View
             accessible
             accessibilityRole="adjustable"
@@ -106,14 +106,14 @@ export function PredictStep({
             <Button variant="outline" size="icon" onPress={() => nudge(-step)}>
               <Text>−</Text>
             </Button>
-            <Text className="font-sans-extrabold text-lg">{money(current)}</Text>
+            <Text className="font-sans-extrabold text-money">{money(current)}</Text>
             <Button variant="outline" size="icon" onPress={() => nudge(step)}>
               <Text>+</Text>
             </Button>
           </View>
           {tried && tryMinor !== null ? (
             <View className="gap-2">
-              <Text className="text-sm">
+              <Text>
                 <Text className="font-sans-bold">{money(tryMinor)}</Text>
                 {`: ${explainOutcome(tried, goal.name, money)}`}
               </Text>

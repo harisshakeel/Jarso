@@ -51,7 +51,7 @@ export function HomeStepCard({ currency, timezone }: { currency: string; timezon
   if (step.kind === "learning") return <NextStepCard step={step.step} />;
   return (
     <View className="gap-3 rounded-2xl border border-border bg-card p-4">
-      <Text className="font-sans-bold text-muted-foreground text-sm uppercase">
+      <Text className="font-sans-bold text-muted-foreground text-caption uppercase">
         {step.kind === "goal-reached" ? goalCopy.home.goalReachedEyebrow : goalCopy.home.doThisNext}
       </Text>
       <StepBody step={step} currency={currency} />

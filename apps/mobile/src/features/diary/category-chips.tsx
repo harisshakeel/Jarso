@@ -32,7 +32,7 @@ export function CategoryChips({ options, value, onChange, legend }: CategoryChip
                 checked && "border-transparent bg-secondary",
               )}
             >
-              <Text accessibilityElementsHidden importantForAccessibility="no" className="text-xl">
+              <Text accessibilityElementsHidden importantForAccessibility="no" className="text-h2">
                 {option.emoji}
               </Text>
               <Text className={cn("font-sans-bold", checked && "text-secondary-foreground")}>

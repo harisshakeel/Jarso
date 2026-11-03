@@ -1,3 +1,4 @@
+import { mobileFontSize } from "@jarso/brand/tokens";
 import { Tabs } from "expo-router/js-tabs";
 import {
   GraduationCapIcon,
@@ -41,7 +42,11 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: { height: 68 + bottom, paddingTop: 8, paddingBottom: bottom + 8 },
         tabBarIconStyle: { marginBottom: 2 },
-        tabBarLabelStyle: { fontFamily: "Nunito_600SemiBold", fontSize: 12, lineHeight: 16 },
+        tabBarLabelStyle: {
+          fontFamily: "Nunito_600SemiBold",
+          fontSize: mobileFontSize.caption.size,
+          lineHeight: mobileFontSize.caption.lineHeight,
+        },
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: icon(HomeIcon) }} />

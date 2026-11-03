@@ -44,7 +44,7 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
       {reply.lookedAt.length > 0 ? (
         <View className="flex-row items-center gap-1.5">
           <ScanSearchIcon size={16} color={tokens["muted-foreground"]} />
-          <Text className="flex-1 text-muted-foreground text-sm">
+          <Text className="flex-1 text-muted-foreground">
             {guideUi.lookedAt(reply.lookedAt.join(", "))}
           </Text>
         </View>
@@ -52,7 +52,7 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
       {reply.remembered.length > 0 ? (
         <View className="flex-row items-center gap-1.5">
           <BrainIcon size={16} color={tokens["muted-foreground"]} />
-          <Text className="flex-1 text-muted-foreground text-sm">
+          <Text className="flex-1 text-muted-foreground">
             {`${guideCopy.remembered} ${reply.remembered.join("; ")}`}
           </Text>
         </View>
@@ -72,7 +72,7 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
                   {line.name}
                 </Text>
               </Pressable>
-              <Text className="text-secondary-foreground text-sm">{line.contact}</Text>
+              <Text className="text-secondary-foreground">{line.contact}</Text>
             </View>
           ))}
         </View>

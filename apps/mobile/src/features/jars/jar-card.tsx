@@ -46,9 +46,9 @@ export function JarCard({ jar, name, amount, caption, share, notes = [] }: JarCa
         {name}
       </Text>
       <Text className="font-sans-extrabold text-money-l">{amount}</Text>
-      <Text className="text-center text-muted-foreground text-sm">{caption}</Text>
+      <Text className="text-center text-muted-foreground">{caption}</Text>
       {notes.map((note) => (
-        <Text key={note} className="text-center text-muted-foreground text-sm">
+        <Text key={note} className="text-center text-muted-foreground">
           {note}
         </Text>
       ))}

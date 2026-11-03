@@ -37,6 +37,20 @@ module.exports = {
   content: ["./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   presets: [require("nativewind/preset")],
   theme: {
+    // The phone type scale replaces Tailwind's sizes, so text-sm, text-2xl... do not exist.
+    fontSize: Object.fromEntries(
+      Object.entries(mobileFontSize).map(([key, { size, ...rest }]) => [
+        key,
+        [
+          `${size}px`,
+          {
+            ...(rest.lineHeight ? { lineHeight: `${rest.lineHeight}px` } : {}),
+            ...(rest.letterSpacing ? { letterSpacing: `${rest.letterSpacing}px` } : {}),
+            ...(rest.fontWeight ? { fontWeight: String(rest.fontWeight) } : {}),
+          },
+        ],
+      ]),
+    ),
     extend: {
       colors: mergeColors(),
       borderRadius: {
@@ -56,19 +70,6 @@ module.exports = {
         "sans-extrabold": [`${sans}_800ExtraBold`],
         mono: ["GeistMono_400Regular"],
       },
-      fontSize: Object.fromEntries(
-        Object.entries(mobileFontSize).map(([key, { size, ...rest }]) => [
-          key,
-          [
-            `${size}px`,
-            {
-              ...(rest.lineHeight ? { lineHeight: `${rest.lineHeight}px` } : {}),
-              ...(rest.letterSpacing ? { letterSpacing: `${rest.letterSpacing}px` } : {}),
-              ...(rest.fontWeight ? { fontWeight: String(rest.fontWeight) } : {}),
-            },
-          ],
-        ]),
-      ),
     },
   },
   plugins: [

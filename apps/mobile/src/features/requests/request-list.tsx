@@ -126,7 +126,9 @@ function RequestRow({
       <View className="flex-row items-center gap-3">
         <Text className="min-w-0 flex-1 font-sans-bold">{what}</Text>
         <Text className="font-sans-bold">{amount}</Text>
-        <Text className={cn("rounded-full px-3 py-1 text-sm font-sans-bold", CHIP[request.status])}>
+        <Text
+          className={cn("rounded-full px-3 py-1 text-caption font-sans-bold", CHIP[request.status])}
+        >
           {label}
         </Text>
       </View>

@@ -30,9 +30,9 @@ function Field({ label, description, errors, ...input }: FieldProps) {
         className={error ? "border-destructive" : undefined}
         {...input}
       />
-      {description ? <Text className="text-sm text-muted-foreground">{description}</Text> : null}
+      {description ? <Text className="text-muted-foreground">{description}</Text> : null}
       {error ? (
-        <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
+        <Text accessibilityLiveRegion="polite" className="text-destructive">
           {error}
         </Text>
       ) : null}

@@ -10,7 +10,7 @@ export function AiChip() {
   return (
     <View className="flex-row items-center gap-1 self-start rounded-full bg-cyan-100 px-2 py-0.5">
       <BotIcon size={14} color={tokens["ai-text"]} />
-      <Text className="font-sans-semibold text-cyan-700 text-xs">{guideCopy.label}</Text>
+      <Text className="font-sans-semibold text-cyan-700 text-caption">{guideCopy.label}</Text>
     </View>
   );
 }

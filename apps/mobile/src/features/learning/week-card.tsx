@@ -19,7 +19,7 @@ export function WeekCard({ review, currency }: { review: WeeklyReview; currency:
       <View className="gap-1">
         <View className="flex-row items-center gap-2">
           <CalendarCheckIcon size={16} color={tokens["muted-foreground"]} />
-          <Text className="font-sans-bold text-muted-foreground text-sm uppercase">
+          <Text className="font-sans-bold text-muted-foreground text-caption uppercase">
             {weekCopy.range(weekDay(week.weekStart), weekDay(week.weekEnd))}
           </Text>
         </View>
@@ -28,7 +28,7 @@ export function WeekCard({ review, currency }: { review: WeeklyReview; currency:
         </Text>
       </View>
 
-      <Text className="text-lg">{weekSentence(week, money)}</Text>
+      <Text>{weekSentence(week, money)}</Text>
       {topCategory ? (
         <Text className="text-muted-foreground">{weekCopy.mostWentOn(topCategory.label)}</Text>
       ) : null}
@@ -58,7 +58,7 @@ export function WeekCard({ review, currency }: { review: WeeklyReview; currency:
         <View className="gap-1 rounded-xl bg-secondary p-4">
           <Text
             accessibilityRole="header"
-            className="font-sans-bold text-secondary-foreground text-sm uppercase"
+            className="font-sans-bold text-secondary-foreground text-caption uppercase"
           >
             {weekCopy.oneDecision}
           </Text>
@@ -72,7 +72,7 @@ export function WeekCard({ review, currency }: { review: WeeklyReview; currency:
       <View className="gap-2">
         <Text
           accessibilityRole="header"
-          className="font-sans-bold text-muted-foreground text-sm uppercase"
+          className="font-sans-bold text-muted-foreground text-caption uppercase"
         >
           {weekCopy.learning}
         </Text>

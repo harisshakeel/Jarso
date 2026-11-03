@@ -27,7 +27,7 @@ export function DiaryScreen() {
             {diaryCopy.heading}
           </Text>
           {jars && context ? (
-            <Text accessibilityLabel={diaryCopy.spendJarLabel} className="text-lg">
+            <Text accessibilityLabel={diaryCopy.spendJarLabel}>
               {`${diaryCopy.youHave} ${formatMoney(jars.spend, context.currency, { showMinor: "nonzero" })} ${diaryCopy.inSpend}`}
             </Text>
           ) : null}
