@@ -4,16 +4,22 @@ import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { AllowanceLine, runningSchedule } from "@/features/allowance";
-import { getFamilyContext, getSchedule, listDueForChild } from "@/features/allowance/server";
+import {
+  getFamilyContext,
+  getSchedule,
+  getTodaysAllowance,
+  listDueForChild,
+} from "@/features/allowance/server";
 import { PendingPurchases, PurchaseSheet } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
 import { GoalCard } from "@/features/goals";
 import { getGoalView } from "@/features/goals/server";
+import { allowancePlan } from "@/features/guide";
 import { chooseHomeStep, HomeStepCard } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { JarGraph, JarShelf } from "@/features/ledger";
 import { getBalanceHistory } from "@/features/ledger/server";
-import { takeOutLimit } from "@/features/requests";
+import { AllowancePlanCard, takeOutLimit } from "@/features/requests";
 import { getAvailability, listRequests } from "@/features/requests/server";
 import { getChildRules } from "@/features/rules/server";
 import { fallback, logger } from "@/lib";
@@ -55,6 +61,9 @@ async function ChildHome() {
             <PurchaseSheet currency={family.currency} userId={user.id} variant="keycap-gold" />
             <AllowanceLine schedule={schedule} currency={family.currency} />
           </div>
+          <Suspense fallback={null}>
+            <HomePlan childId={user.id} currency={family.currency} />
+          </Suspense>
         </div>
         <div className="grid gap-6 lg:col-span-2 xl:order-2 xl:col-span-1">
           <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
@@ -127,6 +136,53 @@ async function HomeStep({
   } catch (error) {
     unstable_rethrow(error);
     logger.warn("Next step unavailable on child home", { error: errorName(error) });
+    return null;
+  }
+}
+
+/**
+ * Jarso's plan for today's pocket money: shown only on the day an allowance lands, until the
+ * child takes or dismisses it. The split is worked out in code. Nice to have: it hides itself
+ * if anything it needs can't load.
+ */
+async function HomePlan({ childId, currency }: { childId: string; currency: string }) {
+  try {
+    const today = await getTodaysAllowance(childId);
+    if (!today) return null;
+    const [availability, goal, rules] = await Promise.all([
+      getAvailability(childId),
+      fallback(getGoalView(childId), null, "Goal on the allowance plan"),
+      fallback(getChildRules(childId), null, "Rules on the allowance plan"),
+    ]);
+    const openGoal = goal && !goal.progress.reached ? goal : null;
+    const plan = allowancePlan({
+      cashMinor: today.cashMinor,
+      savedMinor: today.savedMinor,
+      availableSpendMinor: availability.availableSpendMinor,
+      currency,
+      goal: openGoal
+        ? {
+            name: openGoal.goal.name,
+            planMinor: openGoal.goal.planMinor,
+            remainingMinor: openGoal.progress.remainingMinor,
+          }
+        : null,
+    });
+    // A decided plan still renders the card (which then shows only a choice just made on it).
+    if (!plan && !today.planDecided) return null;
+    return (
+      <AllowancePlanCard
+        occurrenceId={today.occurrenceId}
+        plan={plan}
+        decided={today.planDecided}
+        goalName={openGoal?.goal.name ?? null}
+        currency={currency}
+        movesWithoutAsking={rules?.jarMovesApproval === "notify"}
+      />
+    );
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Allowance plan unavailable on child home", { error: errorName(error) });
     return null;
   }
 }

@@ -1,9 +1,11 @@
 "use server";
 
 import {
+  allowancePlanSchema,
   completeSchema,
   decideSchema,
   depositSchema,
+  dismissPlanSchema,
   emergencySchema,
   rejectDepositSchema,
   requestIdSchema,
@@ -14,12 +16,14 @@ import { getFamilyContext } from "@/features/allowance/server";
 import { pushAfterNotices } from "@/features/notifications/server";
 import { createAction } from "@/lib";
 import {
+  acceptAllowancePlan,
   cancelRequest,
   completeRequest,
   createDeposit,
   createEmergency,
   createWithdrawal,
   decideWithdrawal,
+  dismissAllowancePlan,
   rejectDeposit,
 } from "./service";
 
@@ -52,6 +56,18 @@ export const createDepositAction = createAction(
     return result;
   },
 );
+
+export const acceptAllowancePlanAction = createAction(allowancePlanSchema, async (input) => {
+  const result = await acceptAllowancePlan(input);
+  pushAfterNotices();
+  refresh();
+  return result;
+});
+
+export const dismissAllowancePlanAction = createAction(dismissPlanSchema, async (input) => {
+  await dismissAllowancePlan(input);
+  refresh();
+});
 
 export const decideWithdrawalAction = createAction(decideSchema, async (input) => {
   const result = await decideWithdrawal(input);
