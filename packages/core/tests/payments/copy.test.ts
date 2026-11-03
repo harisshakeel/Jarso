@@ -23,3 +23,21 @@ describe("paymentCopy.savedCardTitle", () => {
     expect(paymentCopy.savedCardTitle([empty("stripe"), empty("razorpay")])).toBe("Saved cards");
   });
 });
+
+describe("paymentCopy for the phone's card sheet", () => {
+  it("has the exact strings the phone shows", () => {
+    expect(paymentCopy).toMatchObject({
+      confirming: "Checking the payment…",
+      stillConfirming: "Still confirming with the bank. The jars update as soon as it's through.",
+      payAgain: "Pay again",
+      cancelPayment: "Cancel card payment",
+      cancelled: "Card payment cancelled.",
+      fakeTitle: "Test card (dev build)",
+      fakeDetail: "No card is charged. Pick what the card does.",
+      fakePay: "Pay",
+      fakeDecline: "Decline",
+      fakeSaveOk: "Save a card that works",
+      fakeSaveDecline: "Save a card that declines",
+    });
+  });
+});

@@ -159,3 +159,52 @@ describe.each([fake, stripe, razorpay])("payment provider contract: $name", (ada
     });
   });
 });
+
+describe.each([fake])("payment provider contract, in-app: $name", (adapter) => {
+  const provider = adapter.make();
+
+  it("has a native sheet", () => {
+    expect(provider.inApp).toBe(true);
+  });
+
+  it("creates an in-app payment", async () => {
+    const result = await provider.createInAppPayment({
+      paymentId: "pay-c",
+      amountMinor: 1000,
+      currency: adapter.currency,
+      customerRef: "cus_c",
+      description: "Pocket money",
+      expiresAt: new Date(Date.now() + 3_600_000),
+    });
+    expect(result.providerRef).not.toBe("");
+    expect(result.sheet.mode).toBe("payment");
+    expect(result.sheet.provider).toBe(provider.id);
+  });
+
+  it("resumes an in-app payment with a sheet for the same provider", async () => {
+    const sheet = await provider.resumeInAppPayment({
+      paymentId: "pay-c",
+      providerRef: "ref_c",
+      customerRef: "cus_c",
+      amountMinor: 1000,
+      currency: adapter.currency,
+      description: "Pocket money",
+    });
+    expect(sheet.provider).toBe(provider.id);
+    expect(sheet.mode).toBe("payment");
+  });
+
+  it("cancels an in-app payment", async () => {
+    await expect(provider.cancelInAppPayment("ref_c")).resolves.toBeUndefined();
+  });
+
+  it("creates an in-app setup", async () => {
+    const result = await provider.createInAppSetup({
+      setupId: "set-c",
+      customerRef: "cus_c",
+      contact: { email: "parent@example.com", phone: "+919876543210" },
+    });
+    expect(result.providerRef).not.toBe("");
+    expect(result.sheet.mode).toBe("setup");
+  });
+});

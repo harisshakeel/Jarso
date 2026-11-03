@@ -400,6 +400,24 @@ export function createRazorpayPaymentProvider(opts: {
       }
     },
 
+    inApp: false,
+
+    async createInAppPayment() {
+      throw unavailable();
+    },
+
+    async resumeInAppPayment() {
+      throw unavailable();
+    },
+
+    async cancelInAppPayment() {
+      throw unavailable();
+    },
+
+    async createInAppSetup() {
+      throw unavailable();
+    },
+
     async parseWebhook(rawBody, headers) {
       if (!validSignature(rawBody, headers.get(RAZORPAY_SIGNATURE_HEADER), opts.webhookSecret)) {
         throw new AppError("VALIDATION", "Invalid webhook signature.");

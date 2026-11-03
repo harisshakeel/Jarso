@@ -154,6 +154,24 @@ export function createStripePaymentProvider(opts: {
       }
     },
 
+    inApp: false,
+
+    async createInAppPayment() {
+      throw unavailable(null);
+    },
+
+    async resumeInAppPayment() {
+      throw unavailable(null);
+    },
+
+    async cancelInAppPayment() {
+      throw unavailable(null);
+    },
+
+    async createInAppSetup() {
+      throw unavailable(null);
+    },
+
     async parseWebhook(rawBody, headers) {
       const signature = headers.get("stripe-signature");
       let event: Stripe.Event;
