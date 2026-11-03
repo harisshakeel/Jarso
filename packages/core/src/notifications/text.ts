@@ -178,6 +178,12 @@ export function noticeText(
         detail: text(detail, 200) ?? "Take a look.",
       };
     }
+    case "parent_note": {
+      const note = typeof notice.payload.text === "string" ? notice.payload.text : "";
+      return role === "child"
+        ? { title: "A note from your parent", detail: note }
+        : { title: `Your note to ${name}`, detail: note };
+    }
     default:
       return { title: "Something new", detail: "Take a look." };
   }

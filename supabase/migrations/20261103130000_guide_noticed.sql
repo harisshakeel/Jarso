@@ -45,15 +45,16 @@ alter table public.notifications add constraint notifications_kind_check check (
   'card_charge_failed',
   'money_received', 'entry_corrected',
   'jar_moved',
+  'parent_note',
   'guide_noticed'
 ));
 
 alter table public.notifications drop constraint notifications_source_type_check;
 alter table public.notifications add constraint notifications_source_type_check
-  check (source_type in ('ledger_entry', 'request', 'allowance_occurrence', 'payment', 'guide_noticed'));
+  check (source_type in ('ledger_entry', 'request', 'allowance_occurrence', 'payment', 'note', 'guide_noticed'));
 
 comment on column public.notifications.source_id is
-  'Originating ledger entry, request, allowance occurrence, payment or guide_noticed run; polymorphic, no FK.';
+  'Originating ledger entry, request, allowance occurrence, payment or guide_noticed run; for a parent_note, the parent who wrote it. Polymorphic, no FK.';
 
 -- ---------------------------------------------------------------------------
 -- guide_noticed_inputs: the plain inputs the app's signal code reads, one row per child

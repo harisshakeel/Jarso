@@ -223,4 +223,18 @@ describe("noticeText", () => {
       noticeText({ ...n, payload: { title: "x".repeat(300) } }, "child", "GBP").title,
     ).toHaveLength(140);
   });
+
+  it("parent_note shows the child their parent's note in full", () => {
+    const n = {
+      ...base,
+      kind: "parent_note" as const,
+      sourceType: "note" as const,
+      payload: { text: "Great saving this week! 🎉" },
+    };
+    expect(noticeText(n, "child", "GBP")).toEqual({
+      title: "A note from your parent",
+      detail: "Great saving this week! 🎉",
+    });
+    expect(noticeText({ ...n, payload: {} }, "child", "GBP").detail).toBe("");
+  });
 });

@@ -1367,6 +1367,9 @@ isOneToOne: false
 "save_goal":
 { Args: { "p_emoji": string,"p_name": string,"p_plan_minor": number,"p_target_minor": number }; Returns: string
                            },
+"send_child_note":
+{ Args: { "p_child_id": string,"p_idempotency_key": string,"p_text": string }; Returns: string
+                           },
 "send_handover_reminders":
 { Args: { "p_now"?: string }; Returns: number
                            },

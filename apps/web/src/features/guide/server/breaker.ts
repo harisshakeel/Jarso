@@ -34,3 +34,6 @@ export class CircuitBreaker {
 }
 
 export const guideBreaker = new CircuitBreaker();
+
+/** The parent dashboard's summary has its own, so a slow summary never pauses a child's chat. */
+export const summaryBreaker = new CircuitBreaker();

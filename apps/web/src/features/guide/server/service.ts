@@ -1,13 +1,30 @@
 import "server-only";
+import { checkSummary, type SummaryFacts } from "@jarso/core/dashboard";
 import type {
+  AcceptGoalProposal,
+  AcceptGoalProposalResult,
   AskGuideResult,
   ConversationSummary,
   GuideContextRef,
   GuideState,
+  PhotoPriceResult,
   TranscriptMessage,
 } from "@jarso/core/guide";
-import { guideCopy, MAX_TURNS } from "@jarso/core/guide";
+import {
+  guideCopy,
+  isOtherCurrency,
+  MAX_TURNS,
+  makeGoalProposal,
+  priceQuestion,
+  proposalFromStored,
+  readPrice,
+  splitDataUrl,
+  tidyPhotoLabel,
+} from "@jarso/core/guide";
+import { cacheLife } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { helplinesFor } from "@/config";
+import { getSchedule } from "@/features/allowance/server";
 import { assertUser } from "@/features/auth/server";
 import {
   assertParentCanRead,
@@ -17,13 +34,14 @@ import {
   getFamily,
   listChildren,
 } from "@/features/family/server";
+import { archiveGoal, getGoalView, saveGoal } from "@/features/goals/server";
 import { topicTitles } from "@/features/learning";
-import { AppError, familyToday, isAppError, logger } from "@/lib";
+import { AppError, familyToday, formatMoney, isAppError, logger } from "@/lib";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { guideBreaker } from "./breaker";
+import { guideBreaker, summaryBreaker } from "./breaker";
 import { budgetSpent } from "./budget";
-import { getGuideProvider, guideProviderName } from "./config";
+import { getGuideProvider, getPriceReader, getSummaryWriter, guideProviderName } from "./config";
 import { type BuiltContext, buildContext } from "./context";
 import { zeroUsage } from "./cost";
 import { deleteMemory, listMemories } from "./memory";
@@ -32,7 +50,7 @@ import { GUIDE_PROMPT_VERSION } from "./prompts";
 import type { GuideProvider, Turn } from "./provider";
 import * as repo from "./repository";
 import type { ToolName } from "./tool-specs";
-import { createTurnTools } from "./tools";
+import { cleanLabel, createTurnTools, savingPlan } from "./tools";
 
 /** Spec §5.2: 5 messages a minute and 30 a day per child. */
 const PER_MINUTE = 5;
@@ -99,7 +117,9 @@ async function storedTurn(
   if (!reply || reply.role === "child" || !reply.route) {
     throw new AppError("INTERNAL", "Failed to load the chat");
   }
-  const family = reply.route === "safety" ? await getFamily() : null;
+  // A goal card comes back only with a reply that was shown.
+  const offered = reply.role === "guide" && reply.route === "on_topic" ? reply.proposed : null;
+  const family = reply.route === "safety" || offered ? await getFamily() : null;
   const turns = messages.filter((message) => message.role === "child").length;
   return {
     conversationId: turn.conversationId,
@@ -110,9 +130,10 @@ async function storedTurn(
       route: reply.route,
       topics: [],
       check: null,
-      helplines: family ? helplinesFor(family.currency) : [],
+      helplines: family && reply.route === "safety" ? helplinesFor(family.currency) : [],
       lookedAt: lookedAt(reply.checked),
       remembered: [],
+      proposal: family && offered ? proposalFromStored(offered, family.currency) : null,
     },
     turnsLeft: Math.max(0, MAX_TURNS - turns),
   };
@@ -148,6 +169,8 @@ export type PreparedTurn =
       childId: string;
       /** The parent asking about the child, or null when the child asks. */
       askedBy: string | null;
+      /** The child's nickname when a parent asks, for the parent's action cards. */
+      childName?: string | null;
       family: { currency: string; timezone: string };
       provider: GuideProvider;
       context: BuiltContext;
@@ -242,6 +265,7 @@ export async function prepareGuideTurn(input: {
     kind: "ready",
     childId,
     askedBy,
+    ...(asker.parent ? { childName: asker.nickname } : {}),
     family: { currency: family.currency, timezone: family.timezone },
     provider,
     context,
@@ -277,11 +301,18 @@ export async function runGuideTurn(
         currency: family.currency,
         timezone: family.timezone,
         forParent: turn.askedBy !== null,
+        ...(turn.childName ? { childName: turn.childName } : {}),
       },
       onStatus,
     );
     result = await runGuidePipeline(
-      { text: turn.text, history: turn.history, context: turn.context.text, tools },
+      {
+        text: turn.text,
+        history: turn.history,
+        context: turn.context.text,
+        tools,
+        asker: turn.askedBy !== null ? "parent" : "child",
+      },
       provider,
       { onStatus },
     );
@@ -341,9 +372,212 @@ export async function runGuideTurn(
       helplines: result.route === "safety" ? helplinesFor(family.currency) : [],
       lookedAt: lookedAt(result.toolCalls.map((call) => call.name)),
       remembered: result.remembered,
+      proposal: result.proposal,
     },
     turnsLeft: Math.max(0, MAX_TURNS - (turn.turns + 1)),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Goal by chat and the photo price check (demo 3): Jarso offers, the child decides
+// ---------------------------------------------------------------------------
+
+/**
+ * The plan a goal can keep: at most the allowance (a schedule that isn't stopped), or the price
+ * without one, the same rules `save_goal` enforces. Null when there is none or it doesn't fit.
+ */
+async function planThatFits(
+  childId: string,
+  priceMinor: number,
+  planMinor: number | null,
+): Promise<number | null> {
+  if (!planMinor) return null;
+  const schedule = await getSchedule(childId);
+  const cap = schedule && schedule.status !== "stopped" ? schedule.amountMinor : priceMinor;
+  return planMinor <= cap ? planMinor : null;
+}
+
+/**
+ * The child tapped "Make it my goal" on a card Jarso offered. Saved through the goals service,
+ * as the child (RLS and `save_goal` apply). A child who already has a different goal is asked
+ * first; on "Swap it" the old goal is archived, as the goal sheet's "start a new goal" does, so
+ * the new goal starts fresh instead of taking over the old one's progress dates.
+ */
+export async function acceptGoalProposal(
+  input: AcceptGoalProposal,
+): Promise<AcceptGoalProposalResult> {
+  const { user } = await assertRole("child");
+  const current = await getGoalView(user.id);
+  const sameGoal =
+    !!current && current.goal.name.trim().toLowerCase() === input.title.trim().toLowerCase();
+  if (current && !sameGoal && !input.replace) {
+    return { status: "has_goal", existing: current.goal.name };
+  }
+  // Checked before anything changes, so a plan save_goal would refuse never costs the old goal.
+  const planMinor = await planThatFits(user.id, input.priceMinor, input.saveEachMinor);
+  if (current && !sameGoal) await archiveGoal(current.goal.id);
+  const goalId = await saveGoal({
+    name: input.title,
+    emoji: input.emoji,
+    targetMinor: input.priceMinor,
+    planMinor,
+  });
+  logger.info("Guide goal accepted", { replaced: !!current && !sameGoal });
+  return { status: "saved", goalId, planKept: planMinor === input.saveEachMinor };
+}
+
+/** The photo read's own deadline, inside the action's. */
+const PHOTO_DEADLINE_MS = 20_000;
+
+/** "headphones" → "Headphones", for a goal's name. */
+function asGoalName(label: string): string {
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/**
+ * The photo price check: reads the main price on a photo, then works out the child's plan in
+ * code and hands back a question for Jarso and a goal the child can make. Same switches, rate
+ * limits, budget and breaker as a chat turn, and a photo counts as one of the child's messages.
+ * The image goes to Claude once and is never stored or logged.
+ */
+export async function readPriceFromPhoto(image: string): Promise<PhotoPriceResult> {
+  const { user } = await assertRole("child");
+  const reader = getPriceReader();
+  if (!reader) throw new AppError("FORBIDDEN", guideCopy.switchedOff);
+  const db = await createClient();
+  if (!(await repo.findGuideAccess(db, user.id))) {
+    throw new AppError("FORBIDDEN", guideCopy.switchedOff);
+  }
+  const family = await getFamily();
+  if (!family) throw new AppError("FORBIDDEN", "You can't do that.");
+  const admin = createAdminClient();
+  if (!(await repo.hitRateLimit(admin, `guide:min:${user.id}`, "1 minute", PER_MINUTE))) {
+    throw new AppError("RATE_LIMITED", guideCopy.rateLimitedMinute);
+  }
+  if (!(await repo.hitRateLimit(admin, `guide:day:${user.id}`, "1 day", PER_DAY))) {
+    throw new AppError("RATE_LIMITED", guideCopy.rateLimitedDay);
+  }
+  if (guideBreaker.isOpen() || (reader.name === "anthropic" && (await budgetSpent()))) {
+    throw new AppError("UNAVAILABLE", guideCopy.routes.unavailable);
+  }
+
+  const { mediaType, data } = splitDataUrl(image);
+  let reading: unknown;
+  try {
+    const result = await reader.read({
+      mediaType,
+      data,
+      signal: AbortSignal.timeout(PHOTO_DEADLINE_MS),
+    });
+    guideBreaker.recordSuccess();
+    reading = result.reading;
+    // Tokens only: never the photo, the price or the label.
+    logger.info("Guide photo read", {
+      reader: reader.name,
+      read: reading !== null,
+      screenInput: result.usage.screenInput ?? 0,
+      screenOutput: result.usage.screenOutput ?? 0,
+    });
+  } catch (error) {
+    guideBreaker.recordFailure();
+    logger.warn("Guide photo read failed", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    throw new AppError("UNAVAILABLE", guideCopy.routes.unavailable, { cause: error });
+  }
+
+  const read = readPrice(reading, family.currency);
+  if (!read.found) return { found: false, reason: "no_price" };
+  if (isOtherCurrency(read.currency, family.currency)) {
+    return { found: false, reason: "other_currency" };
+  }
+  // The label skips the input screen until the child sends the question, so it gets the same
+  // clean-up as any label a person typed.
+  const tidy = tidyPhotoLabel(read.label);
+  const cleaned = tidy ? cleanLabel(tidy) : null;
+  const label = cleaned && cleaned !== "(label not shown)" ? cleaned : null;
+  // With a goal plan already set, "about how many allowances" uses it; otherwise the child says.
+  const current = await getGoalView(user.id).catch(() => null);
+  const eachMinor = current?.goal.planMinor ?? null;
+  const plan = await savingPlan(user.id, read.priceMinor, eachMinor);
+  const proposal = makeGoalProposal(
+    {
+      title: label ? asGoalName(label) : guideCopy.photo.untitled,
+      priceMinor: read.priceMinor,
+      saveEachMinor: eachMinor,
+      allowances: plan.allowances,
+    },
+    family.currency,
+  );
+  return {
+    found: true,
+    priceMinor: read.priceMinor,
+    price: formatMoney(read.priceMinor, family.currency, { showMinor: "nonzero" }),
+    label,
+    text: priceQuestion(read.priceMinor, label, family.currency),
+    allowances: plan.allowances,
+    proposal,
+  };
+}
+
+/** Summaries one parent may ask for in an hour; every dashboard view and filter is one. */
+const SUMMARIES_PER_HOUR = 30;
+const SUMMARY_DEADLINE_MS = 8_000;
+
+/**
+ * The family summary at the top of the parent's dashboard (spec answer 5): a sentence or two by
+ * Claude Haiku from the dashboard's own facts, checked before it is shown. Null whenever it
+ * can't be written (the guide off, the breaker open, the budget spent, too many in an hour, a
+ * failed call or a failed check): the dashboard reads fine without it, so this never throws.
+ * The same parent and facts can be answered from this server's memory for a few hours; on
+ * serverless that memory often doesn't outlive the instance, so the hourly limit is the real cap.
+ * Its tokens are logged, not yet added to the guide's budget totals.
+ */
+export async function writeFamilySummary(facts: SummaryFacts): Promise<string | null> {
+  const writer = getSummaryWriter();
+  if (!writer || facts.lines.length === 0) return null;
+  try {
+    // Inside the try: a parent whose profile is incomplete is refused here, and must still get
+    // the page (with its profile dialog), just without a summary.
+    const { user } = await assertRole("parent");
+    if (summaryBreaker.isOpen() || (writer.name === "anthropic" && (await budgetSpent()))) {
+      return null;
+    }
+    const text = await cachedFamilySummary(facts, user.id);
+    summaryBreaker.recordSuccess();
+    return text !== null && checkSummary(text, facts) ? text : null;
+  } catch (error) {
+    unstable_rethrow(error);
+    if (!isAppError(error)) summaryBreaker.recordFailure();
+    logger.warn("Family summary failed", {
+      error: error instanceof Error ? error.name : typeof error,
+    });
+    return null;
+  }
+}
+
+/**
+ * One summary per parent and set of facts (the cache key is both arguments). Only a cache miss
+ * reaches the rate limit and Claude, so reloading the same page never uses the hour up. Over the
+ * limit it throws, and a throw is never cached. Tokens only in the log.
+ */
+async function cachedFamilySummary(facts: SummaryFacts, parentId: string): Promise<string | null> {
+  "use cache";
+  cacheLife("hours");
+  const writer = getSummaryWriter();
+  if (!writer) return null;
+  const admin = createAdminClient();
+  if (!(await repo.hitRateLimit(admin, `summary:hour:${parentId}`, "1 hour", SUMMARIES_PER_HOUR))) {
+    throw new AppError("RATE_LIMITED", "Too many summaries this hour.");
+  }
+  const result = await writer.write({ facts, signal: AbortSignal.timeout(SUMMARY_DEADLINE_MS) });
+  logger.info("Family summary written", {
+    writer: writer.name,
+    written: result.text !== null,
+    screenInput: result.usage.screenInput ?? 0,
+    screenOutput: result.usage.screenOutput ?? 0,
+  });
+  return result.text;
 }
 
 /** One message to Jarso, without status lines (the step and topic sheets). */

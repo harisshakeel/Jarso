@@ -1,5 +1,5 @@
 import "server-only";
-import type { GuideUsage, ScreenRoute } from "@jarso/core/guide";
+import type { GuideProposal, GuideUsage, ScreenRoute } from "@jarso/core/guide";
 import { z } from "zod";
 import { topicKeys } from "@/features/learning";
 import type { Facts } from "./facts";
@@ -24,8 +24,16 @@ export interface Toolbox {
   run(name: string, input: unknown): Promise<{ content: string; isError: boolean }>;
 }
 
-/** A turn's toolbox as the pipeline holds it: it reads back what was looked up and kept. */
-export type TurnTools = Toolbox & { facts: Facts; calls: ToolCall[]; remembered: string[] };
+/**
+ * A turn's toolbox as the pipeline holds it: it reads back what was looked up and kept, and the
+ * goal or action Jarso offered (`propose_goal`, `propose_action`), if any.
+ */
+export type TurnTools = Toolbox & {
+  facts: Facts;
+  calls: ToolCall[];
+  remembered: string[];
+  proposal: GuideProposal | null;
+};
 
 export const mainReplySchema = z.object({
   reply: z.string(),
@@ -58,6 +66,7 @@ export const outputScreenSchema = z.object({
     "invented_figure",
     "off_topic",
     "reveals_answer_early",
+    "claims_action",
   ]),
   reason: z.string(),
 });
@@ -97,11 +106,20 @@ export function usageOf(error: unknown): Partial<GuideUsage> {
  * "refused"; output screen: not passed), never a throw. A throw means an infrastructure failure
  * (network, timeout, HTTP error) and feeds the circuit breaker.
  */
+/** Who wrote the message: the child, or a parent asking about their child. */
+export type Asker = "child" | "parent";
+
 export interface GuideProvider {
   readonly name: "anthropic" | "fake";
+  /**
+   * Routes the latest message. `asker` says who wrote it: the child about their own money, or a
+   * parent about their child (the parent's Jarso), which the screen must not read as someone
+   * asking about another person.
+   */
   screenInput(args: {
     text: string;
     history: Turn[];
+    asker: Asker;
     signal?: AbortSignal;
   }): Promise<{ route: ScreenRoute; usage: Partial<GuideUsage> }>;
   /** Answers, looking things up with `tools` for at most MAX_TOOL_ROUNDS rounds. */

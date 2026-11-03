@@ -9,6 +9,7 @@ export {
   listUnreadNotices,
   markRead,
   ownsPushEndpoint,
+  sendChildNote,
   subscribePush,
   unsubscribePush,
 } from "./service";

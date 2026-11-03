@@ -7,6 +7,7 @@ import {
   INPUT_SCREEN_PROMPT,
   NOTICE_PROMPT,
   OUTPUT_SCREEN_PROMPT,
+  PARENT_INPUT_SCREEN_PROMPT,
 } from "./prompts";
 import {
   type GuideProvider,
@@ -132,13 +133,13 @@ export function createAnthropicProvider(apiKey: string): GuideProvider {
   return {
     name: "anthropic",
 
-    async screenInput({ text, history, signal }) {
+    async screenInput({ text, history, asker, signal }) {
       const response = await parsed(() =>
         client.messages.parse(
           {
             model: SCREEN_MODEL,
             max_tokens: 1024,
-            system: INPUT_SCREEN_PROMPT,
+            system: asker === "parent" ? PARENT_INPUT_SCREEN_PROMPT : INPUT_SCREEN_PROMPT,
             messages: [{ role: "user", content: transcript(history, text) }],
             output_config: { effort: "low", format: zodOutputFormat(inputScreenSchema) },
           },

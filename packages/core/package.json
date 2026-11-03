@@ -25,6 +25,7 @@
     "./notifications": "./src/notifications/index.ts",
     "./guide": "./src/guide/index.ts",
     "./review": "./src/review/index.ts",
+    "./dashboard": "./src/dashboard/index.ts",
     "./offline": "./src/offline/index.ts"
   },
   "dependencies": {
