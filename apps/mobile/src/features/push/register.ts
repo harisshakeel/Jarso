@@ -76,19 +76,34 @@ export async function registerForPush(args: RegisterArgs): Promise<string | null
   }
 }
 
+/** How long sign-out waits for the server to forget the token (its hooks get 5 s in all). */
+export const UNREGISTER_BUDGET_MS = 3_000;
+
+/** Drops the phone's FCM registration: later sends fail as DeviceNotRegistered. Never throws. */
+export async function dropPhoneRegistration(): Promise<void> {
+  await Notifications.unregisterForNotificationsAsync().catch(() => {
+    logger.warn("Could not drop the phone's push registration");
+  });
+}
+
 /**
- * Forgets this phone's token before sign-out. If the server can't be told (offline), the phone
- * drops its FCM registration instead, so later sends fail as DeviceNotRegistered and the row is
- * cleaned up. Never throws.
+ * Forgets this phone's token before sign-out. If the server can't be told within the budget
+ * (offline, a hanging network), the phone drops its FCM registration instead, so later sends
+ * fail as DeviceNotRegistered and the row is cleaned up. Never throws.
  */
 export async function unregisterFromPush(token: string, userId?: string): Promise<void> {
   if (userId) await AsyncStorage.removeItem(tokenKey(userId)).catch(() => undefined);
-  try {
-    await apiFetch(TOKENS_PATH, { method: "DELETE", auth: true, body: { token } });
-  } catch {
-    logger.warn("Push unregister failed; dropping the phone's registration");
-    await Notifications.unregisterForNotificationsAsync().catch(() => {
-      logger.warn("Could not drop the phone's push registration");
-    });
-  }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deleted = apiFetch(TOKENS_PATH, { method: "DELETE", auth: true, body: { token } }).then(
+    () => true,
+    () => false,
+  );
+  const late = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => resolve(false), UNREGISTER_BUDGET_MS);
+  });
+  const ok = await Promise.race([deleted, late]);
+  clearTimeout(timer);
+  if (ok) return;
+  logger.warn("Push unregister failed; dropping the phone's registration");
+  await dropPhoneRegistration();
 }

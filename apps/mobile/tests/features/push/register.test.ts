@@ -182,6 +182,20 @@ describe("unregisterFromPush", () => {
     expect(Notifications.unregisterForNotificationsAsync).toHaveBeenCalledTimes(1);
   });
 
+  it("a DELETE that hangs past 3 s drops the phone's registration within the sign-out budget", async () => {
+    jest.useFakeTimers();
+    api.mockReturnValueOnce(new Promise(() => undefined));
+    let done = false;
+    const running = unregisterFromPush(TOKEN).then(() => {
+      done = true;
+    });
+    await jest.advanceTimersByTimeAsync(3_000);
+    await running;
+    expect(done).toBe(true);
+    expect(Notifications.unregisterForNotificationsAsync).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
+  });
+
   it("unregister never throws", async () => {
     api.mockRejectedValueOnce(new Error("offline"));
     (Notifications.unregisterForNotificationsAsync as jest.Mock).mockRejectedValueOnce(
@@ -230,6 +244,56 @@ describe("usePushRegistration", () => {
     await runBeforeSignOut();
     expect(api).not.toHaveBeenCalled();
     expect(mockRemoveTokenListener).toHaveBeenCalled();
+  });
+
+  it("sign-out drops a token registered in an earlier run when this run's POST failed", async () => {
+    await AsyncStorage.setItem("jarso-push-token:user-1", TOKEN);
+    api.mockRejectedValueOnce(new Error("offline"));
+    await renderHook(() => usePushRegistration());
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    api.mockReset().mockResolvedValue(true);
+    await runBeforeSignOut();
+    expect(api).toHaveBeenCalledWith("/api/v1/push/tokens", {
+      method: "DELETE",
+      auth: true,
+      body: { token: TOKEN },
+    });
+  });
+
+  it("sign-out drops a token registered from the settings page (stored, not in this hook)", async () => {
+    getPermissions.mockResolvedValue({ granted: false, status: "undetermined" });
+    await AsyncStorage.setItem("jarso-push-asked:user-1", "1");
+    await renderHook(() => usePushRegistration());
+    await AsyncStorage.setItem("jarso-push-token:user-1", TOKEN);
+    await runBeforeSignOut();
+    expect(api).toHaveBeenCalledWith("/api/v1/push/tokens", {
+      method: "DELETE",
+      auth: true,
+      body: { token: TOKEN },
+    });
+  });
+
+  it("sign-out waits for a registration still in flight, then drops its token", async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    api.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+    await renderHook(() => usePushRegistration());
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    const signingOut = runBeforeSignOut();
+    finish({ id: "row-1" });
+    await signingOut;
+    expect(api).toHaveBeenLastCalledWith("/api/v1/push/tokens", {
+      method: "DELETE",
+      auth: true,
+      body: { token: TOKEN },
+    });
+  });
+
+  it("no token known but notifications allowed: sign-out still drops the phone's registration", async () => {
+    api.mockRejectedValue(new Error("offline"));
+    await renderHook(() => usePushRegistration());
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    await runBeforeSignOut();
+    expect(Notifications.unregisterForNotificationsAsync).toHaveBeenCalledTimes(1);
   });
 
   it("does nothing while signed out", async () => {
