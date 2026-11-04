@@ -3,7 +3,7 @@
 import { guideCopy } from "@jarso/core/guide";
 import { useEffect, useState } from "react";
 import { JarsoEyes } from "@/components/brand";
-import { cn } from "@/lib";
+import { cn, playCoins } from "@/lib";
 import { useMotionAllowed } from "./motion";
 
 /** With no new line for this long, the bubble moves on to that step's funny lines. */
@@ -63,6 +63,10 @@ export function ThinkingBubble({
     const quiet = setTimeout(() => setStill(0), QUIET_MS);
     return () => clearTimeout(quiet);
   }, [status]);
+  // The jar fills while Jarso thinks: one clink of coins as it starts, not one per status line.
+  useEffect(() => {
+    if (motion) playCoins();
+  }, [motion]);
   useEffect(() => {
     if (still === null) return;
     const next = setTimeout(() => setStill((n) => (n ?? 0) + 1), ROTATE_MS);
