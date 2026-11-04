@@ -5,9 +5,9 @@ import { routes } from "@/config";
 import { SeriesDot } from "./series";
 
 /**
- * Home's one row of children (2026-11-04): a chip per child, in their colour, opening their
- * page, and "Add a child" at the end. One line tall, so Home stays on one screen; everything
- * about how a child is doing lives on Children.
+ * Home's one row of children (2026-11-04): a chip per child, in their colour and headed by
+ * their exact nickname, opening their page, and "Add a child" at the end. One line tall, so
+ * Home stays on one screen; everything about how a child is doing lives on Children.
  */
 export function ChildRow({ items }: { items: { id: string; nickname: string }[] }) {
   return (
@@ -20,7 +20,8 @@ export function ChildRow({ items }: { items: { id: string; nickname: string }[] 
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-card px-4 font-semibold hover:bg-muted"
             >
               <SeriesDot slot={slotFor(index)} />
-              {child.nickname}
+              {/* A heading per child, named exactly by the nickname, as the tile was. */}
+              <h3 className="font-semibold">{child.nickname}</h3>
             </Link>
           </li>
         ))}

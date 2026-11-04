@@ -16,6 +16,7 @@ describe("ChildRow", () => {
     );
     expect(screen.getByRole("link", { name: "Sam" })).toHaveAttribute("href", "/parent/children/a");
     expect(screen.getByRole("link", { name: "Mia" })).toHaveAttribute("href", "/parent/children/b");
+    expect(screen.getByRole("heading", { name: "Sam" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Add a child" })).toHaveAttribute(
       "href",
       "/parent/children/new",
