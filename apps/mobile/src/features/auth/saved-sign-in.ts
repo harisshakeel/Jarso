@@ -1,36 +1,48 @@
+import { type SignInInput, signInSchema } from "@jarso/core/auth";
 import { type ChildSignInInput, childSignInSchema } from "@jarso/core/family";
 import * as SecureStore from "expo-secure-store";
+import type { z } from "zod";
 import { logger } from "@/lib";
 
-// Opt-in "Remember me": the code, nickname and PIN sit in the OS keystore (Android Keystore,
-// iOS Keychain), next to the session tokens, which already grant more than the PIN does.
-const KEY = "jarso.saved-sign-in";
+// Opt-in "Remember me": the details sit in the OS keystore (Android Keystore, iOS Keychain),
+// next to the session tokens, which already grant as much as the saved details do.
 const OPTIONS: SecureStore.SecureStoreOptions = {
   keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
 };
 
-/** The details saved on this device, or null. Anything unreadable is dropped. */
-export async function loadSavedSignIn(): Promise<ChildSignInInput | null> {
-  try {
-    const raw = await SecureStore.getItemAsync(KEY, OPTIONS);
-    if (raw === null) return null;
-    const parsed = childSignInSchema.safeParse(JSON.parse(raw));
-    if (parsed.success) return parsed.data;
-  } catch {
-    // No error detail: a JSON parse message can quote the stored PIN.
-    logger.warn("Could not read the saved sign-in");
+function savedDetails<T>(key: string, schema: z.ZodType<T>) {
+  async function forget(): Promise<void> {
+    await SecureStore.deleteItemAsync(key, OPTIONS).catch(() => undefined);
   }
-  await forgetSignIn();
-  return null;
+  /** The details saved on this device, or null. Anything unreadable is dropped. */
+  async function load(): Promise<T | null> {
+    try {
+      const raw = await SecureStore.getItemAsync(key, OPTIONS);
+      if (raw === null) return null;
+      const parsed = schema.safeParse(JSON.parse(raw));
+      if (parsed.success) return parsed.data;
+    } catch {
+      // No error detail: a JSON parse message can quote the stored PIN or password.
+      logger.warn("Could not read the saved sign-in");
+    }
+    await forget();
+    return null;
+  }
+  async function save(input: T): Promise<void> {
+    await SecureStore.setItemAsync(key, JSON.stringify(input), OPTIONS);
+  }
+  return { load, save, forget };
 }
 
-export async function saveSignIn(input: ChildSignInInput): Promise<void> {
-  await SecureStore.setItemAsync(KEY, JSON.stringify(input), OPTIONS);
-}
+const child = savedDetails<ChildSignInInput>("jarso.saved-sign-in", childSignInSchema);
+export const loadSavedSignIn = child.load;
+export const saveSignIn = child.save;
+export const forgetSignIn = child.forget;
 
-export async function forgetSignIn(): Promise<void> {
-  await SecureStore.deleteItemAsync(KEY, OPTIONS).catch(() => undefined);
-}
+const parent = savedDetails<SignInInput>("jarso.saved-parent-sign-in", signInSchema);
+export const loadSavedParentSignIn = parent.load;
+export const saveParentSignIn = parent.save;
+export const forgetParentSignIn = parent.forget;
 
 export type SignInMode = "child" | "parent";
 
