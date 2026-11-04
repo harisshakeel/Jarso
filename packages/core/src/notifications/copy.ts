@@ -38,7 +38,24 @@ export const noticeGroupCopy = {
     notes: { label: "Notes from family", hint: "Short notes from your family." },
   },
   pause: { label: "Pause all", hint: "No pings on this phone until you turn them back on." },
+  /** The parent's footer line (their inbox). */
   inboxStillShows: "Notices still show in your inbox.",
+  /** The child's footer line (their inbox is News). */
+  newsStillShows: "Notices still show in News.",
+  /** The phone page's title, and its row in Settings / Me. */
+  title: "Notifications",
+  thisPhoneOnly: "For this phone only.",
+  /** A child's quiet hours: fixed, shown as information, never a switch. */
+  quietHours: {
+    label: "Quiet from 9pm to 7am.",
+    hint: "Pings that come at night wait until morning.",
+  },
+  permissionOff: {
+    title: "Notifications are off for Jarso on this phone.",
+    body: "Turn them on in the phone's settings to get pings.",
+    action: "Open phone settings",
+  },
+  notOn: { title: "Pings are off on this phone.", action: "Turn on" },
 } as const;
 
 /** The single push for a child's notices held overnight (count is always 2 or more). */

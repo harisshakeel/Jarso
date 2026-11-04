@@ -2,6 +2,7 @@ import { parentPageCopy } from "@jarso/core/dashboard";
 import { familySettingsCopy } from "@jarso/core/family";
 import { parentGuideCopy } from "@jarso/core/guide";
 import { parentLearningCopy } from "@jarso/core/learning";
+import { noticeGroupCopy } from "@jarso/core/notifications";
 import { rulesCopy } from "@jarso/core/rules";
 import { Redirect, Stack, useGlobalSearchParams, usePathname, useSegments } from "expo-router";
 import type { ComponentProps } from "react";
@@ -25,6 +26,7 @@ const SHEETS: string[] = ["children/[childId]/handover/[kind]/[id]"];
 /** Pages pushed over the tabs, with the native back button and the web's page title. */
 const PAGES: { name: string; title: string }[] = [
   { name: "settings", title: parentPageCopy.settings },
+  { name: "notifications", title: noticeGroupCopy.title },
   { name: "children/new", title: familySettingsCopy.addChild },
   { name: "invite", title: familySettingsCopy.acceptInvitation },
   // The hub sets its own title (the child's nickname) once the family has loaded.
