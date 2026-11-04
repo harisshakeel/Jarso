@@ -3,7 +3,7 @@ import { Text } from "@/components/ui";
 import { cn } from "@/lib";
 
 const tones = {
-  ok: "bg-tint-success",
+  ok: "bg-success-soft",
   warn: "bg-tint-gold",
   error: "bg-tint-danger",
 } as const;

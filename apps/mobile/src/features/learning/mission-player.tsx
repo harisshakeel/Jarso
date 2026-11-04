@@ -36,7 +36,7 @@ import {
   RotateCcwIcon,
 } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Eyebrow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { cn, isAppError, useTokens } from "@/lib";
@@ -436,24 +436,27 @@ export function MissionPlayer(props: MissionPlayerProps) {
   );
 }
 
+/** The screen's one keycap (design.md §6): teal, green after a right answer, gold to try again. */
 function PrimaryButton({
   label,
   pending,
   onPress,
+  variant = "keycap",
 }: {
   label: string;
   pending: boolean;
   onPress: () => void;
+  variant?: "keycap" | "keycap-success" | "keycap-gold";
 }) {
   return (
     <Button
+      variant={variant}
       size="lg"
       accessibilityLabel={label}
-      accessibilityState={{ busy: pending, disabled: pending }}
-      disabled={pending}
+      loading={pending}
       onPress={onPress}
     >
-      {pending ? <ActivityIndicator color="white" /> : <Text>{label}</Text>}
+      <Text>{label}</Text>
     </Button>
   );
 }
@@ -666,25 +669,29 @@ function StepView({
         <View className="gap-3">
           {!outcome ? (
             <Button
+              variant="keycap"
               size="lg"
               accessibilityLabel={checkIn ? playerCopy.next : playerCopy.check}
-              accessibilityState={{ disabled: !answer || saving, busy: saving }}
-              disabled={!answer || saving}
+              disabled={!answer}
+              loading={saving}
               onPress={check}
             >
-              {saving ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text>{checkIn ? playerCopy.next : playerCopy.check}</Text>
-              )}
+              <Text>{checkIn ? playerCopy.next : playerCopy.check}</Text>
             </Button>
           ) : outcome.final ? (
-            <PrimaryButton label={playerCopy.continue} pending={saving} onPress={continueOn} />
+            // Green once it's right, so the child knows they're done here (design.md §2.4).
+            <PrimaryButton
+              label={playerCopy.continue}
+              pending={saving}
+              onPress={continueOn}
+              variant={outcome.correct ? "keycap-success" : "keycap"}
+            />
           ) : (
             <PrimaryButton
               label={playerCopy.tryAgain}
               pending={false}
               onPress={() => setOutcome(null)}
+              variant="keycap-gold"
             />
           )}
           {!checkIn && !outcome?.final && hintsShown < hints.length ? (

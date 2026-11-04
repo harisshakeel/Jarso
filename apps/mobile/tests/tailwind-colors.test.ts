@@ -13,9 +13,10 @@ describe("tailwind colours", () => {
     expect(gold["300"]).toBe(palette.gold["300"]);
   });
 
-  it("adds the phone's payment note tints as scheme variables", () => {
-    expect(colors["tint-success"]).toBe("var(--tint-success)");
+  it("adds the phone's payment note tint as a scheme variable, and uses the brand's success", () => {
     expect(colors["tint-danger"]).toBe("var(--tint-danger)");
+    expect(colors["tint-success"]).toBeUndefined();
+    expect(colors["success-soft"]).toBe("var(--success-soft)");
   });
 
   it("resolves every colour class used in the app", () => {

@@ -6,11 +6,11 @@ const { hairlineWidth } = require("nativewind/theme");
 const plugin = require("tailwindcss/plugin");
 const { fontFamily, mobileFontSize, palette, radius, semantic } = require("@jarso/brand/tokens");
 
-// Phone-only tints for the card payment notes (wave 3 mockup F): the brand has a gold tint for
-// "in progress" but none for a payment that went through or didn't. Same keys in both schemes.
+// Phone-only tint for the card payment notes (wave 3 mockup F): a payment that didn't go through.
+// One that did uses the brand's success-soft, as on the web. Same key in both schemes.
 const phoneTints = {
-  light: { "tint-success": "#e8f5ee", "tint-danger": "#fdecec" },
-  dark: { "tint-success": "#123826", "tint-danger": "#3d1c1e" },
+  light: { "tint-danger": "#fdecec" },
+  dark: { "tint-danger": "#3d1c1e" },
 };
 
 const vars = (scheme) =>
