@@ -73,6 +73,16 @@ describe("app config", () => {
     expect(build({ EAS_BUILD_PROFILE: "development" })[1].android.usesCleartextTraffic).toBe(true);
   });
 
+  it("tells R8 Stripe's push-provisioning classes are absent on purpose", () => {
+    const [, options] = pluginNamed(
+      loadConfig({}).plugins as Plugin[],
+      "expo-build-properties",
+    ) as [string, { android: { extraProguardRules?: string } }];
+    expect(options.android.extraProguardRules).toContain(
+      "-dontwarn com.stripe.android.pushProvisioning.**",
+    );
+  });
+
   it("excludes play-services-tapandpay from every Gradle configuration, once", () => {
     const { excludeTapAndPay } = require("../app.config") as {
       excludeTapAndPay: (gradle: string) => string;

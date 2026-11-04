@@ -42,7 +42,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     plugins: [
       ...(base.plugins ?? []),
-      ["expo-build-properties", { android: { usesCleartextTraffic: allowCleartext } }],
+      [
+        "expo-build-properties",
+        {
+          android: {
+            usesCleartextTraffic: allowCleartext,
+            // stripe-react-native references its push-provisioning SDK, which it only compiles
+            // against (compileOnly). Jarso doesn't ship it, so R8 must not fail on the gap.
+            extraProguardRules: "-dontwarn com.stripe.android.pushProvisioning.**",
+          },
+        },
+      ],
     ],
   });
 };
