@@ -97,13 +97,18 @@ select public.notify_parents(:'c1'::uuid, 'limit_exceeded', 'ledger_entry', :'sr
 delete from public.notifications where recipient_id = :'pa'::uuid and kind = 'limit_exceeded';
 update public.family_members set status = 'removed' where profile_id = :'pb'::uuid;
 
+-- Claims run at midday UTC (the family's timezone), so the child's notices are never held by
+-- quiet hours whatever time CI runs (push_quiet_hours.test.sql covers the night).
 select results_eq(
-  $$ select recipient_role, currency, child_name, kind from public.claim_unpushed_notifications(10) order by recipient_role, kind $$,
+  $$ select recipient_role, currency, child_name, kind
+     from public.claim_unpushed_notifications(10, date_trunc('day', now() at time zone 'UTC') at time zone 'UTC' + interval '12 hours')
+     order by recipient_role, kind $$,
   $$ values ('child', 'GBP', 'Sam', 'withdrawal_decided'), ('parent', 'GBP', 'Sam', 'withdrawal_requested') $$,
   'claims the last day''s notices of approved members with role, currency and nickname'
 );
 select is((select count(*)::int from public.notifications where pushed_at is null), 3, 'the old notice and the removed parent''s two stay unclaimed');
-select is((select count(*)::int from public.claim_unpushed_notifications(10)), 0, 'a second claim finds nothing');
+select is((select count(*)::int from public.claim_unpushed_notifications(10, date_trunc('day', now() at time zone 'UTC') at time zone 'UTC' + interval '12 hours')), 0,
+  'a second claim finds nothing');
 select is((select count(distinct profile_id)::int from public.push_subscriptions_for(array[:'pa'::uuid, :'pb'::uuid])), 1,
   'push_subscriptions_for returns the subscribed recipients only');
 select is((select distinct profile_id from public.push_subscriptions_for(array[:'pa'::uuid, :'pb'::uuid])), :'pa'::uuid,

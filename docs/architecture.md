@@ -63,7 +63,7 @@ External dependencies and what happens when each is down:
 | Route Handlers (`withApi`) | Vercel function | Non-UI callers: the cron sweep, the device outbox, Jarso's stream, `/api/v1/*` for a future mobile app. CSRF origin check built in. |
 | Postgres functions (`rpc`) | Supabase | Every multi-row money write, PIN verification, due generation, limit evaluation. One transaction each. |
 | pg_cron jobs | Supabase | Hourly due-occurrence generation and reminders, nightly retention. |
-| Vercel cron → `/api/cron/push` | Vercel | Daily sweep that pushes any notice of the last day no action pushed (`CRON_SECRET`). Actions push their own notices right away with `after()`. |
+| pg_cron (`push-sweep`) → `/api/cron/push` | Supabase pg_cron + pg_net | Sweep every 15 minutes that pushes any notice of the last day no action pushed, including a child's notices held overnight (`CRON_SECRET`). Actions push their own notices right away with `after()`. |
 | Service worker (`public/sw.js`) | Browser | Shows a push and opens the notice's record. Caches nothing; the device outbox is the offline story. |
 
 Rendering model: `cacheComponents` is on. Anything reading cookies, headers or the user's rows is request-time and renders inside `<Suspense>`. Shared content (lesson topics, marketing) uses `"use cache"` with tags. Per-user data is never placed in a shared cache.
@@ -95,7 +95,7 @@ apps/web/src/
 │   ├── api/
 │   │   ├── health/               # shallow + deep health
 │   │   ├── cron/payments/auto-charge/  # CRON_SECRET-guarded auto charge (pg_cron via pg_net, Vercel Cron fallback)
-│   │   ├── cron/push/            # CRON_SECRET-guarded daily push sweep
+│   │   ├── cron/push/            # CRON_SECRET-guarded push sweep (pg_cron, 15 min)
 │   │   ├── v1/auth/child-sign-in # child PIN sign-in that returns session tokens (mobile; needs the service key)
 │   │   ├── v1/notices/dispatch   # bearer-authed push sweep after a mobile action (needs the service key)
 │   │   ├── v1/payments/…         # webhooks/[provider] (signature-guarded) and razorpay/return (cross-origin form post, redirect only)
@@ -595,7 +595,7 @@ flowchart LR
   rec[(record change<br/>function)] --> n[(notifications)]
   n -->|row is the inbox| ui[Inbox tab + badge]
   act[Server Action / outbox route<br/>after()] --> disp[dispatchPush]
-  cr[Vercel cron<br/>daily] --> disp
+  cr[pg_cron push-sweep<br/>every 15 min] --> disp
   disp -->|claim_unpushed_notifications<br/>pushed_at| n
   disp -->|web-push, VAPID| push[Browser push]
   push --> sw[public/sw.js<br/>opens the record]
@@ -604,7 +604,7 @@ flowchart LR
 - Notifications are created inside the same transaction as the record change, so a posted handover always has its notification.
 - The inbox is just `notifications` filtered by recipient; no delivery step can lose it.
 - The inbox is live: `notifications` is in the `supabase_realtime` publication, and `NoticeListener` (mounted in both role layouts) subscribes over Supabase Realtime's WebSocket to the user's own inserts and updates. RLS applies to each change. On a change it calls `router.refresh()`, so the badge, inbox and "Needs you" re-render from the server; new notices also toast. After a dropped connection comes back it refreshes once to catch up. If Realtime is down, everything still updates on navigation.
-- Web push (ADR 0012) is an at-most-once copy of the row: `claim_unpushed_notifications` stamps `pushed_at` on a batch of the last day's notices for still-approved recipients (`for update skip locked`) and the dispatcher sends `noticeText` of each to the recipient's `push_subscriptions` with VAPID. Actions that write notices call `pushAfterNotices()` (Next `after()`); the daily Vercel cron sweeps the rest, chiefly the hourly allowance reminders. A 404/410 forgets the subscription; other failures are logged by status and not retried, because the inbox has the row.
+- Web push (ADR 0012) is an at-most-once copy of the row: `claim_unpushed_notifications` stamps `pushed_at` on a batch of the last day's notices for still-approved recipients (`for update skip locked`) and the dispatcher sends `noticeText` of each to the recipient's `push_subscriptions` with VAPID. Actions that write notices call `pushAfterNotices()` (Next `after()`); the `pg_cron` job `push-sweep` (every 15 minutes, via pg_net to `/api/cron/push`) sweeps the rest, chiefly the hourly allowance reminders and a child's notices held overnight. A 404/410 forgets the subscription; other failures are logged by status and not retried, because the inbox has the row.
 - Opt-in is per browser: the inbox's "Pings on this device" switch registers `public/sw.js` and stores the subscription through `push_subscribe`, which also moves an endpoint over from another account that used the device and keeps a member's newest 10. Everything works with the VAPID keys unset: the switch does not render and nothing is claimed.
 - Email for notices is deferred until a sending domain exists; the Resend adapter sends invitations only.
 
@@ -614,14 +614,14 @@ flowchart LR
 | --- | --- | --- | --- |
 | `generate_due_occurrences` | hourly | creates occurrences whose `due_on <= today` for active schedules; skips paused ones and auto-resumes them after `paused_through` | unique `(schedule_id, period_key)` |
 | `send_handover_reminders` | hourly | reminder notifications for stale `due` occurrences | one per occurrence per day |
-| `/api/cron/push` (Vercel) | daily 01:30 UTC | pushes unpushed notices of the last day | `pushed_at` claim |
+| `/api/cron/push` (pg_cron `push-sweep` via pg_net) | every 15 minutes | pushes unpushed notices of the last day | `pushed_at` claim |
 | `schedule_reviews` | nightly | spaced-repetition items due tomorrow | unique `(child_id, skill_key, due_on)` |
 | `generate_weekly_reviews` | weekly | FR11 summaries | unique `(child_id, week_start)` |
 | `reconcile_and_retain` | nightly | balance sanity checks, expire invitations, prune `job_runs` | n/a |
 
 `charge-due-cards` runs hourly at :09 and calls `/api/cron/payments/auto-charge` through `pg_net`, reading the Vault secrets `app_url` and `cron_secret`. It does nothing until both exist. A daily Vercel Cron on the same route is the fallback (`docs/deploy.md`).
 
-Database jobs run in `pg_cron` with `job_runs` rows for observability. Work that needs app code runs in a `CRON_SECRET`-guarded route: card auto charge (above) and web push in `/api/cron/push`, daily because of the Vercel Hobby plan's cron limit; the actions that write notices push them right away, so the push sweep is a safety net.
+Database jobs run in `pg_cron` with `job_runs` rows for observability. Work that needs app code runs in a `CRON_SECRET`-guarded route: card auto charge (above) and push in `/api/cron/push`, called every 15 minutes by pg_cron (`push-sweep`); the actions that write notices push them right away, so the sweep mostly carries reminders and a child's notices held overnight.
 
 ## 10. Cross-cutting concerns
 

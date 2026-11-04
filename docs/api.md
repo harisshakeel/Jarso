@@ -9,7 +9,7 @@
 
 Both must stay thin and call the feature **service**.
 
-Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. Three cron routes exist today, because their work needs app code: `/api/cron/payments/auto-charge` (charging a card, ADR 0013 card handover), `/api/cron/push` (sending web push, ADR 0012 web push) and `/api/cron/guide/noticed` (Jarso's weekly nudges, which may ask Claude to word a line). All take the same `CRON_SECRET`. More arrive with email delivery in the final demo.
+Scheduled work (allowance generation, handover reminders) runs as pg_cron jobs in Postgres. Three cron routes exist today, because their work needs app code: `/api/cron/payments/auto-charge` (charging a card, ADR 0013 card handover), `/api/cron/push` (sending push, ADR 0012 web push; called every 15 minutes by the pg_cron job `push-sweep`) and `/api/cron/guide/noticed` (Jarso's weekly nudges, which may ask Claude to word a line). All take the same `CRON_SECRET`. More arrive with email delivery in the final demo.
 
 ## Bearer auth for non-browser callers
 
@@ -67,14 +67,16 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | GET | `/api/v1/me` | user | Current user's profile |
 | PATCH | `/api/v1/me` | user | Update profile (`updateProfileSchema`) |
 | POST | `/api/v1/auth/child-sign-in` | – (rate-limited) | Child PIN sign-in for the phone; returns `{ accessToken, refreshToken, expiresAt }` (ADR 0016) |
-| POST | `/api/v1/notices/dispatch` | user (bearer) | Send web push for the caller's pending notices; 30 per 10 min per user; 202 |
+| POST | `/api/v1/push/tokens` | user (bearer; any approved member, parent or child) | Register this phone's Expo push token (`{ token, platform: "android" }`), taking it over from any other account on the phone; at most 10 per member; 201 `{ id }`; 403 outside a family |
+| DELETE | `/api/v1/push/tokens` | user (bearer) | Forget this phone's token for the caller (`{ token }`), before sign-out; `{ removed }` |
+| POST | `/api/v1/notices/dispatch` | user (bearer) | Send web and phone push for pending notices (queued when either transport is on); 30 per 10 min per user; 202 |
 | POST | `/api/v1/outbox` | child (cookie or bearer) | One queued child action from the device outbox (`outboxRequestSchema`) |
 | POST | `/api/v1/guide/turns` | child or parent (cookie or bearer) | One message to Jarso, streamed as NDJSON (`askGuideSchema`) |
 | GET | `/api/v1/guide/state` | child (cookie or bearer) | `{ data: { available, introNeeded } }` from `getGuideState`; for the phone, which cannot read the server's guide switch |
 | POST | `/api/v1/learning/start` | child (cookie or bearer) | Start or resume a mission (`startMissionSchema`); `{ data }` is `startMission`'s result, `{ attemptId, results }`. 403 for a locked mission, 404 for an unknown one |
 | POST | `/api/v1/payments/webhooks/[provider]` | provider signature | A payment provider's signed event (ADR 0013) |
 | GET, POST | `/api/cron/payments/auto-charge` | `Authorization: Bearer <CRON_SECRET>` | Charge every due item with auto charge on |
-| GET | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Daily web push sweep (ADR 0012); 404 when the secret is unset |
+| GET, POST | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Push sweep (ADR 0012), web and phone, then the Expo receipt check (`receipts: { checked, dropped }` in the answer), every 15 minutes from pg_cron (`push-sweep` → `trigger_push_sweep`, POST via pg_net); GET for a manual run; 404 when the secret is unset |
 | GET | `/api/cron/guide/noticed` | `Authorization: Bearer $CRON_SECRET` | Jarso noticed: the weekly nudges (demo 3); 404 when the secret is unset |
 
 ### `POST /api/v1/outbox`

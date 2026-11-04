@@ -80,6 +80,10 @@ apps/mobile/dist/
 apps/mobile/.env*
 !apps/mobile/.env.example
 apps/mobile/expo-env.d.ts
+# Firebase config and keys: supplied by EAS (file env var GOOGLE_SERVICES_JSON, credentials), never committed
+apps/mobile/google-services.json
+google-services.json
+*firebase-adminsdk*.json
 .metro-health-check*
 # native signing material
 *.jks

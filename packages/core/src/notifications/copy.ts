@@ -10,3 +10,39 @@ export const inboxCopy = {
   /** The toast's action when a notice arrives. */
   open: "Open",
 } as const;
+
+/** The phone's one-line reason before Android's notification permission prompt. */
+export const pushPromptCopy = {
+  title: "Get a ping from Jarso?",
+  child: "We'll tell you when money arrives or a parent answers. Never late at night.",
+  parent: "We'll tell you when your child asks for something or a handover is due.",
+  allow: "Turn on",
+  later: "Not now",
+} as const;
+
+/**
+ * The phone's notification settings page: one switch per notice group, and a pause. Children's
+ * wording that also reads well for parents (docs/design.md voice).
+ */
+export const noticeGroupCopy = {
+  groups: {
+    requests: {
+      label: "Requests and answers",
+      hint: "When someone asks for money, or gets an answer.",
+    },
+    money: {
+      label: "Allowance and money",
+      hint: "Allowance days, money coming in and changes to the jars.",
+    },
+    learning: { label: "Learning and Jarso", hint: "Nudges from Jarso about learning." },
+    notes: { label: "Notes from family", hint: "Short notes from your family." },
+  },
+  pause: { label: "Pause all", hint: "No pings on this phone until you turn them back on." },
+  inboxStillShows: "Notices still show in your inbox.",
+} as const;
+
+/** The single push for a child's notices held overnight (count is always 2 or more). */
+export const summaryPushCopy = {
+  title: (count: number) => `You have ${count} new notices`,
+  detail: "They came in overnight. Open News to see them.",
+} as const;

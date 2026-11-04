@@ -2,7 +2,14 @@
 import "server-only";
 
 export { sendEmail } from "./email";
-export { dispatchPush, drainPush, isPushConfigured, pushAfterNotices } from "./push";
+export {
+  checkExpoReceipts,
+  dispatchPush,
+  drainPush,
+  isPushConfigured,
+  isWebPushConfigured,
+  pushAfterNotices,
+} from "./push";
 export {
   allowDispatch,
   getUnreadCount,
@@ -10,7 +17,9 @@ export {
   listUnreadNotices,
   markRead,
   ownsPushEndpoint,
+  registerDeviceToken,
   sendChildNote,
   subscribePush,
+  unregisterDeviceToken,
   unsubscribePush,
 } from "./service";
