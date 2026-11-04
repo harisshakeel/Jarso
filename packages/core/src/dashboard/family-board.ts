@@ -3,11 +3,21 @@
 // from reads the page already makes. It places children side by side on one picture, in the
 // order they were added, and never ranks them or says who is ahead.
 import type { GoalView } from "@jarso/core/goals";
-import type { LearningOverview } from "@jarso/core/learning";
+import { type CoachId, coachIds, type LearningOverview } from "@jarso/core/learning";
 import type { MissionFeedback } from "./learning";
 
 /** A child as the board draws them: name, colour slot. */
 export type BoardChild = { childId: string; nickname: string; slot: number };
+
+/**
+ * The kid who stands for a child on the board (2026-11-05): one of the four coaches from the hero
+ * and the lessons, fixed by the order the child was added, so the same kid stands for them on
+ * every card. Past four children the kids come round again; the colour dot tells them apart.
+ */
+export function boardKid(slot: number): CoachId {
+  const count = coachIds.length;
+  return coachIds[((slot % count) + count) % count] ?? "pip";
+}
 
 /** One mission on the family road. */
 export type RoadStop = { day: number; title: string };
@@ -143,4 +153,28 @@ export const familyBoardCopy = {
         : `${place.nickname}: ${place.goal.name}, ${place.goal.percent}%`
       : `${place.nickname}: no goal yet`,
   noGoals: "No goals set yet. A child sets one from their Home.",
+} as const;
+
+/**
+ * A child's place on the seven missions for their card on Children (2026-11-05): "Mission 2 of
+ * 7: Small buys add up", with "halfway through" while they're in the middle of it.
+ */
+export function roadStatus(place: RoadPlace, stops: RoadStop[]): string {
+  if (stops.length === 0) return "No missions yet";
+  if (place.at >= stops.length) return "Every mission done";
+  const stop = stops[place.at];
+  const line = `Mission ${place.at + 1} of ${stops.length}${stop ? `: ${stop.title}` : ""}`;
+  return place.inProgress ? `${line}, halfway through` : line;
+}
+
+/** The words on each child's card on Children (2026-11-05). */
+export const childCardCopy = {
+  learning: "Learning",
+  money: "Money",
+  spend: "Spend",
+  save: "Save",
+  goal: "Saving for",
+  noGoal: "Not saving for anything yet",
+  reached: "Goal reached",
+  jarsUnavailable: "Jars couldn't load just now.",
 } as const;

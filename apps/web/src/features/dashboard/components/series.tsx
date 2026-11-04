@@ -9,6 +9,8 @@ type Series = {
   tint: string;
   /** A bar's background. */
   bar: string;
+  /** A ring in the colour: round a kid's badge. */
+  ring: string;
   /** Text on the colour: white on every step (APCA, checked 2026-11-03). */
   ink: string;
 };
@@ -23,6 +25,7 @@ export const SERIES: Record<number, Series> = {
     fill: "fill-series-0",
     tint: "fill-series-0/20",
     bar: "bg-series-0",
+    ring: "ring-series-0",
     ink: "text-white",
   },
   1: {
@@ -30,6 +33,7 @@ export const SERIES: Record<number, Series> = {
     fill: "fill-series-1",
     tint: "fill-series-1/20",
     bar: "bg-series-1",
+    ring: "ring-series-1",
     ink: "text-white",
   },
   2: {
@@ -37,6 +41,7 @@ export const SERIES: Record<number, Series> = {
     fill: "fill-series-2",
     tint: "fill-series-2/20",
     bar: "bg-series-2",
+    ring: "ring-series-2",
     ink: "text-white",
   },
   3: {
@@ -44,6 +49,7 @@ export const SERIES: Record<number, Series> = {
     fill: "fill-series-3",
     tint: "fill-series-3/20",
     bar: "bg-series-3",
+    ring: "ring-series-3",
     ink: "text-white",
   },
   4: {
@@ -51,6 +57,7 @@ export const SERIES: Record<number, Series> = {
     fill: "fill-series-4",
     tint: "fill-series-4/20",
     bar: "bg-series-4",
+    ring: "ring-series-4",
     ink: "text-white",
   },
   5: {
@@ -58,6 +65,7 @@ export const SERIES: Record<number, Series> = {
     fill: "fill-series-5",
     tint: "fill-series-5/20",
     bar: "bg-series-5",
+    ring: "ring-series-5",
     ink: "text-white",
   },
   6: {
@@ -65,6 +73,7 @@ export const SERIES: Record<number, Series> = {
     fill: "fill-series-6",
     tint: "fill-series-6/20",
     bar: "bg-series-6",
+    ring: "ring-series-6",
     ink: "text-white",
   },
   7: {
@@ -72,6 +81,7 @@ export const SERIES: Record<number, Series> = {
     fill: "fill-series-7",
     tint: "fill-series-7/20",
     bar: "bg-series-7",
+    ring: "ring-series-7",
     ink: "text-white",
   },
   8: {
@@ -79,6 +89,7 @@ export const SERIES: Record<number, Series> = {
     fill: "fill-series-8",
     tint: "fill-series-8/20",
     bar: "bg-series-8",
+    ring: "ring-series-8",
     ink: "text-white",
   },
 };

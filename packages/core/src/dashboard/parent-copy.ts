@@ -38,7 +38,7 @@ export const parentPageCopy = {
   allowance: "Allowance",
   /** The money tab (2026-11-04): allowances, the chart, spending and activity in one place. */
   money: "Money",
-  moneyIntro: "Allowances, spending and how the jars moved, for the whole family.",
+  moneyIntro: "Spending and how the jars moved, for the whole family.",
   allowances: "Allowances",
   settings: "Settings",
   /** The child page's title before the child's nickname is known. */

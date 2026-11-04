@@ -3,8 +3,8 @@ import { familyRoad } from "@jarso/core/dashboard";
 import type { LearningOverview } from "@jarso/core/learning";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { ChildCard } from "@/features/dashboard/components/child-card";
 import { FamilyRoadCard } from "@/features/dashboard/components/family-board";
-import { ChildLearningPanel } from "@/features/dashboard/components/learning-cards";
 
 afterEach(cleanup);
 
@@ -71,6 +71,10 @@ describe("FamilyRoadCard", () => {
     const quiet = screen.getByRole("link", { name: "Ayesha" }).closest("li") as HTMLElement;
     expect(quiet).toHaveTextContent("No lessons finished yet");
     expect(screen.getAllByRole("link", { name: "Add a child" })).toHaveLength(1);
+    // Each child stands on the road as their kid, not a letter.
+    expect(screen.getByRole("img", { name: "Zarrar: on Day 1, Mission 1" })).toHaveAttribute(
+      "data-coach",
+    );
   });
 
   it("still names a child whose learning couldn't load", () => {
@@ -85,17 +89,51 @@ describe("FamilyRoadCard", () => {
   });
 });
 
-describe("ChildLearningPanel", () => {
-  it("is about learning: the week, skills and the last lessons", () => {
-    render(<ChildLearningPanel child={zarrar} today={today} />);
+describe("ChildCard", () => {
+  const card = (over: Partial<Parameters<typeof ChildCard>[0]> = {}) =>
+    render(
+      <ChildCard
+        child={{ childId: "z", nickname: "Zarrar", slot: 1 }}
+        learning={zarrar.overview}
+        jars={{ spend: 22500, save: 25000 }}
+        goal={{
+          name: "Gaming PC",
+          emoji: "🎧",
+          percent: 31,
+          reached: false,
+          countedMinor: 25000,
+          targetMinor: 80000,
+        }}
+        today={today}
+        currency="USD"
+        allowance={<p>The allowance block</p>}
+        {...over}
+      />,
+    );
+
+  it("keeps learning and money in their own headed parts", () => {
+    card();
+    const learning = screen.getByRole("region", { name: "Learning" });
+    expect(learning).toHaveTextContent("Mission 1 of 7: Mission 1");
+    expect(learning).toHaveTextContent("Learned on 2 days this week");
+    expect(learning).not.toHaveTextContent("US$");
     const recent = screen.getByRole("region", { name: "Zarrar: Recent lessons" });
     expect(within(recent).getAllByRole("listitem")).toHaveLength(2);
-    expect(recent).toHaveTextContent("What's in Spend");
-    expect(screen.getByText("Learned on 2 days this week")).toBeVisible();
-    expect(screen.queryByText(/Spend US\$/)).toBeNull();
+    const money = screen.getByRole("region", { name: "Money" });
+    expect(money).toHaveTextContent("US$225");
+    expect(money).toHaveTextContent("US$250 of US$800 · 31%");
+    expect(money).toHaveTextContent("The allowance block");
+    expect(money).not.toHaveTextContent("point");
     expect(screen.getByRole("link", { name: "See their learning for Zarrar" })).toHaveAttribute(
       "href",
       "/parent/children/z",
     );
+  });
+
+  it("says so in place when learning, jars or a goal are missing", () => {
+    card({ learning: null, jars: null, goal: null });
+    expect(screen.getByText(/Learning couldn't load just now/)).toBeVisible();
+    expect(screen.getByText("Jars couldn't load just now.")).toBeVisible();
+    expect(screen.getByText("Not saving for anything yet")).toBeVisible();
   });
 });

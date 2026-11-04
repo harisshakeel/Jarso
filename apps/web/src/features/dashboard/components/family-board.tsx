@@ -1,5 +1,6 @@
 import {
   type BoardChild,
+  boardKid,
   type FamilyRoad,
   familyBoardCopy,
   type GoalPlace,
@@ -9,63 +10,63 @@ import {
 import { FlagIcon, GraduationCapIcon, PlusIcon, TargetIcon, TrophyIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CoachFigure, CoachHead } from "@/components/brand";
 import { routes } from "@/config";
 import { cn, formatMoney } from "@/lib";
 import { seriesOf } from "./series";
 
-/** A child as a small disc in their colour with their first letter. The name is said nearby. */
-export function ChildDisc({
-  child,
-  label,
-  className,
-}: {
-  child: BoardChild;
-  label?: string;
-  className?: string;
-}) {
-  const series = seriesOf(child.slot);
-  const look = cn(
-    "grid size-8 shrink-0 place-items-center rounded-full font-extrabold text-sm uppercase ring-2 ring-card",
-    series.dot,
-    series.ink,
-    className,
-  );
-  const letter = child.nickname.charAt(0);
-  if (!label) {
-    return (
-      <span aria-hidden className={look}>
-        {letter}
-      </span>
-    );
-  }
+/** How tall a kid stands on the road and the goal track, in px. */
+const KID = 52;
+/** How far a kid steps aside for a close neighbour on the goal track, in px. */
+const STEP = 26;
+
+/**
+ * A child as their kid (2026-11-05: the coaches from the hero and the lessons, not a letter),
+ * standing on a small mark in the child's colour. Named for screen readers when `label` is given;
+ * otherwise the name is said nearby.
+ */
+function ChildKid({ child, label }: { child: BoardChild; label?: string }) {
   return (
-    <span role="img" aria-label={label} title={label} className={look}>
-      {letter}
+    <span className="flex flex-col items-center" title={label}>
+      <CoachFigure coach={boardKid(child.slot)} size={KID} label={label} />
+      <span aria-hidden className={cn("-mt-1 h-1.5 w-5 rounded-full", seriesOf(child.slot).dot)} />
     </span>
   );
 }
 
-/** At most this many discs stand on one stop; past that, two and a "+N". */
+/** A child's kid as a round head-and-shoulders badge, beside their name in a list. */
+function ChildBadge({ child }: { child: BoardChild }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "relative grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-muted ring-2",
+        seriesOf(child.slot).ring,
+      )}
+    >
+      <CoachHead coach={boardKid(child.slot)} size={28} />
+    </span>
+  );
+}
+
+/** At most this many kids stand on one stop; past that, two and a "+N". */
 const STACK = 3;
 
-/** A stop's discs, stacked upwards; every stack is as tall as the tallest so the stops line up. */
-function Stack({ items, labels, rows }: { items: BoardChild[]; labels: string[]; rows: number }) {
+/** The kids on one stop, side by side and a little overlapped, feet on the road. */
+function Stack({ items, labels }: { items: BoardChild[]; labels: string[] }) {
   const over = items.length > STACK;
   const shown = over ? items.slice(0, STACK - 1) : items;
   const more = items.length - shown.length;
   return (
-    <span
-      className="flex flex-col items-center justify-end [&>*+*]:-mt-2"
-      style={{ height: `${2 + (rows - 1) * 1.5}rem` }}
-    >
+    <span className="flex items-end justify-center [&>*+*]:-ml-3" style={{ height: KID + 6 }}>
+      {shown.map((child, index) => (
+        <ChildKid key={child.childId} child={child} label={labels[index]} />
+      ))}
       {more > 0 ? (
-        <span className="grid size-8 place-items-center rounded-full bg-muted font-bold text-xs ring-2 ring-card">
+        <span className="mb-2 ml-1 grid size-7 place-items-center rounded-full bg-muted font-bold text-xs">
           +{more}
         </span>
       ) : null}
-      {shown.map((child, index) => (
-        <ChildDisc key={child.childId} child={child} label={labels[index]} />
-      ))}
     </span>
   );
 }
@@ -103,10 +104,6 @@ export function FamilyRoadCard({
   const { stops, places } = road;
   if (stops.length === 0 && unavailable.length === 0) return null;
   const finished = standingAt(road, stops.length);
-  const rows = Math.min(
-    STACK,
-    Math.max(1, ...Array.from({ length: stops.length + 1 }, (_, i) => standingAt(road, i).length)),
-  );
   return (
     <section
       aria-labelledby="family-road-title"
@@ -139,7 +136,6 @@ export function FamilyRoadCard({
             <li key={stop.day} className="relative grid justify-items-center gap-2 text-center">
               <Stack
                 items={here}
-                rows={rows}
                 labels={here.map((place) => familyBoardCopy.place(place, stops))}
               />
               <Stop first={index === 0} last={false}>
@@ -164,7 +160,6 @@ export function FamilyRoadCard({
         <li className="relative grid justify-items-center gap-2 text-center">
           <Stack
             items={finished}
-            rows={rows}
             labels={finished.map((place) => familyBoardCopy.place(place, stops))}
           />
           <Stop first={false} last>
@@ -184,7 +179,7 @@ export function FamilyRoadCard({
         {places.map((place) => (
           <li key={place.childId} className="grid gap-1 rounded-xl bg-muted/60 px-4 py-3">
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <ChildDisc child={place} className="size-6 text-xs ring-0" />
+              <ChildBadge child={place} />
               <h3 className="font-bold">
                 <Link
                   href={routes.parentChild(place.childId)}
@@ -210,7 +205,7 @@ export function FamilyRoadCard({
         {unavailable.map((child) => (
           <li key={child.childId} className="grid gap-1 rounded-xl bg-muted/60 px-4 py-3">
             <span className="flex items-center gap-2">
-              <ChildDisc child={child} className="size-6 text-xs ring-0" />
+              <ChildBadge child={child} />
               <h3 className="font-bold">
                 <Link
                   href={routes.parentChild(child.childId)}
@@ -228,17 +223,27 @@ export function FamilyRoadCard({
   );
 }
 
-/** Spread discs that would sit on top of each other: one row up for each close neighbour. */
-function rowsFor(places: { childId: string; percent: number }[]): Map<string, number> {
-  const rows = new Map<string, number>();
-  const placed: { percent: number; row: number }[] = [];
-  for (const place of [...places].sort((a, b) => a.percent - b.percent)) {
-    let row = 0;
-    while (placed.some((p) => p.row === row && Math.abs(p.percent - place.percent) < 9)) row += 1;
-    placed.push({ percent: place.percent, row });
-    rows.set(place.childId, row);
+/**
+ * Kids who would stand on top of each other on the goal track stand side by side instead: each
+ * child's step left or right of their spot, in kid widths, within a group of close neighbours.
+ */
+function nudgesFor(places: { childId: string; percent: number }[]): Map<string, number> {
+  const nudges = new Map<string, number>();
+  const sorted = [...places].sort((a, b) => a.percent - b.percent);
+  let group: typeof sorted = [];
+  const flush = () => {
+    for (const [index, place] of group.entries()) {
+      nudges.set(place.childId, index - (group.length - 1) / 2);
+    }
+    group = [];
+  };
+  for (const place of sorted) {
+    const last = group.at(-1);
+    if (last && place.percent - last.percent >= 8) flush();
+    group.push(place);
   }
-  return rows;
+  flush();
+  return nudges;
 }
 
 /**
@@ -250,8 +255,7 @@ export function FamilyGoalsCard({ places, currency }: { places: GoalPlace[]; cur
   const withGoal = places.filter(
     (place): place is GoalPlace & { goal: NonNullable<GoalPlace["goal"]> } => place.goal !== null,
   );
-  const rows = rowsFor(withGoal.map((p) => ({ childId: p.childId, percent: p.goal.percent })));
-  const height = Math.max(0, ...rows.values()) + 1;
+  const nudges = nudgesFor(withGoal.map((p) => ({ childId: p.childId, percent: p.goal.percent })));
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
   return (
     <section
@@ -269,7 +273,7 @@ export function FamilyGoalsCard({ places, currency }: { places: GoalPlace[]; cur
         <p className="text-ink-2">{familyBoardCopy.noGoals}</p>
       ) : (
         <div aria-hidden className="px-4">
-          <div className="relative" style={{ height: `${height * 1.75 + 2.5}rem` }}>
+          <div className="relative" style={{ height: KID + 28 }}>
             <span className="absolute inset-x-0 bottom-3 h-2 rounded-full bg-muted" />
             {[25, 50, 75].map((mark) => (
               <span
@@ -284,11 +288,11 @@ export function FamilyGoalsCard({ places, currency }: { places: GoalPlace[]; cur
                 key={place.childId}
                 className="absolute -translate-x-1/2 transition-[left] duration-700 ease-[var(--ease-brand)] motion-reduce:transition-none"
                 style={{
-                  left: `${Math.min(place.goal.percent, 96)}%`,
-                  bottom: `${(rows.get(place.childId) ?? 0) * 1.75 + 1.75}rem`,
+                  left: `calc(${Math.min(place.goal.percent, 96)}% + ${(nudges.get(place.childId) ?? 0) * STEP}px)`,
+                  bottom: "0.5rem",
                 }}
               >
-                <ChildDisc child={place} />
+                <ChildKid child={place} />
               </span>
             ))}
           </div>
@@ -306,7 +310,7 @@ export function FamilyGoalsCard({ places, currency }: { places: GoalPlace[]; cur
             className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5"
           >
             <span className="flex min-w-0 items-center gap-2 font-semibold">
-              <ChildDisc child={place} className="size-6 text-xs ring-0" />
+              <ChildBadge child={place} />
               {place.goal ? (
                 <span className="truncate">
                   {place.nickname}: <span aria-hidden>{place.goal.emoji}</span> {place.goal.name}
