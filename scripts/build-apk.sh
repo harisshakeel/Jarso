@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Local EAS Android build, run as a system unit (as your user) so systemd-oomd,
-# which only polices the user session, can't kill the build or your terminal.
+# Local EAS Android build, run as a system unit (as your user), outside the user session.
+# Ubuntu's systemd-oomd watches the user session's memory pressure, so a heavy Gradle run
+# there can take down the whole session; as a system unit it can't. oomd can still kill
+# the build if a parent slice is watched (e.g. ManagedOOMSwap=kill on -.slice).
 #
 # Usage: pnpm build:apk [profile] [archs]
 #   profile  EAS build profile (default: preview)
