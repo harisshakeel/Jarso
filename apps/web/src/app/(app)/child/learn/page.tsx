@@ -6,7 +6,13 @@ import { CoachSays } from "@/components/brand";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { requireRole } from "@/features/family/server";
-import { learnCopy, NextStepCard, Roadmap, weeklyRhythmLine } from "@/features/learning";
+import {
+  learnCopy,
+  NextStepCard,
+  Roadmap,
+  ScoreStrip,
+  weeklyRhythmLine,
+} from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 
 export const metadata: Metadata = { title: "Learn" };
@@ -25,6 +31,7 @@ async function LearnContent() {
         <header className="grid gap-2">
           <h1 className="text-balance text-h1">{learnCopy.heading}</h1>
           <p className="text-ink-2">{weeklyRhythmLine(overview.daysThisWeek)}</p>
+          <ScoreStrip points={overview.points} streak={overview.streak} />
         </header>
         <CoachSays coach={{ key: "learn" }} says={{ moment: "learn" }} />
         {cardFirst ? <NextStepCard step={overview.nextStep} /> : null}

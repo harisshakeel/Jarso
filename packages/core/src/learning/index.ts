@@ -10,6 +10,7 @@ export * from "./next-step-copy";
 export * from "./parent-copy";
 export * from "./player-copy";
 export * from "./schemas";
+export * from "./score";
 export * from "./skills";
 export * from "./steps";
 export * from "./text";

@@ -19,9 +19,11 @@ import {
   emptyDraft,
   gradeStep,
   playerCopy,
+  pointsLine,
   praiseLine,
   renderText,
   resumePosition,
+  totalPoints,
 } from "@jarso/core/learning";
 import {
   BookOpenIcon,
@@ -29,6 +31,7 @@ import {
   HourglassIcon,
   LightbulbIcon,
   RotateCcwIcon,
+  StarIcon,
 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -376,6 +379,11 @@ export function MissionPlayer(props: MissionPlayerProps) {
         </h1>
         {stage === "finished" && finishText ? (
           <p className="text-ink-2">{finishText.body}</p>
+        ) : null}
+        {stage === "finished" && mode.kind !== "check-in" && mode.kind !== "topic" ? (
+          <p className="flex items-center gap-1.5 font-extrabold text-gold-text">
+            <StarIcon aria-hidden className="size-5 fill-gold" />+{pointsLine(totalPoints(results))}
+          </p>
         ) : null}
         <SavedOnDevice userId={userId} />
         {error ? (
