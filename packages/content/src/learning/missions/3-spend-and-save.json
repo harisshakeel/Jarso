@@ -5,6 +5,13 @@
   "title": "Spend and Save",
   "topic": "splitting",
   "summary": "Split an allowance between Spend and Save, in amounts and in shares.",
+  "film": {
+    "lines": [
+      "Here comes your allowance: ten shiny coins.",
+      "You can split it. Some go to Spend, and the rest go to Save.",
+      "Six and four still make ten. Your allowance just found two homes."
+    ]
+  },
   "steps": [
     {
       "type": "info",

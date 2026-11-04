@@ -34,6 +34,18 @@ export const playerCopy = {
   readAloud: "Read aloud",
   /** The same, for the coach's feedback once the child has checked an answer. */
   readFeedback: "Read it to me",
+  /** The lesson film: a short animated intro, told by Nell, before a mission's first step. */
+  film: {
+    label: (title: string) => `Intro: ${title}`,
+    eyebrow: "Watch first",
+    narrator: "Nell",
+    pause: "Pause",
+    play: "Play",
+    skip: "Skip intro",
+    replay: "Watch again",
+    start: "Let's start",
+    watch: "Watch the intro",
+  },
   replayPosition: (n: number, of: number) => `One more look: ${n} of ${of}`,
   stepPosition: (n: number, of: number) => `Step ${n} of ${of}`,
   yourTurn: "Your turn.",

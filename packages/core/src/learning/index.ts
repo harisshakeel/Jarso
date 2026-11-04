@@ -3,6 +3,7 @@
 export * from "./coach-moments";
 export * from "./coaches";
 export * from "./comeback";
+export * from "./film";
 export * from "./grade";
 export * from "./home-step";
 export * from "./journey";

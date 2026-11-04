@@ -54,6 +54,7 @@ async function MissionContent({ params }: { params: Promise<{ missionKey: string
       doneLabel={learnCopy.backToLearn}
       topicHref={routes.childTopic(topicKey, mission.key)}
       stepAside={guide.available ? <StepGuide introNeeded={guide.introNeeded} /> : undefined}
+      film={mission.film}
     />
   );
 }

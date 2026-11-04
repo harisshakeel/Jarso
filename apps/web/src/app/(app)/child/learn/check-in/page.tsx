@@ -42,6 +42,7 @@ async function CheckInContent() {
       }}
       doneHref={routes.childLearn}
       doneLabel={learnCopy.checkIn.doneLabel}
+      film={checkIn.film}
     />
   );
 }

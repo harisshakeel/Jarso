@@ -3,6 +3,7 @@
 export * from "./coach-figure";
 export * from "./coach-says";
 export * from "./coaches";
+export * from "./jar-art";
 export * from "./jar-outline";
 export * from "./jarso-eyes";
 export * from "./jarso-mark";

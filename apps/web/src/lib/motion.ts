@@ -1,4 +1,4 @@
-// Small easing helpers for the landing page's scripted motion. Times and progress are plain
+// Small easing helpers for scripted motion (the landing page, the lesson films). Times and progress are plain
 // numbers, so every frame is a pure function of where the scroll or the clock is.
 
 export const clamp01 = (value: number) => Math.min(1, Math.max(0, value));

@@ -212,6 +212,15 @@ function checkSteps(steps: z.infer<typeof stepSchema>[], ctx: z.RefinementCtx, p
   });
 }
 
+/**
+ * The short animated intro before a mission's first step (the web's lesson film): what the
+ * narrator says, one line per beat of the scene. Spoken lines and captions are the same words, and
+ * they talk in coins, never in a currency, so one recording fits every family.
+ */
+export const filmSchema = z.object({
+  lines: z.array(z.string().trim().min(1).max(120)).min(2).max(4),
+});
+
 export const missionSchema = z
   .object({
     key: contentKey,
@@ -222,6 +231,7 @@ export const missionSchema = z
     topic: z.enum([...topicKeys, "mixed"]),
     summary: shortText,
     steps: z.array(stepSchema).min(4).max(10),
+    film: filmSchema.optional(),
   })
   .superRefine((mission, ctx) => {
     checkSteps(mission.steps, ctx, mission.key);
@@ -264,6 +274,7 @@ export const checkInSchema = z
   .object({
     version: z.number().int().positive(),
     questions: z.array(answerableStepSchema).length(5),
+    film: filmSchema.optional(),
   })
   .superRefine((checkIn, ctx) => checkSteps(checkIn.questions, ctx, "check-in"));
 

@@ -5,7 +5,8 @@ import { cn } from "cn";
 // the hero kid's standing pose (`features/landing/components/kid-art.tsx`), kid-local units with
 // the origin between the feet and y growing downward. Server-safe: no hooks.
 
-export type KidMood = "unsure" | "smile" | "cheer";
+/** "talk" is a small open mouth, flapped with "smile" while a lesson film's narrator speaks. */
+export type KidMood = "unsure" | "smile" | "cheer" | "talk";
 
 export type KidHair = "crop" | "curls" | "bunches" | "bob";
 
@@ -177,6 +178,8 @@ function Face({ look, mood }: { look: KidLook; mood: KidMood }) {
       ) : null}
       {mood === "cheer" ? (
         <path d={`M-10 ${mouthY - 2}Q0 ${mouthY + 15} 10 ${mouthY - 2}Z`} className={INK} />
+      ) : mood === "talk" ? (
+        <ellipse cx={0} cy={mouthY + 2} rx={6} ry={5} className={INK} />
       ) : (
         <path
           d={

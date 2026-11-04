@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PILE } from "@/features/landing/components/jar-art";
+import { PILE } from "@/components/brand/jar-art";
 
 // The jar's inside, in artwork units: walls at x 88 and 418 and the floor at y 418, each a
 // 64-unit stroke; the neck curls in at the top left. Coins are 100 × 36 with a 7-unit rim.

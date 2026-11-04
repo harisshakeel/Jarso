@@ -1,5 +1,12 @@
 {
   "version": 1,
+  "film": {
+    "lines": [
+      "Before your first mission, here are five quick questions.",
+      "There's no score, and nothing is locked. Just pick what you think.",
+      "Your answers help us choose the best place for you to start."
+    ]
+  },
   "questions": [
     {
       "type": "amount",

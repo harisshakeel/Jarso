@@ -1,5 +1,5 @@
-import { JAR_OUTLINE_D, JAR_PILE } from "@/components/brand";
 import { cn } from "@/lib";
+import { JAR_OUTLINE_D, JAR_PILE } from "./jar-outline";
 
 // The jar from the mark, redrawn as SVG so its parts can move (design.md §1, §7: tints of the jar
 // are new drawings, never filters on the PNG). Artwork units are 512 × 512 with the jar centred

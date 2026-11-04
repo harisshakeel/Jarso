@@ -12,6 +12,12 @@ const { submitToOutbox, useOutbox, useOnline } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/learning/server/actions", () => ({ startMissionAction: vi.fn() }));
+// The lesson film's voice, silenced: lines never end on their own here.
+const { primeFilmVoice } = vi.hoisted(() => ({ primeFilmVoice: vi.fn() }));
+vi.mock("@/features/learning/components/lesson-film/film-voice", () => ({
+  primeFilmVoice,
+  speakLine: () => ({ progress: () => 0, speaking: () => false, stop: () => undefined }),
+}));
 vi.mock("@/features/offline", async () => ({
   offlineCopy: (await import("@jarso/core/offline")).offlineCopy,
   newId: (await import("@jarso/core/offline")).uuid,
@@ -149,6 +155,73 @@ afterEach(() => {
 });
 
 describe("MissionPlayer", () => {
+  it("plays the lesson film after Start mission, and Skip opens the first step", async () => {
+    vi.mocked(actions.startMissionAction).mockResolvedValue(
+      ok({ attemptId: ATTEMPT_ID, results: [] }),
+    );
+    render(
+      <MissionPlayer
+        mode={{ kind: "mission", missionKey: "whats-in-spend", attemptId: null, results: [] }}
+        steps={steps}
+        currency="GBP"
+        userId={USER_ID}
+        intro={{ eyebrow: "Day 1", heading: "What's in Spend?", body: "About three minutes." }}
+        doneHref={"/child/learn" as never}
+        doneLabel="Back to Learn"
+        film={{ lines: ["One.", "Two.", "Three."] }}
+      />,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Start mission" }));
+    });
+    // The voice is unlocked inside the tap, before the server answers.
+    expect(primeFilmVoice).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("region", { name: "Intro: What's in Spend?" })).toBeInTheDocument();
+    expect(screen.getByText("One.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Skip intro" }));
+    expect(screen.getByRole("heading", { name: "The idea" })).toBeInTheDocument();
+  });
+
+  it("plays the check-in's film after Start the questions", () => {
+    render(
+      <MissionPlayer
+        mode={{ kind: "check-in" }}
+        steps={[choice("q1"), choice("q2")]}
+        currency="GBP"
+        userId={USER_ID}
+        intro={{ eyebrow: "Before mission 1", heading: "Five quick questions.", body: "No score." }}
+        doneHref={"/child/learn" as never}
+        doneLabel="Go to your missions"
+        film={{ lines: ["One.", "Two.", "Three."] }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start the questions" }));
+    expect(
+      screen.getByRole("region", { name: "Intro: Five quick questions." }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Skip intro" }));
+    expect(screen.getByRole("heading", { name: "Question q1?" })).toBeInTheDocument();
+  });
+
+  it("doesn't replay the film on a resumed mission, but offers it", () => {
+    render(
+      <MissionPlayer
+        mode={{ kind: "mission", missionKey: "whats-in-spend", attemptId: ATTEMPT_ID, results: [] }}
+        steps={steps}
+        currency="GBP"
+        userId={USER_ID}
+        intro={{ eyebrow: "Day 1", heading: "What's in Spend?", body: "About three minutes." }}
+        doneHref={"/child/learn" as never}
+        doneLabel="Back to Learn"
+        film={{ lines: ["One.", "Two.", "Three."] }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Watch the intro" }));
+    expect(screen.getByText("One.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Skip intro" }));
+    expect(screen.getByRole("heading", { name: "The idea" })).toBeInTheDocument();
+  });
+
   it("starts, replays a step missed first time once, then finishes", async () => {
     await startMission();
     expect(screen.getByRole("heading", { name: "The idea" })).toBeInTheDocument();

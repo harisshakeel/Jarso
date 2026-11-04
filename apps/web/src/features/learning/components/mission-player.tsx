@@ -31,6 +31,7 @@ import {
   CircleCheckIcon,
   HourglassIcon,
   LightbulbIcon,
+  PlayIcon,
   RotateCcwIcon,
   StarIcon,
 } from "lucide-react";
@@ -61,8 +62,12 @@ import { startMissionAction } from "../server/actions";
 import { Blackboard } from "./blackboard";
 import { CoachBubble } from "./coach-bubble";
 import { type CurrentStep, CurrentStepContext, publishShownStep } from "./current-step";
+import { filmScenes } from "./lesson-film/film-scenes";
+import { primeFilmVoice } from "./lesson-film/film-voice";
+import { LessonFilm } from "./lesson-film/lesson-film";
 import { ReadAloudButton } from "./read-aloud-button";
 import { StepInput } from "./step-inputs";
+import { StepPictureView } from "./step-pictures";
 
 export type PlayerMode =
   | { kind: "mission"; missionKey: string; attemptId: string | null; results: StepResult[] }
@@ -88,6 +93,8 @@ type MissionPlayerProps = {
   topicHref?: Route;
   /** Helpers beside every step, such as the guide's "Help me"; they read useCurrentStep(). */
   stepAside?: ReactNode;
+  /** The animated intro (its narration lines): a mission's, or the check-in's. Plays on start. */
+  film?: { lines: readonly string[] };
 };
 
 type StepOutcome = { answer: StepAnswer; correct: boolean; tries: number; hintsUsed: number };
@@ -159,9 +166,10 @@ function replayItems(steps: Step[], keys: string[]): Item[] {
  * come back once at the end of a mission.
  */
 export function MissionPlayer(props: MissionPlayerProps) {
-  const { mode, steps, currency, userId, intro, doneHref, doneLabel, topicHref, stepAside } = props;
+  const { mode, steps, currency, userId, intro, doneHref, doneLabel, topicHref, stepAside, film } =
+    props;
   const initialResults = mode.kind === "mission" ? mode.results : [];
-  const [stage, setStage] = useState<"intro" | "playing" | "finishing" | "finished">(
+  const [stage, setStage] = useState<"intro" | "film" | "playing" | "finishing" | "finished">(
     intro ? "intro" : "playing",
   );
   const [attemptId, setAttemptId] = useState(mode.kind === "mission" ? mode.attemptId : null);
@@ -181,6 +189,11 @@ export function MissionPlayer(props: MissionPlayerProps) {
   const doneHeading = useRef<HTMLHeadingElement>(null);
 
   const resumed = mode.kind === "mission" && mode.attemptId !== null;
+  // The film needs a scene drawn for this mission (or the check-in) and one line per beat.
+  const filmKey =
+    mode.kind === "mission" ? mode.missionKey : mode.kind === "check-in" ? "check-in" : null;
+  const filmScene = filmKey ? filmScenes[filmKey] : undefined;
+  const hasFilm = Boolean(film && filmScene && film.lines.length === filmScene.beats.length);
   const mainTotal = mode.kind === "mission" ? steps.length : queue.length;
 
   useEffect(() => {
@@ -196,10 +209,13 @@ export function MissionPlayer(props: MissionPlayerProps) {
   function begin() {
     setError(null);
     setActed(true);
+    // A fresh start plays the film first; its voice must be unlocked inside this tap.
+    const playFilm = hasFilm && !attemptId;
+    if (playFilm) primeFilmVoice();
     if (mode.kind !== "mission" || attemptId) {
       // Every step was answered before the child left: just finish the mission.
       if (mode.kind === "mission" && queue.length === 0) finish(results, checkInAnswers, attemptId);
-      else setStage("playing");
+      else setStage(playFilm ? "film" : "playing");
       return;
     }
     startTransition(async () => {
@@ -226,7 +242,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
         setIndex(0);
         // Another tab may have answered every step already.
         if (nextQueue.length === 0) finish(saved, checkInAnswers, id);
-        else setStage("playing");
+        else setStage(playFilm && saved.length === 0 ? "film" : "playing");
       });
     });
   }
@@ -351,6 +367,32 @@ export function MissionPlayer(props: MissionPlayerProps) {
     return true;
   }
 
+  /** "Watch the intro" on a resumed mission's start card. */
+  function watchFilm() {
+    setError(null);
+    setActed(true);
+    primeFilmVoice();
+    setStage("film");
+  }
+
+  /** After the film (watched to the end or skipped): on to the steps. */
+  function afterFilm() {
+    if (mode.kind === "mission" && queue.length === 0) finish(results, checkInAnswers, attemptId);
+    else setStage("playing");
+  }
+
+  if (stage === "film" && film && filmScene && filmKey) {
+    return (
+      <LessonFilm
+        missionKey={filmKey}
+        title={intro?.heading ?? ""}
+        lines={film.lines}
+        scene={filmScene}
+        onDone={afterFilm}
+      />
+    );
+  }
+
   if (stage === "intro" && intro) {
     return (
       <section
@@ -376,6 +418,12 @@ export function MissionPlayer(props: MissionPlayerProps) {
               ? playerCopy.startQuestions
               : playerCopy.startMission}
         </Button>
+        {resumed && hasFilm ? (
+          <Button variant="outline" size="lg" className="w-full sm:w-fit" onClick={watchFilm}>
+            <PlayIcon aria-hidden />
+            {playerCopy.film.watch}
+          </Button>
+        ) : null}
       </section>
     );
   }
@@ -758,6 +806,7 @@ function StepView({
           </CoachBubble>
         </div>
 
+        <StepPictureView stepKey={item.step.key} prompt={body.prompt} currency={currency} />
         <Blackboard
           eyebrow={position}
           promptId={`${idBase}-prompt`}
