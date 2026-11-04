@@ -319,7 +319,7 @@ Built and unit-tested; nothing below has run on a device (no device or Android b
 - [ ] Maestro with the fake provider (`pnpm dev` with `PAYMENTS_ALLOW_FAKE=true`, no provider keys): `card-handover-fake`, `card-close-early`
 - [ ] Maestro with Stripe test keys and `stripe listen`: `card-handover-stripe`, `card-handover-stripe-3ds`, `save-card`
 - [ ] Maestro with Razorpay test keys and a webhook tunnel (INR family): `card-handover-razorpay`, `save-card-razorpay`
-- [ ] Stripe 3-D Secure returns to the app through `jarso://stripe-redirect` (the `urlScheme` / `returnURL` the sheet is opened with)
+- [ ] Stripe 3-D Secure returns to the app through `jarso://stripe-redirect` (the `urlScheme` / `returnURL` the sheet is opened with) and lands back on the open sheet, not an Unmatched route screen (iOS and Android)
 - [ ] Razorpay recurring (saving a card) works on the test account (recurring payments enabled)
 - [ ] The ephemeral key's API version (the server's pinned Stripe API version) is accepted by `@stripe/stripe-react-native` 0.81.0
 - [ ] `react-native-razorpay` 3.0.0 links and opens under the new architecture on RN 0.88

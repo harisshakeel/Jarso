@@ -4,5 +4,6 @@ export * from "./api";
 export * from "./auto-charge-slot";
 export * from "./card-payment-slot";
 export * from "./saved-cards-slot";
+export { redirectStripeReturn } from "./sheets/stripe-return";
 export * from "./use-auto-charge-state";
 export * from "./use-payment-providers";

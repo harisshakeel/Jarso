@@ -1,10 +1,8 @@
 import { paymentCopy } from "@jarso/core/payments";
 import { initPaymentSheet, initStripe, presentPaymentSheet } from "@stripe/stripe-react-native";
 import { AppError } from "@/lib";
+import { STRIPE_RETURN_URL } from "./stripe-return";
 import type { SheetOutcome, StripeSheet } from "./types";
-
-/** Where Stripe sends the parent back after a bank's 3-D Secure page (the app's scheme). */
-const RETURN_URL = "jarso://stripe-redirect";
 
 /**
  * Opens Stripe's PaymentSheet on the API's PaymentIntent or SetupIntent. The publishable key
@@ -24,7 +22,7 @@ export async function presentStripeSheet(sheet: StripeSheet): Promise<SheetOutco
       customerId: sheet.customerId,
       customerEphemeralKeySecret: sheet.ephemeralKey,
       ...intent,
-      returnURL: RETURN_URL,
+      returnURL: STRIPE_RETURN_URL,
       allowsDelayedPaymentMethods: false,
     });
     if (error) failed = { code: String(error.code) };

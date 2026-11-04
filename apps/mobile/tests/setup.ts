@@ -21,6 +21,7 @@ jest.mock("@stripe/stripe-react-native", () => ({
   initStripe: jest.fn(async () => undefined),
   initPaymentSheet: jest.fn(async () => ({})),
   presentPaymentSheet: jest.fn(async () => ({})),
+  handleURLCallback: jest.fn(async () => false),
   PaymentSheetError: { Failed: "Failed", Canceled: "Canceled", Timeout: "Timeout" },
 }));
 jest.mock("react-native-razorpay", () => ({ __esModule: true, default: { open: jest.fn() } }));
