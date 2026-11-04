@@ -6,6 +6,7 @@ import { Card, ScreenHeader } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
 import { MemoryList } from "@/features/guide";
+import { NotificationsRow } from "@/features/push";
 import { useOutboxItems } from "@/lib/outbox";
 import { ThemeSection } from "./theme-section";
 import { useNickname } from "./use-nickname";
@@ -37,6 +38,7 @@ export function SettingsScreen() {
             parent can change your nickname or PIN.
           </Text>
         </Card>
+        <NotificationsRow />
         <ThemeSection />
         {/* What Jarso remembers: while the guide is on, or whenever any memory exists. */}
         <MemoryList />

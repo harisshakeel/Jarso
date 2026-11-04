@@ -23,6 +23,7 @@ import {
 } from "@/features/family";
 import { type ParentGuideState, useParentGuideState } from "@/features/guide";
 import { SavedCardsSlot } from "@/features/payments";
+import { NotificationsRow } from "@/features/push";
 import { ThemeSection } from "@/features/settings";
 import { ParentDetailsForm } from "@/features/setup";
 import { actionErrorMessage, flash } from "@/lib";
@@ -178,6 +179,8 @@ export function ParentSettingsScreen() {
 
       {/* Saved cards (plan 4): renders nothing until card payments land. */}
       <SavedCardsSlot />
+
+      <NotificationsRow />
 
       <ThemeSection />
 

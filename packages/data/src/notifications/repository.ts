@@ -1,11 +1,14 @@
 import { AppError, toAppError } from "@jarso/core/lib";
-import type {
-  DevicePushTokenInput,
-  NoteResult,
-  Notice,
-  NoticeKind,
-  NoticePage,
-  NoticeSource,
+import {
+  type DevicePushPrefs,
+  type DevicePushTokenInput,
+  NOTICE_GROUPS,
+  type NoteResult,
+  type Notice,
+  type NoticeKind,
+  type NoticePage,
+  type NoticeSource,
+  type PushGroup,
 } from "@jarso/core/notifications";
 import type { Database, Tables } from "@jarso/db";
 // Only place that knows the notifications table and its reads. RLS scopes rows to the caller.
@@ -183,5 +186,41 @@ export async function saveDeviceToken(db: Client, input: DevicePushTokenInput): 
 export async function removeDeviceToken(db: Client, token: string): Promise<boolean> {
   const { data, error } = await db.rpc("unregister_device_push_token", { p_token: token });
   if (error) throw deviceTokenError(error, "Failed to remove the device token");
+  return data === true;
+}
+
+const isPushGroup = (group: string): group is PushGroup =>
+  (NOTICE_GROUPS as readonly string[]).includes(group);
+
+/** This phone's push settings: the caller's own row for the token (RLS), or null when none. */
+export async function fetchDevicePushPrefs(
+  db: Client,
+  token: string,
+): Promise<DevicePushPrefs | null> {
+  const { data, error } = await db
+    .from("device_push_tokens")
+    .select("muted_groups, paused")
+    .eq("token", token)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load notification settings");
+  if (!data) return null;
+  // The table check allows only known groups; anything else is ignored rather than trusted.
+  return {
+    mutedGroups: (data.muted_groups ?? []).filter(isPushGroup),
+    paused: data.paused === true,
+  };
+}
+
+/** Saves this phone's push settings. False when the token is not the caller's (nothing changed). */
+export async function saveDevicePushPrefs(
+  db: Client,
+  input: DevicePushPrefs & { token: string },
+): Promise<boolean> {
+  const { data, error } = await db.rpc("set_device_push_prefs", {
+    p_token: input.token,
+    p_muted_groups: input.mutedGroups,
+    p_paused: input.paused,
+  });
+  if (error) throw toAppError(error, "Failed to save notification settings");
   return data === true;
 }
