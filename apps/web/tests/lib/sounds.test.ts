@@ -95,6 +95,24 @@ describe("sounds", () => {
     expect(made.contexts).toBe(1);
   });
 
+  it("play on a page that was never primed once the browser says it has been touched", () => {
+    // A lesson opened straight from Learn: Settings (which primes) was never visited.
+    Object.defineProperty(window.navigator, "userActivation", {
+      value: { hasBeenActive: false },
+      configurable: true,
+    });
+    playRight();
+    expect(made.oscillators).toBe(0);
+    Object.defineProperty(window.navigator, "userActivation", {
+      value: { hasBeenActive: true },
+      configurable: true,
+    });
+    playRight();
+    playWrong();
+    expect(made.oscillators).toBe(5);
+    Reflect.deleteProperty(window.navigator, "userActivation");
+  });
+
   it("play nothing while switched off", () => {
     primeSounds();
     window.dispatchEvent(new Event("keydown"));

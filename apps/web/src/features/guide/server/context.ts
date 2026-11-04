@@ -122,15 +122,24 @@ export function buildContext(
       const { step, where } = findStep(ref);
       const body = bodyFor(step, ref.phase);
       const finished = ref.wrongTries >= 2;
+      const hintsShown = ref.hintsShown ?? 0;
       return {
         entry: "step",
         contextKey: `step:${ref.source}:${ref.missionKey ?? "-"}:${step.key}:${ref.phase}`,
         text: [
           "Context from the app (not from the child):",
           money,
-          `The child asked for help with an exercise in ${where}.`,
+          `The child is on an exercise in ${where} and is asking you about it. When they say "this", "it" or "the question", they mean this exercise.`,
           ...describeStep(body, currency),
           `Tries so far: ${ref.wrongTries}.`,
+          ...(ref.lastTry && ref.wrongTries > 0
+            ? [
+                `The child's last try: ${describeChildAnswer(body, ref.lastTry, currency)}. It was not right.`,
+              ]
+            : []),
+          hintsShown > 0
+            ? `The child has already seen authored hint${hintsShown > 1 ? "s 1 and 2" : " 1"}; build on it rather than repeating it word for word.`
+            : "The child has not opened any hints yet.",
           finished
             ? "The child has tried twice. You may explain the right answer and why."
             : "The child has not finished this exercise. Do not give the answer or say which option is right. Start with a guiding question, then a hint.",

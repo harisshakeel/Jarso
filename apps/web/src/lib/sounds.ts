@@ -56,9 +56,22 @@ export function primeSounds(): void {
   window.addEventListener("keydown", seen, { capture: true, passive: true });
 }
 
+/**
+ * Whether the person has touched the page yet. The browser's own record
+ * (`navigator.userActivation`) answers on any page; the listener from `primeSounds` covers
+ * browsers without it. Before 2026-11-04 only the listener counted, and only the Settings page
+ * started it, so a lesson opened straight from Learn never chimed.
+ */
+function touched(): boolean {
+  if (gestureSeen) return true;
+  const activation = (window.navigator as { userActivation?: { hasBeenActive?: boolean } })
+    .userActivation;
+  return activation?.hasBeenActive === true;
+}
+
 /** The audio context, made on first use and only after a gesture; null when sound can't play. */
 function audio(): AudioContext | null {
-  if (!hasWindow() || !gestureSeen || !soundsOn()) return null;
+  if (!hasWindow() || !touched() || !soundsOn()) return null;
   const Ctor = window.AudioContext;
   if (typeof Ctor !== "function") return null;
   context ??= new Ctor();
