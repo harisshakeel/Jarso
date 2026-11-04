@@ -582,6 +582,145 @@ describe("razorpay chargeSaved", () => {
   });
 });
 
+describe("razorpay in-app payments", () => {
+  const inAppInput = {
+    paymentId: "pay-1",
+    amountMinor: 50000,
+    currency: "INR",
+    customerRef: "cust_TEST123",
+    description: "Allowance for Sam",
+    expiresAt: new Date("2026-11-03T10:31:00Z"),
+  };
+
+  it("has a native sheet", () => {
+    expect(setup().provider.inApp).toBe(true);
+  });
+
+  it("creates an order tagged jarsoPay and returns Checkout's params", async () => {
+    const { provider, createOrder } = setup();
+    createOrder.mockResolvedValue({ id: "order_TESTPAY1" } as never);
+    expect(await provider.createInAppPayment(inAppInput)).toEqual({
+      providerRef: "order_TESTPAY1",
+      sheet: {
+        provider: "razorpay",
+        mode: "payment",
+        keyId: KEY_ID,
+        orderId: "order_TESTPAY1",
+        amountMinor: 50000,
+        currency: "INR",
+        description: "Allowance for Sam",
+      },
+    });
+    expect(createOrder.mock.calls).toEqual([
+      [
+        {
+          amount: 50000,
+          currency: "INR",
+          payment_capture: true,
+          receipt: "pay-1",
+          notes: { jarsoPay: "pay-1" },
+        },
+      ],
+    ]);
+  });
+
+  it("treats an order without an id as UNAVAILABLE", async () => {
+    const { provider, createOrder } = setup();
+    createOrder.mockResolvedValue({} as never);
+    await expect(provider.createInAppPayment(inAppInput)).rejects.toMatchObject(UNAVAILABLE);
+  });
+
+  it("resumes from the stored order id without calling Razorpay", async () => {
+    const { provider, createOrder, fetchOrder, createCustomer } = setup();
+    expect(
+      await provider.resumeInAppPayment({
+        paymentId: "pay-1",
+        providerRef: "order_TESTPAY1",
+        customerRef: "cust_TEST123",
+        amountMinor: 50000,
+        currency: "INR",
+        description: "Allowance for Sam",
+      }),
+    ).toEqual({
+      provider: "razorpay",
+      mode: "payment",
+      keyId: KEY_ID,
+      orderId: "order_TESTPAY1",
+      amountMinor: 50000,
+      currency: "INR",
+      description: "Allowance for Sam",
+    });
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(fetchOrder).not.toHaveBeenCalled();
+    expect(createCustomer).not.toHaveBeenCalled();
+  });
+
+  it("can't cancel an order, so cancelling is a no-op", async () => {
+    const { provider, fetchOrder } = setup();
+    await expect(provider.cancelInAppPayment("order_TESTPAY1")).resolves.toBeUndefined();
+    expect(fetchOrder).not.toHaveBeenCalled();
+  });
+});
+
+describe("razorpay createInAppSetup", () => {
+  const PHONE = "+919000000000";
+  const EMAIL = "parent@example.com";
+  const contactCustomer = { ...customerCreated, id: "cust_CONTACT1", contact: PHONE };
+
+  it("refuses to save a card without the parent's email and phone", async () => {
+    const { provider, createOrder, createCustomer } = setup();
+    const error = await provider
+      .createInAppSetup({ setupId: "set-1", customerRef: "cust_STORED1" })
+      .catch((cause: unknown) => cause);
+    expect(error).toMatchObject({ code: "VALIDATION" });
+    expect((error as { fieldErrors?: unknown }).fieldErrors).toHaveProperty("phone");
+    expect(createCustomer).not.toHaveBeenCalled();
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it("creates the same card token order as the hosted setup and prefills Checkout", async () => {
+    const { provider, createOrder, createCustomer } = setup();
+    createCustomer.mockResolvedValue(contactCustomer as never);
+    createOrder.mockResolvedValue(orderCreated as never);
+    const result = await provider.createInAppSetup({
+      setupId: "set-1",
+      customerRef: "cust_STORED1",
+      contact: { email: EMAIL, phone: PHONE },
+    });
+    expect(createOrder.mock.calls).toEqual([
+      [
+        {
+          amount: 100,
+          currency: "INR",
+          customer_id: "cust_CONTACT1",
+          method: "card",
+          payment_capture: true,
+          receipt: "set-1",
+          notes: { jarsoSetup: "set-1" },
+          token: { max_amount: 1500000, frequency: "as_presented" },
+        },
+      ],
+    ]);
+    expect(result).toEqual({
+      providerRef: "order_TESTSETUP1",
+      sheet: {
+        provider: "razorpay",
+        mode: "setup",
+        keyId: KEY_ID,
+        orderId: "order_TESTSETUP1",
+        amountMinor: 100,
+        currency: "INR",
+        description: "Save a card",
+        customerId: "cust_CONTACT1",
+        prefill: { email: EMAIL, contact: PHONE },
+      },
+    });
+    const logged = JSON.stringify([log.error.mock.calls, log.warn.mock.calls, log.info.mock.calls]);
+    expect(logged).not.toContain("9000000000");
+    expect(logged).not.toContain(EMAIL);
+  });
+});
+
 describe("razorpay detachMethod", () => {
   it("deletes the card token from the customer", async () => {
     const { provider, deleteToken } = setup();

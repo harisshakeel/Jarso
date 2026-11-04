@@ -45,6 +45,23 @@ describe("payment provider registry", () => {
     expect(r.getPaymentProviderById("fake")).toBeNull();
   });
 
+  it("keeps stripe on without its publishable key, with no in-app sheet", async () => {
+    const r = await load(stripeKeys);
+    expect(r.getPaymentProviderById("stripe")?.inApp).toBe(false);
+  });
+
+  it("gives stripe an in-app sheet with its publishable key", async () => {
+    const r = await load({ ...stripeKeys, STRIPE_PUBLISHABLE_KEY: "pk_test_x" });
+    expect(ids(r)).toEqual(["stripe"]);
+    expect(r.getPaymentProviderById("stripe")?.inApp).toBe(true);
+  });
+
+  it("does not turn stripe on with only its publishable key", async () => {
+    const r = await load({ STRIPE_PUBLISHABLE_KEY: "pk_test_x" });
+    expect(ids(r)).toEqual([]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("refuses the fake without its opt-in", async () => {
     expect(ids(await load({}))).toEqual([]);
   });

@@ -1,6 +1,7 @@
-import type { CardSummary, FailureCode, PaymentProviderId } from "@jarso/core/lib";
+import type { CardSummary, FailureCode, InAppSheet, PaymentProviderId } from "@jarso/core/lib";
+import type { StoredStatus } from "./status";
 
-export type { CardSummary, FailureCode, PaymentProviderId };
+export type { CardSummary, FailureCode, InAppSheet, PaymentProviderId };
 
 /** What a card payment pays for: a due allowance occurrence or a gift. */
 export type PaymentSource = { type: "occurrence" | "parent_gift"; id: string };
@@ -49,3 +50,23 @@ export type AutoChargeCard = {
   /** Saving a card here needs the parent's mobile number (sent to the provider, never kept). */
   needsPhone: boolean;
 };
+
+/** `POST /payments/in-app`: the payment the phone's sheet pays, until `expiresAt`. */
+export type InAppPaymentStart = { paymentId: string; expiresAt: string; sheet: InAppSheet };
+
+/** A card setup the phone's sheet completes (turning auto charge on with no card saved). */
+export type InAppSetupStart = { setupId: string; sheet: InAppSheet };
+
+/** `GET /payments/:id`: what the phone polls after the sheet closes. `final`: stop polling. */
+export type PaymentStatusView = {
+  id: string;
+  status: StoredStatus;
+  failureCode: FailureCode | null;
+  final: boolean;
+};
+
+/**
+ * `GET /payments/providers`: the in-app providers' auto-charge cards, and the handover state of
+ * one item when asked for.
+ */
+export type InAppProviders = { cards: AutoChargeCard[]; item: CardPaymentState | null };

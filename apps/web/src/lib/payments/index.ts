@@ -10,6 +10,7 @@ export {
 export type {
   CardSummary,
   FailureCode,
+  InAppSheet,
   PaymentProvider,
   PaymentProviderId,
   PaymentStatus,

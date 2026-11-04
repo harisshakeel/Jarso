@@ -1,4 +1,4 @@
-import { isStoredStatus, nextStatus, type StoredStatus } from "@jarso/core/payments";
+import { isFinalStatus, isStoredStatus, nextStatus, type StoredStatus } from "@jarso/core/payments";
 import { describe, expect, it } from "vitest";
 
 describe("nextStatus", () => {
@@ -47,5 +47,19 @@ describe("isStoredStatus", () => {
     expect(isStoredStatus("succeeded_unapplied")).toBe(true);
     expect(isStoredStatus("requires_action")).toBe(true);
     expect(isStoredStatus("refunded")).toBe(false);
+  });
+});
+
+describe("isFinalStatus", () => {
+  it.each<[StoredStatus, boolean]>([
+    ["pending", false],
+    ["requires_action", false],
+    ["succeeded", true],
+    ["succeeded_unapplied", true],
+    ["failed", true],
+    ["canceled", true],
+    ["expired", true],
+  ])("%s is final: %s", (status, final) => {
+    expect(isFinalStatus(status)).toBe(final);
   });
 });

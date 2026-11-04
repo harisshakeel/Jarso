@@ -761,14 +761,14 @@ isOneToOne: false
                   ]
                 },"payments": {
                   Row: {
-                    "amount_minor": number,"cash_minor": number,"child_id": string,"created_at": string,"currency": string,"expires_at": string | null,"failure_code": string | null,"family_id": string,"id": string,"payer_id": string | null,"provider": string,"provider_ref": string | null,"redirect_url": string | null,"saved_minor": number,"source_id": string,"source_type": string,"status": string,"trigger": string,"updated_at": string
+                    "amount_minor": number,"cash_minor": number,"child_id": string,"created_at": string,"currency": string,"expires_at": string | null,"failure_code": string | null,"family_id": string,"id": string,"in_app": boolean,"payer_id": string | null,"provider": string,"provider_ref": string | null,"redirect_url": string | null,"saved_minor": number,"source_id": string,"source_type": string,"status": string,"trigger": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_minor": number,"cash_minor": number,"child_id": string,"created_at"?: string,"currency": string,"expires_at"?: string | null,"failure_code"?: string | null,"family_id": string,"id"?: string,"payer_id"?: string | null,"provider": string,"provider_ref"?: string | null,"redirect_url"?: string | null,"saved_minor": number,"source_id": string,"source_type": string,"status"?: string,"trigger"?: string,"updated_at"?: string
+                    "amount_minor": number,"cash_minor": number,"child_id": string,"created_at"?: string,"currency": string,"expires_at"?: string | null,"failure_code"?: string | null,"family_id": string,"id"?: string,"in_app"?: boolean,"payer_id"?: string | null,"provider": string,"provider_ref"?: string | null,"redirect_url"?: string | null,"saved_minor": number,"source_id": string,"source_type": string,"status"?: string,"trigger"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "amount_minor"?: number,"cash_minor"?: number,"child_id"?: string,"created_at"?: string,"currency"?: string,"expires_at"?: string | null,"failure_code"?: string | null,"family_id"?: string,"id"?: string,"payer_id"?: string | null,"provider"?: string,"provider_ref"?: string | null,"redirect_url"?: string | null,"saved_minor"?: number,"source_id"?: string,"source_type"?: string,"status"?: string,"trigger"?: string,"updated_at"?: string
+                    "amount_minor"?: number,"cash_minor"?: number,"child_id"?: string,"created_at"?: string,"currency"?: string,"expires_at"?: string | null,"failure_code"?: string | null,"family_id"?: string,"id"?: string,"in_app"?: boolean,"payer_id"?: string | null,"provider"?: string,"provider_ref"?: string | null,"redirect_url"?: string | null,"saved_minor"?: number,"source_id"?: string,"source_type"?: string,"status"?: string,"trigger"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {

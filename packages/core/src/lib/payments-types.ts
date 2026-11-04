@@ -33,6 +33,33 @@ export type ProviderEvent =
   | { kind: "setup"; eventId: string; setupId: string; methodRef: string; card: CardSummary }
   | { kind: "setup_failed"; eventId: string; setupId: string; reason: "expired" | "failed" };
 
+/**
+ * What the phone's native sheet opens with. Only public values: the Stripe publishable key and
+ * the Razorpay key id come from here, never from the app bundle. The client secret and ephemeral
+ * key are short-lived and minted again on every open; Jarso never stores them.
+ */
+export type InAppSheet =
+  | {
+      provider: "stripe";
+      mode: "payment" | "setup";
+      publishableKey: string;
+      customerId: string;
+      ephemeralKey: string;
+      clientSecret: string;
+    }
+  | {
+      provider: "razorpay";
+      mode: "payment" | "setup";
+      keyId: string;
+      orderId: string;
+      amountMinor: number;
+      currency: string;
+      description: string;
+      customerId?: string;
+      prefill?: { email: string; contact: string };
+    }
+  | { provider: "fake"; mode: "payment" | "setup"; ref: string };
+
 export interface PaymentProvider {
   readonly id: PaymentProviderId;
   /** Name shown to the parent when more than one provider is on ("Pay with Stripe"). */
@@ -79,6 +106,37 @@ export interface PaymentProvider {
     description: string;
   }): Promise<{ providerRef: string; status: PaymentStatus; failureCode?: FailureCode }>;
   detachMethod(methodRef: string): Promise<void>;
+  /** Whether the phone can pay or save a card here in a native sheet. False: no button on the phone. */
+  readonly inApp: boolean;
+  /**
+   * Starts a payment for the phone's native sheet. The provider has no expiry of its own here;
+   * Jarso ends the payment at `expiresAt` and calls `cancelInAppPayment`.
+   */
+  createInAppPayment(i: {
+    paymentId: string;
+    amountMinor: number;
+    currency: string;
+    customerRef: string;
+    description: string;
+    expiresAt: Date;
+  }): Promise<{ providerRef: string; sheet: InAppSheet }>;
+  /** The sheet for a live in-app payment, so reopening reuses it. CONFLICT once it can't be paid. */
+  resumeInAppPayment(i: {
+    paymentId: string;
+    providerRef: string;
+    customerRef: string;
+    amountMinor: number;
+    currency: string;
+    description: string;
+  }): Promise<InAppSheet>;
+  /** Best effort, so it can no longer succeed; a no-op where the provider can't cancel. */
+  cancelInAppPayment(providerRef: string): Promise<void>;
+  /** Starts saving a card in the phone's native sheet. `contact` as for `createHostedSetup`. */
+  createInAppSetup(i: {
+    setupId: string;
+    customerRef: string;
+    contact?: { email: string; phone: string };
+  }): Promise<{ providerRef: string; sheet: InAppSheet }>;
   /** Verifies the signature and maps the event. Throws VALIDATION on a bad signature. Null: ignore. */
   parseWebhook(rawBody: string, headers: Headers): Promise<ProviderEvent | null>;
 }

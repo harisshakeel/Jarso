@@ -5,14 +5,14 @@ import { getLastSplitWith } from "@/features/allowance/server";
 import { isAppError, logger } from "@/lib";
 import { getPaymentProviderById, getPaymentProviders, type PaymentProvider } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { endLivePayment } from "./end-payment";
 import {
   applyPayment,
   type DueAutoCharge,
-  expirePayment,
   failPayment,
   insertPayment,
   listDueAutoCharges,
-  listStaleLivePaymentIds,
+  listStaleLivePayments,
   setPaymentProviderRef,
 } from "./repository";
 
@@ -47,11 +47,11 @@ export async function runAutoCharges(now: Date = new Date()): Promise<AutoCharge
   const providerIds = providers.map((provider) => provider.id);
   const admin = createAdminClient();
 
-  for (const id of await listStaleLivePaymentIds(admin, now)) {
+  for (const stale of await listStaleLivePayments(admin, now)) {
     try {
-      await expirePayment(admin, id);
+      await endLivePayment(admin, stale, "expired");
     } catch (cause) {
-      logger.error("Failed to expire a stale card payment", { paymentId: id, cause });
+      logger.error("Failed to expire a stale card payment", { paymentId: stale.id, cause });
     }
   }
 

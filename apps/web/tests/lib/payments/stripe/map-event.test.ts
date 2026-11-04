@@ -9,9 +9,11 @@ import checkoutPaymentExpired from "./fixtures/checkout-payment-expired.json";
 import checkoutSetupCompleted from "./fixtures/checkout-setup-completed.json";
 import checkoutSetupExpired from "./fixtures/checkout-setup-expired.json";
 import customerCreated from "./fixtures/customer-created.json";
+import paymentIntentCanceled from "./fixtures/payment-intent-canceled.json";
 import paymentIntentFailed from "./fixtures/payment-intent-failed.json";
 import paymentIntentRequiresAction from "./fixtures/payment-intent-requires-action.json";
 import paymentIntentSucceeded from "./fixtures/payment-intent-succeeded.json";
+import setupIntentSucceeded from "./fixtures/setup-intent-succeeded.json";
 
 const asEvent = (fixture: unknown) => structuredClone(fixture) as unknown as Stripe.Event;
 const setupIntent = {
@@ -113,6 +115,102 @@ describe("mapStripeEvent", () => {
 
   it("ignores other events", async () => {
     expect(await mapStripeEvent(asEvent(customerCreated), retrieve)).toBeNull();
+  });
+});
+
+/** The fixture as an in-app PaymentIntent or SetupIntent: `metadata.jarsoInApp = "1"`. */
+function inApp(fixture: unknown): Stripe.Event {
+  const event = asEvent(fixture);
+  const object = event.data.object as { metadata?: Record<string, string> };
+  object.metadata = { ...object.metadata, jarsoInApp: "1" };
+  return event;
+}
+
+describe("mapStripeEvent, in-app intents", () => {
+  it("ignores payment_failed for an in-app intent", async () => {
+    expect(await mapStripeEvent(inApp(paymentIntentFailed), retrieve)).toBeNull();
+  });
+
+  it("ignores requires_action for an in-app intent", async () => {
+    expect(await mapStripeEvent(inApp(paymentIntentRequiresAction), retrieve)).toBeNull();
+  });
+
+  it("still fails an auto-charge intent on payment_failed", async () => {
+    expect(await mapStripeEvent(asEvent(paymentIntentFailed), retrieve)).toMatchObject({
+      kind: "payment",
+      status: "failed",
+    });
+  });
+
+  it("still fails an auto-charge intent on requires_action", async () => {
+    expect(await mapStripeEvent(asEvent(paymentIntentRequiresAction), retrieve)).toMatchObject({
+      status: "failed",
+      failureCode: "authentication_required",
+    });
+  });
+
+  it("ends an in-app payment on succeeded", async () => {
+    expect(await mapStripeEvent(inApp(paymentIntentSucceeded), retrieve)).toEqual({
+      kind: "payment",
+      eventId: "evt_5",
+      paymentId: "pay-2",
+      providerRef: "pi_test_1",
+      status: "succeeded",
+    });
+  });
+
+  it("maps payment_intent.canceled for an in-app intent", async () => {
+    expect(await mapStripeEvent(asEvent(paymentIntentCanceled), retrieve)).toEqual({
+      kind: "payment",
+      eventId: "evt_9",
+      paymentId: "pay-9",
+      providerRef: "pi_test_9",
+      status: "canceled",
+    });
+  });
+
+  it("ignores payment_intent.canceled without the marker", async () => {
+    const event = asEvent(paymentIntentCanceled);
+    (event.data.object as Stripe.PaymentIntent).metadata = { paymentId: "pay-9" };
+    expect(await mapStripeEvent(event, retrieve)).toBeNull();
+  });
+
+  it("maps setup_intent.succeeded for an in-app setup", async () => {
+    const retrieveSetup = vi.fn(async () => setupIntent);
+    expect(await mapStripeEvent(asEvent(setupIntentSucceeded), retrieveSetup)).toEqual({
+      kind: "setup",
+      eventId: "evt_10",
+      setupId: "set-1",
+      methodRef: "pm_1",
+      card: { brand: "visa", last4: "4242" },
+    });
+    expect(retrieveSetup).toHaveBeenCalledWith("seti_1");
+  });
+
+  it("fails an in-app setup whose intent has no card", async () => {
+    const retrieveSetup = vi.fn(
+      async () => ({ status: "succeeded", payment_method: null }) as unknown as Stripe.SetupIntent,
+    );
+    expect(await mapStripeEvent(asEvent(setupIntentSucceeded), retrieveSetup)).toEqual({
+      kind: "setup_failed",
+      eventId: "evt_10",
+      setupId: "set-1",
+      reason: "failed",
+    });
+  });
+
+  it("ignores setup_intent.succeeded from a hosted setup", async () => {
+    const retrieveSetup = vi.fn(async () => setupIntent);
+    const event = asEvent(setupIntentSucceeded);
+    (event.data.object as Stripe.SetupIntent).metadata = { setupId: "set-1" };
+    expect(await mapStripeEvent(event, retrieveSetup)).toBeNull();
+    expect(retrieveSetup).not.toHaveBeenCalled();
+  });
+
+  it("ignores setup_intent.setup_failed", async () => {
+    const event = asEvent(setupIntentSucceeded);
+    (event as { type: string }).type = "setup_intent.setup_failed";
+    expect(await mapStripeEvent(event, retrieve)).toBeNull();
   });
 });
 
