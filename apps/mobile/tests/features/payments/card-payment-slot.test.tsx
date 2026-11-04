@@ -101,7 +101,12 @@ const read = getPaymentStatus as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  start.mockResolvedValue({ paymentId: "p1", expiresAt: "2026-11-04T12:31:00Z", sheet });
+  start.mockResolvedValue({
+    paymentId: "p1",
+    expiresAt: "2026-11-04T12:31:00Z",
+    sheet,
+    cancellable: true,
+  });
 });
 
 describe("CardPaymentSlot", () => {
@@ -202,6 +207,30 @@ describe("CardPaymentSlot", () => {
     await waitFor(() => expect(cancelInAppPayment).toHaveBeenCalledWith("p1"));
     await waitFor(() => expect(flash).toHaveBeenCalledWith(paymentCopy.cancelled));
     expect(await screen.findByRole("button", { name: paymentCopy.payByCard })).toBeTruthy();
+  });
+
+  it("offers no Cancel for a Razorpay order, only Pay again on the same order", async () => {
+    (getPaymentProviders as jest.Mock).mockResolvedValue(
+      item({ providers: [provider("razorpay", "Razorpay")] }),
+    );
+    start.mockResolvedValue({
+      paymentId: "p1",
+      expiresAt: "2026-11-04T12:31:00Z",
+      sheet,
+      cancellable: false,
+    });
+    present.mockResolvedValue("closed");
+    read.mockResolvedValue(status("pending"));
+    await renderSlot();
+    const user = userEvent.setup();
+    await user.press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+    expect(await screen.findByText(paymentCopy.pendingTitle)).toBeTruthy();
+    // Razorpay orders can't be cancelled: it stays open until it expires.
+    expect(screen.queryByRole("button", { name: paymentCopy.cancelPayment })).toBeNull();
+    await user.press(screen.getByRole("button", { name: paymentCopy.payAgain }));
+    await waitFor(() => expect(start).toHaveBeenCalledTimes(2));
+    expect(start.mock.calls[1][0]).toMatchObject({ provider: "razorpay" });
+    expect(cancelInAppPayment).not.toHaveBeenCalled();
   });
 
   it("shows what the server says when there was nothing left to cancel", async () => {

@@ -28,11 +28,15 @@ export type CardPaymentSlotProps = {
   split?: { spendMinor: number; saveMinor: number };
 };
 
-/** One trip through the native sheet: which payment, which provider, how the sheet ended. */
+/**
+ * One trip through the native sheet: which payment, which provider, how the sheet ended, and
+ * whether the server lets the parent cancel it (not a Razorpay order: it only expires).
+ */
 type Attempt = {
   key: number;
   paymentId: string;
   provider: PaymentProviderId;
+  cancellable: boolean;
   outcome: SheetOutcome;
 };
 
@@ -45,8 +49,8 @@ const failedLine = (code: keyof typeof failureCopy | null) =>
  * `PaymentStatusNote`. One button per provider that can take the amount. After the sheet the
  * block reads the status back from the server and shows only what the server says: the phone
  * never reports a payment as paid. A sheet closed early leaves the payment in progress, with
- * Pay again (the server reuses the same intent) and Cancel. Renders nothing when card payments
- * are off. Parents only.
+ * Pay again (the server reuses the same intent) and Cancel where the provider can cancel it.
+ * Renders nothing when card payments are off. Parents only.
  */
 export function CardPaymentSlot({ kind, id, childId, amountMinor, split }: CardPaymentSlotProps) {
   const providers = usePaymentProviders({ childId, kind, id });
@@ -78,6 +82,7 @@ export function CardPaymentSlot({ kind, id, childId, amountMinor, split }: CardP
         key: (prev?.key ?? 0) + 1,
         paymentId: started.paymentId,
         provider,
+        cancellable: started.cancellable,
         outcome,
       }));
     } catch (cause) {
@@ -134,7 +139,7 @@ export function CardPaymentSlot({ kind, id, childId, amountMinor, split }: CardP
         key={attempt.key}
         attempt={attempt}
         idle={idle}
-        pending={pending(attempt.provider, attempt.paymentId)}
+        pending={pending(attempt.provider, attempt.cancellable ? attempt.paymentId : null)}
         busy={busy}
         onPayAgain={() => void pay(attempt.provider)}
         footer={footer}
