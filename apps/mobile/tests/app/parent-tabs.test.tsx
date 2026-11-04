@@ -76,13 +76,13 @@ const settle = () =>
 beforeEach(() => jest.clearAllMocks());
 
 describe("parent tabs", () => {
-  it("are Family, Children, Jarso and Inbox", async () => {
+  it("are Family, Children, Jarso and Notifications", async () => {
     guideState.mockResolvedValue({ configured: true, enabledChildIds: [] });
     await renderTabs();
     await waitFor(() => expect(screen.getByTestId("tab-jarso")).toHaveTextContent(/^Jarso$/));
     expect(
-      screen.getAllByText(/^(Family|Children|Jarso|Inbox)/).map((t) => t.props.children),
-    ).toEqual(["Family", "Children", "Jarso", "Inbox"]);
+      screen.getAllByText(/^(Family|Children|Jarso|Notifications)/).map((t) => t.props.children),
+    ).toEqual(["Family", "Children", "Jarso", "Notifications"]);
     expect(guideState).toHaveBeenCalledWith("/api/v1/guide/state", { auth: true });
   });
 
@@ -105,7 +105,7 @@ describe("parent tabs", () => {
   it("inbox badge shows unread", async () => {
     guideState.mockResolvedValue({ configured: false, enabledChildIds: [] });
     await renderTabs(4);
-    await waitFor(() => expect(screen.getByTestId("tab-inbox")).toHaveTextContent("Inbox 4"));
+    await waitFor(() => expect(screen.getByTestId("tab-inbox")).toHaveTextContent("Notifications 4"));
   });
 
   it("opens Settings from the header button", async () => {

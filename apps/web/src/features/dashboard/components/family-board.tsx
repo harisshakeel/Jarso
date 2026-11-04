@@ -185,12 +185,14 @@ export function FamilyRoadCard({
           <li key={place.childId} className="grid gap-1 rounded-xl bg-muted/60 px-4 py-3">
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <ChildDisc child={place} className="size-6 text-xs ring-0" />
-              <Link
-                href={routes.parentChild(place.childId)}
-                className="font-bold underline-offset-4 hover:underline"
-              >
-                {place.nickname}
-              </Link>
+              <h3 className="font-bold">
+                <Link
+                  href={routes.parentChild(place.childId)}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {place.nickname}
+                </Link>
+              </h3>
               <span className="text-ink-2 text-sm">{familyBoardCopy.where(place, stops)}</span>
             </span>
             <span className="text-sm">
@@ -209,12 +211,14 @@ export function FamilyRoadCard({
           <li key={child.childId} className="grid gap-1 rounded-xl bg-muted/60 px-4 py-3">
             <span className="flex items-center gap-2">
               <ChildDisc child={child} className="size-6 text-xs ring-0" />
-              <Link
-                href={routes.parentChild(child.childId)}
-                className="font-bold underline-offset-4 hover:underline"
-              >
-                {child.nickname}
-              </Link>
+              <h3 className="font-bold">
+                <Link
+                  href={routes.parentChild(child.childId)}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {child.nickname}
+                </Link>
+              </h3>
             </span>
             <span className="text-ink-2 text-sm">{learningCardCopy.unavailable}</span>
           </li>

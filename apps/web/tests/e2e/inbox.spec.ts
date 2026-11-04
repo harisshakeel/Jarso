@@ -77,6 +77,8 @@ test("a due allowance sends a reminder to the parent and the child", async () =>
   await parent.getByRole("group").getByText("Weekly", { exact: true }).click();
   await parent.getByRole("button", { name: "Save allowance" }).click();
   await expect(parent).toHaveURL(at(`${childBase}/allowance`));
+  // The Allowance page lists what's due, which makes today's allowance due before the job runs.
+  await expect(parent.getByRole("region", { name: "Due now" })).toBeVisible();
 
   // The cron job runs hourly; here the service role runs it now.
   const admin = createClient(local?.url ?? "", local?.secretKey ?? "", {
