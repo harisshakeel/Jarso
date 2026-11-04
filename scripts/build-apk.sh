@@ -29,6 +29,18 @@ fi
 command -v eas >/dev/null || PATH="$PNPM_HOME:$PATH"
 command -v eas >/dev/null || { echo "eas not found (pnpm add -g eas-cli)" >&2; exit 1; }
 
+# Only APK profiles install on a phone; production builds an app bundle for the store.
+BUILD_TYPE="$(node -e '
+  const b = require(process.argv[1]).build; let p = b[process.argv[2]], t;
+  while (p && !(t = p.android?.buildType)) p = b[p.extends];
+  console.log(p ? t : "missing");
+' "$MOBILE_DIR/eas.json" "$PROFILE")"
+case "$BUILD_TYPE" in
+  apk) ;;
+  missing) echo "No EAS profile \"$PROFILE\" in apps/mobile/eas.json" >&2; exit 1 ;;
+  *) echo "Profile $PROFILE builds ${BUILD_TYPE:-an app bundle}, not an APK" >&2; exit 1 ;;
+esac
+
 # Deps go stale after every git pull; a stale tree fails at "expo config".
 (cd "$REPO_DIR" && pnpm install --frozen-lockfile >/dev/null)
 
