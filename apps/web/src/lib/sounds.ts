@@ -1,8 +1,11 @@
 // Jarso's few sounds (design.md §8, "Sound"): coins clinking when money moves, a chime for a
-// right answer, a soft bonk for a wrong one. Synthesised with the Web Audio API, so there are
-// no audio files; short and quiet; off with one switch (kept in localStorage); never before the
-// person has touched the page, which is also what browsers require. Isomorphic: on the server
-// and in a browser without Web Audio every call is a no-op.
+// right answer, a soft bonk for a wrong one, a short fanfare when a mission is done.
+// Synthesised with the Web Audio API, so there are no audio files; short and quiet; off with
+// one switch (kept in localStorage); never before the person has touched the page, which is
+// also what browsers require. Isomorphic: on the server and in a browser without Web Audio
+// every call is a no-op. Demo 3 (2026-11-04): each note is two layers (a body and a bright
+// partial) with a rounded attack and a slow decay, so the tones sound like bells and wood
+// rather than a beeper.
 
 export const SOUNDS_KEY = "jarso:sounds";
 
@@ -74,50 +77,100 @@ type Tone = {
   type: OscillatorType;
   /** Peak gain, at most 0.2 (design.md: quiet). */
   gain: number;
+  /** A second, brighter layer an octave (or `partial` times) up, quieter; gives a bell its ring. */
+  partial?: number;
+  /** Seconds the attack takes; longer is softer (default 10 ms). */
+  attack?: number;
 };
+
+function voice(
+  ctx: AudioContext,
+  freq: number,
+  slideTo: number | undefined,
+  start: number,
+  end: number,
+  type: OscillatorType,
+  gain: number,
+  attack: number,
+): void {
+  const osc = ctx.createOscillator();
+  const amp = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, end);
+  amp.gain.setValueAtTime(0.0001, start);
+  amp.gain.exponentialRampToValueAtTime(Math.min(gain, 0.2), start + attack);
+  // A bell's decay: most of the way down early, then a tail to the end.
+  amp.gain.exponentialRampToValueAtTime(Math.min(gain, 0.2) * 0.3, start + (end - start) * 0.45);
+  amp.gain.exponentialRampToValueAtTime(0.0001, end);
+  osc.connect(amp);
+  amp.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(end + 0.02);
+}
 
 function play(tones: Tone[]): void {
   const ctx = audio();
   if (!ctx) return;
   const now = ctx.currentTime;
   for (const tone of tones) {
-    const osc = ctx.createOscillator();
-    const amp = ctx.createGain();
     const start = now + tone.at;
     const end = start + tone.dur;
-    osc.type = tone.type;
-    osc.frequency.setValueAtTime(tone.freq, start);
-    if (tone.slideTo) osc.frequency.exponentialRampToValueAtTime(tone.slideTo, end);
-    amp.gain.setValueAtTime(0.0001, start);
-    amp.gain.exponentialRampToValueAtTime(Math.min(tone.gain, 0.2), start + 0.01);
-    amp.gain.exponentialRampToValueAtTime(0.0001, end);
-    osc.connect(amp);
-    amp.connect(ctx.destination);
-    osc.start(start);
-    osc.stop(end + 0.02);
+    const attack = tone.attack ?? 0.01;
+    voice(ctx, tone.freq, tone.slideTo, start, end, tone.type, tone.gain, attack);
+    if (tone.partial) {
+      // The partial is sine and about a third as loud; it fades faster than the body.
+      const slide = tone.slideTo ? tone.slideTo * tone.partial : undefined;
+      voice(
+        ctx,
+        tone.freq * tone.partial,
+        slide,
+        start,
+        start + tone.dur * 0.6,
+        "sine",
+        tone.gain * 0.35,
+        attack,
+      );
+    }
   }
 }
 
-/** Coins clinking: three short bright taps, each a little different, about a third of a second. */
+/**
+ * Coins clinking: three short bright taps, each a little different, with a glassy partial so
+ * they ring like metal, about a third of a second.
+ */
 export function playCoins(): void {
   play([
-    { freq: 2600, at: 0, dur: 0.09, type: "triangle", gain: 0.12 },
-    { freq: 3100, at: 0.08, dur: 0.09, type: "triangle", gain: 0.1 },
-    { freq: 2850, at: 0.17, dur: 0.11, type: "triangle", gain: 0.09 },
+    { freq: 2600, at: 0, dur: 0.1, type: "triangle", gain: 0.12, partial: 2.76 },
+    { freq: 3100, at: 0.08, dur: 0.1, type: "triangle", gain: 0.1, partial: 2.76 },
+    { freq: 2850, at: 0.17, dur: 0.14, type: "triangle", gain: 0.09, partial: 2.76 },
   ]);
 }
 
-/** A right answer: two notes rising, like "yes, that's it". */
+/** A right answer: a bright bell on two rising notes (a fifth), like "yes, that's it". */
 export function playRight(): void {
   play([
-    { freq: 660, at: 0, dur: 0.12, type: "triangle", gain: 0.12 },
-    { freq: 880, at: 0.12, dur: 0.2, type: "triangle", gain: 0.12 },
+    { freq: 659, at: 0, dur: 0.16, type: "triangle", gain: 0.12, partial: 2, attack: 0.008 },
+    { freq: 988, at: 0.13, dur: 0.34, type: "triangle", gain: 0.13, partial: 2, attack: 0.008 },
   ]);
 }
 
-/** A wrong answer: one soft low bonk, kind, never a buzzer. */
+/** A wrong answer: one soft, woody "hm", a slow attack and a gentle slide down, never a buzzer. */
 export function playWrong(): void {
-  play([{ freq: 220, slideTo: 160, at: 0, dur: 0.25, type: "sine", gain: 0.1 }]);
+  play([{ freq: 240, slideTo: 170, at: 0, dur: 0.3, type: "sine", gain: 0.1, attack: 0.03 }]);
+}
+
+/**
+ * A mission done: a short three-note fanfare up a major chord and a held top note, under a
+ * second. Played once when the finish screen shows.
+ */
+export function playFanfare(): void {
+  play([
+    { freq: 523, at: 0, dur: 0.14, type: "triangle", gain: 0.11, partial: 2 },
+    { freq: 659, at: 0.12, dur: 0.14, type: "triangle", gain: 0.11, partial: 2 },
+    { freq: 784, at: 0.24, dur: 0.14, type: "triangle", gain: 0.12, partial: 2 },
+    { freq: 1047, at: 0.36, dur: 0.5, type: "triangle", gain: 0.14, partial: 2, attack: 0.012 },
+  ]);
 }
 
 /** For tests: forgets the context and the gesture. */
