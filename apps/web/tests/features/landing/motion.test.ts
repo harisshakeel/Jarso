@@ -7,15 +7,7 @@ import {
 } from "@/features/landing/components/hero-scene";
 import { kidHands, kidPose } from "@/features/landing/components/kid-art";
 import { landingCopy } from "@/features/landing/copy";
-import {
-  drop,
-  easeInOut,
-  easeOut,
-  easeOutBack,
-  lerp,
-  segment,
-  typed,
-} from "@/features/landing/motion";
+import { drop, easeInOut, easeOut, easeOutBack, lerp, segment, typed } from "@/lib/motion";
 
 describe("segment", () => {
   it("is 0 before, 1 after, and linear between", () => {

@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
+import { completeParentProfile, expectSetupPage, readFamilyCode, skipFilm } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -156,6 +156,7 @@ test("off-topic questions are redirected to money topics", async () => {
 test("Help me in a mission gives a hint, not the answer", async () => {
   await child.goto("/child/learn/whats-in-spend");
   await child.getByRole("button", { name: "Start mission" }).click();
+  await skipFilm(child);
   await child.getByRole("button", { name: "Continue", exact: true }).click();
   await child.getByRole("button", { name: "Help me" }).click();
   await ask(child, "I don't get it");

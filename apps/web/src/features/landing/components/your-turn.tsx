@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useRef } from "react";
+import { CoinArt, JarArt, PILE } from "@/components/brand";
 import { buttonVariants } from "@/components/ui";
 import { routes } from "@/config";
+import { drop, easeInOut, easeOut, easeOutBack, lerp, segment } from "@/lib";
 import { landingCopy } from "../copy";
 import { useInView } from "../hooks/use-in-view";
 import { useThreadState } from "../hooks/use-thread-state";
 import { useTimeline } from "../hooks/use-timeline";
-import { drop, easeInOut, easeOut, easeOutBack, lerp, segment } from "../motion";
-import { CoinArt, JarArt, PILE } from "./jar-art";
 import { TwoBeat } from "./two-beat";
 
 /**

@@ -5,6 +5,13 @@
   "title": "What's in Spend?",
   "topic": "spending",
   "summary": "Check what you have before you buy, and work out what's left.",
+  "film": {
+    "lines": [
+      "Before you buy something, take a peek inside your Spend jar.",
+      "This toy costs five coins, and you have eight. So you can pay!",
+      "Eight take away five leaves three. Those three are what's left."
+    ]
+  },
   "steps": [
     {
       "type": "info",

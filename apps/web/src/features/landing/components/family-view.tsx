@@ -3,10 +3,10 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { JarsoMark, StatusChip } from "@/components/brand";
 import { siteConfig } from "@/config";
+import { easeInOut, easeOut, easeOutBack, lerp, segment } from "@/lib";
 import { landingCopy } from "../copy";
 import { useInView } from "../hooks/use-in-view";
 import { useTimeline } from "../hooks/use-timeline";
-import { easeInOut, easeOut, easeOutBack, lerp, segment } from "../motion";
 import { DemoCard, FloatingChip, KeycapPicture, pounds } from "./demos/demo-parts";
 import { TwoBeat } from "./two-beat";
 

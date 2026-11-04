@@ -1,5 +1,5 @@
-import { drop, easeInOut, easeOut, easeOutBack, lerp, segment } from "../motion";
-import { CoinArt, JarArt, jarPoint, PILE } from "./jar-art";
+import { CoinArt, JarArt, jarPoint, PILE } from "@/components/brand";
+import { drop, easeInOut, easeOut, easeOutBack, lerp, segment } from "@/lib";
 import { KidArt, kidHands, kidPose } from "./kid-art";
 
 // The hero in two acts, drawn from scroll progress (0 to 1).

@@ -1,7 +1,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
+import { completeParentProfile, expectSetupPage, readFamilyCode, skipFilm } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -144,6 +144,12 @@ test("a mission gives instant feedback and replays a mistake at the end", async 
   await child.getByRole("link", { name: /What's in Spend\?/ }).click();
   await expect(child).toHaveURL(at("/child/learn/whats-in-spend"));
   await child.getByRole("button", { name: "Start mission" }).click();
+
+  // The lesson film plays first: Nell's first line is the caption.
+  await expect(
+    child.getByText("Before you buy something, take a peek inside your Spend jar."),
+  ).toBeVisible();
+  await skipFilm(child);
 
   // Step 1: the idea.
   await expect(child.getByRole("heading", { name: "Spend is the cash you hold" })).toBeVisible();

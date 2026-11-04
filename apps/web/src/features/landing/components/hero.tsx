@@ -4,11 +4,10 @@ import Link from "next/link";
 import { useRef } from "react";
 import { buttonVariants } from "@/components/ui";
 import { routes } from "@/config";
-import { cn } from "@/lib";
+import { cn, segment } from "@/lib";
 import { landingCopy } from "../copy";
 import { useReducedMotion } from "../hooks/use-reduced-motion";
 import { useScrollProgress } from "../hooks/use-scroll-progress";
-import { segment } from "../motion";
 import { captionWindows, HeroScene, taglineStarts, taglinesLeave } from "./hero-scene";
 import { JarThread } from "./jar-thread";
 

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { easeInOut, segment } from "../motion";
+import { easeInOut, segment } from "@/lib";
 
 // The hero's kid, drawn like the jar mark (design.md §7): thick round-ended strokes, flat fills,
 // a cyan hoodie like the lid and teal trousers like the jar. Gold stays for coins. Units are scene

@@ -2,10 +2,10 @@
 
 import { BotOffIcon, ShieldCheckIcon, UsersIcon } from "lucide-react";
 import { useRef } from "react";
+import { clamp01 } from "@/lib";
 import { landingCopy } from "../copy";
 import { useReducedMotion } from "../hooks/use-reduced-motion";
 import { useScrollProgress } from "../hooks/use-scroll-progress";
-import { clamp01 } from "../motion";
 
 const chipIcons = [ShieldCheckIcon, BotOffIcon, UsersIcon] as const;
 

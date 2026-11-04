@@ -186,3 +186,14 @@ export async function expectSetupPage(page: Page): Promise<void> {
     );
   }
 }
+
+/**
+ * Skips a mission's lesson film (the animated intro that plays after Start mission), checking it
+ * showed. Missions without a film start at their first step, so only call it where one plays.
+ */
+export async function skipFilm(page: Page): Promise<void> {
+  const film = page.getByRole("region", { name: /^Intro: / });
+  await expect(film).toBeVisible();
+  await film.getByRole("button", { name: "Skip intro" }).click();
+  await expect(film).toHaveCount(0);
+}

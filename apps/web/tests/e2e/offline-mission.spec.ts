@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
+import { completeParentProfile, expectSetupPage, readFamilyCode, skipFilm } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** A mission started online and finished offline, sent in order on reconnect (LOCAL Supabase). */
@@ -88,6 +88,7 @@ test("finish a started mission offline, results arrive in order after reconnect"
 
   await child.goto("/child/learn/whats-in-spend");
   await child.getByRole("button", { name: "Start mission" }).click();
+  await skipFilm(child);
   await expect(child.getByRole("heading", { name: "Spend is the cash you hold" })).toBeVisible();
 
   // The connection drops once the mission has started: every answer is kept on the device.

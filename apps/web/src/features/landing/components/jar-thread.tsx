@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { JAR_OUTLINE_LENGTH, JAR_SEGMENTS } from "@/components/brand";
-import { clamp01, easeInOut, lerp, segment } from "../motion";
+import { clamp01, easeInOut, lerp, segment } from "@/lib";
 import { JAR, UNWIND_START } from "./hero-scene";
 
 // The thread: the hero jar's outline travelling through the page, drawn the way the jar is drawn

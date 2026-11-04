@@ -4,10 +4,10 @@
 export * from "@jarso/core/lib";
 export * from "./action";
 export * from "./fallback";
-
 // Explicit export shadows core's logger: ./logger configures it from the environment on first
 // evaluation, so every @/lib consumer gets a configured logger.
 export { configureLogger, logger } from "./logger";
+export * from "./motion";
 
 export * from "./sounds";
 export * from "./timed-fetch";

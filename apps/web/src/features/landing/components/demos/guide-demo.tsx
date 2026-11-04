@@ -1,8 +1,8 @@
 "use client";
 
 import { BotIcon, LoaderCircleIcon, ScanSearchIcon } from "lucide-react";
+import { easeOut, segment, typed } from "@/lib";
 import { useTimeline } from "../../hooks/use-timeline";
-import { easeOut, segment, typed } from "../../motion";
 import { DemoCard, DemoStage } from "./demo-parts";
 
 const QUESTION = "My bike costs £120. How long will it take?";
