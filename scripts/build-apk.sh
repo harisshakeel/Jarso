@@ -80,7 +80,7 @@ sudo systemd-run \
     cred="${CREDENTIALS_DIRECTORY:-}/expo-token"
     if [ -r "$cred" ]; then EXPO_TOKEN="$(cat "$cred")"; export EXPO_TOKEN; fi
     eas build -p android --profile "$1" --local --non-interactive --output "$2" > "$3" 2>&1
-    echo $? > "$4"
+    echo $? > "$4.tmp" && mv "$4.tmp" "$4"   # the watcher never sees a half-written file
   ' build-apk "$PROFILE" "$APK" "$LOG" "$DONE"
 
 echo "Building in the background (Ctrl+C stops watching, not the build)."
