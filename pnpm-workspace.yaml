@@ -5,3 +5,10 @@ packages:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+packageExtensions:
+  # Stripe's config plugin requires @expo/config-plugins without declaring it, so it only
+  # resolves while pnpm happens to hoist one copy; two Expo-pinned versions break prebuild.
+  "@stripe/stripe-react-native":
+    dependencies:
+      "@expo/config-plugins": "~58.0.12"
