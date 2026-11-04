@@ -9,6 +9,9 @@ export const dashboardCopy = {
   timelineEmpty: "Nothing planned for the next two weeks.",
   summaryLabel: "Jarso's summary",
   summaryEyebrow: "Jarso's summary · written by AI from the figures below",
+  summaryTitle: "Jarso's summary",
+  /** Under the summary: who wrote it, and from what. */
+  summaryNote: "Jarso is an AI. This was written by AI from your children's learning this week.",
   childrenTitle: "Children",
   due: " due",
   spend: "Spend ",
@@ -23,8 +26,8 @@ export const parentPageCopy = {
   children: "Children",
   /** Home, when nothing waits: the one line, and where to look around. */
   quiet: "Nothing needs you right now.",
-  lookAround: "See how the children are doing",
-  /** Home's capped list: the rest are on Children. */
+  lookAround: "See how the children are learning",
+  /** Home's capped list: the rest are on the Money page. */
   more: (count: number) => `and ${count} more`,
   thisWeek: "This week",
   handedOver: "Handed over",
@@ -33,6 +36,10 @@ export const parentPageCopy = {
   nothingComing: "Nothing in the next two weeks",
   inbox: "Inbox",
   allowance: "Allowance",
+  /** The money tab (2026-11-04): allowances, the chart, spending and activity in one place. */
+  money: "Money",
+  moneyIntro: "Allowances, spending and how the jars moved, for the whole family.",
+  allowances: "Allowances",
   settings: "Settings",
   /** The child page's title before the child's nickname is known. */
   child: "Your child",

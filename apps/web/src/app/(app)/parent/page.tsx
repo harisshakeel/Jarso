@@ -9,36 +9,37 @@ import { routes } from "@/config";
 import { mergeDue, NeedsYou } from "@/features/allowance";
 import { listDue } from "@/features/allowance/server";
 import {
-  ChildRow,
+  type ChildLearning,
   FamilySummary,
   FamilySummarySkeleton,
+  HomeLearning,
+  homeSummaryFacts,
   parentPageCopy,
-  type SummaryFacts,
-  summaryFacts,
-  ThisWeekStrip,
-  windowFor,
+  slotFor,
 } from "@/features/dashboard";
 import { getFamilyDashboard } from "@/features/dashboard/server";
 import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 import { isGuideConfigured, writeFamilySummary } from "@/features/guide/server";
+import { getLearningOverview } from "@/features/learning/server";
 import { type Notice, UnreadNotices } from "@/features/notifications";
 import { listUnreadNotices } from "@/features/notifications/server";
 import { ParentRequestItems, RequestsUnavailable, settleRequestReads } from "@/features/requests";
 import { listRequestsNeedingParent } from "@/features/requests/server";
-import { logger } from "@/lib";
+import { familyToday, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Home" };
 
-/** Due items Home shows before "and N more" sends the parent to Children. */
+/** Due items Home shows before "and N more" sends the parent to the Money page. */
 const HOME_DUE_LIMIT = 5;
 
+type Kid = ChildSummary & { slot: number };
+
 /**
- * The parent's Home (2026-11-04): only what needs the parent right now, on one screen. One row
- * of children (each a tap away, plus Add a child), Jarso's one line, then what is waiting
- * (handovers, requests, limit notices), then this week in three figures. Nothing waiting shows
- * one calm line. Looking around (charts, categories, how each child is doing) is the Children
- * tab.
+ * The parent's Home (learning first since 2026-11-04), on one screen: each child's learning this
+ * week (the newest lesson and how it went, what's next), then what waits on the parent, then
+ * Jarso's few sentences about the week. Money in detail is the Money tab; each child in depth is
+ * the Children tab.
  */
 async function ParentHome() {
   const { membership } = await requireRole("parent", routes.parent);
@@ -46,6 +47,8 @@ async function ParentHome() {
   const [family, children] = await Promise.all([getFamily(), listChildren()]);
   if (!family) redirect(routes.parentSetup);
   if (children.length === 0) return <FirstChildCard />;
+  const today = familyToday(family.timezone);
+  const kids: Kid[] = children.map((child, index) => ({ ...child, slot: slotFor(index) }));
 
   // Limit notices are the parent's own rows; a failed read leaves them out, never the page.
   const notices = listUnreadNotices(["limit_exceeded"]).catch((error: unknown) => {
@@ -55,41 +58,51 @@ async function ParentHome() {
   });
 
   return (
-    <div className="grid gap-5">
-      <ChildRow items={children} />
+    <div className="grid gap-6">
+      <Suspense fallback={<LearningSkeleton count={kids.length} />}>
+        <LearningSection kids={kids} today={today} />
+      </Suspense>
+      <Suspense fallback={<div aria-hidden className="shimmer h-24 rounded-xl bg-muted" />}>
+        <NeedsYouSection kids={kids} notices={notices} currency={family.currency} today={today} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <RequestsSection kids={kids} currency={family.currency} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <NoticesSection notices={notices} kids={kids} currency={family.currency} />
+      </Suspense>
       {isGuideConfigured() ? (
         <Suspense fallback={<FamilySummarySkeleton />}>
-          <SummarySection />
+          <SummarySection kids={kids} today={today} />
         </Suspense>
       ) : null}
-      <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
-        <NeedsYouSection kids={children} notices={notices} currency={family.currency} />
-      </Suspense>
-      <Suspense fallback={null}>
-        <RequestsSection kids={children} currency={family.currency} />
-      </Suspense>
-      <Suspense fallback={null}>
-        <NoticesSection notices={notices} kids={children} currency={family.currency} />
-      </Suspense>
-      <Suspense fallback={<div aria-hidden className="shimmer h-20 rounded-xl bg-muted" />}>
-        <ThisWeekSection />
-      </Suspense>
     </div>
   );
 }
 
-/** Jarso's one line about the week, from the same facts Children uses. Nothing without one. */
-async function SummarySection() {
-  const data = await getFamilyDashboard(7);
-  if (!data) return null;
-  const facts: SummaryFacts = summaryFacts(
-    data.children,
-    windowFor(7, data.today),
-    data.currency,
-    data.today,
-  );
-  const text = await writeFamilySummary(facts);
-  return text ? <FamilySummary text={text} /> : null;
+/** Each child's learning, read once per child (the read is cached for the summary below). */
+async function readLearning(kids: Kid[]) {
+  const results = await Promise.allSettled(kids.map((kid) => getLearningOverview(kid.id)));
+  const items: ChildLearning[] = [];
+  const unavailable: Omit<ChildLearning, "overview">[] = [];
+  results.forEach((result, index) => {
+    const kid = kids[index];
+    if (!kid) return;
+    const who = { childId: kid.id, nickname: kid.nickname, slot: kid.slot };
+    if (result.status === "fulfilled") {
+      items.push({ ...who, overview: result.value });
+      return;
+    }
+    unstable_rethrow(result.reason);
+    logger.warn("Learning unavailable on parent home", { error: errorName(result.reason) });
+    unavailable.push(who);
+  });
+  return { items, unavailable };
+}
+
+async function LearningSection({ kids, today }: { kids: Kid[]; today: string }) {
+  const { items, unavailable } = await readLearning(kids);
+  return <HomeLearning items={items} unavailable={unavailable} today={today} />;
 }
 
 /**
@@ -101,10 +114,12 @@ async function NeedsYouSection({
   kids,
   notices,
   currency,
+  today,
 }: {
-  kids: ChildSummary[];
+  kids: Kid[];
   notices: Promise<Notice[]>;
   currency: string;
+  today: string;
 }) {
   const [perChild, requests, unread] = await Promise.all([
     Promise.all(kids.map(async (child) => ({ child, due: await listDue(child.id) }))),
@@ -121,17 +136,22 @@ async function NeedsYouSection({
   const waiting = due.length + waitingRequests + unread.length;
   return (
     <div className="grid gap-3">
-      <NeedsYou items={shown} currency={currency} otherCount={waitingRequests + unread.length} />
+      <NeedsYou
+        items={shown}
+        currency={currency}
+        otherCount={waitingRequests + unread.length}
+        today={today}
+      />
       {more > 0 ? (
         <Link
-          href={routes.parentChildren}
+          href={routes.parentAllowanceOverview}
           className="inline-flex min-h-11 w-fit items-center font-semibold text-primary underline-offset-4 hover:underline"
         >
           {parentPageCopy.more(more)}
         </Link>
       ) : null}
       {waiting === 0 ? (
-        <CoachSays coach={{ key: "parent-home" }} says={parentPageCopy.quiet}>
+        <CoachSays coach={{ key: "parent-home" }} says={parentPageCopy.quiet} size="sm">
           <Link
             href={routes.parentChildren}
             className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline"
@@ -151,7 +171,7 @@ async function NoticesSection({
   currency,
 }: {
   notices: Promise<Notice[]>;
-  kids: ChildSummary[];
+  kids: Kid[];
   currency: string;
 }) {
   const ids = new Set(kids.map((child) => child.id));
@@ -160,7 +180,7 @@ async function NoticesSection({
 }
 
 /** Take-outs and put-ins waiting on a parent. A child whose read fails gets a calm line; the rest still show. */
-async function RequestsSection({ kids, currency }: { kids: ChildSummary[]; currency: string }) {
+async function RequestsSection({ kids, currency }: { kids: Kid[]; currency: string }) {
   const results = await Promise.allSettled(
     kids.map((child) => listRequestsNeedingParent(child.id)),
   );
@@ -181,23 +201,37 @@ async function RequestsSection({ kids, currency }: { kids: ChildSummary[]; curre
   );
 }
 
-/** This week in three figures: handed over, still to hand over, and the next thing coming. */
-async function ThisWeekSection() {
-  const data = await getFamilyDashboard(7);
-  if (!data) return null;
-  return <ThisWeekStrip kids={data.children} currency={data.currency} today={data.today} />;
+/** Jarso's few sentences about the children's learning this week, and what waits. */
+async function SummarySection({ kids, today }: { kids: Kid[]; today: string }) {
+  const [{ items }, data] = await Promise.all([readLearning(kids), getFamilyDashboard(7)]);
+  if (!data || items.length === 0) return null;
+  const text = await writeFamilySummary(
+    homeSummaryFacts(items, data.children, data.currency, today),
+  );
+  return text ? <FamilySummary text={text} /> : null;
 }
 
 function errorName(error: unknown): string {
   return error instanceof Error ? error.name : typeof error;
 }
 
+function LearningSkeleton({ count }: { count: number }) {
+  return (
+    <div aria-hidden className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: Math.min(count, 3) }, (_, index) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: placeholders with nothing else to key on
+        <div key={index} className="shimmer h-36 rounded-xl bg-muted" />
+      ))}
+    </div>
+  );
+}
+
 function HomeSkeleton() {
   return (
-    <div aria-hidden className="grid gap-5">
-      <div className="shimmer h-20 rounded-xl bg-muted" />
-      <div className="shimmer h-32 rounded-xl bg-muted" />
-      <div className="shimmer h-20 rounded-xl bg-muted" />
+    <div aria-hidden className="grid gap-6">
+      <LearningSkeleton count={2} />
+      <div className="shimmer h-24 rounded-xl bg-muted" />
+      <div className="shimmer h-28 rounded-xl bg-muted" />
     </div>
   );
 }

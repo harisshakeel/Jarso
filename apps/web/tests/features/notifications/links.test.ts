@@ -19,7 +19,9 @@ describe("noticeHref", () => {
     expect(noticeHref(base, "parent")).toBe(routes.parentHandover("c1", "allowance", "s1"));
   });
   it("parent request opens the child page", () => {
-    expect(noticeHref({ ...base, sourceType: "request" }, "parent")).toBe(routes.parentChild("c1"));
+    expect(noticeHref({ ...base, sourceType: "request" }, "parent")).toBe(
+      routes.parentChildMoney("c1"),
+    );
   });
   it("parent ledger entry opens the child's history", () => {
     expect(noticeHref({ ...base, sourceType: "ledger_entry" }, "parent")).toBe(
@@ -35,7 +37,7 @@ describe("noticeHref", () => {
   });
   it("parent jar move (a request) opens the child page", () => {
     const moved = { ...base, kind: "jar_moved" as const, sourceType: "request" as const };
-    expect(noticeHref(moved, "parent")).toBe(routes.parentChild("c1"));
+    expect(noticeHref(moved, "parent")).toBe(routes.parentChildMoney("c1"));
   });
 });
 
@@ -77,6 +79,6 @@ describe("card_charge_failed", () => {
     expect(noticeHref(open("home"), "child")).toBe(routes.child);
     expect(noticeHref(open("nowhere"), "child")).toBe(routes.child);
     expect(noticeHref(open("history"), "parent")).toBe(routes.parentChildHistory("c1"));
-    expect(noticeHref(open("child"), "parent")).toBe(routes.parentChild("c1"));
+    expect(noticeHref(open("child"), "parent")).toBe(routes.parentChildMoney("c1"));
   });
 });

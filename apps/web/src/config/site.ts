@@ -66,6 +66,10 @@ export const routes = {
   /** The parent's full-page Jarso chat about their children. */
   parentJarso: "/parent/jarso" as Route,
   parentChild: (childId: string) => `/parent/children/${childId}` as Route,
+  /** A child's page on its Money tab: where money flows (handovers, gifts, allowance) return. */
+  parentChildMoney: (childId: string) => `/parent/children/${childId}?tab=money` as Route,
+  /** A child's page on its Jarso tab: where the chats page goes back to. */
+  parentChildJarso: (childId: string) => `/parent/children/${childId}?tab=jarso` as Route,
   parentChildHistory: (childId: string) => `/parent/children/${childId}/history` as Route,
   parentAllowance: (childId: string) => `/parent/children/${childId}/allowance` as Route,
   parentAllowanceEdit: (childId: string) => `/parent/children/${childId}/allowance/edit` as Route,

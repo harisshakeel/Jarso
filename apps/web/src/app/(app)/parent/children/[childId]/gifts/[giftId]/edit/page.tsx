@@ -26,7 +26,7 @@ async function EditGiftContent({
   const [gifts, autoChargeCards] = await Promise.all([listGifts(childId), getAutoChargeCard()]);
   const gift = gifts.find((g) => g.id === giftId);
   const title = parentPageCopy.giftFor(child.nickname);
-  const back = { href: routes.parentChild(childId), label: child.nickname };
+  const back = { href: routes.parentChildMoney(childId), label: child.nickname };
 
   if (gift?.status !== "pending") {
     return (
@@ -34,7 +34,10 @@ async function EditGiftContent({
         <Card className="rise-in">
           <CardContent className="grid gap-4">
             <p>This gift was already handed over or cancelled.</p>
-            <Link href={routes.parentChild(childId)} className={buttonVariants({ size: "lg" })}>
+            <Link
+              href={routes.parentChildMoney(childId)}
+              className={buttonVariants({ size: "lg" })}
+            >
               Back to {child.nickname}
             </Link>
           </CardContent>

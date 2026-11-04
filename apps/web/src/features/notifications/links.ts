@@ -9,7 +9,8 @@ export function noticeHref(notice: Notice, role: NoticeRole): Route {
     case "handover":
       return routes.parentHandover(target.childId, target.kind, target.id);
     case "child":
-      return routes.parentChild(target.childId);
+      // Request notices: the child's Money tab, where the request waits.
+      return routes.parentChildMoney(target.childId);
     case "child-history":
       return routes.parentChildHistory(target.childId);
     case "diary":

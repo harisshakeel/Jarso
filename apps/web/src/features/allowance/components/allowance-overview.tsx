@@ -54,7 +54,7 @@ export function AllowanceOverview({ rows, currency }: AllowanceOverviewProps) {
             <Card size="sm" className="h-full">
               <div className="grid gap-3 px-(--card-spacing)">
                 <div className="flex items-center gap-2">
-                  <h2 className="min-w-0 flex-1 truncate text-h3">{row.nickname}</h2>
+                  <h3 className="min-w-0 flex-1 truncate text-h3">{row.nickname}</h3>
                   {row.dueCount > 0 ? (
                     <Badge variant="count">
                       {row.dueCount}

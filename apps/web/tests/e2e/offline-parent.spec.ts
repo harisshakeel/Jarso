@@ -77,7 +77,7 @@ test("parent confirms a handover offline and sees the warning; nothing is record
 
   await parentContext.setOffline(false);
   await parent.waitForTimeout(5_000);
-  await parent.goto(childBase);
+  await parent.goto(`${childBase}?tab=money`);
   await expect(dueNow().getByRole("link", { name: /^Allowance/ })).toBeVisible();
 
   await dueNow()

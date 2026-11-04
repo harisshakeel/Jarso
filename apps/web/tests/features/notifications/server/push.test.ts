@@ -164,7 +164,7 @@ describe("pushPayload", () => {
     expect(payload).toEqual({
       title: "Sam asked to take money out of Save",
       body: "£5. Your answer is waiting.",
-      url: "/parent/children/c1",
+      url: "/parent/children/c1?tab=money",
       tag: "n1",
     });
   });

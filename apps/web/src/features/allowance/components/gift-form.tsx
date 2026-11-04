@@ -58,7 +58,7 @@ export function GiftForm({
         : await runOnline(() => createGiftAction(null, formData));
       if (result.ok) {
         toast.success(giftCopy.saved);
-        router.push(routes.parentChild(childId));
+        router.push(routes.parentChildMoney(childId));
       }
       return result;
     },
@@ -118,7 +118,7 @@ export function GiftForm({
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link
-          href={routes.parentChild(childId)}
+          href={routes.parentChildMoney(childId)}
           className={buttonVariants({ variant: "outline", size: "lg" })}
         >
           {giftCopy.back}
@@ -154,7 +154,7 @@ export function CancelGiftForm({
       start(() => {
         if (result.ok) {
           toast.success(giftCopy.cancelled);
-          router.push(routes.parentChild(childId));
+          router.push(routes.parentChildMoney(childId));
         } else {
           setError(result.error);
         }

@@ -15,11 +15,11 @@ function current() {
 }
 
 describe("ParentNav", () => {
-  it("has Home and Allowance tabs in a labelled nav", () => {
+  it("has Home and Money tabs in a labelled nav", () => {
     render(<ParentNav />);
     expect(screen.getByRole("navigation", { name: "Parent" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/parent");
-    expect(screen.getByRole("link", { name: "Allowance" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Money" })).toHaveAttribute(
       "href",
       "/parent/allowance",
     );
@@ -35,7 +35,7 @@ describe("ParentNav", () => {
     ["/parent/children", "Children"],
     ["/parent/children/abc", "Children"],
     ["/parent/children/abc/allowance", "Children"],
-    ["/parent/allowance", "Allowance"],
+    ["/parent/allowance", "Money"],
   ])("on %s lights %s", (path, tab) => {
     pathname.current = path;
     render(<ParentNav />);

@@ -31,6 +31,10 @@ export function LearningSummaryCard({
               ? `${nickname} hasn't learned yet this week.`
               : `Learned on ${days} ${days === 1 ? "day" : "days"} this week.`}
           </p>
+          <p className="text-ink-2">
+            {overview.points === 1 ? "1 point" : `${overview.points} points`}
+            {overview.streak >= 2 ? ` · ${overview.streak} days in a row` : ""}
+          </p>
           <Link
             href={href}
             className="inline-flex min-h-11 w-fit items-center gap-1 rounded-full font-semibold text-primary underline-offset-4 hover:underline"

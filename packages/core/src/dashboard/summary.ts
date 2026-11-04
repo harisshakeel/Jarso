@@ -18,8 +18,8 @@ export type SummaryFacts = {
   lines: string[];
 };
 
-/** Longest summary a parent sees; a longer answer is dropped, not cut. */
-export const SUMMARY_MAX = 320;
+/** Longest summary a parent sees; a longer answer is dropped, not cut. Room for lesson titles. */
+export const SUMMARY_MAX = 480;
 
 /**
  * The facts for the scoped children over the window: what waits for the parent first, then

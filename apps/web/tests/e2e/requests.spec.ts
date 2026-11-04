@@ -138,7 +138,7 @@ test("child takes out 500, parent approves and confirms the handover", async () 
   await expect(spendJar()).toContainText("US$1,500");
   await child.goto("/child/diary");
   await expect(history().getByText("Moved from Save to Spend").first()).toBeVisible();
-  await parent.goto(childBase);
+  await parent.goto(`${childBase}?tab=money`);
   await expect(parent.getByRole("region", { name: "Save jar" })).toContainText("US$1,500.00");
   await expect(parent.getByRole("region", { name: "Spend jar" })).toContainText("US$1,500.00");
 });

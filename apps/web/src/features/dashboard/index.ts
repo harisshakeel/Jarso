@@ -8,6 +8,7 @@ export * from "./components/child-row";
 export * from "./components/child-tiles";
 export * from "./components/family-summary";
 export * from "./components/family-totals";
+export * from "./components/learning-cards";
 export * from "./components/money-chart";
 export * from "./components/period-switch";
 export * from "./components/series";
