@@ -1,40 +1,20 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect, unstable_rethrow } from "next/navigation";
-import type { CSSProperties } from "react";
 import { Suspense } from "react";
-import { z } from "zod";
+import { CoachSays } from "@/components/brand";
 import { PageContainer, PageHeader } from "@/components/layout";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { mergeDue, NeedsYou } from "@/features/allowance";
 import { listDue } from "@/features/allowance/server";
 import {
-  ActivityList,
-  CalloutsCard,
-  CategoryCompare,
-  ChildFilter,
-  ChildTiles,
-  callouts,
-  categoryComparison,
-  categorySentence,
-  dashboardTotals,
   FamilySummary,
   FamilySummarySkeleton,
-  FamilyTotals,
-  filterHref,
-  MoneyChart,
-  mergeActivity,
-  moneyChart,
-  moneyChartSentence,
-  PeriodSwitch,
   parentPageCopy,
-  periodOf,
   type SummaryFacts,
-  scopeChildren,
-  slotFor,
   summaryFacts,
-  TimelineCard,
-  timeline,
+  ThisWeekStrip,
   windowFor,
 } from "@/features/dashboard";
 import { getFamilyDashboard } from "@/features/dashboard/server";
@@ -47,40 +27,23 @@ import { ParentRequestItems, RequestsUnavailable, settleRequestReads } from "@/f
 import { listRequestsNeedingParent } from "@/features/requests/server";
 import { logger } from "@/lib";
 
-export const metadata: Metadata = { title: "Your family" };
+export const metadata: Metadata = { title: "Home" };
 
-type Props = PageProps<"/parent">;
-
-const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
-
-// `child` is a child's id or "all"; anything that isn't one of this family's children reads as
-// everyone. `period` is 7, 30 or 90 days; anything else is the week.
-const paramsSchema = z.object({
-  child: z.string().max(64).optional().catch(undefined),
-  period: z.coerce.number().int().optional().catch(undefined),
-});
+/** Due items Home shows before "and N more" sends the parent to Children. */
+const HOME_DUE_LIMIT = 5;
 
 /**
- * The parent's Home (spec 2026-11-02): who needs the parent first, then the family's money as
- * one picture, each child one tap away. A filter at the top re-scopes the whole page to one
- * child. The shell and the filter render from two light reads; "Needs you" and the dashboard
- * stream in on their own.
+ * The parent's Home (2026-11-04): only what needs the parent right now, on one screen. Jarso's
+ * one line, then what is waiting (handovers, requests, limit notices), then this week in three
+ * figures. Nothing waiting shows one calm line. Looking around (charts, categories, each child)
+ * is the Children tab.
  */
-async function ParentHome({ searchParams }: Pick<Props, "searchParams">) {
+async function ParentHome() {
   const { membership } = await requireRole("parent", routes.parent);
   if (!membership) redirect(routes.parentSetup);
-  const [family, children, raw] = await Promise.all([getFamily(), listChildren(), searchParams]);
+  const [family, children] = await Promise.all([getFamily(), listChildren()]);
   if (!family) redirect(routes.parentSetup);
   if (children.length === 0) return <FirstChildCard />;
-
-  const params = paramsSchema.parse(raw);
-  const days = periodOf(params.period ?? 7).days;
-  const current = children.some((child) => child.id === params.child)
-    ? (params.child ?? null)
-    : null;
-  const scoped = scopeChildren(children, current);
-  const keepPeriod = { period: String(days) };
-  const keepChild: Record<string, string> = params.child ? { child: params.child } : {};
 
   // Limit notices are the parent's own rows; a failed read leaves them out, never the page.
   const notices = listUnreadNotices(["limit_exceeded"]).catch((error: unknown) => {
@@ -90,98 +53,116 @@ async function ParentHome({ searchParams }: Pick<Props, "searchParams">) {
   });
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <ChildFilter
-          basePath={routes.parent}
-          items={children.map((child, index) => ({ ...child, slot: slotFor(index) }))}
-          current={current}
-          explicit={params.child !== undefined}
-          keep={keepPeriod}
-        />
-        <PeriodSwitch basePath={routes.parent} days={days} keep={keepChild} />
-      </div>
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-        <div className="rise-in">
-          <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
-            <NeedsYouSection scoped={scoped} notices={notices} currency={family.currency} />
-          </Suspense>
-        </div>
-        <div className="grid gap-6">
-          <div className="rise-in" style={rise(1)}>
-            <Suspense fallback={null}>
-              <RequestsSection scoped={scoped} currency={family.currency} />
-            </Suspense>
-          </div>
-          <div className="rise-in" style={rise(1)}>
-            <Suspense fallback={null}>
-              <NoticesSection notices={notices} scoped={scoped} currency={family.currency} />
-            </Suspense>
-          </div>
-        </div>
-      </div>
-      <Suspense fallback={<DashboardSkeleton />}>
-        <Dashboard days={days} current={current} keepPeriod={keepPeriod} />
+    <div className="grid gap-5">
+      {isGuideConfigured() ? (
+        <Suspense fallback={<FamilySummarySkeleton />}>
+          <SummarySection />
+        </Suspense>
+      ) : null}
+      <Suspense fallback={<div aria-hidden className="shimmer h-32 rounded-xl bg-muted" />}>
+        <NeedsYouSection kids={children} notices={notices} currency={family.currency} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <RequestsSection kids={children} currency={family.currency} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <NoticesSection notices={notices} kids={children} currency={family.currency} />
+      </Suspense>
+      <Suspense fallback={<div aria-hidden className="shimmer h-20 rounded-xl bg-muted" />}>
+        <ThisWeekSection />
       </Suspense>
     </div>
   );
 }
 
+/** Jarso's one line about the week, from the same facts Children uses. Nothing without one. */
+async function SummarySection() {
+  const data = await getFamilyDashboard(7);
+  if (!data) return null;
+  const facts: SummaryFacts = summaryFacts(
+    data.children,
+    windowFor(7, data.today),
+    data.currency,
+    data.today,
+  );
+  const text = await writeFamilySummary(facts);
+  return text ? <FamilySummary text={text} /> : null;
+}
+
 /**
- * Everything due across the scoped children, oldest first. Requests and limit notices are listed
- * beside it; they count here so "All caught up." only shows when nothing waits.
+ * Everything due across the family, oldest first, at most a few; requests and limit notices
+ * count here so "All caught up." only shows when nothing waits. With nothing waiting, the quiet
+ * line and the way to Children.
  */
 async function NeedsYouSection({
-  scoped,
+  kids,
   notices,
   currency,
 }: {
-  scoped: ChildSummary[];
+  kids: ChildSummary[];
   notices: Promise<Notice[]>;
   currency: string;
 }) {
-  const ids = new Set(scoped.map((child) => child.id));
   const [perChild, requests, unread] = await Promise.all([
-    Promise.all(scoped.map(async (child) => ({ child, due: await listDue(child.id) }))),
-    Promise.allSettled(scoped.map((child) => listRequestsNeedingParent(child.id))),
+    Promise.all(kids.map(async (child) => ({ child, due: await listDue(child.id) }))),
+    Promise.allSettled(kids.map((child) => listRequestsNeedingParent(child.id))),
     notices,
   ]);
   const waitingRequests = requests.reduce(
     (sum, result) => sum + (result.status === "fulfilled" ? result.value.length : 0),
     0,
   );
-  const waitingNotices = unread.filter((notice) => ids.has(notice.childId)).length;
+  const due = mergeDue(perChild);
+  const shown = due.slice(0, HOME_DUE_LIMIT);
+  const more = due.length - shown.length;
+  const waiting = due.length + waitingRequests + unread.length;
   return (
-    <NeedsYou
-      items={mergeDue(perChild)}
-      currency={currency}
-      otherCount={waitingRequests + waitingNotices}
-    />
+    <div className="grid gap-3">
+      <NeedsYou items={shown} currency={currency} otherCount={waitingRequests + unread.length} />
+      {more > 0 ? (
+        <Link
+          href={routes.parentChildren}
+          className="inline-flex min-h-11 w-fit items-center font-semibold text-primary underline-offset-4 hover:underline"
+        >
+          {parentPageCopy.more(more)}
+        </Link>
+      ) : null}
+      {waiting === 0 ? (
+        <CoachSays coach={{ key: "parent-home" }} says={parentPageCopy.quiet}>
+          <Link
+            href={routes.parentChildren}
+            className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            {parentPageCopy.lookAround}
+          </Link>
+        </CoachSays>
+      ) : null}
+    </div>
   );
 }
 
-/** Unread limit notices for the scoped children; View marks each read. */
+/** Unread limit notices; View marks each read. */
 async function NoticesSection({
   notices,
-  scoped,
+  kids,
   currency,
 }: {
   notices: Promise<Notice[]>;
-  scoped: ChildSummary[];
+  kids: ChildSummary[];
   currency: string;
 }) {
-  const ids = new Set(scoped.map((child) => child.id));
+  const ids = new Set(kids.map((child) => child.id));
   const items = (await notices).filter((notice) => ids.has(notice.childId));
   return <UnreadNotices items={items} currency={currency} />;
 }
 
 /** Take-outs and put-ins waiting on a parent. A child whose read fails gets a calm line; the rest still show. */
-async function RequestsSection({ scoped, currency }: { scoped: ChildSummary[]; currency: string }) {
+async function RequestsSection({ kids, currency }: { kids: ChildSummary[]; currency: string }) {
   const results = await Promise.allSettled(
-    scoped.map((child) => listRequestsNeedingParent(child.id)),
+    kids.map((child) => listRequestsNeedingParent(child.id)),
   );
   const { items, failed } = settleRequestReads(
-    scoped.map((child) => child.nickname),
+    kids.map((child) => child.nickname),
     results,
   );
   for (const result of results) {
@@ -197,135 +178,30 @@ async function RequestsSection({ scoped, currency }: { scoped: ChildSummary[]; c
   );
 }
 
-/**
- * The family's money (spec answers 2 to 9): Jarso's summary, the chart and the totals, what's
- * worth knowing, spending by category, the next two weeks, the children and one merged activity list. Every
- * section is built from one read per child; with a child picked, every section is about them.
- */
-async function Dashboard({
-  days,
-  current,
-  keepPeriod,
-}: {
-  days: number;
-  current: string | null;
-  keepPeriod: Record<string, string>;
-}) {
-  const data = await getFamilyDashboard(days);
+/** This week in three figures: handed over, still to hand over, and the next thing coming. */
+async function ThisWeekSection() {
+  const data = await getFamilyDashboard(7);
   if (!data) return null;
-  const { currency, today } = data;
-  const scoped = scopeChildren(data.children, current);
-  const picked = current ? (scoped[0] ?? null) : null;
-  const window = windowFor(days, today);
-  const period = periodOf(days);
-  const chart = moneyChart(scoped, days, today);
-  const rows = categoryComparison(scoped, window);
-  const hrefs = Object.fromEntries(
-    data.children.map((child) => [child.id, filterHref(routes.parent, child.id, keepPeriod)]),
-  );
-  const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-  return (
-    <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
-      {isGuideConfigured() ? (
-        <Suspense
-          fallback={
-            <div className="lg:col-span-3">
-              <FamilySummarySkeleton />
-            </div>
-          }
-        >
-          <SummarySection facts={summaryFacts(scoped, window, currency, today)} />
-        </Suspense>
-      ) : null}
-      <div className="rise-in lg:col-span-2" style={rise(2)}>
-        <MoneyChart
-          chart={chart}
-          currency={currency}
-          hrefs={hrefs}
-          sentence={moneyChartSentence(chart, currency)}
-          split={chart.splitAt ? { before: capital(period.before), now: period.label } : null}
-        />
-      </div>
-      <div className="rise-in" style={rise(2)}>
-        <FamilyTotals
-          totals={dashboardTotals(scoped, today)}
-          currency={currency}
-          who={picked?.nickname ?? null}
-        />
-      </div>
-      <div className="rise-in" style={rise(3)}>
-        <CalloutsCard
-          items={callouts(scoped, window, currency)}
-          currency={currency}
-          period={period.now}
-        />
-      </div>
-      <div className="rise-in" style={rise(3)}>
-        <CategoryCompare
-          rows={rows}
-          days={days}
-          currency={currency}
-          sentence={categorySentence(rows, days, currency, picked?.nickname ?? null)}
-          slot={picked?.slot ?? null}
-        />
-      </div>
-      <div className="rise-in" style={rise(3)}>
-        <TimelineCard events={timeline(scoped, today, currency)} />
-      </div>
-      <div className="rise-in lg:col-span-3" style={rise(4)}>
-        <ChildTiles items={data.children} currency={currency} />
-      </div>
-      <div className="rise-in lg:col-span-2" style={rise(4)}>
-        <ActivityList
-          items={mergeActivity(scoped, 8)}
-          currency={currency}
-          seeAllHref={picked ? routes.parentChildHistory(picked.id) : null}
-        />
-      </div>
-    </div>
-  );
-}
-
-/** Jarso's summary of what the page shows; nothing at all, not even a grid row, without one. */
-async function SummarySection({ facts }: { facts: SummaryFacts }) {
-  const text = await writeFamilySummary(facts);
-  if (!text) return null;
-  return (
-    <div className="rise-in lg:col-span-3" style={rise(2)}>
-      <FamilySummary text={text} />
-    </div>
-  );
+  return <ThisWeekStrip kids={data.children} currency={data.currency} today={data.today} />;
 }
 
 function errorName(error: unknown): string {
   return error instanceof Error ? error.name : typeof error;
 }
 
-function DashboardSkeleton() {
-  return (
-    <div aria-hidden className="grid gap-6 lg:grid-cols-3">
-      <div className="shimmer h-72 rounded-xl bg-muted lg:col-span-2" />
-      <div className="shimmer h-72 rounded-xl bg-muted" />
-      <div className="shimmer h-48 rounded-xl bg-muted" />
-      <div className="shimmer h-48 rounded-xl bg-muted" />
-      <div className="shimmer h-48 rounded-xl bg-muted" />
-    </div>
-  );
-}
-
 function HomeSkeleton() {
   return (
-    <div aria-hidden className="grid gap-6">
-      <div className="shimmer h-11 w-72 rounded-full bg-muted" />
+    <div aria-hidden className="grid gap-5">
+      <div className="shimmer h-20 rounded-xl bg-muted" />
       <div className="shimmer h-32 rounded-xl bg-muted" />
-      <DashboardSkeleton />
+      <div className="shimmer h-20 rounded-xl bg-muted" />
     </div>
   );
 }
 
-export default function ParentHomePage({ searchParams }: Props) {
+export default function ParentHomePage() {
   return (
-    <PageContainer width="wide" className="gap-6">
+    <PageContainer width="wide" className="gap-5">
       <PageHeader title={parentPageCopy.family} />
       <Suspense
         fallback={
@@ -334,7 +210,7 @@ export default function ParentHomePage({ searchParams }: Props) {
           </SlowFallback>
         }
       >
-        <ParentHome searchParams={searchParams} />
+        <ParentHome />
       </Suspense>
     </PageContainer>
   );

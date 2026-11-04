@@ -20,6 +20,17 @@ export const dashboardCopy = {
 /** Headings and intros of the parent's pages, where they are not owned by one feature's copy. */
 export const parentPageCopy = {
   family: "Your family",
+  children: "Children",
+  /** Home, when nothing waits: the one line, and where to look around. */
+  quiet: "Nothing needs you right now.",
+  lookAround: "See how the children are doing",
+  /** Home's capped list: the rest are on Children. */
+  more: (count: number) => `and ${count} more`,
+  thisWeek: "This week",
+  handedOver: "Handed over",
+  stillDue: "Still to hand over",
+  nextUp: "Next up",
+  nothingComing: "Nothing in the next two weeks",
   inbox: "Inbox",
   allowance: "Allowance",
   settings: "Settings",

@@ -10,5 +10,6 @@ export * from "./components/family-totals";
 export * from "./components/money-chart";
 export * from "./components/period-switch";
 export * from "./components/series";
+export * from "./components/this-week-strip";
 export * from "./components/timeline-card";
 export * from "./hrefs";
