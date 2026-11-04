@@ -166,7 +166,12 @@ test("Show more pages through a long inbox with no repeats and no gaps", async (
 
   const rows = async () => {
     await expect(parent.getByRole("heading", { name: "Notifications" })).toBeVisible();
-    return parent.getByRole("listitem").filter({ hasText: "Sam" }).allInnerTexts();
+    // Only the messages: recent activity beside them also names Sam.
+    return parent
+      .getByRole("region", { name: "Messages" })
+      .getByRole("listitem")
+      .filter({ hasText: "Sam" })
+      .allInnerTexts();
   };
 
   await parent.goto("/parent/inbox");
