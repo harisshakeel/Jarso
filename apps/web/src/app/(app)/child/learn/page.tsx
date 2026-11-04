@@ -9,6 +9,7 @@ import { requireRole } from "@/features/family/server";
 import {
   learnCopy,
   NextStepCard,
+  PersonalBests,
   Roadmap,
   ScoreStrip,
   weeklyRhythmLine,
@@ -35,6 +36,7 @@ async function LearnContent() {
         </header>
         <CoachSays coach={{ key: "learn" }} says={{ moment: "learn" }} />
         {cardFirst ? <NextStepCard step={overview.nextStep} /> : null}
+        <PersonalBests overview={overview} />
         <Link
           href={routes.childWeek}
           className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-hairline bg-card px-4 py-3 font-semibold hover:bg-muted"

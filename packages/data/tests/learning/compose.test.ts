@@ -86,6 +86,7 @@ describe("getLearningOverview", () => {
     ]);
     const overview = await getLearningOverview(db, childId, clock);
     expect(overview.streak).toBe(2);
+    expect(overview.longestStreak).toBe(2);
     expect(overview.points).toBe(18);
     expect(repo.listStepResults).toHaveBeenCalledWith(db, ["a1", "a2"]);
   });

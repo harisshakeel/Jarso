@@ -11,6 +11,7 @@ export * from "./components/learning-summary";
 export * from "./components/mission-player";
 export * from "./components/next-step-card";
 export * from "./components/path-map";
+export * from "./components/personal-bests";
 export * from "./components/read-aloud-button";
 export * from "./components/roadmap";
 export * from "./components/score-strip";

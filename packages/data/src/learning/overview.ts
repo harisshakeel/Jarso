@@ -6,6 +6,7 @@ import {
   daysLearnedThisWeek,
   isComeback,
   learningStreak,
+  longestStreak,
   totalPoints,
 } from "@jarso/core/learning";
 import { findMission, missions } from "@jarso/core/learning/content";
@@ -76,6 +77,7 @@ export async function getLearningOverview(
     practiceDue,
     daysThisWeek: daysLearnedThisWeek(activity, timezone, today),
     streak: learningStreak(activity, timezone, today),
+    longestStreak: longestStreak(activity, timezone),
     points: totalPoints([...[...allResults.values()].flat(), ...practice]),
     lastLearnedOn: lastActivity ? localDateOf(lastActivity, timezone) : null,
     nextStep: chooseNextStep(
