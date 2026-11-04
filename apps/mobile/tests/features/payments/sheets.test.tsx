@@ -87,7 +87,7 @@ describe("presentSheet", () => {
       error: { code: "Failed", message: "No such payment_intent" },
     });
     await expect(presentSheet(stripeSheet("payment"), { onFake: noFake })).rejects.toMatchObject({
-      code: "UNAVAILABLE",
+      code: "INTERNAL",
       message: paymentCopy.cardFormFailed,
     });
     expect(presentPaymentSheet).not.toHaveBeenCalled();
@@ -146,7 +146,7 @@ describe("presentSheet", () => {
       const onFake = jest.fn();
       const error = await presentSheet(fakeSheet, { onFake }).catch((e: unknown) => e);
       expect(error).toBeInstanceOf(AppError);
-      expect(error).toMatchObject({ code: "UNAVAILABLE", message: paymentCopy.cardFormFailed });
+      expect(error).toMatchObject({ code: "INTERNAL", message: paymentCopy.cardFormFailed });
       expect(onFake).not.toHaveBeenCalled();
     } finally {
       (globalThis as { __DEV__?: boolean }).__DEV__ = dev;

@@ -21,7 +21,7 @@ export async function presentSheet(
     case "razorpay":
       return presentRazorpaySheet(sheet);
     case "fake":
-      if (!__DEV__) throw new AppError("UNAVAILABLE", paymentCopy.cardFormFailed);
+      if (!__DEV__) throw new AppError("INTERNAL", paymentCopy.cardFormFailed);
       return opts.onFake(sheet);
   }
 }

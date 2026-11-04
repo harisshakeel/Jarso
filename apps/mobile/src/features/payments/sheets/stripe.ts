@@ -31,8 +31,9 @@ export async function presentStripeSheet(sheet: StripeSheet): Promise<SheetOutco
   } catch {
     failed = { code: "init" };
   }
-  // Only the error code goes along: the message can echo the intent, never its secret.
-  if (failed) throw new AppError("UNAVAILABLE", paymentCopy.cardFormFailed, { cause: failed });
+  // Only the error code goes along: the message can echo the intent, never its secret. Not
+  // UNAVAILABLE: that reads as the offline line, and this message is the one to show.
+  if (failed) throw new AppError("INTERNAL", paymentCopy.cardFormFailed, { cause: failed });
   const { error } = await presentPaymentSheet();
   return error ? "closed" : "completed";
 }

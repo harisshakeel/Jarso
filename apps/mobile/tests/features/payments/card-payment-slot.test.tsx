@@ -277,6 +277,16 @@ describe("CardPaymentSlot", () => {
     expect(screen.getByText(paymentCopy.fullAmount)).toBeTruthy();
   });
 
+  it("says the card form didn't load when the sheet can't open", async () => {
+    (getPaymentProviders as jest.Mock).mockResolvedValue(item());
+    present.mockRejectedValue(new AppError("INTERNAL", paymentCopy.cardFormFailed));
+    await renderSlot();
+    await userEvent
+      .setup()
+      .press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+    expect(await screen.findByText(paymentCopy.cardFormFailed)).toBeTruthy();
+  });
+
   it("shows the server's message when the start is refused", async () => {
     (getPaymentProviders as jest.Mock).mockResolvedValue(item());
     start.mockRejectedValue(new AppError("CONFLICT", paymentCopy.inProgress));
