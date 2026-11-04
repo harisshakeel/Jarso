@@ -20,6 +20,17 @@ export const pushPromptCopy = {
   later: "Not now",
 } as const;
 
+/** The home screen's card while this phone won't show Jarso's notifications. */
+export const pushOffCardCopy = {
+  title: "Notifications are off",
+  child: "Turn them on to hear when money arrives or a parent answers.",
+  parent: "Turn them on to hear when your child asks for something or a handover is due.",
+  blocked: "Turn them on for Jarso in the phone's settings.",
+  turnOn: "Turn on",
+  openSettings: "Open phone settings",
+  later: "Not now",
+} as const;
+
 /**
  * The phone's notification settings page: one switch per notice group, and a pause. Children's
  * wording that also reads well for parents (docs/design.md voice).

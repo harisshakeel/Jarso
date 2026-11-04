@@ -104,7 +104,7 @@ describe("NotificationSettings", () => {
   });
 
   it("denied permission shows Open phone settings", async () => {
-    permissions.mockResolvedValue({ granted: false, status: "denied" });
+    permissions.mockResolvedValue({ granted: false, status: "denied", canAskAgain: false });
     const open = jest.spyOn(Linking, "openSettings").mockResolvedValue(undefined);
     await render(<NotificationSettings />);
     expect(await screen.findByText(noticeGroupCopy.permissionOff.title)).toBeOnTheScreen();

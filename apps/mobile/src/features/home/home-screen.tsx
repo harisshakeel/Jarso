@@ -10,6 +10,7 @@ import { useSession } from "@/features/auth";
 import { PendingPurchases } from "@/features/diary";
 import { GoalCard, HomeStepCard } from "@/features/goals";
 import { JarGraph, JarsCard, useHome } from "@/features/jars";
+import { PushPermissionCard } from "@/features/push";
 import { useNickname } from "@/features/settings";
 import { formatMoney, todayLine, toUserMessage, useTokens } from "@/lib";
 import { keys } from "@/lib/query";
@@ -109,6 +110,7 @@ export function HomeScreen() {
             </Pressable>
           }
         />
+        <PushPermissionCard />
         <JarsCard
           total={money(jars.spend + jars.save)}
           spend={{
