@@ -595,7 +595,7 @@ flowchart LR
   rec[(record change<br/>function)] --> n[(notifications)]
   n -->|row is the inbox| ui[Inbox tab + badge]
   act[Server Action / outbox route<br/>after()] --> disp[dispatchPush]
-  cr[Vercel cron<br/>daily] --> disp
+  cr[pg_cron push-sweep<br/>every 15 min] --> disp
   disp -->|claim_unpushed_notifications<br/>pushed_at| n
   disp -->|web-push, VAPID| push[Browser push]
   push --> sw[public/sw.js<br/>opens the record]
@@ -604,7 +604,7 @@ flowchart LR
 - Notifications are created inside the same transaction as the record change, so a posted handover always has its notification.
 - The inbox is just `notifications` filtered by recipient; no delivery step can lose it.
 - The inbox is live: `notifications` is in the `supabase_realtime` publication, and `NoticeListener` (mounted in both role layouts) subscribes over Supabase Realtime's WebSocket to the user's own inserts and updates. RLS applies to each change. On a change it calls `router.refresh()`, so the badge, inbox and "Needs you" re-render from the server; new notices also toast. After a dropped connection comes back it refreshes once to catch up. If Realtime is down, everything still updates on navigation.
-- Web push (ADR 0012) is an at-most-once copy of the row: `claim_unpushed_notifications` stamps `pushed_at` on a batch of the last day's notices for still-approved recipients (`for update skip locked`) and the dispatcher sends `noticeText` of each to the recipient's `push_subscriptions` with VAPID. Actions that write notices call `pushAfterNotices()` (Next `after()`); the daily Vercel cron sweeps the rest, chiefly the hourly allowance reminders. A 404/410 forgets the subscription; other failures are logged by status and not retried, because the inbox has the row.
+- Web push (ADR 0012) is an at-most-once copy of the row: `claim_unpushed_notifications` stamps `pushed_at` on a batch of the last day's notices for still-approved recipients (`for update skip locked`) and the dispatcher sends `noticeText` of each to the recipient's `push_subscriptions` with VAPID. Actions that write notices call `pushAfterNotices()` (Next `after()`); the `pg_cron` job `push-sweep` (every 15 minutes, via pg_net to `/api/cron/push`) sweeps the rest, chiefly the hourly allowance reminders and a child's notices held overnight. A 404/410 forgets the subscription; other failures are logged by status and not retried, because the inbox has the row.
 - Opt-in is per browser: the inbox's "Pings on this device" switch registers `public/sw.js` and stores the subscription through `push_subscribe`, which also moves an endpoint over from another account that used the device and keeps a member's newest 10. Everything works with the VAPID keys unset: the switch does not render and nothing is claimed.
 - Email for notices is deferred until a sending domain exists; the Resend adapter sends invitations only.
 
