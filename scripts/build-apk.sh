@@ -76,7 +76,12 @@ sudo systemd-run \
   --setenv=JAVA_HOME="$JAVA_HOME" \
   --setenv=ANDROID_HOME="$ANDROID_HOME" \
   --setenv=ORG_GRADLE_PROJECT_reactNativeArchitectures="$ARCHS" \
-  bash -c "[ -r \"\${CREDENTIALS_DIRECTORY:-}/expo-token\" ] && export EXPO_TOKEN=\"\$(cat \"\$CREDENTIALS_DIRECTORY/expo-token\")\"; eas build -p android --profile '$PROFILE' --local --non-interactive --output '$APK' > '$LOG' 2>&1; echo \$? > '$DONE'"
+  bash -c '
+    cred="${CREDENTIALS_DIRECTORY:-}/expo-token"
+    if [ -r "$cred" ]; then EXPO_TOKEN="$(cat "$cred")"; export EXPO_TOKEN; fi
+    eas build -p android --profile "$1" --local --non-interactive --output "$2" > "$3" 2>&1
+    echo $? > "$4"
+  ' build-apk "$PROFILE" "$APK" "$LOG" "$DONE"
 
 echo "Building in the background (Ctrl+C stops watching, not the build)."
 until [ -f "$DONE" ]; do
