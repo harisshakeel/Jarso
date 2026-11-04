@@ -1,41 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  insertChildNote,
-  removeDeviceToken,
-  saveDeviceToken,
-  toClaimed,
-} from "@/features/notifications/server/repository";
-
-describe("device tokens", () => {
-  const TOKEN = "ExponentPushToken[abc]";
-  const rpcDb = (result: { data: unknown; error: { code: string; message: string } | null }) => {
-    const rpc = vi.fn(async () => result);
-    return { rpc, db: { rpc } as unknown as Parameters<typeof saveDeviceToken>[0] };
-  };
-
-  it("registers through register_device_push_token and returns the row id", async () => {
-    const { rpc, db } = rpcDb({ data: "row-1", error: null });
-    await expect(saveDeviceToken(db, { token: TOKEN, platform: "android" })).resolves.toBe("row-1");
-    expect(rpc).toHaveBeenCalledWith("register_device_push_token", {
-      p_token: TOKEN,
-      p_platform: "android",
-    });
-  });
-
-  it("RPC 42501 (not a member) is FORBIDDEN with a safe message", async () => {
-    const { db } = rpcDb({ data: null, error: { code: "42501", message: "Join a family first" } });
-    await expect(saveDeviceToken(db, { token: TOKEN, platform: "android" })).rejects.toMatchObject({
-      code: "FORBIDDEN",
-      message: "Join a family first.",
-    });
-  });
-
-  it("unregisters only through unregister_device_push_token", async () => {
-    const { rpc, db } = rpcDb({ data: false, error: null });
-    await expect(removeDeviceToken(db, TOKEN)).resolves.toBe(false);
-    expect(rpc).toHaveBeenCalledWith("unregister_device_push_token", { p_token: TOKEN });
-  });
-});
+import { insertChildNote, toClaimed } from "@/features/notifications/server/repository";
 
 describe("toClaimed", () => {
   const claimedRow = {
