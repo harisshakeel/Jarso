@@ -50,8 +50,9 @@ export function GiftScreen({
 
   // A gift given today is due now: straight to its handover, where it can be paid by card.
   const saved = useCallback(
-    ({ giftId: savedId, giveOn }: { giftId: string; giveOn: string }) => {
-      if (context.data && giveOn <= context.data.today) {
+    ({ giftId: savedId, giveOn }: { giftId: string; giveOn: string | null }) => {
+      // Unknown date (it couldn't be read back): the child's page, where the gift shows anyway.
+      if (context.data && giveOn !== null && giveOn <= context.data.today) {
         router.replace(`/(parent)/children/${childId}/handover/gift/${savedId}`);
       } else {
         back();

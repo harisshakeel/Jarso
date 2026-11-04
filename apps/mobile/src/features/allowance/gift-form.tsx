@@ -35,8 +35,8 @@ export function GiftForm({
   initial?: Gift;
   /** Amount carried over from the allowance form, as the parent typed it. */
   defaultAmount?: string;
-  /** After a save, with the gift and the day it's given on. */
-  onDone: (saved: { giftId: string; giveOn: string }) => void;
+  /** After a save, with the gift and its stored date (null: the date couldn't be read back). */
+  onDone: (saved: { giftId: string; giveOn: string | null }) => void;
 }) {
   const create = useCreateGift();
   const update = useUpdateGift();
@@ -64,7 +64,7 @@ export function GiftForm({
       }
       setFieldErrors(undefined);
       try {
-        let saved: { giftId: string; giveOn: string };
+        let saved: { giftId: string; giveOn: string | null };
         if ("giftId" in parsed.data) {
           await update.mutateAsync({ childId, today, ...parsed.data });
           saved = { giftId: parsed.data.giftId, giveOn: parsed.data.giveOn };

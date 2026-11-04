@@ -104,6 +104,7 @@ describe("GiftScreen", () => {
   it("new gift saves once with the opening's key", async () => {
     setup();
     (createGift as jest.Mock).mockResolvedValue(GIFT);
+    (findGift as jest.Mock).mockResolvedValue({ ...DUE_GIFT, childId: CHILD, giveOn: TODAY });
     const { invalidate } = await renderScreen();
     fireEvent.changeText(await screen.findByLabelText(giftCopy.amount), "5");
     await userEvent.setup().press(screen.getByRole("button", { name: giftCopy.save }));
@@ -134,6 +135,11 @@ describe("GiftScreen", () => {
   it("a gift for a later day goes back to the child's page, not to a handover", async () => {
     setup();
     (createGift as jest.Mock).mockResolvedValue(GIFT);
+    (findGift as jest.Mock).mockResolvedValue({
+      ...DUE_GIFT,
+      childId: CHILD,
+      giveOn: "2026-11-20",
+    });
     await renderScreen();
     const user = userEvent.setup();
     fireEvent.changeText(await screen.findByLabelText(giftCopy.amount), "5");
@@ -175,6 +181,22 @@ describe("GiftScreen", () => {
     const sent = (createGift as jest.Mock).mock.calls.map(([, input]) => input.idempotencyKey);
     expect(sent[0]).toBe(sent[1]);
     expect(findGift).toHaveBeenCalledWith({ id: "client" }, GIFT);
+    expect(mockRouter.back).toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it("a gift whose date can't be read back still saves, and goes back", async () => {
+    setup();
+    (createGift as jest.Mock).mockResolvedValue(GIFT);
+    (findGift as jest.Mock).mockRejectedValue(new Error("network"));
+    await renderScreen();
+    const user = userEvent.setup();
+    fireEvent.changeText(await screen.findByLabelText(giftCopy.amount), "5");
+    await user.press(screen.getByRole("button", { name: giftCopy.save }));
+
+    // Saved: the parent isn't told it failed (a retry would only find the same gift).
+    await waitFor(() => expect(flash).toHaveBeenCalledWith(giftCopy.saved));
+    expect(createGift).toHaveBeenCalledTimes(1);
     expect(mockRouter.back).toHaveBeenCalled();
     expect(mockRouter.replace).not.toHaveBeenCalled();
   });
