@@ -66,7 +66,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Turbo's task cache and Next's build cache from the last run on this branch (or main), so
       # unchanged packages replay and the app build is incremental.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             .turbo
@@ -120,7 +120,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Cache the Playwright browser
         id: browser
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -129,7 +129,7 @@ jobs:
       - if: steps.browser.outputs.cache-hit == 'true'
         run: pnpm --filter @jarso/web exec playwright install-deps chromium
       # Next's build cache from the last run, so the app build Playwright starts is incremental.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: apps/web/.next/cache
           key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}

@@ -13,6 +13,7 @@ import { useColorScheme } from "nativewind";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SessionProvider } from "@/features/auth";
+import { PushBridge } from "@/features/push";
 import { useStoredTheme } from "@/features/settings";
 import { brandFonts, logger, NAV_THEME } from "@/lib";
 import { queryClient } from "@/lib/query";
@@ -38,6 +39,8 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <SessionProvider>
+          {/* Registers for push after sign-in, opens a tapped push. */}
+          <PushBridge />
           <ThemeProvider value={NAV_THEME[scheme]}>
             <StatusBar style={scheme === "dark" ? "light" : "dark"} />
             <Stack screenOptions={{ headerShown: false }} />

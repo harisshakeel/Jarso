@@ -312,6 +312,23 @@ Build with `npx expo run:android`, then `pnpm --filter @jarso/mobile e2e` with t
 - [ ] Maestro child flows pass with the new Home (sign-in, money-loop, diary, goal, learn, news, guide, offline)
 - [ ] Nunito's tabular figures line up in the jars card and diary amounts (if not, note it here; `docs/design.md` §3 allows a fallback)
 
+## Wave 3 push — pending device checks (plan 3 Tasks 13 and 15)
+
+Not run: no Android device was available when the phone side was built. Run on a physical phone with the development build (FCM credentials in EAS) against `pnpm dev` and the hosted project.
+
+- [ ] Maestro `push.yaml` passes (`maestro test e2e/push.yaml` from `apps/mobile`, with the parent, child and `API_URL` / `SUPABASE_*` `-e` flags)
+- [ ] A parent's decision pushes the child's phone, and the tap opens the right screen (and marks the notice read)
+- [ ] A child notice created at 22:00 family time does not push at night, stays unread in News, and arrives after 07:00; two or more come as one "You have N new notices" push that opens News (move the test family's timezone to shift its clock, then revert)
+- [ ] A different family member signing in on the same phone gets only their own pushes; a push meant for the previous account opens Home
+- [ ] A tap on a push that launches the app (cold start) opens the right screen once
+- [ ] The 15-minute sweep delivers an allowance reminder
+- [ ] Sign out with no network: the phone stops getting the old account's pushes
+- [ ] Notifications settings: mute "Requests and answers" on the parent phone; a child's request still shows in the Inbox but doesn't buzz
+- [ ] Another phone signed in to the same parent account still buzzes
+- [ ] "Pause all" stops everything on that phone
+- [ ] After signing out and back in, the settings start fresh
+- [ ] Android notifications turned off for Jarso: the settings page says so and "Open phone settings" opens them
+
 ## Wave 3 card payments on the phone — pending device checks (plan 4 Tasks 8–12)
 
 Built and unit-tested; nothing below has run on a device (no device or Android build in the agent's session). Build a development build (`(cd apps/mobile && eas build --profile development --platform android)` or `npx expo run:android`): the Stripe SDK and Razorpay Checkout are native modules, so Expo Go can't run them.
