@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   playCoins,
+  playFanfare,
   playRight,
   playWrong,
   primeSounds,
@@ -74,16 +75,22 @@ describe("sounds", () => {
     expect(made.oscillators).toBe(0);
   });
 
-  it("play after a gesture: coins are three taps, right two notes, wrong one", () => {
+  it("play after a gesture: coins and right notes ring with a partial, wrong is one voice", () => {
     primeSounds();
     window.dispatchEvent(new Event("pointerdown"));
+    // Three taps, each a body and a brighter partial.
     playCoins();
     expect(made.contexts).toBe(1);
-    expect(made.oscillators).toBe(3);
-    playRight();
-    expect(made.oscillators).toBe(5);
-    playWrong();
     expect(made.oscillators).toBe(6);
+    // Two bell notes, each two layers.
+    playRight();
+    expect(made.oscillators).toBe(10);
+    // One soft slide, no partial.
+    playWrong();
+    expect(made.oscillators).toBe(11);
+    // Four fanfare notes, each two layers.
+    playFanfare();
+    expect(made.oscillators).toBe(19);
     // One context for the page, not one per sound.
     expect(made.contexts).toBe(1);
   });
