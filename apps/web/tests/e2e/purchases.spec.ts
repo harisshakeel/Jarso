@@ -1,7 +1,12 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
+import {
+  closeCelebration,
+  completeParentProfile,
+  expectSetupPage,
+  readFamilyCode,
+} from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Purchases, spending limits, overspend and undo, against the LOCAL Supabase stack. */
@@ -93,6 +98,7 @@ test("parent hands over 1000 to Spend and sets a week spend limit of 500", async
   await parent.getByLabel("Amount").fill("1000");
   await parent.getByRole("group").getByText("Weekly", { exact: true }).click();
   await parent.getByRole("button", { name: "Save allowance" }).click();
+  await closeCelebration(parent);
   await parent
     .getByRole("region", { name: "Due now" })
     .getByRole("link", { name: /^Allowance/ })

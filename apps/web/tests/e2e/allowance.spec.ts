@@ -1,7 +1,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { completeParentProfile, expectSetupPage } from "./helpers";
+import { closeCelebration, completeParentProfile, expectSetupPage } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Parent allowance and gift screens against the LOCAL Supabase stack (see playwright.config.ts). */
@@ -114,6 +114,7 @@ test("parent sets up a weekly allowance and sees the summary", async () => {
   await page.getByLabel("First one on").fill(sunday.iso);
   await expect(page.getByText(`Every Sunday from ${sunday.label}`)).toBeVisible();
   await page.getByRole("button", { name: "Save allowance" }).click();
+  await closeCelebration(page);
 
   // A new allowance lands on the child's page.
   await expect(page).toHaveURL(at(childPath));
@@ -166,6 +167,7 @@ test("parent creates a gift for today and sees it in the due list", async () => 
   await expect(page.getByLabel("Amount")).toHaveValue("50");
   await page.getByLabel("Note for Sam (optional)").fill("Well done on the test");
   await page.getByRole("button", { name: "Save gift" }).click();
+  await closeCelebration(page);
   await expect(page).toHaveURL(at(childPath));
   const due = page.getByRole("region", { name: "Due now" });
   await expect(due.getByText("Well done on the test")).toBeVisible();
@@ -179,6 +181,7 @@ test("parent hands over a due allowance with a split", async () => {
   await page.getByLabel("Amount").fill("500");
   await page.getByRole("group").getByText("Weekly", { exact: true }).click();
   await page.getByRole("button", { name: "Save allowance" }).click();
+  await closeCelebration(page);
   await expect(page).toHaveURL(at(childPath));
   const due = page.getByRole("region", { name: "Due now" });
   await due.getByRole("link", { name: /^Allowance/ }).click();
@@ -217,6 +220,7 @@ test("parent cancels a due gift from the handover screen", async () => {
   await page.getByLabel("Amount").fill("15");
   await page.getByLabel("Note for Sam (optional)").fill("Cinema money");
   await page.getByRole("button", { name: "Save gift" }).click();
+  await closeCelebration(page);
   await expect(page).toHaveURL(at(childPath));
 
   const due = page.getByRole("region", { name: "Due now" });

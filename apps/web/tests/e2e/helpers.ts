@@ -186,3 +186,14 @@ export async function expectSetupPage(page: Page): Promise<void> {
     );
   }
 }
+
+/**
+ * Closes the success dialog (`celebrate()`) shown after a big moment: a new allowance or gift,
+ * an approval, a confirmed put-in or hand-over, a new goal. It is modal, so the page behind it
+ * is out of reach until it closes.
+ */
+export async function closeCelebration(page: Page, button = "Done"): Promise<void> {
+  const dialog = page.locator('[data-slot="celebration"]');
+  await dialog.getByRole("button", { name: button, exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+}

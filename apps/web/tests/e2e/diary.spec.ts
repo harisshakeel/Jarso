@@ -1,6 +1,11 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
+import {
+  closeCelebration,
+  completeParentProfile,
+  expectSetupPage,
+  readFamilyCode,
+} from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** The money diary: categories, money received, fixes, the weekly card and the parent notices, against the LOCAL Supabase stack. */
@@ -75,6 +80,7 @@ test("parent hands over 1000 to Spend", async () => {
   await parent.getByLabel("Amount").fill("1000");
   await parent.getByRole("group").getByText("Weekly", { exact: true }).click();
   await parent.getByRole("button", { name: "Save allowance" }).click();
+  await closeCelebration(parent);
   await parent
     .getByRole("region", { name: "Due now" })
     .getByRole("link", { name: /^Allowance/ })

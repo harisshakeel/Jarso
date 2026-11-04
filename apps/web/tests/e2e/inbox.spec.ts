@@ -1,7 +1,12 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
+import {
+  closeCelebration,
+  completeParentProfile,
+  expectSetupPage,
+  readFamilyCode,
+} from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Inbox pages and the unread badge, against the LOCAL Supabase stack (see playwright.config.ts). */
@@ -76,6 +81,7 @@ test("a due allowance sends a reminder to the parent and the child", async () =>
   await parent.getByLabel("Amount").fill("5");
   await parent.getByRole("group").getByText("Weekly", { exact: true }).click();
   await parent.getByRole("button", { name: "Save allowance" }).click();
+  await closeCelebration(parent);
   await expect(parent).toHaveURL(at(childBase));
 
   // The cron job runs hourly; here the service role runs it now.

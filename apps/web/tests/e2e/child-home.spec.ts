@@ -1,6 +1,11 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
+import {
+  closeCelebration,
+  completeParentProfile,
+  expectSetupPage,
+  readFamilyCode,
+} from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Child home (jars, allowance card, history) against the LOCAL Supabase stack. */
@@ -65,6 +70,7 @@ test.beforeAll(async ({ browser }) => {
   await parent.getByLabel("Amount").fill("500");
   await parent.getByRole("group").getByText("Weekly", { exact: true }).click();
   await parent.getByRole("button", { name: "Save allowance" }).click();
+  await closeCelebration(parent);
   await expect(parent.getByRole("region", { name: "Due now" })).toBeVisible();
 
   await child.goto("/sign-in/child");
@@ -97,6 +103,7 @@ test("child sees jars, due badge and a revealed gift", async () => {
   await parent.getByLabel("Amount").fill("50");
   await parent.getByLabel("Note for Sam (optional)").fill(NOTE);
   await parent.getByRole("button", { name: "Save gift" }).click();
+  await closeCelebration(parent);
   await expect(parent.getByRole("region", { name: "Due now" }).getByText(NOTE)).toBeVisible();
 
   await child.reload();
@@ -146,6 +153,7 @@ test("child sets a goal and the goal card shows the climb", async () => {
   await sheet.getByLabel("How much will you save each time?").fill("4");
   await expect(sheet.getByText("About 12 more allowances")).toBeVisible();
   await sheet.getByRole("button", { name: "Save my goal" }).click();
+  await closeCelebration(child, "Let's go");
   await expect(child.getByRole("dialog")).toHaveCount(0);
 
   const goalCard = child.getByRole("region", { name: "Your goal" });
