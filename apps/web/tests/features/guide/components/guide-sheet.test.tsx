@@ -59,3 +59,66 @@ describe("GuideSheet message id", () => {
     expect(newId).toHaveBeenCalledOnce();
   });
 });
+
+describe("GuideSheet opener", () => {
+  const helpMe = (introNeeded: boolean) => (
+    <GuideSheet
+      context={{ entry: "home" }}
+      introNeeded={introNeeded}
+      triggerLabel="Help me"
+      opener="Can you give me a hint?"
+    />
+  );
+  const answered = {
+    ok: true,
+    data: {
+      conversationId: "c-1",
+      turnsLeft: 9,
+      reply: {
+        messageId: "m-1",
+        role: "guide",
+        text: "Compare what you have with what it costs.",
+        route: "on_topic",
+        topics: [],
+        check: null,
+        helplines: [],
+        lookedAt: [],
+        remembered: [],
+      },
+    },
+  };
+
+  it("asks the opener as the sheet opens, so Jarso starts answering", async () => {
+    askGuideAction.mockResolvedValue(answered);
+    render(helpMe(false));
+    fireEvent.click(screen.getByRole("button", { name: "Help me" }));
+    await screen.findByText("Compare what you have with what it costs.");
+    expect(askGuideAction).toHaveBeenCalledOnce();
+    expect(askGuideAction.mock.calls[0]?.[1]).toMatchObject({
+      text: "Can you give me a hint?",
+      conversationId: null,
+    });
+    expect(screen.getByText("Can you give me a hint?")).toBeInTheDocument();
+  });
+
+  it("waits for Got it when the intro shows first", async () => {
+    askGuideAction.mockResolvedValue(answered);
+    render(helpMe(true));
+    fireEvent.click(screen.getByRole("button", { name: "Help me" }));
+    expect(askGuideAction).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Got it" }));
+    await screen.findByText("Compare what you have with what it costs.");
+    expect(askGuideAction).toHaveBeenCalledOnce();
+  });
+
+  it("leaves the opener in the box when it fails, so Send tries again", async () => {
+    askGuideAction.mockResolvedValue({
+      ok: false,
+      error: { code: "UNAVAILABLE", message: "This is taking a while. Try again?" },
+    });
+    render(helpMe(false));
+    fireEvent.click(screen.getByRole("button", { name: "Help me" }));
+    await screen.findByText("This is taking a while. Try again?");
+    expect(screen.getByLabelText("Your question")).toHaveValue("Can you give me a hint?");
+  });
+});

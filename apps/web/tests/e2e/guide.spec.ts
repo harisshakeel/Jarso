@@ -33,13 +33,6 @@ async function askJarso(page: Page, question: string): Promise<void> {
   await jarso(page).getByRole("button", { name: "Ask", exact: true }).click();
 }
 
-/** The sheet beside a mission step. */
-async function ask(page: Page, question: string): Promise<void> {
-  const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("Your question").fill(question);
-  await dialog.getByRole("button", { name: "Send" }).click();
-}
-
 test.beforeAll(async ({ browser }) => {
   const baseURL = test.info().project.use.baseURL;
   // en-GB so the family currency (picked from the browser locale) is GBP: amounts read "£6.50".
@@ -158,8 +151,9 @@ test("Help me in a mission gives a hint, not the answer", async () => {
   await child.getByRole("button", { name: "Start mission" }).click();
   await skipFilm(child);
   await child.getByRole("button", { name: "Continue", exact: true }).click();
+  // Tapping Help me is the question: Jarso answers without the child typing anything.
   await child.getByRole("button", { name: "Help me" }).click();
-  await ask(child, "I don't get it");
+  await expect(child.getByRole("dialog").getByText("Can you give me a hint?")).toBeVisible();
   await expect(
     child.getByRole("dialog").getByText(/Let's think it through together/),
   ).toBeVisible();
