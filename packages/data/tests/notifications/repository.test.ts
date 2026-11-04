@@ -1,5 +1,6 @@
 import {
   encodeCursor,
+  fetchDevicePushPrefs,
   fetchUnreadCount,
   insertChildNote,
   listNotices,
@@ -7,6 +8,7 @@ import {
   parseCursor,
   removeDeviceToken,
   rowToNotice,
+  saveDevicePushPrefs,
   saveDeviceToken,
   toNotice,
 } from "@jarso/data/notifications";
@@ -237,5 +239,51 @@ describe("device tokens", () => {
     const { db, rpc } = fakeClient({}, { unregister_device_push_token: ok(false) });
     await expect(removeDeviceToken(db, TOKEN)).resolves.toBe(false);
     expect(rpc).toHaveBeenCalledWith("unregister_device_push_token", { p_token: TOKEN });
+  });
+});
+
+describe("device push prefs", () => {
+  const TOKEN = "ExponentPushToken[abc]";
+
+  it("reads this phone's own row by token", async () => {
+    const { db, queries } = fakeClient({
+      device_push_tokens: ok({ muted_groups: ["money", "bogus"], paused: true }),
+    });
+    await expect(fetchDevicePushPrefs(db, TOKEN)).resolves.toEqual({
+      mutedGroups: ["money"],
+      paused: true,
+    });
+    expect(queries[0]?.calls).toEqual([
+      ["select", "muted_groups, paused"],
+      ["eq", "token", TOKEN],
+      ["maybeSingle"],
+    ]);
+  });
+
+  it("no row (RLS hides another account's) is null", async () => {
+    const { db } = fakeClient({ device_push_tokens: ok(null) });
+    await expect(fetchDevicePushPrefs(db, TOKEN)).resolves.toBeNull();
+  });
+
+  it("saves through set_device_push_prefs; false when the row is not the caller's", async () => {
+    const { db, rpc } = fakeClient({}, { set_device_push_prefs: ok(false) });
+    await expect(
+      saveDevicePushPrefs(db, { token: TOKEN, mutedGroups: ["money"], paused: false }),
+    ).resolves.toBe(false);
+    expect(rpc).toHaveBeenCalledWith("set_device_push_prefs", {
+      p_token: TOKEN,
+      p_muted_groups: ["money"],
+      p_paused: false,
+    });
+  });
+
+  it("a failed save throws an AppError", async () => {
+    const { db } = fakeClient(
+      {},
+      { set_device_push_prefs: { data: null, error: { code: "23514", message: "check" } } },
+    );
+    await expect(
+      saveDevicePushPrefs(db, { token: TOKEN, mutedGroups: [], paused: true }),
+    ).rejects.toMatchObject({ name: "AppError" });
   });
 });
