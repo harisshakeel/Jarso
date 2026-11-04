@@ -77,14 +77,14 @@ test("parent confirms a handover offline and sees the warning; nothing is record
 
   await parentContext.setOffline(false);
   await parent.waitForTimeout(5_000);
-  await parent.goto(`${childBase}?tab=money`);
+  await parent.goto(`${childBase}/allowance`);
   await expect(dueNow().getByRole("link", { name: /^Allowance/ })).toBeVisible();
 
   await dueNow()
     .getByRole("link", { name: /^Allowance/ })
     .click();
   await parent.getByRole("button", { name: "Confirm I handed it over" }).click();
-  await expect(parent).toHaveURL(at(childBase));
+  await expect(parent).toHaveURL(at(`${childBase}/allowance`));
   await expect(dueNow()).toHaveCount(0);
 });
 

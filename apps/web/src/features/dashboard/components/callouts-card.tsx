@@ -18,8 +18,8 @@ const ACTIONS: Record<CalloutAction, { label: string; href: (childId: string) =>
 /**
  * Worth knowing (spec answers 5 and 8): plain observations, each about one child and never
  * comparing children, with the steps a parent might take from it: the page to act on, a note
- * for the child's News (not from a flagged chat, which the parent reads first) and, when their
- * Save grew, matching what they saved.
+ * for the child's Notifications (not from a flagged chat, which the parent reads first) and,
+ * when their Save grew, matching what they saved.
  */
 export function CalloutsCard({
   items,

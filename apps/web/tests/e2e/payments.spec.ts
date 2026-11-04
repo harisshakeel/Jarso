@@ -228,7 +228,7 @@ test("a card payment finished after a cash handover posts nothing and says so", 
   await page.goto(handoverPath(childId, id));
   await expect(page.getByText("Card payment in progress")).toBeVisible();
   await page.getByRole("button", { name: "Confirm I handed it over" }).click();
-  await expect(page).toHaveURL((url) => url.pathname === `/parent/children/${childId}`);
+  await expect(page).toHaveURL((url) => url.pathname === `/parent/children/${childId}/allowance`);
 
   await page.goto(checkout);
   await page.getByRole("button", { name: "Pay", exact: true }).click();

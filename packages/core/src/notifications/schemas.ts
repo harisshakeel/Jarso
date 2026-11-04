@@ -80,7 +80,7 @@ export const inboxParamsSchema = z.object({
 /** Longest note a parent can send their child, as the database function also checks. */
 export const NOTE_MAX = 140;
 
-/** A parent's note to their child (parent dashboard). Lands in the child's News. */
+/** A parent's note to their child (parent dashboard). Lands in the child's Notifications. */
 export const childNoteSchema = z.object({
   childId: z.uuid(),
   text: z

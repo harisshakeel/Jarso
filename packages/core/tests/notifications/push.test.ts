@@ -90,7 +90,7 @@ describe("summary push", () => {
       title: "You have 3 new notices",
       detail: summaryPushCopy.detail,
     });
-    expect(summaryPushCopy.detail).toBe("They came in overnight. Open News to see them.");
+    expect(summaryPushCopy.detail).toBe("They came in overnight. Open Notifications to see them.");
   });
 
   it("summaryPushData is a child summary with its count", () => {

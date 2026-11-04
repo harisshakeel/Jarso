@@ -34,7 +34,7 @@ async function HandoverContent({
   if (!parsed.success) notFound();
   const { kind, id } = parsed.data;
   const { child, currency } = await loadChild(childId, routes.parentHandover(childId, kind, id));
-  const back = { href: routes.parentChildMoney(childId), label: child.nickname };
+  const back = { href: routes.parentAllowance(childId), label: `${child.nickname}'s allowance` };
   const cardReturn = paymentsEnabled()
     ? cardReturnParamsSchema.parse(await searchParams).card
     : undefined;
@@ -79,10 +79,7 @@ async function HandoverContent({
         <Card className="rise-in">
           <CardContent className="grid gap-4">
             <p className="font-bold">Already handled</p>
-            <Link
-              href={routes.parentChildMoney(childId)}
-              className={buttonVariants({ size: "lg" })}
-            >
+            <Link href={routes.parentAllowance(childId)} className={buttonVariants({ size: "lg" })}>
               Back to {child.nickname}
             </Link>
           </CardContent>

@@ -68,12 +68,26 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
       <h2 id="road-heading" className="sr-only">
         {roadmapCopy.heading}
       </h2>
+      <div className="mx-auto grid w-full max-w-md gap-1.5">
+        <p className="flex items-baseline justify-between font-bold">
+          <span>
+            {doneCount} of {journey.length} missions done
+          </span>
+          <span className="text-ink-2 text-sm">{roadmapCopy.heading}</span>
+        </p>
+        <span aria-hidden className="h-2.5 overflow-hidden rounded-full bg-muted">
+          <span
+            className="block h-full rounded-full bg-primary transition-[width] duration-700 ease-[var(--ease-brand)] motion-reduce:transition-none"
+            style={{ width: pct(doneCount, Math.max(journey.length, 1)) }}
+          />
+        </span>
+      </div>
       <div
         className={cn(
           "relative mx-auto w-full max-w-md",
-          // From 1024 px the road is sized by the screen's height (page padding and the line
-          // under it taken off), so the whole week fits without a scroll.
-          "lg:h-[clamp(28rem,calc(100dvh-8rem),52rem)] lg:w-auto lg:max-w-none",
+          // From 1024 px the road is sized by the screen's height (page padding, the progress
+          // bar and the line under it taken off), so the whole week fits without a scroll.
+          "lg:h-[clamp(28rem,calc(100dvh-11rem),52rem)] lg:w-auto lg:max-w-none",
         )}
         style={{ aspectRatio: `${WIDTH} / ${height}` }}
       >
@@ -82,6 +96,14 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
           viewBox={`0 0 ${WIDTH} ${height}`}
           className="absolute inset-0 size-full overflow-visible"
         >
+          {/* The road's kerb: a slightly wider, darker line under it gives the road an edge. */}
+          <path
+            d={roadPath(stops)}
+            fill="none"
+            strokeWidth="44"
+            strokeLinecap="round"
+            className="stroke-hairline"
+          />
           <path
             d={roadPath(stops)}
             fill="none"
@@ -113,36 +135,53 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
             const current = mission.status === "current";
             const name = roadmapCopy.stopName(mission.day, mission.title);
             const dot = (
-              <span
-                className={cn(
-                  "grid size-14 place-items-center rounded-full border-4 font-extrabold text-lg shadow-raised",
-                  done && "border-primary bg-primary text-primary-foreground",
-                  current &&
-                    "border-gold bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold",
-                  !done && !current && "border-hairline-strong bg-card text-muted-foreground",
-                )}
-              >
-                {done ? (
-                  <CheckIcon aria-hidden className="size-7" />
-                ) : current ? (
-                  <span aria-hidden>{mission.day}</span>
-                ) : (
-                  <LockIcon aria-hidden className="size-5" />
-                )}
+              <span className="relative grid place-items-center">
+                {current ? (
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 rounded-full bg-gold/40 motion-safe:animate-ping motion-reduce:hidden"
+                  />
+                ) : null}
+                <span
+                  className={cn(
+                    "grid size-14 place-items-center rounded-full border-4 font-extrabold text-lg shadow-raised",
+                    done && "border-primary bg-primary text-primary-foreground",
+                    current &&
+                      "border-gold bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold",
+                    !done && !current && "border-hairline-strong bg-card text-muted-foreground",
+                  )}
+                >
+                  {done ? (
+                    <CheckIcon aria-hidden className="size-7" />
+                  ) : current ? (
+                    <span aria-hidden>{mission.day}</span>
+                  ) : (
+                    <LockIcon aria-hidden className="size-5" />
+                  )}
+                </span>
               </span>
             );
             const label = (
               <span
                 className={cn(
-                  "absolute top-1/2 w-36 -translate-y-1/2 text-balance font-semibold leading-tight",
+                  "absolute top-1/2 w-40 -translate-y-1/2 text-balance rounded-xl px-3 py-2 font-semibold leading-tight shadow-rest ring-1",
                   x < WIDTH / 2
                     ? "left-[calc(100%+0.75rem)]"
                     : "right-[calc(100%+0.75rem)] text-right",
-                  !done && !current && "text-muted-foreground",
-                  current && "text-foreground",
+                  done && "bg-card ring-hairline",
+                  current && "bg-gold-100 text-foreground ring-gold dark:bg-gold-900",
+                  !done && !current && "bg-card/70 text-muted-foreground ring-hairline",
                 )}
               >
-                <span className="block text-ink-2 text-sm">{roadmapCopy.day(mission.day)}</span>
+                <span
+                  className={cn(
+                    "block text-sm",
+                    current ? "font-bold text-gold-700 dark:text-gold" : "text-ink-2",
+                  )}
+                >
+                  {roadmapCopy.day(mission.day)}
+                  {done ? " · Done" : current ? " · Play now" : ""}
+                </span>
                 {mission.title}
               </span>
             );

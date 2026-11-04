@@ -1,4 +1,4 @@
-import { GiftIcon, ScaleIcon } from "lucide-react";
+import { ScaleIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
@@ -6,14 +6,8 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { PageTabs, SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
-import {
-  DueList,
-  GiftList,
-  ParentAllowanceCard,
-  runningSchedule,
-  upcomingGifts,
-} from "@/features/allowance";
-import { getSchedule, listDue, listGifts } from "@/features/allowance/server";
+import { ParentAllowanceCard, runningSchedule } from "@/features/allowance";
+import { getSchedule, listDue } from "@/features/allowance/server";
 import { GuideCard } from "@/features/guide";
 import { countFlaggedChats, getGuideAccess } from "@/features/guide/server";
 import { CompletedMissions, LearningSummaryCard, SkillList } from "@/features/learning";
@@ -37,22 +31,20 @@ type Props = PageProps<"/parent/children/[childId]">;
 
 /**
  * One child, in three tabs so nothing stacks eight deep: Learning first (since 2026-11-04: the
- * week, the lessons and how they went, skills), then Money (jars, what needs you, the allowance,
- * rules and gifts, the recent story) and Jarso. Money flows come back to the Money tab.
+ * week, the lessons and how they went, skills), then Money (jars, requests, the allowance in a
+ * card, rules, the recent story) and Jarso. Handovers due and gifts are on the Allowance page.
  */
 async function ChildContent({ params, searchParams }: Props) {
   const [{ childId }, { tab }] = await Promise.all([
     params,
     searchParams.then((sp) => paramsSchema.parse(sp)),
   ]);
-  const { child, currency, today } = await loadChild(childId, routes.parentChild(childId));
-  const [jars, due, schedule, gifts] = await Promise.all([
+  const { child, currency } = await loadChild(childId, routes.parentChild(childId));
+  const [jars, due, schedule] = await Promise.all([
     getJars(childId),
     listDue(childId),
     getSchedule(childId),
-    listGifts(childId),
   ]);
-  const upcoming = upcomingGifts(gifts, today);
 
   const moneyTab = (
     <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
@@ -66,29 +58,21 @@ async function ChildContent({ params, searchParams }: Props) {
         <Suspense fallback={null}>
           <ChildRequests childId={childId} nickname={child.nickname} currency={currency} />
         </Suspense>
-        <DueList childId={childId} items={due} currency={currency} />
-        <ParentAllowanceCard childId={childId} schedule={schedule} currency={currency} />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Link
-            href={routes.parentRules(childId)}
-            className="flex min-h-11 items-center gap-3 rounded-xl border border-hairline bg-card px-4 py-3 font-semibold hover:bg-muted"
-          >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
-              <ScaleIcon aria-hidden className="size-5" />
-            </span>
-            Money rules
-          </Link>
-          <Link
-            href={routes.parentGiftNew(childId)}
-            className="flex min-h-11 items-center gap-3 rounded-xl border border-hairline bg-card px-4 py-3 font-semibold hover:bg-muted"
-          >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
-              <GiftIcon aria-hidden className="size-5" />
-            </span>
-            Give a gift
-          </Link>
-        </div>
-        <GiftList childId={childId} gifts={upcoming} currency={currency} />
+        <ParentAllowanceCard
+          childId={childId}
+          schedule={schedule}
+          currency={currency}
+          dueCount={due.length}
+        />
+        <Link
+          href={routes.parentRules(childId)}
+          className="flex min-h-11 items-center gap-3 rounded-xl border border-hairline bg-card px-4 py-3 font-semibold hover:bg-muted"
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+            <ScaleIcon aria-hidden className="size-5" />
+          </span>
+          Money rules
+        </Link>
       </div>
       <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
         <ChildHistory childId={childId} nickname={child.nickname} currency={currency} />

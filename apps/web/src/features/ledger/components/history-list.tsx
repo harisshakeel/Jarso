@@ -33,7 +33,29 @@ type HistoryListProps = {
   heading?: string;
   /** Something before a line's details, e.g. the child it belongs to on the parent's dashboard. */
   renderTag?: (item: HistoryItem) => ReactNode;
+  /** The family's today: lines are grouped under "Today", "Yesterday" and the date. */
+  today?: string;
 };
+
+/** The day heading for a group of lines. */
+function dayHeading(isoDate: string, today: string): string {
+  if (isoDate === today) return "Today";
+  const yesterday = new Date(`${today}T00:00:00Z`);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  if (isoDate === yesterday.toISOString().slice(0, 10)) return "Yesterday";
+  return day(isoDate);
+}
+
+/** Lines in runs of the same day, newest first as they came. */
+function byDay(items: HistoryItem[]): { date: string; items: HistoryItem[] }[] {
+  const groups: { date: string; items: HistoryItem[] }[] = [];
+  for (const item of items) {
+    const last = groups.at(-1);
+    if (last && last.date === item.occurredOn) last.items.push(item);
+    else groups.push({ date: item.occurredOn, items: [item] });
+  }
+  return groups;
+}
 
 /**
  * Each kind in a word a child would use, with its own tinted icon (design.md §6 inbox pattern):
@@ -120,7 +142,56 @@ export function HistoryList({
   emptyLine = "Your money story starts here.",
   heading = "History",
   renderTag,
+  today,
 }: HistoryListProps) {
+  const line = (item: HistoryItem) => {
+    const { icon: Icon, tint, verb } = KIND[item.kind];
+    const subline = [
+      item.kind === "gift" && item.label !== "Gift" ? "Gift" : verb,
+      item.kind === "received" && item.jar ? `into ${JAR_NAME[item.jar]}` : null,
+      // Grouped by day, the date is the heading above.
+      today ? null : day(item.occurredOn),
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const fixed = fixedNote(item, currency, showMinor);
+    return (
+      <li
+        key={`${item.kind}-${item.id}`}
+        className={cn(
+          "relative flex items-center gap-3",
+          today ? "py-3" : "py-1",
+          item.undone && "opacity-70",
+        )}
+      >
+        <span
+          aria-hidden
+          className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", tint)}
+        >
+          <Icon className="size-5" />
+        </span>
+        <div className="grid min-w-0 flex-1">
+          {renderTag ? renderTag(item) : null}
+          <span className="flex min-w-0 items-center gap-1.5 font-semibold">
+            {item.kind === "purchase" || item.kind === "received" ? (
+              <span aria-hidden>{categoryOf(item.category, item.kind).emoji}</span>
+            ) : null}
+            <span className="truncate">{title(item, skippedLabel)}</span>
+          </span>
+          <span className="truncate text-ink-2">
+            {subline}
+            {fixed ? ` · ${fixed}` : ""}
+            {item.undone ? " · Undone" : ""}
+            {item.paidByCard ? " · Paid by card" : ""}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Amount item={item} currency={currency} showMinor={showMinor} />
+          {renderAction?.(item)}
+        </div>
+      </li>
+    );
+  };
   return (
     <Card className="shadow-raised">
       <CardContent>
@@ -128,58 +199,17 @@ export function HistoryList({
           <h2 className="text-h3">{heading}</h2>
           {items.length === 0 ? (
             <CoachSays coach={{ key: "history" }} says={emptyLine} className="py-2" />
+          ) : today ? (
+            <div className="grid gap-4">
+              {byDay(items).map((group) => (
+                <div key={group.date}>
+                  <h3 className="eyebrow pb-1">{dayHeading(group.date, today)}</h3>
+                  <ul className="divide-y divide-hairline">{group.items.map(line)}</ul>
+                </div>
+              ))}
+            </div>
           ) : (
-            <ul className="grid gap-2">
-              {items.map((item) => {
-                const { icon: Icon, tint, verb } = KIND[item.kind];
-                const subline = [
-                  item.kind === "gift" && item.label !== "Gift" ? "Gift" : verb,
-                  item.kind === "received" && item.jar ? `into ${JAR_NAME[item.jar]}` : null,
-                  day(item.occurredOn),
-                ]
-                  .filter(Boolean)
-                  .join(" · ");
-                const fixed = fixedNote(item, currency, showMinor);
-                return (
-                  <li
-                    key={`${item.kind}-${item.id}`}
-                    className={cn(
-                      "relative flex items-center gap-3 py-1",
-                      item.undone && "opacity-70",
-                    )}
-                  >
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "flex size-10 shrink-0 items-center justify-center rounded-full",
-                        tint,
-                      )}
-                    >
-                      <Icon className="size-5" />
-                    </span>
-                    <div className="grid min-w-0 flex-1">
-                      {renderTag ? renderTag(item) : null}
-                      <span className="flex min-w-0 items-center gap-1.5 font-semibold">
-                        {item.kind === "purchase" || item.kind === "received" ? (
-                          <span aria-hidden>{categoryOf(item.category, item.kind).emoji}</span>
-                        ) : null}
-                        <span className="truncate">{title(item, skippedLabel)}</span>
-                      </span>
-                      <span className="truncate text-ink-2">
-                        {subline}
-                        {fixed ? ` · ${fixed}` : ""}
-                        {item.undone ? " · Undone" : ""}
-                        {item.paidByCard ? " · Paid by card" : ""}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Amount item={item} currency={currency} showMinor={showMinor} />
-                      {renderAction?.(item)}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <ul className="grid gap-2">{items.map(line)}</ul>
           )}
         </section>
       </CardContent>

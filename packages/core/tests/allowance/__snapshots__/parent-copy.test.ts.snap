@@ -21,6 +21,7 @@ exports[`parent allowance copy > keeps every line 1`] = `
   },
   "allowanceSummaryCopy": {
     "change": "Change",
+    "dueWaiting": [Function],
     "keep": "Keep it",
     "manage": "Manage",
     "next": [Function],

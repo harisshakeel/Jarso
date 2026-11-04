@@ -2,7 +2,7 @@ import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
-import { buttonVariants } from "@/components/ui";
+import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { getFamilyContext } from "@/features/allowance/server";
 import {
@@ -13,13 +13,29 @@ import {
   ReceivedSheet,
 } from "@/features/diary";
 import { requireRole } from "@/features/family/server";
-import { HistoryList, historyParamsSchema, WhereItWentCard, whereItWent } from "@/features/ledger";
-import { getHistoryPage, getHistorySince, getJars } from "@/features/ledger/server";
+import {
+  DiaryHighlightsStrip,
+  diaryHighlights,
+  HistoryList,
+  historyParamsSchema,
+  JarGraph,
+} from "@/features/ledger";
+import {
+  getBalanceHistory,
+  getHistoryPage,
+  getHistorySince,
+  getJars,
+} from "@/features/ledger/server";
 import { fallback, formatMoney, startOfWeek } from "@/lib";
 
 export const metadata: Metadata = { title: "Diary" };
 
-/** The child's money diary (FR04): record a purchase, see every line, undo for 24 hours. */
+/**
+ * The child's money diary (FR04): record a purchase, see every line, undo for 24 hours. Since
+ * 2026-11-04, one column: what's in Spend and the two record buttons on top, this week's
+ * highlights as three figures, pending purchases, how the jars moved, then every line in full
+ * rows under its day.
+ */
 async function Diary({ searchParams }: PageProps<"/child/diary">) {
   const { user } = await requireRole("child", routes.childDiary);
   const { before } = historyParamsSchema.parse(await searchParams);
@@ -33,13 +49,13 @@ async function Diary({ searchParams }: PageProps<"/child/diary">) {
   const week = await fallback(
     getHistorySince(user.id, startOfWeek(family.today)),
     null,
-    "Where your money went",
+    "Diary highlights",
   );
   return (
     <>
-      <h1 className="rise-in text-h1">{diaryCopy.heading}</h1>
-      <div className="grid gap-6 lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-10">
-        <div className="grid gap-6 lg:sticky lg:top-20">
+      <header className="rise-in flex flex-wrap items-end justify-between gap-4">
+        <div className="grid gap-1">
+          <h1 className="text-h1">{diaryCopy.heading}</h1>
           {jars ? (
             <section aria-label={diaryCopy.spendJarLabel} className="text-lg">
               {diaryCopy.youHave}{" "}
@@ -49,54 +65,79 @@ async function Diary({ searchParams }: PageProps<"/child/diary">) {
               {diaryCopy.inSpend}
             </section>
           ) : null}
-          {week ? (
-            <WhereItWentCard view={whereItWent(week, family.today, family.currency)} />
-          ) : null}
+        </div>
+        <div className="grid w-full gap-3 sm:flex sm:w-auto sm:items-center">
           <PurchaseSheet currency={family.currency} userId={user.id} />
           <ReceivedSheet currency={family.currency} />
-          <PendingPurchases userId={user.id} currency={family.currency} />
         </div>
-        <div className="grid gap-6">
-          <HistoryList
-            items={page.items}
-            currency={family.currency}
-            renderAction={(item) =>
-              (item.canFix || item.canUndo || item.fixedFrom) && item.entryId ? (
-                <EntryDetail item={item} currency={family.currency} />
-              ) : null
-            }
-          />
-          {before || page.olderBefore ? (
-            <nav aria-label="Diary pages" className="flex flex-wrap justify-between gap-3">
-              {before ? (
-                <Link
-                  href={routes.childDiary}
-                  className={buttonVariants({ variant: "outline", size: "lg" })}
-                >
-                  Back to newest
-                </Link>
-              ) : null}
-              {page.olderBefore ? (
-                <Link
-                  href={
-                    `${routes.childDiary}?before=${encodeURIComponent(page.olderBefore)}` as Route
-                  }
-                  className={buttonVariants({ variant: "outline", size: "lg" })}
-                >
-                  Show older
-                </Link>
-              ) : null}
-            </nav>
-          ) : null}
-        </div>
+      </header>
+      {week ? (
+        <DiaryHighlightsStrip
+          view={diaryHighlights(week, family.today)}
+          currency={family.currency}
+        />
+      ) : null}
+      <PendingPurchases userId={user.id} currency={family.currency} />
+      <Suspense fallback={<div aria-hidden className="shimmer h-64 rounded-xl bg-muted" />}>
+        <DiaryGraph childId={user.id} currency={family.currency} />
+      </Suspense>
+      <div className="grid gap-6">
+        <HistoryList
+          items={page.items}
+          currency={family.currency}
+          today={family.today}
+          renderAction={(item) =>
+            (item.canFix || item.canUndo || item.fixedFrom) && item.entryId ? (
+              <EntryDetail item={item} currency={family.currency} />
+            ) : null
+          }
+        />
+        {before || page.olderBefore ? (
+          <nav aria-label="Diary pages" className="flex flex-wrap justify-between gap-3">
+            {before ? (
+              <Link
+                href={routes.childDiary}
+                className={buttonVariants({ variant: "outline", size: "lg" })}
+              >
+                Back to newest
+              </Link>
+            ) : null}
+            {page.olderBefore ? (
+              <Link
+                href={
+                  `${routes.childDiary}?before=${encodeURIComponent(page.olderBefore)}` as Route
+                }
+                className={buttonVariants({ variant: "outline", size: "lg" })}
+              >
+                Show older
+              </Link>
+            ) : null}
+          </nav>
+        ) : null}
       </div>
     </>
   );
 }
 
+/**
+ * How the jars moved (moved from Home on 2026-11-04): the ride sits right above the lines that
+ * made it. Nice to have: if it can't load, the diary goes on without it.
+ */
+async function DiaryGraph({ childId, currency }: { childId: string; currency: string }) {
+  const history = await fallback(getBalanceHistory(childId), null, "Jar graph on the diary");
+  if (!history) return null;
+  return (
+    <Card>
+      <CardContent>
+        <JarGraph history={history} currency={currency} />
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DiaryPage(props: PageProps<"/child/diary">) {
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-6">
+    <div className="mx-auto grid w-full max-w-4xl gap-6">
       <Suspense
         fallback={
           <SlowFallback>

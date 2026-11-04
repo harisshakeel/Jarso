@@ -1,10 +1,10 @@
 import type { LearningOverview } from "@jarso/core/learning";
-import { bestMission, pointsLine } from "@jarso/core/learning";
-import { FlameIcon, StarIcon, TrophyIcon } from "lucide-react";
+import { bestMission } from "@jarso/core/learning";
+import { FlameIcon, TrophyIcon } from "lucide-react";
 
 /**
- * The child's own bests (demo 3): their best mission, their longest run of days and their
- * points so far. A board of one: nobody is ranked against anyone, so there is nothing to lose
+ * The child's own bests (demo 3): their best mission and their longest run of days (points sit in
+ * the run-and-points block above it since 2026-11-04). A board of one: nobody is ranked against anyone, so there is nothing to lose
  * and no one to beat. Never shown next to money (invariant 11).
  */
 export function PersonalBests({ overview }: { overview: LearningOverview }) {
@@ -26,12 +26,6 @@ export function PersonalBests({ overview }: { overview: LearningOverview }) {
           ? "Learn two days in a row to set one."
           : `${overview.longestStreak} ${overview.longestStreak === 1 ? "day" : "days"} in a row`,
       set: overview.longestStreak > 0,
-    },
-    {
-      icon: StarIcon,
-      label: "Points so far",
-      value: pointsLine(overview.points),
-      set: overview.points > 0,
     },
   ];
   return (

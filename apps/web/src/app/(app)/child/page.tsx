@@ -12,15 +12,14 @@ import {
   getTodaysAllowance,
   listDueForChild,
 } from "@/features/allowance/server";
-import { PendingPurchases, PurchaseSheet } from "@/features/diary";
+import { PurchaseSheet } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
 import { GoalCard } from "@/features/goals";
 import { getGoalView } from "@/features/goals/server";
 import { allowancePlan } from "@/features/guide";
-import { chooseHomeStep, HomeStepCard, ScoreStrip } from "@/features/learning";
+import { chooseHomeStep, HomeStepCard, MiniRoad, StreakBadge } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
-import { JarGraph, JarShelf } from "@/features/ledger";
-import { getBalanceHistory } from "@/features/ledger/server";
+import { JarShelf } from "@/features/ledger";
 import { AllowancePlanCard, takeOutLimit } from "@/features/requests";
 import { getAvailability, listRequests } from "@/features/requests/server";
 import { getChildRules } from "@/features/rules/server";
@@ -29,9 +28,10 @@ import { fallback, logger } from "@/lib";
 export const metadata: Metadata = { title: "Home" };
 
 /**
- * The child's Home, learning first (2026-11-04): the one next thing with points and the run,
- * then the money (jars, one gold keycap to record a purchase, the allowance in a line), the goal,
- * and how the jars moved.
+ * The child's Home, learning first (2026-11-04): one card with the run and points as a big
+ * number, the one next thing and the seven missions as a short line; then the money (jars, one
+ * gold keycap to record a purchase, the allowance in a line) and the goal. How the jars moved
+ * and pending purchases are on the Diary.
  * Ask Jarso has its own page (the Jarso tab). The week and the
  * skills live on Learn. requireRole sends signed-out users to the PIN sign-in and parents home.
  */
@@ -59,10 +59,9 @@ async function ChildHome() {
           />
         }
       />
-      {/* Learning leads (2026-11-04): today's one next thing, with the child's points and run,
-          across the top. Then the jars on the left and today's plan, pending purchases and the
-          goal on the right; how the jars moved closes the page. Tablets stack in the same order.
-          Ask Jarso lives on its own page, the Jarso tab. */}
+      {/* Learning leads (2026-11-04): the run, today's one next thing and the road, across the
+          top. Then the jars on the left and today's plan and the goal on the right. Pending
+          purchases and how the jars moved are on the Diary. Tablets stack in the same order. */}
       <Suspense fallback={<Skeleton className="h-40" />}>
         <HomeStep childId={user.id} currency={family.currency} allowanceMinor={allowanceMinor} />
       </Suspense>
@@ -83,7 +82,6 @@ async function ChildHome() {
           <Suspense fallback={null}>
             <HomePlan childId={user.id} currency={family.currency} />
           </Suspense>
-          <PendingPurchases userId={user.id} currency={family.currency} />
           <Suspense fallback={<Skeleton className="h-56" />}>
             <HomeGoal
               childId={user.id}
@@ -93,9 +91,6 @@ async function ChildHome() {
           </Suspense>
         </div>
       </div>
-      <Suspense fallback={<Skeleton className="h-64" />}>
-        <HomeGraph childId={user.id} currency={family.currency} />
-      </Suspense>
     </>
   );
 }
@@ -128,21 +123,35 @@ async function HomeStep({
       learning: learning.nextStep,
     });
     return (
-      <section aria-label="Learning today" className="grid gap-3">
-        <ScoreStrip points={learning.points} streak={learning.streak} />
-        <HomeStepCard
-          step={step}
-          currency={currency}
-          takeOutLimitMinor={takeOutLimit(availability)}
-          goalSheet={{
-            goal: goal?.goal ?? null,
-            currency,
-            allowanceMinor,
-            saveMinor: availability.saveMinor,
-            reservedMinor: availability.reservedSaveMinor,
-          }}
-        />
-      </section>
+      <Card className="rise-in shadow-raised">
+        <CardContent>
+          {/* The run and points as one big block on the left, the one next thing in the middle,
+              and the seven missions as a short line on the right (2026-11-04). Phones stack
+              them: the run, the step, then the line. */}
+          <section
+            aria-label="Learning today"
+            className="grid gap-5 md:grid-cols-[auto_minmax(0,1fr)] lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,22rem)] lg:items-center lg:gap-8"
+          >
+            <StreakBadge points={learning.points} streak={learning.streak} />
+            <HomeStepCard
+              bare
+              step={step}
+              currency={currency}
+              takeOutLimitMinor={takeOutLimit(availability)}
+              goalSheet={{
+                goal: goal?.goal ?? null,
+                currency,
+                allowanceMinor,
+                saveMinor: availability.saveMinor,
+                reservedMinor: availability.reservedSaveMinor,
+              }}
+            />
+            <div className="md:col-span-2 lg:col-span-1">
+              <MiniRoad journey={learning.journey} />
+            </div>
+          </section>
+        </CardContent>
+      </Card>
     );
   } catch (error) {
     unstable_rethrow(error);
@@ -225,24 +234,6 @@ async function HomeGoal({
   } catch (error) {
     unstable_rethrow(error);
     logger.warn("Goal unavailable on child home", { error: errorName(error) });
-    return null;
-  }
-}
-
-/** How the jars moved over the last weeks. Nice to have: if it can't load, Home goes on without it. */
-async function HomeGraph({ childId, currency }: { childId: string; currency: string }) {
-  try {
-    const history = await getBalanceHistory(childId);
-    return (
-      <Card>
-        <CardContent>
-          <JarGraph history={history} currency={currency} />
-        </CardContent>
-      </Card>
-    );
-  } catch (error) {
-    unstable_rethrow(error);
-    logger.warn("Jar graph unavailable on child home", { error: errorName(error) });
     return null;
   }
 }

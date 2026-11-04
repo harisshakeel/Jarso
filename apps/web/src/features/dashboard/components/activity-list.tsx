@@ -12,11 +12,14 @@ export function ActivityList({
   items,
   currency,
   seeAllHref,
+  today,
 }: {
   items: TaggedItem[];
   currency: string;
   /** The picked child's full history, or null for the family. */
   seeAllHref: Route | null;
+  /** The family's today: lines are grouped under "Today", "Yesterday" and the date. */
+  today?: string;
 }) {
   const owner = new Map(items.map((tag) => [`${tag.item.kind}-${tag.item.id}`, tag]));
   return (
@@ -28,6 +31,7 @@ export function ActivityList({
         skippedLabel="Not given"
         showMinor="always"
         emptyLine="Nothing has moved yet."
+        today={today}
         renderTag={(item) => {
           const tag = owner.get(`${item.kind}-${item.id}`);
           return tag ? <ChildChip nickname={tag.nickname} slot={tag.slot} /> : null;

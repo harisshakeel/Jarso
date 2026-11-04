@@ -21,9 +21,9 @@ let child: Page;
 let childBase = "";
 
 const parentInboxTab = () =>
-  parent.getByRole("navigation", { name: "Parent" }).getByRole("link", { name: /Inbox/ });
+  parent.getByRole("navigation", { name: "Parent" }).getByRole("link", { name: /Notifications/ });
 const childInboxTab = () =>
-  child.getByRole("navigation", { name: "Child" }).getByRole("link", { name: /News/ });
+  child.getByRole("navigation", { name: "Child" }).getByRole("link", { name: /Notifications/ });
 
 test.beforeAll(async ({ browser }) => {
   const baseURL = test.info().project.use.baseURL;
@@ -76,7 +76,7 @@ test("a due allowance sends a reminder to the parent and the child", async () =>
   await parent.getByLabel("Amount").fill("5");
   await parent.getByRole("group").getByText("Weekly", { exact: true }).click();
   await parent.getByRole("button", { name: "Save allowance" }).click();
-  await expect(parent).toHaveURL(at(childBase));
+  await expect(parent).toHaveURL(at(`${childBase}/allowance`));
 
   // The cron job runs hourly; here the service role runs it now.
   const admin = createClient(local?.url ?? "", local?.secretKey ?? "", {
@@ -109,7 +109,7 @@ test("parent opens the notice, lands on the handover screen and the badge goes",
 
 test("after the handover the notice opens to the handed-over state", async () => {
   await parent.getByRole("button", { name: "Confirm I handed it over" }).click();
-  await expect(parent).toHaveURL(at(childBase));
+  await expect(parent).toHaveURL(at(`${childBase}/allowance`));
   await parentInboxTab().click();
   await parent.getByRole("link", { name: /Sam's US\$5(\.00)? allowance is due/ }).click();
   await expect(parent.getByText("Already handled")).toBeVisible();
@@ -157,7 +157,7 @@ test("Show more pages through a long inbox with no repeats and no gaps", async (
     .eq("recipient_id", recipient_id ?? "");
 
   const rows = async () => {
-    await expect(parent.getByRole("heading", { name: "Inbox" })).toBeVisible();
+    await expect(parent.getByRole("heading", { name: "Notifications" })).toBeVisible();
     return parent.getByRole("listitem").filter({ hasText: "Sam" }).allInnerTexts();
   };
 

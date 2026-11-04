@@ -44,8 +44,8 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
         : await runOnline(() => createAllowanceAction(null, formData));
       if (result.ok) {
         toast.success(allowanceFormCopy.saved);
-        // A change goes back to the manage page; a new allowance to the child's page.
-        router.push(changing ? routes.parentAllowance(childId) : routes.parentChildMoney(childId));
+        // Both stay on the Allowance page, where a first allowance due today shows at once.
+        router.push(routes.parentAllowance(childId));
       }
       return result;
     },

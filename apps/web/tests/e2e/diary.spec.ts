@@ -80,7 +80,7 @@ test("parent hands over 1000 to Spend", async () => {
     .getByRole("link", { name: /^Allowance/ })
     .click();
   await parent.getByRole("button", { name: "Confirm I handed it over" }).click();
-  await expect(parent).toHaveURL(at(childBase));
+  await expect(parent).toHaveURL(at(`${childBase}/allowance`));
   await expect(parent.getByRole("region", { name: "Spend jar" })).toContainText("US$1,000.00");
 });
 
@@ -123,16 +123,16 @@ test("fixing the snacks line to 3 shows what it was", async () => {
   await expect(line("Crisps")).toContainText("Fixed · was US$3.50");
 });
 
-test("the card names the biggest category", async () => {
+test("the highlights name the biggest category", async () => {
   await child.goto("/child/diary");
-  await expect(child.getByRole("region", { name: "Where your money went" })).toContainText(
-    "Most of your spending went on 🍫 Snacks: US$3.",
-  );
+  const week = child.getByRole("region", { name: "This week" });
+  await expect(week).toContainText("Most went on");
+  await expect(week).toContainText("🍫 Snacks US$3");
 });
 
 test("the parent sees the money received and fixed notices, and the fix in history", async () => {
   await parent.goto("/parent/inbox");
-  await expect(parent.getByRole("heading", { name: "Inbox" })).toBeVisible();
+  await expect(parent.getByRole("heading", { name: "Notifications" })).toBeVisible();
   await expect(parent.getByText("wrote down US$20 from Birthday")).toBeVisible();
   await expect(parent.getByText("fixed a purchase")).toBeVisible();
 

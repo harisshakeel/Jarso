@@ -1,7 +1,7 @@
 import { dashboardCopy, parentPageCopy } from "@jarso/core/dashboard";
 import { useRouter } from "expo-router";
 import { Tabs } from "expo-router/js-tabs";
-import { HomeIcon, InboxIcon, SettingsIcon, SparklesIcon, UsersIcon } from "lucide-react-native";
+import { BellIcon, HomeIcon, SettingsIcon, SparklesIcon, UsersIcon } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { tabIcon as icon, useTabBarOptions } from "@/components/screen";
 import { Text } from "@/components/ui";
@@ -73,7 +73,7 @@ export default function ParentTabsLayout() {
         name="inbox"
         options={{
           title: parentPageCopy.inbox,
-          tabBarIcon: icon(InboxIcon),
+          tabBarIcon: icon(BellIcon),
           tabBarBadge: unread ? unread : undefined,
         }}
       />

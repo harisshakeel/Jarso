@@ -17,28 +17,36 @@ type HomeStepCardProps = {
   takeOutLimitMinor: number;
   /** Props for the goal sheet, for "Set a goal". */
   goalSheet: ComponentProps<typeof GoalSheet>;
+  /** Without its card: Home's learning card holds it beside the run and the road. */
+  bare?: boolean;
 };
 
 /** "Do this next" on child Home: one thing, in plain words, with at most one button. */
-export function HomeStepCard({ step, currency, takeOutLimitMinor, goalSheet }: HomeStepCardProps) {
-  if (step.kind === "learning") return <NextStepCard step={step.step} />;
+export function HomeStepCard({
+  step,
+  currency,
+  takeOutLimitMinor,
+  goalSheet,
+  bare = false,
+}: HomeStepCardProps) {
+  if (step.kind === "learning") return <NextStepCard step={step.step} bare={bare} />;
+  const section = (
+    <section aria-labelledby="home-step-heading" className="grid content-center gap-3">
+      <p className="eyebrow">
+        {step.kind === "goal-reached" ? goalCopy.home.goalReachedEyebrow : goalCopy.home.doThisNext}
+      </p>
+      <StepBody
+        step={step}
+        currency={currency}
+        takeOutLimitMinor={takeOutLimitMinor}
+        goalSheet={goalSheet}
+      />
+    </section>
+  );
+  if (bare) return section;
   return (
     <Card className="shadow-raised">
-      <CardContent>
-        <section aria-labelledby="home-step-heading" className="grid gap-3">
-          <p className="eyebrow">
-            {step.kind === "goal-reached"
-              ? goalCopy.home.goalReachedEyebrow
-              : goalCopy.home.doThisNext}
-          </p>
-          <StepBody
-            step={step}
-            currency={currency}
-            takeOutLimitMinor={takeOutLimitMinor}
-            goalSheet={goalSheet}
-          />
-        </section>
-      </CardContent>
+      <CardContent>{section}</CardContent>
     </Card>
   );
 }

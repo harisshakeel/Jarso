@@ -10,14 +10,15 @@ import { useNoticeCurrency } from "./use-notice-currency";
 import { useMarkRead, useNotices, useUnreadCount } from "./use-notices";
 import { useOpenNotice } from "./use-open-notice";
 
-/** The web's inbox headings: the child's News, the parent's Inbox. */
+/** The web's inbox headings: both are Notifications since 2026-11-04. */
 const HEADING: Record<NoticeRole, string> = {
   child: inboxCopy.childHeading,
   parent: parentPageCopy.inbox,
 };
 
 /**
- * The inbox (the web's child News and parent Inbox): newest first, grouped by day, 20 at a time
+ * The inbox (the web's Notifications, for the child and the parent): newest first, grouped by day,
+ * 20 at a time
  * with "Show more". Opening a notice saves it as read and goes to the record; "Mark all as read"
  * clears the badge.
  */

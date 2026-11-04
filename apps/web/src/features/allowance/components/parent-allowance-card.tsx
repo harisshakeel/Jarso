@@ -15,10 +15,17 @@ type ParentAllowanceCardProps = {
   /** The child's latest schedule (stopped included), or null. */
   schedule: Schedule | null;
   currency: string;
+  /** Handovers due now (they live on the Allowance page), or 0. */
+  dueCount?: number;
 };
 
 /** The parent's allowance card on the child page: amount, how often, where it stands, one action. */
-export function ParentAllowanceCard({ childId, schedule, currency }: ParentAllowanceCardProps) {
+export function ParentAllowanceCard({
+  childId,
+  schedule,
+  currency,
+  dueCount = 0,
+}: ParentAllowanceCardProps) {
   const running = runningSchedule(schedule);
   return (
     <Card>
@@ -40,6 +47,9 @@ export function ParentAllowanceCard({ childId, schedule, currency }: ParentAllow
           <p className={running ? "font-semibold" : "text-ink-2"}>
             {describeAllowanceState(schedule)}
           </p>
+          {dueCount > 0 ? (
+            <p className="font-bold text-gold-text">{allowanceSummaryCopy.dueWaiting(dueCount)}</p>
+          ) : null}
           <Link
             href={routes.parentAllowance(childId)}
             className={buttonVariants({

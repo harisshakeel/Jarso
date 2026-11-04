@@ -11,7 +11,7 @@ import {
   NextStepCard,
   PersonalBests,
   Roadmap,
-  ScoreStrip,
+  StreakBadge,
   weeklyRhythmLine,
 } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
@@ -32,8 +32,8 @@ async function LearnContent() {
         <header className="grid gap-2">
           <h1 className="text-balance text-h1">{learnCopy.heading}</h1>
           <p className="text-ink-2">{weeklyRhythmLine(overview.daysThisWeek)}</p>
-          <ScoreStrip points={overview.points} streak={overview.streak} />
         </header>
+        <StreakBadge points={overview.points} streak={overview.streak} layout="row" />
         <CoachSays coach={{ key: "learn" }} says={{ moment: "learn" }} />
         {cardFirst ? <NextStepCard step={overview.nextStep} /> : null}
         <PersonalBests overview={overview} />

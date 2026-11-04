@@ -49,7 +49,7 @@ export async function listUnreadNotices(kinds: NoticeKind[]): Promise<Notice[]> 
 }
 
 /**
- * A parent's note to their child (parent dashboard). It lands in the child's News; the database
+ * A parent's note to their child (parent dashboard). It lands in the child's Notifications; the database
  * checks the caller is the child's parent. Never logs the text.
  */
 export async function sendChildNote(input: ChildNoteInput): Promise<NoteResult> {

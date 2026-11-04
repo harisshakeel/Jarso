@@ -1,8 +1,8 @@
 import { Tabs } from "expo-router/js-tabs";
 import {
+  BellIcon,
   GraduationCapIcon,
   HomeIcon,
-  InboxIcon,
   NotebookPenIcon,
   SparklesIcon,
 } from "lucide-react-native";
@@ -10,7 +10,8 @@ import { tabIcon as icon, useTabBarOptions } from "@/components/screen";
 import { useGuideState } from "@/features/guide";
 import { useUnreadCount } from "@/features/news";
 
-// The web's child nav (design.md §5): Home · Diary · Learn · Jarso · News, same icons. Requests
+// The web's child nav (design.md §5): Home · Diary · Learn · Jarso · Notifications, same icons.
+// Requests
 // and Me are stack screens (from Home).
 
 /** The child's five tabs. The role guard is in the parent `(child)/_layout`. */
@@ -19,7 +20,7 @@ export default function TabsLayout() {
   // The Jarso tab shows only once the server says the guide is on for this child.
   const guide = useGuideState();
   const guideOn = guide.data?.available === true;
-  // The News badge: unread notices, kept live by the NoticeListener. Nothing shows for 0.
+  // The Notifications badge: unread notices, kept live by the NoticeListener. Nothing shows for 0.
   const unread = useUnreadCount().data;
   return (
     <Tabs screenOptions={{ headerShown: false, ...tabBar }}>
@@ -37,8 +38,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="news"
         options={{
-          title: "News",
-          tabBarIcon: icon(InboxIcon),
+          title: "Notifications",
+          tabBarIcon: icon(BellIcon),
           tabBarBadge: unread ? unread : undefined,
         }}
       />

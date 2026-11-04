@@ -19,7 +19,7 @@ export function useNotices() {
   });
 }
 
-/** How many notices the child hasn't opened (the News badge). */
+/** How many notices the child hasn't opened (the Notifications badge). */
 export function useUnreadCount() {
   const { userId } = useSession();
   return useQuery({
