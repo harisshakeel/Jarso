@@ -61,6 +61,6 @@ check(
 );
 
 check(
-  http.post(`${API_URL}/api/v1/notices/dispatch`, { headers: { Authorization: bearer } }),
+  http.post(`${API_URL}/api/v1/notices/dispatch`, { headers: { Authorization: bearer }, body: "" }),
   "Dispatch",
 );
