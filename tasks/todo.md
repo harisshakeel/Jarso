@@ -323,6 +323,7 @@ Built and unit-tested; nothing below has run on a device (no device or Android b
 - [ ] Razorpay recurring (saving a card) works on the test account (recurring payments enabled)
 - [ ] The ephemeral key's API version (the server's pinned Stripe API version) is accepted by `@stripe/stripe-react-native` 0.81.0
 - [ ] `react-native-razorpay` 3.0.0 links and opens under the new architecture on RN 0.88
+- [ ] The merged Android manifest (`npx expo prebuild` or the built APK) adds no permission beyond `POST_NOTIFICATIONS` from the Stripe or Razorpay SDKs (e.g. SMS or phone state for OTP autofill): children install the same APK
 - [ ] After a card handover the ledger rows match a cash handover, and the child's phone and the web show "Paid by card"
 - [ ] Closing the sheet early leaves "Card payment in progress"; after 31 minutes it reads expired, never paid
 - [ ] Maestro selectors inside the Stripe and Razorpay sheets (their own UI) are unchecked; fix `e2e/stripe-card.yaml` and `e2e/razorpay-card.yaml` on first run

@@ -158,7 +158,7 @@ describe("AutoChargeSlot", () => {
     const user = userEvent.setup();
     await user.press(screen.getByRole("radio", { name: "Razorpay" }));
     expect(screen.getByText(paymentCopy.phoneHelp("Razorpay"))).toBeTruthy();
-    await user.type(screen.getByLabelText(paymentCopy.phoneLabel), "+919876543210");
+    await user.type(screen.getByLabelText(paymentCopy.phoneLabel), "+910000000000");
     await user.press(screen.getByRole("button", { name: paymentCopy.saveWith("Razorpay") }));
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith({
@@ -166,7 +166,7 @@ describe("AutoChargeSlot", () => {
         id: SCHEDULE,
         on: true,
         provider: "razorpay",
-        phone: "+919876543210",
+        phone: "+910000000000",
       }),
     );
     await waitFor(() => expect(present).toHaveBeenCalledWith(sheet, expect.anything()));

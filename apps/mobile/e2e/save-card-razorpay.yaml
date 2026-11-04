@@ -3,7 +3,7 @@
 # card: Jarso's sheet asks for the mobile number (sent to Razorpay, never kept), then Razorpay
 # Checkout saves the card with a ₹1 test charge. Remove a saved Razorpay card in Settings first.
 #   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... -e CHILD_NICKNAME=...
-#     -e RAZORPAY_CARD=4100280000001007 -e PARENT_MOBILE=+919876543210 e2e/save-card-razorpay.yaml
+#     -e RAZORPAY_CARD=4100280000001007 -e PARENT_MOBILE=… e2e/save-card-razorpay.yaml
 appId: app.jarso.mobile
 ---
 - runFlow: parent-sign-in.yaml

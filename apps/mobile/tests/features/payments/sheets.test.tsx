@@ -25,7 +25,7 @@ const razorpaySheet = (mode: "payment" | "setup"): InAppSheet => ({
   currency: "INR",
   description: "Allowance for Sam",
   ...(mode === "setup"
-    ? { customerId: "cust_1", prefill: { email: "parent@example.test", contact: "+919876543210" } }
+    ? { customerId: "cust_1", prefill: { email: "parent@example.test", contact: "+910000000000" } }
     : {}),
 });
 
@@ -121,7 +121,7 @@ describe("presentSheet", () => {
       expect.objectContaining({
         customer_id: "cust_1",
         recurring: "1",
-        prefill: { email: "parent@example.test", contact: "+919876543210" },
+        prefill: { email: "parent@example.test", contact: "+910000000000" },
       }),
     );
   });
