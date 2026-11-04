@@ -52,6 +52,7 @@ import { startMissionAction } from "../server/actions";
 import { Blackboard } from "./blackboard";
 import { CoachBubble } from "./coach-bubble";
 import { CurrentStepContext } from "./current-step";
+import { ReadAloudButton } from "./read-aloud-button";
 import { StepInput } from "./step-inputs";
 
 export type PlayerMode =
@@ -567,9 +568,16 @@ function InfoView({
           {renderText(step.example, currency)}
         </p>
       ) : null}
-      <Button variant="keycap" size="lg" className="w-full sm:w-fit" onClick={onContinue}>
-        {playerCopy.continue}
-      </Button>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="keycap" size="lg" className="w-full sm:w-fit" onClick={onContinue}>
+          {playerCopy.continue}
+        </Button>
+        <ReadAloudButton
+          text={[step.title ?? playerCopy.infoTitle, step.body, step.example ?? ""]
+            .map((part) => renderText(part, currency))
+            .join(". ")}
+        />
+      </div>
     </section>
   );
 }
@@ -703,6 +711,16 @@ function StepView({
           promptRef={heading}
           prompt={renderText(body.prompt, currency)}
           note={body.type === "predict" ? playerCopy.predictNote : undefined}
+        />
+        <ReadAloudButton
+          className="w-fit"
+          label={playerCopy.readAloud}
+          text={[
+            renderText(body.prompt, currency),
+            body.type === "predict" ? playerCopy.predictNote : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         />
 
         <StepInput

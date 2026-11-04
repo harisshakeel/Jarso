@@ -30,6 +30,8 @@ export const playerCopy = {
   savedOnDevice: "Saved on this device.",
   tryAgain: "Try again",
   readTopic: "Read the topic",
+  /** Demo 3: the browser reads the step's words out loud. */
+  readAloud: "Read aloud",
   replayPosition: (n: number, of: number) => `One more look: ${n} of ${of}`,
   stepPosition: (n: number, of: number) => `Step ${n} of ${of}`,
   yourTurn: "Your turn.",
