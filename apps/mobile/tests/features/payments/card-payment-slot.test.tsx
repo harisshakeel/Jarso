@@ -7,7 +7,7 @@ import {
   paymentCopy,
 } from "@jarso/core/payments";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, userEvent, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import {
   cancelInAppPayment,
   getPaymentProviders,
@@ -202,6 +202,28 @@ describe("CardPaymentSlot", () => {
     await waitFor(() => expect(cancelInAppPayment).toHaveBeenCalledWith("p1"));
     await waitFor(() => expect(flash).toHaveBeenCalledWith(paymentCopy.cancelled));
     expect(await screen.findByRole("button", { name: paymentCopy.payByCard })).toBeTruthy();
+  });
+
+  it("stops the spinner when the poll gives up and offers the payment again", async () => {
+    jest.useFakeTimers();
+    try {
+      (getPaymentProviders as jest.Mock).mockResolvedValue(item());
+      present.mockResolvedValue("completed");
+      read.mockResolvedValue(status("pending"));
+      await renderSlot();
+      await act(async () => {
+        fireEvent.press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+      });
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(125_000);
+      });
+      expect(screen.getByText(paymentCopy.pendingTitle)).toBeTruthy();
+      expect(screen.getByRole("button", { name: paymentCopy.payAgain })).toBeTruthy();
+      expect(screen.getByRole("button", { name: paymentCopy.cancelPayment })).toBeTruthy();
+      expect(screen.queryByText(paymentCopy.stillConfirming)).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("shows the live payment on reopen and Pay again reuses it", async () => {

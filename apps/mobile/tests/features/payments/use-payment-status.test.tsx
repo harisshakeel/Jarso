@@ -50,7 +50,7 @@ describe("usePaymentStatus", () => {
     const { result } = await renderHook(() => usePaymentStatus(null), { wrapper });
     await advance(10_000);
     expect(read).not.toHaveBeenCalled();
-    expect(result.current).toEqual({ view: null, stillConfirming: false });
+    expect(result.current).toEqual({ view: null, stillConfirming: false, gaveUp: false });
   });
 
   it("stops polling at a final status and refreshes active queries", async () => {
@@ -95,7 +95,11 @@ describe("usePaymentStatus", () => {
     const calls = read.mock.calls.length;
     await advance(60_000);
     expect(read).toHaveBeenCalledTimes(calls);
-    expect(result.current).toMatchObject({ stillConfirming: true, view: { status: "pending" } });
+    expect(result.current).toMatchObject({
+      stillConfirming: true,
+      gaveUp: true,
+      view: { status: "pending" },
+    });
   });
 
   it("keeps polling after a failed status read", async () => {

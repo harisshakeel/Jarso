@@ -276,7 +276,7 @@ function AttemptResult({
   onPayAgain: () => void;
   footer: ReactNode;
 }) {
-  const { view, stillConfirming } = usePaymentStatus(attempt.paymentId);
+  const { view, stillConfirming, gaveUp } = usePaymentStatus(attempt.paymentId);
 
   if (view?.final) {
     switch (view.status) {
@@ -318,8 +318,9 @@ function AttemptResult({
     }
   }
 
-  // Closed before it finished: still open at the provider until it expires.
-  if (attempt.outcome === "closed") return pending;
+  // Closed before it finished, or still not final after 2 minutes of reading: it stays open at
+  // the provider until it expires, so offer Pay again and Cancel rather than a spinner.
+  if (attempt.outcome === "closed" || gaveUp) return pending;
 
   return (
     <Card>
