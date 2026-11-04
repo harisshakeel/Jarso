@@ -73,7 +73,8 @@ async function open(ui: (onClose: () => void) => ReactElement) {
 }
 
 /** The answer reached the child as a toast and the sheet closed (SentToast). */
-const sent = (message: string) => waitFor(() => expect(flash).toHaveBeenCalledWith(message));
+const sent = (message: string) =>
+  waitFor(() => expect(flash).toHaveBeenCalledWith(message, { long: true }));
 
 beforeEach(() => {
   jest.clearAllMocks();

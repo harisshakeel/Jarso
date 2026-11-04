@@ -130,7 +130,7 @@ describe("Got money", () => {
     await user.press(screen.getByRole("radio", { name: "Birthday" }));
     await user.press(screen.getByRole("radio", { name: "Save" }));
     await user.press(screen.getByRole("button", { name: receivedCopy.submit }));
-    await waitFor(() => expect(flash).toHaveBeenCalledWith(entrySavedMessage));
+    await waitFor(() => expect(flash).toHaveBeenCalledWith(entrySavedMessage, { long: true }));
     expect(received).toHaveBeenCalledWith(
       { id: "client" },
       {

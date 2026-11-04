@@ -180,7 +180,8 @@ export function SentToast({ message, onClose }: { message: string; onClose: () =
   const close = useRef(onClose);
   close.current = onClose;
   useEffect(() => {
-    flash(message);
+    // Long: it is the only place the child reads the answer before the sheet is gone.
+    flash(message, { long: true });
     close.current();
   }, [message]);
   return null;
