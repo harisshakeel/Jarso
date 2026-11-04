@@ -40,7 +40,8 @@
           "color": "#02627d",
           "defaultChannel": "notices"
         }
-      ]
+      ],
+      ["@stripe/stripe-react-native", { "enableGooglePay": false }]
     ],
     "experiments": {
       "typedRoutes": true,

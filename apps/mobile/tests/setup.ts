@@ -15,3 +15,12 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 jest.mock("@react-native-community/datetimepicker", () => ({
   DateTimePickerAndroid: { open: jest.fn(), dismiss: jest.fn() },
 }));
+
+// The card sheets are native modules: tests drive these mocks (src/features/payments/sheets).
+jest.mock("@stripe/stripe-react-native", () => ({
+  initStripe: jest.fn(async () => undefined),
+  initPaymentSheet: jest.fn(async () => ({})),
+  presentPaymentSheet: jest.fn(async () => ({})),
+  PaymentSheetError: { Failed: "Failed", Canceled: "Canceled", Timeout: "Timeout" },
+}));
+jest.mock("react-native-razorpay", () => ({ __esModule: true, default: { open: jest.fn() } }));
