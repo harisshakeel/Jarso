@@ -101,7 +101,12 @@ code="$(cat "$DONE")"; rm -f "$DONE"
 if [ "$code" = 0 ]; then
   echo "Done: $APK"
 else
-  echo "Build failed (exit $code). Last lines of $LOG:" >&2
-  grep -E 'What went wrong|BUILD FAILED|Error' "$LOG" | tail -10 >&2
+  echo "Build failed (exit $code). From $LOG:" >&2
+  # Gradle puts the cause on the lines after "What went wrong"; otherwise show the tail.
+  if grep -q 'What went wrong' "$LOG"; then
+    grep -A8 'What went wrong' "$LOG" | tail -30 >&2
+  else
+    tail -30 "$LOG" >&2
+  fi
   exit "$code"
 fi
