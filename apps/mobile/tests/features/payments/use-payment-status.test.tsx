@@ -18,7 +18,9 @@ const view = (status: PaymentStatusView["status"]): PaymentStatusView => ({
 });
 
 function setup() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } },
+  });
   const invalidate = jest.spyOn(client, "invalidateQueries");
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>

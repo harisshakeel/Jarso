@@ -118,6 +118,8 @@ export const keys = {
     ["parentChats", userId, conversationId] as const,
 
   // Card payments (parents). All share the `payments` prefix.
+  /** Every card payment read: refreshed after a card write. */
+  payments: () => ["payments"] as const,
   /** In-app providers and saved cards; with an item (`kind:id`), its card handover state too. */
   paymentProviders: (item?: string) => ["payments", "providers", item ?? "all"] as const,
   /** One card payment's status, polled after the native sheet closes. */
