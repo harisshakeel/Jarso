@@ -46,7 +46,7 @@ keywords = ["_secret_"]
 [[rules]]
 id = "stripe-ephemeral-key"
 description = "Stripe ephemeral key (the phone's card sheet)"
-regex = '''\bek_(?:test|live)_[A-Za-z0-9]{16,}'''
+regex = '''\bek_(?:test|live)_[A-Za-z0-9_-]{16,}'''
 keywords = ["ek_test_", "ek_live_"]
 
 [[rules]]
