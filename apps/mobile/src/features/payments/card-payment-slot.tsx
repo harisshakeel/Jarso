@@ -93,8 +93,13 @@ export function CardPaymentSlot({ kind, id, childId, amountMinor, split }: CardP
     setError(undefined);
     try {
       const { canceled } = await cancelInAppPayment(paymentId);
-      if (canceled) flash(paymentCopy.cancelled);
-      setAttempt(null);
+      if (canceled) {
+        flash(paymentCopy.cancelled);
+        setAttempt(null);
+      } else {
+        // Nothing left to cancel: it ended meanwhile (often paid). Read it again and show it.
+        setAttempt((prev) => prev && { ...prev, key: prev.key + 1 });
+      }
       void queryClient.invalidateQueries({ queryKey: keys.payments() });
     } catch (cause) {
       setError(await actionErrorMessage(cause));

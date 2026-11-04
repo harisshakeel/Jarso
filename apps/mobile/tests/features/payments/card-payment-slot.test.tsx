@@ -204,6 +204,23 @@ describe("CardPaymentSlot", () => {
     expect(await screen.findByRole("button", { name: paymentCopy.payByCard })).toBeTruthy();
   });
 
+  it("shows what the server says when there was nothing left to cancel", async () => {
+    (getPaymentProviders as jest.Mock).mockResolvedValue(item());
+    present.mockResolvedValue("closed");
+    read.mockResolvedValue(status("pending"));
+    (cancelInAppPayment as jest.Mock).mockImplementation(async () => {
+      // It went through at the provider just before the tap.
+      read.mockResolvedValue(status("succeeded"));
+      return { canceled: false };
+    });
+    await renderSlot();
+    const user = userEvent.setup();
+    await user.press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+    await user.press(await screen.findByRole("button", { name: paymentCopy.cancelPayment }));
+    expect(await screen.findByText(paymentCopy.received)).toBeTruthy();
+    expect(flash).not.toHaveBeenCalledWith(paymentCopy.cancelled);
+  });
+
   it("stops the spinner when the poll gives up and offers the payment again", async () => {
     jest.useFakeTimers();
     try {
