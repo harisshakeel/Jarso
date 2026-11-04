@@ -155,7 +155,11 @@ test("refused queued purchase shows Needs a look", async () => {
   await line.getByRole("button", { name: "Ask a parent: Too big" }).click();
   await expect(line).toContainText("Show this to a parent and decide together.");
 
+  // Remove asks first (it can't be undone).
   await line.getByRole("button", { name: "Remove: Too big" }).click();
+  const confirm = child.getByRole("alertdialog", { name: 'Remove "Too big"?' });
+  await confirm.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(confirm).toHaveCount(0);
   await expect(pending()).toHaveCount(0);
   await expect(history().getByText("Too big")).toHaveCount(0);
 });
