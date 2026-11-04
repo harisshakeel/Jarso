@@ -39,16 +39,16 @@ The web app must be reachable from the phone for sign-in and push. Run `pnpm dev
 **Expo Go no longer runs the app** (wave 3 adds native modules: `expo-notifications`, and the payment sheets). Build a development build once and install the APK on the phone:
 
 ```bash
-eas build --profile development --platform android   # or: npx expo run:android (local, needs the Android SDK)
-pnpm mobile                                           # then open the dev build, not Expo Go
+(cd apps/mobile && eas build --profile development --platform android)   # or: (cd apps/mobile && npx expo run:android), local, needs the Android SDK
+pnpm mobile                                                              # then open the dev build, not Expo Go
 ```
 
-Rebuild only when a native module or config plugin changes (a new `expo-*` native package, `app.json` plugins or permissions); JS changes reload over Metro as before. The `development` EAS profile is an internal-distribution APK with `expo-dev-client`. Check bundling without a device with `npx expo export --platform android`, then delete `dist/`.
+Rebuild only when a native module or config plugin changes (a new `expo-*` native package, `app.json` plugins or permissions); JS changes reload over Metro as before. The `development` EAS profile is an internal-distribution APK with `expo-dev-client`. Check bundling without a device with `(cd apps/mobile && npx expo export --platform android)`, then delete `apps/mobile/dist/`. Run every `eas` and `npx expo` command from `apps/mobile`, where `eas.json` and `app.config.ts` live.
 
 **Push credentials (FCM).** Android push goes through Firebase Cloud Messaging; neither file below is ever in the repo (see `docs/security.md`).
 
-1. Upload the FCM v1 service-account key to EAS: `eas credentials` → Android → the app → Google Service Account → FCM V1. It lives only in EAS.
-2. Store `google-services.json` as an EAS file env var, once per environment: `eas env:create --name GOOGLE_SERVICES_JSON --type file --visibility sensitive --environment development` (repeat for `preview` and `production`). `app.config.ts` sets `android.googleServicesFile` from it. A local `google-services.json` is git-ignored; a build without the var still works, it just gets no push token.
+1. Upload the FCM v1 service-account key to EAS: `(cd apps/mobile && eas credentials)` → Android → the app → Google Service Account → FCM V1. It lives only in EAS.
+2. Store `google-services.json` as an EAS file env var, once per environment: `(cd apps/mobile && eas env:create --name GOOGLE_SERVICES_JSON --type file --visibility sensitive --environment development)` (repeat for `preview` and `production`). `app.config.ts` sets `android.googleServicesFile` from it. A local `google-services.json` is git-ignored; a build without the var still works, it just gets no push token.
 
 ## Layout
 
@@ -65,7 +65,7 @@ apps/mobile/
 
 ## Device e2e (Maestro)
 
-Flows in `apps/mobile/e2e/`: `sign-in`, `money-loop` (purchase and undo, put in, take out, ask extra, cancel, got money), `diary` (fix, earlier versions), `goal`, `learn`, `news`, `guide`, `offline` (a purchase queued in airplane mode replays). Install the development build (`eas build --profile development --platform android`, or `npx expo run:android`; see Run it), start `pnpm mobile`, then `maestro test -e CHILD_FAMILY_CODE=… -e CHILD_NICKNAME=… -e CHILD_PIN=… e2e` from `apps/mobile` (or `pnpm --filter @jarso/mobile e2e` with the same `-e` flags). The seeded child's first diary row must be fixable (a purchase or got-money line) and put-in and take-out must be allowed by the family's rules. Credentials are the hosted test family's, passed from the shell and never committed. Not run in CI.
+Flows in `apps/mobile/e2e/`: `sign-in`, `money-loop` (purchase and undo, put in, take out, ask extra, cancel, got money), `diary` (fix, earlier versions), `goal`, `learn`, `news`, `guide`, `offline` (a purchase queued in airplane mode replays). Install the development build (`(cd apps/mobile && eas build --profile development --platform android)`, or `(cd apps/mobile && npx expo run:android)`; see Run it), start `pnpm mobile`, then `maestro test -e CHILD_FAMILY_CODE=… -e CHILD_NICKNAME=… -e CHILD_PIN=… e2e` from `apps/mobile` (or `pnpm --filter @jarso/mobile e2e` with the same `-e` flags). The seeded child's first diary row must be fixable (a purchase or got-money line) and put-in and take-out must be allowed by the family's rules. Credentials are the hosted test family's, passed from the shell and never committed. Not run in CI.
 
 Unverified until run on a device: `expo/fetch` NDJSON streaming and abort on Android, Realtime `setAuth` with the SecureStore session, the outbox draining on reconnect, and Hermes `Intl` parity for `familyToday`. The checklist is in `tasks/todo.md`.
 
