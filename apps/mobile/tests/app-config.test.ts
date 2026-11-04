@@ -72,4 +72,30 @@ describe("app config", () => {
     expect(build({ EAS_BUILD_PROFILE: "production" })[1].android.usesCleartextTraffic).toBe(false);
     expect(build({ EAS_BUILD_PROFILE: "development" })[1].android.usesCleartextTraffic).toBe(true);
   });
+
+  it("tells R8 Stripe's push-provisioning classes are absent on purpose", () => {
+    const [, options] = pluginNamed(
+      loadConfig({}).plugins as Plugin[],
+      "expo-build-properties",
+    ) as [string, { android: { extraProguardRules?: string } }];
+    expect(options.android.extraProguardRules).toContain(
+      "-dontwarn com.stripe.android.pushProvisioning.**",
+    );
+  });
+
+  it("excludes play-services-tapandpay from every Gradle configuration, once", () => {
+    const { excludeTapAndPay } = require("../app.config") as {
+      excludeTapAndPay: (gradle: string) => string;
+    };
+    const once = excludeTapAndPay("allprojects {}\n");
+    expect(once).toContain(
+      'exclude group: "com.google.android.gms", module: "play-services-tapandpay"',
+    );
+    expect(excludeTapAndPay(once)).toBe(once);
+    // A mention of the module elsewhere (a comment, a partial exclusion) still gets the block.
+    const mentioned = "// play-services-tapandpay is not on Maven\nallprojects {}\n";
+    expect(excludeTapAndPay(mentioned)).toContain("configurations.configureEach");
+    const withMods = loadConfig({}) as { mods?: { android?: { projectBuildGradle?: unknown } } };
+    expect(withMods.mods?.android?.projectBuildGradle).toBeDefined();
+  });
 });
