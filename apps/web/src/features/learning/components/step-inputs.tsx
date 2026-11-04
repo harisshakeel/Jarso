@@ -17,7 +17,7 @@ type InputProps<D extends Draft["kind"]> = {
 };
 
 const optionCard =
-  "flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-hairline-strong bg-card px-4 py-3 font-semibold transition-colors hover:bg-muted has-checked:border-primary has-checked:bg-secondary has-disabled:cursor-default has-disabled:hover:bg-card";
+  "flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-hairline-strong bg-card px-4 py-2.5 font-semibold transition-colors hover:bg-muted has-checked:border-primary has-checked:bg-secondary has-disabled:cursor-default has-disabled:hover:bg-card";
 
 /** Choice, predict and reason steps: one option from two to four. */
 export function OptionInput({

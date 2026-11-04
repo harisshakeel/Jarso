@@ -786,96 +786,119 @@ function StepView({
       <section
         aria-labelledby={`${idBase}-prompt`}
         className={cn(
-          "rise-in grid gap-5 rounded-2xl bg-card p-6 shadow-raised transition-shadow duration-300",
+          "@container rise-in rounded-2xl bg-card p-4 shadow-raised transition-shadow duration-300 sm:p-5",
           // A right answer turns the card's edge green (design.md §2.4).
           outcome?.correct && "ring-2 ring-success",
         )}
       >
-        <div ref={bubbleRef} className="scroll-mt-4">
-          <CoachBubble
-            coach={coach}
-            // Once the step is settled the hints have done their job: the bubble is all feedback.
-            hints={checkIn || final ? [] : hints.slice(0, hintsShown)}
-            currency={currency}
-            checkIn={checkIn}
-            reaction={outcome ? (outcome.correct ? "cheer" : "nod") : null}
-          >
-            {outcome ? (
-              <Feedback outcome={outcome} body={body} currency={currency} topicHref={topicHref} />
-            ) : null}
-          </CoachBubble>
-        </div>
+        {/* One screen, no scrolling (design.md §6): where the card is wide enough, the question
+            and its answers sit on the left and the coach's bubble (and any picture) on the right;
+            narrower, the coach comes first, as before. */}
+        <div className="grid gap-4 @3xl:grid-cols-[minmax(0,1fr)_22rem] @3xl:items-start @3xl:gap-6">
+          <div className="grid gap-4 @3xl:col-start-2 @3xl:row-start-1">
+            <div ref={bubbleRef} className="scroll-mt-4">
+              <CoachBubble
+                coach={coach}
+                // Once the step is settled the hints have done their job: the bubble is all feedback.
+                hints={checkIn || final ? [] : hints.slice(0, hintsShown)}
+                currency={currency}
+                checkIn={checkIn}
+                reaction={outcome ? (outcome.correct ? "cheer" : "nod") : null}
+              >
+                {outcome ? (
+                  <Feedback
+                    outcome={outcome}
+                    body={body}
+                    currency={currency}
+                    topicHref={topicHref}
+                  />
+                ) : null}
+              </CoachBubble>
+            </div>
+            <StepPictureView stepKey={item.step.key} prompt={body.prompt} currency={currency} />
+          </div>
 
-        <StepPictureView stepKey={item.step.key} prompt={body.prompt} currency={currency} />
-        <Blackboard
-          eyebrow={position}
-          promptId={`${idBase}-prompt`}
-          promptRef={heading}
-          prompt={renderText(body.prompt, currency)}
-          note={body.type === "predict" ? playerCopy.predictNote : undefined}
-        />
-        <ReadAloudButton
-          className="w-fit"
-          label={playerCopy.readAloud}
-          text={[
-            renderText(body.prompt, currency),
-            body.type === "predict" ? playerCopy.predictNote : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        />
+          <div className="grid gap-4 @3xl:col-start-1 @3xl:row-start-1">
+            <Blackboard
+              eyebrow={position}
+              promptId={`${idBase}-prompt`}
+              promptRef={heading}
+              prompt={renderText(body.prompt, currency)}
+              note={body.type === "predict" ? playerCopy.predictNote : undefined}
+              aside={
+                <ReadAloudButton
+                  compact
+                  className="border-teal-50/30 text-teal-50 hover:bg-teal-900"
+                  label={playerCopy.readAloud}
+                  text={[
+                    renderText(body.prompt, currency),
+                    body.type === "predict" ? playerCopy.predictNote : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                />
+              }
+            />
 
-        <StepInput
-          body={body}
-          draft={draft}
-          onChange={setDraft}
-          currency={currency}
-          disabled={locked}
-          idBase={idBase}
-        />
+            <StepInput
+              body={body}
+              draft={draft}
+              onChange={setDraft}
+              currency={currency}
+              disabled={locked}
+              idBase={idBase}
+            />
 
-        <ProblemText problem={error} />
+            <ProblemText problem={error} />
 
-        {outcome && !checkIn ? <ResultStrip outcome={outcome} /> : null}
+            {outcome && !checkIn ? <ResultStrip outcome={outcome} /> : null}
 
-        <div className="flex flex-wrap items-center gap-3">
-          {!outcome ? (
-            <Button variant="keycap" size="lg" onClick={check} disabled={!answer} loading={saving}>
-              {checkIn ? playerCopy.next : playerCopy.check}
-            </Button>
-          ) : outcome.final ? (
-            // Green after a right answer: done with this screen. Teal after the answer is shown.
-            <Button
-              ref={actionRef}
-              variant={outcome.correct ? "keycap-success" : "keycap"}
-              size="xl"
-              className="w-full sm:w-fit"
-              onClick={continueOn}
-              loading={saving}
-            >
-              {playerCopy.continue}
-              <ArrowRightIcon aria-hidden />
-            </Button>
-          ) : (
-            // Warm gold and full width on a phone, so the way forward after a miss is obvious.
-            <Button
-              ref={actionRef}
-              variant="keycap-gold"
-              size="xl"
-              className="w-full sm:w-fit"
-              onClick={tryAgain}
-            >
-              <RotateCcwIcon aria-hidden />
-              {playerCopy.tryAgain}
-            </Button>
-          )}
-          {!checkIn && !outcome?.final && hintsShown < hints.length ? (
-            <Button variant="outline" onClick={() => setHintsShown((n) => n + 1)}>
-              <LightbulbIcon aria-hidden />
-              {hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}
-            </Button>
-          ) : null}
-          {!checkIn ? stepAside : null}
+            <div className="flex flex-wrap items-center gap-3">
+              {!outcome ? (
+                <Button
+                  variant="keycap"
+                  size="lg"
+                  onClick={check}
+                  disabled={!answer}
+                  loading={saving}
+                >
+                  {checkIn ? playerCopy.next : playerCopy.check}
+                </Button>
+              ) : outcome.final ? (
+                // Green after a right answer: done with this screen. Teal after the answer is shown.
+                <Button
+                  ref={actionRef}
+                  variant={outcome.correct ? "keycap-success" : "keycap"}
+                  size="xl"
+                  className="w-full sm:w-fit"
+                  onClick={continueOn}
+                  loading={saving}
+                >
+                  {playerCopy.continue}
+                  <ArrowRightIcon aria-hidden />
+                </Button>
+              ) : (
+                // Warm gold and full width on a phone, so the way forward after a miss is obvious.
+                <Button
+                  ref={actionRef}
+                  variant="keycap-gold"
+                  size="xl"
+                  className="w-full sm:w-fit"
+                  onClick={tryAgain}
+                >
+                  <RotateCcwIcon aria-hidden />
+                  {playerCopy.tryAgain}
+                </Button>
+              )}
+              {!checkIn && !outcome?.final && hintsShown < hints.length ? (
+                <Button variant="outline" onClick={() => setHintsShown((n) => n + 1)}>
+                  <LightbulbIcon aria-hidden />
+                  {hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}
+                </Button>
+              ) : null}
+              {!checkIn ? stepAside : null}
+            </div>
+          </div>
         </div>
       </section>
     </CurrentStepContext.Provider>

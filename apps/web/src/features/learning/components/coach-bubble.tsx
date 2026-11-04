@@ -36,7 +36,7 @@ export function CoachBubble({
   const line = checkIn ? coach.says.checkIn : hints.length > 0 ? coach.says.hint : coach.says.idle;
   return (
     <div className="flex items-end gap-3">
-      <figure className="grid shrink-0 justify-items-center gap-1">
+      <figure className="grid shrink-0 justify-items-center gap-1 max-sm:[&>svg]:h-16 max-sm:[&>svg]:w-auto">
         <CoachFigure coach={coach.id} size={88} reaction={reaction} />
         <figcaption className="font-semibold text-ink-2 text-sm">{coach.name}</figcaption>
       </figure>
