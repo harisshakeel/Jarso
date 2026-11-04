@@ -16,6 +16,7 @@ import { HandoverSheet } from "@/features/allowance";
 import { formatMoney } from "@/lib";
 import { flash } from "@/lib/flash";
 import { dispatchNotices } from "@/lib/notices";
+import { keys } from "@/lib/query";
 
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
 jest.mock("@/lib/api", () => ({ apiFetch: jest.fn() }));
@@ -178,6 +179,33 @@ describe("HandoverSheet", () => {
     await waitFor(() => expect(flash).toHaveBeenCalledWith(handoverCopy.markedNotGiven));
     expect(onClose).toHaveBeenCalled();
     alert.mockRestore();
+  });
+
+  it("a due list refetching without the item waits for the fresh one", async () => {
+    setup([]);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } },
+    });
+    // The list read before the gift was made, cached and now being read again.
+    client.setQueryData(keys.childDue(CHILD), []);
+    let finish: (items: unknown[]) => void = () => {};
+    (listDueForParent as jest.Mock).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    await render(
+      <QueryClientProvider client={client}>
+        <HandoverSheet childId={CHILD} kind="allowance" id={OCC} onClose={onClose} />
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(listDueForParent).toHaveBeenCalled());
+    expect(onClose).not.toHaveBeenCalled();
+    expect(flash).not.toHaveBeenCalledWith(parentRequestCopy.settled);
+
+    finish([due]);
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("an item no longer due says Already sorted and closes", async () => {

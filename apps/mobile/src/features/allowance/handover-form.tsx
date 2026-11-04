@@ -53,7 +53,8 @@ export function HandoverSheet({
   const finished = useRef(false);
   const child = family.data?.children.find((c) => c.id === childId);
   const item = due.data?.find((d) => d.kind === kind && d.id === id);
-  const gone = Boolean((family.data && !child) || (due.data && !item));
+  // A due list still refetching may predate the item (a gift just made): wait for the fresh one.
+  const gone = Boolean((family.data && !child) || (due.data && !due.isFetching && !item));
 
   useEffect(() => {
     if (!gone || finished.current) return;
