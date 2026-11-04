@@ -262,7 +262,7 @@ describe("dispatchPush", () => {
     await dispatchPush();
     expect(JSON.parse(webpush.sendNotification.mock.calls[0]?.[1] as string)).toEqual({
       title: "You have 2 new notices",
-      body: "They came in overnight. Open News to see them.",
+      body: "They came in overnight. Open Updates to see them.",
       url: "/child/inbox",
       tag: "summary:c1",
     });

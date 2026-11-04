@@ -10,8 +10,13 @@ import { mergeDue, NeedsYou } from "@/features/allowance";
 import { listDue } from "@/features/allowance/server";
 import {
   type ChildLearning,
+  FamilyGoalsCard,
+  FamilyJarsCard,
+  FamilyRoadCard,
   FamilySummary,
   FamilySummarySkeleton,
+  familyRoad,
+  goalPlace,
   HomeLearning,
   homeSummaryFacts,
   parentPageCopy,
@@ -20,13 +25,15 @@ import {
 import { getFamilyDashboard } from "@/features/dashboard/server";
 import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
+import { getGoalView } from "@/features/goals/server";
 import { isGuideConfigured, writeFamilySummary } from "@/features/guide/server";
 import { getLearningOverview } from "@/features/learning/server";
+import { getJars } from "@/features/ledger/server";
 import { type Notice, UnreadNotices } from "@/features/notifications";
 import { listUnreadNotices } from "@/features/notifications/server";
 import { ParentRequestItems, RequestsUnavailable, settleRequestReads } from "@/features/requests";
 import { listRequestsNeedingParent } from "@/features/requests/server";
-import { familyToday, logger } from "@/lib";
+import { fallback, familyToday, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -36,10 +43,10 @@ const HOME_DUE_LIMIT = 5;
 type Kid = ChildSummary & { slot: number };
 
 /**
- * The parent's Home (learning first since 2026-11-04), on one screen: each child's learning this
- * week (the newest lesson and how it went, what's next), then what waits on the parent, then
- * Jarso's few sentences about the week. Money in detail is the Money tab; each child in depth is
- * the Children tab.
+ * The parent's Home (learning first since 2026-11-04): the lesson road with every child standing
+ * on their mission, each child's learning this week (the newest lesson and how it went), then
+ * the family's jars and goals side by side, what waits on the parent, and Jarso's few sentences
+ * about the week. Money in detail is the Money tab; each child in depth is the Children tab.
  */
 async function ParentHome() {
   const { membership } = await requireRole("parent", routes.parent);
@@ -59,8 +66,14 @@ async function ParentHome() {
 
   return (
     <div className="grid gap-6">
+      <Suspense fallback={<div aria-hidden className="shimmer h-44 rounded-xl bg-muted" />}>
+        <RoadSection kids={kids} />
+      </Suspense>
       <Suspense fallback={<LearningSkeleton count={kids.length} />}>
         <LearningSection kids={kids} today={today} />
+      </Suspense>
+      <Suspense fallback={<BoardSkeleton />}>
+        <BoardSection kids={kids} currency={family.currency} />
       </Suspense>
       <Suspense fallback={<div aria-hidden className="shimmer h-24 rounded-xl bg-muted" />}>
         <NeedsYouSection kids={kids} notices={notices} currency={family.currency} today={today} />
@@ -98,6 +111,39 @@ async function readLearning(kids: Kid[]) {
     unavailable.push(who);
   });
   return { items, unavailable };
+}
+
+/** The seven missions left to right, each child standing on theirs. */
+async function RoadSection({ kids }: { kids: Kid[] }) {
+  const { items } = await readLearning(kids);
+  if (items.length === 0) return null;
+  return <FamilyRoadCard road={familyRoad(items)} />;
+}
+
+/**
+ * The family's Spend and Save jars (everyone, or one child) beside the goal track. A child whose
+ * jars or goal can't be read is left out of that card, never the page.
+ */
+async function BoardSection({ kids, currency }: { kids: Kid[]; currency: string }) {
+  const rows = await Promise.all(
+    kids.map(async (kid) => {
+      const who = { childId: kid.id, nickname: kid.nickname, slot: kid.slot };
+      const [jars, goal] = await Promise.all([
+        fallback(getJars(kid.id), null, "Jars on parent home"),
+        fallback(getGoalView(kid.id), null, "Goal on parent home"),
+      ]);
+      return { who, jars, goal };
+    }),
+  );
+  return (
+    <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      <FamilyJarsCard rows={rows.map(({ who, jars }) => ({ ...who, jars }))} currency={currency} />
+      <FamilyGoalsCard
+        places={rows.map(({ who, goal }) => goalPlace(who, goal))}
+        currency={currency}
+      />
+    </div>
+  );
 }
 
 async function LearningSection({ kids, today }: { kids: Kid[]; today: string }) {
@@ -226,9 +272,19 @@ function LearningSkeleton({ count }: { count: number }) {
   );
 }
 
+function BoardSkeleton() {
+  return (
+    <div aria-hidden className="grid gap-6 lg:grid-cols-2">
+      <div className="shimmer h-64 rounded-xl bg-muted" />
+      <div className="shimmer h-64 rounded-xl bg-muted" />
+    </div>
+  );
+}
+
 function HomeSkeleton() {
   return (
     <div aria-hidden className="grid gap-6">
+      <div className="shimmer h-44 rounded-xl bg-muted" />
       <LearningSkeleton count={2} />
       <div className="shimmer h-24 rounded-xl bg-muted" />
       <div className="shimmer h-28 rounded-xl bg-muted" />

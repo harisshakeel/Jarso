@@ -1,9 +1,9 @@
-# News: the inbox, mark all as read, open a notice.
+# Updates: the inbox, mark all as read, open a notice.
 appId: app.jarso.mobile
 ---
 - runFlow: sign-in.yaml
-- tapOn: "News"
-- assertVisible: "News"
+- tapOn: "Updates"
+- assertVisible: "Updates"
 - runFlow:
     when:
       visible: "Mark all as read"

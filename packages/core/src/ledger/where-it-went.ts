@@ -101,3 +101,36 @@ export function whereItWent(
 
   return { spent, moneyIn, empty: spent ? null : "Nothing spent this week yet." };
 }
+
+/**
+ * The diary's highlights (2026-11-04): this week's spending and money in as two figures, and
+ * the category most of it went on. The same lines "Where your money went" counts, as numbers a
+ * child reads at a glance above their history.
+ */
+export type DiaryHighlights = {
+  spentMinor: number;
+  inMinor: number;
+  top: CategorySpend | null;
+};
+
+export function diaryHighlights(history: readonly HistoryItem[], today: string): DiaryHighlights {
+  const week = thisWeek(history, today);
+  return {
+    spentMinor: week
+      .filter((item) => item.kind === "purchase")
+      .reduce((sum, item) => sum + (item.amountMinor ?? 0), 0),
+    inMinor: week
+      .filter((item) => sourceOf(item) !== null)
+      .reduce((sum, item) => sum + (item.amountMinor ?? 0), 0),
+    top: spendingByCategory(history, today)[0] ?? null,
+  };
+}
+
+/** The highlights' words. */
+export const diaryHighlightsCopy = {
+  heading: "This week",
+  spent: "Spent",
+  got: "Came in",
+  mostOn: "Most went on",
+  nothingYet: "Nothing yet",
+} as const;

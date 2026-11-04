@@ -29,7 +29,7 @@ type SendNoteSheetProps = {
 
 /**
  * "Send a note" (parent dashboard, spec answer 8): a short note from the parent that lands in
- * the child's News. A bottom sheet with a few ready lines to start from; nothing is sent until
+ * the child's Updates. A bottom sheet with a few ready lines to start from; nothing is sent until
  * the parent taps Send.
  */
 export function SendNoteSheet({

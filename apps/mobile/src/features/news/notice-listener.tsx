@@ -27,7 +27,7 @@ const affected = (userId: string, role: NoticeRole): QueryKey[] =>
         keys.goal(userId),
       ];
 
-/** Each role's inbox: the child's News tab, the parent's Inbox tab. */
+/** Each role's inbox: the child's Updates tab, the parent's Inbox tab. */
 const INBOX: Record<NoticeRole, Href> = {
   child: "/(child)/(tabs)/news",
   parent: "/(parent)/(tabs)/inbox",
@@ -36,7 +36,7 @@ const INBOX: Record<NoticeRole, Href> = {
 type NoticeListenerProps = { userId: string; viewer: NoticeRole };
 
 /**
- * Keeps the News badge and the inbox live (spec §6). A new notice shows a toast with "Open" and
+ * Keeps the Updates badge and the inbox live (spec §6). A new notice shows a toast with "Open" and
  * refreshes what it affects; each (re)join refreshes once, covering anything sent while away. The
  * channel closes when the app goes to the background and opens again when it comes back.
  */

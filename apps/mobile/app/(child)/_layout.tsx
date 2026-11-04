@@ -75,7 +75,8 @@ export default function ChildLayout() {
           <Stack.Screen key={name} name={name} options={SHEET} />
         ))}
       </Stack>
-      {/* The News badge, inbox and toast stay live while the app is in front (over the stack). */}
+      {/* The Updates badge, inbox and toast stay live while the app is in front (over the
+          stack). */}
       <NoticeListener userId={userId} viewer="child" />
     </>
   );

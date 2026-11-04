@@ -122,7 +122,7 @@ export const handoverSchema = (currency: string) =>
 
 /**
  * Match their saving (parent dashboard): the parent adds money to the child's Save today, as a
- * gift handed over at once, with an optional note for the child's News.
+ * gift handed over at once, with an optional note for the child's Updates.
  */
 export const matchSavingSchema = (currency: string) =>
   z

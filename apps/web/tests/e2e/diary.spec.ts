@@ -123,11 +123,11 @@ test("fixing the snacks line to 3 shows what it was", async () => {
   await expect(line("Crisps")).toContainText("Fixed · was US$3.50");
 });
 
-test("the card names the biggest category", async () => {
+test("the highlights name the biggest category", async () => {
   await child.goto("/child/diary");
-  await expect(child.getByRole("region", { name: "Where your money went" })).toContainText(
-    "Most of your spending went on 🍫 Snacks: US$3.",
-  );
+  const week = child.getByRole("region", { name: "This week" });
+  await expect(week).toContainText("Most went on");
+  await expect(week).toContainText("🍫 Snacks US$3");
 });
 
 test("the parent sees the money received and fixed notices, and the fix in history", async () => {

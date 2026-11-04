@@ -52,7 +52,7 @@ export function expoMessage(claimed: ClaimedNotice, token: string): ExpoMessage 
   };
 }
 
-/** A phone push for a child's notices held overnight: one line, opens News, marks nothing read. */
+/** A phone push for a child's notices held overnight: one line, opens Updates, marks nothing read. */
 export function expoSummaryMessage(recipientId: string, count: number, token: string): ExpoMessage {
   const text = summaryPushText(count);
   return {

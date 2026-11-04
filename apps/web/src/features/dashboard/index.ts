@@ -6,6 +6,8 @@ export * from "./components/category-compare";
 export * from "./components/child-filter";
 export * from "./components/child-row";
 export * from "./components/child-tiles";
+export * from "./components/family-board";
+export * from "./components/family-jars";
 export * from "./components/family-summary";
 export * from "./components/family-totals";
 export * from "./components/learning-cards";

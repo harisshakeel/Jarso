@@ -7,7 +7,7 @@ describe("noteCopy", () => {
   });
 
   it("fills in the nickname and the count as the web did", () => {
-    expect(noteCopy.body("Ada")).toBe("It shows in Ada's News. Keep it short and kind.");
+    expect(noteCopy.body("Ada")).toBe("It shows in Ada's Updates. Keep it short and kind.");
     expect(noteCopy.count(12, 140)).toBe("12 of 140 characters");
   });
 });
