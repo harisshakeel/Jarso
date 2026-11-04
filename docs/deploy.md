@@ -54,6 +54,21 @@ Never run the `--reveal` command on its own: it prints every secret key. Without
 3. For the launch gate, create the `guide-evals` environment (GitHub → Settings → Environments) with yourself as a required reviewer, add the same key there as the `ANTHROPIC_API_KEY` environment secret, and run **Guide evals** from the Actions tab. The run fails unless every safety and personal case routes correctly, there are zero FR09 breaks and at least 95% of on-topic answers are helpful.
 4. Jarso is on for every child by default once `FEATURE_GUIDE` is on (ADR 0011): every child's messages and looked-up money and learning data go to Anthropic. Until the eval gate passes and the legal review is done, keep `FEATURE_GUIDE` on in Production only while every family there is a demo or test account; turn it off before the first real family signs up.
 
+### Turning the push sweep on
+
+Pushes for requests, decisions and purchases go out right after the action. Everything else (the hourly allowance reminders, a child's notices held overnight by quiet hours) waits for the sweep: the pg_cron job `push-sweep` POSTs to `/api/cron/push` every 15 minutes through pg_net. It needs this setup in each environment, whether or not card payments are on:
+
+1. Set `CRON_SECRET` (at least 16 characters, for example `openssl rand -hex 32` piped straight into Vercel). Redeploy.
+2. Create the two Vault secrets the job reads. In Supabase → Project Settings → Vault, or the SQL editor:
+
+   ```sql
+   select vault.create_secret('https://jarso.vercel.app', 'app_url');
+   select vault.create_secret('<cron secret ≥16 chars>', 'cron_secret');
+   ```
+
+   `cron_secret` must equal the app's `CRON_SECRET`. They are the same two secrets `charge-due-cards` uses, so create them once. Until both exist `trigger_push_sweep()` does nothing and no sweep runs. They are never in a migration. After rotating `CRON_SECRET`, update the Vault secret too (`docs/security.md`).
+3. Check: `curl -s -o /dev/null -w '%{http_code}' https://jarso.vercel.app/api/cron/push` is `401` (a `404` means `CRON_SECRET` is unset). In the SQL editor, `select status, return_message from cron.job_run_details where jobid = (select jobid from cron.job where jobname = 'push-sweep') order by start_time desc limit 3;` shows the job running.
+
 ### Upgrading from ADR 0013 (one provider switch) to ADR 0014 (several providers)
 
 Do these once, in order, when the multi-provider change first reaches a deployment that ran ADR 0013's card payments.
@@ -97,7 +112,7 @@ Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no r
 **Both.**
 
 1. Generate a cron secret of at least 16 characters (for example `openssl rand -hex 32`, piped straight into Vercel) and set it as `CRON_SECRET`. Redeploy.
-2. Create the two Vault secrets so the hourly pg_cron job `charge-due-cards` (minute 9, via pg_net) can call the route. In Supabase → Project Settings → Vault, or the SQL editor:
+2. Create the two Vault secrets (skip if you made them for the push sweep above) so the hourly pg_cron job `charge-due-cards` (minute 9, via pg_net) can call the route. In Supabase → Project Settings → Vault, or the SQL editor:
 
    ```sql
    select vault.create_secret('https://jarso.vercel.app', 'app_url');
