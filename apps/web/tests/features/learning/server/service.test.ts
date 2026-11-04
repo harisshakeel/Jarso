@@ -13,6 +13,7 @@ vi.mock("@/features/learning/server/repository", () => ({
   findAttempt: vi.fn(),
   findCheckIn: vi.fn(),
   listActivity: vi.fn(),
+  listPracticeResults: vi.fn(async () => []),
   findLastActivity: vi.fn(),
   listAttempts: vi.fn(),
   listPracticeHistory: vi.fn(),

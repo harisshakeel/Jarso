@@ -4,8 +4,8 @@ import Link from "next/link";
 import { routes } from "@/config";
 
 /**
- * What the child has learned, as counts that only go up (no day grid, no streaks). Learning
- * stays outside the jars: it is never tied to money (invariant 11).
+ * What the child has learned, as counts that only go up (no day grid). Learning stays outside
+ * the jars: it is never tied to money (invariant 11).
  */
 export function SkillsStrip({
   skills,

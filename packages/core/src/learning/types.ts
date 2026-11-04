@@ -88,6 +88,10 @@ export type LearningOverview = {
   checkIn: CheckInResult | null;
   practiceDue: number;
   daysThisWeek: number;
+  /** Days in a row with learning, ending today or yesterday; zero after a gap. */
+  streak: number;
+  /** Points across every step and practice answer (`pointsFor`); never money. */
+  points: number;
   /** The family-local day of the most recent learning, or null before any. */
   lastLearnedOn: string | null;
   nextStep: NextStep;

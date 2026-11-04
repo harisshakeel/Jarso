@@ -5,10 +5,15 @@ import {
   chooseNextStep,
   daysLearnedThisWeek,
   isComeback,
+  learningStreak,
+  totalPoints,
 } from "@jarso/core/learning";
 import { findMission, missions } from "@jarso/core/learning/content";
 import { addDays, familyToday, localDateOf, startOfWeek } from "@jarso/core/lib";
 import * as repo from "./repository";
+
+/** How far back the streak can reach, in days; the activity read goes this far. */
+const STREAK_DAYS = 60;
 
 /**
  * Overview of a child's learning, for the child's Learn page, Home card and the parent's page.
@@ -22,20 +27,25 @@ export async function getLearningOverview(
   const { timezone } = opts;
   const today = familyToday(timezone, opts.now);
   const weekStart = startOfWeek(today);
-  const [attempts, skills, reviews, checkInResult, activity, lastActivity] = await Promise.all([
-    repo.listAttempts(db, childId),
-    repo.listSkillProgress(db, childId),
-    repo.listReviewItems(db, childId),
-    repo.findCheckIn(db, childId),
-    // A day of slack either side of the week covers every timezone; the count filters by date.
-    repo.listActivity(db, childId, `${addDays(weekStart, -1)}T00:00:00Z`),
-    repo.findLastActivity(db, childId),
-  ]);
+  const [attempts, skills, reviews, checkInResult, activity, lastActivity, practice] =
+    await Promise.all([
+      repo.listAttempts(db, childId),
+      repo.listSkillProgress(db, childId),
+      repo.listReviewItems(db, childId),
+      repo.findCheckIn(db, childId),
+      // Back far enough for a long streak; a day of slack covers every timezone. The week
+      // count and the streak both filter by family-local date.
+      repo.listActivity(db, childId, `${addDays(weekStart, -STREAK_DAYS)}T00:00:00Z`),
+      repo.findLastActivity(db, childId),
+      repo.listPracticeResults(db, childId),
+    ]);
   const completedAttempts = attempts.filter((a) => a.status === "completed");
-  const results = await repo.listStepResults(
+  // Every attempt's steps count for points, a mission still in progress included.
+  const allResults = await repo.listStepResults(
     db,
-    completedAttempts.map((a) => a.id),
+    attempts.map((a) => a.id),
   );
+  const results = new Map(completedAttempts.map((a) => [a.id, allResults.get(a.id) ?? []]));
 
   const journey = buildJourney(missions, attempts, timezone);
   const practiceDue = reviews.filter((r) => r.dueOn <= today).length;
@@ -65,6 +75,8 @@ export async function getLearningOverview(
     checkIn: checkInResult,
     practiceDue,
     daysThisWeek: daysLearnedThisWeek(activity, timezone, today),
+    streak: learningStreak(activity, timezone, today),
+    points: totalPoints([...[...allResults.values()].flat(), ...practice]),
     lastLearnedOn: lastActivity ? localDateOf(lastActivity, timezone) : null,
     nextStep: chooseNextStep(
       journey,

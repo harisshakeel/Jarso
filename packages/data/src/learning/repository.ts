@@ -174,6 +174,19 @@ export async function listPracticeHistory(
   }));
 }
 
+/** Every practice answer's result, for the score. */
+export async function listPracticeResults(
+  db: Client,
+  childId: string,
+): Promise<{ correct: boolean; tries: number; hintsUsed: number }[]> {
+  const { data, error } = await db
+    .from("practice_results")
+    .select("correct, tries, hints_used")
+    .eq("child_id", childId);
+  if (error) throw toAppError(error, "Failed to load practice");
+  return data.map((row) => ({ correct: row.correct, tries: row.tries, hintsUsed: row.hints_used }));
+}
+
 /** When the child answered anything (missions and practice) since an instant. */
 export async function listActivity(
   db: Client,

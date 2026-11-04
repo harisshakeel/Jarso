@@ -11,6 +11,7 @@ vi.mock("../../src/learning/repository", () => ({
   findCheckIn: vi.fn(),
   findLastActivity: vi.fn(),
   listActivity: vi.fn(),
+  listPracticeResults: vi.fn(async () => []),
   listAttempts: vi.fn(),
   listPracticeHistory: vi.fn(),
   listReviewItems: vi.fn(),
@@ -58,10 +59,35 @@ describe("getLearningOverview", () => {
     expect(overview.journey[0]?.status).toBe("current");
   });
 
-  it("reads the week with a day of slack, from the family's own today", async () => {
+  it("reads activity back 60 days from the week's start, so a long streak can count", async () => {
     await getLearningOverview(db, childId, clock);
-    // The week starts Monday 2 November; a day earlier in UTC covers every timezone.
-    expect(repo.listActivity).toHaveBeenCalledWith(db, childId, "2026-11-01T00:00:00Z");
+    // The week starts Monday 2 November; 60 days before that, in UTC, covers every timezone.
+    expect(repo.listActivity).toHaveBeenCalledWith(db, childId, "2026-09-03T00:00:00Z");
+  });
+
+  it("works out the streak and the points from what is stored, every attempt included", async () => {
+    vi.mocked(repo.listActivity).mockResolvedValue([
+      "2026-11-04T08:00:00Z",
+      "2026-11-03T18:00:00Z",
+      "2026-11-01T09:00:00Z",
+    ]);
+    vi.mocked(repo.listAttempts).mockResolvedValue([
+      attempt({ id: "a1", status: "completed", completedAt: "2026-11-03T09:00:00Z" }),
+      attempt({ id: "a2", missionKey: second.key, status: "started" }),
+    ]);
+    vi.mocked(repo.listStepResults).mockResolvedValue(
+      new Map([
+        ["a1", [{ stepKey: "s1", phase: "main", correct: true, tries: 1, hintsUsed: 0 }]],
+        ["a2", [{ stepKey: "s1", phase: "main", correct: true, tries: 2, hintsUsed: 1 }]],
+      ]),
+    );
+    vi.mocked(repo.listPracticeResults).mockResolvedValue([
+      { correct: false, tries: 2, hintsUsed: 0 },
+    ]);
+    const overview = await getLearningOverview(db, childId, clock);
+    expect(overview.streak).toBe(2);
+    expect(overview.points).toBe(18);
+    expect(repo.listStepResults).toHaveBeenCalledWith(db, ["a1", "a2"]);
   });
 
   it("counts practice due today and lists finished missions newest first", async () => {

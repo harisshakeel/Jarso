@@ -12,6 +12,7 @@ export * from "./components/mission-player";
 export * from "./components/next-step-card";
 export * from "./components/path-map";
 export * from "./components/roadmap";
+export * from "./components/score-strip";
 export * from "./components/skill-list";
 export * from "./components/skills-strip";
 export * from "./components/topic-view";
