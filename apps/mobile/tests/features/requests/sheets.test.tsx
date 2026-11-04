@@ -72,9 +72,14 @@ async function open(ui: (onClose: () => void) => ReactElement) {
   return { client, onClose, ...view };
 }
 
-/** The answer reached the child as a toast and the sheet closed (SentToast). */
-const sent = (message: string) =>
-  waitFor(() => expect(flash).toHaveBeenCalledWith(message, { long: true }));
+/**
+ * The answer reached the child as a toast and the sheet closed (SentToast). Clears the mock once
+ * matched, so a later `sent` needs a toast of its own (a reopened sheet can't pass on the first).
+ */
+async function sent(message: string) {
+  await waitFor(() => expect(flash).toHaveBeenCalledWith(message, { long: true }));
+  (flash as jest.Mock).mockClear();
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
