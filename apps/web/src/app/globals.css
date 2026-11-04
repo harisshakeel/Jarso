@@ -45,6 +45,10 @@
   --color-gold: var(--gold);
   --color-gold-foreground: var(--gold-foreground);
   --color-gold-text: var(--gold-text);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-success-text: var(--success-text);
   --color-ink-2: var(--ink-2);
   --color-tint-teal: var(--tint-teal);
   --color-tint-gold: var(--tint-gold);
@@ -102,6 +106,10 @@
 
 @utility keycap-gold {
   --keycap-ledge: var(--keycap-ledge-gold);
+}
+
+@utility keycap-success {
+  --keycap-ledge: var(--keycap-ledge-success);
 }
 
 /* Skeleton shimmer: translucent band left to right, 1.5 s (design.md §6, §8). */

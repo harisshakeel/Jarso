@@ -1,10 +1,11 @@
 "use client";
 
-import { type Gift, giftCopy } from "@jarso/core/allowance";
+import { allowanceCelebrationCopy, formatDay, type Gift, giftCopy } from "@jarso/core/allowance";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { celebrate } from "@/components/celebrate";
 import { AmountField, Field, FormError } from "@/components/form";
 import {
   AlertDialog,
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui";
 import { routes } from "@/config";
 import { newId, runOnline } from "@/features/offline";
-import { type ActionState, idle, toMajorString } from "@/lib";
+import { type ActionState, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
 import { cancelGiftAction, createGiftAction, updateGiftAction } from "../server/actions";
 
 type GiftFormProps = {
@@ -57,7 +58,15 @@ export function GiftForm({
         ? await runOnline(() => updateGiftAction(null, formData))
         : await runOnline(() => createGiftAction(null, formData));
       if (result.ok) {
-        toast.success(giftCopy.saved);
+        const minor = parseMoney(amount, currency);
+        if (initial) toast.success(giftCopy.saved);
+        else
+          celebrate({
+            icon: "gift",
+            title: allowanceCelebrationCopy.giftTitle,
+            amount: minor === null ? undefined : formatMoney(minor, currency),
+            body: allowanceCelebrationCopy.giftBody(nickname, formatDay(giveOn), giveOn <= today),
+          });
         router.push(routes.parentChildMoney(childId));
       }
       return result;

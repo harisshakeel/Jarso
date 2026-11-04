@@ -10,6 +10,7 @@ import {
 } from "@jarso/core/goals";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
+import { celebrate } from "@/components/celebrate";
 import { AmountField, Field, FieldError, FormError } from "@/components/form";
 import {
   AlertDialog,
@@ -100,6 +101,15 @@ function GoalForm({
     if (result.ok) {
       router.refresh();
       onDone();
+      // A new goal is a moment; changing one is not.
+      const targetMinor = parseMoney(target, currency);
+      if (!goal && targetMinor !== null)
+        celebrate({
+          icon: "target",
+          title: goalCopy.sheet.setTitle,
+          body: goalCopy.sheet.setBody(name.trim(), formatMoney(targetMinor, currency)),
+          doneLabel: goalCopy.sheet.setDone,
+        });
     }
     return result;
   }, idle);

@@ -124,6 +124,13 @@
   --gold: oklch(0.846 0.173 87); /* brand gold, fills */
   --gold-foreground: oklch(0.22 0.013 223);
   --gold-text: oklch(0.54 0.111 86); /* gold-600 */
+  /* Success (design.md §2.4): a right answer, a finished action. White on success 5.4:1;
+     success-text on success-soft 6.4:1. Never money (gold) and never the only signal. */
+  --success: #1b7a3e;
+  --success-foreground: #ffffff;
+  --success-soft: #e3f6e9;
+  --success-text: #17652f;
+  --keycap-ledge-success: #0f4a24;
   --keycap-ledge: oklch(0.3 0.06 223); /* teal-900 under the primary keycap */
   --keycap-ledge-gold: #705300; /* gold-700 under the gold keycap (literal: theme vars are tree-shaken) */
   --chart-1: oklch(0.541 0.1 223);
@@ -195,6 +202,12 @@
   --gold: oklch(0.846 0.173 87);
   --gold-foreground: oklch(0.226 0.029 223);
   --gold-text: oklch(0.846 0.173 87);
+  /* Ink on success 8.7:1; success-text on success-soft 7.6:1. */
+  --success: #5fd08a;
+  --success-foreground: #0b1f26;
+  --success-soft: #123d26;
+  --success-text: #7ee0a2;
+  --keycap-ledge-success: #2f8a52;
   --hairline: rgb(230 241 244 / 0.1);
   --hairline-strong: rgb(230 241 244 / 0.18);
   --shadow-rest: 0 0 0 1px rgb(230 241 244 / 0.1);

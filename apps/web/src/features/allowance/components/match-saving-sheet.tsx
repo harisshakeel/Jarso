@@ -1,10 +1,10 @@
 "use client";
 
-import type { HandoverResult } from "@jarso/core/allowance";
+import { allowanceCelebrationCopy, type HandoverResult } from "@jarso/core/allowance";
 import { NOTE_MAX } from "@jarso/core/notifications";
 import { HandCoinsIcon } from "lucide-react";
 import { useActionState, useState } from "react";
-import { toast } from "sonner";
+import { celebrate } from "@/components/celebrate";
 import { AmountField, Field, FormError } from "@/components/form";
 import {
   Button,
@@ -77,11 +77,15 @@ function MatchForm({
     async (_prev: ActionState<{ result: HandoverResult; noted: boolean }>, formData: FormData) => {
       const result = await runOnline(() => matchSavingAction(null, formData));
       if (result.ok) {
-        toast.success(`Added to ${nickname}'s Save`, {
-          description:
+        const minor = parseMoney(amount, currency);
+        celebrate({
+          icon: "coins",
+          title: allowanceCelebrationCopy.matchTitle(nickname),
+          amount: minor === null ? undefined : formatMoney(minor, currency),
+          body:
             message.trim() && !result.data.noted
-              ? "The note didn't go. Send it from Send a note."
-              : undefined,
+              ? allowanceCelebrationCopy.matchNoteFailed
+              : allowanceCelebrationCopy.matchBody,
         });
         onDone();
       }

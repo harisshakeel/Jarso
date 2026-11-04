@@ -13,6 +13,8 @@ import {
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
+const { celebrate } = vi.hoisted(() => ({ celebrate: vi.fn() }));
+vi.mock("@/components/celebrate", () => ({ celebrate }));
 vi.mock("@/features/requests/server/actions", () => ({
   cancelRequestAction: vi.fn(),
   completeRequestAction: vi.fn(),
@@ -83,6 +85,20 @@ describe("ParentRequestItems", () => {
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(decideWithdrawalAction).toHaveBeenCalledWith(null, { requestId: "r1", approve: true });
+    expect(celebrate).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Approved", body: expect.stringContaining("Maya") }),
+    );
+  });
+
+  it("celebrates a hand-over once it is confirmed", async () => {
+    vi.mocked(completeRequestAction).mockResolvedValue({ ok: true, data: "completed" });
+    show(request({ status: "approved" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() =>
+      expect(celebrate).toHaveBeenCalledWith(
+        expect.objectContaining({ icon: "coins", title: "Handed over" }),
+      ),
+    );
   });
 
   it("says so when Save no longer covers an approval", async () => {

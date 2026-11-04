@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
+import { CelebrationHost } from "@/components/celebrate";
 import { Toaster } from "@/components/ui";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -9,6 +10,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       {children}
       <Toaster />
+      <CelebrationHost />
     </ThemeProvider>
   );
 }

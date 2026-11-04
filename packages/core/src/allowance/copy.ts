@@ -92,6 +92,21 @@ export const giftCopy = {
   cancel: "Cancel gift",
 } as const;
 
+/**
+ * The success dialog after a parent's money moment (design.md §6). Amounts and days are
+ * formatted by the caller. Never a judgement of the amount.
+ */
+export const allowanceCelebrationCopy = {
+  giftTitle: "Gift on its way",
+  giftBody: (nickname: string, day: string, today: boolean) =>
+    today ? `${nickname} will see it today.` : `${nickname} will see it on ${day}.`,
+  allowanceTitle: "Allowance set up",
+  allowanceBody: (day: string) => `The first one is due on ${day}.`,
+  matchTitle: (nickname: string) => `Added to ${nickname}'s Save`,
+  matchBody: "They'll see it in their Save jar.",
+  matchNoteFailed: "The note didn't go. Send it from Send a note.",
+} as const;
+
 /** Setting up or changing an allowance. */
 export const allowanceFormCopy = {
   saved: "Allowance saved",
