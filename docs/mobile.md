@@ -61,6 +61,8 @@ pnpm mobile                                                              # then 
 
 Rebuild only when a native module or config plugin changes (a new `expo-*` native package, `app.json` plugins or permissions); JS changes reload over Metro as before. The `development` EAS profile is an internal-distribution APK with `expo-dev-client`. Check bundling without a device with `(cd apps/mobile && npx expo export --platform android)`, then delete `apps/mobile/dist/`. Run every `eas` and `npx expo` command from `apps/mobile`, where `eas.json` and `app.config.ts` live.
 
+For a local APK without EAS's build servers, `pnpm build:apk [profile] [archs]` (default `preview`, `arm64-v8a,armeabi-v7a`) runs `eas build --local` as a system unit (asks for `sudo`), outside the user session that systemd-oomd watches on Ubuntu (oomd can still kill it if a parent slice is watched), and writes the APK and log to `~/builds/jarso` (`JARSO_APK_DIR`). It needs `eas-cli`, JDK 21, the Android SDK (`JAVA_HOME`, `ANDROID_HOME`) and either a saved `eas login` or `EXPO_TOKEN`. Only APK profiles run (`development`, `preview`); `production` builds an app bundle for the store.
+
 **Push credentials (FCM).** Android push goes through Firebase Cloud Messaging; neither file below is ever in the repo (see `docs/security.md`).
 
 1. Upload the FCM v1 service-account key to EAS: `(cd apps/mobile && eas credentials)` → Android → the app → Google Service Account → FCM V1. It lives only in EAS.

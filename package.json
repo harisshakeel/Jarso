@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "turbo dev --filter @jarso/web",
     "mobile": "pnpm --filter @jarso/mobile start",
+    "build:apk": "bash scripts/build-apk.sh",
     "build": "turbo build",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
