@@ -382,6 +382,25 @@ describe("MissionPlayer", () => {
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
   });
 
+  it("puts the next thing to do in focus: Try again after a miss, a green Continue after a hit", async () => {
+    await startMission();
+    await continueOn();
+    await answer("Option B");
+    const tryAgain = screen.getByRole("button", { name: "Try again" });
+    expect(tryAgain).toHaveFocus();
+    expect(tryAgain.className).toContain("bg-gold");
+    expect(screen.getByText("Not quite yet. One more try.")).toBeInTheDocument();
+    fireEvent.click(tryAgain);
+    await answer("Option A");
+    const next = screen.getByRole("button", { name: "Continue" });
+    expect(next).toHaveFocus();
+    expect(next.className).toContain("bg-success");
+    expect(screen.getByText("You got it! On to the next one.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Question one?" }).className).toContain(
+      "ring-success",
+    );
+  });
+
   it("clears a wrong pick for another go, and the hints once the step is settled", async () => {
     await startMission();
     await continueOn();

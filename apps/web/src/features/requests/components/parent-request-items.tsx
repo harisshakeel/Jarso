@@ -4,6 +4,7 @@ import { type ParentRequestItem, parentRequestCopy, requestSentence } from "@jar
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { celebrate } from "@/components/celebrate";
 import { FormError } from "@/components/form";
 import {
   AlertDialog,
@@ -86,19 +87,26 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
         if (data === "over_available") {
           setError({ code: "CONFLICT", message: parentRequestCopy.overAvailable });
         } else if (data === "already_decided") settled();
-        else if (data === "approved") toast.success(parentRequestCopy.approved(amount, nickname));
+        else if (data === "approved")
+          celebrate({
+            icon: "check",
+            title: parentRequestCopy.celebrate.approvedTitle,
+            amount,
+            body: parentRequestCopy.celebrate.approvedBody(amount, nickname),
+          });
         else if (data === "rejected") toast.success(parentRequestCopy.rejected);
       },
     );
 
   const settled = () => toast(parentRequestCopy.settled);
 
-  const complete = (done: string) => {
+  /** Confirms a put-in or a hand-over; the success dialog says what happened. */
+  const complete = (done: { title: string; body: string }) => {
     key.current ??= newId();
     const idempotencyKey = key.current;
     run(
       () => completeRequestAction(null, { requestId: request.id, idempotencyKey }),
-      (data) => (data === "completed" ? toast.success(done) : settled()),
+      (data) => (data === "completed" ? celebrate({ icon: "coins", amount, ...done }) : settled()),
     );
   };
 
@@ -123,7 +131,12 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           type="button"
           aria-describedby={sentenceId}
           loading={pending}
-          onClick={() => complete(parentRequestCopy.depositDone)}
+          onClick={() =>
+            complete({
+              title: parentRequestCopy.celebrate.depositTitle,
+              body: parentRequestCopy.celebrate.depositBody(nickname),
+            })
+          }
         >
           {parentRequestCopy.confirm}
         </Button>
@@ -145,7 +158,12 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           type="button"
           aria-describedby={sentenceId}
           loading={pending}
-          onClick={() => complete(parentRequestCopy.handedOver)}
+          onClick={() =>
+            complete({
+              title: parentRequestCopy.celebrate.handedOverTitle,
+              body: parentRequestCopy.celebrate.handedOverBody(nickname),
+            })
+          }
         >
           {parentRequestCopy.confirm}
         </Button>

@@ -60,6 +60,10 @@ export const playerCopy = {
   right: "That's it.",
   final: "Here's how it works.",
   again: "Have another go.",
+  /** The strip by the buttons once an answer is checked, beside "Continue" or "Try again". */
+  rightStrip: "You got it! On to the next one.",
+  againStrip: "Not quite yet. One more try.",
+  finalStrip: "Now you know. On to the next one.",
   answerLine: (answer: string) => `The answer: ${answer}.`,
   readAboutTopic: "Read about this topic",
 } as const;

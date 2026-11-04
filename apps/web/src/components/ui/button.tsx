@@ -21,6 +21,9 @@ const buttonVariants = cva(
           "keycap border-transparent bg-primary text-primary-foreground hover:bg-teal-800 active:not-aria-[haspopup]:translate-y-0.5 dark:hover:bg-teal-300",
         "keycap-gold":
           "keycap keycap-gold border-transparent bg-gold text-gold-foreground hover:bg-gold-200 active:not-aria-[haspopup]:translate-y-0.5",
+        /** "Done, move on": after a right answer and in the success dialog (design.md §2.4). */
+        "keycap-success":
+          "keycap keycap-success border-transparent bg-success text-success-foreground hover:bg-success/90 active:not-aria-[haspopup]:translate-y-0.5",
         outline:
           "border-hairline-strong bg-transparent text-foreground hover:bg-muted aria-expanded:bg-muted",
         secondary:
