@@ -15,7 +15,7 @@ ARCHS="${2:-arm64-v8a,armeabi-v7a}"
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 MOBILE_DIR="$REPO_DIR/apps/mobile"
 OUT_DIR="${JARSO_APK_DIR:-$HOME/builds/jarso}"
-STAMP="$(date +%Y%m%d-%H%M)"
+STAMP="$(date +%Y%m%d-%H%M%S)"
 APK="$OUT_DIR/jarso-$PROFILE-$STAMP.apk"
 LOG="$OUT_DIR/build-$PROFILE-$STAMP.log"
 DONE="$OUT_DIR/.build-$STAMP.done"
@@ -60,6 +60,8 @@ fi
 (cd "$REPO_DIR" && pnpm install --frozen-lockfile >/dev/null)
 
 mkdir -p "$OUT_DIR"
+# A watcher stopped with Ctrl+C leaves its .done file; never read a stale one.
+rm -f "$DONE"
 echo "Profile $PROFILE, ABIs $ARCHS"
 echo "Log: $LOG"
 
