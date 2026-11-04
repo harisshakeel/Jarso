@@ -84,6 +84,22 @@ describe("useDevicePushPrefs", () => {
     expect(result.current.prefs).toEqual({ mutedGroups: [], paused: false });
   });
 
+  it("a failed save doesn't undo a newer change made while it was saving", async () => {
+    let fail: (error: Error) => void = () => undefined;
+    savePrefs.mockReturnValueOnce(new Promise((_resolve, reject) => (fail = reject)));
+    const { result } = await ready();
+    let first: Promise<void> = Promise.resolve();
+    await act(async () => {
+      first = result.current.save({ mutedGroups: ["money"], paused: false });
+    });
+    await act(() => result.current.save({ mutedGroups: ["money"], paused: true }));
+    await act(async () => {
+      fail(new Error("down"));
+      await first.catch(() => undefined);
+    });
+    expect(result.current.prefs).toEqual({ mutedGroups: ["money"], paused: true });
+  });
+
   it("notifications off for Jarso → denied", async () => {
     permissions.mockResolvedValue({ granted: false, status: "denied" });
     const { result } = await ready();

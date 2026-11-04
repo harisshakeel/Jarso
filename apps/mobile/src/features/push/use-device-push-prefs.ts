@@ -59,7 +59,8 @@ export function useDevicePushPrefs() {
         const saved = await saveDevicePushPrefs(supabase, { token, ...next });
         if (!saved) throw new AppError("NOT_FOUND", GENERIC_FAILURE);
       } catch (error) {
-        setPrefs(previous);
+        // Only while this change still shows: a newer one made meanwhile stays.
+        setPrefs((current) => (current === next ? previous : current));
         throw error;
       }
     },
