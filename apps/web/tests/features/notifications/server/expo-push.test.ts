@@ -155,6 +155,44 @@ describe("sendExpoMessages", () => {
     }
   });
 
+  it("cuts a chunk's timeout to the time left before the deadline", async () => {
+    vi.useFakeTimers();
+    try {
+      const stalled = vi.fn(
+        (_url: string | URL | Request, init?: RequestInit) =>
+          new Promise<Response>((_, reject) => {
+            init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+          }),
+      );
+      const pending = sendExpoMessages(messages(1), stalled as typeof fetch, Date.now() + 2_000);
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(await pending).toEqual([{ status: "error", error: "Transport" }]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("starts no chunk once the deadline has passed; the rest become transport errors", async () => {
+    vi.useFakeTimers();
+    try {
+      const slow = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        await new Promise((resolve) => setTimeout(resolve, 3_000));
+        return echoFetch()(url, init);
+      });
+      const pending = sendExpoMessages(messages(250), slow as typeof fetch, Date.now() + 2_000);
+      await vi.advanceTimersByTimeAsync(10_000);
+      const tickets = await pending;
+      expect(slow).toHaveBeenCalledTimes(1);
+      expect(tickets).toHaveLength(250);
+      expect(tickets.slice(0, 100).every((t) => t.status === "ok")).toBe(true);
+      expect(tickets.slice(100).every((t) => t.status === "error" && t.error === "Transport")).toBe(
+        true,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("sends nothing for no messages", async () => {
     const fetchImpl = echoFetch();
     expect(await sendExpoMessages([], fetchImpl as typeof fetch)).toEqual([]);

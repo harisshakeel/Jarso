@@ -72,10 +72,15 @@ function chunks<T>(items: T[], size: number): T[][] {
   return out;
 }
 
-/** POSTs JSON with a deadline; resolves the parsed body of a 2xx answer, or null. */
-async function postJson(url: string, body: unknown, fetchImpl: typeof fetch): Promise<unknown> {
+/** POSTs JSON with a timeout; resolves the parsed body of a 2xx answer, or null. */
+async function postJson(
+  url: string,
+  body: unknown,
+  fetchImpl: typeof fetch,
+  timeoutMs = TIMEOUT_MS,
+): Promise<unknown> {
   const deadline = new AbortController();
-  const timer = setTimeout(() => deadline.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => deadline.abort(), timeoutMs);
   try {
     const response = await fetchImpl(url, {
       method: "POST",
@@ -111,14 +116,24 @@ function toTicket(item: unknown): ExpoTicket {
   return { status: "error", error: t ? errorName(t) : "Unknown" };
 }
 
-/** Sends in chunks of 100, one after another; one ticket per message, in order. Never throws. */
+/**
+ * Sends in chunks of 100, one after another; one ticket per message, in order. Never throws.
+ * `deadline` (epoch ms) bounds the whole run: each request waits at most the time left, and no
+ * chunk starts once it has passed, so its messages become transport errors.
+ */
 export async function sendExpoMessages(
   messages: ExpoMessage[],
   fetchImpl: typeof fetch = fetch,
+  deadline = Number.POSITIVE_INFINITY,
 ): Promise<ExpoTicket[]> {
   const tickets: ExpoTicket[] = [];
   for (const chunk of chunks(messages, SEND_CHUNK)) {
-    const answer = await postJson(SEND_URL, chunk, fetchImpl);
+    const left = deadline - Date.now();
+    if (left <= 0) {
+      tickets.push(...chunk.map(() => TRANSPORT));
+      continue;
+    }
+    const answer = await postJson(SEND_URL, chunk, fetchImpl, Math.min(TIMEOUT_MS, left));
     const data = (answer as { data?: unknown } | null)?.data;
     if (!Array.isArray(data) || data.length !== chunk.length) {
       if (answer !== null) logger.warn("Expo push answer unusable", { messages: chunk.length });

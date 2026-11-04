@@ -467,6 +467,20 @@ describe("drainPush", () => {
     expect(repo.claimUnpushed).toHaveBeenCalledTimes(1);
     expect(result.claimed).toBe(200);
   });
+
+  it("passes its deadline to the Expo send; a lone dispatch has none", async () => {
+    repo.claimUnpushed.mockResolvedValue([claimed("p1")]);
+    repo.deviceTokensFor.mockResolvedValue([token("t1", "p1")]);
+    const before = Date.now();
+    await drainPush(15_000);
+    const deadline = expo.sendExpoMessages.mock.calls[0]?.[2] as number;
+    expect(deadline).toBeGreaterThanOrEqual(before + 15_000);
+    expect(deadline).toBeLessThanOrEqual(Date.now() + 15_000);
+
+    expo.sendExpoMessages.mockClear();
+    await dispatchPush();
+    expect(expo.sendExpoMessages.mock.calls[0]?.[2]).toBeUndefined();
+  });
 });
 
 describe("checkExpoReceipts", () => {

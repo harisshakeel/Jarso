@@ -171,6 +171,7 @@ async function sendExpo(
   plans: PushPlan[],
   tokens: DeviceTokenRow[],
   result: PushResult,
+  deadline?: number,
 ): Promise<void> {
   if (tokens.length === 0) return;
   const byRecipient = groupBy(tokens);
@@ -193,7 +194,11 @@ async function sendExpo(
   );
   if (sends.length === 0) return;
 
-  const tickets = await sendExpoMessages(sends.map((s) => s.message));
+  const tickets = await sendExpoMessages(
+    sends.map((s) => s.message),
+    fetch,
+    deadline,
+  );
   const accepted: { id: string; tokenId: string }[] = [];
   const gone = new Set<string>();
   const failures = new Map<string, number>();
@@ -226,8 +231,9 @@ async function sendExpo(
 /**
  * Sends every unpushed notice from the last day. Runs after actions that write notices and from
  * the 15-minute cron sweep; both are safe to repeat because claiming is what marks a notice pushed.
+ * `deadline` (epoch ms, set by the sweep) stops the Expo sends in time for the route's limit.
  */
-export async function dispatchPush(limit = 50): Promise<PushResult> {
+export async function dispatchPush(limit = 50, deadline?: number): Promise<PushResult> {
   const result: PushResult = { claimed: 0, sent: 0, dropped: 0, failed: 0, summarised: 0 };
   if (!isPushConfigured()) return result;
   const admin = createAdminClient();
@@ -253,7 +259,9 @@ export async function dispatchPush(limit = 50): Promise<PushResult> {
 
   await Promise.all([
     sendWeb(admin, plans, subscriptions, result),
-    sendExpo(admin, plans, tokens, result).catch(() => logger.warn("Expo push run failed")),
+    sendExpo(admin, plans, tokens, result, deadline).catch(() =>
+      logger.warn("Expo push run failed"),
+    ),
   ]);
   logger.info("Push dispatched", result);
   return result;
@@ -265,15 +273,15 @@ export async function dispatchPush(limit = 50): Promise<PushResult> {
  */
 export async function drainPush(budgetMs: number): Promise<PushResult> {
   const total: PushResult = { claimed: 0, sent: 0, dropped: 0, failed: 0, summarised: 0 };
-  const start = Date.now();
+  const deadline = Date.now() + budgetMs;
   for (;;) {
-    const batch = await dispatchPush(BATCH);
+    const batch = await dispatchPush(BATCH, deadline);
     total.claimed += batch.claimed;
     total.sent += batch.sent;
     total.dropped += batch.dropped;
     total.failed += batch.failed;
     total.summarised += batch.summarised;
-    if (batch.claimed < BATCH || Date.now() - start >= budgetMs) return total;
+    if (batch.claimed < BATCH || Date.now() >= deadline) return total;
   }
 }
 
