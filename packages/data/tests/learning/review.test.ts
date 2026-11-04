@@ -5,6 +5,7 @@ vi.mock("../../src/learning/repository", () => ({
   findCheckIn: vi.fn(async () => null),
   findLastActivity: vi.fn(async () => null),
   listActivity: vi.fn(async () => []),
+  listPracticeResults: vi.fn(async () => []),
   listAttempts: vi.fn(async () => []),
   listRecentPracticeKeys: vi.fn(async () => []),
   listReviewItems: vi.fn(async () => []),
