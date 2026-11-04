@@ -52,7 +52,13 @@ export type AutoChargeCard = {
 };
 
 /** `POST /payments/in-app`: the payment the phone's sheet pays, until `expiresAt`. */
-export type InAppPaymentStart = { paymentId: string; expiresAt: string; sheet: InAppSheet };
+/** `cancellable`: the parent may cancel it (false for a Razorpay order, which only expires). */
+export type InAppPaymentStart = {
+  paymentId: string;
+  expiresAt: string;
+  sheet: InAppSheet;
+  cancellable: boolean;
+};
 
 /** A card setup the phone's sheet completes (turning auto charge on with no card saved). */
 export type InAppSetupStart = { setupId: string; sheet: InAppSheet };
