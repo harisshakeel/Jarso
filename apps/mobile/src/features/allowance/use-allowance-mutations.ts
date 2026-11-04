@@ -10,6 +10,7 @@ import {
   changeAllowance,
   createAllowance,
   createGift,
+  findGift,
   pauseAllowance,
   resumeAllowance,
   stopAllowance,
@@ -91,9 +92,16 @@ export function useStopAllowance() {
   );
 }
 
-/** A new gift; the opening's idempotency key makes a re-send one gift. */
+/**
+ * A new gift; the opening's idempotency key makes a re-send one gift. Returns the day the stored
+ * gift is given on: a re-send returns the gift the lost reply made, which keeps its first date.
+ */
 export function useCreateGift() {
-  return useAllowanceWrite((input: GiftInput) => createGift(supabase, input));
+  return useAllowanceWrite(async (input: GiftInput) => {
+    const giftId = await createGift(supabase, input);
+    const gift = await findGift(supabase, giftId);
+    return { giftId, giveOn: gift?.giveOn ?? input.giveOn };
+  });
 }
 
 /** Changes a pending gift. `today` lets a due gift keep its past date. */

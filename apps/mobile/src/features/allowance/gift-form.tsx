@@ -64,15 +64,16 @@ export function GiftForm({
       }
       setFieldErrors(undefined);
       try {
-        let giftId: string;
+        let saved: { giftId: string; giveOn: string };
         if ("giftId" in parsed.data) {
           await update.mutateAsync({ childId, today, ...parsed.data });
-          giftId = parsed.data.giftId;
+          saved = { giftId: parsed.data.giftId, giveOn: parsed.data.giveOn };
         } else {
-          giftId = await create.mutateAsync(parsed.data);
+          // The stored date: a retry after a lost reply returns the gift it already made.
+          saved = await create.mutateAsync(parsed.data);
         }
         flash(giftCopy.saved);
-        onDone({ giftId, giveOn: parsed.data.giveOn });
+        onDone(saved);
       } catch (cause) {
         if (isAppError(cause) && cause.fieldErrors) {
           setFieldErrors(cause.fieldErrors as FieldErrors);

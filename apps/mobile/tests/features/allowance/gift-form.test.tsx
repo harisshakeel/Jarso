@@ -1,5 +1,5 @@
 import { allowanceErrors, type Gift, giftCopy } from "@jarso/core/allowance";
-import { cancelGift, createGift, listGiftsFor, updateGift } from "@jarso/data/allowance";
+import { cancelGift, createGift, findGift, listGiftsFor, updateGift } from "@jarso/data/allowance";
 import {
   findFamilyById,
   findMembership,
@@ -38,6 +38,7 @@ jest.mock("@jarso/data/family", () => ({
 jest.mock("@jarso/data/allowance", () => ({
   listGiftsFor: jest.fn(),
   createGift: jest.fn(),
+  findGift: jest.fn(),
   updateGift: jest.fn(),
   cancelGift: jest.fn(),
 }));
@@ -141,6 +142,39 @@ describe("GiftScreen", () => {
     await user.press(screen.getByRole("button", { name: giftCopy.save }));
 
     await waitFor(() => expect(flash).toHaveBeenCalledWith(giftCopy.saved));
+    expect(mockRouter.back).toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it("a re-send that returns the gift made for a later day goes back, not to a handover", async () => {
+    setup();
+    // The first reply was lost; the parent moved the date to today and saved again with the same
+    // key, so the server returns the gift it already made, still for the later day.
+    (createGift as jest.Mock)
+      .mockRejectedValueOnce(new Error("network"))
+      .mockResolvedValueOnce(GIFT);
+    (findGift as jest.Mock).mockResolvedValue({
+      ...DUE_GIFT,
+      childId: CHILD,
+      giveOn: "2026-11-20",
+    });
+    await renderScreen();
+    const user = userEvent.setup();
+    fireEvent.changeText(await screen.findByLabelText(giftCopy.amount), "5");
+    pickDate("2026-11-20");
+    await user.press(screen.getByRole("button", { name: giftCopy.giveOn }));
+    await user.press(screen.getByRole("button", { name: giftCopy.save }));
+    await waitFor(() => expect(createGift).toHaveBeenCalledTimes(1));
+    expect(flash).not.toHaveBeenCalledWith(giftCopy.saved);
+
+    pickDate(TODAY);
+    await user.press(screen.getByRole("button", { name: giftCopy.giveOn }));
+    await user.press(screen.getByRole("button", { name: giftCopy.save }));
+
+    await waitFor(() => expect(flash).toHaveBeenCalledWith(giftCopy.saved));
+    const sent = (createGift as jest.Mock).mock.calls.map(([, input]) => input.idempotencyKey);
+    expect(sent[0]).toBe(sent[1]);
+    expect(findGift).toHaveBeenCalledWith({ id: "client" }, GIFT);
     expect(mockRouter.back).toHaveBeenCalled();
     expect(mockRouter.replace).not.toHaveBeenCalled();
   });
