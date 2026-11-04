@@ -1,8 +1,8 @@
 import { pushOffCardCopy, pushPromptCopy } from "@jarso/core/notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import * as Notifications from "expo-notifications";
-import { Alert, type AlertButton, Linking } from "react-native";
+import { Alert, type AlertButton, AppState, type AppStateStatus, Linking } from "react-native";
 import { PushPermissionCard } from "@/features/push";
 import { apiFetch } from "@/lib/api";
 
@@ -86,6 +86,32 @@ describe("PushPermissionCard", () => {
     await first.unmount();
     await render(<PushPermissionCard />);
     await waitFor(() => expect(permissions).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText(pushOffCardCopy.title)).toBeNull();
+  });
+
+  it("'Not now' wins over a check still in flight", async () => {
+    let onAppState: ((state: AppStateStatus) => void) | undefined;
+    jest.spyOn(AppState, "addEventListener").mockImplementation((_type, listener) => {
+      onAppState = listener as (state: AppStateStatus) => void;
+      return { remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>;
+    });
+    permissions.mockResolvedValueOnce({
+      granted: false,
+      status: "undetermined",
+      canAskAgain: true,
+    });
+    await render(<PushPermissionCard />);
+    const later = await screen.findByRole("button", { name: pushOffCardCopy.later });
+    // The app comes back to the front: a fresh check starts and hasn't answered yet.
+    let answer: (value: unknown) => void = () => undefined;
+    permissions.mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)));
+    await act(async () => onAppState?.("active"));
+    await waitFor(() => expect(permissions).toHaveBeenCalledTimes(2));
+    fireEvent.press(later);
+    await waitFor(() => expect(screen.queryByText(pushOffCardCopy.title)).toBeNull());
+    await act(async () => {
+      answer({ granted: false, status: "undetermined", canAskAgain: true });
+    });
     expect(screen.queryByText(pushOffCardCopy.title)).toBeNull();
   });
 });

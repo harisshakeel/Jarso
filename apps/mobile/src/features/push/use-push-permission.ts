@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Linking } from "react-native";
 import { useSession } from "@/features/auth";
 import { logger } from "@/lib";
@@ -24,18 +24,24 @@ export function usePushPermission() {
   const role = session === "child" || session === "parent" ? session : undefined;
   const [state, setState] = useState<PushPermissionState>("hidden");
   const [busy, setBusy] = useState(false);
+  /** Bumped by every load and by "Not now": only the latest one may apply its result. */
+  const loadSeqRef = useRef(0);
 
   const load = useCallback(async () => {
-    if (!userId || !Device.isDevice) return setState("hidden");
+    const seq = ++loadSeqRef.current;
+    const apply = (next: PushPermissionState) => {
+      if (seq === loadSeqRef.current) setState(next);
+    };
+    if (!userId || !Device.isDevice) return apply("hidden");
     try {
       const [permission, dismissed] = await Promise.all([
         Notifications.getPermissionsAsync(),
         AsyncStorage.getItem(dismissedKey(userId)),
       ]);
-      if (permission.granted || dismissed) setState("hidden");
-      else setState(permission.canAskAgain === false ? "blocked" : "ask");
+      if (permission.granted || dismissed) apply("hidden");
+      else apply(permission.canAskAgain === false ? "blocked" : "ask");
     } catch {
-      setState("hidden");
+      apply("hidden");
     }
   }, [userId]);
 
@@ -66,6 +72,7 @@ export function usePushPermission() {
 
   /** "Not now": the card stays away on this phone; the settings page still offers "Turn on". */
   const dismiss = useCallback(async () => {
+    loadSeqRef.current++;
     setState("hidden");
     if (userId) await AsyncStorage.setItem(dismissedKey(userId), "1").catch(() => undefined);
   }, [userId]);
