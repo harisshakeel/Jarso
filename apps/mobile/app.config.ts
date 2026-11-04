@@ -4,7 +4,9 @@ import { type ConfigPlugin, withProjectBuildGradle } from "expo/config-plugins";
 // stripe-react-native compiles against stripe-android-issuing-push-provisioning, whose runtime
 // dependency play-services-tapandpay is not on any public Maven repo. Release lint resolves it
 // and fails the build. Jarso does not use card push provisioning, so drop it everywhere.
+const TAPANDPAY_MARKER = "// @jarso/exclude-tapandpay";
 const TAPANDPAY_EXCLUDE = `
+${TAPANDPAY_MARKER}
 allprojects {
   configurations.configureEach {
     exclude group: "com.google.android.gms", module: "play-services-tapandpay"
@@ -12,9 +14,12 @@ allprojects {
 }
 `;
 
-/** Appends the tapandpay exclude to the root build.gradle (Groovy), at most once. */
+/**
+ * Appends the tapandpay exclude to the root build.gradle (Groovy), at most once. Keyed on our own
+ * marker: a comment or partial exclusion naming the module elsewhere must not skip the block.
+ */
 export function excludeTapAndPay(gradle: string): string {
-  return gradle.includes("play-services-tapandpay") ? gradle : gradle + TAPANDPAY_EXCLUDE;
+  return gradle.includes(TAPANDPAY_MARKER) ? gradle : gradle + TAPANDPAY_EXCLUDE;
 }
 
 const withoutTapAndPay: ConfigPlugin = (config) =>

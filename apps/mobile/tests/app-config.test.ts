@@ -92,6 +92,9 @@ describe("app config", () => {
       'exclude group: "com.google.android.gms", module: "play-services-tapandpay"',
     );
     expect(excludeTapAndPay(once)).toBe(once);
+    // A mention of the module elsewhere (a comment, a partial exclusion) still gets the block.
+    const mentioned = "// play-services-tapandpay is not on Maven\nallprojects {}\n";
+    expect(excludeTapAndPay(mentioned)).toContain("configurations.configureEach");
     const withMods = loadConfig({}) as { mods?: { android?: { projectBuildGradle?: unknown } } };
     expect(withMods.mods?.android?.projectBuildGradle).toBeDefined();
   });
