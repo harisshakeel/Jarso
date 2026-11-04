@@ -1,0 +1,32 @@
+# Needs Stripe test keys on the web server and `stripe listen` (see card-handover-stripe.yaml).
+# Turn auto charge on for the test child's allowance with no saved card: Jarso's sheet shows the
+# mandate, then Stripe's setup sheet saves 4242; the switch turns on when the webhook arrives.
+# Remove the card in Settings first if one is saved.
+#   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... -e CHILD_NICKNAME=... e2e/save-card.yaml
+appId: app.jarso.mobile
+---
+- runFlow: parent-sign-in.yaml
+- scrollUntilVisible:
+    element:
+      text: "${CHILD_NICKNAME}, .*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "${CHILD_NICKNAME}, .*"
+- scrollUntilVisible:
+    element:
+      text: "Auto charge"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "auto-charge-switch"
+- extendedWaitUntil:
+    visible: "Save a card first"
+    timeout: 15000
+- tapOn: "Save with Stripe"
+- runFlow: stripe-card.yaml
+  env:
+    CARD_NUMBER: "4242424242424242"
+# On once the webhook saved the card: the switch names it.
+- extendedWaitUntil:
+    visible: "Charges .*ending 4242.*"
+    timeout: 30000

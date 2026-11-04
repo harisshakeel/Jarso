@@ -221,6 +221,7 @@ function AutoChargeBlock({
         </View>
         {pending || waitingSince !== null ? <ActivityIndicator /> : null}
         <Switch
+          testID="auto-charge-switch"
           accessibilityRole="switch"
           accessibilityLabel={paymentCopy.autoCharge}
           accessibilityHint={detail}

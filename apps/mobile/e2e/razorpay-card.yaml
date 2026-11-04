@@ -1,0 +1,19 @@
+# Sub-flow: pays or saves in Razorpay Checkout (cards only) with RAZORPAY_CARD, then Success on
+# the test bank page. Razorpay draws this form: its labels are unchecked on a device.
+appId: app.jarso.mobile
+---
+- extendedWaitUntil:
+    visible: "Card Number|Card number"
+    timeout: 30000
+- tapOn: "Card Number|Card number"
+- inputText: ${RAZORPAY_CARD}
+- tapOn: "MM / YY|Expiry"
+- inputText: "1234"
+- tapOn: "CVV"
+- inputText: "123"
+- hideKeyboard
+- tapOn: "Pay.*|Continue|Save.*"
+- extendedWaitUntil:
+    visible: "Success"
+    timeout: 60000
+- tapOn: "Success"
