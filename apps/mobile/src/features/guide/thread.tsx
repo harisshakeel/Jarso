@@ -5,13 +5,12 @@ import { SendHorizontalIcon } from "lucide-react-native";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   type ScrollViewInstance,
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAvoidingView } from "@/components/screen";
 import { Button, Text, useBodySizeClass } from "@/components/ui";
 import { useSession } from "@/features/auth";
 import { cn, useTokens } from "@/lib";
@@ -173,11 +172,7 @@ export function GuideThread({
   const label = sheet ? guideUi.sheetQuestionLabel : guideUi.questionLabel;
   const action = sheet ? guideUi.send : guideUi.ask;
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 96 : 0}
-      className="flex-1"
-    >
+    <KeyboardAvoidingView className="flex-1">
       <ScrollView
         ref={scroll}
         className="flex-1"

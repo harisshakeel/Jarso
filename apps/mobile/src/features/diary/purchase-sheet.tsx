@@ -11,8 +11,9 @@ import { SPEND_CATEGORIES } from "@jarso/core/ledger";
 import { offlineCopy } from "@jarso/core/offline";
 import { randomUUID } from "expo-crypto";
 import { useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { z } from "zod";
+import { KeyboardScrollView } from "@/components/screen";
 import { Button, Input, Label, Text } from "@/components/ui";
 import { useHome } from "@/features/jars";
 import { cn, toUserMessage } from "@/lib";
@@ -173,7 +174,7 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
   const amountError = fieldErrors?.amount?.[0];
   const labelError = fieldErrors?.label?.[0];
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-6 p-6"
       keyboardShouldPersistTaps="handled"
@@ -249,6 +250,6 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
           <Text className="text-center text-muted-foreground">Pick what it was for</Text>
         )}
       </View>
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }

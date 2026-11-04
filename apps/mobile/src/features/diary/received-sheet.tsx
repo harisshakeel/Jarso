@@ -2,8 +2,9 @@ import { entrySavedMessage, receivedCopy, receivedSchema } from "@jarso/core/dia
 import { RECEIVED_CATEGORIES } from "@jarso/core/ledger";
 import { randomUUID } from "expo-crypto";
 import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { z } from "zod";
+import { KeyboardScrollView } from "@/components/screen";
 import {
   AmountInput,
   HomeWait,
@@ -106,7 +107,7 @@ export function ReceivedSheet({ onClose }: { onClose: () => void }) {
 
   const labelError = fieldErrors?.label?.[0];
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-6 p-6"
       keyboardShouldPersistTaps="handled"
@@ -169,6 +170,6 @@ export function ReceivedSheet({ onClose }: { onClose: () => void }) {
           <Text className="text-center text-muted-foreground">{receivedCopy.pickCategory}</Text>
         )}
       </View>
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }

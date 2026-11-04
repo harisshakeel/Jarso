@@ -2,8 +2,9 @@ import { depositMessage, depositSchema } from "@jarso/core/requests";
 import { describeRuleForChild, jarMovesLineForChild } from "@jarso/core/rules";
 import { randomUUID } from "expo-crypto";
 import { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { z } from "zod";
+import { KeyboardScrollView } from "@/components/screen";
 import {
   AmountInput,
   HomeWait,
@@ -78,7 +79,7 @@ export function PutInSheet({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-6 p-6"
       keyboardShouldPersistTaps="handled"
@@ -109,6 +110,6 @@ export function PutInSheet({ onClose }: { onClose: () => void }) {
       ) : null}
       <Notice message={notice} />
       <SubmitButton label="Put in" pending={send.isPending} onPress={() => void submit()} />
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }

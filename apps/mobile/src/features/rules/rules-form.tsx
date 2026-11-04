@@ -14,16 +14,9 @@ import {
   summarise,
 } from "@jarso/core/rules";
 import { type ReactNode, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Switch,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, Switch, View } from "react-native";
 import { z } from "zod";
-import { Card, CardSeparator } from "@/components/screen";
+import { Card, CardSeparator, KeyboardScrollView } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
 import { useFamily } from "@/features/family";
@@ -67,7 +60,7 @@ export function RulesForm({ childId }: { childId: string }) {
   }
 
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-4 px-4 pt-2 pb-10"
       keyboardShouldPersistTaps="handled"
@@ -80,7 +73,7 @@ export function RulesForm({ childId }: { childId: string }) {
         currency={family.data.family.currency}
         rules={rules.data}
       />
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 

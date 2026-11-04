@@ -14,9 +14,9 @@ import { parentRequestCopy } from "@jarso/core/requests";
 import { randomUUID } from "expo-crypto";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, View } from "react-native";
 import { z } from "zod";
-import { Card } from "@/components/screen";
+import { Card, KeyboardScrollView } from "@/components/screen";
 import { HomeWait, Notice, useSendOnce } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
@@ -193,7 +193,7 @@ export function HandoverForm({
   const saveWidth = valid && saved !== null && barBase > 0 ? (saved / barBase) * 100 : 0;
 
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-4 p-4 pb-10"
       keyboardShouldPersistTaps="handled"
@@ -293,6 +293,6 @@ export function HandoverForm({
           <Text>{handoverCopy.changeGift}</Text>
         </Button>
       )}
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }

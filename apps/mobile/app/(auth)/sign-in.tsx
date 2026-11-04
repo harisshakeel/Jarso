@@ -2,8 +2,9 @@ import { safeNextPath } from "@jarso/core/auth";
 import { childSignInCopy } from "@jarso/core/family";
 import { type Href, Redirect, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { Image, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardScrollView } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import {
   homeFor,
@@ -60,46 +61,37 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      <KeyboardScrollView
+        contentContainerClassName="grow justify-center gap-6 px-6 py-8"
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          contentContainerClassName="grow justify-center gap-6 px-6 py-8"
-          keyboardShouldPersistTaps="handled"
-        >
-          <View className="items-center gap-3">
-            <Image source={mark} accessibilityIgnoresInvertColors className="h-14 w-14" />
-            <Text accessibilityRole="header" className="text-center font-sans-extrabold text-h1">
-              {heading}
-            </Text>
-            <Text className="text-center text-ink-2">{subline}</Text>
-          </View>
-          <View accessibilityRole="radiogroup" className="flex-row gap-2">
-            {MODES.map((option) => {
-              const selected = option.mode === mode;
-              return (
-                <Button
-                  key={option.mode}
-                  variant={selected ? "default" : "outline"}
-                  className="flex-1"
-                  accessibilityRole="radio"
-                  accessibilityLabel={option.label}
-                  accessibilityState={{ selected, checked: selected }}
-                  onPress={() => choose(option.mode)}
-                >
-                  <Text>{option.label}</Text>
-                </Button>
-              );
-            })}
-          </View>
-          {mode === "parent" ? (
-            <ParentSignInForm notice={notice} />
-          ) : (
-            <SignInForm notice={notice} />
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <View className="items-center gap-3">
+          <Image source={mark} accessibilityIgnoresInvertColors className="h-14 w-14" />
+          <Text accessibilityRole="header" className="text-center font-sans-extrabold text-h1">
+            {heading}
+          </Text>
+          <Text className="text-center text-ink-2">{subline}</Text>
+        </View>
+        <View accessibilityRole="radiogroup" className="flex-row gap-2">
+          {MODES.map((option) => {
+            const selected = option.mode === mode;
+            return (
+              <Button
+                key={option.mode}
+                variant={selected ? "default" : "outline"}
+                className="flex-1"
+                accessibilityRole="radio"
+                accessibilityLabel={option.label}
+                accessibilityState={{ selected, checked: selected }}
+                onPress={() => choose(option.mode)}
+              >
+                <Text>{option.label}</Text>
+              </Button>
+            );
+          })}
+        </View>
+        {mode === "parent" ? <ParentSignInForm notice={notice} /> : <SignInForm notice={notice} />}
+      </KeyboardScrollView>
     </SafeAreaView>
   );
 }

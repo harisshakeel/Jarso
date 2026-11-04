@@ -7,8 +7,9 @@ import {
   previewLine,
 } from "@jarso/core/goals";
 import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { z } from "zod";
+import { KeyboardScrollView } from "@/components/screen";
 import { HomeWait, Notice, SubmitButton, useSendOnce } from "@/components/sheet";
 import { Button, Input, Label, Text } from "@/components/ui";
 import { useHome } from "@/features/jars";
@@ -119,7 +120,7 @@ function GoalForm({
   }
 
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-6 p-6"
       keyboardShouldPersistTaps="handled"
@@ -217,7 +218,7 @@ function GoalForm({
         onPress={() => void submit()}
       />
       {goal ? <StartNewGoal goalId={goal.id} onDone={onClose} /> : null}
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 

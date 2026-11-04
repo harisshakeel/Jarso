@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Modal, Pressable, View } from "react-native";
+import { KeyboardAvoidingView } from "@/components/screen";
 import { Text } from "@/components/ui";
 import { cn } from "@/lib";
 
@@ -25,7 +26,8 @@ export function BottomSheet({
   };
   return (
     <Modal transparent animationType="slide" onRequestClose={close}>
-      <View className="flex-1 justify-end">
+      {/* The sheet rides up with the keyboard, so a field in it (the phone number) stays seen. */}
+      <KeyboardAvoidingView className="flex-1 justify-end">
         <Pressable
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
@@ -44,7 +46,7 @@ export function BottomSheet({
           {detail ? <Text className="text-muted-foreground">{detail}</Text> : null}
           {children}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

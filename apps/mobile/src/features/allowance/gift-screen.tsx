@@ -2,7 +2,7 @@ import { allowanceErrors, type Gift, giftCopy } from "@jarso/core/allowance";
 import { parentPageCopy } from "@jarso/core/dashboard";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView } from "react-native";
+import { KeyboardScrollView } from "@/components/screen";
 import { HomeWait } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
 import { useFamily } from "@/features/family";
@@ -60,7 +60,7 @@ export function GiftScreen({
 
   const { currency, today } = context.data;
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-4 px-4 pt-2 pb-10"
       keyboardShouldPersistTaps="handled"
@@ -91,6 +91,6 @@ export function GiftScreen({
       <Button variant="ghost" accessibilityLabel={giftCopy.back} onPress={back}>
         <Text>{giftCopy.back}</Text>
       </Button>
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }

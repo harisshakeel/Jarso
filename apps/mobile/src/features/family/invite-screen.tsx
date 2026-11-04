@@ -9,9 +9,9 @@ import {
 } from "@jarso/core/family";
 import { useRouter } from "expo-router";
 import { Fragment, useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { z } from "zod";
-import { Card, CardSeparator, ListRow } from "@/components/screen";
+import { Card, CardSeparator, KeyboardScrollView, ListRow } from "@/components/screen";
 import { Notice, useSendOnce } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
@@ -269,7 +269,7 @@ export function InviteScreen({ params }: { params: InviteRouteParams }) {
   const invite = token ?? code;
 
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-4 px-4 pt-2 pb-10"
       keyboardShouldPersistTaps="handled"
@@ -285,6 +285,6 @@ export function InviteScreen({ params }: { params: InviteRouteParams }) {
           <CodeForm />
         </>
       )}
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }

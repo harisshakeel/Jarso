@@ -11,6 +11,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "nativewind";
 import { useEffect } from "react";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SessionProvider } from "@/features/auth";
 import { PushBridge } from "@/features/push";
@@ -37,17 +38,20 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <SessionProvider>
-          {/* Registers for push after sign-in, opens a tapped push. */}
-          <PushBridge />
-          <ThemeProvider value={NAV_THEME[scheme]}>
-            <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-            <Stack screenOptions={{ headerShown: false }} />
-            <PortalHost />
-          </ThemeProvider>
-        </SessionProvider>
-      </QueryClientProvider>
+      {/* Edge to edge, the window no longer shrinks for the keyboard: forms follow it instead. */}
+      <KeyboardProvider>
+        <QueryClientProvider client={queryClient}>
+          <SessionProvider>
+            {/* Registers for push after sign-in, opens a tapped push. */}
+            <PushBridge />
+            <ThemeProvider value={NAV_THEME[scheme]}>
+              <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+              <Stack screenOptions={{ headerShown: false }} />
+              <PortalHost />
+            </ThemeProvider>
+          </SessionProvider>
+        </QueryClientProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }
