@@ -1,4 +1,4 @@
-import { inboxCopy, type NoticeRole, noticeText } from "@jarso/core/notifications";
+import { inboxCopy, type Notice, type NoticeRole, noticeText } from "@jarso/core/notifications";
 import { type QueryKey, useQueryClient } from "@tanstack/react-query";
 import { type Href, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -45,11 +45,10 @@ export function NoticeListener({ userId, viewer: role }: NoticeListenerProps) {
   const queryClient = useQueryClient();
   // The family's currency, for the notice's wording.
   const currency = useNoticeCurrency(role);
-  const [toast, setToast] = useState<string | null>(null);
+  // The notice itself, worded at render: a notice that lands before the family's currency has
+  // loaded picks it up once it does, instead of keeping a fallback.
+  const [toast, setToast] = useState<Notice | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  // The latest currency, without resubscribing when Home loads.
-  const money = useRef(currency);
-  money.current = currency;
 
   useEffect(() => {
     let connected = false;
@@ -63,9 +62,8 @@ export function NoticeListener({ userId, viewer: role }: NoticeListenerProps) {
         (change) => {
           refresh();
           if (change.type !== "new") return;
-          const { title } = noticeText(change.notice, role, money.current ?? "USD");
           clearTimeout(timer.current);
-          setToast(title);
+          setToast(change.notice);
           timer.current = setTimeout(() => setToast(null), TOAST_MS);
         },
         (isConnected) => {
@@ -94,6 +92,7 @@ export function NoticeListener({ userId, viewer: role }: NoticeListenerProps) {
   }, [userId, role, queryClient]);
 
   if (!toast) return null;
+  const { title } = noticeText(toast, role, currency ?? "USD");
   return (
     <SafeAreaView
       edges={["top"]}
@@ -102,7 +101,7 @@ export function NoticeListener({ userId, viewer: role }: NoticeListenerProps) {
     >
       <Button
         variant="outline"
-        accessibilityLabel={`${toast}. ${inboxCopy.open}`}
+        accessibilityLabel={`${title}. ${inboxCopy.open}`}
         accessibilityLiveRegion="polite"
         onPress={() => {
           setToast(null);
@@ -111,7 +110,7 @@ export function NoticeListener({ userId, viewer: role }: NoticeListenerProps) {
         className="mt-2 h-auto min-h-14 justify-between rounded-xl bg-card px-4 py-3 shadow-md"
       >
         <Text numberOfLines={2} className="flex-1 font-sans-semibold">
-          {toast}
+          {title}
         </Text>
         <Text className="font-sans-bold text-primary">{inboxCopy.open}</Text>
       </Button>

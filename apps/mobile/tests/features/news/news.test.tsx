@@ -190,6 +190,37 @@ describe("news", () => {
     expect(push).toHaveBeenCalledWith("/(child)/(tabs)/news");
   });
 
+  it("words a notice that lands before the currency in the family's currency", async () => {
+    (fetchUnreadCount as jest.Mock).mockResolvedValue(0);
+    let loadFamily: (value: unknown) => void = () => undefined;
+    const family = (getFamilyContext as jest.Mock).getMockImplementation();
+    (getFamilyContext as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          loadFamily = resolve;
+        }),
+    );
+    await render(wrap(<NoticeListener userId="parent-1" viewer="parent" />));
+    await waitFor(() => expect(mockChannel.subscribe).toHaveBeenCalled());
+
+    const row = {
+      id: "n-10",
+      kind: "jar_moved",
+      child_id: "child-1",
+      recipient_id: "parent-1",
+      source_type: "ledger_entry",
+      source_id: "entry-10",
+      payload: { direction: "spend_to_save", amount_minor: 500 },
+      created_at: now,
+      read_at: null,
+    };
+    await act(async () => mockHandlers[0]?.({ eventType: "INSERT", new: row }));
+    await act(async () => loadFamily(await family?.()));
+
+    const { title } = noticeText(notice({ id: "n-10" }), "parent", "GBP");
+    expect(await screen.findByText(title)).toBeOnTheScreen();
+  });
+
   it("foreground resubscribes and refetches unread", async () => {
     (fetchUnreadCount as jest.Mock).mockResolvedValue(0);
     await render(
