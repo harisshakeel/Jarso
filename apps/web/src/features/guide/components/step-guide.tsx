@@ -1,6 +1,6 @@
 "use client";
 
-import { guideUi } from "@jarso/core/guide";
+import { guideCopy, guideUi } from "@jarso/core/guide";
 import { useCurrentStep } from "@/features/learning";
 import { GuideSheet } from "./guide-sheet";
 import { stepChatKey, stepGuideContext } from "./step-context";
@@ -20,6 +20,8 @@ export function StepGuide({ introNeeded }: { introNeeded: boolean }) {
       context={context}
       introNeeded={introNeeded}
       triggerLabel={step.answered ? guideUi.why : guideUi.helpMe}
+      // Tapping it is the question: Jarso starts answering, no typing first.
+      opener={step.answered ? guideCopy.lesson.whyOpener : guideCopy.lesson.helpOpener}
       compact
     />
   );

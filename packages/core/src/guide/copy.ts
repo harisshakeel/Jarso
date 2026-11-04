@@ -55,6 +55,9 @@ export const guideCopy = {
     hello: "Stuck? Ask me!",
     suggestions: ["Can you give me a hint?", "What is this question asking?"],
     whySuggestions: ["Why is that the answer?", "Can you explain it another way?"],
+    /** Asked for the child the moment "Help me" or "Why?" opens, so Jarso starts answering. */
+    helpOpener: "Can you give me a hint?",
+    whyOpener: "Why is that the answer?",
   },
   /** The greeting over an empty chat on the Jarso page, naming who is asking. */
   greeting: {

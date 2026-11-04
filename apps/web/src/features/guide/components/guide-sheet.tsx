@@ -31,6 +31,11 @@ type GuideSheetProps = {
   triggerVariant?: "outline" | "secondary";
   /** For "Help me" and "Why?" beside a step, a quieter trigger. */
   compact?: boolean;
+  /**
+   * Asked for the child as the sheet opens, so a tap on "Help me" starts the answer straight
+   * away instead of an empty box. After the first-time intro, it is asked on "Got it".
+   */
+  opener?: string;
 };
 
 /**
@@ -57,6 +62,7 @@ export function GuideSheet({
   triggerLabel,
   triggerVariant = "outline",
   compact,
+  opener,
 }: GuideSheetProps) {
   const [open, setOpen] = useState(false);
   const [introSeen, setIntroSeen] = useState(!introNeeded || introAcknowledged);
@@ -100,8 +106,13 @@ export function GuideSheet({
 
   function send(event: FormEvent) {
     event.preventDefault();
-    const question = text.trim();
-    if (!question || pending) return;
+    if (pending) return;
+    ask(text.trim(), conversationId);
+  }
+
+  /** One turn. `chat` is passed in, since a turn asked as the sheet opens runs before a render. */
+  function ask(question: string, chat: string | null) {
+    if (!question) return;
     setError(null);
     if (unanswered.current?.text !== question) {
       // Minted on submit, never in render, so server and client HTML match.
@@ -111,7 +122,13 @@ export function GuideSheet({
     const started = generation.current;
     startTransition(async () => {
       const result = await runOnline<AskGuideResult>(
-        () => askGuideAction(null, { clientMessageId, conversationId, context, text: question }),
+        () =>
+          askGuideAction(null, {
+            clientMessageId,
+            conversationId: chat,
+            context,
+            text: question,
+          }),
         { timeoutMs: TURN_TIMEOUT_MS },
       );
       if (started !== generation.current) return;
@@ -119,6 +136,8 @@ export function GuideSheet({
       startTransition(() => {
         if (!result.ok) {
           if (result.error.code === "CONFLICT") setFull(true);
+          // A question asked for the child lands in the box, so Send tries it again.
+          setText(question);
           setError({
             code: result.error.code,
             message:
@@ -151,7 +170,9 @@ export function GuideSheet({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (next) reset();
+        if (!next) return;
+        reset();
+        if (opener && introSeen) ask(opener, null);
       }}
     >
       <SheetTrigger render={<Button variant={triggerVariant} size={compact ? "default" : "lg"} />}>
@@ -187,6 +208,7 @@ export function GuideSheet({
                 onClick={() => {
                   introAcknowledged = true;
                   setIntroSeen(true);
+                  if (opener && messages.length === 0) ask(opener, null);
                 }}
               >
                 {guideCopy.introButton}
