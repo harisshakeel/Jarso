@@ -1,7 +1,7 @@
 import { parentGuideCopy } from "@jarso/core/guide";
 import { useState } from "react";
-import { Linking, Switch, View } from "react-native";
-import { Text } from "@/components/ui";
+import { Linking, View } from "react-native";
+import { Switch, Text } from "@/components/ui";
 import { WEB_URL } from "@/config";
 import { actionErrorMessage, logger } from "@/lib";
 import { useSetGuideAccess } from "./use-parent-guide";

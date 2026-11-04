@@ -1,9 +1,9 @@
 import { type DevicePushPrefs, NOTICE_GROUPS, noticeGroupCopy } from "@jarso/core/notifications";
 import { useRouter } from "expo-router";
 import { Fragment, useState } from "react";
-import { ActivityIndicator, Linking, ScrollView, Switch, View } from "react-native";
+import { ActivityIndicator, Linking, ScrollView, View } from "react-native";
 import { Card, CardSeparator, ListRow, ScreenHeader } from "@/components/screen";
-import { Button, Text } from "@/components/ui";
+import { Button, Switch, Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
 import { actionErrorMessage, cn, logger } from "@/lib";
 import { useDevicePushPrefs } from "./use-device-push-prefs";

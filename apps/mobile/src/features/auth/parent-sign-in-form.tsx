@@ -1,8 +1,8 @@
 import { signInSchema } from "@jarso/core/auth";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Linking, Switch, View } from "react-native";
+import { ActivityIndicator, Linking, View } from "react-native";
 import { z } from "zod";
-import { BodySizeProvider, Button, Label, Text } from "@/components/ui";
+import { BodySizeProvider, Button, Label, Switch, Text } from "@/components/ui";
 import { WEB_SIGNUP_URL } from "@/config";
 import { logger, toUserMessage } from "@/lib";
 import { Field } from "./form-field";

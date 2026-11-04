@@ -1,8 +1,8 @@
 import { childSignInCopy, childSignInSchema } from "@jarso/core/family";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Switch, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { z } from "zod";
-import { Button, Label, Text } from "@/components/ui";
+import { Button, Label, Switch, Text } from "@/components/ui";
 import { toUserMessage } from "@/lib";
 import { Field } from "./form-field";
 import { forgetSignIn, loadSavedSignIn, saveSignIn } from "./saved-sign-in";

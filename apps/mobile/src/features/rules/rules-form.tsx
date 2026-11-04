@@ -14,10 +14,10 @@ import {
   summarise,
 } from "@jarso/core/rules";
 import { type ReactNode, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, Switch, View } from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, View } from "react-native";
 import { z } from "zod";
 import { Card, CardSeparator, KeyboardScrollView } from "@/components/screen";
-import { Button, Text } from "@/components/ui";
+import { Button, Switch, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
 import { useFamily } from "@/features/family";
 import { actionErrorMessage, cn, flash, toMajorString, toUserMessage } from "@/lib";
