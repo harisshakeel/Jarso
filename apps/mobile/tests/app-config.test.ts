@@ -72,4 +72,17 @@ describe("app config", () => {
     expect(build({ EAS_BUILD_PROFILE: "production" })[1].android.usesCleartextTraffic).toBe(false);
     expect(build({ EAS_BUILD_PROFILE: "development" })[1].android.usesCleartextTraffic).toBe(true);
   });
+
+  it("excludes play-services-tapandpay from every Gradle configuration, once", () => {
+    const { excludeTapAndPay } = require("../app.config") as {
+      excludeTapAndPay: (gradle: string) => string;
+    };
+    const once = excludeTapAndPay("allprojects {}\n");
+    expect(once).toContain(
+      'exclude group: "com.google.android.gms", module: "play-services-tapandpay"',
+    );
+    expect(excludeTapAndPay(once)).toBe(once);
+    const withMods = loadConfig({}) as { mods?: { android?: { projectBuildGradle?: unknown } } };
+    expect(withMods.mods?.android?.projectBuildGradle).toBeDefined();
+  });
 });
