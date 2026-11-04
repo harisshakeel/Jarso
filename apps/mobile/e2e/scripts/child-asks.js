@@ -2,7 +2,19 @@
 // sheet does, then dispatches pushes, so the parent's phone gets a notice. An ask for extra
 // always waits for a parent, whatever the family's rules. Reads API_URL, SUPABASE_URL,
 // SUPABASE_PUBLISHABLE_KEY and the CHILD_* vars from `-e`. Prints nothing: the bearer and the
-// key never reach Maestro's output.
+// key never reach Maestro's output. The PIN and the bearer go only over HTTPS: a plain-HTTP
+// API_URL or SUPABASE_URL is refused unless it is this machine (localhost or loopback).
+
+function requireSecure(url, name) {
+  const secure = /^https:\/\//i.test(url);
+  const loopback = /^http:\/\/(localhost|127(\.\d{1,3}){3}|\[::1\])(:\d+)?(\/|$)/i.test(url);
+  if (!secure && !loopback) {
+    throw new Error(`${name} must be https:// (use an HTTPS tunnel), or localhost`);
+  }
+}
+
+requireSecure(API_URL, "API_URL");
+requireSecure(SUPABASE_URL, "SUPABASE_URL");
 
 function check(response, step) {
   if (!response.ok) throw new Error(`${step} failed with HTTP ${response.status}`);

@@ -6,6 +6,8 @@
 #   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... \
 #     -e CHILD_FAMILY_CODE=... -e CHILD_NICKNAME=... -e CHILD_PIN=... \
 #     -e API_URL=... -e SUPABASE_URL=... -e SUPABASE_PUBLISHABLE_KEY=... e2e/push.yaml
+# API_URL must be https:// (an HTTPS tunnel to `pnpm dev`, not the LAN http:// URL) or localhost:
+# the script sends the child's PIN and bearer to it and refuses plain HTTP to another machine.
 appId: app.jarso.mobile
 tags:
   - push
