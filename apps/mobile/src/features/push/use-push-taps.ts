@@ -1,47 +1,67 @@
 import { pushDataSchema } from "@jarso/core/notifications";
 import * as Notifications from "expo-notifications";
-import { useRouter } from "expo-router";
+import { useRootNavigationState, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { homeFor, useSession } from "@/features/auth";
 import { noticeTargetRoute, useMarkRead } from "@/features/news";
 import { logger } from "@/lib";
 
 /**
- * Opens the screen a tapped push points at, once per tap. On a cold start it waits until the
- * session's role is known. A push meant for someone else (an account signed in on this phone
- * before) or one it can't read opens the role's Home and marks nothing; an overnight summary
- * opens News and leaves its notices unread; a notice is marked read and opened like the inbox.
+ * Opens the screen a tapped push points at, once per tap.
+ * - Cold start: waits while the session is loading and until the navigator is ready, then
+ *   navigates on the next tick, after the role layouts' redirects.
+ * - A tap while signed out (or unreachable) is dropped, never replayed after the next sign-in.
+ * - A push meant for someone else (an account signed in on this phone before) or one it can't
+ *   read goes to the role's Home and marks nothing; an overnight summary opens News and leaves its
+ *   notices unread; a notice is marked read and opened like the inbox.
+ * - The handled response is cleared, so a recreated app doesn't open it again.
  */
 export function usePushTaps(): void {
   const response = Notifications.useLastNotificationResponse();
   const { status, userId } = useSession();
   const router = useRouter();
-  const markRead = useMarkRead();
+  const navigatorReady = Boolean(useRootNavigationState()?.key);
+  const { mutate: markRead } = useMarkRead();
+  const markReadRef = useRef(markRead);
   const handled = useRef(new Set<string>());
-  const role = status === "child" || status === "parent" ? status : undefined;
 
   useEffect(() => {
-    if (!response || !role || !userId) return;
+    markReadRef.current = markRead;
+  }, [markRead]);
+
+  useEffect(() => {
+    if (!response || status === "loading") return;
     const id = response.notification.request.identifier;
     if (handled.current.has(id)) return;
+    const role = status === "child" || status === "parent" ? status : undefined;
+    if (!role || !userId) {
+      handled.current.add(id);
+      Notifications.clearLastNotificationResponse();
+      return;
+    }
+    if (!navigatorReady) return;
     handled.current.add(id);
+    Notifications.clearLastNotificationResponse();
 
     const parsed = pushDataSchema.safeParse(response.notification.request.content.data);
-    if (!parsed.success || parsed.data.recipientId !== userId) {
-      router.push(homeFor(role));
-      return;
-    }
-    const data = parsed.data;
-    if (data.kind === "summary") {
-      router.push("/(child)/(tabs)/news");
-      return;
-    }
-    markRead.mutate([data.noticeId], {
-      onError: (error) =>
-        logger.warn("Could not save notice as read", {
-          error: error instanceof Error ? error.name : "unknown",
-        }),
-    });
-    router.push(noticeTargetRoute(data.target, role));
-  }, [response, role, userId, router, markRead]);
+    // Not cancelled on re-render: the tap is already marked handled, so it must still navigate.
+    setTimeout(() => {
+      if (!parsed.success || parsed.data.recipientId !== userId) {
+        router.navigate(homeFor(role));
+        return;
+      }
+      const data = parsed.data;
+      if (data.kind === "summary") {
+        router.push("/(child)/(tabs)/news");
+        return;
+      }
+      markReadRef.current([data.noticeId], {
+        onError: (error) =>
+          logger.warn("Could not save notice as read", {
+            error: error instanceof Error ? error.name : "unknown",
+          }),
+      });
+      router.push(noticeTargetRoute(data.target, role));
+    }, 0);
+  }, [response, status, userId, navigatorReady, router]);
 }

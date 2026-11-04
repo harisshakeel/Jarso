@@ -22,10 +22,14 @@ export function pushPresentation(
   return { ...HIDDEN, shouldShowList: true };
 }
 
-/** Wires `pushPresentation` into expo-notifications for the user signed in at arrival. */
-export function installForegroundHandler(getUserId: () => string | undefined): void {
+/**
+ * Wires `pushPresentation` into expo-notifications for the user signed in at arrival. Returns
+ * the uninstall function.
+ */
+export function installForegroundHandler(getUserId: () => string | undefined): () => void {
   Notifications.setNotificationHandler({
     handleNotification: async (notification) =>
       pushPresentation(notification.request.content.data, getUserId()),
   });
+  return () => Notifications.setNotificationHandler(null);
 }
