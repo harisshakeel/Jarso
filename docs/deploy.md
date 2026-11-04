@@ -29,6 +29,7 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `PAYMENTS_ALLOW_FAKE` | unset | — | Turns the fake card provider on, for tests and local runs. Ignored on Vercel production. |
 | `STRIPE_SECRET_KEY` | `sk_test_…` (sensitive) | same | Card handover (ADR 0013, 0014). Stripe is on when both Stripe keys are set. Test keys only: a live key fails validation. |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…` (sensitive) | same | The signing secret of the dashboard endpoint below (not the `stripe listen` one). |
+| `STRIPE_PUBLISHABLE_KEY` | `pk_test_…` | same | Optional. The phone's native card sheet opens with it; the API sends it in the `/api/v1/payments/in-app` and auto-charge responses (never an `EXPO_PUBLIC_*` var). Unset: Stripe is web-only and the phone shows no Stripe button. Test keys only. |
 | `RAZORPAY_KEY_ID` | `rzp_test_…` (sensitive) | same | Razorpay is on when all three Razorpay keys are set. Test mode only: a live key id fails validation. INR families only. |
 | `RAZORPAY_KEY_SECRET` | test key secret (sensitive) | same | Server only. |
 | `RAZORPAY_WEBHOOK_SECRET` | the secret you type into the dashboard webhook (sensitive) | same | Razorpay chooses no format; use a long random value. |
@@ -92,8 +93,11 @@ Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no r
    - `payment_intent.succeeded`
    - `payment_intent.payment_failed`
    - `payment_intent.requires_action`
+   - `payment_intent.canceled` (an in-app payment Jarso cancelled on expiry or Cancel)
+   - `setup_intent.succeeded` (a card saved in the phone's sheet)
 
    Copy the endpoint's signing secret (`whsec_…`) into `STRIPE_WEBHOOK_SECRET`.
+3. For the phone (ADR 0018): copy the publishable key (`pk_test_…`) into `STRIPE_PUBLISHABLE_KEY`. Existing endpoints need the two new events above added.
 
 **Razorpay (test mode, INR).**
 
@@ -146,6 +150,7 @@ Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no r
 - [ ] Stripe dashboard → Webhooks (or Razorpay dashboard → Webhooks): the endpoint shows 2xx for each event.
 - [ ] Razorpay only (INR family, test mode): pay now opens a card-only Payment Link and the jars fill after the webhook. Save a card on `/parent/payments/razorpay` (one of the test cards in Razorpay's documentation); closing Checkout returns to the allowance screen with nothing saved, completing it shows the card (brand, last 4). An auto charge shows "card payment in progress" and resolves by webhook, up to about 36 h later.
 - [ ] Two providers on: with Stripe's card saved and auto charge on, save a Razorpay card too. Removing one card turns off only the toggles that use it.
+- [ ] Phone (development build, ADR 0018): hand over by card in the native sheet with `4242 4242 4242 4242` and with `4000 0027 6000 3184` (3-D Secure returns to the app); close the sheet early and see "Card payment in progress", then Cancel; turn auto charge on with no saved card and save one. The device list is in `tasks/todo.md`.
 
 ## Supabase auth settings for production
 
