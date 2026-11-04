@@ -23,7 +23,7 @@ async function AllowanceContent({ params }: { params: Promise<{ childId: string 
   return (
     <PageShell
       title="Allowance"
-      back={{ href: routes.parentChild(childId), label: child.nickname }}
+      back={{ href: routes.parentChildMoney(childId), label: child.nickname }}
     >
       {running ? (
         <>

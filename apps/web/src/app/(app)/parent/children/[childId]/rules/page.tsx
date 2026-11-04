@@ -17,7 +17,7 @@ async function RulesContent({ params }: { params: Promise<{ childId: string }> }
   return (
     <>
       <PageHeader
-        back={<BackLink href={routes.parentChild(childId)}>{child.nickname}</BackLink>}
+        back={<BackLink href={routes.parentChildMoney(childId)}>{child.nickname}</BackLink>}
         title={rulesCopy.title}
         description={rulesCopy.intro(child.nickname)}
       />

@@ -16,7 +16,7 @@ import {
 import { getSchedule, listDue, listGifts } from "@/features/allowance/server";
 import { GuideCard } from "@/features/guide";
 import { countFlaggedChats, getGuideAccess } from "@/features/guide/server";
-import { LearningSummaryCard } from "@/features/learning";
+import { CompletedMissions, LearningSummaryCard, SkillList } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { Jars, RecentHistory } from "@/features/ledger";
 import { getHistory, getJars } from "@/features/ledger/server";
@@ -30,14 +30,15 @@ export const metadata: Metadata = { title: "Your child" };
 
 const back = { href: routes.parent, label: "Your family" };
 
-const tabValues = ["money", "learning", "jarso"] as const;
-const paramsSchema = z.object({ tab: z.enum(tabValues).catch("money") });
+const tabValues = ["learning", "money", "jarso"] as const;
+const paramsSchema = z.object({ tab: z.enum(tabValues).catch("learning") });
 
 type Props = PageProps<"/parent/children/[childId]">;
 
 /**
- * One child, in three tabs so nothing stacks eight deep: Money (jars, what needs you, the
- * allowance, rules and gifts, the recent story), Learning, and Jarso.
+ * One child, in three tabs so nothing stacks eight deep: Learning first (since 2026-11-04: the
+ * week, the lessons and how they went, skills), then Money (jars, what needs you, the allowance,
+ * rules and gifts, the recent story) and Jarso. Money flows come back to the Money tab.
  */
 async function ChildContent({ params, searchParams }: Props) {
   const [{ childId }, { tab }] = await Promise.all([
@@ -113,8 +114,8 @@ async function ChildContent({ params, searchParams }: Props) {
         label={`${child.nickname}'s sections`}
         defaultValue={tab}
         tabs={[
-          { value: "money", label: "Money", content: moneyTab },
           { value: "learning", label: "Learning", content: learningTab },
+          { value: "money", label: "Money", content: moneyTab },
           { value: "jarso", label: "Jarso", content: jarsoTab },
         ]}
       />
@@ -149,16 +150,22 @@ async function ChildRequests({
   }
 }
 
-/** Learning streams on its own and hides itself on error, so money stays visible. */
+/** Learning streams on its own and hides itself on error, so the other tabs still work. */
 async function ChildLearning({ childId, nickname }: { childId: string; nickname: string }) {
   try {
     const learning = await getLearningOverview(childId);
     return (
-      <LearningSummaryCard
-        overview={learning}
-        nickname={nickname}
-        href={routes.parentChildLearning(childId)}
-      />
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <div className="grid gap-6">
+          <LearningSummaryCard
+            overview={learning}
+            nickname={nickname}
+            href={routes.parentChildLearning(childId)}
+          />
+          <CompletedMissions completed={learning.completed} />
+        </div>
+        <SkillList progress={learning.skills} heading="Skills" />
+      </div>
     );
   } catch (error) {
     unstable_rethrow(error);

@@ -93,6 +93,8 @@ test.beforeAll(async ({ browser }) => {
   await expect(page).toHaveURL(/\/parent\/children\/[0-9a-f-]+$/);
   childPath = new URL(page.url()).pathname;
   managePath = `${childPath}/allowance`;
+  // The child's page opens on Learning; the allowance is on the Money tab.
+  await page.getByRole("tab", { name: "Money" }).click();
   await expect(
     page.getByRole("region", { name: "Allowance", exact: true }).getByText("No allowance yet"),
   ).toBeVisible();
@@ -273,16 +275,16 @@ test("Home lists what needs the parent; handing over lands on the child page", a
   await expect(page.getByRole("link", { name: "Sam", exact: true })).toBeVisible();
 });
 
-test("Allowance tab lists each child and Manage opens the manage page", async () => {
+test("Money tab lists each child's allowance and Manage opens the manage page", async () => {
   const nav = page.getByRole("navigation", { name: "Parent" });
-  await nav.getByRole("link", { name: "Allowance" }).click();
+  await nav.getByRole("link", { name: "Money" }).click();
   await expect(page).toHaveURL(at("/parent/allowance"));
-  await expect(nav.getByRole("link", { name: "Allowance" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(nav.getByRole("link", { name: "Money" })).toHaveAttribute("aria-current", "page");
 
-  const row = page.getByRole("listitem").filter({ hasText: "Sam" });
+  const row = page
+    .getByRole("region", { name: "Allowances" })
+    .getByRole("listitem")
+    .filter({ hasText: "Sam" });
   await expect(row.getByText(/^US\$500\.00 every \w+day\./)).toBeVisible();
   await row.getByRole("link", { name: "Manage Sam's allowance" }).click();
   await expect(page).toHaveURL(at(managePath));

@@ -92,6 +92,7 @@ exports[`parent allowance copy > keeps every line 1`] = `
     "due": [Function],
     "handOver": "Hand over",
     "handOverLabel": [Function],
+    "late": [Function],
     "title": "Needs you",
     "waiting": " waiting",
   },

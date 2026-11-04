@@ -164,13 +164,21 @@ Design at 360 px first, then 768 and 1024. Single column on phones; parent scree
 
 | Child | Parent |
 | --- | --- |
-| Home · Diary · Learn · Jarso · News | Home · Children · Allowance · Jarso · Inbox |
+| Home · Diary · Learn · Jarso · News | Home · Children · Money · Jarso · Inbox |
 
 Tab bar height 64 px plus the safe-area inset, icons 24 px, labels 12 px 600, active tab primary with a filled icon. The Inbox tab shows a count badge in gold with ink text. Family settings live under the parent's Home.
 
 **Header**: 56 px, the mark and name on the left (a link to the landing page), the light/dark switch and an icon-only Log out on the right, nothing else. From 1024 px the left rail ends with Settings ("Me" for a child) and, at its foot, the signed-in person's avatar (their initial in a teal disc) with their first name, opening Settings. On phones the avatar is not shown; Settings is reached from the tab bar's Me/Settings item. No hamburger, no sign out: that lives in Settings ("Done for now?"), so a child never has a destructive button a thumb away from Home. The light/dark toggle lives in Settings ("Looks") and on the signed-out pages.
 
 **Page rhythm**: title, one primary card (balance, due allowance, next step), then lists. The first thing on every Home is the next step (FR12): a mission, a due handover, a pending request.
+
+**Learning first (2026-11-04).** Learning leads on both Homes; money in detail has its own place.
+- *Child Home*: the next step across the top with the child's points and days in a row, then the jars beside today's plan, pending purchases and the goal, and how the jars moved at the foot.
+- *Parent Home*, one screen and no scrolling: "This week's learning" (one compact card per child: the name as a heading and link, points and days in a row as chips, the week in a line, the last lesson with how it went, what's next, and one "Add a child" link), then Needs you as compact rows (child · what, due date and "5 days ago" in gold text, amount, Hand over; at most five, then "and N more" to Money; never "overdue"), requests and limit notices, then Jarso's summary.
+- *Jarso's summary*: a plain card (hairline border, card surface), Jarso's small face beside the heading "Jarso's summary", two or three sentences at body size kept to 68 characters a line, and a muted note under it that it was written by AI. It talks about the children's learning first, then anything waiting; never a bright banner.
+- *Children*: one panel per child about learning (week, next, skills, practice or check-in, the last three lessons with how each went), Spend and Save in one line at the foot, Send a note.
+- *Money* (the tab at `/parent/allowance`): the week in three figures, each child's allowance, then the filter, the money chart, totals, Worth knowing, spending by category, the next two weeks and recent activity.
+- *A child's page* opens on Learning (summary, lessons done, skills), then Money and Jarso; money flows (handovers, gifts, the allowance, rules) return to its Money tab.
 
 Installable as a PWA later in the pilot: respect `env(safe-area-inset-*)`, use the mark for icons, keep the tab bar fixed.
 

@@ -33,6 +33,8 @@ export const needsYouCopy = {
   handOver: "Hand over",
   handOverLabel: (kind: "allowance" | "gift", nickname: string, day: string) =>
     `Hand over ${kind} to ${nickname}, due ${day}`,
+  /** How long a handover has waited, said plainly: never "overdue" or "missed". */
+  late: (days: number) => (days === 1 ? "1 day ago" : `${days} days ago`),
 } as const;
 
 /** The due and coming-up lists on the child page. */

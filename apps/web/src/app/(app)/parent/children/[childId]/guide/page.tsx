@@ -23,7 +23,7 @@ async function GuideContent({ params }: { params: Promise<{ childId: string }> }
     <PageShell
       title={parentPageCopy.chats(child.nickname)}
       intro={parentPageCopy.chatsIntro}
-      back={{ href: routes.parentChild(childId), label: child.nickname }}
+      back={{ href: routes.parentChildJarso(childId), label: child.nickname }}
     >
       {access.configured ? (
         <section className="rounded-xl bg-card p-5 shadow-rest">

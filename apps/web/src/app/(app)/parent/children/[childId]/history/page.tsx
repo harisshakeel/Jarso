@@ -26,7 +26,7 @@ async function HistoryContent({ params, searchParams }: Props) {
   return (
     <PageShell
       title={parentPageCopy.history(child.nickname)}
-      back={{ href: routes.parentChild(childId), label: child.nickname }}
+      back={{ href: routes.parentChildMoney(childId), label: child.nickname }}
     >
       <WhereItWentCard view={whereItWent(week, today, currency, { showMinor: "always" })} />
       <HistoryList

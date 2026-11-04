@@ -17,7 +17,7 @@ import { getChildNickname, requireRole } from "@/features/family/server";
 import { GoalCard } from "@/features/goals";
 import { getGoalView } from "@/features/goals/server";
 import { allowancePlan } from "@/features/guide";
-import { chooseHomeStep, HomeStepCard } from "@/features/learning";
+import { chooseHomeStep, HomeStepCard, ScoreStrip } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { JarGraph, JarShelf } from "@/features/ledger";
 import { getBalanceHistory } from "@/features/ledger/server";
@@ -29,8 +29,9 @@ import { fallback, logger } from "@/lib";
 export const metadata: Metadata = { title: "Home" };
 
 /**
- * The child's Home, in the order a kid reads it: the money (jars, one gold keycap to record a
- * purchase, the allowance in a line, how the jars moved), then the one next thing and the goal.
+ * The child's Home, learning first (2026-11-04): the one next thing with points and the run,
+ * then the money (jars, one gold keycap to record a purchase, the allowance in a line), the goal,
+ * and how the jars moved.
  * Ask Jarso has its own page (the Jarso tab). The week and the
  * skills live on Learn. requireRole sends signed-out users to the PIN sign-in and parents home.
  */
@@ -58,42 +59,31 @@ async function ChildHome() {
           />
         }
       />
-      {/* Two columns from 1024 px: the money on the left (the jars as the page's hero, how they
-          moved under them), the one next thing and the goal on the right. From 1536 px the money
-          splits into its own two columns (jars | ride | next and goal) so Home fits one screen.
-          Tablets stack in the same reading order. Ask Jarso lives on its own page, the Jarso tab. */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8 2xl:grid-cols-3">
-        <div className="grid gap-6 2xl:contents">
-          <Card tone="raised" className="rise-in">
-            <CardContent>
-              <Suspense fallback={<Skeleton className="h-96" />}>
-                <HomeShelf
-                  childId={user.id}
-                  currency={family.currency}
-                  allowanceMinor={allowanceMinor}
-                  dueMinor={due.totalMinor}
-                />
-              </Suspense>
-            </CardContent>
-          </Card>
-          <Suspense fallback={<Skeleton className="h-64" />}>
-            <HomeGraph childId={user.id} currency={family.currency} />
-          </Suspense>
-        </div>
+      {/* Learning leads (2026-11-04): today's one next thing, with the child's points and run,
+          across the top. Then the jars on the left and today's plan, pending purchases and the
+          goal on the right; how the jars moved closes the page. Tablets stack in the same order.
+          Ask Jarso lives on its own page, the Jarso tab. */}
+      <Suspense fallback={<Skeleton className="h-40" />}>
+        <HomeStep childId={user.id} currency={family.currency} allowanceMinor={allowanceMinor} />
+      </Suspense>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8">
+        <Card tone="raised" className="rise-in">
+          <CardContent>
+            <Suspense fallback={<Skeleton className="h-96" />}>
+              <HomeShelf
+                childId={user.id}
+                currency={family.currency}
+                allowanceMinor={allowanceMinor}
+                dueMinor={due.totalMinor}
+              />
+            </Suspense>
+          </CardContent>
+        </Card>
         <div className="grid gap-6">
-          {/* Today's allowance plan leads the right column: a grid cell of its own at 2xl
-              would push the jars' ride out of place. */}
           <Suspense fallback={null}>
             <HomePlan childId={user.id} currency={family.currency} />
           </Suspense>
           <PendingPurchases userId={user.id} currency={family.currency} />
-          <Suspense fallback={<Skeleton className="h-40" />}>
-            <HomeStep
-              childId={user.id}
-              currency={family.currency}
-              allowanceMinor={allowanceMinor}
-            />
-          </Suspense>
           <Suspense fallback={<Skeleton className="h-56" />}>
             <HomeGoal
               childId={user.id}
@@ -103,6 +93,9 @@ async function ChildHome() {
           </Suspense>
         </div>
       </div>
+      <Suspense fallback={<Skeleton className="h-64" />}>
+        <HomeGraph childId={user.id} currency={family.currency} />
+      </Suspense>
     </>
   );
 }
@@ -135,18 +128,21 @@ async function HomeStep({
       learning: learning.nextStep,
     });
     return (
-      <HomeStepCard
-        step={step}
-        currency={currency}
-        takeOutLimitMinor={takeOutLimit(availability)}
-        goalSheet={{
-          goal: goal?.goal ?? null,
-          currency,
-          allowanceMinor,
-          saveMinor: availability.saveMinor,
-          reservedMinor: availability.reservedSaveMinor,
-        }}
-      />
+      <section aria-label="Learning today" className="grid gap-3">
+        <ScoreStrip points={learning.points} streak={learning.streak} />
+        <HomeStepCard
+          step={step}
+          currency={currency}
+          takeOutLimitMinor={takeOutLimit(availability)}
+          goalSheet={{
+            goal: goal?.goal ?? null,
+            currency,
+            allowanceMinor,
+            saveMinor: availability.saveMinor,
+            reservedMinor: availability.reservedSaveMinor,
+          }}
+        />
+      </section>
     );
   } catch (error) {
     unstable_rethrow(error);
