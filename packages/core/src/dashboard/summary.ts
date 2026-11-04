@@ -120,3 +120,92 @@ export function checkSummary(text: string, facts: SummaryFacts): boolean {
   }
   return true;
 }
+
+// Windows-1252's characters for the bytes 0x80–0x9F, where it differs from Latin-1.
+const CP1252: Record<string, number> = {
+  "€": 0x80,
+  "‚": 0x82,
+  ƒ: 0x83,
+  "„": 0x84,
+  "…": 0x85,
+  "†": 0x86,
+  "‡": 0x87,
+  ˆ: 0x88,
+  "‰": 0x89,
+  Š: 0x8a,
+  "‹": 0x8b,
+  Œ: 0x8c,
+  Ž: 0x8e,
+  "‘": 0x91,
+  "’": 0x92,
+  "“": 0x93,
+  "”": 0x94,
+  "•": 0x95,
+  "–": 0x96,
+  "—": 0x97,
+  "˜": 0x98,
+  "™": 0x99,
+  š: 0x9a,
+  "›": 0x9b,
+  œ: 0x9c,
+  ž: 0x9e,
+  Ÿ: 0x9f,
+};
+
+/** The byte a character stands for when UTF-8 was read one byte per character, or -1. */
+function byteOf(char: string): number {
+  const code = char.codePointAt(0) ?? -1;
+  return code <= 0xff ? code : (CP1252[char] ?? -1);
+}
+
+/**
+ * Text whose UTF-8 was read as Latin-1 or Windows-1252 ("â‚¹" for "₹"), put back. Only a whole,
+ * valid multi-byte sequence is changed, so "Zoë" or "£" written correctly stay as they are.
+ */
+function repairMisreadUtf8(text: string): string {
+  const chars = Array.from(text);
+  let out = "";
+  for (let i = 0; i < chars.length; i++) {
+    const lead = byteOf(chars[i] as string);
+    const extra = lead >= 0xf0 && lead <= 0xf4 ? 3 : lead >= 0xe0 ? 2 : lead >= 0xc2 ? 1 : 0;
+    if (lead < 0xc2 || lead > 0xf4) {
+      out += chars[i];
+      continue;
+    }
+    let code = lead & (extra === 3 ? 0x07 : extra === 2 ? 0x0f : 0x1f);
+    let whole = i + extra < chars.length;
+    for (let k = 1; whole && k <= extra; k++) {
+      const next = byteOf(chars[i + k] as string);
+      if (next < 0x80 || next > 0xbf) whole = false;
+      else code = (code << 6) | (next & 0x3f);
+    }
+    const lowest = extra === 3 ? 0x10000 : extra === 2 ? 0x800 : 0x80;
+    if (whole && code >= lowest && code <= 0x10ffff && (code < 0xd800 || code > 0xdfff)) {
+      out += String.fromCodePoint(code);
+      i += extra;
+    } else {
+      out += chars[i];
+    }
+  }
+  return out;
+}
+
+/** Punctuation a model writes on its own: curly quotes, dashes, an ellipsis, a no-break space. */
+const TYPOGRAPHY = "\u2018\u2019\u201c\u201d\u2013\u2014\u2026\u00a0";
+
+/**
+ * The model's summary as a parent may read it, or null: misread UTF-8 put back ("â‚¹750.00" was
+ * once shown for "₹750.00"), then `checkSummary`, and no character outside ASCII that the facts
+ * never use, so a currency sign or name can't reach the page garbled.
+ */
+export function readableSummary(text: string, facts: SummaryFacts): string | null {
+  const repaired = repairMisreadUtf8(text).trim();
+  if (!checkSummary(repaired, facts)) return null;
+  const known = new Set(
+    Array.from([...facts.lines, ...facts.names, facts.period, TYPOGRAPHY].join("")),
+  );
+  for (const char of repaired) {
+    if (char.charCodeAt(0) > 0x7f && !known.has(char)) return null;
+  }
+  return repaired;
+}
