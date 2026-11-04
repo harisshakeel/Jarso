@@ -104,7 +104,7 @@ test("parent hands over 1000 to Spend and sets a week spend limit of 500", async
     .getByRole("link", { name: /^Allowance/ })
     .click();
   await parent.getByRole("button", { name: "Confirm I handed it over" }).click();
-  await expect(parent).toHaveURL(at(childBase));
+  await expect(parent).toHaveURL(at(`${childBase}/allowance`));
   await expect(parent.getByRole("region", { name: "Spend jar" })).toContainText("US$1,000.00");
 
   await parent.goto(`${childBase}/rules`);

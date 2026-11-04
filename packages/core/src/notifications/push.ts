@@ -7,7 +7,7 @@ import type { ClaimedNotice, DevicePushPrefs, NoticeKind, PushGroup } from "./ty
 
 /**
  * The `data` of a phone push. `notice`: one notice, opened at its target and marked read on tap.
- * `summary`: a child's notices held overnight, opened in News and left unread.
+ * `summary`: a child's notices held overnight, opened in Notifications and left unread.
  */
 export type PushData =
   | {

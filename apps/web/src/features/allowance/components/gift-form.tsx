@@ -67,7 +67,7 @@ export function GiftForm({
             amount: minor === null ? undefined : formatMoney(minor, currency),
             body: allowanceCelebrationCopy.giftBody(nickname, formatDay(giveOn), giveOn <= today),
           });
-        router.push(routes.parentChildMoney(childId));
+        router.push(routes.parentAllowance(childId));
       }
       return result;
     },
@@ -127,7 +127,7 @@ export function GiftForm({
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link
-          href={routes.parentChildMoney(childId)}
+          href={routes.parentAllowance(childId)}
           className={buttonVariants({ variant: "outline", size: "lg" })}
         >
           {giftCopy.back}
@@ -163,7 +163,7 @@ export function CancelGiftForm({
       start(() => {
         if (result.ok) {
           toast.success(giftCopy.cancelled);
-          router.push(routes.parentChildMoney(childId));
+          router.push(routes.parentAllowance(childId));
         } else {
           setError(result.error);
         }

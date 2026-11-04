@@ -91,7 +91,7 @@ export function HandoverForm({
       if (result.ok) {
         if (result.data === "confirmed") coinToast(handoverCopy.handedOver(nickname));
         else toast.success(handoverCopy.alreadyHandled);
-        router.push(routes.parentChildMoney(childId));
+        router.push(routes.parentAllowance(childId));
       }
       return result;
     },
@@ -251,7 +251,7 @@ export function HandoverForm({
           />
         ) : null}
         <Link
-          href={routes.parentChildMoney(childId)}
+          href={routes.parentAllowance(childId)}
           className={buttonVariants({ variant: "ghost", size: "lg" })}
         >
           {handoverCopy.back}
@@ -291,7 +291,7 @@ function NotGivenButton({
           toast.success(
             result.data === "closed" ? handoverCopy.markedNotGiven : handoverCopy.alreadyHandled,
           );
-          router.push(routes.parentChildMoney(childId));
+          router.push(routes.parentAllowance(childId));
         } else {
           setError(result.error);
         }

@@ -26,10 +26,10 @@ let allowancePath = "";
 let childBase = "";
 
 async function handOver(link: RegExp): Promise<void> {
-  await parent.goto(`${childBase}?tab=money`);
+  await parent.goto(`${childBase}/allowance`);
   await parent.getByRole("region", { name: "Due now" }).getByRole("link", { name: link }).click();
   await parent.getByRole("button", { name: "Confirm I handed it over" }).click();
-  await expect(parent).toHaveURL(at(childBase));
+  await expect(parent).toHaveURL(at(`${childBase}/allowance`));
 }
 
 test.beforeAll(async ({ browser }) => {

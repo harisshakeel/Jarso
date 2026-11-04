@@ -128,6 +128,8 @@ export const allowanceFormCopy = {
 
 /** The allowance card on the child page and the manage page's summary. */
 export const allowanceSummaryCopy = {
+  /** On the child's Money tab, when handovers wait on their Allowance page. */
+  dueWaiting: (n: number) => (n === 1 ? "1 handover is due" : `${n} handovers are due`),
   title: "Allowance",
   manage: "Manage",
   setUp: "Set up allowance",

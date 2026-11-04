@@ -13,16 +13,15 @@ import {
 import { FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 import { getLearningOverview } from "@/features/learning/server";
-import { getJars } from "@/features/ledger/server";
 import { SendNoteSheet } from "@/features/notifications";
-import { fallback, familyToday, logger } from "@/lib";
+import { familyToday, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Children" };
 
 /**
  * Children (learning first since 2026-11-04): one panel per child about how they are learning,
- * the week, what's next, skills and practice, and the last three lessons with how each went, with
- * Spend and Save in one line. Money for the whole family is the Money tab.
+ * the week, skills and practice, and the last three lessons with how each went. Where each child
+ * is on the road and the family's jars are on Home; money in detail is the Money tab.
  */
 async function ChildrenContent() {
   const { membership } = await requireRole("parent", routes.parentChildren);
@@ -34,30 +33,25 @@ async function ChildrenContent() {
 
   const panels = await Promise.all(
     children.map(async (child, index) => {
-      const [learning, jars] = await Promise.all([
-        getLearningOverview(child.id).catch((error: unknown) => {
-          unstable_rethrow(error);
-          logger.warn("Learning unavailable on children page", {
-            error: error instanceof Error ? error.name : typeof error,
-          });
-          return null;
-        }),
-        fallback(getJars(child.id), null, "Jars on the children page"),
-      ]);
-      return { child, slot: slotFor(index), learning, jars };
+      const learning = await getLearningOverview(child.id).catch((error: unknown) => {
+        unstable_rethrow(error);
+        logger.warn("Learning unavailable on children page", {
+          error: error instanceof Error ? error.name : typeof error,
+        });
+        return null;
+      });
+      return { child, slot: slotFor(index), learning };
     }),
   );
 
   return (
     <ul className="grid gap-5 lg:grid-cols-2 lg:items-start">
-      {panels.map(({ child, slot, learning, jars }) => (
+      {panels.map(({ child, slot, learning }) => (
         <li key={child.id} className="rise-in">
           {learning ? (
             <ChildLearningPanel
               child={{ childId: child.id, nickname: child.nickname, slot, overview: learning }}
               today={today}
-              jars={jars}
-              currency={family.currency}
               extra={<SendNoteSheet childId={child.id} nickname={child.nickname} />}
             />
           ) : (

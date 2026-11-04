@@ -120,7 +120,7 @@ export const markNotGivenAction = createAction(idSchema, async ({ id }) => {
 
 /**
  * Match their saving: the money goes into Save at once, then the parent's note (if any) goes to
- * the child's News. The note is a nice-to-have: if it fails, the money is still in, and the
+ * the child's Notifications. The note is a nice-to-have: if it fails, the money is still in, and the
  * parent is told the note didn't go.
  */
 export const matchSavingAction = createAction(

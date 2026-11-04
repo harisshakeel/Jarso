@@ -9,18 +9,14 @@ import { routes } from "@/config";
 import { AllowanceOverview } from "@/features/allowance";
 import { getSchedule, listDue } from "@/features/allowance/server";
 import {
-  ActivityList,
   CalloutsCard,
   CategoryCompare,
   ChildFilter,
   callouts,
   categoryComparison,
   categorySentence,
-  dashboardTotals,
-  FamilyTotals,
   filterHref,
   MoneyChart,
-  mergeActivity,
   moneyChart,
   moneyChartSentence,
   PeriodSwitch,
@@ -28,7 +24,6 @@ import {
   periodOf,
   scopeChildren,
   slotFor,
-  ThisWeekStrip,
   TimelineCard,
   timeline,
   windowFor,
@@ -51,10 +46,11 @@ const paramsSchema = z.object({
 });
 
 /**
- * Money (2026-11-04, the Allowance tab grown up): the week in three figures, each child's
- * allowance, then the family's money as one picture (the chart, totals, what's worth knowing,
- * spending by category, the next two weeks and recent activity) with the filter re-scoping it
- * to one child. Home keeps only what needs the parent; learning leads there and on Children.
+ * Money (2026-11-04, the Allowance tab grown up): each child's allowance in a line (each opens
+ * that child's Allowance page, where handovers, this week and gifts live), then the family's
+ * money as one picture (the chart, what's worth knowing, spending by category and what's coming
+ * up) with the filter re-scoping it to one child. Recent activity moved to Notifications
+ * (2026-11-04). Home keeps only what needs the parent; learning leads there and on Children.
  */
 async function MoneyContent({ searchParams }: Pick<Props, "searchParams">) {
   const { membership } = await requireRole("parent", routes.parentAllowanceOverview);
@@ -73,9 +69,6 @@ async function MoneyContent({ searchParams }: Pick<Props, "searchParams">) {
 
   return (
     <div className="grid gap-6">
-      <Suspense fallback={<div aria-hidden className="shimmer h-28 rounded-xl bg-muted" />}>
-        <WeekSection />
-      </Suspense>
       <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
         <AllowancesSection kids={children} currency={family.currency} />
       </Suspense>
@@ -94,13 +87,6 @@ async function MoneyContent({ searchParams }: Pick<Props, "searchParams">) {
       </Suspense>
     </div>
   );
-}
-
-/** This week in three figures: handed over, still to hand over, and the next thing coming. */
-async function WeekSection() {
-  const data = await getFamilyDashboard(7);
-  if (!data) return null;
-  return <ThisWeekStrip kids={data.children} currency={data.currency} today={data.today} />;
 }
 
 /** Each child's allowance in a line, with Manage or Set up. */
@@ -122,9 +108,9 @@ async function AllowancesSection({ kids, currency }: { kids: ChildSummary[]; cur
 }
 
 /**
- * The family's money (spec answers 2 to 9): the chart and the totals, what's worth knowing,
- * spending by category, the next two weeks and one merged activity list. Every section is
- * built from one read per child; with a child picked, every section is about them.
+ * The family's money (spec answers 2 to 9): the chart, what's worth knowing, spending by
+ * category and the next two weeks. Totals left with the Home jars (2026-11-04). Every section is built from one read per
+ * child; with a child picked, every section is about them.
  */
 async function Dashboard({
   days,
@@ -163,20 +149,13 @@ async function Dashboard({
         />
       </div>
       <div className="rise-in" style={rise(1)}>
-        <FamilyTotals
-          totals={dashboardTotals(scoped, today)}
-          currency={currency}
-          who={picked?.nickname ?? null}
-        />
-      </div>
-      <div className="rise-in" style={rise(2)}>
         <CalloutsCard
           items={callouts(scoped, window, currency)}
           currency={currency}
           period={period.now}
         />
       </div>
-      <div className="rise-in" style={rise(2)}>
+      <div className="rise-in lg:col-span-2" style={rise(2)}>
         <CategoryCompare
           rows={rows}
           days={days}
@@ -187,13 +166,6 @@ async function Dashboard({
       </div>
       <div className="rise-in" style={rise(2)}>
         <TimelineCard events={timeline(scoped, today, currency)} />
-      </div>
-      <div className="rise-in lg:col-span-2" style={rise(3)}>
-        <ActivityList
-          items={mergeActivity(scoped, 8)}
-          currency={currency}
-          seeAllHref={picked ? routes.parentChildHistory(picked.id) : null}
-        />
       </div>
     </div>
   );

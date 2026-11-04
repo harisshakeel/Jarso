@@ -36,7 +36,7 @@ exports[`dashboard copy > keeps every line 1`] = `
     "history": [Function],
     "historyEmpty": [Function],
     "historyTitle": "History",
-    "inbox": "Inbox",
+    "inbox": "Notifications",
     "learning": [Function],
     "learningIntro": "Learning progress is kept apart from money. It shows understanding, not how much is saved.",
     "lookAround": "See how the children are learning",

@@ -95,7 +95,7 @@ describe("role guards", () => {
     mockSession = { status: "unavailable", userId: "parent-1" };
     await renderApp("/inbox");
     expect(await screen.findByLabelText("Try again")).toBeOnTheScreen();
-    expect(screen.queryByText("Inbox")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Notifications")).not.toBeOnTheScreen();
   });
 
   it("lets a parent reach a parent page", async () => {

@@ -1,8 +1,8 @@
 // The inbox's words around the notices themselves (those come from `noticeText`). Both apps
 // render them; the web output is byte-identical to what its components wrote.
 export const inboxCopy = {
-  /** The child's inbox heading (the nav says "News" too). */
-  childHeading: "News",
+  /** The child's inbox heading (the nav says "Notifications" too). */
+  childHeading: "Notifications",
   markAll: "Mark all as read",
   showMore: "Show more",
   /** Read after an unread notice's title, for screen readers. */
@@ -51,8 +51,8 @@ export const noticeGroupCopy = {
   pause: { label: "Pause all", hint: "No pings on this phone until you turn them back on." },
   /** The parent's footer line (their inbox). */
   inboxStillShows: "Notices still show in your inbox.",
-  /** The child's footer line (their inbox is News). */
-  newsStillShows: "Notices still show in News.",
+  /** The child's footer line (their inbox is Notifications). */
+  newsStillShows: "Notices still show in Notifications.",
   /** The phone page's title, and its row in Settings / Me. */
   title: "Notifications",
   thisPhoneOnly: "For this phone only.",
@@ -72,5 +72,5 @@ export const noticeGroupCopy = {
 /** The single push for a child's notices held overnight (count is always 2 or more). */
 export const summaryPushCopy = {
   title: (count: number) => `You have ${count} new notices`,
-  detail: "They came in overnight. Open News to see them.",
+  detail: "They came in overnight. Open Notifications to see them.",
 } as const;

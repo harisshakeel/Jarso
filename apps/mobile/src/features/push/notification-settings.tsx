@@ -50,7 +50,7 @@ function SwitchRow({
 
 /**
  * This phone's notification settings, for a child or a parent (mockup L / M / N): "Pause all"
- * and one switch per group. Settings belong to the phone; the inbox / News still gets every
+ * and one switch per group. Settings belong to the phone; the inbox / Notifications still gets every
  * notice. A child's quiet hours are fixed, shown as a note. When Android notifications are off it
  * says so and opens the phone's settings; when this phone isn't registered, "Turn on" registers it.
  */

@@ -78,7 +78,7 @@ test.beforeAll(async ({ browser }) => {
     .getByRole("link", { name: /^Allowance/ })
     .click();
   await parent.getByRole("button", { name: "Confirm I handed it over" }).click();
-  await expect(parent).toHaveURL(at(childBase));
+  await expect(parent).toHaveURL(at(`${childBase}/allowance`));
 
   await child.goto("/sign-in/child");
   const codeField = child.getByLabel("Family code");

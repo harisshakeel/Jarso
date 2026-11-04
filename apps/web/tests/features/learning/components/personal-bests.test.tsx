@@ -21,7 +21,7 @@ const overview = (over: Partial<LearningOverview>): LearningOverview => ({
 });
 
 describe("PersonalBests", () => {
-  it("shows the child's own best mission, longest run and points", () => {
+  it("shows the child's own best mission and longest run, not the points", () => {
     render(
       <PersonalBests
         overview={overview({
@@ -52,7 +52,8 @@ describe("PersonalBests", () => {
     );
     expect(screen.getByText("Spend or save: 6 of 7 first try")).toBeInTheDocument();
     expect(screen.getByText("4 days in a row")).toBeInTheDocument();
-    expect(screen.getByText("84 points")).toBeInTheDocument();
+    // Points are in the run-and-points block, not repeated here.
+    expect(screen.queryByText("84 points")).toBeNull();
   });
 
   it("invites a first best instead of ranking anyone", () => {

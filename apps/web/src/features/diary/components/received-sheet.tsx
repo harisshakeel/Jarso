@@ -29,7 +29,7 @@ export function ReceivedSheet({ currency }: { currency: string }) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button variant="outline" size="lg" className="w-full" />}>
+      <SheetTrigger render={<Button variant="outline" size="lg" className="w-full md:w-auto" />}>
         {receivedCopy.trigger}
       </SheetTrigger>
       <SheetContent side="bottom" className="sm:mx-auto sm:w-full sm:max-w-lg">

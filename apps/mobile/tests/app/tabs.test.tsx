@@ -47,13 +47,13 @@ function renderTabs(unread = 0) {
 }
 
 describe("child tabs", () => {
-  it("are Home, Diary, Learn, Jarso and News, as on the web", async () => {
+  it("are Home, Diary, Learn, Jarso and Notifications, as on the web", async () => {
     guideState.mockResolvedValue({ available: true, introNeeded: false });
     await renderTabs();
     await waitFor(() => expect(screen.getByTestId("tab-jarso")).toHaveTextContent("Jarso"));
     expect(
-      screen.getAllByText(/^(Home|Diary|Learn|Jarso|News)/).map((t) => t.props.children),
-    ).toEqual(["Home", "Diary", "Learn", "Jarso", "News"]);
+      screen.getAllByText(/^(Home|Diary|Learn|Jarso|Notifications)/).map((t) => t.props.children),
+    ).toEqual(["Home", "Diary", "Learn", "Jarso", "Notifications"]);
     expect(guideState).toHaveBeenCalledWith("/api/v1/guide/state", { auth: true });
   });
 
@@ -79,9 +79,11 @@ describe("child tabs", () => {
     expect(screen.getByTestId("tab-jarso")).toHaveTextContent("Jarso (hidden)");
   });
 
-  it("badges News with the unread count", async () => {
+  it("badges Notifications with the unread count", async () => {
     guideState.mockResolvedValue({ available: true, introNeeded: false });
     await renderTabs(3);
-    await waitFor(() => expect(screen.getByTestId("tab-news")).toHaveTextContent("News 3"));
+    await waitFor(() =>
+      expect(screen.getByTestId("tab-news")).toHaveTextContent("Notifications 3"),
+    );
   });
 });

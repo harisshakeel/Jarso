@@ -15,7 +15,7 @@ import { actionErrorMessage, flash, useTokens } from "@/lib";
 import { dispatchNotices } from "@/lib/notices";
 import { supabase } from "@/lib/supabase/client";
 
-/** Sends a note to the child's News (`send_child_note`; a repeated key sends nothing new). */
+/** Sends a note to the child's Notifications (`send_child_note`; a repeated key sends nothing new). */
 export function useSendNote() {
   return useMutation({
     mutationFn: (input: { childId: string; text: string; idempotencyKey: string }) =>
@@ -26,7 +26,7 @@ export function useSendNote() {
 
 /**
  * "Send a note" (the web's SendNoteSheet): a short note from the parent that lands in the child's
- * News. The trigger opens a sheet; nothing is sent until the parent taps Send.
+ * Notifications. The trigger opens a sheet; nothing is sent until the parent taps Send.
  */
 export function SendNoteSheet({ childId, nickname }: { childId: string; nickname: string }) {
   const tokens = useTokens();

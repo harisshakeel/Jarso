@@ -154,7 +154,7 @@ describe("setup gate", () => {
     (findParentDetails as jest.Mock).mockResolvedValue(null);
     await renderApp("/inbox");
     expect(await screen.findByText(profileCopy.completeTitle)).toBeOnTheScreen();
-    expect(screen.queryByText("Inbox")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Notifications")).not.toBeOnTheScreen();
     expect(screen).toHavePathname("/setup");
   });
 

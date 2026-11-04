@@ -10,9 +10,13 @@ import { mergeDue, NeedsYou } from "@/features/allowance";
 import { listDue } from "@/features/allowance/server";
 import {
   type ChildLearning,
+  FamilyGoalsCard,
+  FamilyJarsCard,
+  FamilyRoadCard,
   FamilySummary,
   FamilySummarySkeleton,
-  HomeLearning,
+  familyRoad,
+  goalPlace,
   homeSummaryFacts,
   parentPageCopy,
   slotFor,
@@ -20,13 +24,13 @@ import {
 import { getFamilyDashboard } from "@/features/dashboard/server";
 import { type ChildSummary, FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
+import { getGoalView } from "@/features/goals/server";
 import { isGuideConfigured, writeFamilySummary } from "@/features/guide/server";
 import { getLearningOverview } from "@/features/learning/server";
-import { type Notice, UnreadNotices } from "@/features/notifications";
-import { listUnreadNotices } from "@/features/notifications/server";
+import { getJars } from "@/features/ledger/server";
 import { ParentRequestItems, RequestsUnavailable, settleRequestReads } from "@/features/requests";
 import { listRequestsNeedingParent } from "@/features/requests/server";
-import { familyToday, logger } from "@/lib";
+import { fallback, familyToday, logger } from "@/lib";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -36,10 +40,10 @@ const HOME_DUE_LIMIT = 5;
 type Kid = ChildSummary & { slot: number };
 
 /**
- * The parent's Home (learning first since 2026-11-04), on one screen: each child's learning this
- * week (the newest lesson and how it went, what's next), then what waits on the parent, then
- * Jarso's few sentences about the week. Money in detail is the Money tab; each child in depth is
- * the Children tab.
+ * The parent's Home (learning first since 2026-11-04): the lesson road with every child standing
+ * on their mission and their newest lesson, the family's jars and goals side by side, what waits
+ * on the parent (handovers and requests; limit notices are in Notifications), and Jarso's few
+ * sentences about the week. Money in detail is the Money tab; each child is on Children.
  */
 async function ParentHome() {
   const { membership } = await requireRole("parent", routes.parent);
@@ -50,26 +54,19 @@ async function ParentHome() {
   const today = familyToday(family.timezone);
   const kids: Kid[] = children.map((child, index) => ({ ...child, slot: slotFor(index) }));
 
-  // Limit notices are the parent's own rows; a failed read leaves them out, never the page.
-  const notices = listUnreadNotices(["limit_exceeded"]).catch((error: unknown) => {
-    unstable_rethrow(error);
-    logger.warn("Limit notices unavailable", { error: errorName(error) });
-    return [] as Notice[];
-  });
-
   return (
     <div className="grid gap-6">
-      <Suspense fallback={<LearningSkeleton count={kids.length} />}>
-        <LearningSection kids={kids} today={today} />
+      <Suspense fallback={<div aria-hidden className="shimmer h-44 rounded-xl bg-muted" />}>
+        <RoadSection kids={kids} />
+      </Suspense>
+      <Suspense fallback={<BoardSkeleton />}>
+        <BoardSection kids={kids} currency={family.currency} />
       </Suspense>
       <Suspense fallback={<div aria-hidden className="shimmer h-24 rounded-xl bg-muted" />}>
-        <NeedsYouSection kids={kids} notices={notices} currency={family.currency} today={today} />
+        <NeedsYouSection kids={kids} currency={family.currency} today={today} />
       </Suspense>
       <Suspense fallback={null}>
         <RequestsSection kids={kids} currency={family.currency} />
-      </Suspense>
-      <Suspense fallback={null}>
-        <NoticesSection notices={notices} kids={kids} currency={family.currency} />
       </Suspense>
       {isGuideConfigured() ? (
         <Suspense fallback={<FamilySummarySkeleton />}>
@@ -100,31 +97,58 @@ async function readLearning(kids: Kid[]) {
   return { items, unavailable };
 }
 
-async function LearningSection({ kids, today }: { kids: Kid[]; today: string }) {
+/**
+ * The seven missions left to right, each child standing on theirs, and under it each child's
+ * place and their newest lesson with how it went (the learning cards, folded in on 2026-11-04).
+ */
+async function RoadSection({ kids }: { kids: Kid[] }) {
   const { items, unavailable } = await readLearning(kids);
-  return <HomeLearning items={items} unavailable={unavailable} today={today} />;
+  return <FamilyRoadCard road={familyRoad(items)} unavailable={unavailable} />;
 }
 
 /**
- * Everything due across the family, oldest first, at most a few; requests and limit notices
- * count here so "All caught up." only shows when nothing waits. With nothing waiting, the quiet
- * line and the way to Children.
+ * The family's Spend and Save jars (everyone, or one child) beside the goal track. A child whose
+ * jars or goal can't be read is left out of that card, never the page.
+ */
+async function BoardSection({ kids, currency }: { kids: Kid[]; currency: string }) {
+  const rows = await Promise.all(
+    kids.map(async (kid) => {
+      const who = { childId: kid.id, nickname: kid.nickname, slot: kid.slot };
+      const [jars, goal] = await Promise.all([
+        fallback(getJars(kid.id), null, "Jars on parent home"),
+        fallback(getGoalView(kid.id), null, "Goal on parent home"),
+      ]);
+      return { who, jars, goal };
+    }),
+  );
+  return (
+    <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      <FamilyJarsCard rows={rows.map(({ who, jars }) => ({ ...who, jars }))} currency={currency} />
+      <FamilyGoalsCard
+        places={rows.map(({ who, goal }) => goalPlace(who, goal))}
+        currency={currency}
+      />
+    </div>
+  );
+}
+
+/**
+ * Everything due across the family, oldest first, at most a few; requests count here so "All
+ * caught up." only shows when nothing waits. With nothing waiting, the quiet line and the way
+ * to Children.
  */
 async function NeedsYouSection({
   kids,
-  notices,
   currency,
   today,
 }: {
   kids: Kid[];
-  notices: Promise<Notice[]>;
   currency: string;
   today: string;
 }) {
-  const [perChild, requests, unread] = await Promise.all([
+  const [perChild, requests] = await Promise.all([
     Promise.all(kids.map(async (child) => ({ child, due: await listDue(child.id) }))),
     Promise.allSettled(kids.map((child) => listRequestsNeedingParent(child.id))),
-    notices,
   ]);
   const waitingRequests = requests.reduce(
     (sum, result) => sum + (result.status === "fulfilled" ? result.value.length : 0),
@@ -133,15 +157,10 @@ async function NeedsYouSection({
   const due = mergeDue(perChild);
   const shown = due.slice(0, HOME_DUE_LIMIT);
   const more = due.length - shown.length;
-  const waiting = due.length + waitingRequests + unread.length;
+  const waiting = due.length + waitingRequests;
   return (
     <div className="grid gap-3">
-      <NeedsYou
-        items={shown}
-        currency={currency}
-        otherCount={waitingRequests + unread.length}
-        today={today}
-      />
+      <NeedsYou items={shown} currency={currency} otherCount={waitingRequests} today={today} />
       {more > 0 ? (
         <Link
           href={routes.parentAllowanceOverview}
@@ -162,21 +181,6 @@ async function NeedsYouSection({
       ) : null}
     </div>
   );
-}
-
-/** Unread limit notices; View marks each read. */
-async function NoticesSection({
-  notices,
-  kids,
-  currency,
-}: {
-  notices: Promise<Notice[]>;
-  kids: Kid[];
-  currency: string;
-}) {
-  const ids = new Set(kids.map((child) => child.id));
-  const items = (await notices).filter((notice) => ids.has(notice.childId));
-  return <UnreadNotices items={items} currency={currency} />;
 }
 
 /** Take-outs and put-ins waiting on a parent. A child whose read fails gets a calm line; the rest still show. */
@@ -215,13 +219,11 @@ function errorName(error: unknown): string {
   return error instanceof Error ? error.name : typeof error;
 }
 
-function LearningSkeleton({ count }: { count: number }) {
+function BoardSkeleton() {
   return (
-    <div aria-hidden className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {Array.from({ length: Math.min(count, 3) }, (_, index) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: placeholders with nothing else to key on
-        <div key={index} className="shimmer h-36 rounded-xl bg-muted" />
-      ))}
+    <div aria-hidden className="grid gap-6 lg:grid-cols-2">
+      <div className="shimmer h-64 rounded-xl bg-muted" />
+      <div className="shimmer h-64 rounded-xl bg-muted" />
     </div>
   );
 }
@@ -229,7 +231,7 @@ function LearningSkeleton({ count }: { count: number }) {
 function HomeSkeleton() {
   return (
     <div aria-hidden className="grid gap-6">
-      <LearningSkeleton count={2} />
+      <div className="shimmer h-44 rounded-xl bg-muted" />
       <div className="shimmer h-24 rounded-xl bg-muted" />
       <div className="shimmer h-28 rounded-xl bg-muted" />
     </div>

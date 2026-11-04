@@ -100,7 +100,7 @@ export function pushPayload(claimed: ClaimedNotice): string {
   });
 }
 
-/** The web payload for a child's overnight summary: opens News, marks nothing read. */
+/** The web payload for a child's overnight summary: opens Notifications, marks nothing read. */
 function summaryPayload(recipientId: string, count: number): string {
   const text = summaryPushText(count);
   return JSON.stringify({

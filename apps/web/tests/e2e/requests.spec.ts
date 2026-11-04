@@ -117,7 +117,7 @@ test("parent hands over 3000 and keeps 2000 in Save", async () => {
     .click();
   await parent.getByLabel("Save (you keep)", { exact: true }).fill("2000");
   await parent.getByRole("button", { name: "Confirm I handed it over" }).click();
-  await expect(parent).toHaveURL(at(childBase));
+  await expect(parent).toHaveURL(at(`${childBase}/allowance`));
   await expect(parent.getByRole("region", { name: "Save jar" })).toContainText("US$2,000.00");
   await expect(parent.getByRole("region", { name: "Spend jar" })).toContainText("US$1,000.00");
 });

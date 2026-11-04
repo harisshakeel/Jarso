@@ -24,7 +24,7 @@ async function NewGiftContent({
     <PageShell
       title={parentPageCopy.giftFor(child.nickname)}
       intro={parentPageCopy.giftNewIntro}
-      back={{ href: routes.parentChildMoney(childId), label: child.nickname }}
+      back={{ href: routes.parentAllowance(childId), label: `${child.nickname}'s allowance` }}
     >
       <GiftForm
         childId={childId}

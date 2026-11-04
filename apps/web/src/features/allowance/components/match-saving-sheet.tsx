@@ -32,7 +32,7 @@ type MatchSavingSheetProps = {
 
 /**
  * "Match it" (parent dashboard, spec answer 8): the parent adds the same as the child saved to
- * their Save, recorded at once as a gift handed over, with an optional note for their News.
+ * their Save, recorded at once as a gift handed over, with an optional note for their Notifications.
  */
 export function MatchSavingSheet({ className, ...props }: MatchSavingSheetProps) {
   const [open, setOpen] = useState(false);
@@ -114,7 +114,7 @@ function MatchForm({
         maxLength={NOTE_MAX}
         value={message}
         onChange={(event) => setMessage(event.target.value)}
-        description="It shows in their News."
+        description="It shows in their Notifications."
         errors={fieldErrors?.message}
       />
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />

@@ -12,8 +12,8 @@ import { logger } from "@/lib";
  *   navigates on the next tick, after the role layouts' redirects.
  * - A tap while signed out (or unreachable) is dropped, never replayed after the next sign-in.
  * - A push meant for someone else (an account signed in on this phone before) or one it can't
- *   read goes to the role's Home and marks nothing; an overnight summary opens News and leaves its
- *   notices unread; a notice is marked read and opened like the inbox.
+ *   read goes to the role's Home and marks nothing; an overnight summary opens Notifications and leaves
+ *   its notices unread; a notice is marked read and opened like the inbox.
  * - The handled response is cleared, so a recreated app doesn't open it again.
  */
 export function usePushTaps(): void {

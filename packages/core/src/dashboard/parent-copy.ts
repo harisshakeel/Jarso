@@ -34,7 +34,7 @@ export const parentPageCopy = {
   stillDue: "Still to hand over",
   nextUp: "Next up",
   nothingComing: "Nothing in the next two weeks",
-  inbox: "Inbox",
+  inbox: "Notifications",
   allowance: "Allowance",
   /** The money tab (2026-11-04): allowances, the chart, spending and activity in one place. */
   money: "Money",
