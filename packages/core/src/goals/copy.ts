@@ -59,6 +59,11 @@ export const goalCopy = {
     /** "Up to ₹50 from each allowance." `amount` is already formatted. */
     planHint: (amount: string) => `Up to ${amount} from each allowance.`,
     submit: "Save my goal",
+    /** The success dialog after a new goal; `target` is already formatted. */
+    setTitle: "Goal set!",
+    setDone: "Let's go",
+    setBody: (name: string, target: string) =>
+      `Saving ${target} for ${name}. Every bit in Save gets you closer.`,
   },
   newGoal: {
     trigger: "Start a new goal",

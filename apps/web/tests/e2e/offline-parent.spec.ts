@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, expectSetupPage } from "./helpers";
+import { closeCelebration, completeParentProfile, expectSetupPage } from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Online-only parent actions refuse cleanly while offline, against LOCAL Supabase. */
@@ -55,6 +55,7 @@ test.beforeAll(async ({ browser }) => {
   await parent.getByLabel("Amount").fill("100");
   await parent.getByRole("group").getByText("Weekly", { exact: true }).click();
   await parent.getByRole("button", { name: "Save allowance" }).click();
+  await closeCelebration(parent);
   await expect(dueNow()).toBeVisible();
 });
 

@@ -1,6 +1,11 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
+import {
+  closeCelebration,
+  completeParentProfile,
+  expectSetupPage,
+  readFamilyCode,
+} from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /**
@@ -105,6 +110,7 @@ test("parent hands over 3000 and keeps 2000 in Save", async () => {
   await parent.getByLabel("Amount").fill("3000");
   await parent.getByRole("group").getByText("Weekly", { exact: true }).click();
   await parent.getByRole("button", { name: "Save allowance" }).click();
+  await closeCelebration(parent);
   await parent
     .getByRole("region", { name: "Due now" })
     .getByRole("link", { name: /^Allowance/ })
@@ -124,8 +130,10 @@ test("child takes out 500, parent approves and confirms the handover", async () 
   await parent.goto("/parent");
   const item = parent.getByRole("listitem").filter({ hasText: "Sam wants US$500.00" });
   await item.getByRole("button", { name: "Approve" }).click();
+  await closeCelebration(parent);
   const handover = parent.getByRole("listitem").filter({ hasText: "Hand over US$500.00 to Sam" });
   await handover.getByRole("button", { name: "Confirm" }).click();
+  await closeCelebration(parent);
   await expect(handover).toHaveCount(0);
 
   await parent.goto("/parent/inbox");
@@ -167,6 +175,7 @@ test("child puts in 300 and the parent confirms it", async () => {
   await parent.goto("/parent");
   const item = parent.getByRole("listitem").filter({ hasText: "Sam gave you US$300.00?" });
   await item.getByRole("button", { name: "Confirm" }).click();
+  await closeCelebration(parent);
   await expect(item).toHaveCount(0);
 
   await child.goto("/child");
@@ -204,10 +213,12 @@ test("child asks for extra money, parent approves and hands it over into Spend",
     .getByRole("listitem")
     .filter({ hasText: "Sam asks for US$150.00 extra: School trip" });
   await item.getByRole("button", { name: "Approve" }).click();
+  await closeCelebration(parent);
   const handover = parent
     .getByRole("listitem")
     .filter({ hasText: "Hand over US$150.00 extra to Sam" });
   await handover.getByRole("button", { name: "Confirm" }).click();
+  await closeCelebration(parent);
   await expect(handover).toHaveCount(0);
 
   await parent.goto("/parent/inbox");

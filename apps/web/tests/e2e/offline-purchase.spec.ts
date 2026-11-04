@@ -1,6 +1,11 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
-import { completeParentProfile, expectSetupPage, readFamilyCode } from "./helpers";
+import {
+  closeCelebration,
+  completeParentProfile,
+  expectSetupPage,
+  readFamilyCode,
+} from "./helpers";
 import { loadLocalSupabase } from "./local-supabase";
 
 /** Purchases saved on the device while offline and sent later, against LOCAL Supabase. */
@@ -67,6 +72,7 @@ test.beforeAll(async ({ browser }) => {
   await parent.getByLabel("Amount").fill("100");
   await parent.getByRole("group").getByText("Weekly", { exact: true }).click();
   await parent.getByRole("button", { name: "Save allowance" }).click();
+  await closeCelebration(parent);
   await parent
     .getByRole("region", { name: "Due now" })
     .getByRole("link", { name: /^Allowance/ })
