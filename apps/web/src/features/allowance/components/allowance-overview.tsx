@@ -1,21 +1,26 @@
 import type { Schedule } from "@jarso/core/allowance";
-import { cadenceAfterAmount, formatDay, runningSchedule } from "@jarso/core/allowance";
-import { PauseIcon, SquareIcon } from "lucide-react";
+import {
+  allowanceSummaryCopy,
+  cadenceAfterAmount,
+  formatDay,
+  runningSchedule,
+} from "@jarso/core/allowance";
+import { AlertCircleIcon, PauseIcon, SquareIcon } from "lucide-react";
 import Link from "next/link";
-import { Badge, buttonVariants, Card } from "@/components/ui";
+import { buttonVariants } from "@/components/ui";
 import { routes } from "@/config";
-import { formatMoney } from "@/lib";
+import { cn, formatMoney } from "@/lib";
 
-export type AllowanceOverviewRow = {
+type AllowanceBriefProps = {
   childId: string;
   nickname: string;
   /** The child's latest schedule (stopped included), or null. */
   schedule: Schedule | null;
   /** Handovers waiting for a parent. */
   dueCount: number;
+  currency: string;
+  className?: string;
 };
-
-type AllowanceOverviewProps = { rows: AllowanceOverviewRow[]; currency: string };
 
 /** Two beats: "£5 every Sunday. Next one 2 Nov." or what stands in its place. */
 function line(schedule: Schedule | null, currency: string): string {
@@ -36,51 +41,53 @@ function StateNote({ schedule }: { schedule: Schedule | null }) {
       : "Paused"
     : "Stopped";
   return (
-    <p className="flex items-center gap-1 text-ink-2">
+    <p className="flex items-center gap-1 text-ink-2 text-sm">
       <Icon aria-hidden className="size-4" />
       {text}
     </p>
   );
 }
 
-/** Every child's allowance at a glance (the Allowance tab): one card per child at every width. */
-export function AllowanceOverview({ rows, currency }: AllowanceOverviewProps) {
+/**
+ * A child's allowance in brief (2026-11-05, moved from Money into each child's card on
+ * Children): how much and when, a paused or stopped note, handovers waiting, and Manage (or Set
+ * up), which opens that child's Allowance page.
+ */
+export function AllowanceBrief({
+  childId,
+  nickname,
+  schedule,
+  dueCount,
+  currency,
+  className,
+}: AllowanceBriefProps) {
+  const manage = runningSchedule(schedule) !== null;
   return (
-    <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {rows.map((row) => {
-        const manage = runningSchedule(row.schedule) !== null;
-        return (
-          <li key={row.childId}>
-            <Card size="sm" className="h-full">
-              <div className="grid gap-3 px-(--card-spacing)">
-                <div className="flex items-center gap-2">
-                  <h3 className="min-w-0 flex-1 truncate text-h3">{row.nickname}</h3>
-                  {row.dueCount > 0 ? (
-                    <Badge variant="count">
-                      {row.dueCount}
-                      <span className="sr-only"> due</span>
-                    </Badge>
-                  ) : null}
-                </div>
-                <p className={manage ? "money font-semibold text-lg" : "text-ink-2 text-lg"}>
-                  {line(row.schedule, currency)}
-                </p>
-                <StateNote schedule={row.schedule} />
-                <Link
-                  href={routes.parentAllowance(row.childId)}
-                  aria-label={`${manage ? "Manage" : "Set up"} ${row.nickname}'s allowance`}
-                  className={buttonVariants({
-                    variant: manage ? "secondary" : "default",
-                    size: "lg",
-                  })}
-                >
-                  {manage ? "Manage" : "Set up"}
-                </Link>
-              </div>
-            </Card>
-          </li>
-        );
-      })}
-    </ul>
+    <section
+      aria-label={`${nickname}'s allowance`}
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-3 rounded-xl bg-muted/60 p-4",
+        className,
+      )}
+    >
+      <div className="grid min-w-0 gap-1">
+        <h4 className="font-semibold text-ink-2 text-sm">Allowance</h4>
+        <p className={manage ? "money font-semibold" : "text-ink-2"}>{line(schedule, currency)}</p>
+        <StateNote schedule={schedule} />
+        {dueCount > 0 ? (
+          <p className="flex items-center gap-1 font-semibold text-gold-text text-sm">
+            <AlertCircleIcon aria-hidden className="size-4" />
+            {allowanceSummaryCopy.dueWaiting(dueCount)}
+          </p>
+        ) : null}
+      </div>
+      <Link
+        href={routes.parentAllowance(childId)}
+        aria-label={`${manage ? "Manage" : "Set up"} ${nickname}'s allowance`}
+        className={buttonVariants({ variant: manage ? "secondary" : "default" })}
+      >
+        {manage ? "Manage" : "Set up"}
+      </Link>
+    </section>
   );
 }

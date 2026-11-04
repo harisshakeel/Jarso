@@ -117,3 +117,32 @@ export function CoachFigure({
 
 /** The coaches were jars once; callers that still say so get the kids. */
 export { CoachFigure as JarCoach };
+
+/** The box round a coach's head and shoulders, in the kid's own units. */
+const HEAD_VIEWBOX = "-60 -266 120 120";
+
+/**
+ * A coach's head and shoulders (2026-11-05), for a small round badge beside a name, where the
+ * whole kid would be too small to read. Decorative unless `label` is given.
+ */
+export function CoachHead({
+  coach,
+  size = 24,
+  label,
+  className,
+}: Omit<CoachFigureProps, "reaction">) {
+  return (
+    <svg
+      viewBox={HEAD_VIEWBOX}
+      width={size}
+      height={size}
+      role={label ? "img" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+      data-coach={coach}
+      className={cn("shrink-0 select-none", className)}
+    >
+      <KidFigure look={coachLooks[coach]} />
+    </svg>
+  );
+}

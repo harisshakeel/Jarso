@@ -41,7 +41,7 @@ exports[`dashboard copy > keeps every line 1`] = `
     "learningIntro": "Learning progress is kept apart from money. It shows understanding, not how much is saved.",
     "lookAround": "See how the children are learning",
     "money": "Money",
-    "moneyIntro": "Allowances, spending and how the jars moved, for the whole family.",
+    "moneyIntro": "Spending and how the jars moved, for the whole family.",
     "more": [Function],
     "nextUp": "Next up",
     "notGiven": "Not given",

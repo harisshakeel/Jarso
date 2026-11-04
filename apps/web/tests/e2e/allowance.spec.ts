@@ -282,18 +282,15 @@ test("Home lists what needs the parent; handing over lands on the child page", a
   await expect(page.getByRole("link", { name: "Sam", exact: true })).toBeVisible();
 });
 
-test("Money tab lists each child's allowance and Manage opens the manage page", async () => {
+test("each child's card on Children shows their allowance and Manage opens the manage page", async () => {
   const nav = page.getByRole("navigation", { name: "Parent" });
-  await nav.getByRole("link", { name: "Money" }).click();
-  await expect(page).toHaveURL(at("/parent/allowance"));
-  await expect(nav.getByRole("link", { name: "Money" })).toHaveAttribute("aria-current", "page");
+  await nav.getByRole("link", { name: "Children" }).click();
+  await expect(page).toHaveURL(at("/parent/children"));
+  await expect(nav.getByRole("link", { name: "Children" })).toHaveAttribute("aria-current", "page");
 
-  const row = page
-    .getByRole("region", { name: "Allowances" })
-    .getByRole("listitem")
-    .filter({ hasText: "Sam" });
-  await expect(row.getByText(/^US\$500\.00 every \w+day\./)).toBeVisible();
-  await row.getByRole("link", { name: "Manage Sam's allowance" }).click();
+  const brief = page.getByRole("region", { name: "Sam's allowance" });
+  await expect(brief.getByText(/^US\$500\.00 every \w+day\./)).toBeVisible();
+  await brief.getByRole("link", { name: "Manage Sam's allowance" }).click();
   await expect(page).toHaveURL(at(managePath));
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
 });

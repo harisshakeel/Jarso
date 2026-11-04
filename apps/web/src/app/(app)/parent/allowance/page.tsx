@@ -6,8 +6,6 @@ import { z } from "zod";
 import { PageContainer, PageHeader } from "@/components/layout";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
-import { AllowanceOverview } from "@/features/allowance";
-import { getSchedule, listDue } from "@/features/allowance/server";
 import {
   CalloutsCard,
   CategoryCompare,
@@ -29,7 +27,7 @@ import {
   windowFor,
 } from "@/features/dashboard";
 import { getFamilyDashboard } from "@/features/dashboard/server";
-import { type ChildSummary, FirstChildCard } from "@/features/family";
+import { FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 
 export const metadata: Metadata = { title: "Money" };
@@ -46,11 +44,11 @@ const paramsSchema = z.object({
 });
 
 /**
- * Money (2026-11-04, the Allowance tab grown up): each child's allowance in a line (each opens
- * that child's Allowance page, where handovers, this week and gifts live), then the family's
- * money as one picture (the chart, what's worth knowing, spending by category and what's coming
- * up) with the filter re-scoping it to one child. Recent activity moved to Notifications
- * (2026-11-04). Home keeps only what needs the parent; learning leads there and on Children.
+ * Money (2026-11-04, the Allowance tab grown up): the family's money as one picture (the chart,
+ * what's worth knowing, spending by category and what's coming up) with the filter re-scoping it
+ * to one child. Recent activity moved to Notifications
+ * (2026-11-04); each child's allowance moved onto their card on Children (2026-11-05). Home keeps
+ * only what needs the parent; learning leads there and on Children.
  */
 async function MoneyContent({ searchParams }: Pick<Props, "searchParams">) {
   const { membership } = await requireRole("parent", routes.parentAllowanceOverview);
@@ -69,9 +67,6 @@ async function MoneyContent({ searchParams }: Pick<Props, "searchParams">) {
 
   return (
     <div className="grid gap-6">
-      <Suspense fallback={<div aria-hidden className="shimmer h-40 rounded-xl bg-muted" />}>
-        <AllowancesSection kids={children} currency={family.currency} />
-      </Suspense>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <ChildFilter
           basePath={routes.parentAllowanceOverview}
@@ -86,24 +81,6 @@ async function MoneyContent({ searchParams }: Pick<Props, "searchParams">) {
         <Dashboard days={days} current={current} keepPeriod={keepPeriod} />
       </Suspense>
     </div>
-  );
-}
-
-/** Each child's allowance in a line, with Manage or Set up. */
-async function AllowancesSection({ kids, currency }: { kids: ChildSummary[]; currency: string }) {
-  const rows = await Promise.all(
-    kids.map(async (child) => {
-      const [schedule, due] = await Promise.all([getSchedule(child.id), listDue(child.id)]);
-      return { childId: child.id, nickname: child.nickname, schedule, dueCount: due.length };
-    }),
-  );
-  return (
-    <section aria-labelledby="allowances-title" className="grid gap-3">
-      <h2 id="allowances-title" className="text-h2">
-        {parentPageCopy.allowances}
-      </h2>
-      <AllowanceOverview rows={rows} currency={currency} />
-    </section>
   );
 }
 

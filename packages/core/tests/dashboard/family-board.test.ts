@@ -1,4 +1,5 @@
 import {
+  boardKid,
   familyBoardCopy,
   familyJars,
   familyRoad,
@@ -114,5 +115,13 @@ describe("goalPlace", () => {
   it("has no goal for a child who hasn't set one", () => {
     expect(goalPlace(who, null).goal).toBeNull();
     expect(familyBoardCopy.noGoal("Maya")).toBe("Maya hasn't set a goal yet");
+  });
+});
+
+describe("boardKid", () => {
+  it("gives each of the first four children their own kid, then comes round again", () => {
+    expect([0, 1, 2, 3].map(boardKid)).toEqual(["pip", "bo", "zuzu", "nell"]);
+    expect(boardKid(4)).toBe("pip");
+    expect(boardKid(-1)).toBe("nell");
   });
 });

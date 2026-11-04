@@ -91,7 +91,7 @@ export function learningSnapshot(overview: LearningOverview, today: string): Lea
 /** The parent's words for the learning cards. */
 export const learningCardCopy = {
   title: "This week's learning",
-  childrenIntro: "How each child is learning: lessons, how they went, and what's next.",
+  childrenIntro: "How each child is doing: their lessons, their jars and their allowance.",
   week: (days: number) =>
     days === 0 ? "No lessons yet this week" : `Learned on ${plural(days, "day")} this week`,
   streak: (days: number) => `${days} days in a row`,
