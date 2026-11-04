@@ -66,6 +66,7 @@ import { primeFilmVoice } from "./lesson-film/film-voice";
 import { LessonFilm } from "./lesson-film/lesson-film";
 import { ReadAloudButton } from "./read-aloud-button";
 import { StepInput } from "./step-inputs";
+import { StepPictureView } from "./step-pictures";
 
 export type PlayerMode =
   | { kind: "mission"; missionKey: string; attemptId: string | null; results: StepResult[] }
@@ -804,6 +805,7 @@ function StepView({
           </CoachBubble>
         </div>
 
+        <StepPictureView stepKey={item.step.key} prompt={body.prompt} currency={currency} />
         <Blackboard
           eyebrow={position}
           promptId={`${idBase}-prompt`}

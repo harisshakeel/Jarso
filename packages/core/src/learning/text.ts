@@ -10,6 +10,11 @@ export function renderText(text: string, currency: string): string {
   );
 }
 
+/** The money tokens' amounts in content text, in order, in minor units: [1400, 550]. */
+export function moneyAmounts(text: string): number[] {
+  return [...text.matchAll(MONEY_TOKEN)].map((match) => Number(match[1]));
+}
+
 /** Content text without its money tokens' markup, for word counts and plain-text checks. */
 export function plainText(text: string): string {
   return text.replace(MONEY_TOKEN, "£$1");

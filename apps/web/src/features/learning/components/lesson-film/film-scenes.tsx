@@ -37,7 +37,7 @@ function Nell({ mood, x = 150 }: { mood: KidMood; x?: number }) {
 }
 
 /** A coin in scene units, popping in with `pop` (0 to 1, may overshoot). */
-function Coin({ x, y, pop = 1 }: { x: number; y: number; pop?: number }) {
+export function Coin({ x, y, pop = 1 }: { x: number; y: number; pop?: number }) {
   if (pop <= 0) return null;
   return (
     <g transform={`translate(${x} ${y}) scale(${COIN_SCALE * pop})`}>
@@ -47,7 +47,7 @@ function Coin({ x, y, pop = 1 }: { x: number; y: number; pop?: number }) {
 }
 
 /** A rounded label with bold text, popping in with `pop`. Gold for money, plain otherwise. */
-function Chip({
+export function Chip({
   x,
   y,
   text,
