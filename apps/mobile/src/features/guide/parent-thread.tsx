@@ -1,12 +1,14 @@
 import { guideCopy } from "@jarso/core/guide";
+import { ChevronDownIcon, ChevronUpIcon } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
 import { Button, Text } from "@/components/ui";
+import { useTokens } from "@/lib";
 import { GuideThread, type Kid, type ReopenedChat } from "./thread";
 
 /**
- * The parent's chat with Jarso about one child (the web's JarsoPageThread for a parent): a chip
- * per child Jarso is on for when there is more than one, then the thread. Picking another child
+ * The parent's chat with Jarso about one child (the web's JarsoPageThread for a parent): with more
+ * than one child Jarso is on for, a folded "Ask about" picker, then the thread. Picking another child
  * starts a new chat about them; a reopened chat stays about the child it was about.
  */
 export function ParentThread({
@@ -28,29 +30,11 @@ export function ParentThread({
   return (
     <View className="flex-1">
       {reopened ? null : (
-        <View className="gap-3 px-4 pt-2">
-          <Text className="font-sans-bold text-h3">
+        <View className="gap-2 px-4 pt-1">
+          <Text className="text-muted-foreground">
             {guideCopy.greeting.parent(person, kid.nickname)}
           </Text>
-          {picker ? (
-            <View
-              accessibilityLabel={guideCopy.parent.pick}
-              className="flex-row flex-wrap items-center gap-2"
-            >
-              <Text className="text-muted-foreground">{guideCopy.parent.pick}</Text>
-              {kids.map((k) => (
-                <Button
-                  key={k.id}
-                  variant={k.id === kid.id ? "secondary" : "outline"}
-                  accessibilityLabel={k.nickname}
-                  accessibilityState={{ selected: k.id === kid.id }}
-                  onPress={() => setKidId(k.id)}
-                >
-                  <Text>{k.nickname}</Text>
-                </Button>
-              ))}
-            </View>
-          ) : null}
+          {picker ? <KidPicker kids={kids} picked={kid} onPick={setKidId} /> : null}
         </View>
       )}
       <GuideThread
@@ -63,6 +47,60 @@ export function ParentThread({
         suggestions={guideCopy.parent.suggestions(kid.nickname)}
         reopened={reopened}
       />
+    </View>
+  );
+}
+
+/**
+ * "Ask about" with only the picked child showing; a tap unfolds the others as chips, and picking
+ * one folds it again. Keeps the chat's header to one short row.
+ */
+function KidPicker({
+  kids,
+  picked,
+  onPick,
+}: {
+  kids: Kid[];
+  picked: Kid;
+  onPick: (id: string) => void;
+}) {
+  const tokens = useTokens();
+  const [open, setOpen] = useState(false);
+  const Chevron = open ? ChevronUpIcon : ChevronDownIcon;
+  const others = kids.filter((k) => k.id !== picked.id);
+  return (
+    <View
+      accessibilityLabel={guideCopy.parent.pick}
+      className="flex-row flex-wrap items-center gap-2"
+    >
+      <Text className="text-muted-foreground">{guideCopy.parent.pick}</Text>
+      <Button
+        size="sm"
+        variant="secondary"
+        accessibilityLabel={`${guideCopy.parent.pick} ${picked.nickname}`}
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen((was) => !was)}
+      >
+        <Text>{picked.nickname}</Text>
+        <Chevron size={16} color={tokens["secondary-foreground"]} />
+      </Button>
+      {open
+        ? others.map((k) => (
+            <Button
+              key={k.id}
+              size="sm"
+              variant="outline"
+              accessibilityLabel={k.nickname}
+              accessibilityState={{ selected: false }}
+              onPress={() => {
+                onPick(k.id);
+                setOpen(false);
+              }}
+            >
+              <Text>{k.nickname}</Text>
+            </Button>
+          ))
+        : null}
     </View>
   );
 }
