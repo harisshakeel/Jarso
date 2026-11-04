@@ -317,6 +317,19 @@ describe("dispatchPush", () => {
     expect(expo.sendExpoMessages).not.toHaveBeenCalled();
   });
 
+  it("a subscription lookup failure does not stop phone push", async () => {
+    repo.claimUnpushed.mockResolvedValue([claimed("p1")]);
+    repo.subscriptionsFor.mockRejectedValue(new Error("db down"));
+    repo.deviceTokensFor.mockResolvedValue([token("t1", "p1")]);
+    const result = await dispatchPush();
+    expect(result).toMatchObject({ claimed: 1, sent: 1 });
+    expect(webpush.sendNotification).not.toHaveBeenCalled();
+    expect(expo.sendExpoMessages).toHaveBeenCalledTimes(1);
+    expect(log.warn).toHaveBeenCalledWith("Could not load web push subscriptions", {
+      code: "UNKNOWN",
+    });
+  });
+
   it("web push only when VAPID is set", async () => {
     env.server.VAPID_PRIVATE_KEY = undefined;
     repo.claimUnpushed.mockResolvedValue([claimed("p1")]);

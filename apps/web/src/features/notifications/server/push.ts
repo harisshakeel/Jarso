@@ -246,8 +246,15 @@ export async function dispatchPush(limit = 50, deadline?: number): Promise<PushR
   for (const plan of plans) if (plan.kind === "summary") result.summarised += plan.notices.length;
 
   const recipients = [...new Set(notices.map((n) => n.recipientId))];
-  const subscriptions = isWebPushConfigured() ? await subscriptionsFor(admin, recipients) : [];
-  // A token lookup failure must not cost the web pushes of notices already claimed.
+  // Neither lookup failing may cost the other transport the notices already claimed.
+  const subscriptions = isWebPushConfigured()
+    ? await subscriptionsFor(admin, recipients).catch((error: unknown) => {
+        logger.warn("Could not load web push subscriptions", {
+          code: error instanceof AppError ? error.code : "UNKNOWN",
+        });
+        return [];
+      })
+    : [];
   const tokens = isExpoPushConfigured()
     ? await deviceTokensFor(admin, recipients).catch((error: unknown) => {
         logger.warn("Could not load device tokens", {
