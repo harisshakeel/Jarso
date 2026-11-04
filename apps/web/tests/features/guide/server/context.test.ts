@@ -43,6 +43,44 @@ describe("buildContext", () => {
     expect(context.text).toContain("US$");
   });
 
+  it("names the child's last wrong try and the hints they've seen, from reviewed content", () => {
+    const wrong = step.options.find((o) => o.id !== step.answer);
+    if (!wrong) throw new Error("the choice step needs a wrong option");
+    const context = buildContext(
+      {
+        entry: "step",
+        source: "mission",
+        missionKey: mission.key,
+        stepKey: step.key,
+        phase: "main",
+        wrongTries: 1,
+        hintsShown: 1,
+        lastTry: { kind: "option", optionId: wrong.id },
+      },
+      "GBP",
+    );
+    expect(context.text).toContain('When they say "this"');
+    expect(context.text).toMatch(/The child's last try: .+\. It was not right\./);
+    expect(context.text).toContain("already seen authored hint 1;");
+    expect(context.text).toContain("Do not give the answer");
+  });
+
+  it("says no hints were opened when the browser sends none (older phone builds)", () => {
+    const context = buildContext(
+      {
+        entry: "step",
+        source: "mission",
+        missionKey: mission.key,
+        stepKey: step.key,
+        phase: "main",
+        wrongTries: 0,
+      },
+      "GBP",
+    );
+    expect(context.text).toContain("has not opened any hints yet");
+    expect(context.text).not.toContain("last try");
+  });
+
   it("includes the child's answer for Why?", () => {
     const wrong = step.options.find((o) => o.id !== step.answer);
     const context = buildContext(

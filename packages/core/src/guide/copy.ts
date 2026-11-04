@@ -47,6 +47,15 @@ export const guideCopy = {
   placeholder: "Ask Jarso about money…",
   homePlaceholder: "Ask Jarso about your money…",
   homeTitle: "Ask Jarso",
+  /** The floating Jarso opened during a lesson: it talks about the question on screen. */
+  lesson: {
+    title: "Ask about this question",
+    placeholder: "Ask Jarso about this question…",
+    greeting: "Stuck? Ask me about this question.",
+    hello: "Stuck? Ask me!",
+    suggestions: ["Can you give me a hint?", "What is this question asking?"],
+    whySuggestions: ["Why is that the answer?", "Can you explain it another way?"],
+  },
   /** The greeting over an empty chat on the Jarso page, naming who is asking. */
   greeting: {
     child: (nickname: string) =>

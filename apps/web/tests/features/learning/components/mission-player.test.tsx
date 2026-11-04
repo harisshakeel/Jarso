@@ -1,6 +1,7 @@
 import type { Step, StepResult } from "@jarso/core/learning";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type CurrentStep, useShownStep } from "@/features/learning/components/current-step";
 import { MissionPlayer } from "@/features/learning/components/mission-player";
 import type { OutboxItem, SubmitResult } from "@/features/offline";
 
@@ -60,6 +61,13 @@ const steps: Step[] = [
 ];
 
 const ok = <T,>(data: T) => ({ ok: true as const, data });
+
+/** Every step a helper outside the player has seen published, in order. */
+const seen: Array<CurrentStep | null> = [];
+function Spy() {
+  seen.push(useShownStep());
+  return null;
+}
 
 function renderMission(attemptId: string | null, results: StepResult[] = []) {
   render(
@@ -299,6 +307,58 @@ describe("MissionPlayer", () => {
     expect(screen.getByText("Here's how it works.")).toBeInTheDocument();
     expect(screen.getByText("The answer: Option A.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+  });
+
+  it("clears a wrong pick for another go, and the hints once the step is settled", async () => {
+    await startMission();
+    await continueOn();
+    fireEvent.click(screen.getByRole("button", { name: "Hint" }));
+    expect(screen.getByRole("list", { name: "Hints" })).toBeInTheDocument();
+    await answer("Option B");
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(screen.getByLabelText("Option B")).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Check" })).toBeDisabled();
+    // The hint stays for the second go.
+    expect(screen.getByRole("list", { name: "Hints" })).toBeInTheDocument();
+    await answer("Option A");
+    expect(screen.getByText("That's it.")).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Hints" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Another hint" })).not.toBeInTheDocument();
+  });
+
+  it("tells helpers outside the player which step is on screen, and forgets it after", async () => {
+    seen.length = 0;
+    render(<Spy />);
+    await startMission();
+    expect(seen.at(-1)).toBeNull(); // The info step has no question to help with.
+    await continueOn();
+    expect(seen.at(-1)).toMatchObject({
+      source: "mission",
+      missionKey: "m1",
+      stepKey: "one",
+      wrongTries: 0,
+      hintsShown: 0,
+      answered: false,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Hint" }));
+    await answer("Option B");
+    expect(seen.at(-1)).toMatchObject({
+      wrongTries: 1,
+      hintsShown: 1,
+      lastTry: { kind: "option", optionId: "b" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    // Still known after Try again clears the pick, so Jarso can say what was off about it.
+    expect(seen.at(-1)?.lastTry).toEqual({ kind: "option", optionId: "b" });
+    await answer("Option A");
+    expect(seen.at(-1)).toMatchObject({
+      answered: true,
+      lastTry: null,
+      answer: { kind: "option", optionId: "a" },
+    });
+    cleanup();
+    render(<Spy />);
+    expect(seen.at(-1)).toBeNull();
   });
 
   it("resumes in the replay phase", async () => {

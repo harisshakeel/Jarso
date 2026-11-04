@@ -1,8 +1,9 @@
 "use client";
 
-import { type GuideContextRef, guideUi } from "@jarso/core/guide";
+import { guideUi } from "@jarso/core/guide";
 import { useCurrentStep } from "@/features/learning";
 import { GuideSheet } from "./guide-sheet";
+import { stepChatKey, stepGuideContext } from "./step-context";
 
 /**
  * "Help me" beside a step, or "Why?" once it is answered (spec §5.1). Rendered by the mission
@@ -10,20 +11,12 @@ import { GuideSheet } from "./guide-sheet";
  */
 export function StepGuide({ introNeeded }: { introNeeded: boolean }) {
   const step = useCurrentStep();
-  if (!step || step.source === "check-in") return null;
-  const ref = {
-    source: step.source,
-    missionKey: step.missionKey,
-    stepKey: step.stepKey,
-    phase: step.phase,
-  } as const;
-  const context: GuideContextRef = step.answered
-    ? { entry: "why", ...ref, answer: step.answer }
-    : { entry: "step", ...ref, wrongTries: step.wrongTries };
+  const context = stepGuideContext(step);
+  if (!step || !context) return null;
   return (
     <GuideSheet
       // A new chat for each step and for its "Why?".
-      key={`${step.stepKey}:${step.phase}:${step.answered}`}
+      key={stepChatKey(step)}
       context={context}
       introNeeded={introNeeded}
       triggerLabel={step.answered ? guideUi.why : guideUi.helpMe}

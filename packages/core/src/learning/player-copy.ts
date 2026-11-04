@@ -32,6 +32,8 @@ export const playerCopy = {
   readTopic: "Read the topic",
   /** Demo 3: the browser reads the step's words out loud. */
   readAloud: "Read aloud",
+  /** The same, for the coach's feedback once the child has checked an answer. */
+  readFeedback: "Read it to me",
   replayPosition: (n: number, of: number) => `One more look: ${n} of ${of}`,
   stepPosition: (n: number, of: number) => `Step ${n} of ${of}`,
   yourTurn: "Your turn.",

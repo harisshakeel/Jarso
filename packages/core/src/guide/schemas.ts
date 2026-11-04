@@ -19,7 +19,15 @@ const stepRef = {
  * reviewed content, so nothing the browser sends becomes part of the guide's instructions.
  */
 export const guideContextSchema = z.discriminatedUnion("entry", [
-  z.object({ entry: z.literal("step"), ...stepRef, wrongTries: z.number().int().min(0).max(2) }),
+  z.object({
+    entry: z.literal("step"),
+    ...stepRef,
+    wrongTries: z.number().int().min(0).max(2),
+    /** Hints the child has already opened, so Jarso doesn't repeat them (web, 2026-11-04). */
+    hintsShown: z.number().int().min(0).max(2).optional(),
+    /** The child's last wrong try, so "why is mine wrong?" can be answered; keys only. */
+    lastTry: stepAnswerSchema.nullable().optional(),
+  }),
   z.object({ entry: z.literal("why"), ...stepRef, answer: stepAnswerSchema.nullable() }),
   z.object({ entry: z.literal("topic"), topicKey: z.enum(topicKeys) }),
   z.object({ entry: z.literal("home") }),

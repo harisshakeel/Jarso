@@ -1,6 +1,11 @@
 "use client";
 
-import type { GuideProposal, SuggestionCard, ThreadMessage } from "@jarso/core/guide";
+import type {
+  GuideContextRef,
+  GuideProposal,
+  SuggestionCard,
+  ThreadMessage,
+} from "@jarso/core/guide";
 import { guideCopy, guideUi, MAX_MESSAGE_LENGTH, sendGuideTurn } from "@jarso/core/guide";
 import {
   BookOpenIcon,
@@ -77,6 +82,11 @@ export type GuideThreadProps = {
   variant?: "card" | "page";
   /** The page's way to refresh its list of chats once a new chat has its first reply. */
   onChatStarted?: (conversationId: string) => void;
+  /**
+   * What a child's chat is about: Home by default, or the lesson step on screen when Jarso is
+   * opened from the floating buddy during a lesson (keys only; the server looks up the text).
+   */
+  context?: GuideContextRef;
 };
 
 /** Spoken words land after whatever was typed, within the box's limit. */
@@ -102,7 +112,9 @@ export function GuideThread({
   openHref,
   variant = "card",
   onChatStarted,
+  context,
 }: GuideThreadProps) {
+  const lesson = context?.entry === "step" || context?.entry === "why";
   const [introSeen, setIntroSeen] = useState(!introNeeded);
   const [kidId, setKidId] = useState(reopened?.kid?.id ?? kids[0]?.id ?? null);
   const kid = reopened?.kid ?? kids.find((k) => k.id === kidId) ?? kids[0] ?? null;
@@ -117,11 +129,11 @@ export function GuideThread({
         cards: guideCopy.suggestionCards.parent(kid.nickname),
       }
     : {
-        title: guideCopy.homeTitle,
+        title: lesson ? guideCopy.lesson.title : guideCopy.homeTitle,
         disclosure: guideCopy.disclosure,
-        placeholder: guideCopy.homePlaceholder,
+        placeholder: lesson ? guideCopy.lesson.placeholder : guideCopy.homePlaceholder,
         suggestions,
-        greeting: guideCopy.greeting.child(person),
+        greeting: lesson ? guideCopy.lesson.greeting : guideCopy.greeting.child(person),
         cards: guideCopy.suggestionCards.child,
       };
   const [conversationId, setConversationId] = useState<string | null>(
@@ -223,7 +235,9 @@ export function GuideThread({
             {
               clientMessageId,
               conversationId,
-              context: forParent ? { entry: "parent", childId: kid.id } : { entry: "home" },
+              context: forParent
+                ? { entry: "parent", childId: kid.id }
+                : (context ?? { entry: "home" }),
               text: question,
             },
             (line) => {

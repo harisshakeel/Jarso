@@ -35,7 +35,15 @@ import {
 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { type ReactNode, type Ref, useEffect, useRef, useState, useTransition } from "react";
+import {
+  type ReactNode,
+  type Ref,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { Button } from "@/components/ui";
 import {
   newId,
@@ -47,11 +55,11 @@ import {
   useOnline,
   useOutbox,
 } from "@/features/offline";
-import { cn, playFanfare, playRight, playWrong } from "@/lib";
+import { cn, playFanfare, playRight, playWrong, primeSounds } from "@/lib";
 import { startMissionAction } from "../server/actions";
 import { Blackboard } from "./blackboard";
 import { CoachBubble } from "./coach-bubble";
-import { CurrentStepContext } from "./current-step";
+import { type CurrentStep, CurrentStepContext, publishShownStep } from "./current-step";
 import { ReadAloudButton } from "./read-aloud-button";
 import { StepInput } from "./step-inputs";
 
@@ -177,6 +185,12 @@ export function MissionPlayer(props: MissionPlayerProps) {
   useEffect(() => {
     if (stage === "finished" || stage === "finishing") doneHeading.current?.focus();
   }, [stage]);
+
+  // The chime and the bonk need the page to have been touched; listen from the start, so a
+  // lesson opened straight from Learn plays them (browsers without `userActivation`).
+  useEffect(() => {
+    primeSounds();
+  }, []);
 
   function begin() {
     setError(null);
@@ -599,7 +613,14 @@ type StepViewProps = {
   onDone: (outcome: StepOutcome) => Promise<boolean>;
 };
 
-type Outcome = { correct: boolean; feedback: string; final: boolean; tries: number };
+type Outcome = {
+  correct: boolean;
+  feedback: string;
+  final: boolean;
+  tries: number;
+  /** What was checked, kept as it was (the draft may be cleared for another go). */
+  answer: StepAnswer;
+};
 
 function StepView({
   item,
@@ -620,14 +641,46 @@ function StepView({
   const [wrongTries, setWrongTries] = useState(0);
   const [hintsShown, setHintsShown] = useState(0);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  // The last wrong try, kept through "Try again" so Jarso can say what was off about it.
+  const [lastTry, setLastTry] = useState<StepAnswer | null>(null);
   const [saving, startSaving] = useTransition();
   const heading = useFocusOnMount<HTMLHeadingElement>(focusOnMount);
   const feedbackRef = useRef<HTMLDivElement>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
   const answer = draftToAnswer(body, draft, currency);
 
   useEffect(() => {
     if (outcome) feedbackRef.current?.focus();
   }, [outcome]);
+
+  // A hint lands in the coach's bubble above the board: bring it into view, since the Hint
+  // button is down by the answers and on a phone the bubble can be off screen.
+  useEffect(() => {
+    if (hintsShown > 0) bubbleRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [hintsShown]);
+
+  const final = outcome?.final ?? false;
+  const current = useMemo<CurrentStep>(
+    () => ({
+      source,
+      missionKey,
+      stepKey: item.step.key,
+      phase: item.phase,
+      wrongTries,
+      hintsShown,
+      lastTry: final ? null : lastTry,
+      answered: final,
+      answer: final && outcome ? outcome.answer : null,
+    }),
+    [source, missionKey, item, wrongTries, hintsShown, lastTry, final, outcome],
+  );
+
+  // Jarso's floating buddy reads the step on screen too, so asking it about "this question"
+  // works the same as the "Help me" button beside it.
+  useEffect(() => {
+    publishShownStep(current);
+  }, [current]);
+  useEffect(() => () => publishShownStep(null), []);
 
   function check() {
     if (!answer) return;
@@ -642,25 +695,29 @@ function StepView({
     const tries = wrongTries + 1;
     if (grade.correct) {
       playRight();
-      setOutcome({ correct: true, feedback: grade.feedback, final: true, tries });
+      setOutcome({ correct: true, feedback: grade.feedback, final: true, tries, answer });
     } else {
       playWrong();
       setWrongTries(tries);
-      setOutcome({ correct: false, feedback: grade.feedback, final: tries >= 2, tries });
+      setLastTry(answer);
+      setOutcome({ correct: false, feedback: grade.feedback, final: tries >= 2, tries, answer });
     }
   }
 
   function tryAgain() {
     setOutcome(null);
+    // A wrong pick or number left in place reads as still chosen: clear it for a fresh go.
+    // Sorting, matching and the slider keep the child's work to adjust.
+    if (draft.kind === "option" || draft.kind === "number") setDraft(emptyDraft(body));
     // The Try again button goes away: put focus back on the question.
     heading.current?.focus();
   }
 
   function continueOn() {
-    if (!outcome || !answer) return;
+    if (!outcome) return;
     startSaving(async () => {
       await onDone({
-        answer,
+        answer: outcome.answer,
         correct: outcome.correct,
         tries: outcome.tries,
         hintsUsed: hintsShown,
@@ -674,38 +731,31 @@ function StepView({
   const coach = coachFor(item.step.key);
 
   return (
-    <CurrentStepContext.Provider
-      value={{
-        source,
-        missionKey,
-        stepKey: item.step.key,
-        phase: item.phase,
-        wrongTries,
-        answered: outcome?.final ?? false,
-        answer: outcome?.final ? answer : null,
-      }}
-    >
+    <CurrentStepContext.Provider value={current}>
       <section
         aria-labelledby={`${idBase}-prompt`}
         className="rise-in grid gap-5 rounded-2xl bg-card p-6 shadow-raised"
       >
-        <CoachBubble
-          coach={coach}
-          hints={checkIn ? [] : hints.slice(0, hintsShown)}
-          currency={currency}
-          checkIn={checkIn}
-          reaction={outcome ? (outcome.correct ? "cheer" : "nod") : null}
-        >
-          {outcome ? (
-            <Feedback
-              ref={feedbackRef}
-              outcome={outcome}
-              body={body}
-              currency={currency}
-              topicHref={topicHref}
-            />
-          ) : null}
-        </CoachBubble>
+        <div ref={bubbleRef} className="scroll-mt-4">
+          <CoachBubble
+            coach={coach}
+            // Once the step is settled the hints have done their job: the bubble is all feedback.
+            hints={checkIn || final ? [] : hints.slice(0, hintsShown)}
+            currency={currency}
+            checkIn={checkIn}
+            reaction={outcome ? (outcome.correct ? "cheer" : "nod") : null}
+          >
+            {outcome ? (
+              <Feedback
+                ref={feedbackRef}
+                outcome={outcome}
+                body={body}
+                currency={currency}
+                topicHref={topicHref}
+              />
+            ) : null}
+          </CoachBubble>
+        </div>
 
         <Blackboard
           eyebrow={position}
@@ -776,6 +826,18 @@ function Feedback({
   currency: string;
   topicHref?: Route;
 }) {
+  const heading = outcome.correct
+    ? playerCopy.right
+    : outcome.final
+      ? playerCopy.final
+      : playerCopy.again;
+  const feedback = renderText(outcome.feedback, currency);
+  const answerLine =
+    outcome.final && !outcome.correct
+      ? playerCopy.answerLine(describeAnswer(body, currency))
+      : null;
+  const predicted =
+    outcome.final && body.type === "predict" ? renderText(body.outcome, currency) : null;
   return (
     <div
       ref={ref}
@@ -793,23 +855,26 @@ function Feedback({
         ) : (
           <LightbulbIcon aria-hidden className="size-6" />
         )}
-        {outcome.correct ? playerCopy.right : outcome.final ? playerCopy.final : playerCopy.again}
+        {heading}
       </h3>
-      <p>{renderText(outcome.feedback, currency)}</p>
-      {outcome.final && !outcome.correct ? (
-        <p className="font-semibold">{playerCopy.answerLine(describeAnswer(body, currency))}</p>
-      ) : null}
-      {outcome.final && body.type === "predict" ? (
-        <p className="font-semibold">{renderText(body.outcome, currency)}</p>
-      ) : null}
-      {!outcome.correct && topicHref ? (
-        <Link
-          href={topicHref}
-          className="inline-flex min-h-11 w-fit items-center font-semibold underline underline-offset-4"
-        >
-          {playerCopy.readAboutTopic}
-        </Link>
-      ) : null}
+      <p>{feedback}</p>
+      {answerLine ? <p className="font-semibold">{answerLine}</p> : null}
+      {predicted ? <p className="font-semibold">{predicted}</p> : null}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <ReadAloudButton
+          className="w-fit"
+          label={playerCopy.readFeedback}
+          text={[heading, feedback, answerLine, predicted].filter(Boolean).join(" ")}
+        />
+        {!outcome.correct && topicHref ? (
+          <Link
+            href={topicHref}
+            className="inline-flex min-h-11 w-fit items-center font-semibold underline underline-offset-4"
+          >
+            {playerCopy.readAboutTopic}
+          </Link>
+        ) : null}
+      </div>
     </div>
   );
 }
