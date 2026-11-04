@@ -49,7 +49,7 @@ async function CheckInContent() {
 
 export default function CheckInPage() {
   return (
-    <div className="mx-auto grid w-full max-w-xl gap-4">
+    <div className="mx-auto grid w-full max-w-xl gap-4 lg:max-w-4xl">
       <Link
         href={routes.childLearn}
         className="-ml-1 inline-flex min-h-11 w-fit items-center gap-1 rounded-full pr-2 font-semibold text-primary text-sm hover:underline hover:underline-offset-4"

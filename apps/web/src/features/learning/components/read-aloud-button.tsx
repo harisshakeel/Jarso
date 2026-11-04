@@ -107,11 +107,14 @@ export function pickVoice(voices: readonly SpeechVoice[], lang: string): SpeechV
 export function ReadAloudButton({
   text,
   label = "Read aloud",
+  compact = false,
   className,
 }: {
   /** The plain words to read, in order; money already written out. */
   text: string;
   label?: string;
+  /** Icon only (44 px), the words kept for screen readers: on the question's blackboard. */
+  compact?: boolean;
   className?: string;
 }) {
   const [supported, setSupported] = useState(false);
@@ -169,13 +172,19 @@ export function ReadAloudButton({
     <Button
       type="button"
       variant="outline"
-      size="sm"
+      size={compact ? "icon" : "sm"}
       aria-pressed={speaking}
       onClick={speaking ? stop : start}
       className={className}
     >
       {speaking ? <SquareIcon aria-hidden /> : <Volume2Icon aria-hidden />}
-      {speaking ? "Stop" : label}
+      {compact ? (
+        <span className="sr-only">{speaking ? "Stop" : label}</span>
+      ) : speaking ? (
+        "Stop"
+      ) : (
+        label
+      )}
     </Button>
   );
 }

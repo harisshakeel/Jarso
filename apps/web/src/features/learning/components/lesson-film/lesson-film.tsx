@@ -139,7 +139,7 @@ export function LessonFilm({
   return (
     <section
       aria-label={playerCopy.film.label(title)}
-      className="rise-in grid gap-4 rounded-2xl bg-card p-4 shadow-raised sm:p-6"
+      className="rise-in mx-auto grid w-full max-w-3xl gap-4 rounded-2xl bg-card p-4 shadow-raised sm:p-6"
     >
       <p className="eyebrow">{playerCopy.film.eyebrow}</p>
       <div className="overflow-hidden rounded-xl bg-tint-teal">

@@ -10,6 +10,8 @@ type BlackboardProps = {
   promptRef?: Ref<HTMLHeadingElement>;
   /** A line under the question, like "What do you think happens?". */
   note?: string;
+  /** Beside the eyebrow, top right: the Read aloud button. */
+  aside?: ReactNode;
   className?: string;
 };
 
@@ -24,21 +26,25 @@ export function Blackboard({
   promptId,
   promptRef,
   note,
+  aside,
   className,
 }: BlackboardProps) {
   return (
     <div
       className={cn(
-        "grid gap-2 rounded-2xl border-[6px] border-gold-800 bg-teal-950 p-5 text-teal-50 shadow-raised dark:border-gold-900",
+        "grid gap-2 rounded-2xl border-[6px] border-gold-800 bg-teal-950 p-4 text-teal-50 shadow-raised sm:p-5 dark:border-gold-900",
         className,
       )}
     >
-      <p className="font-semibold text-sm text-teal-200 uppercase tracking-[0.08em]">{eyebrow}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold text-sm text-teal-200 uppercase tracking-[0.08em]">{eyebrow}</p>
+        {aside}
+      </div>
       <h2
         id={promptId}
         ref={promptRef}
         tabIndex={-1}
-        className="text-balance font-extrabold text-2xl leading-snug outline-none sm:text-3xl"
+        className="text-balance font-extrabold text-xl leading-snug outline-none sm:text-2xl"
       >
         {prompt}
       </h2>
