@@ -13,7 +13,9 @@ function Input({
     <TextInput
       className={cn(
         bodyClass,
-        "dark:bg-input/30 border-input bg-background text-foreground flex h-12 w-full min-w-0 flex-row items-center rounded-md border px-3 py-1 font-sans leading-5 shadow-sm shadow-black/5",
+        // The web's field (design.md §6): surface-2 fill, input border, 14 dp corners, no shadow;
+        // 48 dp tall on the phone for thumbs.
+        "border-input bg-muted text-foreground flex h-12 w-full min-w-0 flex-row items-center rounded-lg border px-3.5 py-1 font-sans leading-5",
         props.editable === false &&
           cn(
             "opacity-50",

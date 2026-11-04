@@ -41,6 +41,7 @@ export function NextStepCard({ step }: { step: NextStep }) {
       </Text>
       <Text className="text-muted-foreground">{body}</Text>
       <Button
+        variant="keycap"
         accessibilityLabel={cta}
         className="self-start"
         onPress={() => router.push(nextStepHref(step))}

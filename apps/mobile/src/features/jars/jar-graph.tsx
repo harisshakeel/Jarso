@@ -102,7 +102,7 @@ export function JarGraph({ jars, context }: { jars: Jars; context: FamilyContext
   return (
     <View
       accessibilityLabel={graphCopy.title}
-      className="gap-3 rounded-2xl border border-border bg-card p-4"
+      className="gap-3 rounded-xl border border-border bg-card p-4"
     >
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
         {graphCopy.title}

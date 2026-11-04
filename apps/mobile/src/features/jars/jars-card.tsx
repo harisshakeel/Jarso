@@ -74,7 +74,7 @@ function Half({ jar, half }: { jar: "spend" | "save"; half: JarHalf }) {
           <View
             testID={`${jar}-fill`}
             style={{ height: `${fill}%` }}
-            className={cn("w-full", jar === "spend" ? "bg-cyan-400" : "bg-gold")}
+            className={cn("w-full", jar === "spend" ? "bg-teal-600" : "bg-gold")}
           />
         </View>
       </View>
