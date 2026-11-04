@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const CHILD_ID = "8b0c2a4e-5f1d-4c3b-9a7e-2d6f8e1b3c5a";
+const PARENT_ID = "1f2e3d4c-5b6a-4987-8a6b-5c4d3e2f1a0b";
 
 const prepareGuideTurn = vi.fn();
 const streamGuideTurn = vi.fn();
@@ -46,6 +47,15 @@ describe("POST /api/v1/guide/turns", () => {
     expect(await res.text()).toContain(CHILD_ID);
     expect(scope.entered).toBe(1);
     expect(prepareGuideTurn).toHaveBeenCalledWith(input);
+  });
+
+  it("runs a parent's turn about their child as the bearer's parent", async () => {
+    scope.phoneUser = { id: PARENT_ID, email: "p@example.com" };
+    const parentInput = { ...input, context: { entry: "parent", childId: CHILD_ID } };
+    const res = await post(parentInput, PHONE_HEADERS);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain(PARENT_ID);
+    expect(prepareGuideTurn).toHaveBeenCalledWith(parentInput);
   });
 
   it("still runs on the cookie session without a header", async () => {

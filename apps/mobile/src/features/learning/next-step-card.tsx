@@ -2,6 +2,7 @@ import { describeStep, NEXT_STEP_EYEBROW, type NextStep } from "@jarso/core/lear
 import { type Href, useRouter } from "expo-router";
 import { GraduationCapIcon } from "lucide-react-native";
 import { View } from "react-native";
+import { Card, Eyebrow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { useTokens } from "@/lib";
 
@@ -28,27 +29,24 @@ export function NextStepCard({ step }: { step: NextStep }) {
   const tokens = useTokens();
   const { title, body, cta } = describeStep(step);
   return (
-    <View className="gap-3 rounded-2xl border border-border bg-card p-4">
+    <Card>
       <View className="flex-row items-center gap-2">
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <GraduationCapIcon size={16} color={tokens["muted-foreground"]} />
+          <GraduationCapIcon size={16} color={tokens.primary} />
         </View>
-        <Text className="font-sans-bold text-muted-foreground text-sm uppercase">
-          {NEXT_STEP_EYEBROW}
-        </Text>
+        <Eyebrow>{NEXT_STEP_EYEBROW}</Eyebrow>
       </View>
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
         {title}
       </Text>
       <Text className="text-muted-foreground">{body}</Text>
       <Button
-        size="lg"
         accessibilityLabel={cta}
         className="self-start"
         onPress={() => router.push(nextStepHref(step))}
       >
         <Text>{cta}</Text>
       </Button>
-    </View>
+    </Card>
   );
 }

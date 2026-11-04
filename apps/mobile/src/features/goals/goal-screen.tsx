@@ -58,7 +58,7 @@ export function GoalScreen() {
         </>
       ) : (
         <View className="items-center gap-4 rounded-2xl bg-card p-6">
-          <Text className="text-center text-lg">{goalCopy.card.empty}</Text>
+          <Text className="text-center">{goalCopy.card.empty}</Text>
           <GoalSheetButton hasGoal={false} />
         </View>
       )}

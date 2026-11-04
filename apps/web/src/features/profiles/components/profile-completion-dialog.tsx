@@ -1,5 +1,6 @@
 "use client";
 
+import { profileCopy } from "@jarso/core/profiles";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -21,14 +22,12 @@ export function ProfileCompletionDialog() {
     <AlertDialog open onOpenChange={() => {}}>
       <AlertDialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <AlertDialogHeader>
-          <AlertDialogTitle>One more thing.</AlertDialogTitle>
-          <AlertDialogDescription>
-            Tell us a bit about you. Only you can see it, and it never shows to your child.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{profileCopy.completeTitle}</AlertDialogTitle>
+          <AlertDialogDescription>{profileCopy.completeBody}</AlertDialogDescription>
         </AlertDialogHeader>
         <ParentDetailsForm
-          submitLabel="Save and continue"
-          successMessage="Thanks, you're all set"
+          submitLabel={profileCopy.completeSubmit}
+          successMessage={profileCopy.completeSaved}
         />
         <div className="flex justify-center border-hairline border-t pt-4">
           <SignOutButton />

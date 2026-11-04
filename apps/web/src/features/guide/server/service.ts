@@ -7,6 +7,7 @@ import type {
   ConversationSummary,
   GuideContextRef,
   GuideState,
+  ParentGuideState,
   PhotoPriceResult,
   TranscriptMessage,
 } from "@jarso/core/guide";
@@ -22,12 +23,13 @@ import {
   tidyPhotoLabel,
 } from "@jarso/core/guide";
 import {
-  forParent,
+  getAskerTranscript,
+  getChildTranscript,
+  listChatsAskedBy,
+  listChildChats,
   listMyChats as loadMyChats,
   getMyTranscript as loadMyTranscript,
   lookedAt,
-  summarize,
-  transcriptFor,
 } from "@jarso/data/guide";
 import { cacheLife } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
@@ -624,26 +626,38 @@ export async function getGuideAccess(
   };
 }
 
+/**
+ * For the parent's phone: the server's guide switch and which of their children have Jarso on.
+ * A child whose setting can't be read counts as off, so the rest still show.
+ */
+export async function getParentGuideState(): Promise<ParentGuideState> {
+  await assertRole("parent");
+  if (!isGuideConfigured()) return { configured: false, enabledChildIds: [] };
+  const children = await listChildren();
+  const enabled = await Promise.all(
+    children.map(async (child) => {
+      try {
+        return (await getGuideAccess(child.id)).enabled ? child.id : null;
+      } catch (error) {
+        logger.warn("Guide access unavailable", {
+          error: error instanceof Error ? error.name : typeof error,
+        });
+        return null;
+      }
+    }),
+  );
+  return { configured: true, enabledChildIds: enabled.filter((id) => id !== null) };
+}
+
 export async function setGuideAccess(childId: string, enabled: boolean): Promise<void> {
   await assertParentOf(childId);
-  await repo.setGuideAccess(await createClient(), childId, enabled);
+  await repo.saveGuideAccess(await createClient(), childId, enabled);
 }
 
 /** A child's chats for the parent, flagged first. */
 export async function listGuideChats(childId: string): Promise<ConversationSummary[]> {
   await assertParentCanRead(childId);
-  const db = await createClient();
-  const conversations = await repo.listConversations(db, childId);
-  const messages = await repo.listMessages(
-    db,
-    conversations.map((c) => c.id),
-  );
-  return conversations.map((conversation) =>
-    summarize(
-      conversation,
-      messages.filter((m) => m.conversationId === conversation.id),
-    ),
-  );
+  return listChildChats(await createClient(), childId);
 }
 
 /** One chat, read directly (any age, not only the latest 50). */
@@ -652,11 +666,7 @@ export async function getGuideTranscript(
   conversationId: string,
 ): Promise<{ summary: ConversationSummary; messages: TranscriptMessage[] } | null> {
   await assertParentCanRead(childId);
-  const db = await createClient();
-  const conversation = await repo.findConversation(db, conversationId);
-  if (!conversation || conversation.childId !== childId || conversation.turns === 0) return null;
-  const messages = await repo.listMessages(db, [conversationId]);
-  return { summary: summarize(conversation, messages), messages: forParent(messages) };
+  return getChildTranscript(await createClient(), childId, conversationId);
 }
 
 /** The signed-in child's own chats (not a parent's about them), newest first (the Jarso page). */
@@ -676,19 +686,7 @@ export async function getMyTranscript(
 /** The signed-in parent's own chats about their children, newest first (the Jarso page). */
 export async function listParentChats(): Promise<ConversationSummary[]> {
   const { user } = await assertRole("parent");
-  const db = await createClient();
-  const conversations = await repo.listConversationsAskedBy(db, user.id);
-  const messages = await repo.listMessages(
-    db,
-    conversations.map((c) => c.id),
-  );
-  return conversations.map((conversation) =>
-    summarize(
-      conversation,
-      messages.filter((m) => m.conversationId === conversation.id),
-      "asker",
-    ),
-  );
+  return listChatsAskedBy(await createClient(), user.id);
 }
 
 /** One of the signed-in parent's own chats about a child. Null when it isn't theirs. */
@@ -696,14 +694,7 @@ export async function getParentTranscript(
   conversationId: string,
 ): Promise<{ summary: ConversationSummary; messages: TranscriptMessage[] } | null> {
   const { user } = await assertRole("parent");
-  const db = await createClient();
-  const conversation = await repo.findConversation(db, conversationId);
-  if (!conversation || conversation.askedBy !== user.id) return null;
-  const messages = await repo.listMessages(db, [conversationId]);
-  return {
-    summary: summarize(conversation, messages, "asker"),
-    messages: transcriptFor(messages, "asker"),
-  };
+  return getAskerTranscript(await createClient(), user.id, conversationId);
 }
 
 /** Flagged chats in the last 30 days, for the badge on the child's card. */

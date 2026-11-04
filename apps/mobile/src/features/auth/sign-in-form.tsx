@@ -1,9 +1,10 @@
 import { childSignInCopy, childSignInSchema } from "@jarso/core/family";
-import { type ComponentProps, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Switch, View } from "react-native";
 import { z } from "zod";
-import { Button, Input, Label, Text } from "@/components/ui";
+import { Button, Label, Text } from "@/components/ui";
 import { toUserMessage } from "@/lib";
+import { Field } from "./form-field";
 import { forgetSignIn, loadSavedSignIn, saveSignIn } from "./saved-sign-in";
 import { signInChild } from "./sign-in-child";
 
@@ -11,34 +12,6 @@ const REMEMBER = "Remember me on this phone";
 
 type FieldName = "familyCode" | "nickname" | "pin";
 type FieldErrors = Partial<Record<FieldName, string[]>>;
-
-type FieldProps = ComponentProps<typeof Input> & {
-  label: string;
-  description?: string;
-  errors?: string[];
-};
-
-function Field({ label, description, errors, ...input }: FieldProps) {
-  const error = errors?.[0];
-  return (
-    <View className="gap-2">
-      <Label nativeID={`${label}-label`}>{label}</Label>
-      <Input
-        accessibilityLabel={label}
-        aria-labelledby={`${label}-label`}
-        aria-invalid={Boolean(error)}
-        className={error ? "border-destructive" : undefined}
-        {...input}
-      />
-      {description ? <Text className="text-sm text-muted-foreground">{description}</Text> : null}
-      {error ? (
-        <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
-          {error}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
 
 /**
  * The child's PIN sign-in, mirroring web /sign-in/child: the same labels, limits and Zod schema.

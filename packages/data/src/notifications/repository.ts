@@ -1,6 +1,7 @@
 import { AppError, toAppError } from "@jarso/core/lib";
 import type {
   DevicePushTokenInput,
+  NoteResult,
   Notice,
   NoticeKind,
   NoticePage,
@@ -128,6 +129,31 @@ export async function markRead(db: Client, ids?: string[] | null): Promise<numbe
   const { data, error } = await db.rpc("mark_notifications_read", ids ? { p_ids: ids } : {});
   if (error) throw toAppError(error, "Failed to mark as read");
   return Number(data ?? 0);
+}
+
+/**
+ * A parent's note to their child, through `send_child_note` (it checks the caller is the
+ * child's parent, the length and the daily cap). A repeat of the same key sends nothing.
+ */
+export async function insertChildNote(
+  db: Client,
+  args: { childId: string; text: string; idempotencyKey: string },
+): Promise<NoteResult> {
+  const { data, error } = await db.rpc("send_child_note", {
+    p_child_id: args.childId,
+    p_text: args.text,
+    p_idempotency_key: args.idempotencyKey,
+  });
+  if (error?.code === "JA429") {
+    throw new AppError("RATE_LIMITED", "That's a lot of notes today. Send more tomorrow.", {
+      cause: error,
+    });
+  }
+  if (error) throw toAppError(error, "Failed to send the note");
+  if (data !== "sent" && data !== "already_sent") {
+    throw new AppError("INTERNAL", "Something went wrong. Please try again.");
+  }
+  return data;
 }
 
 // --- Phone push tokens (mobile wave 3): caller-scoped RPCs ------------------------------------

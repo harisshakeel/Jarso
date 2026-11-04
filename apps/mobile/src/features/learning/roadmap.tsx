@@ -38,7 +38,7 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
               {done ? (
                 <CheckIcon size={26} color={tokens["primary-foreground"]} />
               ) : current ? (
-                <Text className="font-sans-extrabold text-gold-700 text-lg">{mission.day}</Text>
+                <Text className="font-sans-extrabold text-gold-700 text-h3">{mission.day}</Text>
               ) : (
                 <LockIcon size={20} color={tokens["muted-foreground"]} />
               )}
@@ -46,7 +46,9 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
           );
           const label = (
             <View className="flex-1">
-              <Text className="text-muted-foreground text-sm">{roadmapCopy.day(mission.day)}</Text>
+              <Text className="text-muted-foreground text-small">
+                {roadmapCopy.day(mission.day)}
+              </Text>
               <Text
                 className={cn("font-sans-semibold", !done && !current && "text-muted-foreground")}
               >

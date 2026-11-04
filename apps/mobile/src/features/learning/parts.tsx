@@ -1,6 +1,7 @@
 import { playerCopy } from "@jarso/core/learning";
 import type { ReactNode } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
+import { Eyebrow as ScreenEyebrow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { toUserMessage } from "@/lib";
 
@@ -80,5 +81,5 @@ export function EndCard({
 
 /** The small grey label over a page's heading. */
 export function Eyebrow({ children }: { children: string }) {
-  return <Text className="font-sans-bold text-muted-foreground text-sm uppercase">{children}</Text>;
+  return <ScreenEyebrow tone="muted">{children}</ScreenEyebrow>;
 }

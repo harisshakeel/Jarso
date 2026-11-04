@@ -13,11 +13,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export type Client = SupabaseClient<Database>;
 
 /**
- * The guide reads the phone shares. RLS limits a child to their own chats (`asked_by is null`),
- * and every conversation read here filters `asked_by is null` as well, as belt and braces.
- * Reads by id with no such filter (a chat by id, a parent's
- * own chats, messages by conversation id) stay in the web server. So do transcript writes, the
- * budget read and rate limits, which use the admin client (ADR 0010).
+ * The guide reads the phone shares. RLS lets a child see every chat about them, a parent's too,
+ * so every child-side conversation read here filters `asked_by is null`. Raw reads by id or by
+ * parent with no such filter (a chat by id, a parent's own chats, messages by conversation id)
+ * are never exported: the parent compositions in `transcript.ts` filter by child or asker in the
+ * query and check again in code. Transcript writes, the budget read and rate limits use the
+ * admin client and stay in the web server (ADR 0010).
  */
 
 /** A look-up Jarso can make, as stored on a reply. The plain words for each are in guideCopy. */
@@ -43,7 +44,9 @@ function asRoute(value: string | null): GuideRoute | null {
 }
 
 function asEntry(value: string): GuideEntry {
-  return value === "why" || value === "topic" || value === "home" ? value : "step";
+  return value === "why" || value === "topic" || value === "home" || value === "parent"
+    ? value
+    : "step";
 }
 
 export type ConversationRow = {
@@ -196,4 +199,45 @@ export async function rateMessage(db: Client, messageId: string, rating: 1 | -1)
     p_rating: rating,
   });
   if (error) throw toAppError(error, "Failed to save your rating");
+}
+
+/**
+ * Whether Jarso is on for the child: on by default, off only when a parent turned it off. (The
+ * row's consent_version records which explanation the parent had; it gates nothing.)
+ */
+export async function findGuideAccess(db: Client, childId: string): Promise<boolean> {
+  const { data, error } = await db
+    .from("guide_access")
+    .select("enabled")
+    .eq("child_id", childId)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load the guide setting");
+  return data ? data.enabled : true;
+}
+
+/** A parent switches Jarso on or off for their child (`set_guide_access` checks the parent). */
+export async function saveGuideAccess(
+  db: Client,
+  childId: string,
+  enabled: boolean,
+): Promise<void> {
+  const { error } = await db.rpc("set_guide_access", { p_child_id: childId, p_enabled: enabled });
+  if (error) throw toAppError(error, "Failed to change the guide setting");
+}
+
+/** The child's own flagged chats with a message since an instant (the parent's badge). */
+export async function countFlaggedSince(
+  db: Client,
+  childId: string,
+  sinceIso: string,
+): Promise<number> {
+  const { count, error } = await db
+    .from("guide_conversations")
+    .select("id", { count: "exact", head: true })
+    .eq("child_id", childId)
+    .is("asked_by", null)
+    .eq("flagged", true)
+    .gte("last_message_at", sinceIso);
+  if (error) throw toAppError(error, "Failed to load chats");
+  return count ?? 0;
 }

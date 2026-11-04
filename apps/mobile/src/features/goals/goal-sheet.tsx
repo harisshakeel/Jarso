@@ -159,7 +159,7 @@ function GoalForm({
                   checked ? "border-primary bg-secondary" : "border-border",
                 )}
               >
-                <Text className="text-2xl">{option}</Text>
+                <Text className="text-h1">{option}</Text>
               </Pressable>
             );
           })}
@@ -184,7 +184,7 @@ function GoalForm({
           money
         />
         {allowanceMinor ? (
-          <Text className="text-muted-foreground text-sm">
+          <Text className="text-muted-foreground">
             {goalCopy.sheet.planHint(
               formatMoney(allowanceMinor, currency, { showMinor: "nonzero" }),
             )}
@@ -282,7 +282,7 @@ function StartNewGoal({ goalId, onDone }: { goalId: string; onDone: () => void }
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
+    <Text accessibilityLiveRegion="polite" className="text-destructive">
       {message}
     </Text>
   );
@@ -318,7 +318,7 @@ function Field({
         keyboardType={money ? "decimal-pad" : "default"}
         autoComplete="off"
         maxLength={maxLength}
-        className={cn(money && "h-14 text-2xl", error && "border-destructive")}
+        className={cn(money && "h-14 text-money-xl", error && "border-destructive")}
       />
       <FieldError message={error} />
     </View>

@@ -6,6 +6,7 @@ import {
   listMemories,
   listMyChats,
   rateMessage,
+  toConversation,
 } from "@jarso/data/guide";
 import { describe, expect, it } from "vitest";
 import { type Call, fakeClient, ok } from "../fake-client";
@@ -58,6 +59,14 @@ function filtered(rows: Convo[]) {
     return ok(single ? (kept[0] ?? null) : kept);
   };
 }
+
+describe("toConversation", () => {
+  it("keeps a parent's entry, so their chat is titled as theirs", () => {
+    const row = toConversation(convo({ id: "p1", entry: "parent", asked_by: "parent-1" }));
+    expect(row.entry).toBe("parent");
+    expect(toConversation(convo({ id: "x", entry: "junk" })).entry).toBe("step");
+  });
+});
 
 describe("listMyChats", () => {
   it("filters asked_by null and lists newest first, titled by the first message", async () => {

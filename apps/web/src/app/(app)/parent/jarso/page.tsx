@@ -12,6 +12,7 @@ import {
   JarsoChatPage,
   JarsoPageThread,
   MAX_TURNS,
+  parentGuideCopy,
   threadMessagesFrom,
 } from "@/features/guide";
 import {
@@ -97,12 +98,12 @@ async function JarsoContent({ searchParams }: Pick<Props, "searchParams">) {
         />
       ) : (
         <p className="rounded-xl bg-muted p-4 text-ink-2">
-          Jarso is off for every child. Turn it on from a child's page to ask about them.{" "}
+          {parentGuideCopy.offForEveryChild}{" "}
           <Link
             href={routes.parent}
             className="font-semibold text-primary underline-offset-4 hover:underline"
           >
-            Back to Home
+            {parentGuideCopy.backHome}
           </Link>
         </p>
       )}

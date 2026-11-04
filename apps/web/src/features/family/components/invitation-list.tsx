@@ -1,5 +1,5 @@
 import type { PendingInvitation } from "@jarso/core/family";
-import { sentAgo } from "@jarso/core/family";
+import { inviteCopy, sentAgo } from "@jarso/core/family";
 import type { Route } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
@@ -27,7 +27,7 @@ export function InvitationList({ invitations, now, className, style }: Invitatio
     >
       <div className="flex items-center justify-between gap-3">
         <h2 id="invitations-title" className="text-h2">
-          Waiting for you
+          {inviteCopy.listTitle}
         </h2>
         {invitations.length > 0 ? <RefreshInvitationsButton /> : null}
       </div>
@@ -36,7 +36,7 @@ export function InvitationList({ invitations, now, className, style }: Invitatio
         <Card>
           <CardContent className="flex flex-col items-center gap-4 text-center">
             <JarsoMark size={48} />
-            <p>No invitations waiting. If your child just sent one, refresh.</p>
+            <p>{inviteCopy.empty}</p>
             <RefreshInvitationsButton />
           </CardContent>
         </Card>
@@ -64,7 +64,8 @@ export function InvitationList({ invitations, now, className, style }: Invitatio
                   href={`${routes.invite}?id=${invitation.id}` as Route}
                   className={buttonVariants()}
                 >
-                  Accept<span className="sr-only"> {invitation.nickname}</span>
+                  {inviteCopy.accept}
+                  <span className="sr-only"> {invitation.nickname}</span>
                 </Link>
               </li>
             ))}

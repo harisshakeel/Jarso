@@ -7,7 +7,7 @@ export function CoachSays({ coachKey, moment }: { coachKey: string; moment: Coac
   const id = coachIdFor(coachKey);
   return (
     <View className="gap-1">
-      <Text className="font-sans-semibold text-muted-foreground text-sm">{coachNames[id]}</Text>
+      <Text className="font-sans-semibold text-muted-foreground text-small">{coachNames[id]}</Text>
       <View className="rounded-2xl rounded-bl-sm bg-secondary p-4">
         <Text className="font-sans-semibold text-secondary-foreground">
           {coachLine(id, moment)}

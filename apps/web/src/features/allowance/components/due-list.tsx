@@ -1,5 +1,5 @@
 import type { DueItem, Gift } from "@jarso/core/allowance";
-import { formatDay } from "@jarso/core/allowance";
+import { dueKindLabel, dueListCopy, formatDay } from "@jarso/core/allowance";
 import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import { StatusChip } from "@/components/brand";
@@ -15,7 +15,7 @@ export function DueList({ childId, items, currency }: DueListProps) {
   return (
     <section aria-labelledby="due-title" className="grid gap-3">
       <h2 id="due-title" className="text-h2">
-        Due now
+        {dueListCopy.dueTitle}
       </h2>
       <Card size="sm">
         <ul className="divide-y divide-hairline">
@@ -27,16 +27,18 @@ export function DueList({ childId, items, currency }: DueListProps) {
               >
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold">
-                    {item.kind === "gift" ? "Gift" : "Allowance"}
+                    {dueKindLabel(item.kind)}
                     {item.note ? (
                       <span className="font-normal text-ink-2"> · {item.note}</span>
                     ) : null}
                   </span>
-                  <span className="block text-ink-2 text-sm">Due {formatDay(item.dueOn)}</span>
+                  <span className="block text-ink-2 text-sm">
+                    {dueListCopy.due(formatDay(item.dueOn))}
+                  </span>
                 </span>
                 <StatusChip status="due" />
                 <span className="money font-bold">{formatMoney(item.amountMinor, currency)}</span>
-                <span className="sr-only">Hand over</span>
+                <span className="sr-only">{dueListCopy.handOver}</span>
                 <ChevronRightIcon aria-hidden className="size-5 text-ink-2" />
               </Link>
             </li>
@@ -61,7 +63,7 @@ export function GiftList({
   return (
     <section aria-labelledby="gifts-title" className="grid gap-3">
       <h2 id="gifts-title" className="text-h2">
-        Gifts coming up
+        {dueListCopy.giftsTitle}
       </h2>
       <Card size="sm">
         <ul className="divide-y divide-hairline">
@@ -73,15 +75,17 @@ export function GiftList({
               >
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold">
-                    Gift
+                    {dueListCopy.gift}
                     {gift.note ? (
                       <span className="font-normal text-ink-2"> · {gift.note}</span>
                     ) : null}
                   </span>
-                  <span className="block text-ink-2 text-sm">On {formatDay(gift.giveOn)}</span>
+                  <span className="block text-ink-2 text-sm">
+                    {dueListCopy.on(formatDay(gift.giveOn))}
+                  </span>
                 </span>
                 <span className="money font-bold">{formatMoney(gift.amountMinor, currency)}</span>
-                <span className="sr-only">Edit</span>
+                <span className="sr-only">{dueListCopy.edit}</span>
                 <ChevronRightIcon aria-hidden className="size-5 text-ink-2" />
               </Link>
             </li>

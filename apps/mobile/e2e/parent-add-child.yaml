@@ -1,0 +1,29 @@
+# Add a child with a random nickname from Settings, then land on the new child's hub. Each run
+# adds one more child to the test family; remove them from Settings when the list gets long.
+#   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... e2e/parent-add-child.yaml
+appId: app.jarso.mobile
+---
+- evalScript: ${output.nickname = 'Test ' + Math.floor(Math.random() * 1000000)}
+- evalScript: ${output.pin = String(1000 + Math.floor(Math.random() * 9000))}
+- runFlow: parent-sign-in.yaml
+# Settings is the header button on every parent tab.
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element:
+      text: "Add a child"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Add a child"
+- tapOn: "Nickname"
+- inputText: ${output.nickname}
+- hideKeyboard
+- tapOn: "PIN"
+- inputText: ${output.pin}
+- hideKeyboard
+- tapOn: "I am this child's parent or guardian"
+- tapOn: "Add child"
+# Added, the new child's hub opens under their nickname.
+- extendedWaitUntil:
+    visible: ${output.nickname}
+    timeout: 20000
+- assertNotVisible: "Add child"

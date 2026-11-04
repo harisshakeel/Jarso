@@ -2,8 +2,13 @@ import { notEnoughSaveMessage, notEnoughSpendToUndoMessage } from "@jarso/core/d
 import type { HistoryItem } from "@jarso/core/ledger";
 import { AppError } from "@jarso/core/lib";
 import { undoEntry } from "@jarso/data/diary";
-import { getFamilyContext } from "@jarso/data/family";
-import { getHistoryPage } from "@jarso/data/ledger";
+import {
+  findFamilyById,
+  findMembership,
+  getFamilyContext,
+  listChildMembers,
+} from "@jarso/data/family";
+import { getHistoryPage, getHistorySince } from "@jarso/data/ledger";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import * as Haptics from "expo-haptics";
@@ -19,10 +24,16 @@ jest.mock("@/features/auth/use-session", () => ({
 jest.mock("@jarso/data/ledger", () => ({
   getHistoryPage: jest.fn(),
   getJars: jest.fn().mockResolvedValue({}),
+  getHistorySince: jest.fn().mockResolvedValue([]),
 }));
 jest.mock("@jarso/data/requests", () => ({ getAvailability: jest.fn().mockResolvedValue({}) }));
 jest.mock("@jarso/data/diary", () => ({ undoEntry: jest.fn() }));
-jest.mock("@jarso/data/family", () => ({ getFamilyContext: jest.fn() }));
+jest.mock("@jarso/data/family", () => ({
+  getFamilyContext: jest.fn(),
+  findMembership: jest.fn(),
+  findFamilyById: jest.fn(),
+  listChildMembers: jest.fn(),
+}));
 jest.mock("expo-network", () => ({ getNetworkStateAsync: jest.fn() }));
 jest.mock("expo-haptics", () => ({
   notificationAsync: jest.fn().mockResolvedValue(undefined),
@@ -52,7 +63,7 @@ function item(over: Partial<HistoryItem> & Pick<HistoryItem, "id" | "kind">): Hi
   };
 }
 
-async function renderHistory() {
+async function renderHistory(props: Parameters<typeof HistoryList>[0] = {}) {
   const client = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: Number.POSITIVE_INFINITY },
@@ -62,7 +73,7 @@ async function renderHistory() {
   const invalidate = jest.spyOn(client, "invalidateQueries");
   const view = await render(
     <QueryClientProvider client={client}>
-      <HistoryList />
+      <HistoryList {...props} />
     </QueryClientProvider>,
   );
   return { client, invalidate, ...view };
@@ -188,6 +199,76 @@ describe("HistoryList", () => {
     page.mockResolvedValue({ items: [], olderBefore: null });
     await userEvent.setup().press(screen.getByLabelText("Try again"));
     expect(await screen.findByText("Your money story starts here.")).toBeOnTheScreen();
+  });
+});
+
+// Before the Undo tests: their last one overlaps act() calls, which upsets later renders.
+describe("A parent reading a child's history", () => {
+  const CHILD = "22222222-2222-4222-8222-222222222222";
+  const since = getHistorySince as jest.Mock;
+
+  beforeEach(() => {
+    (findMembership as jest.Mock).mockResolvedValue({ familyId: "family-1", role: "parent" });
+    (findFamilyById as jest.Mock).mockResolvedValue({
+      id: "family-1",
+      code: "ABC123",
+      currency: "GBP",
+      timezone: "Europe/London",
+    });
+    (listChildMembers as jest.Mock).mockResolvedValue([{ id: CHILD, nickname: "Sam" }]);
+  });
+
+  it("parent history has no undo or fix", async () => {
+    page.mockResolvedValue({
+      items: [
+        item({
+          id: "1",
+          kind: "purchase",
+          label: "Sweets",
+          entryId: "entry-1",
+          canUndo: true,
+          canFix: true,
+        }),
+        item({ id: "2", kind: "skipped", label: "Allowance", amountMinor: null }),
+      ],
+      olderBefore: null,
+    });
+    await renderHistory({ childId: CHILD, readOnly: true });
+
+    expect(await screen.findByText("Sweets")).toBeOnTheScreen();
+    // Exact amounts, and a missed allowance in the parent's words.
+    expect(screen.getByText("£5.00")).toBeOnTheScreen();
+    expect(screen.getByText("Not given")).toBeOnTheScreen();
+    expect(screen.queryByText("Undo")).not.toBeOnTheScreen();
+    expect(screen.queryByLabelText(/Undo/)).not.toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: /Sweets/ })).not.toBeOnTheScreen();
+    expect(page).toHaveBeenCalledWith({ id: "client" }, CHILD, {
+      timezone: "Europe/London",
+      now: expect.any(Number),
+      before: undefined,
+    });
+    expect(context).not.toHaveBeenCalled();
+  });
+
+  it("starts the child's story in the parent's words", async () => {
+    page.mockResolvedValue({ items: [], olderBefore: null });
+    await renderHistory({ childId: CHILD, readOnly: true });
+    expect(await screen.findByText("Sam's money story starts here.")).toBeOnTheScreen();
+  });
+
+  it("shows where the child's money went this week", async () => {
+    page.mockResolvedValue({ items: [], olderBefore: null });
+    since.mockResolvedValue([
+      item({ id: "1", kind: "purchase", label: "Sweets", category: "snacks" }),
+    ]);
+    await renderHistory({ childId: CHILD, readOnly: true });
+    expect(await screen.findByLabelText("Where your money went")).toBeOnTheScreen();
+    expect(since).toHaveBeenCalledWith(
+      { id: "client" },
+      CHILD,
+      expect.any(String),
+      expect.objectContaining({ timezone: "Europe/London" }),
+    );
   });
 });
 

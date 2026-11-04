@@ -30,4 +30,5 @@ export {
   setChildPin,
   startChildOnboarding,
   updateFamilySettings,
+  withNicknameConflict,
 } from "./service";

@@ -51,6 +51,7 @@ describe("goal copy", () => {
   it("formats the composed lines", () => {
     expect(goalCopy.sheet.planHint("£5")).toBe("Up to £5 from each allowance.");
     expect(goalCopy.card.title("⚽", "Boots", "£45")).toBe("⚽ Boots, £45.");
+    expect(goalCopy.card.ofTarget("£34", "£60")).toBe("£34 of £60");
     expect(goalCopy.staircase.amounts("£26", "£19", "£4")).toBe(
       "£26 saved · £19 to go · £4 each allowance",
     );

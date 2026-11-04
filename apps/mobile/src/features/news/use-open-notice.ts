@@ -1,11 +1,31 @@
-import { type Notice, noticeTarget } from "@jarso/core/notifications";
+import {
+  type Notice,
+  type NoticeRole,
+  type NoticeTarget,
+  noticeTarget,
+} from "@jarso/core/notifications";
 import { type Href, useRouter } from "expo-router";
 import { logger } from "@/lib";
 import { useMarkRead } from "./use-notices";
 
-/** Where a notice opens on the phone: the record as it is now (core's `noticeTarget`). */
-export function noticeRoute(notice: Notice): Href {
-  const target = noticeTarget(notice, "child");
+/**
+ * Where a notice target opens on the phone, for the viewer's role (from core's `noticeTarget`).
+ * Group-qualified: `/` and `/jarso` exist in both groups. Push taps use this too.
+ */
+export function noticeTargetRoute(target: NoticeTarget, role: NoticeRole): Href {
+  if (role === "parent") {
+    switch (target.to) {
+      case "handover":
+        return `/(parent)/children/${target.childId}/handover/${target.kind}/${target.id}` as Href;
+      case "child":
+        return `/(parent)/children/${target.childId}` as Href;
+      case "child-history":
+        return `/(parent)/children/${target.childId}/history` as Href;
+      // A child's own records never reach a parent; Family is the safe place.
+      default:
+        return "/(parent)/(tabs)";
+    }
+  }
   switch (target.to) {
     case "diary":
       return "/(child)/(tabs)/diary";
@@ -14,10 +34,7 @@ export function noticeRoute(notice: Notice): Href {
     case "jarso":
       return "/(child)/(tabs)/jarso";
     // Parent records (handover, a child's page) never reach a child; Home is the safe place.
-    case "home":
-    case "handover":
-    case "child":
-    case "child-history":
+    default:
       return "/(child)/(tabs)";
   }
 }
@@ -26,7 +43,7 @@ export function noticeRoute(notice: Notice): Href {
  * Opening a notice: save it as read (best effort, so offline or slow still reaches the record),
  * then go to the record.
  */
-export function useOpenNotice() {
+export function useOpenNotice(role: NoticeRole) {
   const router = useRouter();
   const markRead = useMarkRead();
   return (notice: Notice) => {
@@ -38,6 +55,6 @@ export function useOpenNotice() {
           }),
       });
     }
-    router.push(noticeRoute(notice));
+    router.push(noticeTargetRoute(noticeTarget(notice, role), role));
   };
 }

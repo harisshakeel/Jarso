@@ -1,5 +1,6 @@
 "use client";
 
+import { familySettingsCopy } from "@jarso/core/family";
 import { useActionState, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { FieldError, FormError } from "@/components/form";
@@ -30,7 +31,7 @@ export function FamilySettingsForm({ timezone }: { timezone: string }) {
   const items = useMemo(() => Object.fromEntries(zones.map((zone) => [zone, zone])), [zones]);
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await runOnline(() => updateFamilySettingsAction(prev, formData));
-    if (result.ok) toast.success("Family settings saved");
+    if (result.ok) toast.success(familySettingsCopy.saved);
     return result;
   }, idle);
   const submit = useFormSubmit(action);
@@ -40,7 +41,7 @@ export function FamilySettingsForm({ timezone }: { timezone: string }) {
   return (
     <form action={action} onSubmit={submit} className="grid gap-4" noValidate>
       <div className="grid gap-2">
-        <Label htmlFor="timezone">Timezone</Label>
+        <Label htmlFor="timezone">{familySettingsCopy.timezone}</Label>
         <Select
           name="timezone"
           items={items}
@@ -68,13 +69,13 @@ export function FamilySettingsForm({ timezone }: { timezone: string }) {
           </SelectContent>
         </Select>
         <p id="timezone-help" className="text-muted-foreground text-sm">
-          Allowance due dates and reminders follow this timezone.
+          {familySettingsCopy.timezoneHelp}
         </p>
         <FieldError id="timezone-error" errors={timezoneErrors} />
       </div>
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" loading={pending} disabled={chosen === timezone}>
-        Save
+        {familySettingsCopy.save}
       </Button>
     </form>
   );

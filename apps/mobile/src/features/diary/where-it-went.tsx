@@ -2,7 +2,7 @@ import { whereItWent, whereItWentCopy } from "@jarso/core/ledger";
 import type { FamilyContext } from "@jarso/data/family";
 import { getHistorySince } from "@jarso/data/ledger";
 import { useQuery } from "@tanstack/react-query";
-import { View } from "react-native";
+import { Card } from "@/components/screen";
 import { Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
 import { startOfWeek } from "@/lib";
@@ -11,26 +11,33 @@ import { supabase } from "@/lib/supabase/client";
 
 /**
  * This week's spending by category and money in, as sentences (the web's card). No chart, no
- * table. Nice to have: hidden if this week's lines can't load.
+ * table. Nice to have: hidden if this week's lines can't load. With `childId` it is a parent
+ * reading that child's week, with exact amounts as on the web's parent page.
  */
-export function WhereItWentCard({ context }: { context: FamilyContext }) {
+export function WhereItWentCard({
+  context,
+  childId,
+}: {
+  context: FamilyContext;
+  childId?: string;
+}) {
   const { userId } = useSession();
+  const whose = childId ?? userId;
   const week = useQuery({
-    queryKey: keys.week(userId ?? ""),
-    enabled: Boolean(userId),
+    queryKey: childId ? keys.childWeek(childId) : keys.week(userId ?? ""),
+    enabled: Boolean(whose),
     queryFn: () =>
-      getHistorySince(supabase, userId as string, startOfWeek(context.today), {
+      getHistorySince(supabase, whose as string, startOfWeek(context.today), {
         timezone: context.timezone,
         now: Date.now(),
       }),
   });
   if (!week.data) return null;
-  const view = whereItWent(week.data, context.today, context.currency);
+  const view = whereItWent(week.data, context.today, context.currency, {
+    showMinor: childId ? "always" : "nonzero",
+  });
   return (
-    <View
-      accessibilityLabel={whereItWentCopy.heading}
-      className="gap-2 rounded-2xl border border-border bg-card p-4"
-    >
+    <Card accessibilityLabel={whereItWentCopy.heading} className="gap-2">
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
         {whereItWentCopy.heading}
       </Text>
@@ -45,6 +52,6 @@ export function WhereItWentCard({ context }: { context: FamilyContext }) {
         <Text className="font-sans-bold">{view.empty}</Text>
       )}
       {view.moneyIn ? <Text className="text-muted-foreground">{view.moneyIn}</Text> : null}
-    </View>
+    </Card>
   );
 }

@@ -1,4 +1,11 @@
-import { forgetSignIn, loadSavedSignIn, saveSignIn } from "@/features/auth/saved-sign-in";
+import {
+  forgetParentSignIn,
+  forgetSignIn,
+  loadSavedParentSignIn,
+  loadSavedSignIn,
+  saveParentSignIn,
+  saveSignIn,
+} from "@/features/auth/saved-sign-in";
 
 const mockStore = new Map<string, string>();
 jest.mock("expo-secure-store", () => ({
@@ -36,5 +43,25 @@ describe("saved sign-in", () => {
     mockStore.set("jarso.saved-sign-in", JSON.stringify({ ...details, pin: "12" }));
     expect(await loadSavedSignIn()).toBeNull();
     expect(mockStore.size).toBe(0);
+  });
+});
+
+describe("saved parent sign-in", () => {
+  const parent = { email: "sam@example.com", password: "secret-pass" };
+
+  it("round-trips the details apart from the child's and forgets them", async () => {
+    await saveSignIn(details);
+    await saveParentSignIn(parent);
+    expect(await loadSavedParentSignIn()).toEqual(parent);
+    expect(await loadSavedSignIn()).toEqual(details);
+    await forgetParentSignIn();
+    expect(await loadSavedParentSignIn()).toBeNull();
+    expect(await loadSavedSignIn()).toEqual(details);
+  });
+
+  it("drops a value that is not valid parent details", async () => {
+    mockStore.set("jarso.saved-parent-sign-in", JSON.stringify({ email: "nope", password: "x" }));
+    expect(await loadSavedParentSignIn()).toBeNull();
+    expect(mockStore.has("jarso.saved-parent-sign-in")).toBe(false);
   });
 });

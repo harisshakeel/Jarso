@@ -5,6 +5,7 @@ import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
 import { AllowanceOverview } from "@/features/allowance";
 import { getSchedule, listDue } from "@/features/allowance/server";
+import { parentPageCopy } from "@/features/dashboard";
 import { FirstChildCard } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 
@@ -33,7 +34,7 @@ async function OverviewContent() {
 export default function AllowanceOverviewPage() {
   return (
     <div className="mx-auto grid w-full max-w-6xl gap-6">
-      <h1 className="text-h1">Allowance</h1>
+      <h1 className="text-h1">{parentPageCopy.allowance}</h1>
       <Suspense
         fallback={
           <SlowFallback>

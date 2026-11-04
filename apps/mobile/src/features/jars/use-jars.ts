@@ -6,12 +6,15 @@ import { useSession } from "@/features/auth";
 import { keys } from "@/lib/query";
 import { supabase } from "@/lib/supabase/client";
 
-/** One read for the child's Home: both jars, what they can move, and the family's currency. */
-export function useHome() {
+/**
+ * One read for the child's Home: both jars, what they can move, and the family's currency.
+ * `enabled: false` for a parent, whose screens share a component that reads it for a child.
+ */
+export function useHome(enabled = true) {
   const { userId } = useSession();
   return useQuery({
     queryKey: keys.home(userId ?? ""),
-    enabled: Boolean(userId),
+    enabled: enabled && Boolean(userId),
     queryFn: async () => {
       const id = userId as string;
       const [jars, availability, context] = await Promise.all([

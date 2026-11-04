@@ -80,7 +80,6 @@ function renderApp() {
       "(child)/requests": () => <Text>Requests</Text>,
       "(child)/me": () => <Text>Settings</Text>,
       "(auth)/sign-in": require("../app/(auth)/sign-in"),
-      "(auth)/parents": require("../app/(auth)/parents"),
     },
     { initialUrl: "/" },
   );

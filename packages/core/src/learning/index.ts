@@ -7,6 +7,7 @@ export * from "./grade";
 export * from "./home-step";
 export * from "./journey";
 export * from "./next-step-copy";
+export * from "./parent-copy";
 export * from "./player-copy";
 export * from "./schemas";
 export * from "./skills";

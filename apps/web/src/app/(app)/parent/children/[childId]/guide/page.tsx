@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { routes } from "@/config";
+import { parentPageCopy } from "@/features/dashboard";
 import { ChatList, GuideSwitch, MemoryList } from "@/features/guide";
 import { getGuideAccess, getMemories, listGuideChats } from "@/features/guide/server";
 import { loadChild } from "../load-child";
@@ -20,8 +21,8 @@ async function GuideContent({ params }: { params: Promise<{ childId: string }> }
   if (!access.configured && chats.length === 0) notFound();
   return (
     <PageShell
-      title={`${child.nickname}'s chats with Jarso`}
-      intro="Every chat, newest first, with any that need a look at the top. Text is kept for 30 days."
+      title={parentPageCopy.chats(child.nickname)}
+      intro={parentPageCopy.chatsIntro}
       back={{ href: routes.parentChild(childId), label: child.nickname }}
     >
       {access.configured ? (

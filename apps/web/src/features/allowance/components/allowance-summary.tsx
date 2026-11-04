@@ -1,7 +1,7 @@
 "use client";
 
 import type { Schedule } from "@jarso/core/allowance";
-import { cadenceAfterAmount, formatDay } from "@jarso/core/allowance";
+import { allowanceSummaryCopy, cadenceAfterAmount, formatDay } from "@jarso/core/allowance";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -60,12 +60,12 @@ export function AllowanceSummary({
                 {cadenceAfterAmount(schedule.frequency, schedule.anchorOn)}
               </span>
             </p>
-            {paused ? <Badge variant="secondary">Paused</Badge> : null}
+            {paused ? <Badge variant="secondary">{allowanceSummaryCopy.paused}</Badge> : null}
           </div>
           {paused ? (
             <PausedNote schedule={schedule} />
           ) : next ? (
-            <p className="font-semibold">Next: {formatDay(next)}</p>
+            <p className="font-semibold">{allowanceSummaryCopy.next(formatDay(next))}</p>
           ) : null}
         </div>
 
@@ -74,7 +74,7 @@ export function AllowanceSummary({
             href={routes.parentAllowanceEdit(childId)}
             className={buttonVariants({ size: "lg" })}
           >
-            Change
+            {allowanceSummaryCopy.change}
           </Link>
           {paused ? (
             <ResumeButton scheduleId={schedule.id} />
@@ -93,10 +93,11 @@ function PausedNote({ schedule }: { schedule: Schedule }) {
     <div className="grid gap-1">
       <p>
         {schedule.pausedThrough
-          ? `Paused until ${formatDay(schedule.pausedThrough)}.${
-              schedule.nextDueOn ? ` Next one: ${formatDay(schedule.nextDueOn)}.` : ""
-            }`
-          : "Paused until a parent resumes it."}
+          ? allowanceSummaryCopy.pausedUntil(
+              formatDay(schedule.pausedThrough),
+              schedule.nextDueOn ? formatDay(schedule.nextDueOn) : null,
+            )
+          : allowanceSummaryCopy.pausedOpen}
       </p>
       {schedule.pauseMessage ? <p className="text-ink-2">{schedule.pauseMessage}</p> : null}
     </div>
@@ -133,12 +134,12 @@ function ResumeButton({ scheduleId }: { scheduleId: string }) {
   const { pending, error, submit } = useIdAction(
     scheduleId,
     (id) => resumeAllowanceAction(null, { id }),
-    "Allowance resumed",
+    allowanceSummaryCopy.resumed,
   );
   return (
     <div className="grid gap-2">
       <Button size="lg" loading={pending} onClick={() => submit()}>
-        Resume
+        {allowanceSummaryCopy.resume}
       </Button>
       <FormError error={error} />
     </div>
@@ -150,7 +151,7 @@ function StopButton({ scheduleId, nickname }: { scheduleId: string; nickname: st
   const { pending, error, submit } = useIdAction(
     scheduleId,
     (id) => stopAllowanceAction(null, { id }),
-    "Allowance stopped",
+    allowanceSummaryCopy.stopped,
   );
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
@@ -163,22 +164,22 @@ function StopButton({ scheduleId, nickname }: { scheduleId: string; nickname: st
           />
         }
       >
-        Stop allowance
+        {allowanceSummaryCopy.stop}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Stop {nickname}'s allowance?</AlertDialogTitle>
-          <AlertDialogDescription>Anything already due stays due.</AlertDialogDescription>
+          <AlertDialogTitle>{allowanceSummaryCopy.stopTitle(nickname)}</AlertDialogTitle>
+          <AlertDialogDescription>{allowanceSummaryCopy.stopBody}</AlertDialogDescription>
         </AlertDialogHeader>
         <FormError error={error} />
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep it</AlertDialogCancel>
+          <AlertDialogCancel>{allowanceSummaryCopy.keep}</AlertDialogCancel>
           <Button
             variant="destructive"
             loading={pending}
             onClick={() => submit(() => setOpen(false))}
           >
-            Stop allowance
+            {allowanceSummaryCopy.stop}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

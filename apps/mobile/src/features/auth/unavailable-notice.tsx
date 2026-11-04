@@ -8,9 +8,10 @@ import { useSession } from "./use-session";
 
 /**
  * Shown while the role can't be checked (offline, timeout). The session is kept; a child who is
- * stuck can still sign out. Says whether the phone is offline or Jarso is slow.
+ * stuck can still sign out. Says whether the phone is offline or Jarso is slow. `onRetry` replaces
+ * the session re-check when a screen's own read failed (the parent's setup gate).
  */
-export function UnavailableNotice() {
+export function UnavailableNotice({ onRetry }: { onRetry?: () => void } = {}) {
   const { retry, signOut } = useSession();
   const [message, setMessage] = useState<string>(offlineCopy.offline);
 
@@ -30,7 +31,7 @@ export function UnavailableNotice() {
           accessibilityLabel="Try again"
           onPress={() => {
             refreshMessage();
-            retry();
+            (onRetry ?? retry)();
           }}
         >
           <Text>Try again</Text>

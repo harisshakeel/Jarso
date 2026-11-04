@@ -1,5 +1,6 @@
 "use client";
 
+import { parentGuideCopy } from "@jarso/core/guide";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { FormError } from "@/components/form";
@@ -49,7 +50,7 @@ export function GuideSwitch({
     <div className="grid gap-3">
       <div className="flex items-center justify-between gap-4">
         <span id={`guide-switch-${childId}`} className="font-semibold">
-          Jarso for {nickname}
+          {parentGuideCopy.switchLabel(nickname)}
         </span>
         <button
           type="button"
@@ -70,36 +71,27 @@ export function GuideSwitch({
               on ? "translate-x-[2.125rem]" : "translate-x-0.5",
             )}
           />
-          <span className="sr-only">{on ? "On" : "Off"}</span>
+          <span className="sr-only">{on ? parentGuideCopy.on : parentGuideCopy.off}</span>
         </button>
       </div>
       {detail === "short" ? (
         <p className="text-ink-2">
-          An AI helper for {nickname}'s money questions. It sees only {nickname}'s own jars and
-          learning, never moves money, and you can read every chat.{" "}
+          {parentGuideCopy.shortBody(nickname)}{" "}
           <Link
             href={routes.safety}
             className="font-semibold text-primary underline underline-offset-4"
           >
-            What Jarso can and can't do
+            {parentGuideCopy.shortLink}
           </Link>
         </p>
       ) : (
         <p className="text-ink-2">
-          Jarso is an AI helper made with Anthropic's Claude. It answers {nickname}'s money
-          questions, gives hints in missions, and, when {nickname} asks, looks at their own jars,
-          allowance, purchases, goal, requests and learning to answer. It can't see anyone else's
-          money or your planned gifts, and it can't move money. It never asks for personal details,
-          never recommends products or tells them to buy anything, and points them to help if they
-          seem unsafe. Messages, and what Jarso looks up for them, are sent to Anthropic to get
-          answers. Chats are kept here for 30 days and you can read every one, with what Jarso
-          looked at, except a message that needed a safety response, which isn't kept. It's on
-          unless you turn it off, and you can turn it off or back on at any time.{" "}
+          {parentGuideCopy.fullBody(nickname)}{" "}
           <Link
             href={routes.safety}
             className="font-semibold text-primary underline underline-offset-4"
           >
-            How Jarso keeps children safe
+            {parentGuideCopy.fullLink}
           </Link>
         </p>
       )}

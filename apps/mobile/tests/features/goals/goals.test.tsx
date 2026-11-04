@@ -106,12 +106,32 @@ describe("goals", () => {
     expect(push).toHaveBeenCalledWith("/(child)/goal-sheet");
   });
 
-  it("shows the goal's title and staircase in words on the card", async () => {
+  it("shows the goal with a gold bar and what is left", async () => {
     (getGoalView as jest.Mock).mockResolvedValue({ goal, progress: progress(2000) });
     await render(wrap(<GoalCard currency="GBP" />).ui);
-    expect(await screen.findByText("⚽ Football boots, £45.")).toBeOnTheScreen();
-    expect(screen.getByLabelText(/Your goal: Football boots, £45\./)).toBeOnTheScreen();
+    expect(await screen.findByText("⚽ Football boots")).toBeOnTheScreen();
+    expect(screen.getByText("£20 of £45")).toBeOnTheScreen();
+    const bar = screen.getByRole("progressbar");
+    expect(bar.props.accessibilityValue.now).toBe(44);
+    expect(bar.props.accessibilityLabel).toBe("⚽ Football boots, £45.");
     expect(screen.getByText("About 5 allowances to go")).toBeOnTheScreen();
+    expect(screen.getByRole("link", { name: goalCopy.card.seeIt })).toBeOnTheScreen();
+  });
+
+  it("no plan says what is left", async () => {
+    (getGoalView as jest.Mock).mockResolvedValue({
+      goal: { ...goal, planMinor: null },
+      progress: { ...progress(2000), paymentsLeft: null },
+    });
+    await render(wrap(<GoalCard currency="GBP" />).ui);
+    expect(await screen.findByText("£25 to go")).toBeOnTheScreen();
+  });
+
+  it("reached fills the bar", async () => {
+    (getGoalView as jest.Mock).mockResolvedValue({ goal, progress: progress(5000) });
+    await render(wrap(<GoalCard currency="GBP" />).ui);
+    expect(await screen.findByText("Reached. Time to ask your parent.")).toBeOnTheScreen();
+    expect(screen.getByRole("progressbar").props.accessibilityValue.now).toBe(100);
   });
 
   it("save goal over allowance shows PLAN_MESSAGES error", async () => {

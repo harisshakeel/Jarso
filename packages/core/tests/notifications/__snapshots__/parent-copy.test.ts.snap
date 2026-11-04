@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`noteCopy > keeps every line 1`] = `
+{
+  "body": [Function],
+  "count": [Function],
+  "ideas": "Ideas to start from",
+  "label": "Your note",
+  "send": [Function],
+  "sent": [Function],
+  "title": [Function],
+  "trigger": "Send a note",
+  "triggerTo": [Function],
+}
+`;

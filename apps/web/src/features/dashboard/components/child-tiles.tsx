@@ -1,4 +1,4 @@
-import type { DashboardChild } from "@jarso/core/dashboard";
+import { type DashboardChild, dashboardCopy, goalLine } from "@jarso/core/dashboard";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui";
@@ -17,16 +17,11 @@ export function ChildTiles({ items, currency }: { items: DashboardChild[]; curre
   return (
     <section aria-labelledby="children-title" className="grid gap-3">
       <h2 id="children-title" className="text-h2">
-        Children
+        {dashboardCopy.childrenTitle}
       </h2>
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {items.map((child) => {
-          const view = child.goal;
-          const goal = view
-            ? view.progress.reached
-              ? `${view.goal.emoji} ${view.goal.name}: reached`
-              : `${view.goal.emoji} ${view.goal.name}: ${money(view.progress.countedMinor)} of ${money(view.goal.targetMinor)}`
-            : "No goal yet";
+          const goal = goalLine(child.goal, money);
           const waiting = child.due.length;
           return (
             <li key={child.id}>
@@ -53,17 +48,17 @@ export function ChildTiles({ items, currency }: { items: DashboardChild[]; curre
                   {waiting > 0 ? (
                     <Badge variant="count">
                       {waiting}
-                      <span className="sr-only"> due</span>
+                      <span className="sr-only">{dashboardCopy.due}</span>
                     </Badge>
                   ) : null}
                 </div>
                 <p className="flex flex-wrap gap-x-4">
                   <span>
-                    <span className="text-ink-2">Spend </span>
+                    <span className="text-ink-2">{dashboardCopy.spend}</span>
                     <span className="money font-bold">{money(child.spendMinor)}</span>
                   </span>
                   <span>
-                    <span className="text-ink-2">Save </span>
+                    <span className="text-ink-2">{dashboardCopy.save}</span>
                     <span className="money font-bold">{money(child.saveMinor)}</span>
                   </span>
                 </p>
@@ -84,7 +79,7 @@ export function ChildTiles({ items, currency }: { items: DashboardChild[]; curre
             className="flex h-full min-h-24 items-center justify-center gap-2 rounded-xl border-2 border-hairline-strong border-dashed px-4 font-semibold text-primary hover:bg-card"
           >
             <PlusIcon aria-hidden className="size-5" />
-            Add a child
+            {dashboardCopy.addChild}
           </Link>
         </li>
       </ul>

@@ -6,3 +6,4 @@ delete intl.Locale;
 delete intl.PluralRules;
 delete intl.RelativeTimeFormat;
 delete (Intl.NumberFormat.prototype as unknown as Record<string, unknown>).formatToParts;
+delete intl.DisplayNames;

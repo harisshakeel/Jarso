@@ -4,6 +4,8 @@
 export * from "@jarso/core/lib";
 export * from "./dates";
 export * from "./errors";
+export * from "./flash";
+export * from "./font-scale";
 export * from "./fonts";
 
 // Explicit export shadows core's logger: ./logger configures it on first evaluation.

@@ -1,3 +1,4 @@
+import { dashboardCopy } from "@jarso/core/dashboard";
 import { JarsoEyes } from "@/components/brand";
 
 /**
@@ -8,13 +9,13 @@ import { JarsoEyes } from "@/components/brand";
 export function FamilySummary({ text }: { text: string }) {
   return (
     <section
-      aria-label="Jarso's summary"
+      aria-label={dashboardCopy.summaryLabel}
       className="flex items-start gap-3 rounded-xl bg-cyan-100 p-4 text-cyan-950 dark:bg-cyan-900/40 dark:text-cyan-50"
     >
       <JarsoEyes size="md" className="mt-0.5 shrink-0" />
       <div className="grid min-w-0 gap-1">
         <p className="font-semibold text-cyan-700 text-xs dark:text-cyan-300">
-          Jarso's summary · written by AI from the figures below
+          {dashboardCopy.summaryEyebrow}
         </p>
         <p className="text-lg leading-snug">{text}</p>
       </div>

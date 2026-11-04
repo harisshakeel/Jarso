@@ -10,3 +10,8 @@ import "@/lib/intl";
 jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
 );
+
+// The Android date dialog is a native module: tests answer `open` themselves (DateField).
+jest.mock("@react-native-community/datetimepicker", () => ({
+  DateTimePickerAndroid: { open: jest.fn(), dismiss: jest.fn() },
+}));

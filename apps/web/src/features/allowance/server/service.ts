@@ -9,8 +9,8 @@ import type {
   Split,
 } from "@jarso/core/allowance";
 import { MATCH_GIFT_NOTE } from "@jarso/core/allowance";
+import * as shared from "@jarso/data/allowance";
 import { type FamilyContext, getFamilyContext as getSharedFamilyContext } from "@jarso/data/family";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertUser } from "@/features/auth/server";
 import {
   assertParentCanRead,
@@ -19,40 +19,24 @@ import {
   assertSelfOrParentOf,
   getFamily,
 } from "@/features/family/server";
-import { AppError, familyToday, isAppError } from "@/lib";
+import { AppError, familyToday } from "@/lib";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types";
 import {
-  cancelPendingGift,
-  changeGift,
-  changeSchedule,
-  closeOccurrence,
-  confirmGiftHandover,
-  confirmOccurrenceHandover,
   fetchNextDueOn,
-  fetchScheduleAutoCharge,
   findGift,
-  findLatestAllowanceSplit,
   findLatestConfirmedOccurrence,
-  findLatestGiftSplit,
-  findLatestSchedule,
   findOccurrenceChildId,
   findScheduleChildId,
-  findScheduleState,
-  insertGift,
-  insertSchedule,
+  findScheduleRow,
   listDueForParent,
-  listPendingGifts,
   markPlanDecided,
-  pauseSchedule,
-  resumeSchedule,
-  stopSchedule,
   sumDueOccurrences,
 } from "./repository";
 
 /**
  * Allowance schedules, parent gifts and handover. Every parent mutation resolves the row's child
- * (an RLS read) and calls `assertParentOf` before the database function, which re-checks.
+ * (an RLS read) and calls `assertParentOf` before the shared write in `@jarso/data/allowance`,
+ * whose database function re-checks.
  */
 
 const FORBIDDEN = "You can't do that.";
@@ -78,37 +62,6 @@ async function assertParentOfChild(childId: string | null | undefined): Promise<
   throw new AppError("FORBIDDEN", FORBIDDEN);
 }
 
-/** Gives a database CONFLICT (JA409) a message that fits the operation. */
-async function conflictAs<T>(work: Promise<T>, message: string): Promise<T> {
-  try {
-    return await work;
-  } catch (error) {
-    if (isAppError(error) && error.code === "CONFLICT") {
-      throw new AppError("CONFLICT", message, { cause: error });
-    }
-    throw error;
-  }
-}
-
-/**
- * Like `conflictAs`, but a CONFLICT because the target is already where this call takes it
- * counts as done: on a slow network the first try can commit and lose only its reply, so the
- * repeat finds the work done. Any other state is still the CONFLICT `message`.
- */
-async function unlessReached(
-  work: Promise<void>,
-  reached: () => Promise<boolean>,
-  message: string,
-): Promise<void> {
-  try {
-    await work;
-  } catch (error) {
-    if (!isAppError(error) || error.code !== "CONFLICT") throw error;
-    if (await reached().catch(() => false)) return;
-    throw new AppError("CONFLICT", message, { cause: error });
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
@@ -117,22 +70,13 @@ async function unlessReached(
 export async function getSchedule(childId: string): Promise<Schedule | null> {
   const user = await assertSelfOrParentOf(childId);
   const db = await createClient();
-  const row = await findLatestSchedule(db, childId);
-  if (!row) return null;
-  const nextDueOn = row.status === "stopped" ? null : await fetchNextDueOn(db, row.id);
+  if (user.id !== childId) return shared.getParentSchedule(db, childId, user.id);
   // Payment state is the parent's: the child never sees whether a card pays their allowance,
   // and the database hides those columns from them.
-  if (user.id === childId) {
-    return {
-      ...row,
-      autoCharge: false,
-      autoChargeProvider: null,
-      autoChargeMine: false,
-      nextDueOn,
-    };
-  }
-  const { autoChargeBy, ...autoCharge } = await fetchScheduleAutoCharge(db, row.id);
-  return { ...row, ...autoCharge, autoChargeMine: autoChargeBy === user.id, nextDueOn };
+  const row = await findScheduleRow(db, childId);
+  if (!row) return null;
+  const nextDueOn = row.status === "stopped" ? null : await fetchNextDueOn(db, row.id);
+  return { ...row, autoCharge: false, autoChargeProvider: null, autoChargeMine: false, nextDueOn };
 }
 
 /**
@@ -205,39 +149,20 @@ export async function listDue(childId: string): Promise<DueItem[]> {
 /** Gifts not handed over yet (due and future), soonest first. Parent only. */
 export async function listGifts(childId: string): Promise<Gift[]> {
   const user = await assertParentCanRead(childId);
-  const gifts = await listPendingGifts(await createClient(), childId);
-  return gifts.map(({ autoChargeBy, ...gift }) => ({
-    ...gift,
-    autoChargeMine: autoChargeBy === user.id,
-  }));
+  return shared.listGiftsFor(await createClient(), childId, user.id);
 }
 
 /** The split of the child's most recent handover (allowance or gift), for the prefill. */
 export async function getLastSplit(childId: string): Promise<Split | null> {
   await assertParentCanRead(childId);
-  return getLastSplitWith(await createClient(), childId);
+  return shared.getLastSplitWith(await createClient(), childId);
 }
 
 /**
  * The newer of the child's last allowance and last gift split, read with `db`. No auth: the
  * caller authorises, or passes the admin client from a trusted job (the auto charge).
  */
-export async function getLastSplitWith(
-  db: SupabaseClient<Database>,
-  childId: string,
-): Promise<Split | null> {
-  const [allowance, gift] = await Promise.all([
-    findLatestAllowanceSplit(db, childId),
-    findLatestGiftSplit(db, childId),
-  ]);
-  const latest =
-    allowance && gift
-      ? Date.parse(gift.at) > Date.parse(allowance.at)
-        ? gift
-        : allowance
-      : (allowance ?? gift);
-  return latest ? { cash: latest.cash, saved: latest.saved } : null;
-}
+export const getLastSplitWith = shared.getLastSplitWith;
 
 // ---------------------------------------------------------------------------
 // Schedule writes
@@ -250,18 +175,9 @@ export async function createAllowance(input: {
   firstOn: string;
 }): Promise<string> {
   await assertParentOf(input.childId);
-  return conflictAs(
-    insertSchedule(await createClient(), input),
-    "There's already an allowance. Change it instead.",
-  );
+  return shared.createAllowance(await createClient(), input);
 }
 
-const NEXT_ON = "Pick a later date: after the last allowance, after any pause, and within a year.";
-
-/**
- * The schema already checks the amount and how often, so the database refusing a change as
- * invalid (22023) is about the next date: put it on that field.
- */
 export async function changeAllowance(input: {
   scheduleId: string;
   amountMinor: number;
@@ -270,17 +186,7 @@ export async function changeAllowance(input: {
 }): Promise<void> {
   const db = await createClient();
   await assertParentOfChild(await findScheduleChildId(db, input.scheduleId));
-  try {
-    await conflictAs(changeSchedule(db, input), "This allowance has stopped. Set up a new one.");
-  } catch (error) {
-    if (isAppError(error) && error.code === "VALIDATION") {
-      throw new AppError("VALIDATION", NEXT_ON, {
-        fieldErrors: { nextOn: [NEXT_ON] },
-        cause: error,
-      });
-    }
-    throw error;
-  }
+  await shared.changeAllowance(db, input);
 }
 
 export async function pauseAllowance(input: {
@@ -290,41 +196,24 @@ export async function pauseAllowance(input: {
 }): Promise<void> {
   const db = await createClient();
   await assertParentOfChild(await findScheduleChildId(db, input.scheduleId));
-  await unlessReached(
-    pauseSchedule(db, input),
-    async () => {
-      const state = await findScheduleState(db, input.scheduleId);
-      return state?.status === "paused" && state.pausedThrough === input.through;
-    },
-    "This allowance isn't running, so it can't pause.",
-  );
+  await shared.pauseAllowance(db, input);
 }
 
 export async function resumeAllowance(scheduleId: string): Promise<void> {
   const db = await createClient();
   await assertParentOfChild(await findScheduleChildId(db, scheduleId));
-  await unlessReached(
-    resumeSchedule(db, scheduleId),
-    async () => (await findScheduleState(db, scheduleId))?.status === "active",
-    "This allowance isn't paused.",
-  );
+  await shared.resumeAllowance(db, scheduleId);
 }
 
 export async function stopAllowance(scheduleId: string): Promise<void> {
   const db = await createClient();
   await assertParentOfChild(await findScheduleChildId(db, scheduleId));
-  await unlessReached(
-    stopSchedule(db, scheduleId),
-    async () => (await findScheduleState(db, scheduleId))?.status === "stopped",
-    "This allowance has already stopped.",
-  );
+  await shared.stopAllowance(db, scheduleId);
 }
 
 // ---------------------------------------------------------------------------
 // Gift writes
 // ---------------------------------------------------------------------------
-
-const GIFT_DONE = "This gift was already handed over or cancelled.";
 
 /** A repeated key from the same parent returns the gift it already made. */
 export async function createGift(input: {
@@ -335,7 +224,7 @@ export async function createGift(input: {
   idempotencyKey: string;
 }): Promise<string> {
   await assertParentOf(input.childId);
-  return insertGift(await createClient(), input);
+  return shared.createGift(await createClient(), input);
 }
 
 /** A due gift may keep its past date; a changed date must be today or later. */
@@ -346,41 +235,24 @@ export async function updateGift(input: {
   note: string | null;
 }): Promise<void> {
   const db = await createClient();
-  const gift = await findGift(db, input.giftId);
-  await assertParentOfChild(gift?.childId);
-  if (gift && input.giveOn !== gift.giveOn) {
-    const { today } = await getFamilyContext();
-    if (input.giveOn < today) {
-      throw new AppError("VALIDATION", "Please fix the highlighted fields.", {
-        fieldErrors: { giveOn: ["Pick today or a later date."] },
-      });
-    }
-  }
-  await conflictAs(changeGift(db, input), GIFT_DONE);
+  await assertParentOfChild((await findGift(db, input.giftId))?.childId);
+  const { today } = await getFamilyContext();
+  await shared.updateGift(db, input, today);
 }
 
 export async function cancelGift(giftId: string): Promise<void> {
   const db = await createClient();
   await assertParentOfChild((await findGift(db, giftId))?.childId);
-  await unlessReached(
-    cancelPendingGift(db, giftId),
-    async () => (await findGift(db, giftId))?.status === "cancelled",
-    GIFT_DONE,
-  );
+  await shared.cancelGift(db, giftId);
 }
 
 // ---------------------------------------------------------------------------
 // Handover
 // ---------------------------------------------------------------------------
 
-const NOT_GIVEN = "This allowance was marked as not given, so nothing was recorded.";
-const GIFT_CANCELLED = "This gift was cancelled, so nothing was recorded.";
-
 /**
- * Records what the parent handed over: cash to Spend, the rest to Save. Exactly once in the
- * database; a repeat (any key) returns `already_confirmed`, which the UI shows as success.
- * An occurrence marked not given, or a cancelled gift, is a CONFLICT: nothing was recorded,
- * and a parent confirming from a stale screen must be told so.
+ * Records what the parent handed over: cash to Spend, the rest to Save. A repeat returns
+ * `already_confirmed`; a not-given allowance or a cancelled gift is a CONFLICT (shared write).
  */
 export async function confirmHandover(input: {
   kind: "allowance" | "gift";
@@ -390,24 +262,19 @@ export async function confirmHandover(input: {
   idempotencyKey: string;
 }): Promise<HandoverResult> {
   const db = await createClient();
-  const { kind, ...args } = input;
-  if (kind === "allowance") {
-    await assertParentOfChild(await findOccurrenceChildId(db, args.id));
-    const result = await confirmOccurrenceHandover(db, args);
-    if (result === "not_given") throw new AppError("CONFLICT", NOT_GIVEN);
-    return result;
-  }
-  await assertParentOfChild((await findGift(db, args.id))?.childId);
-  const result = await conflictAs(confirmGiftHandover(db, args), "This gift isn't due yet.");
-  if (result === "cancelled") throw new AppError("CONFLICT", GIFT_CANCELLED);
-  return result;
+  const childId =
+    input.kind === "allowance"
+      ? await findOccurrenceChildId(db, input.id)
+      : (await findGift(db, input.id))?.childId;
+  await assertParentOfChild(childId);
+  return shared.confirmHandover(db, input);
 }
 
 /** Closes a due allowance without paying it. `already_handled` if it was already handled. */
 export async function markNotGiven(occurrenceId: string): Promise<NotGivenResult> {
   const db = await createClient();
   await assertParentOfChild(await findOccurrenceChildId(db, occurrenceId));
-  return closeOccurrence(db, occurrenceId);
+  return shared.markNotGiven(db, occurrenceId);
 }
 
 /**

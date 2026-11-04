@@ -1,6 +1,6 @@
 "use client";
 
-import type { ParentRequestItem } from "@jarso/core/requests";
+import { type ParentRequestItem, parentRequestCopy, requestSentence } from "@jarso/core/requests";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -38,7 +38,7 @@ export function ParentRequestItems({ items, currency }: ParentRequestItemsProps)
   return (
     <section aria-labelledby="save-requests-title" className="grid gap-3">
       <h2 id="save-requests-title" className="text-h2">
-        Requests
+        {parentRequestCopy.title}
       </h2>
       <Card size="sm" className="shadow-raised">
         <ul className="divide-y divide-hairline">
@@ -84,17 +84,14 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
       () => decideWithdrawalAction(null, { requestId: request.id, approve }),
       (data) => {
         if (data === "over_available") {
-          setError({
-            code: "CONFLICT",
-            message: `There isn't enough in Save for this now.`,
-          });
+          setError({ code: "CONFLICT", message: parentRequestCopy.overAvailable });
         } else if (data === "already_decided") settled();
-        else if (data === "approved") toast.success(`Approved. Hand ${amount} to ${nickname}.`);
-        else if (data === "rejected") toast.success("Not now. We let them know.");
+        else if (data === "approved") toast.success(parentRequestCopy.approved(amount, nickname));
+        else if (data === "rejected") toast.success(parentRequestCopy.rejected);
       },
     );
 
-  const settled = () => toast("Already sorted.");
+  const settled = () => toast(parentRequestCopy.settled);
 
   const complete = (done: string) => {
     key.current ??= newId();
@@ -108,28 +105,27 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
   const cancel = () =>
     run(
       () => cancelRequestAction(null, { requestId: request.id }),
-      (data) => (data === "cancelled" ? toast("Okay, left as it was.") : settled()),
+      (data) => (data === "cancelled" ? toast(parentRequestCopy.cancelled) : settled()),
     );
 
   const rejectDeposit = () =>
     run(
       () => rejectDepositAction(null, { requestId: request.id }),
-      (data) => (data === "rejected" ? toast("Okay, not added.") : settled()),
+      (data) => (data === "rejected" ? toast(parentRequestCopy.depositRejected) : settled()),
     );
 
-  let sentence: string;
+  const sentence = requestSentence(request, nickname, amount);
   let actions: React.ReactNode;
   if (request.kind === "deposit") {
-    sentence = `${nickname} gave you ${amount}?`;
     actions = (
       <>
         <Button
           type="button"
           aria-describedby={sentenceId}
           loading={pending}
-          onClick={() => complete("Added to Save.")}
+          onClick={() => complete(parentRequestCopy.depositDone)}
         >
-          Confirm
+          {parentRequestCopy.confirm}
         </Button>
         <Button
           type="button"
@@ -138,31 +134,25 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           disabled={pending}
           onClick={rejectDeposit}
         >
-          Didn't get it
+          {parentRequestCopy.didntGetIt}
         </Button>
       </>
     );
   } else if (request.status === "approved") {
-    sentence =
-      request.kind === "emergency"
-        ? `Hand over ${amount} extra to ${nickname}`
-        : `Hand over ${amount} to ${nickname}`;
     actions = (
       <>
         <Button
           type="button"
           aria-describedby={sentenceId}
           loading={pending}
-          onClick={() => complete("Handed over.")}
+          onClick={() => complete(parentRequestCopy.handedOver)}
         >
-          Confirm
+          {parentRequestCopy.confirm}
         </Button>
         <DidntHandOver describedBy={sentenceId} disabled={pending} onConfirm={cancel} />
       </>
     );
   } else if (request.kind === "emergency") {
-    // The reason is required for an emergency; it is what the parent decides on.
-    sentence = `${nickname} asks for ${amount} extra: ${request.reason ?? ""}`;
     actions = (
       <>
         <Button
@@ -171,7 +161,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           loading={pending}
           onClick={() => decide(true)}
         >
-          Approve
+          {parentRequestCopy.approve}
         </Button>
         <Button
           type="button"
@@ -180,12 +170,11 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           disabled={pending}
           onClick={() => decide(false)}
         >
-          Not now
+          {parentRequestCopy.notNow}
         </Button>
       </>
     );
   } else {
-    sentence = `${nickname} wants ${amount}${request.reason ? `: ${request.reason}` : ""}`;
     actions = (
       <>
         <Button
@@ -194,7 +183,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           loading={pending}
           onClick={() => decide(true)}
         >
-          Approve
+          {parentRequestCopy.approve}
         </Button>
         <Button
           type="button"
@@ -203,7 +192,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           disabled={pending}
           onClick={() => decide(false)}
         >
-          Not now
+          {parentRequestCopy.notNow}
         </Button>
       </>
     );
@@ -243,17 +232,15 @@ function DidntHandOver({
           />
         }
       >
-        Didn't hand it over
+        {parentRequestCopy.didntHandOver}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Didn't hand it over?</AlertDialogTitle>
-          <AlertDialogDescription>
-            The money stays in Save and this request closes.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{parentRequestCopy.didntHandOverTitle}</AlertDialogTitle>
+          <AlertDialogDescription>{parentRequestCopy.didntHandOverBody}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Go back</AlertDialogCancel>
+          <AlertDialogCancel>{parentRequestCopy.goBack}</AlertDialogCancel>
           <Button
             type="button"
             onClick={() => {
@@ -261,7 +248,7 @@ function DidntHandOver({
               onConfirm();
             }}
           >
-            Yes, didn't hand it over
+            {parentRequestCopy.didntHandOverConfirm}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

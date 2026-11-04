@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { CircleCheckIcon } from "lucide-react-native";
 import { useEffect, useRef } from "react";
 import { View } from "react-native";
+import { Card, Eyebrow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
 import { NextStepCard, useLearningOverview } from "@/features/learning";
@@ -50,12 +51,12 @@ export function HomeStepCard({ currency, timezone }: { currency: string; timezon
   if (!step) return null;
   if (step.kind === "learning") return <NextStepCard step={step.step} />;
   return (
-    <View className="gap-3 rounded-2xl border border-border bg-card p-4">
-      <Text className="font-sans-bold text-muted-foreground text-sm uppercase">
+    <Card>
+      <Eyebrow>
         {step.kind === "goal-reached" ? goalCopy.home.goalReachedEyebrow : goalCopy.home.doThisNext}
-      </Text>
+      </Eyebrow>
       <StepBody step={step} currency={currency} />
-    </View>
+    </Card>
   );
 }
 

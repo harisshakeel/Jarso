@@ -1,18 +1,9 @@
-import { formatDay } from "@jarso/core/allowance";
-import type { TimelineEvent } from "@jarso/core/dashboard";
+import { dashboardCopy, type TimelineEvent, weekday } from "@jarso/core/dashboard";
 import { CalendarDaysIcon, CoinsIcon, GiftIcon, TargetIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui";
 import { ChildChip } from "./series";
 
 const ICONS = { allowance: CoinsIcon, gift: GiftIcon, goal: TargetIcon } as const;
-
-/** `YYYY-MM-DD` as "Sun 1 Nov". */
-function weekday(isoDate: string): string {
-  const day = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "UTC" }).format(
-    new Date(`${isoDate}T00:00:00Z`),
-  );
-  return `${day} ${formatDay(isoDate)}`;
-}
 
 /**
  * The next two weeks (spec answer 7): allowances falling due, planned gifts and goals the plan
@@ -25,10 +16,10 @@ export function TimelineCard({ events }: { events: TimelineEvent[] }) {
       <CardContent className="grid gap-3">
         <h2 className="flex items-center gap-2 text-h3">
           <CalendarDaysIcon aria-hidden className="size-5 text-accent-text" />
-          Next two weeks
+          {dashboardCopy.timelineTitle}
         </h2>
         {events.length === 0 ? (
-          <p className="text-ink-2">Nothing planned for the next two weeks.</p>
+          <p className="text-ink-2">{dashboardCopy.timelineEmpty}</p>
         ) : (
           <ol className="grid gap-3">
             {days.map((date) => (

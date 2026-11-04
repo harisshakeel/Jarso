@@ -15,6 +15,7 @@
   "dependencies": {
     "@expo-google-fonts/geist-mono": "^0.4.3",
     "@expo-google-fonts/nunito": "^0.4.2",
+    "@formatjs/intl-displaynames": "^8.0.1",
     "@formatjs/intl-locale": "^5.4.2",
     "@formatjs/intl-numberformat": "^10.0.2",
     "@formatjs/intl-pluralrules": "^7.0.2",
@@ -24,6 +25,7 @@
     "@jarso/data": "workspace:*",
     "@jarso/db": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "9.2.1",
     "@rn-primitives/label": "^1.5.2",
     "@rn-primitives/portal": "^1.5.3",
     "@rn-primitives/slot": "^1.5.2",

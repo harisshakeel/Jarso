@@ -1,3 +1,4 @@
+import { jarsoNoticeCopy } from "@jarso/core/guide";
 import { BotIcon } from "lucide-react";
 import Link from "next/link";
 import { routes } from "@/config";
@@ -14,18 +15,15 @@ export function JarsoNotice() {
     >
       <h2 id="jarso-notice" className="flex items-center gap-2 font-semibold">
         <BotIcon aria-hidden className="size-4" />
-        Jarso, the AI helper, is on
+        {jarsoNoticeCopy.title}
       </h2>
       <p>
-        Your child can ask Jarso money questions. When they ask, it looks at their own jars,
-        allowance, purchases, goal, requests and learning to answer. Their messages, and what Jarso
-        looks up, are sent to Anthropic (Claude) to get answers. You can read every chat, and turn
-        Jarso off at any time on your child's page.{" "}
+        {jarsoNoticeCopy.body}{" "}
         <Link
           href={routes.safety}
           className="font-semibold text-primary underline underline-offset-4"
         >
-          How Jarso keeps children safe
+          {jarsoNoticeCopy.safetyLink}
         </Link>
       </p>
     </section>

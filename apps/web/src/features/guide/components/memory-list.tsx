@@ -1,7 +1,7 @@
 "use client";
 
 import type { Memory } from "@jarso/core/guide";
-import { guideCopy } from "@jarso/core/guide";
+import { guideCopy, parentGuideCopy } from "@jarso/core/guide";
 import { BrainIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -31,9 +31,7 @@ export function MemoryList({ memories, whose }: MemoryListProps) {
             {guideCopy.memories.title}
           </h2>
           <p className="text-ink-2 text-sm">
-            {whose === "you"
-              ? guideCopy.memories.intro
-              : `Short notes Jarso keeps about ${whose} so it can pick up where they left off. You or ${whose} can delete any.`}
+            {whose === "you" ? guideCopy.memories.intro : parentGuideCopy.memoriesIntro(whose)}
           </p>
           {memories.length === 0 ? (
             <p className="text-ink-2">{guideCopy.memories.empty}</p>

@@ -17,9 +17,12 @@ import {
   generateCode,
   generateToken,
   hashSecret,
+  invitationGone,
+  nicknameTaken,
   normaliseEmailForLimit,
   normaliseFamilyCode,
 } from "@jarso/core/family";
+import * as shared from "@jarso/data/family";
 import { clientEnv, routes } from "@/config";
 import { sendEmail } from "@/features/notifications/server";
 import { AppError, isAppError, logger } from "@/lib";
@@ -39,7 +42,6 @@ import {
   findInvitationByHash,
   findNickname,
   hitRateLimit,
-  insertFamily,
   insertInvitation,
   listChildMembers,
   listInvitationsForCaller,
@@ -57,8 +59,7 @@ import {
 const INVITE_CODE_LENGTH = 8;
 
 /** Shown for unknown, expired and used invitations alike, so none can be told apart. */
-export const INVITATION_GONE =
-  "This invitation has expired or was already used. Ask your child to start again.";
+export const INVITATION_GONE = invitationGone;
 
 type Limit = { key: string; window: string; max: number };
 
@@ -71,17 +72,8 @@ async function enforceLimits(limits: Limit[], message: string): Promise<void> {
 
 export async function createFamily(input: CreateFamilyInput): Promise<Family> {
   await assertRole("parent");
-  const db = await createClient();
-  const id = await insertFamily(db, input.currency, input.timezone).catch((error: unknown) => {
-    // create_family raises 22023 (VALIDATION) only for a timezone Postgres doesn't know. The
-    // timezone comes from the device, so the parent can't fix it: use UTC instead of a dead end.
-    if (!isAppError(error) || error.code !== "VALIDATION") throw error;
-    logger.warn("Device timezone rejected, using UTC", { timezone: input.timezone });
-    return insertFamily(db, input.currency, "UTC");
-  });
-  const family = await findFamilyById(db, id);
-  if (!family) throw new AppError("INTERNAL", "Failed to load the new family");
-  return family;
+  // An unknown device timezone falls back to UTC (shared with the phone).
+  return shared.createFamilyWithFallback(await createClient(), input);
 }
 
 export async function getFamily(): Promise<Family | null> {
@@ -113,10 +105,15 @@ export async function addChild(input: {
   consent: boolean;
   invitationId?: string;
 }): Promise<ChildSummary> {
-  const { membership } = await assertRole("parent");
+  const { user, membership } = await assertRole("parent");
   // Fail fast before creating an auth user; register_child re-checks authoritatively.
   if (membership?.familyId !== input.familyId)
     throw new AppError("FORBIDDEN", "You can't do that.");
+  // Each call creates an auth user with the admin client, so a parent's adds are capped.
+  await enforceLimits(
+    [{ key: `add-child:user:${user.id}`, window: "1 hour", max: 10 }],
+    "Too many tries. Please wait a little and try again.",
+  );
   const db = await createClient();
   const childId = await createChildAuthUser();
   try {
@@ -126,6 +123,24 @@ export async function addChild(input: {
     throw error;
   }
   return { id: childId, nickname: input.nickname.trim() };
+}
+
+/**
+ * A duplicate nickname comes back from register_child (and rename) as CONFLICT; this puts it on
+ * the nickname field. For the actions and the phone's routes alike.
+ */
+export async function withNicknameConflict<T>(work: Promise<T>): Promise<T> {
+  try {
+    return await work;
+  } catch (error) {
+    if (isAppError(error) && error.code === "CONFLICT") {
+      throw new AppError("CONFLICT", "Please fix the highlighted fields.", {
+        fieldErrors: { nickname: [nicknameTaken] },
+        cause: error,
+      });
+    }
+    throw error;
+  }
 }
 
 /** Child-started onboarding (signed out). Always returns a link and code; email is a bonus. */

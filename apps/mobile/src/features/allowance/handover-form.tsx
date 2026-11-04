@@ -1,0 +1,298 @@
+import {
+  cashForSaved,
+  checkSplit,
+  type DueItem,
+  formatDay,
+  handoverCopy,
+  handoverSchema,
+  prefillSplit,
+  type Split,
+} from "@jarso/core/allowance";
+import { parentPageCopy } from "@jarso/core/dashboard";
+import { planNote } from "@jarso/core/goals";
+import { parentRequestCopy } from "@jarso/core/requests";
+import { randomUUID } from "expo-crypto";
+import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
+import { z } from "zod";
+import { Card } from "@/components/screen";
+import { HomeWait, Notice, useSendOnce } from "@/components/sheet";
+import { Button, Text } from "@/components/ui";
+import { Field } from "@/features/auth";
+import { useFamily } from "@/features/family";
+import { CardPaymentSlot } from "@/features/payments";
+import { actionErrorMessage, flash, formatMoney, parseMoney, toMajorString } from "@/lib";
+import { useChildDue } from "./use-due";
+import { useChildGoal, useConfirmHandover, useLastSplit, useMarkNotGiven } from "./use-handover";
+
+type Kind = "allowance" | "gift";
+type FieldErrors = { cash?: string[]; saved?: string[] };
+
+/**
+ * The handover sheet (the web's handover page): the due item, read fresh, then the cash and
+ * saved form. An item no longer due says "Already sorted." and closes. Mount it once per
+ * opening: the form's idempotency key is made on mount.
+ */
+export function HandoverSheet({
+  childId,
+  kind,
+  id,
+  onClose,
+}: {
+  childId: string;
+  kind: Kind;
+  id: string;
+  onClose: () => void;
+}) {
+  const family = useFamily();
+  const due = useChildDue(childId);
+  const last = useLastSplit(childId);
+  const goal = useChildGoal(childId);
+  // Set once this sheet wrote: the refetch that follows must not read as "already sorted".
+  const finished = useRef(false);
+  const child = family.data?.children.find((c) => c.id === childId);
+  const item = due.data?.find((d) => d.kind === kind && d.id === id);
+  const gone = Boolean((family.data && !child) || (due.data && !item));
+
+  useEffect(() => {
+    if (!gone || finished.current) return;
+    finished.current = true;
+    flash(parentRequestCopy.settled);
+    onClose();
+  }, [gone, onClose]);
+
+  if (!family.data || !child || !item || !last.isSuccess) {
+    return <HomeWait error={family.error ?? due.error} onClose={onClose} />;
+  }
+
+  return (
+    <HandoverForm
+      childId={childId}
+      nickname={child.nickname}
+      currency={family.data.family.currency}
+      item={item}
+      prefill={prefillSplit(item.amountMinor, last.data)}
+      goalNote={planNote(child.nickname, goal.data?.goal ?? null, family.data.family.currency)}
+      onDone={() => {
+        finished.current = true;
+        onClose();
+      }}
+    />
+  );
+}
+
+/** Cash to the child's Spend, the rest kept as Save (spec §5.2), with "Not given" for allowances. */
+export function HandoverForm({
+  childId,
+  nickname,
+  currency,
+  item,
+  prefill,
+  goalNote,
+  onDone,
+}: {
+  childId: string;
+  nickname: string;
+  currency: string;
+  item: DueItem;
+  prefill: Split;
+  goalNote: string | null;
+  onDone: () => void;
+}) {
+  const router = useRouter();
+  const { kind, id, amountMinor } = item;
+  const isAllowance = kind === "allowance";
+  const confirm = useConfirmHandover();
+  const notGiven = useMarkNotGiven();
+  const once = useSendOnce();
+  // One key per opening, kept across retries: the database makes it exactly once.
+  const [idempotencyKey] = useState(() => randomUUID());
+  const [cashText, setCashText] = useState(toMajorString(prefill.cash, currency));
+  const [savedText, setSavedText] = useState(toMajorString(prefill.saved, currency));
+  // Once the parent types Spend, typing Save no longer fills it in: their number stays.
+  const [cashTyped, setCashTyped] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>();
+  const [error, setError] = useState<string>();
+
+  const cash = parseMoney(cashText, currency);
+  const saved = parseMoney(savedText, currency);
+  const { valid, total, short, over } = checkSplit(cash, saved, amountMinor, kind);
+  const amount = formatMoney(amountMinor, currency);
+  const pending = confirm.isPending || notGiven.isPending;
+
+  const cashError =
+    cashText.trim() && cash === null ? handoverCopy.moneyError : fieldErrors?.cash?.[0];
+  const savedError =
+    savedText.trim() && saved === null ? handoverCopy.moneyError : fieldErrors?.saved?.[0];
+
+  function typeCash(value: string) {
+    setFieldErrors(undefined);
+    setCashText(value);
+    setCashTyped(true);
+  }
+
+  function typeSaved(value: string) {
+    setFieldErrors(undefined);
+    setSavedText(value);
+    if (cashTyped) return;
+    // Spend takes the rest of what was due, so the parent usually types one number.
+    const rest = cashForSaved(parseMoney(value, currency), amountMinor);
+    if (rest !== null) setCashText(toMajorString(rest, currency));
+  }
+
+  const submit = () =>
+    once(async () => {
+      setError(undefined);
+      const parsed = handoverSchema(currency).safeParse({
+        kind,
+        id,
+        cash: cashText,
+        saved: savedText,
+        idempotencyKey,
+      });
+      if (!parsed.success) {
+        setFieldErrors(z.flattenError(parsed.error).fieldErrors as FieldErrors);
+        return;
+      }
+      try {
+        const result = await confirm.mutateAsync({ childId, ...parsed.data });
+        flash(
+          result === "confirmed" ? handoverCopy.handedOver(nickname) : handoverCopy.alreadyHandled,
+        );
+        onDone();
+      } catch (cause) {
+        setError(await actionErrorMessage(cause));
+      }
+    });
+
+  const onNotGiven = () =>
+    Alert.alert(handoverCopy.notGivenTitle, handoverCopy.notGivenBody(nickname), [
+      { text: handoverCopy.goBack, style: "cancel" },
+      {
+        text: handoverCopy.notGiven,
+        style: "destructive",
+        onPress: () =>
+          void once(async () => {
+            setError(undefined);
+            try {
+              const result = await notGiven.mutateAsync({ childId, id });
+              flash(
+                result === "closed" ? handoverCopy.markedNotGiven : handoverCopy.alreadyHandled,
+              );
+              onDone();
+            } catch (cause) {
+              setError(await actionErrorMessage(cause));
+            }
+          }),
+      },
+    ]);
+
+  const barBase = Math.max(amountMinor, total);
+  const spendWidth = valid && cash !== null && barBase > 0 ? (cash / barBase) * 100 : 0;
+  const saveWidth = valid && saved !== null && barBase > 0 ? (saved / barBase) * 100 : 0;
+
+  return (
+    <ScrollView
+      className="bg-background"
+      contentContainerClassName="gap-4 p-4 pb-10"
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text accessibilityRole="header" className="font-sans-extrabold text-h1">
+        {parentPageCopy.handOverTo(nickname)}
+      </Text>
+      <Card>
+        <Text className="font-sans-bold">{handoverCopy.heading(kind, formatDay(item.dueOn))}</Text>
+        {item.note ? <Text className="text-muted-foreground">{item.note}</Text> : null}
+        <Text className="font-sans-extrabold text-money-xl">{amount}</Text>
+      </Card>
+
+      <Card className="gap-4">
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          className="h-3 flex-row overflow-hidden rounded-full bg-muted"
+        >
+          <View className="bg-primary" style={{ width: `${spendWidth}%` }} />
+          <View className="bg-gold" style={{ width: `${saveWidth}%` }} />
+        </View>
+        <Field
+          label={handoverCopy.cashLabel(nickname)}
+          value={cashText}
+          onChangeText={typeCash}
+          keyboardType="decimal-pad"
+          autoComplete="off"
+          errors={cashError ? [cashError] : undefined}
+        />
+        <Field
+          label={handoverCopy.savedLabel}
+          value={savedText}
+          onChangeText={typeSaved}
+          keyboardType="decimal-pad"
+          autoComplete="off"
+          errors={savedError ? [savedError] : undefined}
+        />
+        {goalNote ? <Text className="text-muted-foreground">{goalNote}</Text> : null}
+        {over ? (
+          <Text accessibilityLiveRegion="polite" className="text-destructive">
+            {handoverCopy.over(amount)}
+          </Text>
+        ) : short > 0 ? (
+          <Text accessibilityLiveRegion="polite" className="text-muted-foreground">
+            {handoverCopy.shortLine(
+              nickname,
+              formatMoney(amountMinor - short, currency),
+              formatMoney(short, currency),
+            )}
+          </Text>
+        ) : isAllowance ? (
+          <Text className="text-muted-foreground">{handoverCopy.gaveLess}</Text>
+        ) : null}
+      </Card>
+
+      <CardPaymentSlot
+        kind={kind}
+        id={id}
+        childId={childId}
+        amountMinor={amountMinor}
+        currency={currency}
+        split={cash !== null && saved !== null ? { spendMinor: cash, saveMinor: saved } : undefined}
+      />
+
+      <Notice message={error} />
+      <Button
+        size="lg"
+        accessibilityLabel={handoverCopy.confirm}
+        accessibilityState={{ busy: confirm.isPending, disabled: pending || !valid || over }}
+        disabled={pending || !valid || over}
+        onPress={() => void submit()}
+      >
+        {confirm.isPending ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text>{handoverCopy.confirm}</Text>
+        )}
+      </Button>
+      {isAllowance ? (
+        <Button
+          variant="outline"
+          size="lg"
+          accessibilityLabel={handoverCopy.notGiven}
+          accessibilityState={{ disabled: pending }}
+          disabled={pending}
+          onPress={onNotGiven}
+        >
+          <Text>{handoverCopy.notGiven}</Text>
+        </Button>
+      ) : (
+        <Button
+          variant="ghost"
+          accessibilityLabel={handoverCopy.changeGift}
+          onPress={() => router.push(`/(parent)/children/${childId}/gifts/${id}`)}
+        >
+          <Text>{handoverCopy.changeGift}</Text>
+        </Button>
+      )}
+    </ScrollView>
+  );
+}

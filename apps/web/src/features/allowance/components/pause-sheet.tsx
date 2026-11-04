@@ -1,5 +1,6 @@
 "use client";
 
+import { pauseCopy } from "@jarso/core/allowance";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { ChoiceChips, Field, FormError } from "@/components/form";
@@ -28,14 +29,11 @@ export function PauseSheet({ scheduleId, nickname, today }: PauseSheetProps) {
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button variant="outline" size="lg" />}>Pause</SheetTrigger>
+      <SheetTrigger render={<Button variant="outline" size="lg" />}>{pauseCopy.pause}</SheetTrigger>
       <SheetContent side="bottom" className="sm:mx-auto sm:w-full sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>Pause {nickname}'s allowance</SheetTitle>
-          <SheetDescription>
-            No allowance falls due while paused. Missed allowances aren't paid later. Anything
-            already due stays due.
-          </SheetDescription>
+          <SheetTitle>{pauseCopy.title(nickname)}</SheetTitle>
+          <SheetDescription>{pauseCopy.body}</SheetDescription>
         </SheetHeader>
         {/* Lives inside the sheet, so it unmounts on close and opens fresh each time. */}
         <PauseForm
@@ -49,10 +47,7 @@ export function PauseSheet({ scheduleId, nickname, today }: PauseSheetProps) {
   );
 }
 
-const untilOptions = [
-  { value: "date", label: "A date" },
-  { value: "resume", label: "I resume it" },
-] as const;
+const untilOptions = pauseCopy.untilOptions;
 
 function PauseForm({
   scheduleId,
@@ -64,7 +59,7 @@ function PauseForm({
     async (_prev: ActionState, formData: FormData) => {
       const result = await runOnline(() => pauseAllowanceAction(null, formData));
       if (result.ok) {
-        toast.success("Allowance paused");
+        toast.success(pauseCopy.paused);
         onDone();
       }
       return result;
@@ -81,7 +76,7 @@ function PauseForm({
       <input type="hidden" name="scheduleId" value={scheduleId} />
       <ChoiceChips
         name="until"
-        legend="Until"
+        legend={pauseCopy.until}
         options={untilOptions}
         value={until}
         onValueChange={setUntil}
@@ -89,7 +84,7 @@ function PauseForm({
       {until === "date" ? (
         <Field
           name="through"
-          label="Pause until"
+          label={pauseCopy.pauseUntil}
           type="date"
           min={today}
           required
@@ -102,7 +97,7 @@ function PauseForm({
       )}
       <Field
         name="message"
-        label={`Message for ${nickname} (optional)`}
+        label={pauseCopy.messageLabel(nickname)}
         autoComplete="off"
         maxLength={140}
         value={message}
@@ -111,7 +106,7 @@ function PauseForm({
       />
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
-        Pause
+        {pauseCopy.pause}
       </Button>
     </form>
   );

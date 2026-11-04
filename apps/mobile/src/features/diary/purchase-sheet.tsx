@@ -15,7 +15,7 @@ import { ActivityIndicator, ScrollView, View } from "react-native";
 import { z } from "zod";
 import { Button, Input, Label, Text } from "@/components/ui";
 import { useHome } from "@/features/jars";
-import { toUserMessage } from "@/lib";
+import { cn, toUserMessage } from "@/lib";
 import { removeItem } from "@/lib/outbox";
 import { CategoryChips } from "./category-chips";
 import { sentEntryId, useRecordPurchase } from "./use-record-purchase";
@@ -194,10 +194,10 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
           onChangeText={setAmount}
           keyboardType="decimal-pad"
           autoComplete="off"
-          className={amountError ? "h-14 border-destructive text-3xl" : "h-14 text-3xl"}
+          className={cn("h-14 text-money-xl", amountError && "border-destructive")}
         />
         {amountError ? (
-          <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
+          <Text accessibilityLiveRegion="polite" className="text-destructive">
             {amountError}
           </Text>
         ) : null}
@@ -220,7 +220,7 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
           maxLength={60}
         />
         {labelError ? (
-          <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
+          <Text accessibilityLiveRegion="polite" className="text-destructive">
             {labelError}
           </Text>
         ) : null}

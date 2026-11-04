@@ -1,6 +1,6 @@
 "use client";
 
-import type { Profile } from "@jarso/core/profiles";
+import { type Profile, profileCopy } from "@jarso/core/profiles";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { Field, FormError } from "@/components/form";
@@ -14,7 +14,7 @@ export function DisplayNameForm({ fullName }: { fullName: string | null }) {
   const [state, action, pending] = useActionState(
     async (prev: ActionState<Profile>, formData: FormData) => {
       const result = await runOnline(() => updateProfileAction(prev, formData));
-      if (result.ok) toast.success("Name saved");
+      if (result.ok) toast.success(profileCopy.nameSaved);
       return result;
     },
     idle,
@@ -27,7 +27,7 @@ export function DisplayNameForm({ fullName }: { fullName: string | null }) {
     <form action={action} className="grid gap-4" noValidate>
       <Field
         name="fullName"
-        label="Your name"
+        label={profileCopy.name}
         value={name}
         onChange={(event) => setName(event.target.value)}
         autoComplete="name"
@@ -37,7 +37,7 @@ export function DisplayNameForm({ fullName }: { fullName: string | null }) {
       />
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" loading={pending} className="sm:w-fit">
-        Save name
+        {profileCopy.saveName}
       </Button>
     </form>
   );

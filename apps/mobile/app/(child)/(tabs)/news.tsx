@@ -1,3 +1,5 @@
 import { NewsScreen } from "@/features/news";
 
-export default NewsScreen;
+export default function ChildNews() {
+  return <NewsScreen viewer="child" />;
+}

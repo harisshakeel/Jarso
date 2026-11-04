@@ -1,0 +1,52 @@
+# Change the test child's allowance amount (or set one up when none runs), then see it on the
+# child's hub. Needs the child vars for the nickname only.
+#   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... -e CHILD_NICKNAME=...
+#     e2e/parent-allowance.yaml
+appId: app.jarso.mobile
+---
+- evalScript: ${output.amount = (3 + Math.floor(Math.random() * 6)) + '.25'}
+- runFlow: parent-sign-in.yaml
+# The child's row on Family opens their hub.
+- scrollUntilVisible:
+    element:
+      text: "${CHILD_NICKNAME}, .*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "${CHILD_NICKNAME}, .*"
+- scrollUntilVisible:
+    element:
+      text: "Manage|Set up allowance"
+    direction: DOWN
+    timeout: 20000
+# A running allowance: Manage, then Change. None yet: Set up allowance opens the form.
+- runFlow:
+    when:
+      visible: "Manage"
+    commands:
+      - tapOn: "Manage"
+      - tapOn: "Change"
+- runFlow:
+    when:
+      visible: "Set up allowance"
+    commands:
+      - tapOn: "Set up allowance"
+- tapOn: "Amount"
+- eraseText: 10
+- inputText: ${output.amount}
+- hideKeyboard
+- tapOn: "Save allowance"
+# A change stays on the allowance page (its summary has Change); a new one goes back by itself.
+- extendedWaitUntil:
+    notVisible: "Save allowance"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "Change"
+    commands:
+      - back
+- scrollUntilVisible:
+    element:
+      text: ".*${output.amount}.*"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Manage"

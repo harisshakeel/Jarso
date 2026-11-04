@@ -28,6 +28,16 @@ export function useLearningOverview(timezone: string | undefined) {
   });
 }
 
+/** A parent's read of one child's learning overview, with the family's `timezone`. */
+export function useChildLearning(childId: string, timezone: string | undefined) {
+  return useQuery({
+    queryKey: keys.childLearning(childId),
+    enabled: Boolean(timezone),
+    queryFn: () =>
+      getLearningOverview(supabase, childId, { timezone: timezone as string, now: new Date() }),
+  });
+}
+
 /** What's waiting in this child's outbox right now (read once, for a resume). */
 async function queuedItems(userId: string) {
   const store = await outboxPlatform.openStore();

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { routes } from "@/config";
+import { parentPageCopy } from "@/features/dashboard";
 import { Transcript } from "@/features/guide";
 import { getGuideTranscript } from "@/features/guide/server";
 import { loadChild } from "../../load-child";
@@ -24,12 +25,11 @@ async function ChatContent({
   return (
     <PageShell
       title={chat.summary.label}
-      intro={
-        chat.summary.flagged
-          ? "This chat had a safety or rule response. A message that got a safety response stays private: talking to your child kindly is the best next step."
-          : undefined
-      }
-      back={{ href: routes.parentChildGuide(childId), label: `${child.nickname}'s chats` }}
+      intro={chat.summary.flagged ? parentPageCopy.chatFlaggedIntro : undefined}
+      back={{
+        href: routes.parentChildGuide(childId),
+        label: parentPageCopy.chatsBack(child.nickname),
+      }}
     >
       <Transcript messages={chat.messages} timezone={timezone} nickname={child.nickname} />
     </PageShell>

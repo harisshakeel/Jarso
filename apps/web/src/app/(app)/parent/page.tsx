@@ -27,6 +27,7 @@ import {
   moneyChart,
   moneyChartSentence,
   PeriodSwitch,
+  parentPageCopy,
   periodOf,
   type SummaryFacts,
   scopeChildren,
@@ -325,7 +326,7 @@ function HomeSkeleton() {
 export default function ParentHomePage({ searchParams }: Props) {
   return (
     <PageContainer width="wide" className="gap-6">
-      <PageHeader title="Your family" />
+      <PageHeader title={parentPageCopy.family} />
       <Suspense
         fallback={
           <SlowFallback>

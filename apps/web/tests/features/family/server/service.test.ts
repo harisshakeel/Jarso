@@ -1,4 +1,4 @@
-import { hashSecret } from "@jarso/core/family";
+import { hashSecret, nicknameTaken } from "@jarso/core/family";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppError } from "@/lib";
 
@@ -10,7 +10,6 @@ vi.mock("@/features/family/server/repository", () => ({
   findInvitationByHash: vi.fn(),
   findNickname: vi.fn(),
   hitRateLimit: vi.fn(),
-  insertFamily: vi.fn(),
   insertInvitation: vi.fn(),
   listChildMembers: vi.fn(),
   listInvitationsForCaller: vi.fn(),
@@ -22,6 +21,7 @@ vi.mock("@/features/family/server/repository", () => ({
   updateFamilyTimezone: vi.fn(),
   verifyChildPin: vi.fn(),
 }));
+vi.mock("@jarso/data/family", () => ({ createFamilyWithFallback: vi.fn() }));
 vi.mock("@/features/family/server/child-auth", () => ({
   createChildAuthUser: vi.fn(),
   deleteChildAuthUser: vi.fn(),
@@ -37,6 +37,7 @@ vi.mock("@/features/family/server/dal", () => ({
 
 const { sendEmail } = await import("@/features/notifications/server");
 const repo = await import("@/features/family/server/repository");
+const shared = await import("@jarso/data/family");
 const childAuth = await import("@/features/family/server/child-auth");
 const dal = await import("@/features/family/server/dal");
 const service = await import("@/features/family/server/service");
@@ -96,35 +97,66 @@ describe("addChild", () => {
     );
     expect(childAuth.deleteChildAuthUser).toHaveBeenCalledWith("child-1");
   });
-});
 
-describe("createFamily", () => {
-  it("falls back to UTC when the database rejects the device timezone", async () => {
-    vi.mocked(repo.insertFamily)
-      .mockRejectedValueOnce(new AppError("VALIDATION", "Please check what you entered."))
-      .mockResolvedValueOnce("fam-1");
-    const family = { id: "fam-1", code: "ABC234", currency: "GBP", timezone: "UTC" };
-    vi.mocked(repo.findFamilyById).mockResolvedValue(family);
+  it("limits each parent to 10 new children an hour", async () => {
+    vi.mocked(childAuth.createChildAuthUser).mockResolvedValue("child-1");
+    vi.mocked(repo.registerChild).mockResolvedValue();
 
-    await expect(
-      service.createFamily({ currency: "GBP", timezone: "America/Ciudad_Juarez" }),
-    ).resolves.toEqual(family);
-    expect(repo.insertFamily).toHaveBeenNthCalledWith(
-      1,
+    await service.addChild({ familyId: "fam-1", nickname: "Sam", pin: "1234", consent: true });
+    expect(repo.hitRateLimit).toHaveBeenCalledWith(
       expect.anything(),
-      "GBP",
-      "America/Ciudad_Juarez",
+      "add-child:user:parent-1",
+      "1 hour",
+      10,
     );
-    expect(repo.insertFamily).toHaveBeenNthCalledWith(2, expect.anything(), "GBP", "UTC");
   });
 
-  it("does not retry other errors", async () => {
-    vi.mocked(repo.insertFamily).mockRejectedValue(new AppError("CONFLICT", "Already in a family"));
+  it("throws RATE_LIMITED without creating an auth user when the limit is hit", async () => {
+    vi.mocked(repo.hitRateLimit).mockResolvedValue(false);
 
     await expect(
-      service.createFamily({ currency: "GBP", timezone: "Europe/London" }),
-    ).rejects.toMatchObject({ code: "CONFLICT" });
-    expect(repo.insertFamily).toHaveBeenCalledTimes(1);
+      service.addChild({ familyId: "fam-1", nickname: "Sam", pin: "1234", consent: true }),
+    ).rejects.toMatchObject({ code: "RATE_LIMITED" });
+    expect(childAuth.createChildAuthUser).not.toHaveBeenCalled();
+  });
+});
+
+describe("withNicknameConflict", () => {
+  it("puts a CONFLICT on the nickname field", async () => {
+    const error = await service
+      .withNicknameConflict(Promise.reject(new AppError("CONFLICT", "That already exists.")))
+      .catch((e: unknown) => e);
+    expect(error).toMatchObject({
+      code: "CONFLICT",
+      message: "Please fix the highlighted fields.",
+      fieldErrors: { nickname: [nicknameTaken] },
+    });
+  });
+
+  it("passes other errors and results through", async () => {
+    await expect(
+      service.withNicknameConflict(Promise.reject(new AppError("FORBIDDEN", "No."))),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", message: "No." });
+    await expect(service.withNicknameConflict(Promise.resolve(7))).resolves.toBe(7);
+  });
+});
+
+// The UTC fallback is shared and tested in packages/data/tests/family; this covers auth and wiring.
+describe("createFamily", () => {
+  const input = { currency: "GBP" as const, timezone: "Europe/London" };
+
+  it("creates through the shared write for a parent", async () => {
+    const family = { id: "fam-1", code: "ABC234", currency: "GBP", timezone: "Europe/London" };
+    vi.mocked(shared.createFamilyWithFallback).mockResolvedValue(family);
+    await expect(service.createFamily(input)).resolves.toEqual(family);
+    expect(dal.assertRole).toHaveBeenCalledWith("parent");
+    expect(shared.createFamilyWithFallback).toHaveBeenCalledWith({ kind: "user" }, input);
+  });
+
+  it("refuses a non-parent before writing", async () => {
+    vi.mocked(dal.assertRole).mockRejectedValue(new AppError("FORBIDDEN", "No."));
+    await expect(service.createFamily(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(shared.createFamilyWithFallback).not.toHaveBeenCalled();
   });
 });
 

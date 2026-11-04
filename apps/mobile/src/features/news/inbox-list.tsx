@@ -1,4 +1,4 @@
-import type { Notice, NoticeKind } from "@jarso/core/notifications";
+import type { Notice, NoticeKind, NoticeRole } from "@jarso/core/notifications";
 import { groupNotices, inboxCopy, noticeText, timeAgo } from "@jarso/core/notifications";
 import {
   BellIcon,
@@ -14,6 +14,7 @@ import {
   SparklesIcon,
 } from "lucide-react-native";
 import { Pressable, View } from "react-native";
+import { Eyebrow } from "@/components/screen";
 import { Text } from "@/components/ui";
 import { cn, useTokens } from "@/lib";
 
@@ -39,18 +40,20 @@ const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
 /** One inbox row (design.md §6): tinted icon, title, detail, relative time, chevron. */
 function InboxItem({
   notice,
+  viewer,
   currency,
   now,
   onOpen,
 }: {
   notice: Notice;
+  viewer: NoticeRole;
   currency: string;
   now: number;
   onOpen: (notice: Notice) => void;
 }) {
   const tokens = useTokens();
   const { icon: Icon, tint } = kindStyle[notice.kind] ?? kindStyle.limit_exceeded;
-  const { title, detail } = noticeText(notice, "child", currency);
+  const { title, detail } = noticeText(notice, viewer, currency);
   const ago = timeAgo(notice.createdAt, now);
   return (
     <Pressable
@@ -75,12 +78,12 @@ function InboxItem({
         </Text>
         <Text
           numberOfLines={notice.kind === "parent_note" ? undefined : 1}
-          className="text-muted-foreground text-sm"
+          className="text-muted-foreground"
         >
           {detail}
         </Text>
       </View>
-      <Text className="text-muted-foreground text-xs">{ago}</Text>
+      <Text className="text-muted-foreground text-small">{ago}</Text>
       <ChevronRightIcon size={20} color={tokens["muted-foreground"]} />
     </Pressable>
   );
@@ -89,11 +92,14 @@ function InboxItem({
 /** The inbox, newest first and grouped by day (core `groupNotices`). */
 export function InboxList({
   items,
+  viewer,
   currency,
   onOpen,
   now = Date.now(),
 }: {
   items: Notice[];
+  /** Whose inbox: the notice's wording differs for a parent and a child. */
+  viewer: NoticeRole;
   currency: string;
   onOpen: (notice: Notice) => void;
   now?: number;
@@ -102,16 +108,14 @@ export function InboxList({
     <View className="gap-4">
       {groupNotices(items, now).map((group) => (
         <View key={group.label} accessibilityLabel={group.label} className="gap-2">
-          <Text
-            accessibilityRole="header"
-            className="font-sans-bold text-muted-foreground text-sm uppercase"
-          >
+          <Eyebrow header tone="muted">
             {group.label}
-          </Text>
+          </Eyebrow>
           {group.items.map((notice) => (
             <InboxItem
               key={notice.id}
               notice={notice}
+              viewer={viewer}
               currency={currency}
               now={now}
               onOpen={onOpen}

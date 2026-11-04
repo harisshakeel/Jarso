@@ -4,7 +4,7 @@ import { MutationObserver } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import { act, renderRouter, screen } from "expo-router/testing-library";
 import { Text } from "react-native";
-import { SessionProvider, useSession } from "@/features/auth";
+import { registerBeforeSignOut, SessionProvider, useSession } from "@/features/auth";
 import { AppError } from "@/lib";
 import { queryClient } from "@/lib/query";
 import { supabase } from "@/lib/supabase/client";
@@ -87,7 +87,7 @@ function SettingsStub() {
   );
 }
 
-function renderApp() {
+function renderApp(initialUrl = "/") {
   return renderRouter(
     {
       _layout: Root,
@@ -97,10 +97,15 @@ function renderApp() {
       "(child)/requests": () => <Text>Requests</Text>,
       "(child)/me": SettingsStub,
       "(auth)/sign-in": require("../app/(auth)/sign-in"),
-      "(auth)/parents": require("../app/(auth)/parents"),
+      "(parent)/(tabs)/index": () => <Text>Family home</Text>,
     },
-    { initialUrl: "/" },
+    { initialUrl },
   );
+}
+
+function SessionProbe() {
+  const { status, role, userId } = useSession();
+  return <Text>{`${status}:${role ?? "-"}:${userId ?? "-"}`}</Text>;
 }
 
 describe("session and role gate", () => {
@@ -124,16 +129,78 @@ describe("session and role gate", () => {
     expect(screen.queryByText("Child home")).not.toBeOnTheScreen();
   });
 
-  it("parent role signs out and shows the parents screen", async () => {
+  it("parent session sets status parent with userId", async () => {
     initial = session("parent-1");
     role.mockResolvedValue("parent");
 
-    await renderApp();
+    await renderRouter(
+      {
+        _layout: Root,
+        index: SessionProbe,
+      },
+      { initialUrl: "/" },
+    );
 
-    expect(await screen.findByText("Parents, use Jarso on the web for now")).toBeOnTheScreen();
-    expect(screen).toHavePathname("/parents");
-    expect(auth.signOut).toHaveBeenCalled();
-    expect(screen.queryByText("Child home")).not.toBeOnTheScreen();
+    expect(await screen.findByText("parent:parent:parent-1")).toBeOnTheScreen();
+    expect(auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it("keeps a parent signed in and shows no child screen", async () => {
+    initial = session("parent-1");
+    role.mockResolvedValue("parent");
+
+    await renderApp("/diary");
+
+    expect(await screen.findByText("Family home")).toBeOnTheScreen();
+    expect(screen.queryByText("Diary")).not.toBeOnTheScreen();
+    expect(auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it("signed-in parent visiting sign-in redirects to parent tabs", async () => {
+    initial = session("parent-1");
+    role.mockResolvedValue("parent");
+
+    await renderApp("/sign-in");
+
+    expect(await screen.findByText("Family home")).toBeOnTheScreen();
+    expect(auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it("goes to a safe next path after sign-in", async () => {
+    initial = session("child-1");
+    role.mockResolvedValue("child");
+
+    await renderApp("/sign-in?next=%2Frequests");
+
+    expect(await screen.findByText("Requests")).toBeOnTheScreen();
+    expect(screen).toHavePathname("/requests");
+  });
+
+  it("ignores an unsafe next path", async () => {
+    initial = session("child-1");
+    role.mockResolvedValue("child");
+
+    await renderApp("/sign-in?next=https%3A%2F%2Fevil.example");
+
+    expect(await screen.findByText("Child home")).toBeOnTheScreen();
+  });
+
+  it("runs the before-sign-out hooks before the session goes", async () => {
+    initial = session("child-1");
+    role.mockResolvedValue("child");
+    const order: string[] = [];
+    const unregister = registerBeforeSignOut(async () => {
+      order.push(auth.signOut.mock.calls.length === 0 ? "hook-first" : "hook-late");
+    });
+    await renderApp();
+    expect(await screen.findByText("Child home")).toBeOnTheScreen();
+    await act(async () => router.navigate("/me"));
+
+    await act(async () => (await screen.findByText("Sign out")).props.onPress());
+
+    expect(await screen.findByLabelText("Your PIN")).toBeOnTheScreen();
+    expect(order).toEqual(["hook-first"]);
+    unregister();
   });
 
   it("signs out when the role read fails for a reason other than the network", async () => {

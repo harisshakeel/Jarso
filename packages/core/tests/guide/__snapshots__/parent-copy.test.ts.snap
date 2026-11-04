@@ -1,0 +1,48 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`parentGuideCopy > keeps every line 1`] = `
+{
+  "backHome": "Back to Home",
+  "cardTitle": "Jarso, the AI helper",
+  "chatLabel": "Chat",
+  "chatsLabel": "Chats",
+  "fixedCopy": "Jarso (set reply)",
+  "flagged": [Function],
+  "fullBody": [Function],
+  "fullLink": "How Jarso keeps children safe",
+  "guide": "Jarso (AI)",
+  "helpful": "Your child found this helpful",
+  "lookedAt": [Function],
+  "memoriesIntro": [Function],
+  "noChats": "No chats yet.",
+  "notConfigured": "Jarso, the AI helper, is not switched on for this app yet.",
+  "notHelpful": "Your child didn't find this helpful",
+  "off": "Off",
+  "offForEveryChild": "Jarso is off for every child. Turn it on from a child's page to ask about them.",
+  "on": "On",
+  "questions": [Function],
+  "readChats": [Function],
+  "routeNotes": {
+    "blocked_output": "Jarso's reply was held back",
+    "jailbreak": "Jarso stayed Jarso",
+    "off_topic": "Jarso steered back to money",
+    "personal_info": "Personal details were not kept",
+    "safety": "Jarso showed the helplines",
+    "unavailable": "Jarso was not available",
+    "unsafe": "Jarso said no to this",
+  },
+  "shortBody": [Function],
+  "shortLink": "What Jarso can and can't do",
+  "switchLabel": [Function],
+  "worthALook": "Worth a look",
+  "yourChild": "Your child",
+}
+`;
+
+exports[`parentGuideCopy > keeps the Jarso notice told before a child is added 1`] = `
+{
+  "body": "Your child can ask Jarso money questions. When they ask, it looks at their own jars, allowance, purchases, goal, requests and learning to answer. Their messages, and what Jarso looks up, are sent to Anthropic (Claude) to get answers. You can read every chat, and turn Jarso off at any time on your child's page.",
+  "safetyLink": "How Jarso keeps children safe",
+  "title": "Jarso, the AI helper, is on",
+}
+`;

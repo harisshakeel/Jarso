@@ -1,5 +1,5 @@
 import type { ChildRules, RuleKind } from "@jarso/core/rules";
-import { summarise } from "@jarso/core/rules";
+import { rulesCopy, spendingSummary, summarise } from "@jarso/core/rules";
 import {
   ArrowLeftRightIcon,
   HandCoinsIcon,
@@ -21,14 +21,6 @@ type RulesFormProps = {
   currency: string;
   rules: ChildRules;
 };
-
-/** One line on what the limits do: they send a note, they never block. */
-function spendingSummary(rules: ChildRules, nickname: string): string {
-  const active = rules.rules.some((rule) => rule.kind === "spend_limit");
-  return active
-    ? `You'll get a note when ${nickname} goes over these. ${nickname} can still record it.`
-    : "No spending limits yet";
-}
 
 /**
  * One rule area as a card: an icon and the title, what is set right now in plain words, then its
@@ -101,7 +93,7 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       <RuleCard
         id="spending-heading"
-        title="Spending"
+        title={rulesCopy.spending}
         now={spendingSummary(rules, nickname)}
         icon={ShoppingBagIcon}
         tone="teal"
@@ -111,8 +103,8 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
           {...shared}
           kind="spend_limit"
           rules={of("spend_limit")}
-          addLabel="Add a spending limit"
-          emptyLine={`Add one to get a note when ${nickname} spends more than an amount.`}
+          addLabel={rulesCopy.addSpendLimit}
+          emptyLine={rulesCopy.spendLimitEmpty(nickname)}
         />
         <div className="border-hairline border-t pt-3">
           <OverspendSwitch
@@ -124,7 +116,7 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
       </RuleCard>
       <RuleCard
         id="moves-heading"
-        title="Moving money between jars"
+        title={rulesCopy.moves}
         icon={ArrowLeftRightIcon}
         tone="neutral"
         className="md:col-start-1 md:row-start-2 xl:col-start-3 xl:row-start-1"
@@ -133,43 +125,35 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
       </RuleCard>
       <RuleCard
         id="take-out-heading"
-        title="Taking money out of Save"
-        now={
-          notify
-            ? "Take-outs are recorded at once and you get a note; the limits below still hold."
-            : summarise(rules.rules, "withdrawal", currency)
-        }
+        title={rulesCopy.takeOut}
+        now={notify ? rulesCopy.takeOutNotify : summarise(rules.rules, "withdrawal", currency)}
         icon={HandCoinsIcon}
         tone="gold"
         className="md:col-start-2 md:row-start-1 xl:row-span-2"
       >
-        <CardPart id="cap-heading" title={`How much can ${nickname} take out?`}>
+        <CardPart id="cap-heading" title={rulesCopy.capTitle(nickname)}>
           <RuleGroup
             {...shared}
             kind="withdrawal_cap"
             rules={of("withdrawal_cap")}
-            addLabel="Add a limit"
-            emptyLine="No limit: any amount can be asked for."
+            addLabel={rulesCopy.addCap}
+            emptyLine={rulesCopy.capEmpty}
           />
         </CardPart>
-        <CardPart id="auto-heading" title={`What can ${nickname} take out without asking?`}>
+        <CardPart id="auto-heading" title={rulesCopy.autoTitle(nickname)}>
           <RuleGroup
             {...shared}
             kind="withdrawal_auto_approve"
             rules={of("withdrawal_auto_approve")}
-            addLabel={`Let ${nickname} take out without asking`}
-            emptyLine="Nothing yet: every take-out waits for your yes."
+            addLabel={rulesCopy.addAuto(nickname)}
+            emptyLine={rulesCopy.autoEmpty}
           />
         </CardPart>
       </RuleCard>
       <RuleCard
         id="put-in-heading"
-        title="Putting money into Save"
-        now={
-          notify
-            ? "Put-ins count in Save at once and you get a note."
-            : summarise(rules.rules, "deposit", currency)
-        }
+        title={rulesCopy.putIn}
+        now={notify ? rulesCopy.putInNotify : summarise(rules.rules, "deposit", currency)}
         icon={PiggyBankIcon}
         tone="gold"
         className="md:col-start-2 md:row-start-2 xl:col-start-3"
@@ -178,13 +162,10 @@ export function RulesForm({ childId, nickname, currency, rules }: RulesFormProps
           {...shared}
           kind="deposit_auto_confirm"
           rules={of("deposit_auto_confirm")}
-          addLabel="Let put-ins count before I confirm"
-          emptyLine={`Every put-in waits until you say you have the cash from ${nickname}.`}
+          addLabel={rulesCopy.addDeposit}
+          emptyLine={rulesCopy.depositEmpty(nickname)}
         />
-        <p className="text-muted-foreground text-sm">
-          Money {nickname} puts in under a rule counts in Save straight away, before you have the
-          cash.
-        </p>
+        <p className="text-muted-foreground text-sm">{rulesCopy.depositNote(nickname)}</p>
       </RuleCard>
     </div>
   );

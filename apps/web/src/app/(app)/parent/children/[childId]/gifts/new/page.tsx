@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { routes } from "@/config";
 import { GiftForm } from "@/features/allowance";
+import { parentPageCopy } from "@/features/dashboard";
 import { paymentCopy } from "@/features/payments";
 import { paymentsEnabled } from "@/features/payments/server";
 import { loadChild } from "../../load-child";
@@ -21,8 +22,8 @@ async function NewGiftContent({
   const { child, currency, today } = await loadChild(childId, routes.parentGiftNew(childId));
   return (
     <PageShell
-      title={`Gift for ${child.nickname}`}
-      intro="A one-time gift."
+      title={parentPageCopy.giftFor(child.nickname)}
+      intro={parentPageCopy.giftNewIntro}
       back={{ href: routes.parentChild(childId), label: child.nickname }}
     >
       <GiftForm

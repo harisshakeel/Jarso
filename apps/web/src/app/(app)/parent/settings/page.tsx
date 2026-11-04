@@ -10,18 +10,20 @@ import { ThemeChoice } from "@/components/theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { routes } from "@/config";
 import { SignOutButton } from "@/features/auth";
+import { parentPageCopy } from "@/features/dashboard";
 import {
   ChildrenSettingsList,
   currencyLabels,
   FamilyCodeCard,
   FamilySettingsForm,
+  familySettingsCopy,
   isCurrency,
 } from "@/features/family";
 import { getFamily, listChildren, requireRole } from "@/features/family/server";
 import { PushToggle } from "@/features/notifications";
 import { paymentCopy, SavedCards } from "@/features/payments";
 import { getSavedCards, paymentsEnabled } from "@/features/payments/server";
-import { DisplayNameForm, ParentDetailsForm } from "@/features/profiles";
+import { DisplayNameForm, ParentDetailsForm, profileCopy } from "@/features/profiles";
 import { getParentDetails, getProfile } from "@/features/profiles/server";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -52,10 +54,10 @@ async function ParentSettings({ searchParams }: Props) {
       <FamilyCodeCard code={family.code} raised className="rise-in" />
       <Section
         index={1}
-        title="Family"
-        description={`Money is kept in ${
-          isCurrency(family.currency) ? currencyLabels[family.currency] : family.currency
-        }. That can't change once the family exists.`}
+        title={familySettingsCopy.familyTitle}
+        description={familySettingsCopy.familyBody(
+          isCurrency(family.currency) ? currencyLabels[family.currency] : family.currency,
+        )}
       >
         <FamilySettingsForm timezone={family.timezone} />
         <p>
@@ -63,7 +65,7 @@ async function ParentSettings({ searchParams }: Props) {
             href={routes.invite}
             className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline"
           >
-            Accept a child's invitation
+            {familySettingsCopy.acceptChildInvitation}
           </Link>
         </p>
       </Section>
@@ -73,8 +75,8 @@ async function ParentSettings({ searchParams }: Props) {
   const childrenTab = (
     <Section
       index={0}
-      title="Children"
-      description="Rename, reset a PIN, or remove a child from your family."
+      title={familySettingsCopy.childrenTitle}
+      description={familySettingsCopy.childrenBody}
     >
       <ChildrenSettingsList items={children} />
     </Section>
@@ -82,18 +84,18 @@ async function ParentSettings({ searchParams }: Props) {
 
   const youTab = (
     <>
-      <Section index={0} title="Your account" description={user.email ?? undefined}>
+      <Section index={0} title={profileCopy.accountTitle} description={user.email ?? undefined}>
         <DisplayNameForm fullName={profile.fullName} />
       </Section>
 
       {/* Before first completion the layout's dialog collects these; rendering the form here
           too would duplicate its field ids. */}
       {details ? (
-        <Section index={1} title="Your details" description="Only you can see these.">
+        <Section index={1} title={profileCopy.detailsTitle} description={profileCopy.detailsBody}>
           <ParentDetailsForm
             defaults={details}
-            submitLabel="Save details"
-            successMessage="Details saved"
+            submitLabel={profileCopy.detailsSubmit}
+            successMessage={profileCopy.detailsSaved}
           />
         </Section>
       ) : null}
@@ -107,12 +109,12 @@ async function ParentSettings({ searchParams }: Props) {
           <SavedCards cards={savedCards} />
         </Section>
       ) : null}
-      <Section index={3} title="Looks" description="Light, dark, or follow your device.">
+      <Section index={3} title={profileCopy.looksTitle} description={profileCopy.looksBody}>
         <ThemeChoice />
       </Section>
       <SoundsToggle />
       <PushToggle />
-      <Section index={4} title="Done for now?" description="Sign out of Jarso on this device.">
+      <Section index={4} title={profileCopy.signOutTitle} description={profileCopy.signOutBody}>
         <SignOutButton />
       </Section>
     </>
@@ -166,7 +168,7 @@ function SettingsSkeleton() {
 export default function ParentSettingsPage({ searchParams }: Props) {
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-6">
-      <h1 className="text-h1">Settings</h1>
+      <h1 className="text-h1">{parentPageCopy.settings}</h1>
       <Suspense
         fallback={
           <SlowFallback>

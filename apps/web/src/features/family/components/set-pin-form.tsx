@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChildSummary } from "@jarso/core/family";
+import { type ChildSummary, familySettingsCopy } from "@jarso/core/family";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
 import { Field, FormError } from "@/components/form";
@@ -23,14 +23,13 @@ export function SetPinForm({ child }: { child: ChildSummary }) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger render={<Button variant="outline" />}>
-        Reset PIN<span className="sr-only"> for {child.nickname}</span>
+        {familySettingsCopy.resetPin}
+        <span className="sr-only">{familySettingsCopy.resetPinFor(child.nickname)}</span>
       </SheetTrigger>
       <SheetContent side="bottom" className="sm:mx-auto sm:w-full sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>New PIN for {child.nickname}</SheetTitle>
-          <SheetDescription>
-            The old PIN stops working straight away. Tell {child.nickname} the new one.
-          </SheetDescription>
+          <SheetTitle>{familySettingsCopy.pinTitle(child.nickname)}</SheetTitle>
+          <SheetDescription>{familySettingsCopy.pinBody(child.nickname)}</SheetDescription>
         </SheetHeader>
         {/* Lives inside the sheet, so it unmounts on close and opens fresh each time. */}
         <NewPinForm child={child} onDone={() => setOpen(false)} />
@@ -43,7 +42,7 @@ function NewPinForm({ child, onDone }: { child: ChildSummary; onDone: () => void
   const [state, action, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await runOnline(() => setChildPinAction(prev, formData));
     if (result.ok) {
-      toast.success(`PIN updated for ${child.nickname}`);
+      toast.success(familySettingsCopy.pinUpdated(child.nickname));
       onDone();
     }
     return result;
@@ -61,7 +60,7 @@ function NewPinForm({ child, onDone }: { child: ChildSummary; onDone: () => void
       <input type="hidden" name="childId" value={child.id} />
       <Field
         name="pin"
-        label="New PIN"
+        label={familySettingsCopy.newPin}
         type="password"
         inputMode="numeric"
         pattern="[0-9]*"
@@ -69,12 +68,12 @@ function NewPinForm({ child, onDone }: { child: ChildSummary; onDone: () => void
         maxLength={6}
         required
         autoFocus
-        description="4 to 6 numbers."
+        description={familySettingsCopy.pinHelp}
         errors={fieldErrors?.pin}
       />
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
-        Save PIN
+        {familySettingsCopy.savePin}
       </Button>
     </form>
   );

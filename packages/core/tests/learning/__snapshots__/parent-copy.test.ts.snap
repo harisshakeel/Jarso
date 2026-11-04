@@ -1,0 +1,23 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`parentLearningCopy > keeps every line 1`] = `
+{
+  "checkIn": [Function],
+  "checkInNotDone": "The starting check-in isn't done yet.",
+  "completedTitle": "Missions done",
+  "journey": "The journey",
+  "journeyLabel": "The seven-day journey",
+  "learnedOn": [Function],
+  "missionsDone": [Function],
+  "noneCompleted": "No missions finished yet.",
+  "noneThisWeek": "No learning yet this week.",
+  "notYetThisWeek": [Function],
+  "seeProgress": "See learning progress",
+  "skills": "Skills",
+  "stopDone": [Function],
+  "stopLocked": "Unlocks after the mission before it.",
+  "stopStarted": "Started, not finished yet.",
+  "thisWeek": "This week",
+  "title": "Learning",
+}
+`;

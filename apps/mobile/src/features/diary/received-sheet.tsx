@@ -132,7 +132,7 @@ export function ReceivedSheet({ onClose }: { onClose: () => void }) {
       <View className="gap-2">
         <JarChoice value={jar} onChange={setJar} />
         {jar === "save" ? (
-          <Text className="text-muted-foreground text-sm">{receivedCopy.saveHint}</Text>
+          <Text className="text-muted-foreground">{receivedCopy.saveHint}</Text>
         ) : null}
       </View>
       <View className="gap-2">
@@ -147,7 +147,7 @@ export function ReceivedSheet({ onClose }: { onClose: () => void }) {
           maxLength={60}
         />
         {labelError ? (
-          <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
+          <Text accessibilityLiveRegion="polite" className="text-destructive">
             {labelError}
           </Text>
         ) : null}

@@ -93,6 +93,12 @@ export type Memory = {
 /** What a child page needs to show the guide. */
 export type GuideState = { available: boolean; introNeeded: boolean };
 
+/**
+ * What the parent's phone needs: whether the server's guide switch is on, and which of their
+ * children have Jarso turned on (a child whose setting can't be read counts as off).
+ */
+export type ParentGuideState = { configured: boolean; enabledChildIds: string[] };
+
 /** Token counts for one turn, per kind, for cost and the budgets. */
 export type GuideUsage = {
   mainInput: number;

@@ -1,0 +1,43 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`dashboard copy > keeps every line 1`] = `
+{
+  "dashboardCopy": {
+    "addChild": "Add a child",
+    "childrenTitle": "Children",
+    "due": " due",
+    "noGoal": "No goal yet",
+    "save": "Save ",
+    "spend": "Spend ",
+    "summaryEyebrow": "Jarso's summary · written by AI from the figures below",
+    "summaryLabel": "Jarso's summary",
+    "timelineEmpty": "Nothing planned for the next two weeks.",
+    "timelineTitle": "Next two weeks",
+  },
+  "parentPageCopy": {
+    "allowance": "Allowance",
+    "allowanceFor": [Function],
+    "chatFlaggedIntro": "This chat had a safety or rule response. A message that got a safety response stays private: talking to your child kindly is the best next step.",
+    "chats": [Function],
+    "chatsBack": [Function],
+    "chatsIntro": "Every chat, newest first, with any that need a look at the top. Text is kept for 30 days.",
+    "child": "Your child",
+    "family": "Your family",
+    "gift": "Gift",
+    "giftEditIntro": "Change this gift.",
+    "giftFor": [Function],
+    "giftNewIntro": "A one-time gift.",
+    "handOverTo": [Function],
+    "history": [Function],
+    "historyEmpty": [Function],
+    "historyTitle": "History",
+    "inbox": "Inbox",
+    "learning": [Function],
+    "learningIntro": "Learning progress is kept apart from money. It shows understanding, not how much is saved.",
+    "notGiven": "Not given",
+    "seeAll": "See all",
+    "seeAllHistory": "See all history",
+    "settings": "Settings",
+  },
+}
+`;

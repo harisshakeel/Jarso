@@ -1,9 +1,10 @@
 // NativeWind theme from the shared brand tokens (@jarso/brand/tokens), so the app and the web
-// share one palette, type scale and radius. Semantic colours are CSS variables that switch with
+// share one palette and radius. The type scale is the phone type scale (mobileFontSize), not
+// the web's fontSize. Semantic colours are CSS variables that switch with
 // the colour scheme; everything else is static.
 const { hairlineWidth } = require("nativewind/theme");
 const plugin = require("tailwindcss/plugin");
-const { fontFamily, fontSize, palette, radius, semantic } = require("@jarso/brand/tokens");
+const { fontFamily, mobileFontSize, palette, radius, semantic } = require("@jarso/brand/tokens");
 
 const vars = (scheme) =>
   Object.fromEntries(Object.entries(scheme).map(([key, value]) => [`--${key}`, value]));
@@ -36,6 +37,20 @@ module.exports = {
   content: ["./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   presets: [require("nativewind/preset")],
   theme: {
+    // The phone type scale replaces Tailwind's sizes, so text-sm, text-2xl... do not exist.
+    fontSize: Object.fromEntries(
+      Object.entries(mobileFontSize).map(([key, { size, ...rest }]) => [
+        key,
+        [
+          `${size}px`,
+          {
+            ...(rest.lineHeight ? { lineHeight: `${rest.lineHeight}px` } : {}),
+            ...(rest.letterSpacing ? { letterSpacing: `${rest.letterSpacing}px` } : {}),
+            ...(rest.fontWeight ? { fontWeight: String(rest.fontWeight) } : {}),
+          },
+        ],
+      ]),
+    ),
     extend: {
       colors: mergeColors(),
       borderRadius: {
@@ -55,19 +70,6 @@ module.exports = {
         "sans-extrabold": [`${sans}_800ExtraBold`],
         mono: ["GeistMono_400Regular"],
       },
-      fontSize: Object.fromEntries(
-        Object.entries(fontSize).map(([key, { size, ...rest }]) => [
-          key,
-          [
-            `${size}px`,
-            {
-              ...(rest.lineHeight ? { lineHeight: `${rest.lineHeight}px` } : {}),
-              ...(rest.letterSpacing ? { letterSpacing: `${rest.letterSpacing}px` } : {}),
-              ...(rest.fontWeight ? { fontWeight: String(rest.fontWeight) } : {}),
-            },
-          ],
-        ]),
-      ),
     },
   },
   plugins: [

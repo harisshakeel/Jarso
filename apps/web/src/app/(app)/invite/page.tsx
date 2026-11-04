@@ -5,7 +5,12 @@ import { type CSSProperties, type ReactNode, Suspense } from "react";
 import { Field } from "@/components/form";
 import { Button, buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
-import { AcceptInvitationForm, InvitationList, inviteParamsSchema } from "@/features/family";
+import {
+  AcceptInvitationForm,
+  InvitationList,
+  inviteCopy,
+  inviteParamsSchema,
+} from "@/features/family";
 import {
   findInvitation,
   findMyInvitation,
@@ -119,7 +124,7 @@ function Gone() {
   return (
     <Notice message={INVITATION_GONE} alert>
       <Link href={routes.parent} className={buttonVariants({ variant: "outline", size: "lg" })}>
-        Back to your family
+        {inviteCopy.backToFamily}
       </Link>
     </Notice>
   );
@@ -133,15 +138,15 @@ function CodeForm({ style }: { style?: CSSProperties }) {
         <form action={routes.invite} className="grid gap-6">
           <Field
             name="code"
-            label="Invite code"
+            label={inviteCopy.code}
             autoComplete="off"
             autoCapitalize="characters"
             spellCheck={false}
             required
-            description="The 8-letter code on your child's screen or in the email we sent you."
+            description={inviteCopy.codeHelp}
           />
           <Button type="submit" size="lg" className="w-full">
-            Continue
+            {inviteCopy.continue}
           </Button>
         </form>
       </CardContent>
@@ -186,11 +191,9 @@ export default function InvitePage({ searchParams }: PageProps<"/invite">) {
   return (
     <div className="mx-auto grid w-full max-w-lg gap-6">
       <header className="grid gap-3">
-        <p className="eyebrow">Invitation</p>
-        <h1 className="text-balance text-h1">Your child asked to join.</h1>
-        <p className="text-ink-2">
-          Check their nickname and choose a PIN. They sign in with these and your family code.
-        </p>
+        <p className="eyebrow">{inviteCopy.eyebrow}</p>
+        <h1 className="text-balance text-h1">{inviteCopy.title}</h1>
+        <p className="text-ink-2">{inviteCopy.intro}</p>
       </header>
       <Suspense fallback={<FormSkeleton />}>
         <InviteContent searchParams={searchParams} />

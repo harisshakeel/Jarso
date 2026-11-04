@@ -32,6 +32,15 @@ export type DashboardChild = {
   flaggedChats: number;
 };
 
+/** Everything the parent's dashboard shows, read once per child. */
+export type FamilyDashboard = {
+  currency: string;
+  timezone: string;
+  today: string;
+  /** In the family's child order, each with their fixed colour slot. */
+  children: DashboardChild[];
+};
+
 /** A period the dashboard looks at, in days back from today, with the one before it. */
 export type DashboardWindow = {
   days: number;

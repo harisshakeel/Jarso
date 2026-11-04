@@ -74,3 +74,9 @@ describe("sentAgo", () => {
     expect(sentAgo(ago(6 * 86_400_000), now)).toBe("Sent 6 days ago");
   });
 });
+
+describe("Intl.DisplayNames", () => {
+  it("names regions in English for the parent's country picker", () => {
+    expect(new Intl.DisplayNames(["en"], { type: "region" }).of("GB")).toBe("United Kingdom");
+  });
+});

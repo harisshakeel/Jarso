@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Button, Input, Label, Text } from "@/components/ui";
-import { toUserMessage } from "@/lib";
+import { cn, toUserMessage } from "@/lib";
 
 const AMOUNT_LABEL = "Amount";
 const REASON_LABEL = "What's it for?";
@@ -65,10 +65,10 @@ export function AmountInput({
         onChangeText={onChange}
         keyboardType="decimal-pad"
         autoComplete="off"
-        className={error ? "h-14 border-destructive text-3xl" : "h-14 text-3xl"}
+        className={cn("h-14 text-money-xl", error && "border-destructive")}
       />
       {error ? (
-        <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
+        <Text accessibilityLiveRegion="polite" className="text-destructive">
           {error}
         </Text>
       ) : null}
@@ -100,7 +100,7 @@ export function ReasonInput({
         maxLength={140}
       />
       {error ? (
-        <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
+        <Text accessibilityLiveRegion="polite" className="text-destructive">
           {error}
         </Text>
       ) : null}
@@ -113,7 +113,7 @@ export function RuleLines({ lines }: { lines: string[] }) {
   return (
     <View className="gap-1">
       {lines.map((line) => (
-        <Text key={line} className="text-sm text-muted-foreground">
+        <Text key={line} className="text-muted-foreground">
           {line}
         </Text>
       ))}

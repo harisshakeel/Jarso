@@ -1,38 +1,50 @@
-import { inboxCopy, noticeText } from "@jarso/core/notifications";
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { inboxCopy, type NoticeRole, noticeText } from "@jarso/core/notifications";
+import { type QueryKey, useQueryClient } from "@tanstack/react-query";
+import { type Href, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Text } from "@/components/ui";
-import { useHome } from "@/features/jars";
 import { keys } from "@/lib/query";
 import { subscribeToNotices } from "./realtime";
+import { useNoticeCurrency } from "./use-notice-currency";
 
 const TOAST_MS = 5_000;
 
-/** What a notice can change: the badge, the inbox, and the screens its record shows on. */
-const affected = (userId: string) => [
-  keys.unread(userId),
-  keys.notices(userId),
-  keys.home(userId),
-  keys.history(userId),
-  keys.requests(userId),
-  keys.goal(userId),
-];
+/**
+ * What a notice can change: the badge, the inbox, and the screens its record shows on. A
+ * parent's notice is about a child: the family's reads and every child's pages.
+ */
+const affected = (userId: string, role: NoticeRole): QueryKey[] =>
+  role === "parent"
+    ? [keys.unread(userId), keys.notices(userId), keys.family(userId), ["child"]]
+    : [
+        keys.unread(userId),
+        keys.notices(userId),
+        keys.home(userId),
+        keys.history(userId),
+        keys.requests(userId),
+        keys.goal(userId),
+      ];
 
-type NoticeListenerProps = { userId: string };
+/** Each role's inbox: the child's News tab, the parent's Inbox tab. */
+const INBOX: Record<NoticeRole, Href> = {
+  child: "/(child)/(tabs)/news",
+  parent: "/(parent)/(tabs)/inbox",
+};
+
+type NoticeListenerProps = { userId: string; viewer: NoticeRole };
 
 /**
  * Keeps the News badge and the inbox live (spec §6). A new notice shows a toast with "Open" and
  * refreshes what it affects; each (re)join refreshes once, covering anything sent while away. The
  * channel closes when the app goes to the background and opens again when it comes back.
  */
-export function NoticeListener({ userId }: NoticeListenerProps) {
+export function NoticeListener({ userId, viewer: role }: NoticeListenerProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   // The family's currency, for the notice's wording.
-  const currency = useHome().data?.context.currency;
+  const currency = useNoticeCurrency(role);
   const [toast, setToast] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // The latest currency, without resubscribing when Home loads.
@@ -42,7 +54,8 @@ export function NoticeListener({ userId }: NoticeListenerProps) {
   useEffect(() => {
     let connected = false;
     const refresh = () => {
-      for (const queryKey of affected(userId)) void queryClient.invalidateQueries({ queryKey });
+      for (const queryKey of affected(userId, role))
+        void queryClient.invalidateQueries({ queryKey });
     };
     const start = () =>
       subscribeToNotices(
@@ -50,7 +63,7 @@ export function NoticeListener({ userId }: NoticeListenerProps) {
         (change) => {
           refresh();
           if (change.type !== "new") return;
-          const { title } = noticeText(change.notice, "child", money.current ?? "USD");
+          const { title } = noticeText(change.notice, role, money.current ?? "USD");
           clearTimeout(timer.current);
           setToast(title);
           timer.current = setTimeout(() => setToast(null), TOAST_MS);
@@ -78,7 +91,7 @@ export function NoticeListener({ userId }: NoticeListenerProps) {
       stop?.();
       clearTimeout(timer.current);
     };
-  }, [userId, queryClient]);
+  }, [userId, role, queryClient]);
 
   if (!toast) return null;
   return (
@@ -93,7 +106,7 @@ export function NoticeListener({ userId }: NoticeListenerProps) {
         accessibilityLiveRegion="polite"
         onPress={() => {
           setToast(null);
-          router.push("/(child)/(tabs)/news");
+          router.push(INBOX[role]);
         }}
         className="mt-2 h-auto min-h-14 justify-between rounded-xl bg-card px-4 py-3 shadow-md"
       >

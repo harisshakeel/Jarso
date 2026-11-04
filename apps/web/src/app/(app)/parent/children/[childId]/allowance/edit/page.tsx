@@ -5,6 +5,7 @@ import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
 import { AllowanceForm, runningSchedule } from "@/features/allowance";
 import { getSchedule } from "@/features/allowance/server";
+import { parentPageCopy } from "@/features/dashboard";
 import { AutoChargeToggle } from "@/features/payments";
 import { getAutoChargeCard } from "@/features/payments/server";
 import { loadChild } from "../../load-child";
@@ -17,7 +18,7 @@ async function EditContent({ params }: { params: Promise<{ childId: string }> })
   const { child, currency, today } = await loadChild(childId, routes.parentAllowanceEdit(childId));
   const [latest, autoChargeCards] = await Promise.all([getSchedule(childId), getAutoChargeCard()]);
   const schedule = runningSchedule(latest);
-  const title = `Allowance for ${child.nickname}`;
+  const title = parentPageCopy.allowanceFor(child.nickname);
 
   if (!schedule) {
     return (

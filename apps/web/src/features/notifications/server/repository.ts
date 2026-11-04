@@ -2,7 +2,6 @@ import "server-only";
 import type {
   ClaimedNotice,
   DeviceTokenRow,
-  NoteResult,
   PushGroup,
   PushSubscriptionInput,
   PushSubscriptionRow,
@@ -10,39 +9,14 @@ import type {
 import { NOTICE_GROUPS } from "@jarso/core/notifications";
 import { toNotice } from "@jarso/data/notifications";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AppError, toAppError } from "@/lib";
+import { toAppError } from "@/lib";
 import type { Database } from "@/types";
 
 type Client = SupabaseClient<Database>;
 
-// Notice reads and the phone's own token writes are shared with the phone; the push and admin
-// functions below stay on the server.
+// Notice reads, the parent's note and the phone's own token writes are shared with the phone;
+// the push and admin functions below stay on the server.
 export * from "@jarso/data/notifications";
-
-/**
- * A parent's note to their child, through `send_child_note` (it checks the caller is the
- * child's parent, the length and the daily cap). A repeat of the same key sends nothing.
- */
-export async function insertChildNote(
-  db: Client,
-  args: { childId: string; text: string; idempotencyKey: string },
-): Promise<NoteResult> {
-  const { data, error } = await db.rpc("send_child_note", {
-    p_child_id: args.childId,
-    p_text: args.text,
-    p_idempotency_key: args.idempotencyKey,
-  });
-  if (error?.code === "JA429") {
-    throw new AppError("RATE_LIMITED", "That's a lot of notes today. Send more tomorrow.", {
-      cause: error,
-    });
-  }
-  if (error) throw toAppError(error, "Failed to send the note");
-  if (data !== "sent" && data !== "already_sent") {
-    throw new AppError("INTERNAL", "Something went wrong. Please try again.");
-  }
-  return data;
-}
 
 // --- Web push (FR16) --------------------------------------------------------------------------
 

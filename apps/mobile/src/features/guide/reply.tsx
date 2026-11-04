@@ -13,11 +13,23 @@ import { useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import { Button, Text } from "@/components/ui";
 import { cn, logger, useTokens } from "@/lib";
+import { ActionCard } from "./action-card";
 import { AiChip } from "./intro";
 import { useRateMessage } from "./use-guide";
 
-/** One reply from Jarso: the answer, what it looked at, helplines, topics, a check, thumbs. */
-export function GuideBubble({ reply }: { reply: GuideReply }) {
+/**
+ * One reply from Jarso: the answer, what it looked at, helplines, topics, a check, thumbs. For a
+ * parent (`parent` set) an action Jarso prepared shows as its card instead of topics and thumbs:
+ * topics open the child's lessons and thumbs are the child's own.
+ */
+export function GuideBubble({
+  reply,
+  parent,
+}: {
+  reply: GuideReply;
+  /** The parent's chat: the child it is about, and "Change something" for the composer. */
+  parent?: { childId: string; onChangeDraft?: (line: string) => void };
+}) {
   const router = useRouter();
   const tokens = useTokens();
   const rate = useRateMessage();
@@ -44,15 +56,22 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
       {reply.lookedAt.length > 0 ? (
         <View className="flex-row items-center gap-1.5">
           <ScanSearchIcon size={16} color={tokens["muted-foreground"]} />
-          <Text className="flex-1 text-muted-foreground text-sm">
+          <Text className="flex-1 text-muted-foreground">
             {guideUi.lookedAt(reply.lookedAt.join(", "))}
           </Text>
         </View>
       ) : null}
+      {parent && reply.proposal?.kind === "action" ? (
+        <ActionCard
+          proposal={reply.proposal}
+          childId={parent.childId}
+          onChange={parent.onChangeDraft}
+        />
+      ) : null}
       {reply.remembered.length > 0 ? (
         <View className="flex-row items-center gap-1.5">
           <BrainIcon size={16} color={tokens["muted-foreground"]} />
-          <Text className="flex-1 text-muted-foreground text-sm">
+          <Text className="flex-1 text-muted-foreground">
             {`${guideCopy.remembered} ${reply.remembered.join("; ")}`}
           </Text>
         </View>
@@ -72,7 +91,7 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
                   {line.name}
                 </Text>
               </Pressable>
-              <Text className="text-secondary-foreground text-sm">{line.contact}</Text>
+              <Text className="text-secondary-foreground">{line.contact}</Text>
             </View>
           ))}
         </View>
@@ -80,7 +99,7 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
       {reply.route === "safety" ? (
         <Text className="font-sans-semibold">{guideCopy.routes.safetyEmergency}</Text>
       ) : null}
-      {reply.topics.length > 0 ? (
+      {!parent && reply.topics.length > 0 ? (
         <View accessibilityLabel={guideUi.topics} className="flex-row flex-wrap gap-2">
           {reply.topics.map((topic) => (
             <Button
@@ -103,7 +122,7 @@ export function GuideBubble({ reply }: { reply: GuideReply }) {
         </View>
       ) : null}
       {reply.check ? <CheckQuestion check={reply.check} /> : null}
-      {reply.role === "guide" && reply.messageId ? (
+      {!parent && reply.role === "guide" && reply.messageId ? (
         <View accessibilityLabel={guideUi.helpfulLegend} className="flex-row gap-1">
           <Button
             variant="ghost"

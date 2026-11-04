@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { routes } from "@/config";
+import { parentPageCopy } from "@/features/dashboard";
 import { CheckInSummary, CompletedMissions, PathMap, SkillList } from "@/features/learning";
 import { getLearningOverview } from "@/features/learning/server";
 import { loadChild } from "../load-child";
@@ -15,8 +16,8 @@ async function LearningContent({ params }: { params: Promise<{ childId: string }
   const days = overview.daysThisWeek;
   return (
     <PageShell
-      title={`${child.nickname}'s learning`}
-      intro="Learning progress is kept apart from money. It shows understanding, not how much is saved."
+      title={parentPageCopy.learning(child.nickname)}
+      intro={parentPageCopy.learningIntro}
       back={{ href: routes.parentChild(childId), label: child.nickname }}
       wide
     >

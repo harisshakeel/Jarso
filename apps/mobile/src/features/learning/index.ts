@@ -1,4 +1,5 @@
 export * from "./current-step";
+export * from "./learning-summary";
 export * from "./mission-player";
 export * from "./next-step-card";
 export * from "./parts";

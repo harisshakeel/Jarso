@@ -1,6 +1,7 @@
 // Server-only API of the guide feature. Never import from Client Components.
 import "server-only";
 
+export { confirmActionDraft } from "./do-action";
 export { type NoticedRunResult, runGuideNoticed } from "./noticed";
 export {
   countFlaggedChats,
@@ -9,6 +10,7 @@ export {
   getGuideTranscript,
   getMemories,
   getMyTranscript,
+  getParentGuideState,
   getParentTranscript,
   isGuideConfigured,
   listGuideChats,

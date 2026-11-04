@@ -62,4 +62,58 @@ export const keys = {
   practice: (userId: string) => ["learning", userId, "practice"] as const,
   /** The weekly review. Refreshed with `learning`. */
   review: (userId: string) => ["learning", userId, "review"] as const,
+
+  // The parent's side. A parent's family reads share the `family` prefix; a child's pages share
+  // the `child` prefix, so invalidating `family(userId)` or `child(childId)` refreshes all of them.
+  /** The guide switch and which children have Jarso on (`ParentGuideState`). */
+  parentGuide: (userId: string) => ["parentGuide", userId] as const,
+  /** Whether the parent's profile and family are set up (the setup gate). */
+  setup: (userId: string) => ["setup", userId] as const,
+  /** Membership, family and children. */
+  family: (userId: string) => ["family", userId] as const,
+  /** The family's currency, timezone and today (the inbox's money wording). */
+  familyContext: (userId: string) => ["family", userId, "context"] as const,
+  dashboard: (userId: string, days: number) => ["family", userId, "dashboard", days] as const,
+  /** Jarso's summary of the family's figures. */
+  summary: (userId: string, days: number) => ["family", userId, "summary", days] as const,
+  /** Every child's open requests ("Needs you"). */
+  familyRequests: (userId: string) => ["family", userId, "requests"] as const,
+  /** Every child's due allowances and gifts ("Needs you"). */
+  familyDue: (userId: string) => ["family", userId, "due"] as const,
+  /** The parent's own name and details (settings). */
+  profile: (userId: string) => ["profile", userId] as const,
+  invitations: (userId: string) => ["invitations", userId] as const,
+  /** The nickname behind one link token or code (looked up once: the route is rate-limited). */
+  invitationLookup: (userId: string, invite: string) =>
+    ["invitations", userId, "lookup", invite] as const,
+  child: (childId: string) => ["child", childId] as const,
+  childSchedule: (childId: string) => ["child", childId, "schedule"] as const,
+  childDue: (childId: string) => ["child", childId, "due"] as const,
+  childGifts: (childId: string) => ["child", childId, "gifts"] as const,
+  childRequests: (childId: string) => ["child", childId, "requests"] as const,
+  childRules: (childId: string) => ["child", childId, "rules"] as const,
+  childHistory: (childId: string) => ["child", childId, "history"] as const,
+  /** This week's lines for the parent's "Where it went". Refreshed with `childHistory`. */
+  childWeek: (childId: string) => ["child", childId, "history", "week"] as const,
+  /** The newest few history lines on the child hub (one page, not the paged list). */
+  childRecent: (childId: string) => ["child", childId, "recent"] as const,
+  childJars: (childId: string) => ["child", childId, "jars"] as const,
+  /** The last handover's cash/save split (the handover prefill). */
+  childSplit: (childId: string) => ["child", childId, "split"] as const,
+  /** The child's goal, for the handover's plan note. */
+  childGoal: (childId: string) => ["child", childId, "goal"] as const,
+  /** How many of the child's chats in the last 30 days are worth a look. */
+  childFlagged: (childId: string) => ["child", childId, "flagged"] as const,
+  childLearning: (childId: string) => ["child", childId, "learning"] as const,
+  childChats: (childId: string) => ["child", childId, "chats"] as const,
+  /** One of the child's chats. Refreshed with `childChats` (it shares the prefix). */
+  childTranscript: (childId: string, conversationId: string) =>
+    ["child", childId, "chats", conversationId] as const,
+  childMemories: (childId: string) => ["child", childId, "memories"] as const,
+  childGuideAccess: (childId: string) => ["child", childId, "guideAccess"] as const,
+  /** The parent's own chats with Jarso. */
+  parentChats: (userId: string) => ["parentChats", userId] as const,
+  /** One of the parent's chats. Refreshed with `parentChats`. */
+  parentTranscript: (userId: string, conversationId: string) =>
+    ["parentChats", userId, conversationId] as const,
 };

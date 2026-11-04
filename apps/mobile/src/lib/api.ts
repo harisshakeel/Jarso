@@ -3,6 +3,7 @@ import {
   createTimedFetch,
   type ErrorCode,
   errorCodes,
+  type FieldErrors,
   GENERIC_FAILURE,
   SIGN_IN_AGAIN,
 } from "@jarso/core/lib";
@@ -21,8 +22,18 @@ const isErrorCode = (code: unknown): code is ErrorCode =>
 const isUnavailableBody = (payload: unknown): boolean =>
   typeof payload === "object" && payload !== null && "code" in payload && payload.code === "JA503";
 
+/** The server's per-field messages (`details`, e.g. a taken nickname), only when well formed. */
+function fieldErrorsOf(details: unknown): FieldErrors | undefined {
+  if (typeof details !== "object" || details === null || Array.isArray(details)) return undefined;
+  const entries = Object.entries(details);
+  const valid = entries.every(
+    ([, value]) => Array.isArray(value) && value.every((line) => typeof line === "string"),
+  );
+  return entries.length > 0 && valid ? (details as FieldErrors) : undefined;
+}
+
 /**
- * Calls the web's /api/v1. Unwraps `{ data }`; turns `{ error }` into an AppError with the
+ * Calls the web's /api/v1. Field errors (`details`) ride on the AppError as `fieldErrors`. Unwraps `{ data }`; turns `{ error }` into an AppError with the
  * server's safe message. INTERNAL and unreadable replies become the generic line, and a
  * network failure or timeout (15 s) the web's offline copy. Never logs the token.
  */
@@ -56,9 +67,13 @@ export async function apiFetch<T>(path: string, init: ApiInit = {}): Promise<T> 
   if (payload && typeof payload === "object") {
     if (response.ok && "data" in payload) return payload.data as T;
     if ("error" in payload && payload.error && typeof payload.error === "object") {
-      const { code, message } = payload.error as { code?: unknown; message?: unknown };
+      const { code, message, details } = payload.error as {
+        code?: unknown;
+        message?: unknown;
+        details?: unknown;
+      };
       if (isErrorCode(code) && code !== "INTERNAL" && typeof message === "string") {
-        throw new AppError(code, message);
+        throw new AppError(code, message, { fieldErrors: fieldErrorsOf(details) });
       }
     }
   }

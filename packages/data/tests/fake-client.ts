@@ -42,7 +42,11 @@ export function fakeClient(
     );
     return builder;
   });
-  const rpc = vi.fn(async (name: string) => rpcs[name] ?? { data: null, error: null });
+  // Awaitable as is, or through `.single()` / `.maybeSingle()` like a PostgREST builder.
+  const rpc = vi.fn((name: string) => {
+    const result = Promise.resolve(rpcs[name] ?? { data: null, error: null });
+    return Object.assign(result, { single: () => result, maybeSingle: () => result });
+  });
   const db = { from, rpc } as unknown as SupabaseClient<Database>;
   return { db, from, rpc, queries };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  allowanceFormCopy,
   describeSchedule,
   type Frequency,
   formatDay,
@@ -21,12 +22,7 @@ import { changeAllowanceAction, createAllowanceAction } from "../server/actions"
 
 const ONE_TIME = "one_time";
 
-const frequencyLabels: Record<Frequency, string> = {
-  weekly: "Weekly",
-  monthly: "Monthly",
-  quarterly: "Every 3 months",
-  annual: "Yearly",
-};
+const frequencyLabels: Record<Frequency, string> = allowanceFormCopy.frequencyLabels;
 
 type AllowanceFormProps = {
   childId: string;
@@ -47,7 +43,7 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
         ? await runOnline(() => changeAllowanceAction(null, formData))
         : await runOnline(() => createAllowanceAction(null, formData));
       if (result.ok) {
-        toast.success("Allowance saved");
+        toast.success(allowanceFormCopy.saved);
         // A change goes back to the manage page; a new allowance to the child's page.
         router.push(changing ? routes.parentAllowance(childId) : routes.parentChild(childId));
       }
@@ -63,7 +59,7 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
 
   const options = [
     ...frequencies.map((value) => ({ value, label: frequencyLabels[value] })),
-    ...(changing ? [] : [{ value: ONE_TIME, label: "One time" }]),
+    ...(changing ? [] : [{ value: ONE_TIME, label: allowanceFormCopy.oneTime }]),
   ];
 
   function chooseFrequency(value: string) {
@@ -108,7 +104,7 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
         <CardContent>
           <ChoiceChips
             name="frequency"
-            legend="How often"
+            legend={allowanceFormCopy.howOften}
             options={options}
             value={frequency}
             onValueChange={chooseFrequency}
@@ -118,7 +114,9 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
       </Card>
       <Card className="rise-in" style={{ "--rise-index": 2 } as CSSProperties}>
         <CardContent className="grid gap-2">
-          <Label htmlFor={dateName}>{changing ? "Next one on" : "First one on"}</Label>
+          <Label htmlFor={dateName}>
+            {changing ? allowanceFormCopy.nextOn : allowanceFormCopy.firstOn}
+          </Label>
           <Input
             id={dateName}
             name={dateName}
@@ -132,7 +130,7 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
           {summary ? <p className="text-ink-2 text-sm">{summary}</p> : null}
           {pausedThrough ? (
             <p className="text-ink-2 text-sm">
-              Paused until {formatDay(pausedThrough)}, so pick a date after that.
+              {allowanceFormCopy.pausedUntil(formatDay(pausedThrough))}
             </p>
           ) : null}
           <FieldError errors={fieldErrors?.[dateName]} />
@@ -146,11 +144,11 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
             href={routes.parentAllowance(childId)}
             className={buttonVariants({ variant: "outline", size: "lg" })}
           >
-            Cancel
+            {allowanceFormCopy.cancel}
           </Link>
         ) : null}
         <Button type="submit" size="lg" loading={pending}>
-          Save allowance
+          {allowanceFormCopy.save}
         </Button>
       </div>
     </form>

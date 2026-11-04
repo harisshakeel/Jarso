@@ -95,12 +95,12 @@ export function FixForm({
           maxLength={60}
         />
         {fieldErrors?.label?.[0] ? (
-          <Text accessibilityLiveRegion="polite" className="text-sm text-destructive">
+          <Text accessibilityLiveRegion="polite" className="text-destructive">
             {fieldErrors.label[0]}
           </Text>
         ) : null}
       </View>
-      <Text className="text-muted-foreground text-sm">{entryDetailCopy.jarsHint}</Text>
+      <Text className="text-muted-foreground">{entryDetailCopy.jarsHint}</Text>
       <Notice message={refused} />
       {notice ? (
         <Text accessibilityLiveRegion="polite" className="rounded-lg bg-muted px-3.5 py-2.5">

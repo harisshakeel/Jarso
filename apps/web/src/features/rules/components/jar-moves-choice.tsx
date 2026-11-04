@@ -1,7 +1,7 @@
 "use client";
 
 import type { JarMovesMode } from "@jarso/core/rules";
-import { jarMovesSentence } from "@jarso/core/rules";
+import { jarMovesSentence, rulesCopy } from "@jarso/core/rules";
 import { useId, useState, useTransition } from "react";
 import { FormError } from "@/components/form";
 import { runOnline } from "@/features/offline";
@@ -10,10 +10,7 @@ import { setJarMovesAction } from "../server/actions";
 
 type JarMovesChoiceProps = { childId: string; nickname: string; mode: JarMovesMode };
 
-const OPTIONS: { mode: JarMovesMode; label: string }[] = [
-  { mode: "ask", label: "Ask me first" },
-  { mode: "notify", label: "Just tell me" },
-];
+const OPTIONS: readonly { mode: JarMovesMode; label: string }[] = rulesCopy.jarMovesOptions;
 
 /**
  * How the child moves money between their own jars (design.md §6, a rule as a sentence): ask
@@ -47,7 +44,7 @@ export function JarMovesChoice({ childId, nickname, mode }: JarMovesChoiceProps)
     <div className="grid gap-2.5">
       <p className="font-semibold">{jarMovesSentence(chosen, nickname)}</p>
       <fieldset className="flex flex-wrap gap-2" disabled={pending}>
-        <legend className="sr-only">When {nickname} moves money between jars</legend>
+        <legend className="sr-only">{rulesCopy.jarMovesLegend(nickname)}</legend>
         {OPTIONS.map((option) => {
           const checked = option.mode === chosen;
           return (
@@ -74,9 +71,7 @@ export function JarMovesChoice({ childId, nickname, mode }: JarMovesChoiceProps)
         })}
       </fieldset>
       <p className="text-ink-2 text-sm">
-        {chosen === "notify"
-          ? "Take-outs and put-ins are recorded at once and you get a note each time. Asking for extra money still waits for you."
-          : "Take-outs wait for your yes and the hand-over; put-ins wait until you have the cash."}
+        {chosen === "notify" ? rulesCopy.jarMovesNotify : rulesCopy.jarMovesAsk}
       </p>
       <FormError error={error} />
     </div>

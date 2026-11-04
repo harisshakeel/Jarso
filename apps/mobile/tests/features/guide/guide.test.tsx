@@ -2,17 +2,32 @@ import type { GuideReply, GuideTurnEvent } from "@jarso/core/guide";
 import { guideCopy, guideUi } from "@jarso/core/guide";
 import { offlineCopy } from "@jarso/core/offline";
 import { getFamilyContext } from "@jarso/data/family";
-import { deleteMemory, getMyTranscript, listMemories, rateMessage } from "@jarso/data/guide";
+import {
+  deleteMemory,
+  getMyTranscript,
+  listMemories,
+  listMyChats,
+  rateMessage,
+} from "@jarso/data/guide";
 import { getJars } from "@jarso/data/ledger";
 import { getAvailability } from "@jarso/data/requests";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, renderHook, screen, userEvent, waitFor } from "@testing-library/react-native";
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@testing-library/react-native";
 import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import {
   GuideBubble,
   GuideThread,
   JarsoChatScreen,
+  JarsoScreen,
   MemoryList,
   parseGuideContext,
   StepHelp,
@@ -354,5 +369,32 @@ describe("guide", () => {
     mockUser.id = "child-2";
     await render(wrap(<GuideThread context={{ entry: "home" }} introNeeded />));
     expect(screen.getByRole("button", { name: guideCopy.introButton })).toBeOnTheScreen();
+  });
+
+  it("lists chats as rows in one card", async () => {
+    const chat = (id: string, preview: string) => ({
+      id,
+      childId: "child-1",
+      entry: "home",
+      label: "Chat",
+      createdAt: "2026-11-02T10:00:00Z",
+      lastMessageAt: "2026-11-02T10:00:00Z",
+      turns: 2,
+      flagged: false,
+      preview,
+    });
+    (listMyChats as jest.Mock).mockResolvedValue([
+      chat("c1", "How do I save?"),
+      chat("c2", "What is Spend?"),
+    ]);
+    const user = userEvent.setup();
+    await render(wrap(<JarsoScreen />));
+    const list = within(await screen.findByLabelText(guideUi.pastChats));
+    expect(list.getByRole("button", { name: /^How do I save\?/ })).toBeOnTheScreen();
+    await user.press(list.getByRole("button", { name: /^What is Spend\?/ }));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/(child)/jarso/[conversationId]",
+      params: { conversationId: "c2" },
+    });
   });
 });
