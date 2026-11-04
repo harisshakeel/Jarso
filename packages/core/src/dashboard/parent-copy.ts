@@ -34,7 +34,7 @@ export const parentPageCopy = {
   /** A gift page's title before the child's nickname is known. */
   gift: "Gift",
   giftFor: (nickname: string) => `Gift for ${nickname}`,
-  giftNewIntro: "A one-time gift.",
+  giftNewIntro: "A one-time gift. Set it for today to hand it over straight away.",
   giftEditIntro: "Change this gift.",
   handOverTo: (nickname: string) => `Hand over to ${nickname}`,
   history: (nickname: string) => `${nickname}'s history`,

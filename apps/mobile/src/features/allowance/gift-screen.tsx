@@ -48,6 +48,18 @@ export function GiftScreen({
     }
   }, [giftId, gifts.data, gift, back]);
 
+  // A gift given today is due now: straight to its handover, where it can be paid by card.
+  const saved = useCallback(
+    ({ giftId: savedId, giveOn }: { giftId: string; giveOn: string }) => {
+      if (context.data && giveOn <= context.data.today) {
+        router.replace(`/(parent)/children/${childId}/handover/gift/${savedId}`);
+      } else {
+        back();
+      }
+    },
+    [context.data, router, childId, back],
+  );
+
   const editing = Boolean(giftId);
   if (!child || !context.data || (editing && !gift)) {
     return (
@@ -75,7 +87,7 @@ export function GiftScreen({
         today={today}
         initial={gift ?? undefined}
         defaultAmount={defaultAmount}
-        onDone={back}
+        onDone={saved}
       />
       {gift ? (
         <>

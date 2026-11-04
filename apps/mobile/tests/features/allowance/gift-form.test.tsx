@@ -120,10 +120,29 @@ describe("GiftScreen", () => {
       ),
     );
     await waitFor(() => expect(flash).toHaveBeenCalledWith(giftCopy.saved));
-    expect(mockRouter.back).toHaveBeenCalled();
+    // Given today, so due now: its handover opens next, with the card payment.
+    expect(mockRouter.replace).toHaveBeenCalledWith(
+      `/(parent)/children/${CHILD}/handover/gift/${GIFT}`,
+    );
+    expect(mockRouter.back).not.toHaveBeenCalled();
     expect(invalidate).toHaveBeenCalledWith({ queryKey: keys.child(CHILD) });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: keys.family("parent-1") });
     expect(dispatchNotices).toHaveBeenCalled();
+  });
+
+  it("a gift for a later day goes back to the child's page, not to a handover", async () => {
+    setup();
+    (createGift as jest.Mock).mockResolvedValue(GIFT);
+    await renderScreen();
+    const user = userEvent.setup();
+    fireEvent.changeText(await screen.findByLabelText(giftCopy.amount), "5");
+    pickDate("2026-11-20");
+    await user.press(screen.getByRole("button", { name: giftCopy.giveOn }));
+    await user.press(screen.getByRole("button", { name: giftCopy.save }));
+
+    await waitFor(() => expect(flash).toHaveBeenCalledWith(giftCopy.saved));
+    expect(mockRouter.back).toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 
   it("gift date in the past refused on new", async () => {
