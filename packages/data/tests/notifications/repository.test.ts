@@ -5,7 +5,9 @@ import {
   listNotices,
   markRead,
   parseCursor,
+  removeDeviceToken,
   rowToNotice,
+  saveDeviceToken,
   toNotice,
 } from "@jarso/data/notifications";
 import { describe, expect, it } from "vitest";
@@ -200,5 +202,40 @@ describe("insertChildNote", () => {
     await expect(insertChildNote(client(ok("maybe")).db, args)).rejects.toMatchObject({
       code: "INTERNAL",
     });
+  });
+});
+
+describe("device tokens", () => {
+  const TOKEN = "ExponentPushToken[abc]";
+
+  it("registers through register_device_push_token and returns the row id", async () => {
+    const { db, rpc } = fakeClient({}, { register_device_push_token: ok("row-1") });
+    await expect(saveDeviceToken(db, { token: TOKEN, platform: "android" })).resolves.toBe("row-1");
+    expect(rpc).toHaveBeenCalledWith("register_device_push_token", {
+      p_token: TOKEN,
+      p_platform: "android",
+    });
+  });
+
+  it("RPC 42501 (not a member) is FORBIDDEN with a safe message", async () => {
+    const { db } = fakeClient(
+      {},
+      {
+        register_device_push_token: {
+          data: null,
+          error: { code: "42501", message: "Join a family first" },
+        },
+      },
+    );
+    await expect(saveDeviceToken(db, { token: TOKEN, platform: "android" })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Join a family first.",
+    });
+  });
+
+  it("unregisters only through unregister_device_push_token", async () => {
+    const { db, rpc } = fakeClient({}, { unregister_device_push_token: ok(false) });
+    await expect(removeDeviceToken(db, TOKEN)).resolves.toBe(false);
+    expect(rpc).toHaveBeenCalledWith("unregister_device_push_token", { p_token: TOKEN });
   });
 });

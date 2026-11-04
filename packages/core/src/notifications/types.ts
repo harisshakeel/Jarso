@@ -64,7 +64,37 @@ export type ClaimedNotice = {
   recipientId: string;
   role: "parent" | "child";
   currency: string;
+  /**
+   * A child notice written during the family's night (21:00-07:00). Child notices are held until
+   * 07:00; two or more overnight ones for one child go as a single summary push.
+   */
+  overnight: boolean;
   notice: Notice;
 };
 
-export type PushResult = { claimed: number; sent: number; dropped: number; failed: number };
+/** What a push run did. `summarised`: notices covered by a summary push (also in `claimed`). */
+export type PushResult = {
+  claimed: number;
+  sent: number;
+  dropped: number;
+  failed: number;
+  summarised: number;
+};
+
+/** What the phone posts to register for push (`POST /api/v1/push/tokens`). */
+export type DevicePushTokenInput = { token: string; platform: "android" };
+
+/** Groups of notices a phone can mute (per-phone settings). Every `NoticeKind` is in one. */
+export type PushGroup = "requests" | "money" | "learning" | "notes";
+
+/** A phone's own push settings: muted groups, or everything paused. The inbox is unchanged. */
+export type DevicePushPrefs = { mutedGroups: PushGroup[]; paused: boolean };
+
+/** One stored phone push token with its settings, as the dispatcher reads it. */
+export type DeviceTokenRow = {
+  id: string;
+  profileId: string;
+  token: string;
+  mutedGroups: PushGroup[];
+  paused: boolean;
+};

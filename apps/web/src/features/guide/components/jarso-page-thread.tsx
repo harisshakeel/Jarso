@@ -22,21 +22,23 @@ type Props = Omit<GuideThreadProps, "variant" | "onChatStarted"> & {
  */
 export function JarsoPageThread({ chatHref, chatId, nonce, reopened, ...thread }: Props) {
   const router = useRouter();
-  const started = useRef<string | null>(null);
+  // The chat this thread started, and the key the thread had then: the move to `?chat=<id>`
+  // drops a "New chat" nonce, so the key must not be rebuilt from the address.
+  const started = useRef<{ id: string; key: string } | null>(null);
   // "New chat" clears the memory of the chat this thread started, so picking that chat from the
   // list later reopens it from the store instead of showing an empty thread.
   useEffect(() => {
     if (chatId === null) started.current = null;
   }, [chatId]);
-  const own = chatId !== null && chatId === started.current;
-  const key = chatId !== null && !own ? chatId : `new-${nonce ?? ""}`;
+  const own = chatId !== null && chatId === started.current?.id ? started.current : null;
+  const key = own?.key ?? chatId ?? `new-${nonce ?? ""}`;
   return (
     <GuideThread
       key={key}
       variant="page"
       reopened={own ? undefined : reopened}
       onChatStarted={(id) => {
-        started.current = id;
+        started.current = { id, key };
         router.replace(`${chatHref}?chat=${id}` as Route, { scroll: false });
       }}
       {...thread}

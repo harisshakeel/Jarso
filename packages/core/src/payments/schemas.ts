@@ -224,3 +224,65 @@ export const razorpayReturnFormSchema = z.object({
 });
 
 export type RazorpayCheckoutParams = z.infer<ReturnType<typeof razorpayCheckoutParamsSchema>>;
+
+/** A split side in minor units, as the phone sends it. */
+const minorUnits = z.number().int().min(0).max(100_000_000_000);
+
+/**
+ * `POST /payments/in-app`: pay one item in the phone's native sheet. The split is optional (the
+ * server prefills it like auto charge) but comes as a pair; the service checks it adds up.
+ */
+export const inAppPaymentSchema = z
+  .object({
+    kind: z.enum(["allowance", "gift"]),
+    id: z.uuid("We couldn't find that."),
+    provider: paymentProviderSchema,
+    cashMinor: minorUnits.optional(),
+    savedMinor: minorUnits.optional(),
+  })
+  .refine((value) => (value.cashMinor === undefined) === (value.savedMinor === undefined), {
+    message: paymentCopy.fullAmount,
+    path: ["cashMinor"],
+  });
+
+/** `PATCH /payments/auto-charge`: the web toggle's input, with no page to come back to. */
+export const inAppAutoChargeSchema = z
+  .object({
+    type: z.enum(["allowance_schedule", "parent_gift"]),
+    id: z.uuid("We couldn't find that."),
+    on: z.boolean(),
+    provider: paymentProviderSchema.optional(),
+    phone: phoneInput,
+  })
+  .refine((value) => !value.on || value.provider !== undefined, {
+    message: paymentCopy.chooseProvider,
+    path: ["provider"],
+  });
+
+/** A payment id in a route path. */
+export const paymentIdParamSchema = z.uuid("We couldn't find that.");
+
+/** `GET /payments/providers`: no query, or the whole item whose handover state to include. */
+export const providersQuerySchema = z
+  .object({
+    childId: single(z.uuid("We couldn't find that.")).optional(),
+    kind: single(z.enum(["allowance", "gift"])).optional(),
+    id: single(z.uuid("We couldn't find that.")).optional(),
+  })
+  .refine(
+    (value) =>
+      [value.childId, value.kind, value.id].every((part) => part === undefined) ||
+      [value.childId, value.kind, value.id].every((part) => part !== undefined),
+    { message: "We couldn't find that.", path: ["childId"] },
+  );
+
+/** The phone's dev-build test-card dialog. Each mode has its own outcomes. */
+export const fakeInAppCompleteSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("payment"), ref: z.uuid(), outcome: z.enum(["pay", "fail"]) }),
+  z.object({ mode: z.literal("setup"), ref: z.uuid(), outcome: z.enum(["ok", "decline"]) }),
+]);
+
+export type InAppPaymentInput = z.infer<typeof inAppPaymentSchema>;
+export type InAppAutoChargeInput = z.infer<typeof inAppAutoChargeSchema>;
+export type ProvidersQuery = z.infer<typeof providersQuerySchema>;
+export type FakeInAppCompleteInput = z.infer<typeof fakeInAppCompleteSchema>;

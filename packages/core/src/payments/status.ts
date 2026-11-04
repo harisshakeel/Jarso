@@ -17,6 +17,11 @@ export function isStoredStatus(value: string): value is StoredStatus {
   return (storedStatuses as readonly string[]).includes(value);
 }
 
+/** Whether a payment has ended: nothing but a late success can move it any more. */
+export function isFinalStatus(status: StoredStatus): boolean {
+  return status !== "pending" && status !== "requires_action";
+}
+
 /**
  * The status a provider event moves a payment to, or null to leave it alone. The machine only
  * moves forward, so a late or replayed event is a no-op:

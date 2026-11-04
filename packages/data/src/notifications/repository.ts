@@ -1,5 +1,6 @@
 import { AppError, toAppError } from "@jarso/core/lib";
 import type {
+  DevicePushTokenInput,
   NoteResult,
   Notice,
   NoticeKind,
@@ -153,4 +154,34 @@ export async function insertChildNote(
     throw new AppError("INTERNAL", "Something went wrong. Please try again.");
   }
   return data;
+}
+
+// --- Phone push tokens (mobile wave 3): caller-scoped RPCs ------------------------------------
+
+/**
+ * `register_device_push_token` raises 42501 for a caller in no family. The shared mapping turns
+ * an unmapped code into a 500, so this one is named here as a 403 with a safe line.
+ */
+function deviceTokenError(error: { code?: string; message?: string }, context: string): AppError {
+  if (error.code === "42501") {
+    return new AppError("FORBIDDEN", "Join a family first.", { cause: error });
+  }
+  return toAppError(error, context);
+}
+
+/** Stores or refreshes the caller's token for this phone (taking it over); returns its id. */
+export async function saveDeviceToken(db: Client, input: DevicePushTokenInput): Promise<string> {
+  const { data, error } = await db.rpc("register_device_push_token", {
+    p_token: input.token,
+    p_platform: input.platform,
+  });
+  if (error) throw deviceTokenError(error, "Failed to save the device token");
+  return String(data);
+}
+
+/** Forgets the caller's row for this token. True when one went. */
+export async function removeDeviceToken(db: Client, token: string): Promise<boolean> {
+  const { data, error } = await db.rpc("unregister_device_push_token", { p_token: token });
+  if (error) throw deviceTokenError(error, "Failed to remove the device token");
+  return data === true;
 }

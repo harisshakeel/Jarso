@@ -76,6 +76,30 @@ export function createFakePaymentProvider(opts: { hostedUrl: string }): PaymentP
 
     async detachMethod() {},
 
+    // The phone shows a plain dialog for the fake sheet; its buttons go through the same
+    // completion path as the fake hosted page.
+    inApp: true,
+
+    async createInAppPayment(i) {
+      return {
+        providerRef: `fake_pi_${i.paymentId}`,
+        sheet: { provider: "fake", mode: "payment", ref: i.paymentId },
+      };
+    },
+
+    async resumeInAppPayment(i) {
+      return { provider: "fake", mode: "payment", ref: i.paymentId };
+    },
+
+    async cancelInAppPayment() {},
+
+    async createInAppSetup(i) {
+      return {
+        providerRef: `fake_seti_${i.setupId}`,
+        sheet: { provider: "fake", mode: "setup", ref: i.setupId },
+      };
+    },
+
     async parseWebhook(rawBody, headers) {
       if (!validSignature(rawBody, headers.get(FAKE_SIGNATURE_HEADER))) {
         throw new AppError("VALIDATION", "Invalid webhook signature.");

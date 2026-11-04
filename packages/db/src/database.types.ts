@@ -203,6 +203,46 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"device_push_tickets": {
+                  Row: {
+                    "created_at": string,"id": string,"token_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id": string,"token_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"token_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "device_push_tickets_token_id_fkey"
+      columns: ["token_id"]
+isOneToOne: false
+      referencedRelation: "device_push_tokens"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"device_push_tokens": {
+                  Row: {
+                    "created_at": string,"id": string,"last_seen_at": string,"muted_groups": string[],"paused": boolean,"platform": string,"profile_id": string,"token": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"last_seen_at"?: string,"muted_groups"?: string[],"paused"?: boolean,"platform": string,"profile_id": string,"token": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"last_seen_at"?: string,"muted_groups"?: string[],"paused"?: boolean,"platform"?: string,"profile_id"?: string,"token"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "device_push_tokens_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"families": {
                   Row: {
                     "code": string,"created_at": string,"created_by": string,"currency": string,"id": string,"timezone": string,"updated_at": string
@@ -761,14 +801,14 @@ isOneToOne: false
                   ]
                 },"payments": {
                   Row: {
-                    "amount_minor": number,"cash_minor": number,"child_id": string,"created_at": string,"currency": string,"expires_at": string | null,"failure_code": string | null,"family_id": string,"id": string,"payer_id": string | null,"provider": string,"provider_ref": string | null,"redirect_url": string | null,"saved_minor": number,"source_id": string,"source_type": string,"status": string,"trigger": string,"updated_at": string
+                    "amount_minor": number,"cash_minor": number,"child_id": string,"created_at": string,"currency": string,"expires_at": string | null,"failure_code": string | null,"family_id": string,"id": string,"in_app": boolean,"payer_id": string | null,"provider": string,"provider_ref": string | null,"redirect_url": string | null,"saved_minor": number,"source_id": string,"source_type": string,"status": string,"trigger": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount_minor": number,"cash_minor": number,"child_id": string,"created_at"?: string,"currency": string,"expires_at"?: string | null,"failure_code"?: string | null,"family_id": string,"id"?: string,"payer_id"?: string | null,"provider": string,"provider_ref"?: string | null,"redirect_url"?: string | null,"saved_minor": number,"source_id": string,"source_type": string,"status"?: string,"trigger"?: string,"updated_at"?: string
+                    "amount_minor": number,"cash_minor": number,"child_id": string,"created_at"?: string,"currency": string,"expires_at"?: string | null,"failure_code"?: string | null,"family_id": string,"id"?: string,"in_app"?: boolean,"payer_id"?: string | null,"provider": string,"provider_ref"?: string | null,"redirect_url"?: string | null,"saved_minor": number,"source_id": string,"source_type": string,"status"?: string,"trigger"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "amount_minor"?: number,"cash_minor"?: number,"child_id"?: string,"created_at"?: string,"currency"?: string,"expires_at"?: string | null,"failure_code"?: string | null,"family_id"?: string,"id"?: string,"payer_id"?: string | null,"provider"?: string,"provider_ref"?: string | null,"redirect_url"?: string | null,"saved_minor"?: number,"source_id"?: string,"source_type"?: string,"status"?: string,"trigger"?: string,"updated_at"?: string
+                    "amount_minor"?: number,"cash_minor"?: number,"child_id"?: string,"created_at"?: string,"currency"?: string,"expires_at"?: string | null,"failure_code"?: string | null,"family_id"?: string,"id"?: string,"in_app"?: boolean,"payer_id"?: string | null,"provider"?: string,"provider_ref"?: string | null,"redirect_url"?: string | null,"saved_minor"?: number,"source_id"?: string,"source_type"?: string,"status"?: string,"trigger"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1017,8 +1057,8 @@ isOneToOne: false
 { Args: { "p_amount_minor": number,"p_frequency": string,"p_next_on": string,"p_schedule_id": string }; Returns: string
                            },
 "claim_unpushed_notifications":
-{ Args: { "p_limit"?: number }; Returns: {
-              "child_id": string,"child_name": string,"created_at": string,"currency": string,"id": string,"kind": string,"payload": Json,"recipient_id": string,"recipient_role": string,"source_id": string,"source_type": string
+{ Args: { "p_limit"?: number,"p_now"?: string }; Returns: {
+              "child_id": string,"child_name": string,"created_at": string,"currency": string,"id": string,"kind": string,"overnight": boolean,"payload": Json,"recipient_id": string,"recipient_role": string,"source_id": string,"source_type": string
             }[]
                            },
 "clear_auto_charge_by":
@@ -1080,6 +1120,11 @@ isOneToOne: false
                            },
 "decide_withdrawal":
 { Args: { "p_approve": boolean,"p_note": string,"p_request_id": string }; Returns: string
+                           },
+"device_push_tokens_for":
+{ Args: { "p_recipient_ids": (string)[] }; Returns: {
+              "id": string,"muted_groups": string[],"paused": boolean,"profile_id": string,"token": string
+            }[]
                            },
 "diary_chain_root":
 { Args: { "p_entry_id": string }; Returns: {
@@ -1177,6 +1222,9 @@ isOneToOne: false
                            },
 "is_approved_member":
 { Args: { "p_family_id": string }; Returns: boolean
+                           },
+"is_child_quiet_hour":
+{ Args: { "p_at": string,"p_timezone": string }; Returns: boolean
                            },
 "is_parent_of":
 { Args: { "p_child_id": string }; Returns: boolean
@@ -1343,6 +1391,9 @@ isOneToOne: false
 "register_child":
 { Args: { "p_child_id": string,"p_consent": boolean,"p_family_id": string,"p_invitation_id"?: string,"p_nickname": string,"p_pin": string }; Returns: undefined
                            },
+"register_device_push_token":
+{ Args: { "p_platform": string,"p_token": string }; Returns: string
+                           },
 "remove_child":
 { Args: { "p_child_id": string }; Returns: boolean
                            },
@@ -1385,6 +1436,9 @@ isOneToOne: false
 "set_child_pin":
 { Args: { "p_child_id": string,"p_pin": string }; Returns: undefined
                            },
+"set_device_push_prefs":
+{ Args: { "p_muted_groups": (string)[],"p_paused": boolean,"p_token": string }; Returns: boolean
+                           },
 "set_guide_access":
 { Args: { "p_child_id": string,"p_enabled": boolean }; Returns: undefined
                            },
@@ -1403,6 +1457,9 @@ isOneToOne: false
 "trigger_auto_charge":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"trigger_push_sweep":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "undo_diary_entry":
 { Args: { "p_entry_id": string }; Returns: string
                            },
@@ -1414,6 +1471,9 @@ isOneToOne: false
                            },
 "unread_notification_count":
 { Args: Record<PropertyKey, never>; Returns: number
+                           },
+"unregister_device_push_token":
+{ Args: { "p_token": string }; Returns: boolean
                            },
 "update_family_timezone":
 { Args: { "p_timezone": string }; Returns: undefined

@@ -141,11 +141,12 @@ export function failedPaymentOrderToFetch(event: RazorpayEvent): string | null {
 /**
  * Maps a verified Razorpay event to ours, or null for events Jarso does not act on. Only
  * server-set fields pick what an event settles: a Payment Link's `reference_id`, a save-card
- * order's `jarsoSetup` note, an auto charge order's `jarsoCharge` note. Payment notes are never
- * read for that: Checkout lets the browser set them. So an auto charge succeeds from `order.paid`
- * only (`payment.captured` is ignored), and `payment.failed` needs its order, fetched by the
- * caller (`failedPaymentOrderToFetch`). A failed attempt whose order has no `jarsoCharge` note
- * (pay now, save card) is ignored: the parent can try again on the same page.
+ * order's `jarsoSetup` note, an auto charge order's `jarsoCharge` note, a phone pay-now order's
+ * `jarsoPay` note. Payment notes are never read for that: Checkout lets the browser set them. So
+ * an order's payment succeeds from `order.paid` only (`payment.captured` is ignored), and
+ * `payment.failed` needs its order, fetched by the caller (`failedPaymentOrderToFetch`). A failed
+ * attempt whose order has no `jarsoCharge` note (pay now on the web or the phone, save card) is
+ * ignored: the parent can try again on the same page or sheet.
  */
 export function mapRazorpayEvent(
   event: RazorpayEvent,
@@ -169,7 +170,8 @@ export function mapRazorpayEvent(
     const setupId = setupIdOf(event);
     if (setupId) return mapSetup(event, eventId, setupId);
     const order = event.payload?.order?.entity;
-    const paymentId = note(order?.notes, "jarsoCharge");
+    // An auto charge's order or a phone pay-now order (`jarsoPay`); both succeed here.
+    const paymentId = note(order?.notes, "jarsoCharge") ?? note(order?.notes, "jarsoPay");
     if (!order || !nonEmpty(order.id) || !paymentId) return null;
     return { kind: "payment", eventId, paymentId, providerRef: order.id, status: "succeeded" };
   }

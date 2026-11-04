@@ -65,6 +65,18 @@ export const paymentCopy = {
   goBack: "Go back",
   cardEnding: (brand: string, last4: string) =>
     `${brand.charAt(0).toUpperCase()}${brand.slice(1)} ending ${last4}`,
+  // The phone's native card sheet.
+  confirming: "Checking the payment…",
+  stillConfirming: "Still confirming with the bank. The jars update as soon as it's through.",
+  payAgain: "Pay again",
+  cancelPayment: "Cancel card payment",
+  cancelled: "Card payment cancelled.",
+  fakeTitle: "Test card (dev build)",
+  fakeDetail: "No card is charged. Pick what the card does.",
+  fakePay: "Pay",
+  fakeDecline: "Decline",
+  fakeSaveOk: "Save a card that works",
+  fakeSaveDecline: "Save a card that declines",
 } as const;
 
 /** Plain words for why a card didn't go through. */

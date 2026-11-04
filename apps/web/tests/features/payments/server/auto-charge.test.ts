@@ -16,7 +16,7 @@ vi.mock("@/features/payments/server/repository", () => ({
   failPayment: vi.fn(),
   insertPayment: vi.fn(),
   listDueAutoCharges: vi.fn(),
-  listStaleLivePaymentIds: vi.fn(),
+  listStaleLivePayments: vi.fn(),
   setPaymentProviderRef: vi.fn(),
 }));
 
@@ -42,6 +42,15 @@ const due = (id: string, methodRef: string = FAKE_METHODS.ok, amountMinor = 1000
   provider: "fake" as const,
 });
 
+/** A stale live payment, as the sweep lists it. */
+const stale = (id: string, over: { inApp?: boolean; providerRef?: string | null } = {}) => ({
+  id,
+  provider: "fake" as const,
+  providerRef: null,
+  inApp: false,
+  ...over,
+});
+
 let provider: ReturnType<typeof createFakePaymentProvider>;
 /** The providers on for this test (the registry, mocked). */
 let on: PaymentProvider[];
@@ -54,7 +63,7 @@ beforeEach(() => {
   vi.mocked(payments.getPaymentProviderById).mockImplementation(
     (id) => on.find((p) => p.id === id) ?? null,
   );
-  vi.mocked(repo.listStaleLivePaymentIds).mockResolvedValue([]);
+  vi.mocked(repo.listStaleLivePayments).mockResolvedValue([]);
   vi.mocked(repo.listDueAutoCharges).mockResolvedValue([]);
   vi.mocked(allowance.getLastSplitWith).mockResolvedValue(null);
   vi.mocked(repo.insertPayment).mockImplementation(async (_db, row) => `pay-${row.source.id}`);
@@ -333,9 +342,9 @@ describe("runAutoCharges", () => {
 
   it("expires stale live payments before selecting what is due", async () => {
     const order: string[] = [];
-    vi.mocked(repo.listStaleLivePaymentIds).mockImplementation(async () => {
+    vi.mocked(repo.listStaleLivePayments).mockImplementation(async () => {
       order.push("stale");
-      return ["old-1", "old-2"];
+      return [stale("old-1"), stale("old-2")];
     });
     vi.mocked(repo.expirePayment).mockImplementation(async (_db, id) => {
       order.push(`expire:${id}`);
@@ -346,7 +355,31 @@ describe("runAutoCharges", () => {
     });
 
     await runAutoCharges(NOW);
-    expect(repo.listStaleLivePaymentIds).toHaveBeenCalledWith(ADMIN, NOW);
+    expect(repo.listStaleLivePayments).toHaveBeenCalledWith(ADMIN, NOW);
     expect(order).toEqual(["stale", "expire:old-1", "expire:old-2", "due"]);
+  });
+
+  it("expires stale payments and cancels in-app intents", async () => {
+    vi.mocked(repo.listStaleLivePayments).mockResolvedValue([
+      stale("old-1"),
+      stale("old-2", { inApp: true, providerRef: "fake_pi_old-2" }),
+    ]);
+    const cancel = vi.spyOn(provider, "cancelInAppPayment");
+
+    await runAutoCharges(NOW);
+
+    expect(repo.expirePayment).toHaveBeenCalledWith(ADMIN, "old-1");
+    expect(repo.expirePayment).toHaveBeenCalledWith(ADMIN, "old-2");
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(cancel).toHaveBeenCalledWith("fake_pi_old-2");
+  });
+
+  it("keeps sweeping when one stale payment can't be expired", async () => {
+    vi.mocked(repo.listStaleLivePayments).mockResolvedValue([stale("old-1"), stale("old-2")]);
+    vi.mocked(repo.expirePayment).mockRejectedValueOnce(new Error("deadlock"));
+
+    await runAutoCharges(NOW);
+
+    expect(repo.expirePayment).toHaveBeenCalledWith(ADMIN, "old-2");
   });
 });

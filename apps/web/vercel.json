@@ -3,7 +3,6 @@
   "regions": ["hnd1"],
   "crons": [
     { "path": "/api/cron/payments/auto-charge", "schedule": "30 3 * * *" },
-    { "path": "/api/cron/push", "schedule": "30 1 * * *" },
     { "path": "/api/cron/guide/noticed", "schedule": "0 17 * * 0" }
   ]
 }

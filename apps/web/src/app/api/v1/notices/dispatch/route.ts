@@ -7,8 +7,9 @@ import { json, withApi } from "@/lib/api";
 export const maxDuration = 30;
 
 /**
- * For the mobile app: after a child's action wrote notices, send the parent's web push, as the
- * web does with `pushAfterNotices`. No body. The send runs after the response and never fails it.
+ * For the mobile app: after an action wrote notices, send their web and phone pushes, as the web
+ * does with `pushAfterNotices`. Queued when either transport is on (`isPushConfigured`). No body.
+ * The send runs after the response and never fails it.
  */
 export const POST = withApi(async (request: Request) => {
   const user = await assertRequestUser(request);

@@ -1,6 +1,7 @@
 import "server-only";
 import type {
   ChildNoteInput,
+  DevicePushTokenInput,
   NoteResult,
   Notice,
   NoticeKind,
@@ -17,7 +18,9 @@ import {
   listUnreadRows,
   listNotices as loadNotices,
   ownsSubscription,
+  removeDeviceToken,
   removeSubscription,
+  saveDeviceToken,
   saveSubscription,
   markRead as setRead,
 } from "./repository";
@@ -79,6 +82,21 @@ export async function ownsPushEndpoint(endpoint: string): Promise<{ owned: boole
 export async function unsubscribePush(endpoint: string): Promise<{ removed: boolean }> {
   await assertUser();
   return { removed: await removeSubscription(await createClient(), endpoint) };
+}
+
+/**
+ * Phone push: stores this phone's Expo token for the signed-in member (parent or child), taking
+ * it over from any account that used the phone before. The phone calls it after sign-in.
+ */
+export async function registerDeviceToken(input: DevicePushTokenInput): Promise<{ id: string }> {
+  await assertUser();
+  return { id: await saveDeviceToken(await createClient(), input) };
+}
+
+/** Phone push: forgets this phone's token for the signed-in member, before sign-out. */
+export async function unregisterDeviceToken(token: string): Promise<{ removed: boolean }> {
+  await assertUser();
+  return { removed: await removeDeviceToken(await createClient(), token) };
 }
 
 const BROWSERS = ["Edg", "OPR", "SamsungBrowser", "Firefox", "Chrome", "Safari"] as const;

@@ -4,6 +4,12 @@ import {
   cardReturnParamsSchema,
   fakeCheckoutParamsSchema,
   fakeCheckoutSchema,
+  fakeInAppCompleteSchema,
+  inAppAutoChargeSchema,
+  inAppPaymentSchema,
+  paymentCopy,
+  paymentIdParamSchema,
+  providersQuerySchema,
   razorpayCheckoutParamsSchema,
   razorpayReturnFormSchema,
   razorpayReturnUrlsSchema,
@@ -253,5 +259,105 @@ describe("razorpayReturnFormSchema", () => {
     expect(razorpayReturnFormSchema.parse({ razorpay_payment_id: "evil value" })).toEqual({
       razorpay_payment_id: undefined,
     });
+  });
+});
+
+describe("inAppPaymentSchema", () => {
+  const base = { kind: "allowance", id, provider: "stripe" };
+
+  it("accepts an item with no split (the server prefills it)", () => {
+    expect(inAppPaymentSchema.parse(base)).toEqual(base);
+  });
+
+  it("accepts a split in minor units", () => {
+    expect(inAppPaymentSchema.parse({ ...base, cashMinor: 300, savedMinor: 200 })).toEqual({
+      ...base,
+      cashMinor: 300,
+      savedMinor: 200,
+    });
+  });
+
+  it("refuses one side of the split without the other", () => {
+    const result = inAppPaymentSchema.safeParse({ ...base, cashMinor: 300 });
+    expect(result.success).toBe(false);
+    expect(messages(result)).toContain(paymentCopy.fullAmount);
+    expect(result.error?.issues[0]?.path).toEqual(["cashMinor"]);
+  });
+
+  it.each([-1, 1.5])("refuses cashMinor %s", (cashMinor) => {
+    expect(inAppPaymentSchema.safeParse({ ...base, cashMinor, savedMinor: 0 }).success).toBe(false);
+  });
+
+  it("refuses an unknown provider or a missing id", () => {
+    expect(inAppPaymentSchema.safeParse({ ...base, provider: "paypal" }).success).toBe(false);
+    expect(inAppPaymentSchema.safeParse({ kind: "allowance" }).success).toBe(false);
+  });
+});
+
+describe("inAppAutoChargeSchema", () => {
+  it("refuses turning on without a provider", () => {
+    const result = inAppAutoChargeSchema.safeParse({ type: "parent_gift", id, on: true });
+    expect(result.success).toBe(false);
+    expect(messages(result)).toContain(paymentCopy.chooseProvider);
+  });
+
+  it("turns off without a provider and keeps a phone when sent", () => {
+    expect(
+      inAppAutoChargeSchema.parse({ type: "allowance_schedule", id, on: false }),
+    ).toMatchObject({ on: false });
+    expect(
+      inAppAutoChargeSchema.parse({
+        type: "parent_gift",
+        id,
+        on: true,
+        provider: "razorpay",
+        phone: "+91 98765 43210",
+      }),
+    ).toMatchObject({ provider: "razorpay", phone: "+91 98765 43210" });
+  });
+
+  it("has no returnTo", () => {
+    expect(
+      inAppAutoChargeSchema.parse({ type: "parent_gift", id, on: false, returnTo: "/x" }),
+    ).not.toHaveProperty("returnTo");
+  });
+});
+
+describe("paymentIdParamSchema", () => {
+  it("accepts a uuid and refuses anything else", () => {
+    expect(paymentIdParamSchema.parse(id)).toBe(id);
+    expect(paymentIdParamSchema.safeParse("pay-1").success).toBe(false);
+  });
+});
+
+describe("providersQuerySchema", () => {
+  it("accepts no query or the full item", () => {
+    expect(providersQuerySchema.parse({})).toEqual({});
+    const item = { childId: id, kind: "gift", id };
+    expect(providersQuerySchema.parse(item)).toEqual(item);
+  });
+
+  it("refuses part of the item", () => {
+    expect(providersQuerySchema.safeParse({ childId: id }).success).toBe(false);
+    expect(providersQuerySchema.safeParse({ childId: id, kind: "gift" }).success).toBe(false);
+  });
+});
+
+describe("fakeInAppCompleteSchema", () => {
+  it("pairs each mode with its own outcomes", () => {
+    expect(fakeInAppCompleteSchema.parse({ mode: "payment", ref: id, outcome: "pay" })).toEqual({
+      mode: "payment",
+      ref: id,
+      outcome: "pay",
+    });
+    expect(
+      fakeInAppCompleteSchema.safeParse({ mode: "setup", ref: id, outcome: "ok" }).success,
+    ).toBe(true);
+    expect(
+      fakeInAppCompleteSchema.safeParse({ mode: "payment", ref: id, outcome: "ok" }).success,
+    ).toBe(false);
+    expect(
+      fakeInAppCompleteSchema.safeParse({ mode: "setup", ref: id, outcome: "pay" }).success,
+    ).toBe(false);
   });
 });

@@ -48,6 +48,16 @@ const schema = z.object({
       .optional(),
   ),
   STRIPE_WEBHOOK_SECRET: blankAsUnset(z.string().startsWith("whsec_").optional()),
+  /**
+   * Optional, test mode only: the phone's card sheet opens with it (served by the API). Without
+   * it Stripe stays on for the web only.
+   */
+  STRIPE_PUBLISHABLE_KEY: blankAsUnset(
+    z
+      .string()
+      .regex(/^pk_test_/, "Use a Stripe test-mode publishable key (pk_test_…)")
+      .optional(),
+  ),
   /** Test mode only: a live key id is refused. */
   RAZORPAY_KEY_ID: blankAsUnset(
     z
@@ -64,6 +74,8 @@ const schema = z.object({
   VAPID_PRIVATE_KEY: blankAsUnset(z.string().min(1).optional()),
   /** VAPID contact, a mailto: or https: URL push services can reach; defaults to the app's host. */
   VAPID_SUBJECT: blankAsUnset(z.string().min(1).optional()),
+  /** Phone push through the Expo Push API: a kill switch, not a secret ("off" stops it). */
+  EXPO_PUSH: blankAsUnset(z.enum(["on", "off"]).default("on")),
   /**
    * Bearer secret for the cron routes (payments auto charge via Vercel Cron and pg_net, web push
    * sweep). Unset: the routes are 404.

@@ -15,7 +15,15 @@ import {
 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { type FormEvent, useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { JarsoEyes } from "@/components/brand";
 import { FormError } from "@/components/form";
 import { Button } from "@/components/ui";
@@ -266,10 +274,12 @@ export function GuideThread({
 
   // The page learns about a started chat only after the reply has been shown: inside the
   // transition the page's address change would hold the reply back until the server had
-  // re-rendered the thread, and the child would stare at the status bubble meanwhile.
+  // re-rendered the thread, and the child would stare at the status bubble meanwhile. It is told
+  // once per chat: a parent re-render with a new callback must not move the page again.
+  const chatStarted = useEffectEvent((id: string) => onChatStarted?.(id));
   useEffect(() => {
-    if (started) onChatStarted?.(started);
-  }, [started, onChatStarted]);
+    if (started) chatStarted(started);
+  }, [started]);
 
   function submit(event: FormEvent) {
     event.preventDefault();

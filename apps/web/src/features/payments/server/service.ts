@@ -3,11 +3,18 @@ import type {
   AutoChargeCard,
   AutoChargeTarget,
   CardPaymentState,
+  FakeInAppCompleteInput,
+  InAppPaymentStart,
+  InAppProviders,
+  InAppSetupStart,
   PaymentSource,
+  PaymentStatusView,
   SavedCard,
 } from "@jarso/core/payments";
-import { paymentCopy, phoneSchema, returnToSchema } from "@jarso/core/payments";
+import { isFinalStatus, paymentCopy, phoneSchema, returnToSchema } from "@jarso/core/payments";
 import { clientEnv } from "@/config";
+import { prefillSplit } from "@/features/allowance";
+import { getLastSplitWith } from "@/features/allowance/server";
 import { assertUser } from "@/features/auth/server";
 import {
   assertParentCanRead,
@@ -20,23 +27,27 @@ import { AppError, familyToday, logger } from "@/lib";
 import {
   getPaymentProviderById,
   getPaymentProviders,
+  type InAppSheet,
   type PaymentProvider,
   type PaymentProviderId,
   paymentsEnabled,
 } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { endLivePayment } from "./end-payment";
+import { fakeEventFor } from "./fake-events";
 import {
   cancelPayment,
   clearAutoChargeBy,
   clearSavedCard,
-  expirePayment,
   failSetup,
   findAutoChargeTargetChildId,
   findCustomer,
   findLatestPayment,
   findLivePayment,
+  findPaymentById,
   findPaymentSource,
+  findSetupForWebhook,
   insertCustomer,
   insertPayment,
   insertSetup,
@@ -45,9 +56,11 @@ import {
   type SourceRow,
   setAutoChargeFor,
   setPaymentHosted,
+  setPaymentInApp,
   setPendingSplit,
   setSetupProviderRef,
 } from "./repository";
+import { handleProviderEvent } from "./webhooks";
 
 /**
  * Card handover: pay a due allowance or gift by card, save a card, toggle auto charge. Parents
@@ -286,19 +299,31 @@ async function assertChargesFamilyCurrency(provider: PaymentProvider): Promise<v
 // Pay by card
 // ---------------------------------------------------------------------------
 
+type Split = { cashMinor: number; savedMinor: number };
+type UserClient = Awaited<ReturnType<typeof createClient>>;
+type AdminClient = ReturnType<typeof createAdminClient>;
+
+/** Everything a card payment for one item needs, once the caller and the item are checked. */
+type PreparedPayment = {
+  provider: PaymentProvider;
+  source: PaymentSource;
+  row: SourceRow;
+  parent: { id: string; email: string | null };
+  family: { currency: string; timezone: string };
+  db: UserClient;
+};
+
 /**
- * Opens a hosted checkout at the chosen provider for the item's full amount and returns its URL.
- * A second call while the first checkout is live returns the same URL when it is the same
- * provider; another provider's live checkout is cancelled first (D7). A live one past its expiry
- * is marked expired and replaced. Nothing is posted here: the webhook posts on success.
+ * The checks every card payment shares (hosted or in-app): the provider is on, the caller is a
+ * parent of the item's child, the item is due, the split (when given) is the full amount, and the
+ * provider can charge this amount in this currency.
  */
-export async function startCardPayment(input: {
+async function prepareCardPayment(input: {
   kind: "allowance" | "gift";
   id: string;
   provider: PaymentProviderId;
-  cashMinor: number;
-  savedMinor: number;
-}): Promise<{ redirectUrl: string }> {
+  split: Split | null;
+}): Promise<PreparedPayment> {
   const provider = requireProvider(input.provider);
   const source: PaymentSource = {
     type: input.kind === "allowance" ? "occurrence" : "parent_gift",
@@ -317,7 +342,7 @@ export async function startCardPayment(input: {
   if (row.type === "parent_gift" && row.dueOn > familyToday(family.timezone)) {
     throw new AppError("CONFLICT", paymentCopy.giftNotDue);
   }
-  if (input.cashMinor + input.savedMinor !== row.amountMinor) {
+  if (input.split && input.split.cashMinor + input.split.savedMinor !== row.amountMinor) {
     throw new AppError("VALIDATION", paymentCopy.fullAmount, {
       fieldErrors: { cash: [paymentCopy.fullAmount] },
     });
@@ -325,11 +350,40 @@ export async function startCardPayment(input: {
   const reason = unavailableFor(provider, family.currency, row.amountMinor);
   if (reason === "too_small") throw new AppError("VALIDATION", paymentCopy.tooSmall);
   if (reason) throw new AppError("VALIDATION", paymentCopy.unsupportedCurrency);
+  return { provider, source, row, parent, family, db };
+}
+
+/** What the provider shows the parent for this item ("Allowance for Sam"). */
+async function describeItem(row: SourceRow): Promise<string> {
+  const nickname = (await listChildren()).find((child) => child.id === row.childId)?.nickname;
+  return kindOf(row.type) === "allowance"
+    ? paymentCopy.allowanceFor(nickname ?? "your child")
+    : paymentCopy.giftFor(nickname ?? "your child");
+}
+
+/**
+ * Opens a hosted checkout at the chosen provider for the item's full amount and returns its URL.
+ * A second call while the first checkout is live returns the same URL when it is the same
+ * provider; another provider's live checkout, or a live payment in the phone's sheet, is
+ * cancelled first (D7). A live one past its expiry is marked expired and replaced. Nothing is
+ * posted here: the webhook posts on success.
+ */
+export async function startCardPayment(input: {
+  kind: "allowance" | "gift";
+  id: string;
+  provider: PaymentProviderId;
+  cashMinor: number;
+  savedMinor: number;
+}): Promise<{ redirectUrl: string }> {
+  const split = { cashMinor: input.cashMinor, savedMinor: input.savedMinor };
+  const { provider, source, row, parent, family, db } = await prepareCardPayment({
+    ...input,
+    split,
+  });
 
   const admin = createAdminClient();
-  const split = { cashMinor: input.cashMinor, savedMinor: input.savedMinor };
-  const reused = await reuseLive(db, admin, source, split, provider.id, true);
-  if (reused) return { redirectUrl: reused };
+  const reused = await reuseLive(db, admin, source, split, provider.id, parent.id, "hosted", true);
+  if (reused?.kind === "hosted") return { redirectUrl: reused.redirectUrl };
 
   const customerRef = await ensureCustomerRef(provider, parent);
   const expiresAt = new Date(Date.now() + CHECKOUT_MINUTES * 60_000);
@@ -350,18 +404,22 @@ export async function startCardPayment(input: {
   if (!paymentId) {
     // A parallel click inserted first: send this one to the same checkout. Never cancel the
     // winner, even when it chose another provider.
-    const winner = await reuseLive(db, admin, source, split, provider.id, false);
-    if (winner) return { redirectUrl: winner };
+    const winner = await reuseLive(
+      db,
+      admin,
+      source,
+      split,
+      provider.id,
+      parent.id,
+      "hosted",
+      false,
+    );
+    if (winner?.kind === "hosted") return { redirectUrl: winner.redirectUrl };
     throw new AppError("CONFLICT", paymentCopy.inProgress);
   }
 
-  const nickname = (await listChildren()).find((child) => child.id === row.childId)?.nickname;
-  const kind = kindOf(source.type);
-  const description =
-    kind === "allowance"
-      ? paymentCopy.allowanceFor(nickname ?? "your child")
-      : paymentCopy.giftFor(nickname ?? "your child");
-  const back = `/parent/children/${row.childId}/handover/${kind}/${row.id}`;
+  const description = await describeItem(row);
+  const back = `/parent/children/${row.childId}/handover/${kindOf(source.type)}/${row.id}`;
 
   let hosted: { redirectUrl: string; providerRef: string };
   try {
@@ -389,44 +447,197 @@ export async function startCardPayment(input: {
   return { redirectUrl: hosted.redirectUrl };
 }
 
+/** Where a manual payment is paid: a provider's hosted page, or the phone's native sheet. */
+type Channel = "hosted" | "in_app";
+
+/** A live manual payment this request can carry on with. */
+type LiveReuse =
+  | { kind: "hosted"; redirectUrl: string }
+  | { kind: "in_app"; paymentId: string; providerRef: string; expiresAt: string };
+
+/** The live payment as something to reuse, once it has finished opening; else null. */
+function reusable(live: LivePayment): LiveReuse | null {
+  if (live.inApp) {
+    return live.providerRef && live.expiresAt
+      ? {
+          kind: "in_app",
+          paymentId: live.id,
+          providerRef: live.providerRef,
+          expiresAt: live.expiresAt,
+        }
+      : null;
+  }
+  return live.redirectUrl ? { kind: "hosted", redirectUrl: live.redirectUrl } : null;
+}
+
 /**
- * The live payment's checkout URL when it can be reused (same provider), with its split changed
- * to this request's (the split is ours: the provider only sees the full amount). Past its expiry
- * it is marked expired (null: start a new one). Another provider's open manual checkout is
- * cancelled when `switchProvider` (null: start a new one; D7). Anything else live (an auto charge
- * in flight, a manual one still opening or waiting on the bank) is a CONFLICT.
+ * The live payment when it can be reused (same provider, same channel), with its split changed
+ * to this request's (the split is ours: the provider only sees the full amount). An in-app one is
+ * reused only by the parent who started it: its intent is on their provider customer. Past its
+ * expiry it is ended as expired, its in-app intent cancelled too (null: start a new one).
+ * Another provider's or another channel's open manual payment is cancelled when `switchProvider`
+ * (null: start a new one; D7). Anything else live (an auto charge in flight, a manual one still
+ * opening or waiting on the bank) is a CONFLICT.
  */
 async function reuseLive(
-  db: Awaited<ReturnType<typeof createClient>>,
-  admin: ReturnType<typeof createAdminClient>,
+  db: UserClient,
+  admin: AdminClient,
   source: PaymentSource,
-  split: { cashMinor: number; savedMinor: number },
+  split: Split,
   providerId: PaymentProviderId,
+  payerId: string,
+  channel: Channel,
   switchProvider: boolean,
-): Promise<string | null> {
+): Promise<LiveReuse | null> {
   const live = await findLivePayment(db, source);
   if (!live) return null;
   if (!unexpired(live, Date.now())) {
-    await expirePayment(admin, live.id);
+    await endLivePayment(admin, live, "expired");
     return null;
   }
-  if (live.trigger === "manual" && live.redirectUrl) {
-    if (live.provider === providerId) {
+  const ready = live.trigger === "manual" ? reusable(live) : null;
+  if (ready) {
+    // Another parent's sheet is theirs alone: never reused, never cancelled from here.
+    if (ready.kind === "in_app" && live.payerId !== payerId) {
+      throw new AppError("CONFLICT", paymentCopy.inProgress);
+    }
+    const sameChannel = (ready.kind === "in_app") === (channel === "in_app");
+    if (live.provider === providerId && sameChannel) {
       await setPendingSplit(admin, live.id, split);
-      return live.redirectUrl;
+      return ready;
     }
     // If it still completes at the old provider, apply_payment posts it or marks it unapplied.
     if (switchProvider && live.status === "pending") {
-      await cancelPayment(admin, live.id);
+      await endLivePayment(admin, live, "canceled");
       logger.info("Card payment cancelled to switch provider", {
         paymentId: live.id,
         from: live.provider,
         to: providerId,
+        channel,
       });
       return null;
     }
   }
   throw new AppError("CONFLICT", paymentCopy.inProgress);
+}
+
+/**
+ * Starts paying the item by card in the phone's native sheet and returns what the sheet opens
+ * with. Same rules as the hosted checkout: a live in-app payment of the same provider is reused
+ * (the sheet reopens on the same PaymentIntent or order), a live hosted checkout or another
+ * provider's payment is cancelled first, an expired one is replaced. With no split it is
+ * prefilled like auto charge. Nothing is posted here: only the provider's webhook succeeds it.
+ */
+export async function startInAppPayment(input: {
+  kind: "allowance" | "gift";
+  id: string;
+  provider: PaymentProviderId;
+  cashMinor?: number;
+  savedMinor?: number;
+}): Promise<InAppPaymentStart> {
+  const given =
+    input.cashMinor !== undefined && input.savedMinor !== undefined
+      ? { cashMinor: input.cashMinor, savedMinor: input.savedMinor }
+      : null;
+  if (given === null && (input.cashMinor !== undefined || input.savedMinor !== undefined)) {
+    throw new AppError("VALIDATION", paymentCopy.fullAmount, {
+      fieldErrors: { cash: [paymentCopy.fullAmount] },
+    });
+  }
+  const { provider, source, row, parent, family, db } = await prepareCardPayment({
+    ...input,
+    split: given,
+  });
+  if (!provider.inApp) throw new AppError("NOT_FOUND", paymentCopy.off);
+  let split = given;
+  if (split === null) {
+    const prefill = prefillSplit(row.amountMinor, await getLastSplitWith(db, row.childId));
+    split = { cashMinor: prefill.cash, savedMinor: prefill.saved };
+  }
+
+  const admin = createAdminClient();
+  const description = await describeItem(row);
+  const resume = async (live: Extract<LiveReuse, { kind: "in_app" }>) => ({
+    paymentId: live.paymentId,
+    expiresAt: live.expiresAt,
+    sheet: await provider.resumeInAppPayment({
+      paymentId: live.paymentId,
+      providerRef: live.providerRef,
+      customerRef: await ensureCustomerRef(provider, parent),
+      amountMinor: row.amountMinor,
+      currency: family.currency,
+      description,
+    }),
+  });
+
+  const reused = await reuseLive(db, admin, source, split, provider.id, parent.id, "in_app", true);
+  if (reused?.kind === "in_app") return resume(reused);
+
+  const customerRef = await ensureCustomerRef(provider, parent);
+  const expiresAt = new Date(Date.now() + CHECKOUT_MINUTES * 60_000);
+  const paymentId = await insertPayment(admin, {
+    familyId: row.familyId,
+    childId: row.childId,
+    payerId: parent.id,
+    provider: provider.id,
+    source,
+    amountMinor: row.amountMinor,
+    currency: family.currency,
+    cashMinor: split.cashMinor,
+    savedMinor: split.savedMinor,
+    trigger: "manual",
+    status: "pending",
+    expiresAt: expiresAt.toISOString(),
+    inApp: true,
+  });
+  if (!paymentId) {
+    // A parallel tap inserted first: open the winner's sheet. Never cancel the winner.
+    const winner = await reuseLive(
+      db,
+      admin,
+      source,
+      split,
+      provider.id,
+      parent.id,
+      "in_app",
+      false,
+    );
+    if (winner?.kind === "in_app") return resume(winner);
+    throw new AppError("CONFLICT", paymentCopy.inProgress);
+  }
+
+  let created: { providerRef: string; sheet: InAppSheet };
+  try {
+    created = await provider.createInAppPayment({
+      paymentId,
+      amountMinor: row.amountMinor,
+      currency: family.currency,
+      customerRef,
+      description,
+      expiresAt,
+    });
+  } catch (error) {
+    // Free the source: a pending row with no intent would block it until it expires.
+    try {
+      await cancelPayment(admin, paymentId);
+    } catch (cause) {
+      logger.error("Failed to cancel a card payment after a provider error", { paymentId, cause });
+    }
+    throw error;
+  }
+  const live = {
+    id: paymentId,
+    provider: provider.id,
+    providerRef: created.providerRef,
+    inApp: true,
+  };
+  if (!(await setPaymentInApp(admin, paymentId, created.providerRef))) {
+    // Another payment already holds this intent or order: never let two rows share one.
+    await endLivePayment(admin, live, "canceled");
+    throw new AppError("CONFLICT", paymentCopy.inProgress);
+  }
+  logger.info("In-app card payment started", { paymentId, providerRef: created.providerRef });
+  return { paymentId, expiresAt: expiresAt.toISOString(), sheet: created.sheet };
 }
 
 /**
@@ -531,16 +742,57 @@ export async function setAutoCharge(
     returnTo: string;
   } & ContactInput,
 ): Promise<{ redirectUrl: string | null }> {
-  if (!input.on) return turnAutoChargeOff({ type: input.type, id: input.id });
+  return setAutoChargeWith<{ redirectUrl: string | null }>(
+    input,
+    (provider, parent, target) => openSetup(provider, parent, target, input.returnTo, input),
+    { redirectUrl: null },
+  );
+}
+
+/**
+ * The phone's auto-charge toggle: as `setAutoCharge`, but with no saved card it returns the
+ * native sheet's params for saving one (carrying the same `arm` target) instead of a URL. Only a
+ * provider with an in-app sheet can be turned on here.
+ */
+export async function setAutoChargeInApp(
+  input: AutoChargeTarget & { on: boolean; provider?: PaymentProviderId } & ContactInput,
+): Promise<{ setup: InAppSetupStart | null }> {
+  if (input.on && input.provider && !requireProvider(input.provider).inApp) {
+    throw new AppError("NOT_FOUND", paymentCopy.off);
+  }
+  return setAutoChargeWith<{ setup: InAppSetupStart | null }>(
+    input,
+    (provider, parent, target) => openInAppSetup(provider, parent, target, input),
+    { setup: null },
+  );
+}
+
+/**
+ * Turns auto charge on (charging the chosen provider's saved card) or off (no provider needed).
+ * On with no saved card there calls `open` to save one first; `none` is the answer otherwise.
+ */
+async function setAutoChargeWith<T>(
+  input: AutoChargeTarget & { on: boolean; provider?: PaymentProviderId },
+  open: (
+    provider: PaymentProvider,
+    parent: { id: string; email: string | null },
+    target: AutoChargeTarget,
+  ) => Promise<T>,
+  none: T,
+): Promise<T> {
+  const target: AutoChargeTarget = { type: input.type, id: input.id };
+  if (!input.on) {
+    await turnAutoChargeOff(target);
+    return none;
+  }
   if (!input.provider) throw new AppError("VALIDATION", paymentCopy.chooseProvider);
   const provider = requireProvider(input.provider);
-  const target: AutoChargeTarget = { type: input.type, id: input.id };
   const parent = await assertParentOfTarget(target);
   await assertChargesFamilyCurrency(provider);
   const db = await createClient();
 
   const customer = await findCustomer(db, parent.id, provider.id);
-  if (!customer?.methodRef) return openSetup(provider, parent, target, input.returnTo, input);
+  if (!customer?.methodRef) return open(provider, parent, target);
   let result: "ok" | "no_card";
   try {
     result = await setAutoChargeFor(db, target, true, provider.id);
@@ -551,15 +803,163 @@ export async function setAutoCharge(
     throw error;
   }
   // The card was removed between the read and the write.
-  if (result === "no_card") return openSetup(provider, parent, target, input.returnTo, input);
-  return { redirectUrl: null };
+  if (result === "no_card") return open(provider, parent, target);
+  return none;
 }
 
-async function turnAutoChargeOff(target: AutoChargeTarget): Promise<{ redirectUrl: null }> {
+async function turnAutoChargeOff(target: AutoChargeTarget): Promise<void> {
   if (!paymentsEnabled()) throw new AppError("NOT_FOUND", paymentCopy.off);
   await assertParentOfTarget(target);
   await setAutoChargeFor(await createClient(), target, false, null);
-  return { redirectUrl: null };
+}
+
+/**
+ * Starts saving a card in the phone's native sheet, as `openSetup` does for the hosted page:
+ * the contact check comes first, so a missing phone leaves no customer or setup behind. With
+ * `arm`, the webhook turns that toggle on once the card is saved.
+ */
+async function openInAppSetup(
+  provider: PaymentProvider,
+  parent: { id: string; email: string | null },
+  arm: AutoChargeTarget | null,
+  contactInput: ContactInput,
+): Promise<{ setup: InAppSetupStart }> {
+  const contact = setupContact(provider, parent, contactInput);
+  const customerRef = await ensureCustomerRef(provider, parent);
+  const admin = createAdminClient();
+  const setupId = await insertSetup(admin, { parentId: parent.id, provider: provider.id, arm });
+
+  let created: { providerRef: string; sheet: InAppSheet };
+  try {
+    created = await provider.createInAppSetup({
+      setupId,
+      customerRef,
+      ...(contact ? { contact } : {}),
+    });
+  } catch (error) {
+    try {
+      await failSetup(admin, setupId);
+    } catch (cause) {
+      logger.error("Failed to mark a card setup failed after a provider error", { setupId, cause });
+    }
+    throw error;
+  }
+  await setSetupProviderRef(admin, setupId, created.providerRef);
+  logger.info("In-app card setup started", { setupId, providerRef: created.providerRef });
+  return { setup: { setupId, sheet: created.sheet } };
+}
+
+// ---------------------------------------------------------------------------
+// The phone: payment status, cancel, providers, the dev test card
+// ---------------------------------------------------------------------------
+
+const NOT_FOUND = "We couldn't find that.";
+
+/**
+ * A payment's status for the phone to poll after its sheet closes. A live in-app payment past its
+ * window is ended as expired first, so a closed sheet reads expired without waiting for the
+ * hourly sweep. Parent only; another family's payment is NOT_FOUND (RLS hides it).
+ */
+export async function getPaymentStatus(paymentId: string): Promise<PaymentStatusView> {
+  if (!paymentsEnabled()) throw new AppError("NOT_FOUND", paymentCopy.off);
+  await assertRole("parent");
+  const db = await createClient();
+  let row = await findPaymentById(db, paymentId);
+  if (!row) throw new AppError("NOT_FOUND", NOT_FOUND);
+  if (
+    row.inApp &&
+    !isFinalStatus(row.status) &&
+    row.expiresAt !== null &&
+    Date.parse(row.expiresAt) <= Date.now()
+  ) {
+    await endLivePayment(createAdminClient(), row, "expired");
+    // Read back: a success that landed meanwhile wins over the expiry.
+    row = (await findPaymentById(db, paymentId)) ?? row;
+  }
+  return {
+    id: row.id,
+    status: row.status,
+    failureCode: row.failureCode,
+    final: isFinalStatus(row.status),
+  };
+}
+
+/**
+ * The parent cancels their own pending in-app payment (and its PaymentIntent). Anything else (a
+ * hosted checkout, an auto charge, another parent's payment, one waiting on the bank or already
+ * ended) is left alone: `{ canceled: false }`. A payment that still completes at the provider
+ * posts anyway.
+ */
+export async function cancelInAppPaymentById(paymentId: string): Promise<{ canceled: boolean }> {
+  if (!paymentsEnabled()) throw new AppError("NOT_FOUND", paymentCopy.off);
+  const { user } = await assertRole("parent");
+  const row = await findPaymentById(await createClient(), paymentId);
+  if (!row) throw new AppError("NOT_FOUND", NOT_FOUND);
+  if (
+    !row.inApp ||
+    row.trigger !== "manual" ||
+    row.status !== "pending" ||
+    row.payerId !== user.id
+  ) {
+    return { canceled: false };
+  }
+  await endLivePayment(createAdminClient(), row, "canceled");
+  logger.info("In-app card payment cancelled", { paymentId });
+  return { canceled: true };
+}
+
+/**
+ * What the phone's card buttons need: the auto-charge cards of providers with an in-app sheet,
+ * and, for one item, its handover card state with only those providers. Parent only.
+ */
+export async function getInAppProviders(item?: {
+  childId: string;
+  kind: "allowance" | "gift";
+  id: string;
+}): Promise<InAppProviders> {
+  await assertRole("parent");
+  const inApp = new Set(
+    getPaymentProviders()
+      .filter((provider) => provider.inApp)
+      .map((provider) => provider.id),
+  );
+  const cards = ((await getAutoChargeCard()) ?? []).filter((card) => inApp.has(card.provider));
+  if (!item) return { cards, item: null };
+  const source: PaymentSource = {
+    type: item.kind === "allowance" ? "occurrence" : "parent_gift",
+    id: item.id,
+  };
+  const state = await getCardPaymentState(item.childId, source);
+  return {
+    cards,
+    item: { ...state, providers: state.providers.filter((entry) => inApp.has(entry.id)) },
+  };
+}
+
+/**
+ * The phone's test-card dialog (dev builds only): completes the parent's own fake payment or card
+ * setup through the same path as the fake provider's webhook. NOT_FOUND unless the fake provider
+ * is on; FORBIDDEN for anything that isn't the caller's own fake payment or setup.
+ */
+export async function completeFakeInApp(input: FakeInAppCompleteInput): Promise<void> {
+  if (!getPaymentProviderById("fake")) throw new AppError("NOT_FOUND", "Not found");
+  const { user } = await assertRole("parent");
+  const db = await createClient();
+  if (input.mode === "payment") {
+    const row = await findPaymentById(db, input.ref);
+    if (row?.provider !== "fake" || row.payerId !== user.id) {
+      throw new AppError("FORBIDDEN", FORBIDDEN);
+    }
+    const providerRef = row.providerRef ?? undefined;
+    await handleProviderEvent("fake", fakeEventFor({ ...input, providerRef }));
+    return;
+  }
+  // Read through RLS: a parent sees only their own setups.
+  const setup = await findSetupForWebhook(db, input.ref);
+  if (setup?.provider !== "fake" || setup.parentId !== user.id) {
+    throw new AppError("FORBIDDEN", FORBIDDEN);
+  }
+  await handleProviderEvent("fake", fakeEventFor(input));
 }
 
 /**

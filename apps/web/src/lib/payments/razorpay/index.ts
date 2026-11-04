@@ -4,7 +4,7 @@ import Razorpay from "razorpay";
 import type { PaymentLinks } from "razorpay/dist/types/paymentLink";
 import type { Tokens } from "razorpay/dist/types/tokens";
 import { logger } from "../../logger";
-import type { PaymentProvider } from "../types";
+import type { InAppSheet, PaymentProvider } from "../types";
 import { razorpayMinimumChargeMinor } from "./currencies";
 import {
   failedPaymentOrderToFetch,
@@ -222,6 +222,55 @@ export function createRazorpayPaymentProvider(opts: {
 }): PaymentProvider {
   const client = opts.client ?? new Razorpay({ key_id: opts.keyId, key_secret: opts.keySecret });
 
+  /**
+   * The save-card order: a ₹1 card token order on the customer with the parent's email and phone
+   * (found or created). Shared by the hosted page and the phone's Checkout. Neither contact value
+   * is kept or logged.
+   */
+  async function createSetupOrder(i: {
+    setupId: string;
+    contact?: { email: string; phone: string };
+  }): Promise<{ orderId: string; customerId: string; contact: { email: string; phone: string } }> {
+    if (!i.contact) {
+      throw new AppError("VALIDATION", "Enter your mobile number to save a card.", {
+        fieldErrors: { phone: ["Enter your mobile number to save a card."] },
+      });
+    }
+    const customerId = await customerWithContact(client, i.contact);
+    // The SDK types `expire_at` as required; the API defaults it, so Jarso sends none.
+    const token = { max_amount: TOKEN_MAX_AMOUNT_MINOR, frequency: "as_presented" };
+    const order = await call("orders.create", () =>
+      client.orders.create({
+        amount: SETUP_AMOUNT_MINOR,
+        currency: "INR",
+        customer_id: customerId,
+        method: "card",
+        payment_capture: true,
+        receipt: i.setupId,
+        notes: { jarsoSetup: i.setupId },
+        token: token as Tokens.RazorpayTokenCard,
+      }),
+    );
+    if (!order?.id) throw unavailable(new Error("Razorpay order has no id"));
+    return { orderId: order.id, customerId, contact: i.contact };
+  }
+
+  /** Checkout's params for a pay-now order. Rebuilt on reuse: an order has nothing to refresh. */
+  function paymentSheet(
+    orderId: string,
+    i: { amountMinor: number; description: string },
+  ): InAppSheet {
+    return {
+      provider: "razorpay",
+      mode: "payment",
+      keyId: opts.keyId,
+      orderId,
+      amountMinor: i.amountMinor,
+      currency: "INR",
+      description: i.description,
+    };
+  }
+
   return {
     id: "razorpay",
     label: "Razorpay",
@@ -279,33 +328,13 @@ export function createRazorpayPaymentProvider(opts: {
      * carries that customer's id (from the webhook's payment), so charges use it.
      */
     async createHostedSetup(i) {
-      if (!i.contact) {
-        throw new AppError("VALIDATION", "Enter your mobile number to save a card.", {
-          fieldErrors: { phone: ["Enter your mobile number to save a card."] },
-        });
-      }
-      const customerId = await customerWithContact(client, i.contact);
-      // The SDK types `expire_at` as required; the API defaults it, so Jarso sends none.
-      const token = { max_amount: TOKEN_MAX_AMOUNT_MINOR, frequency: "as_presented" };
-      const order = await call("orders.create", () =>
-        client.orders.create({
-          amount: SETUP_AMOUNT_MINOR,
-          currency: "INR",
-          customer_id: customerId,
-          method: "card",
-          payment_capture: true,
-          receipt: i.setupId,
-          notes: { jarsoSetup: i.setupId },
-          token: token as Tokens.RazorpayTokenCard,
-        }),
-      );
-      if (!order?.id) throw unavailable(new Error("Razorpay order has no id"));
+      const { orderId, customerId } = await createSetupOrder(i);
       const url = new URL(opts.checkoutUrl);
-      url.searchParams.set("order", order.id);
+      url.searchParams.set("order", orderId);
       url.searchParams.set("customer", customerId);
       url.searchParams.set("success", i.successUrl);
       url.searchParams.set("cancel", i.cancelUrl);
-      return { redirectUrl: url.toString(), providerRef: order.id };
+      return { redirectUrl: url.toString(), providerRef: orderId };
     },
 
     /**
@@ -398,6 +427,51 @@ export function createRazorpayPaymentProvider(opts: {
         if (gone) return;
         throw toAppError("customers.deleteToken", cause);
       }
+    },
+
+    inApp: true,
+
+    /**
+     * An order for the phone's Checkout. Its `jarsoPay` note (server-set) names the payment, so
+     * `order.paid` succeeds it; a failed attempt is ignored and the parent retries in Checkout.
+     */
+    async createInAppPayment(i) {
+      const order = await call("orders.create", () =>
+        client.orders.create({
+          amount: i.amountMinor,
+          currency: "INR",
+          payment_capture: true,
+          receipt: i.paymentId,
+          notes: { jarsoPay: i.paymentId },
+        }),
+      );
+      if (!order?.id) throw unavailable(new Error("Razorpay order has no id"));
+      return { providerRef: order.id, sheet: paymentSheet(order.id, i) };
+    },
+
+    async resumeInAppPayment(i) {
+      return paymentSheet(i.providerRef, i);
+    },
+
+    // Razorpay orders can't be cancelled. A late order.paid after expiry posts as unapplied.
+    async cancelInAppPayment() {},
+
+    async createInAppSetup(i) {
+      const { orderId, customerId, contact } = await createSetupOrder(i);
+      return {
+        providerRef: orderId,
+        sheet: {
+          provider: "razorpay",
+          mode: "setup",
+          keyId: opts.keyId,
+          orderId,
+          amountMinor: SETUP_AMOUNT_MINOR,
+          currency: "INR",
+          description: "Save a card",
+          customerId,
+          prefill: { email: contact.email, contact: contact.phone },
+        },
+      };
     },
 
     async parseWebhook(rawBody, headers) {

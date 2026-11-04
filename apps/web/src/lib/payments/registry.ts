@@ -31,6 +31,8 @@ function entries(): Entry[] {
         createStripePaymentProvider({
           secretKey: serverEnv.STRIPE_SECRET_KEY ?? "",
           webhookSecret: serverEnv.STRIPE_WEBHOOK_SECRET ?? "",
+          // Not one of the keys that turn Stripe on: without it Stripe is web-only.
+          publishableKey: serverEnv.STRIPE_PUBLISHABLE_KEY ?? null,
         }),
     },
     {

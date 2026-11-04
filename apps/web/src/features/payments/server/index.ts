@@ -6,12 +6,18 @@ export { type AutoChargeResult, runAutoCharges } from "./auto-charge";
 export { getRazorpayCheckoutConfig, getRazorpayCheckoutFor } from "./razorpay-checkout";
 export {
   cancelCardPayment,
+  cancelInAppPaymentById,
+  completeFakeInApp,
   getAutoChargeCard,
   getCardPaymentState,
+  getInAppProviders,
+  getPaymentStatus,
   getSavedCards,
   removeSavedCard,
   setAutoCharge,
+  setAutoChargeInApp,
   startCardPayment,
   startCardSetup,
+  startInAppPayment,
 } from "./service";
 export { handleProviderEvent } from "./webhooks";

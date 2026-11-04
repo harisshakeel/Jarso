@@ -22,4 +22,4 @@ ADR 0015 left open whether the mobile app reads and writes through `/api/v1` rou
 - The phone ships only public values (Supabase URL, publishable key, API URL). A missed RLS policy is now directly exposed to the phone, so new tables and functions get the same pgTAP scrutiny as before.
 - The password-guard migration must be pushed to the hosted database before or with the web deploy.
 - The PIN rate limits trust the first `x-forwarded-for` hop, which holds on Vercel only.
-- Push after a mobile action is a fire-and-forget call; if missed, the daily `/api/cron/push` sweep delivers it.
+- Push after a mobile action is a fire-and-forget call; if missed, the 15-minute `/api/cron/push` sweep (pg_cron `push-sweep`, mobile wave 3) delivers it.

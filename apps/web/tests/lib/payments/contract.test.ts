@@ -46,6 +46,23 @@ vi.spyOn(stripeClient.checkout.sessions, "create").mockResolvedValue({
   id: "cs_test_c",
   url: "https://stripe.test/c",
 } as never);
+vi.spyOn(stripeClient.paymentIntents, "create").mockResolvedValue({
+  id: "pi_test_c",
+  client_secret: "pi_test_c_secret_c",
+} as never);
+vi.spyOn(stripeClient.paymentIntents, "retrieve").mockResolvedValue({
+  id: "pi_test_c",
+  status: "requires_payment_method",
+  client_secret: "pi_test_c_secret_c",
+} as never);
+vi.spyOn(stripeClient.paymentIntents, "cancel").mockResolvedValue({ id: "pi_test_c" } as never);
+vi.spyOn(stripeClient.setupIntents, "create").mockResolvedValue({
+  id: "seti_test_c",
+  client_secret: "seti_test_c_secret_c",
+} as never);
+vi.spyOn(stripeClient.ephemeralKeys, "create").mockResolvedValue({
+  secret: "ek_test_c",
+} as never);
 
 const stripe: Adapter = {
   name: "stripe",
@@ -55,6 +72,7 @@ const stripe: Adapter = {
     createStripePaymentProvider({
       secretKey: "sk_test_dummy",
       webhookSecret: WEBHOOK_SECRET,
+      publishableKey: "pk_test_contract",
       client: stripeClient,
     }),
   signedSucceeded: (paymentId) => {
@@ -81,6 +99,8 @@ vi.spyOn(razorpayClient.paymentLink, "create").mockResolvedValue({
   id: "plink_TEST123",
   short_url: "https://rzp.io/i/TEST123",
 } as never);
+vi.spyOn(razorpayClient.orders, "create").mockResolvedValue({ id: "order_TESTC" } as never);
+vi.spyOn(razorpayClient.customers, "create").mockResolvedValue({ id: "cust_TESTC" } as never);
 
 const razorpay: Adapter = {
   name: "razorpay",
@@ -157,5 +177,54 @@ describe.each([fake, stripe, razorpay])("payment provider contract: $name", (ada
     await expect(provider.parseWebhook(`${body} `, headers)).rejects.toMatchObject({
       code: "VALIDATION",
     });
+  });
+});
+
+describe.each([fake, stripe, razorpay])("payment provider contract, in-app: $name", (adapter) => {
+  const provider = adapter.make();
+
+  it("has a native sheet", () => {
+    expect(provider.inApp).toBe(true);
+  });
+
+  it("creates an in-app payment", async () => {
+    const result = await provider.createInAppPayment({
+      paymentId: "pay-c",
+      amountMinor: 1000,
+      currency: adapter.currency,
+      customerRef: "cus_c",
+      description: "Pocket money",
+      expiresAt: new Date(Date.now() + 3_600_000),
+    });
+    expect(result.providerRef).not.toBe("");
+    expect(result.sheet.mode).toBe("payment");
+    expect(result.sheet.provider).toBe(provider.id);
+  });
+
+  it("resumes an in-app payment with a sheet for the same provider", async () => {
+    const sheet = await provider.resumeInAppPayment({
+      paymentId: "pay-c",
+      providerRef: "ref_c",
+      customerRef: "cus_c",
+      amountMinor: 1000,
+      currency: adapter.currency,
+      description: "Pocket money",
+    });
+    expect(sheet.provider).toBe(provider.id);
+    expect(sheet.mode).toBe("payment");
+  });
+
+  it("cancels an in-app payment", async () => {
+    await expect(provider.cancelInAppPayment("ref_c")).resolves.toBeUndefined();
+  });
+
+  it("creates an in-app setup", async () => {
+    const result = await provider.createInAppSetup({
+      setupId: "set-c",
+      customerRef: "cus_c",
+      contact: { email: "parent@example.com", phone: "+919876543210" },
+    });
+    expect(result.providerRef).not.toBe("");
+    expect(result.sheet.mode).toBe("setup");
   });
 });

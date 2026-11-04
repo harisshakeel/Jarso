@@ -13,6 +13,7 @@ vi.mock("@/features/notifications/server", () => ({
   allowDispatch: vi.fn(),
   dispatchPush: vi.fn(),
   isPushConfigured: vi.fn(),
+  isWebPushConfigured: vi.fn(),
 }));
 
 const auth = await import("@/features/auth/server");
@@ -28,7 +29,13 @@ beforeEach(() => {
   vi.mocked(auth.assertRequestUser).mockResolvedValue({ id: "u1", email: null });
   vi.mocked(notices.isPushConfigured).mockReturnValue(true);
   vi.mocked(notices.allowDispatch).mockResolvedValue(true);
-  vi.mocked(notices.dispatchPush).mockResolvedValue({ claimed: 0, sent: 0, dropped: 0, failed: 0 });
+  vi.mocked(notices.dispatchPush).mockResolvedValue({
+    claimed: 0,
+    sent: 0,
+    dropped: 0,
+    failed: 0,
+    summarised: 0,
+  });
 });
 
 describe("POST /api/v1/notices/dispatch", () => {
@@ -62,6 +69,15 @@ describe("POST /api/v1/notices/dispatch", () => {
     const res = await post();
     expect(res.status).toBe(429);
     expect(afterCallbacks).toHaveLength(0);
+  });
+
+  it("queues with VAPID unset when Expo is on", async () => {
+    // isPushConfigured is "any transport": web push off, phone push on.
+    vi.mocked(notices.isWebPushConfigured).mockReturnValue(false);
+    vi.mocked(notices.isPushConfigured).mockReturnValue(true);
+    const res = await post();
+    expect(await res.json()).toEqual({ data: { queued: true } });
+    expect(afterCallbacks).toHaveLength(1);
   });
 
   it("202s with queued:false when push is not configured", async () => {

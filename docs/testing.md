@@ -78,7 +78,7 @@ A UI-only pull request takes about two to three minutes; a push to `main` about 
 - Run `pnpm db:start` then `pnpm db:test` (exits non-zero on failure).
 - Each file starts with `begin;` then `\ir _helpers.psql` (works with `supabase test db`), then `select plan(n);`, and ends with `select * from finish(); rollback;`.
 - Helpers in `supabase/tests/database/_helpers.psql`: `tests.create_user(email, role)`, `tests.authenticate_as(user_id)`, `tests.clear_auth()`.
-- Files: `harness`, `family_core`, `child_accounts`, `child_role`, `invitations`, `list_my_invitations`, `ledger`, `allowance_schedules`, `allowance_generation`, `handover`, `parent_gifts`, `learning_progress`, `guide` and `retry_safety` (all `*.test.sql`).
+- Files: `harness`, `family_core`, `child_accounts`, `child_role`, `invitations`, `list_my_invitations`, `ledger`, `allowance_schedules`, `allowance_generation`, `handover`, `parent_gifts`, `learning_progress`, `guide`, `retry_safety`, `push`, `device_push_tokens`, `push_quiet_hours`, `push_sweep_cron` and `device_push_prefs` (all `*.test.sql`), among others; `ls supabase/tests/database` is the full list.
 
 ## Guide evals (on request)
 

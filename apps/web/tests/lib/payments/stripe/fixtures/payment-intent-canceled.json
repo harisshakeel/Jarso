@@ -1,0 +1,13 @@
+{
+  "id": "evt_9",
+  "object": "event",
+  "type": "payment_intent.canceled",
+  "livemode": false,
+  "data": {
+    "object": {
+      "id": "pi_test_9",
+      "object": "payment_intent",
+      "metadata": { "paymentId": "pay-9", "jarsoInApp": "1" }
+    }
+  }
+}
