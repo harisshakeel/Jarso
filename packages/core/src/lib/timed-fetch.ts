@@ -64,7 +64,9 @@ function anySignal(a: AbortSignal, b: AbortSignal): { signal: AbortSignal; dispo
  * logged. Logs carry the call name, path (no query), status/reason and duration only.
  * The deadline covers the body too: it is read (Supabase bodies are small) and handed back as a
  * new Response with the same status and headers, so a body that stalls also times out.
- * Isomorphic.
+ * Bodies are read as text: React Native's fetch polyfill decodes an ArrayBuffer body one byte per
+ * character (Latin-1), turning "₹" into "â‚¹", but hands a string body back as is. Every caller
+ * reads JSON, never binary. Isomorphic.
  */
 export function createTimedFetch(options: {
   timeoutMs: number;
@@ -84,7 +86,7 @@ export function createTimedFetch(options: {
 
     try {
       const response = await fetch(input, { ...init, signal });
-      const body = NULL_BODY.has(response.status) ? null : await response.arrayBuffer();
+      const body = NULL_BODY.has(response.status) ? null : await response.text();
       const durationMs = Date.now() - startedAt;
       if (durationMs > slowMs) {
         logger.warn("Slow upstream call", {
