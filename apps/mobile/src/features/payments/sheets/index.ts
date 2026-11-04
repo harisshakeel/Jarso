@@ -4,6 +4,7 @@ import { presentRazorpaySheet } from "./razorpay";
 import { presentStripeSheet } from "./stripe";
 import type { FakeSheet, SheetOutcome } from "./types";
 
+export { useFakeSheet } from "./fake-sheet";
 export type { FakeSheet, SheetOutcome } from "./types";
 
 /**
