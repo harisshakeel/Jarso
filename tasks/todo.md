@@ -316,7 +316,7 @@ Build with `npx expo run:android`, then `pnpm --filter @jarso/mobile e2e` with t
 
 Not run: no Android device was available when the phone side was built. Run on a physical phone with the development build (FCM credentials in EAS) against `pnpm dev` and the hosted project.
 
-- [ ] Maestro `push.yaml` passes (`pnpm --filter @jarso/mobile e2e push.yaml` with the parent, child and `API_URL` / `SUPABASE_*` `-e` flags)
+- [ ] Maestro `push.yaml` passes (`maestro test e2e/push.yaml` from `apps/mobile`, with the parent, child and `API_URL` / `SUPABASE_*` `-e` flags)
 - [ ] A parent's decision pushes the child's phone, and the tap opens the right screen (and marks the notice read)
 - [ ] A child notice created at 22:00 family time does not push at night, stays unread in News, and arrives after 07:00; two or more come as one "You have N new notices" push that opens News (move the test family's timezone to shift its clock, then revert)
 - [ ] A different family member signing in on the same phone gets only their own pushes; a push meant for the previous account opens Home
