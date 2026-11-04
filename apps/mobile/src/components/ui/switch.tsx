@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import { Switch as NativeSwitch } from "react-native";
-import { useTokens } from "@/lib/theme";
+import { useTokens } from "@/lib";
 
 const THUMB = "#ffffff";
 
