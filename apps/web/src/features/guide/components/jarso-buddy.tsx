@@ -44,6 +44,7 @@ export function JarsoBuddy({ introNeeded }: { introNeeded: boolean }) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <div
+        data-slot="jarso-buddy"
         className={cn(
           "group/buddy fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 flex items-center gap-3 md:right-6 md:bottom-6",
           open && "hidden",

@@ -172,7 +172,7 @@ export function ReadAloudButton({
     <Button
       type="button"
       variant="outline"
-      size={compact ? "icon" : "sm"}
+      size={compact ? "icon" : "default"}
       aria-pressed={speaking}
       onClick={speaking ? stop : start}
       className={className}

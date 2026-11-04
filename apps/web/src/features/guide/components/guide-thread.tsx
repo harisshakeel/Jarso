@@ -451,7 +451,7 @@ export function GuideThread({
                 setText(question);
                 ask(question);
               }}
-              className="flex min-h-11 w-full items-center gap-3 rounded-2xl border border-hairline bg-card px-4 py-3 text-left transition-colors duration-150 hover:border-hairline-strong hover:bg-muted focus-visible:border-primary focus-visible:outline-none"
+              className="flex min-h-11 w-full items-center gap-3 rounded-2xl border border-hairline bg-card px-4 py-3 text-left transition-colors duration-150 hover:border-hairline-strong hover:bg-muted focus-visible:border-primary"
             >
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
                 <Icon aria-hidden className="size-5" />

@@ -8,4 +8,5 @@ export * from "./nav-brand";
 export * from "./page-tabs";
 export * from "./parent-nav";
 export * from "./rail-link";
+export * from "./route-error";
 export * from "./slow-fallback";

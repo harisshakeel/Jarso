@@ -23,22 +23,55 @@ import { JarsoMark } from "@/components/brand";
 // Tinted circles follow design.md §2.5: cyan for due, gold for limits and failed card charges,
 // teal for decisions. A "Jarso noticed" nudge shows the Jarso mark instead of an icon.
 const kindStyle: Record<NoticeKind, { icon: LucideIcon; tint: string }> = {
-  allowance_due: { icon: CalendarClockIcon, tint: "bg-cyan-100 text-cyan-700" },
-  handover_reminder: { icon: HandCoinsIcon, tint: "bg-cyan-100 text-cyan-700" },
-  limit_exceeded: { icon: BellIcon, tint: "bg-gold-100 text-gold-700" },
+  allowance_due: {
+    icon: CalendarClockIcon,
+    tint: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300",
+  },
+  handover_reminder: {
+    icon: HandCoinsIcon,
+    tint: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300",
+  },
+  limit_exceeded: {
+    icon: BellIcon,
+    tint: "bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold",
+  },
   withdrawal_requested: { icon: PiggyBankIcon, tint: "bg-secondary text-ink-2" },
   deposit_requested: { icon: PiggyBankIcon, tint: "bg-secondary text-ink-2" },
-  withdrawal_decided: { icon: CheckCircle2Icon, tint: "bg-teal-100 text-teal-800" },
-  deposit_decided: { icon: CheckCircle2Icon, tint: "bg-teal-100 text-teal-800" },
-  emergency_requested: { icon: HandCoinsIcon, tint: "bg-gold-100 text-gold-700" },
-  emergency_decided: { icon: CheckCircle2Icon, tint: "bg-teal-100 text-teal-800" },
+  withdrawal_decided: {
+    icon: CheckCircle2Icon,
+    tint: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100",
+  },
+  deposit_decided: {
+    icon: CheckCircle2Icon,
+    tint: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100",
+  },
+  emergency_requested: {
+    icon: HandCoinsIcon,
+    tint: "bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold",
+  },
+  emergency_decided: {
+    icon: CheckCircle2Icon,
+    tint: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100",
+  },
   // Informational, like a limit notice: never red (design.md §2.4).
-  card_charge_failed: { icon: CreditCardIcon, tint: "bg-gold-100 text-gold-700" },
-  money_received: { icon: HandCoinsIcon, tint: "bg-teal-100 text-teal-800" },
+  card_charge_failed: {
+    icon: CreditCardIcon,
+    tint: "bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold",
+  },
+  money_received: {
+    icon: HandCoinsIcon,
+    tint: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100",
+  },
   entry_corrected: { icon: PencilIcon, tint: "bg-secondary text-ink-2" },
-  jar_moved: { icon: PiggyBankIcon, tint: "bg-teal-100 text-teal-800" },
+  jar_moved: {
+    icon: PiggyBankIcon,
+    tint: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100",
+  },
   guide_noticed: { icon: SparklesIcon, tint: "bg-secondary text-ink-2" },
-  parent_note: { icon: MessageCircleHeartIcon, tint: "bg-cyan-100 text-cyan-700" },
+  parent_note: {
+    icon: MessageCircleHeartIcon,
+    tint: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300",
+  },
 };
 
 type InboxItemProps = {

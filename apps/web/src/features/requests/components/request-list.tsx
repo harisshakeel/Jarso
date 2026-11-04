@@ -84,7 +84,9 @@ function RequestRow({
         ? ArrowDownToLineIcon
         : HandCoinsIcon;
   const tint =
-    request.kind === "emergency" ? "bg-gold-100 text-gold-700" : "bg-cyan-100 text-cyan-700";
+    request.kind === "emergency"
+      ? "bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold"
+      : "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300";
 
   function cancel() {
     setError(undefined);

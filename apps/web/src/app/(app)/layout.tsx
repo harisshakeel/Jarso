@@ -30,7 +30,10 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       <Suspense fallback={null}>
         <InboxRefresh />
       </Suspense>
-      <main className="w-full flex-1 px-4 py-6 sm:px-6 md:py-8 lg:px-10">{children}</main>
+      {/* The floating Jarso (child pages) sits over the bottom right: room below the last item. */}
+      <main className="w-full flex-1 px-4 py-6 has-data-[slot=jarso-buddy]:pb-24 sm:px-6 md:py-8 md:has-data-[slot=jarso-buddy]:pb-24 lg:px-10">
+        {children}
+      </main>
       <Suspense fallback={null}>
         <ProfileGate />
       </Suspense>

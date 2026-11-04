@@ -96,10 +96,22 @@ describe("PendingPurchases", () => {
     ).toEqual(["Change it", "Ask a parent", "Remove"]);
   });
 
-  it("Remove deletes the item", async () => {
+  it("Remove asks first, then deletes the item", async () => {
     show([needsLook()]);
     fireEvent.click(screen.getByRole("button", { name: "Remove: Comic" }));
+    const confirm = await screen.findByRole("alertdialog", { name: 'Remove "Comic"?' });
+    expect(removeOutboxItem).not.toHaveBeenCalled();
+    fireEvent.click(within(confirm).getByRole("button", { name: "Remove" }));
     await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(uuid));
+  });
+
+  it("Keep it leaves the item where it is", async () => {
+    show([needsLook()]);
+    fireEvent.click(screen.getByRole("button", { name: "Remove: Comic" }));
+    const confirm = await screen.findByRole("alertdialog");
+    fireEvent.click(within(confirm).getByRole("button", { name: "Keep it" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(removeOutboxItem).not.toHaveBeenCalled();
   });
 
   it("Ask a parent shows the advice and keeps the item", () => {
@@ -160,7 +172,7 @@ describe("PendingPurchases", () => {
       await waitFor(() => expect(removeOutboxItem).toHaveBeenCalledWith(uuid));
       expect(sendToServer).toHaveBeenCalledOnce();
       expect(sendToServer.mock.calls[0]?.[0]).toMatchObject({ id: uuid, idempotencyKey: uuid });
-      expect(toast.success).toHaveBeenCalledWith("Saved. Nice one.");
+      expect(toast.success).toHaveBeenCalledWith("Written down. Nice one.");
       expect(refresh).toHaveBeenCalled();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });

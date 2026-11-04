@@ -124,7 +124,7 @@ describe("PurchaseSheet", () => {
     await user.press(screen.getByRole("button", { name: "Write it down" }));
     expect(await screen.findByText(notEnoughSpendMessage(300, "GBP"))).toBeOnTheScreen();
     expect(screen.getByLabelText("Amount")).toBeOnTheScreen();
-    expect(screen.queryByText("Saved. Nice one.")).toBeNull();
+    expect(screen.queryByText("Written down. Nice one.")).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
     expect(Haptics.notificationAsync).not.toHaveBeenCalled();
@@ -192,7 +192,7 @@ describe("PurchaseSheet", () => {
     expect(await screen.findByText(offlineCopy.offline)).toBeOnTheScreen();
     expect(dispatch).not.toHaveBeenCalled();
     await user.press(screen.getByRole("button", { name: "Write it down" }));
-    await screen.findByText("Saved. Nice one.");
+    await screen.findByText("Written down. Nice one.");
     const keysSent = record.mock.calls.map((c) => c[0].idempotencyKey);
     expect(keysSent).toEqual([KEY_1, KEY_1]);
     expect(uuid).toHaveBeenCalledTimes(1);
@@ -204,7 +204,7 @@ describe("PurchaseSheet", () => {
     const first = await renderSheet();
     await fill(user, "1");
     await user.press(screen.getByRole("button", { name: "Write it down" }));
-    await screen.findByText("Saved. Nice one.");
+    await screen.findByText("Written down. Nice one.");
     await first.unmount();
 
     uuid.mockReturnValue(KEY_2);
@@ -222,7 +222,7 @@ describe("PurchaseSheet", () => {
     const invalidate = jest.spyOn(client, "invalidateQueries");
     await fill(user, "2.50");
     await user.press(screen.getByRole("button", { name: "Write it down" }));
-    expect(await screen.findByText("Saved. Nice one.")).toBeOnTheScreen();
+    expect(await screen.findByText("Written down. Nice one.")).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Undo" })).toBeOnTheScreen();
     expect(dispatch).toHaveBeenCalledTimes(1);
     expect(dispatch).toHaveBeenCalledWith("/api/v1/notices/dispatch", {
@@ -241,7 +241,7 @@ describe("PurchaseSheet", () => {
     const { client } = await renderSheet();
     await fill(user, "2.50");
     await user.press(screen.getByRole("button", { name: "Write it down" }));
-    await screen.findByText("Saved. Nice one.");
+    await screen.findByText("Written down. Nice one.");
     const invalidate = jest.spyOn(client, "invalidateQueries");
     await user.press(screen.getByRole("button", { name: "Undo" }));
     expect(await screen.findByText("Undone. The money is back in Spend.")).toBeOnTheScreen();
@@ -258,7 +258,7 @@ describe("PurchaseSheet", () => {
     await renderSheet();
     await fill(user, "2.50");
     await user.press(screen.getByRole("button", { name: "Write it down" }));
-    await screen.findByText("Saved. Nice one.");
+    await screen.findByText("Written down. Nice one.");
     await user.press(screen.getByRole("button", { name: "Undo" }));
     expect(await screen.findByText("You can only undo within a day.")).toBeOnTheScreen();
   });
@@ -271,7 +271,7 @@ describe("PurchaseSheet", () => {
     await renderSheet();
     await fill(user, "2.50");
     await user.press(screen.getByRole("button", { name: "Write it down" }));
-    expect(await screen.findByText("Saved. Nice one.")).toBeOnTheScreen();
+    expect(await screen.findByText("Written down. Nice one.")).toBeOnTheScreen();
     expect(screen.queryByText("offline")).toBeNull();
     await waitFor(() => expect(warn).toHaveBeenCalled());
     warn.mockRestore();
@@ -290,6 +290,6 @@ describe("PurchaseSheet", () => {
     quiet.mockRestore();
     expect(record).toHaveBeenCalledTimes(1);
     finish(sent("e1"));
-    await screen.findByText("Saved. Nice one.");
+    await screen.findByText("Written down. Nice one.");
   });
 });

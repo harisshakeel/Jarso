@@ -155,7 +155,11 @@ test("refused queued purchase shows Needs a look", async () => {
   await line.getByRole("button", { name: "Ask a parent: Too big" }).click();
   await expect(line).toContainText("Show this to a parent and decide together.");
 
+  // Remove asks first (it can't be undone).
   await line.getByRole("button", { name: "Remove: Too big" }).click();
+  const confirm = child.getByRole("alertdialog", { name: 'Remove "Too big"?' });
+  await confirm.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(confirm).toHaveCount(0);
   await expect(pending()).toHaveCount(0);
   await expect(history().getByText("Too big")).toHaveCount(0);
 });
@@ -211,7 +215,7 @@ test("Change it on an expired purchase sends the old one once", async () => {
   const line = pending().getByRole("listitem").filter({ hasText: "Old snack" });
   await expect(line).toContainText("This one waited too long. Add it again?");
   await line.getByRole("button", { name: "Change it: Old snack" }).click();
-  await expect(child.getByText("Saved. Nice one.")).toBeVisible();
+  await expect(child.getByText("Written down. Nice one.")).toBeVisible();
   await expect(child.getByRole("dialog")).toHaveCount(0);
   await expect(pending()).toHaveCount(0);
   await expect(history().getByText("Old snack")).toHaveCount(1);
