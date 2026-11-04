@@ -92,6 +92,8 @@ export type LearningOverview = {
   streak: number;
   /** Points across every step and practice answer (`pointsFor`); never money. */
   points: number;
+  /** The longest run of learning days ever (`longestStreak`): the child's own best. */
+  longestStreak: number;
   /** The family-local day of the most recent learning, or null before any. */
   lastLearnedOn: string | null;
   nextStep: NextStep;

@@ -1,5 +1,7 @@
 import {
+  bestMission,
   learningStreak,
+  longestStreak,
   POINTS,
   pointsFor,
   pointsLine,
@@ -64,5 +66,36 @@ describe("learningStreak", () => {
     expect(streakLine(0)).toBe("Learn today to start a run.");
     expect(streakLine(1)).toBe("1 day in a row. Come back tomorrow to make it 2.");
     expect(streakLine(5)).toBe("5 days in a row.");
+  });
+});
+
+describe("personal bests", () => {
+  const tz = "Europe/London";
+
+  it("finds the longest run ever, not only the current one", () => {
+    const stamps = [
+      "2026-10-01T09:00:00Z",
+      "2026-10-02T09:00:00Z",
+      "2026-10-03T09:00:00Z",
+      "2026-10-03T20:00:00Z",
+      "2026-10-10T09:00:00Z",
+      "2026-10-11T09:00:00Z",
+    ];
+    expect(longestStreak(stamps, tz)).toBe(3);
+    expect(longestStreak([], tz)).toBe(0);
+    expect(longestStreak(["2026-10-10T09:00:00Z"], tz)).toBe(1);
+  });
+
+  it("picks the mission with the most first-try answers, fewer hints breaking a tie", () => {
+    const missions = [
+      { title: "Newest", firstTry: 5, answerable: 7, hints: 1 },
+      { title: "Clean", firstTry: 5, answerable: 7, hints: 0 },
+      { title: "Best", firstTry: 6, answerable: 7, hints: 2 },
+      { title: "Empty", firstTry: 0, answerable: 0, hints: 0 },
+    ];
+    expect(bestMission(missions)?.title).toBe("Best");
+    expect(bestMission(missions.slice(0, 2))?.title).toBe("Clean");
+    expect(bestMission([missions[3] as (typeof missions)[number]])).toBeNull();
+    expect(bestMission([])).toBeNull();
   });
 });

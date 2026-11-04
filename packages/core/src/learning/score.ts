@@ -50,3 +50,47 @@ export function streakLine(streak: number): string {
 export function pointsLine(points: number): string {
   return points === 1 ? "1 point" : `${points} points`;
 }
+
+/**
+ * The longest run of days in a row with learning, ever. The child's own best, never anyone
+ * else's: a personal best, not a leaderboard.
+ */
+export function longestStreak(timestamps: readonly string[], timezone: string): number {
+  const days = [...new Set(timestamps.map((ts) => localDateOf(ts, timezone)))].sort();
+  let best = 0;
+  let run = 0;
+  let previous: string | null = null;
+  for (const day of days) {
+    run = previous !== null && addDays(previous, 1) === day ? run + 1 : 1;
+    best = Math.max(best, run);
+    previous = day;
+  }
+  return best;
+}
+
+/** A finished mission as the bests compare them. */
+export type FinishedMission = {
+  title: string;
+  firstTry: number;
+  answerable: number;
+  hints: number;
+};
+
+/**
+ * The child's best mission: the most first-try answers, ties to the fewer hints, then the
+ * earlier one in the list (newest first, so the most recent of equals). Null before any.
+ */
+export function bestMission<T extends FinishedMission>(completed: readonly T[]): T | null {
+  let best: T | null = null;
+  for (const mission of completed) {
+    if (mission.answerable === 0) continue;
+    if (
+      !best ||
+      mission.firstTry > best.firstTry ||
+      (mission.firstTry === best.firstTry && mission.hints < best.hints)
+    ) {
+      best = mission;
+    }
+  }
+  return best;
+}
