@@ -6,6 +6,7 @@ import {
   type DashboardChild,
   noteIdeas,
   offersNote,
+  readableSummary,
   SUMMARY_MAX,
   type SummaryFacts,
   savedByChild,
@@ -269,5 +270,44 @@ describe("callouts for the dashboard's actions", () => {
     expect(offersNote(flagged as NonNullable<typeof flagged>)).toBe(false);
     expect(noteIdeas.chats).toEqual([]);
     expect(callouts([aisha], week, "GBP").every(offersNote)).toBe(true);
+  });
+});
+
+describe("readableSummary", () => {
+  const rupees: SummaryFacts = {
+    period: "this week",
+    names: ["Child1", "Zoë"],
+    lines: ["Child1 has ₹1,250.00 in Spend and ₹750.00 in Save.", "Zoë has £5.00 in Save."],
+  };
+  // "₹" is the bytes E2 82 B9; read one byte per character they come out as these.
+  const latin1Rupee = "â\u0082¹";
+  const cp1252Rupee = "â‚¹";
+
+  it("puts back a currency sign whose UTF-8 bytes were read one per character", () => {
+    expect(readableSummary(`Child1 has ${latin1Rupee}1,250.00 in Spend.`, rupees)).toBe(
+      "Child1 has ₹1,250.00 in Spend.",
+    );
+    expect(readableSummary(`Child1 has ${cp1252Rupee}750.00 in Save.`, rupees)).toBe(
+      "Child1 has ₹750.00 in Save.",
+    );
+  });
+
+  it("leaves real accented names and other signs alone", () => {
+    expect(readableSummary("Zoë has £5.00 in Save.", rupees)).toBe("Zoë has £5.00 in Save.");
+  });
+
+  it("drops a summary with a character the facts never use", () => {
+    expect(readableSummary("Child1 has â¹750.00 in Save.", rupees)).toBeNull();
+    expect(readableSummary("Child1 has €750.00 in Save.", rupees)).toBeNull();
+  });
+
+  it("keeps curly quotes and dashes the model writes itself", () => {
+    expect(readableSummary("Child1\u2019s Save has \u20b9750.00 \u2014 calm week.", rupees)).toBe(
+      "Child1\u2019s Save has \u20b9750.00 \u2014 calm week.",
+    );
+  });
+
+  it("still applies every checkSummary rule", () => {
+    expect(readableSummary("Child1 has ₹9.00 in Save.", rupees)).toBeNull();
   });
 });

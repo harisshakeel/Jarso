@@ -1,5 +1,5 @@
 import "server-only";
-import { checkSummary, type SummaryFacts } from "@jarso/core/dashboard";
+import { readableSummary, type SummaryFacts } from "@jarso/core/dashboard";
 import type {
   AcceptGoalProposal,
   AcceptGoalProposalResult,
@@ -549,7 +549,7 @@ export async function writeFamilySummary(facts: SummaryFacts): Promise<string | 
     }
     const text = await cachedFamilySummary(facts, user.id);
     summaryBreaker.recordSuccess();
-    return text !== null && checkSummary(text, facts) ? text : null;
+    return text === null ? null : readableSummary(text, facts);
   } catch (error) {
     unstable_rethrow(error);
     if (!isAppError(error)) summaryBreaker.recordFailure();
