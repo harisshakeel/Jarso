@@ -243,6 +243,8 @@ Easing `cubic-bezier(0.2, 0.8, 0.2, 1)`. With `prefers-reduced-motion: reduce`, 
 
 **Sound.** Four sounds, synthesised in the browser (`apps/web/src/lib/sounds.ts`, no audio files), quiet (gain at most 0.2) and each a body tone plus a brighter partial with a bell-like decay, so they ring rather than beep: coins clinking (under 400 ms) when money moves between the jars, leaves Spend, a purchase is saved, or Jarso's jar starts filling while it thinks; a rising two-note bell for a right answer; one soft woody slide down for a wrong one, never a buzzer; and a three-note fanfare with a held top note (under a second) once a mission or practice is finished. Nothing plays before the person has touched the page. One "Sounds" switch on Settings (child and parent) turns them off for that browser (`localStorage`, `jarso:sounds`).
 
+**Read aloud (demo 3).** Every lesson step has a "Read aloud" button (`ReadAloudButton`): a teach step reads its title, body and example; a question reads the board's prompt and its note. The browser's own speech synthesis speaks, on the device, in the page's language, a touch slower than its default; nothing leaves the device and the words stay on screen throughout. One reading at a time: the button turns into Stop while it speaks, and a new step or leaving the page stops it. The button appears only where the browser can speak.
+
 ## 9. Voice
 
 Warm coach, plain words, second person, short sentences. Parent screens use the same voice, a notch more direct.
