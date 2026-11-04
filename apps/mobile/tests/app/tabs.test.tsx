@@ -82,6 +82,8 @@ describe("child tabs", () => {
   it("badges Notifications with the unread count", async () => {
     guideState.mockResolvedValue({ available: true, introNeeded: false });
     await renderTabs(3);
-    await waitFor(() => expect(screen.getByTestId("tab-news")).toHaveTextContent("Notifications 3"));
+    await waitFor(() =>
+      expect(screen.getByTestId("tab-news")).toHaveTextContent("Notifications 3"),
+    );
   });
 });

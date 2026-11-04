@@ -105,7 +105,9 @@ describe("parent tabs", () => {
   it("inbox badge shows unread", async () => {
     guideState.mockResolvedValue({ configured: false, enabledChildIds: [] });
     await renderTabs(4);
-    await waitFor(() => expect(screen.getByTestId("tab-inbox")).toHaveTextContent("Notifications 4"));
+    await waitFor(() =>
+      expect(screen.getByTestId("tab-inbox")).toHaveTextContent("Notifications 4"),
+    );
   });
 
   it("opens Settings from the header button", async () => {
