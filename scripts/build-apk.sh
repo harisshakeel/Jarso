@@ -41,6 +41,19 @@ case "$BUILD_TYPE" in
   *) echo "Profile $PROFILE builds ${BUILD_TYPE:-an app bundle}, not an APK" >&2; exit 1 ;;
 esac
 
+# The unit starts with a clean environment: hand EXPO_TOKEN over as a systemd credential
+# (never --setenv, which anyone can read with systemctl show), else need a saved eas login.
+CRED_ARGS=()
+if [ -n "${EXPO_TOKEN:-}" ]; then
+  TOKEN_FILE="$(mktemp)"
+  trap 'rm -f "$TOKEN_FILE"' EXIT
+  printf '%s' "$EXPO_TOKEN" > "$TOKEN_FILE"
+  CRED_ARGS=(-p "LoadCredential=expo-token:$TOKEN_FILE")
+elif ! eas whoami >/dev/null 2>&1; then
+  echo "Not logged in to Expo: run eas login, or set EXPO_TOKEN" >&2
+  exit 1
+fi
+
 # Deps go stale after every git pull; a stale tree fails at "expo config".
 (cd "$REPO_DIR" && pnpm install --frozen-lockfile >/dev/null)
 
@@ -53,12 +66,13 @@ sudo systemd-run \
   --unit="$UNIT" --collect \
   --working-directory="$MOBILE_DIR" \
   -p Nice=10 \
+  "${CRED_ARGS[@]}" \
   --setenv=HOME="$HOME" \
   --setenv=PATH="$PNPM_HOME:$PATH" \
   --setenv=JAVA_HOME="$JAVA_HOME" \
   --setenv=ANDROID_HOME="$ANDROID_HOME" \
   --setenv=ORG_GRADLE_PROJECT_reactNativeArchitectures="$ARCHS" \
-  bash -c "eas build -p android --profile '$PROFILE' --local --non-interactive --output '$APK' > '$LOG' 2>&1; echo \$? > '$DONE'"
+  bash -c "[ -r \"\${CREDENTIALS_DIRECTORY:-}/expo-token\" ] && export EXPO_TOKEN=\"\$(cat \"\$CREDENTIALS_DIRECTORY/expo-token\")\"; eas build -p android --profile '$PROFILE' --local --non-interactive --output '$APK' > '$LOG' 2>&1; echo \$? > '$DONE'"
 
 echo "Building in the background (Ctrl+C stops watching, not the build)."
 until [ -f "$DONE" ]; do
