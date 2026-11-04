@@ -1,0 +1,67 @@
+# Push: the test child asks for extra (scripts/child-asks.js, over HTTP), the parent's phone
+# buzzes, and tapping the push opens the child's hub. Then, signed out, the next ask must not
+# buzz this phone. Parents are never held by quiet hours, so it runs at any hour.
+# Physical Android phone with the development build only (FCM credentials set in EAS); an
+# emulator without Google Play services gets no push token. Needs the parent and child vars plus:
+#   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... \
+#     -e CHILD_FAMILY_CODE=... -e CHILD_NICKNAME=... -e CHILD_PIN=... \
+#     -e API_URL=... -e SUPABASE_URL=... -e SUPABASE_PUBLISHABLE_KEY=... e2e/push.yaml
+appId: app.jarso.mobile
+tags:
+  - push
+---
+- runFlow: parent-sign-in.yaml
+# First sign-in on this phone: Jarso's one-line reason, then Android's prompt.
+- runFlow:
+    when:
+      visible: "Get a ping from Jarso?"
+    commands:
+      - tapOn: "Turn on"
+- runFlow:
+    when:
+      visible: "Allow"
+    commands:
+      - tapOn: "Allow"
+- runScript: scripts/child-asks.js
+- pressKey: Home
+- swipe:
+    start: 50%, 0%
+    end: 50%, 80%
+- extendedWaitUntil:
+    visible: "${CHILD_NICKNAME} asked for extra money"
+    timeout: 30000
+- tapOn: "${CHILD_NICKNAME} asked for extra money"
+# A request notice opens the child's hub.
+- extendedWaitUntil:
+    visible: "${CHILD_NICKNAME}"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Manage|Set up allowance"
+    direction: DOWN
+    timeout: 20000
+
+# Signing out stops pushes: the token is dropped before the session goes.
+- launchApp
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element:
+      text: "Sign out"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Sign out"
+- extendedWaitUntil:
+    visible: "I'm a parent|I'm a child"
+    timeout: 20000
+- runScript: scripts/child-asks.js
+- pressKey: Home
+- swipe:
+    start: 50%, 0%
+    end: 50%, 80%
+# Give a (wrong) push 30 s to arrive: optional, so the wait itself never fails the flow.
+- extendedWaitUntil:
+    visible: "${CHILD_NICKNAME} asked for extra money"
+    timeout: 30000
+    optional: true
+- assertNotVisible: "${CHILD_NICKNAME} asked for extra money"
+- pressKey: Back
