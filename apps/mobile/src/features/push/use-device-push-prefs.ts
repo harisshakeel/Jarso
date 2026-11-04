@@ -36,7 +36,8 @@ export function useDevicePushPrefs() {
     const latest = () => seq === loadSeqRef.current;
     try {
       const permission = await Notifications.getPermissionsAsync();
-      if (!permission.granted && permission.status !== "undetermined") {
+      // Only when Android won't ask again does it take the phone's settings; else "Turn on".
+      if (!permission.granted && permission.canAskAgain === false) {
         if (latest()) setStatus("denied");
         return;
       }

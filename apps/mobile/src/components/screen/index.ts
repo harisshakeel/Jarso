@@ -1,6 +1,7 @@
 export * from "./card";
 export * from "./coach-says";
 export * from "./eyebrow";
+export * from "./keyboard";
 export * from "./list-row";
 export * from "./progress-bar";
 export * from "./screen-header";

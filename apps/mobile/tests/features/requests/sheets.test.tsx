@@ -16,17 +16,19 @@ import {
 } from "@jarso/data/requests";
 import { findChildRules } from "@jarso/data/rules";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, userEvent } from "@testing-library/react-native";
+import { render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { randomUUID } from "expo-crypto";
 import * as Haptics from "expo-haptics";
 import { getNetworkStateAsync } from "expo-network";
 import type { ReactElement } from "react";
 import { AskExtraSheet, PutInSheet, TakeOutSheet } from "@/features/requests";
 import { apiFetch } from "@/lib/api";
+import { flash } from "@/lib/flash";
 import { keys } from "@/lib/query";
 
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
 jest.mock("@/lib/api", () => ({ apiFetch: jest.fn() }));
+jest.mock("@/lib/flash", () => ({ flash: jest.fn() }));
 jest.mock("@/features/auth/use-session", () => ({
   useSession: () => ({ status: "child", userId: "child-1" }),
 }));
@@ -68,6 +70,15 @@ async function open(ui: (onClose: () => void) => ReactElement) {
     <QueryClientProvider client={client}>{ui(onClose)}</QueryClientProvider>,
   );
   return { client, onClose, ...view };
+}
+
+/**
+ * The answer reached the child as a toast and the sheet closed (SentToast). Clears the mock once
+ * matched, so a later `sent` needs a toast of its own (a reopened sheet can't pass on the first).
+ */
+async function sent(message: string) {
+  await waitFor(() => expect(flash).toHaveBeenCalledWith(message, { long: true }));
+  (flash as jest.Mock).mockClear();
 }
 
 beforeEach(() => {
@@ -123,9 +134,7 @@ describe("PutInSheet", () => {
     const invalidate = jest.spyOn(client, "invalidateQueries");
     await amount(user, "2.50");
     await user.press(screen.getByRole("button", { name: "Put in" }));
-    expect(
-      await screen.findByText(depositMessage({ status: "pending", requestId: "r1" }, "GBP")),
-    ).toBeOnTheScreen();
+    await sent(depositMessage({ status: "pending", requestId: "r1" }, "GBP"));
     expect(deposit).toHaveBeenCalledWith(CLIENT, {
       childId: "child-1",
       amountMinor: 250,
@@ -139,17 +148,14 @@ describe("PutInSheet", () => {
   });
 
   it.each(["pending", "confirmed", "done", "already_sent"] as const)(
-    "shows the %s message verbatim and offers Done",
+    "shows the %s message verbatim and closes",
     async (status) => {
       deposit.mockResolvedValue({ status, requestId: "r1" });
       const user = userEvent.setup();
       const { onClose } = await open((close) => <PutInSheet onClose={close} />);
       await amount(user, "1");
       await user.press(screen.getByRole("button", { name: "Put in" }));
-      expect(
-        await screen.findByText(depositMessage({ status, requestId: "r1" }, "GBP")),
-      ).toBeOnTheScreen();
-      await user.press(screen.getByRole("button", { name: "Done" }));
+      await sent(depositMessage({ status, requestId: "r1" }, "GBP"));
       expect(onClose).toHaveBeenCalledTimes(1);
     },
   );
@@ -191,7 +197,7 @@ describe("PutInSheet", () => {
     await user.press(screen.getByRole("button", { name: "Put in" }));
     expect(await screen.findByText(offlineCopy.offline)).toBeOnTheScreen();
     await user.press(screen.getByRole("button", { name: "Put in" }));
-    await screen.findByText("Waiting for your parent to confirm");
+    await sent("Waiting for your parent to confirm");
     expect(deposit.mock.calls.map((c) => c[1].idempotencyKey)).toEqual([KEY_1, KEY_1]);
     expect(uuid).toHaveBeenCalledTimes(1);
     await first.unmount();
@@ -200,7 +206,7 @@ describe("PutInSheet", () => {
     await open((close) => <PutInSheet onClose={close} />);
     await amount(user, "2");
     await user.press(screen.getByRole("button", { name: "Put in" }));
-    await screen.findByText("Waiting for your parent to confirm");
+    await sent("Waiting for your parent to confirm");
     expect(deposit.mock.calls.map((c) => c[1].idempotencyKey)).toEqual([KEY_1, KEY_1, KEY_2]);
   });
 });
@@ -237,7 +243,7 @@ describe("TakeOutSheet", () => {
     await amount(user, "4");
     await user.type(screen.getByLabelText("What's it for?"), "a book");
     await user.press(screen.getByRole("button", { name: "Ask" }));
-    await screen.findByText("Sent to your parent");
+    await sent("Sent to your parent");
     expect(withdraw).toHaveBeenCalledWith(CLIENT, {
       childId: "child-1",
       amountMinor: 400,
@@ -254,10 +260,7 @@ describe("TakeOutSheet", () => {
       await open((close) => <TakeOutSheet onClose={close} />);
       await amount(user, "4");
       await user.press(screen.getByRole("button", { name: "Ask" }));
-      expect(
-        await screen.findByText(withdrawalMessage({ status, requestId: "r1" }, "GBP")),
-      ).toBeOnTheScreen();
-      expect(screen.getByRole("button", { name: "Done" })).toBeOnTheScreen();
+      await sent(withdrawalMessage({ status, requestId: "r1" }, "GBP"));
       expect(dispatch).toHaveBeenCalledTimes(1);
     },
   );
@@ -268,7 +271,7 @@ describe("TakeOutSheet", () => {
     await open((close) => <TakeOutSheet onClose={close} />);
     await amount(user, "1");
     await user.press(screen.getByRole("button", { name: "Ask" }));
-    await screen.findByText("Done. Your parent knows.");
+    await sent("Done. Your parent knows.");
     expect(withdraw.mock.calls[0][1].reason).toBe("");
   });
 
@@ -312,7 +315,7 @@ describe("TakeOutSheet", () => {
     await user.clear(screen.getByLabelText("Amount"));
     await user.type(screen.getByLabelText("Amount"), "1");
     await user.press(screen.getByRole("button", { name: "Ask" }));
-    await screen.findByText("Sent to your parent");
+    await sent("Sent to your parent");
     expect(withdraw.mock.calls.map((c) => c[1].idempotencyKey)).toEqual([KEY_1, KEY_1]);
   });
 
@@ -349,9 +352,7 @@ describe("AskExtraSheet", () => {
     await amount(user, "5");
     await user.type(screen.getByLabelText("What's it for?"), "school trip");
     await user.press(screen.getByRole("button", { name: "Ask" }));
-    expect(
-      await screen.findByText(emergencyMessage({ status, requestId: "r1" }, "GBP")),
-    ).toBeOnTheScreen();
+    await sent(emergencyMessage({ status, requestId: "r1" }, "GBP"));
     expect(emergency).toHaveBeenCalledWith(CLIENT, {
       childId: "child-1",
       amountMinor: 500,
@@ -374,7 +375,7 @@ describe("AskExtraSheet", () => {
     expect(await screen.findByText(offlineCopy.offline)).toBeOnTheScreen();
     expect(dispatch).not.toHaveBeenCalled();
     await user.press(screen.getByRole("button", { name: "Ask" }));
-    await screen.findByText("Sent to your parent");
+    await sent("Sent to your parent");
     expect(emergency.mock.calls.map((c) => c[1].idempotencyKey)).toEqual([KEY_1, KEY_1]);
   });
 });

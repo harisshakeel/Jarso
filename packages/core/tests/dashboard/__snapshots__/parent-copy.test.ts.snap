@@ -26,7 +26,7 @@ exports[`dashboard copy > keeps every line 1`] = `
     "gift": "Gift",
     "giftEditIntro": "Change this gift.",
     "giftFor": [Function],
-    "giftNewIntro": "A one-time gift.",
+    "giftNewIntro": "A one-time gift. Set it for today to hand it over straight away.",
     "handOverTo": [Function],
     "history": [Function],
     "historyEmpty": [Function],

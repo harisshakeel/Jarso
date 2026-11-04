@@ -14,4 +14,13 @@ describe("flash", () => {
     expect(show).toHaveBeenCalledWith("Handed over.", ToastAndroid.SHORT);
     expect(announce).toHaveBeenCalledWith("Handed over.");
   });
+
+  it("keeps a long toast up longer", () => {
+    const show = jest.spyOn(ToastAndroid, "show").mockImplementation(() => {});
+    jest.spyOn(AccessibilityInfo, "announceForAccessibility").mockImplementation(() => {});
+
+    flash("Approved, your parent will hand it over", { long: true });
+
+    expect(show).toHaveBeenCalledWith("Approved, your parent will hand it over", ToastAndroid.LONG);
+  });
 });

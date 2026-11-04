@@ -192,7 +192,7 @@ describe("useDevicePushPrefs", () => {
   });
 
   it("notifications off for Jarso → denied", async () => {
-    permissions.mockResolvedValue({ granted: false, status: "denied" });
+    permissions.mockResolvedValue({ granted: false, status: "denied", canAskAgain: false });
     const { result } = await ready();
     expect(result.current.status).toBe("denied");
     expect(fetchPrefs).not.toHaveBeenCalled();

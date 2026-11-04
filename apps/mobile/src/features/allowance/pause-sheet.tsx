@@ -1,8 +1,9 @@
 import { pauseCopy, pauseSchema } from "@jarso/core/allowance";
 import { useState } from "react";
-import { Modal, ScrollView, View } from "react-native";
+import { Modal, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
+import { KeyboardScrollView } from "@/components/screen";
 import { Notice, SubmitButton, useSendOnce } from "@/components/sheet";
 import { Button, DateField, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
@@ -88,7 +89,7 @@ function PauseForm({
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerClassName="gap-4 p-6" keyboardShouldPersistTaps="handled">
+      <KeyboardScrollView contentContainerClassName="gap-4 p-6" keyboardShouldPersistTaps="handled">
         <View className="gap-1">
           <Text accessibilityRole="header" className="font-sans-bold text-h3">
             {pauseCopy.title(nickname)}
@@ -139,7 +140,7 @@ function PauseForm({
         <Button variant="ghost" accessibilityLabel={pauseCopy.cancel} onPress={onDone}>
           <Text>{pauseCopy.cancel}</Text>
         </Button>
-      </ScrollView>
+      </KeyboardScrollView>
     </SafeAreaView>
   );
 }

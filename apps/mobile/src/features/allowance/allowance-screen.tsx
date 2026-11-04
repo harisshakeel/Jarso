@@ -7,8 +7,8 @@ import {
 } from "@jarso/core/allowance";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, View } from "react-native";
-import { Card } from "@/components/screen";
+import { ActivityIndicator, Alert, RefreshControl, View } from "react-native";
+import { Card, KeyboardScrollView } from "@/components/screen";
 import { HomeWait, Notice, useSendOnce } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
 import { useFamily } from "@/features/family";
@@ -46,7 +46,7 @@ export function AllowanceScreen({ childId }: { childId: string }) {
     router.canGoBack() ? router.back() : router.replace(`/(parent)/children/${childId}`);
 
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-4 px-4 pt-2 pb-10"
       keyboardShouldPersistTaps="handled"
@@ -80,7 +80,7 @@ export function AllowanceScreen({ childId }: { childId: string }) {
         <AllowanceForm childId={childId} currency={currency} today={today} onDone={back} />
       )}
       {running ? <AutoChargeSlot target={{ kind: "schedule", id: running.id }} /> : null}
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 

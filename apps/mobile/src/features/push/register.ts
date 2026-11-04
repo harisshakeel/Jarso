@@ -42,11 +42,15 @@ export type RegisterArgs = {
   signal?: AbortSignal;
 };
 
-/** Notification permission, asking each user once: our line first, then Android's prompt. */
+/**
+ * Notification permission, asking each user once: our line first, then Android's prompt. `force`
+ * asks again after a "Not now" or a single "Don't allow", while Android still lets the app ask.
+ */
 async function permitted({ userId, role, ask, force }: RegisterArgs): Promise<boolean> {
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
-  if (current.status !== "undetermined") return false;
+  if (current.canAskAgain === false) return false;
+  if (current.status !== "undetermined" && !force) return false;
   if (!force && (await AsyncStorage.getItem(askedKey(userId)))) return false;
   await AsyncStorage.setItem(askedKey(userId), "1");
   if (!(await ask(role))) return false;

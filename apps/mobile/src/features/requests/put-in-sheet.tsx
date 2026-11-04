@@ -2,14 +2,15 @@ import { depositMessage, depositSchema } from "@jarso/core/requests";
 import { describeRuleForChild, jarMovesLineForChild } from "@jarso/core/rules";
 import { randomUUID } from "expo-crypto";
 import { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { z } from "zod";
+import { KeyboardScrollView } from "@/components/screen";
 import {
   AmountInput,
   HomeWait,
   Notice,
   RuleLines,
-  SentView,
+  SentToast,
   SubmitButton,
   useSendOnce,
 } from "@/components/sheet";
@@ -74,11 +75,11 @@ export function PutInSheet({ onClose }: { onClose: () => void }) {
   }
 
   if (send.data && send.data.status !== "over_available") {
-    return <SentView message={depositMessage(send.data, currency)} onClose={onClose} />;
+    return <SentToast message={depositMessage(send.data, currency)} onClose={onClose} />;
   }
 
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-6 p-6"
       keyboardShouldPersistTaps="handled"
@@ -109,6 +110,6 @@ export function PutInSheet({ onClose }: { onClose: () => void }) {
       ) : null}
       <Notice message={notice} />
       <SubmitButton label="Put in" pending={send.isPending} onPress={() => void submit()} />
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }

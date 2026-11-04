@@ -1,14 +1,15 @@
 import { emergencyMessage, emergencySchema } from "@jarso/core/requests";
 import { randomUUID } from "expo-crypto";
 import { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { z } from "zod";
+import { KeyboardScrollView } from "@/components/screen";
 import {
   AmountInput,
   HomeWait,
   Notice,
   ReasonInput,
-  SentView,
+  SentToast,
   SubmitButton,
   useSendOnce,
 } from "@/components/sheet";
@@ -62,11 +63,11 @@ export function AskExtraSheet({ onClose }: { onClose: () => void }) {
   }
 
   if (send.data) {
-    return <SentView message={emergencyMessage(send.data, currency)} onClose={onClose} />;
+    return <SentToast message={emergencyMessage(send.data, currency)} onClose={onClose} />;
   }
 
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-6 p-6"
       keyboardShouldPersistTaps="handled"
@@ -93,6 +94,6 @@ export function AskExtraSheet({ onClose }: { onClose: () => void }) {
       />
       <Notice message={notice} />
       <SubmitButton label="Ask" pending={send.isPending} onPress={() => void submit()} />
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }

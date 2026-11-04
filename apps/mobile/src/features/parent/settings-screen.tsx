@@ -8,9 +8,9 @@ import {
 import { profileCopy, updateProfileSchema } from "@jarso/core/profiles";
 import { useRouter } from "expo-router";
 import { Fragment, type ReactNode, useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { z } from "zod";
-import { Card, CardSeparator, ScreenHeader } from "@/components/screen";
+import { Card, CardSeparator, KeyboardScrollView, ScreenHeader } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { Field, useSession } from "@/features/auth";
 import {
@@ -137,7 +137,7 @@ export function ParentSettingsScreen() {
   const saveName = useSaveDisplayName();
 
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-4 px-4 pt-4 pb-10"
       keyboardShouldPersistTaps="handled"
@@ -189,7 +189,7 @@ export function ParentSettingsScreen() {
           <Text>Sign out</Text>
         </Button>
       </Section>
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 

@@ -151,7 +151,9 @@ describe("Jarso for parents", () => {
     fetchMock.mockResolvedValue(replied());
     const user = userEvent.setup();
     await render(wrap(<ParentJarsoScreen />));
-    await user.press(await screen.findByRole("button", { name: "Ava" }));
+    // The picker is folded: open it on the picked child, then choose.
+    await user.press(await screen.findByRole("button", { name: `${guideCopy.parent.pick} Sam` }));
+    await user.press(screen.getByRole("button", { name: "Ava" }));
     expect(screen.getByText(guideCopy.parent.disclosure("Ava"))).toBeOnTheScreen();
     await user.type(screen.getByLabelText(guideUi.questionLabel), "How is Ava doing?");
     await user.press(screen.getByRole("button", { name: guideUi.ask }));
@@ -184,7 +186,9 @@ describe("Jarso for parents", () => {
     const invalidate = jest.spyOn(client, "invalidateQueries");
     const user = userEvent.setup();
     await render(wrap(<ParentJarsoScreen />));
-    await user.press(await screen.findByRole("button", { name: "Ava" }));
+    // The picker is folded: open it on the picked child, then choose.
+    await user.press(await screen.findByRole("button", { name: `${guideCopy.parent.pick} Sam` }));
+    await user.press(screen.getByRole("button", { name: "Ava" }));
     await user.type(screen.getByLabelText(guideUi.questionLabel), "Ava got £5 for her birthday");
     await user.press(screen.getByRole("button", { name: guideUi.ask }));
     expect(await screen.findByText(proposal.title)).toBeOnTheScreen();
@@ -210,7 +214,9 @@ describe("Jarso for parents", () => {
         </>,
       ),
     );
-    expect(await screen.findByRole("button", { name: "Ava" })).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: `${guideCopy.parent.pick} Sam` }),
+    ).toBeOnTheScreen();
     enabled = [SAM.id];
     // A Switch reports changes through onValueChange, not a press.
     await fireEvent(
@@ -219,7 +225,10 @@ describe("Jarso for parents", () => {
       false,
     );
     expect(saveGuideAccess).toHaveBeenCalledWith(supabase, AVA.id, false);
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Ava" })).toBeNull());
+    // One child left: no picker at all.
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: `${guideCopy.parent.pick} Sam` })).toBeNull(),
+    );
     expect(screen.getByText(guideCopy.parent.disclosure("Sam"))).toBeOnTheScreen();
   });
 

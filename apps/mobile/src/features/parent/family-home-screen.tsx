@@ -12,6 +12,7 @@ import {
   useFamily,
   useFamilySummary,
 } from "@/features/family";
+import { PushPermissionCard } from "@/features/push";
 import { useParentRequests } from "@/features/requests";
 import { todayLine } from "@/lib";
 import { keys } from "@/lib/query";
@@ -51,6 +52,7 @@ export function FamilyHomeScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
       <ScreenHeader overline={todayLine(new Date(), timezone)} title={parentPageCopy.family} />
+      <PushPermissionCard />
       {family.data.children.length === 0 ? (
         <FirstChildCard />
       ) : (

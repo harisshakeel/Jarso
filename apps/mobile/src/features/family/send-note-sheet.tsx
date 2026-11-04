@@ -4,9 +4,10 @@ import { useMutation } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
 import { MessageCircleHeartIcon } from "lucide-react-native";
 import { useState } from "react";
-import { Modal, ScrollView, View } from "react-native";
+import { Modal, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
+import { KeyboardScrollView } from "@/components/screen";
 import { Notice, SubmitButton, useSendOnce } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
@@ -93,7 +94,7 @@ function NoteForm({
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerClassName="gap-4 p-6" keyboardShouldPersistTaps="handled">
+      <KeyboardScrollView contentContainerClassName="gap-4 p-6" keyboardShouldPersistTaps="handled">
         <View className="gap-1">
           <Text accessibilityRole="header" className="font-sans-bold text-h3">
             {noteCopy.title(nickname)}
@@ -118,7 +119,7 @@ function NoteForm({
         <Button variant="ghost" accessibilityLabel="Cancel" onPress={onDone}>
           <Text>Cancel</Text>
         </Button>
-      </ScrollView>
+      </KeyboardScrollView>
     </SafeAreaView>
   );
 }

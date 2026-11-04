@@ -3,4 +3,5 @@ export * from "./button";
 export * from "./date-field";
 export * from "./input";
 export * from "./label";
+export * from "./switch";
 export * from "./text";

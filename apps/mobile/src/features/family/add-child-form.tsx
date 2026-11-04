@@ -3,9 +3,9 @@ import { jarsoNoticeCopy } from "@jarso/core/guide";
 import { useRouter } from "expo-router";
 import { CheckIcon } from "lucide-react-native";
 import { type Dispatch, type SetStateAction, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { z } from "zod";
-import { Card } from "@/components/screen";
+import { Card, KeyboardScrollView } from "@/components/screen";
 import { Notice, useSendOnce } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
@@ -193,7 +193,7 @@ export function AddChildForm() {
 /** The web's /parent/children/new: the intro, the form, and the Jarso notice under it. */
 export function AddChildScreen() {
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-4 px-4 pt-2 pb-10"
       keyboardShouldPersistTaps="handled"
@@ -201,6 +201,6 @@ export function AddChildScreen() {
       <Text className="text-muted-foreground">{addChildCopy.intro}</Text>
       <AddChildForm />
       <JarsoNotice />
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }

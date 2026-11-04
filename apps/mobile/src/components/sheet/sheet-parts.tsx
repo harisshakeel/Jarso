@@ -1,7 +1,7 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Button, Input, Label, Text } from "@/components/ui";
-import { cn, toUserMessage } from "@/lib";
+import { cn, flash, toUserMessage } from "@/lib";
 
 const AMOUNT_LABEL = "Amount";
 const REASON_LABEL = "What's it for?";
@@ -156,7 +156,7 @@ export function SubmitButton({
   );
 }
 
-/** What the child reads once the request is in. */
+/** What the child reads once a change is in, on a page of its own. */
 export function SentView({ message, onClose }: { message: string; onClose: () => void }) {
   return (
     <View className="flex-1 gap-4 bg-background p-6">
@@ -168,4 +168,21 @@ export function SentView({ message, onClose }: { message: string; onClose: () =>
       </Button>
     </View>
   );
+}
+
+/**
+ * Once a sheet's request is in: the child reads the answer as a toast (TalkBack reads it out)
+ * and the sheet closes. Shown in the sheet it was one line and a Done button in a tall, mostly
+ * empty sheet.
+ */
+export function SentToast({ message, onClose }: { message: string; onClose: () => void }) {
+  // The latest close, so the effect runs once per answer rather than on every render.
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    // Long: it is the only place the child reads the answer before the sheet is gone.
+    flash(message, { long: true });
+    close.current();
+  }, [message]);
+  return null;
 }

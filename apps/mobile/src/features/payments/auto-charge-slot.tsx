@@ -6,10 +6,10 @@ import {
 } from "@jarso/core/payments";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Switch, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { Card, CardSeparator } from "@/components/screen";
 import { Notice } from "@/components/sheet";
-import { Button, Text } from "@/components/ui";
+import { Button, Switch, Text } from "@/components/ui";
 import { Field, useSession } from "@/features/auth";
 import { actionErrorMessage, isAppError } from "@/lib";
 import { keys } from "@/lib/query";

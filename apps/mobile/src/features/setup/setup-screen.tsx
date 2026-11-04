@@ -1,7 +1,8 @@
 import { safeNextPath } from "@jarso/core/auth";
 import { type Href, Redirect } from "expo-router";
-import { ActivityIndicator, KeyboardAvoidingView, ScrollView, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardScrollView } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { homeFor, UnavailableNotice, useSession } from "@/features/auth";
 import { FamilyStep } from "./family-step";
@@ -32,19 +33,17 @@ export function SetupScreen({ next }: { next?: string }) {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAvoidingView className="flex-1">
-        <ScrollView contentContainerClassName="gap-8 px-4 py-8" keyboardShouldPersistTaps="handled">
-          {data.profileComplete ? <FamilyStep /> : <ProfileStep />}
-          <Button
-            variant="link"
-            accessibilityRole="button"
-            accessibilityLabel="Sign out"
-            onPress={() => void signOut()}
-          >
-            <Text>Sign out</Text>
-          </Button>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      <KeyboardScrollView contentContainerClassName="gap-8 px-4 py-8">
+        {data.profileComplete ? <FamilyStep /> : <ProfileStep />}
+        <Button
+          variant="link"
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+          onPress={() => void signOut()}
+        >
+          <Text>Sign out</Text>
+        </Button>
+      </KeyboardScrollView>
     </SafeAreaView>
   );
 }

@@ -24,4 +24,8 @@ jest.mock("@stripe/stripe-react-native", () => ({
   handleURLCallback: jest.fn(async () => false),
   PaymentSheetError: { Failed: "Failed", Canceled: "Canceled", Timeout: "Timeout" },
 }));
+// The keyboard tracker is native: its own mock renders plain Views and ScrollViews.
+jest.mock("react-native-keyboard-controller", () =>
+  require("react-native-keyboard-controller/jest"),
+);
 jest.mock("react-native-razorpay", () => ({ __esModule: true, default: { open: jest.fn() } }));

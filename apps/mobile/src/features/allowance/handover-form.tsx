@@ -14,9 +14,9 @@ import { parentRequestCopy } from "@jarso/core/requests";
 import { randomUUID } from "expo-crypto";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, View } from "react-native";
 import { z } from "zod";
-import { Card } from "@/components/screen";
+import { Card, KeyboardScrollView } from "@/components/screen";
 import { HomeWait, Notice, useSendOnce } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
@@ -53,7 +53,8 @@ export function HandoverSheet({
   const finished = useRef(false);
   const child = family.data?.children.find((c) => c.id === childId);
   const item = due.data?.find((d) => d.kind === kind && d.id === id);
-  const gone = Boolean((family.data && !child) || (due.data && !item));
+  // A due list still refetching may predate the item (a gift just made): wait for the fresh one.
+  const gone = Boolean((family.data && !child) || (due.data && !due.isFetching && !item));
 
   useEffect(() => {
     if (!gone || finished.current) return;
@@ -193,7 +194,7 @@ export function HandoverForm({
   const saveWidth = valid && saved !== null && barBase > 0 ? (saved / barBase) * 100 : 0;
 
   return (
-    <ScrollView
+    <KeyboardScrollView
       className="bg-background"
       contentContainerClassName="gap-4 p-4 pb-10"
       keyboardShouldPersistTaps="handled"
@@ -293,6 +294,6 @@ export function HandoverForm({
           <Text>{handoverCopy.changeGift}</Text>
         </Button>
       )}
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
