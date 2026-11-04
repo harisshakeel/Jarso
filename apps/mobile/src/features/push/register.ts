@@ -38,6 +38,8 @@ export type RegisterArgs = {
   ask: (role: NoticeRole) => Promise<boolean>;
   /** Asks again even when this user was asked before ("Turn on" on the settings page). */
   force?: boolean;
+  /** Sign-out began: post nothing more, store nothing, and take back a token already posted. */
+  signal?: AbortSignal;
 };
 
 /** Notification permission, asking each user once: our line first, then Android's prompt. */
@@ -53,21 +55,27 @@ async function permitted({ userId, role, ask, force }: RegisterArgs): Promise<bo
 
 /**
  * Registers this phone for the signed-in user's pushes; returns the token or null. Real devices
- * only. Never throws, and never logs the token.
+ * only. Never throws, and never logs the token. Once `signal` aborts it posts nothing more; a
+ * POST already out is undone (unregistered) when it lands, and the token is never stored.
  */
 export async function registerForPush(args: RegisterArgs): Promise<string | null> {
-  if (!Device.isDevice) return null;
+  if (!Device.isDevice || args.signal?.aborted) return null;
   try {
     // Before any permission request: Android 13 prompts only once a channel exists.
     await ensureNoticeChannel();
     if (!(await permitted(args))) return null;
     const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
+    if (args.signal?.aborted) return null;
     await apiFetch(TOKENS_PATH, {
       method: "POST",
       auth: true,
       body: { token, platform: "android" },
     });
+    if (args.signal?.aborted) {
+      await unregisterFromPush(token);
+      return null;
+    }
     await AsyncStorage.setItem(tokenKey(args.userId), token);
     return token;
   } catch (error) {

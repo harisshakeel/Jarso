@@ -156,6 +156,38 @@ describe("registerForPush", () => {
     expect(api).not.toHaveBeenCalled();
   });
 
+  it("a cancelled registration never posts or stores the token", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      registerForPush({ userId: "user-1", role: "parent", ask, signal: controller.signal }),
+    ).resolves.toBeNull();
+    expect(api).not.toHaveBeenCalled();
+    await expect(getRegisteredToken("user-1")).resolves.toBeNull();
+  });
+
+  it("cancelled while its POST was out: the token is not stored and is unregistered", async () => {
+    const controller = new AbortController();
+    let finish: (value: unknown) => void = () => undefined;
+    api.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+    const running = registerForPush({
+      userId: "user-1",
+      role: "parent",
+      ask,
+      signal: controller.signal,
+    });
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    controller.abort();
+    finish({ id: "row-1" });
+    await expect(running).resolves.toBeNull();
+    await expect(getRegisteredToken("user-1")).resolves.toBeNull();
+    expect(api).toHaveBeenLastCalledWith("/api/v1/push/tokens", {
+      method: "DELETE",
+      auth: true,
+      body: { token: TOKEN },
+    });
+  });
+
   it("a failed POST is logged by code and never thrown", async () => {
     api.mockRejectedValueOnce(Object.assign(new Error(`bad ${TOKEN}`), { code: "FORBIDDEN" }));
     const warn = jest.spyOn(logger, "warn").mockImplementation(() => undefined);
@@ -286,6 +318,42 @@ describe("usePushRegistration", () => {
       auth: true,
       body: { token: TOKEN },
     });
+  });
+
+  it("a registration that outlives the sign-out wait can't recreate the signed-out user's row", async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    api.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+    await renderHook(() => usePushRegistration());
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    await runBeforeSignOut();
+    finish({ id: "row-1" });
+    await waitFor(() =>
+      expect(api).toHaveBeenLastCalledWith("/api/v1/push/tokens", {
+        method: "DELETE",
+        auth: true,
+        body: { token: TOKEN },
+      }),
+    );
+    await expect(getRegisteredToken("user-1")).resolves.toBeNull();
+  });
+
+  it("a prompt answered after sign-out began never posts the token", async () => {
+    getPermissions.mockResolvedValue({ granted: false, status: "undetermined" });
+    let allow: () => void = () => undefined;
+    const alert = jest.spyOn(Alert, "alert").mockImplementation((_t, _m, buttons) => {
+      allow = () => buttons?.[1]?.onPress?.();
+    });
+    await renderHook(() => usePushRegistration());
+    await waitFor(() => expect(alert).toHaveBeenCalledTimes(1));
+    const signingOut = runBeforeSignOut();
+    allow();
+    await signingOut;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(api).not.toHaveBeenCalledWith(
+      "/api/v1/push/tokens",
+      expect.objectContaining({ method: "POST" }),
+    );
+    alert.mockRestore();
   });
 
   it("no token known but notifications allowed: sign-out still drops the phone's registration", async () => {

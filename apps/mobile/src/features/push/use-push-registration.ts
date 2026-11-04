@@ -30,7 +30,8 @@ function settledWithin(promise: Promise<unknown>, ms: number): Promise<void> {
  * posts a rotated token again, and drops the token before sign-out. Sign-out uses the token this
  * mount registered, else the one stored for the user (an earlier run, or the settings page's
  * "Turn on"); with none known but notifications allowed it drops the phone's FCM registration,
- * so a row the phone doesn't know about stops buzzing too.
+ * so a row the phone doesn't know about stops buzzing too. Sign-out cancels a registration still
+ * running: it posts nothing more, and a POST already out is unregistered when it lands.
  */
 export function usePushRegistration(): void {
   const { status, userId } = useSession();
@@ -41,9 +42,17 @@ export function usePushRegistration(): void {
   useEffect(() => {
     if (!role || !userId) return;
     let active = true;
+    // Aborted when sign-out begins: a registration still running can't post or store after it.
+    const signingOut = new AbortController();
     tokenRef.current = null;
     const register = () => {
-      const pending = registerForPush({ userId, role, ask: askForPush }).then((token) => {
+      if (signingOut.signal.aborted) return Promise.resolve();
+      const pending = registerForPush({
+        userId,
+        role,
+        ask: askForPush,
+        signal: signingOut.signal,
+      }).then((token) => {
         if (active && token) tokenRef.current = token;
       });
       pendingRef.current = pending;
@@ -53,6 +62,7 @@ export function usePushRegistration(): void {
 
     const tokens = Notifications.addPushTokenListener(() => void register());
     const dispose = registerBeforeSignOut(async function dropPushToken() {
+      signingOut.abort();
       if (pendingRef.current) await settledWithin(pendingRef.current, PENDING_WAIT_MS);
       const token = tokenRef.current ?? (await getRegisteredToken(userId));
       if (token) {
