@@ -224,6 +224,32 @@ describe("AutoChargeSlot", () => {
     }
   });
 
+  it("shows a setup sheet that won't open under the switch and leaves it off", async () => {
+    setup([card("stripe")]);
+    patch.mockResolvedValue({ setup: { setupId: "set-1", sheet: { provider: "fake" } } });
+    present.mockRejectedValue(new AppError("INTERNAL", paymentCopy.cardFormFailed));
+    await renderSlot();
+    await turn(true);
+    await userEvent
+      .setup()
+      .press(await screen.findByRole("button", { name: paymentCopy.saveWith("Stripe") }));
+    expect(await screen.findByText(paymentCopy.cardFormFailed)).toBeTruthy();
+    expect(screen.queryByText(paymentCopy.saveCardTitle)).toBeNull();
+    expect(screen.getByRole("switch", { name: paymentCopy.autoCharge }).props.value).toBe(false);
+  });
+
+  it("puts the switch back when the chosen card's setup sheet won't open", async () => {
+    setup([saved("stripe"), saved("razorpay")]);
+    patch.mockResolvedValue({ setup: { setupId: "set-1", sheet: { provider: "fake" } } });
+    present.mockRejectedValue(new AppError("INTERNAL", paymentCopy.cardFormFailed));
+    await renderSlot();
+    await turn(true);
+    const label = paymentCopy.cardAt(paymentCopy.cardEnding("visa", "4242"), "Stripe");
+    await userEvent.setup().press(await screen.findByRole("button", { name: label }));
+    expect(await screen.findByText(paymentCopy.cardFormFailed)).toBeTruthy();
+    expect(screen.getByRole("switch", { name: paymentCopy.autoCharge }).props.value).toBe(false);
+  });
+
   it("turns off", async () => {
     setup([saved("stripe")], onWith("stripe"));
     await renderSlot();

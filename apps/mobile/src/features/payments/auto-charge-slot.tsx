@@ -15,7 +15,7 @@ import { actionErrorMessage, isAppError } from "@/lib";
 import { keys } from "@/lib/query";
 import { setAutoCharge } from "./api";
 import { BottomSheet, SegmentedChoice } from "./bottom-sheet";
-import { presentSheet, useFakeSheet } from "./sheets";
+import { presentSheet, type SheetOutcome, useFakeSheet } from "./sheets";
 import {
   type AutoChargeSlotTarget,
   toAutoChargeTarget,
@@ -137,29 +137,43 @@ function AutoChargeBlock({
     setSheetError(undefined);
     setPhoneErrors(undefined);
     setLater(false);
+    // Whether Jarso's sheet is open for this request: its errors are shown inside it.
+    const asking = question !== null;
     try {
-      const result = await setAutoCharge(
-        next
-          ? { ...target, on: true, provider: using, ...(contact ? { phone: contact } : {}) }
-          : { ...target, on: false },
-      );
+      let result: Awaited<ReturnType<typeof setAutoCharge>>;
+      try {
+        result = await setAutoCharge(
+          next
+            ? { ...target, on: true, provider: using, ...(contact ? { phone: contact } : {}) }
+            : { ...target, on: false },
+        );
+      } catch (cause) {
+        const fieldPhone = isAppError(cause) ? cause.fieldErrors?.phone : undefined;
+        if (asking && fieldPhone) {
+          setPhoneErrors(fieldPhone);
+        } else if (asking) {
+          setSheetError(await actionErrorMessage(cause));
+        } else {
+          setChecked(on);
+          setError(await actionErrorMessage(cause));
+        }
+        return;
+      }
+      // Jarso's sheet is done; anything after this shows under the switch.
       setQuestion(null);
       if (result.setup) {
-        const outcome = await presentSheet(result.setup.sheet, { onFake: fake.open });
+        let outcome: SheetOutcome;
+        try {
+          outcome = await presentSheet(result.setup.sheet, { onFake: fake.open });
+        } catch (cause) {
+          setChecked(on);
+          setError(await actionErrorMessage(cause));
+          return;
+        }
         if (outcome === "completed") setWaitingSince(Date.now());
         else setChecked(on);
       }
       refresh();
-    } catch (cause) {
-      const fieldPhone = isAppError(cause) ? cause.fieldErrors?.phone : undefined;
-      if (question && fieldPhone) {
-        setPhoneErrors(fieldPhone);
-      } else if (question) {
-        setSheetError(await actionErrorMessage(cause));
-      } else {
-        setChecked(on);
-        setError(await actionErrorMessage(cause));
-      }
     } finally {
       setPending(false);
     }
