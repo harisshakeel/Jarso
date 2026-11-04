@@ -250,6 +250,7 @@ export function createStripePaymentProvider(opts: {
         throw toAppError(cause);
       }
     },
+    cancelsInApp: true,
 
     async createInAppSetup(i) {
       const key = requirePublishableKey();

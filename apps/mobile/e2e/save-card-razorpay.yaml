@@ -1,0 +1,39 @@
+# Needs Razorpay test keys and a webhook tunnel (see card-handover-razorpay.yaml), recurring
+# payments on the Razorpay test account, and an INR family. Turn auto charge on with no saved
+# card: Jarso's sheet asks for the mobile number (sent to Razorpay, never kept), then Razorpay
+# Checkout saves the card with a ₹1 test charge. Remove a saved Razorpay card in Settings first.
+#   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... -e CHILD_NICKNAME=...
+#     -e RAZORPAY_CARD=4100280000001007 -e PARENT_MOBILE=… e2e/save-card-razorpay.yaml
+appId: app.jarso.mobile
+---
+- runFlow: parent-sign-in.yaml
+- scrollUntilVisible:
+    element:
+      text: "${CHILD_NICKNAME}, .*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "${CHILD_NICKNAME}, .*"
+- scrollUntilVisible:
+    element:
+      text: "Auto charge"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "auto-charge-switch"
+- extendedWaitUntil:
+    visible: "Save a card first"
+    timeout: 15000
+# With Stripe on too, pick Razorpay first.
+- runFlow:
+    when:
+      visible: "Razorpay"
+    commands:
+      - tapOn: "Razorpay"
+- tapOn: "Mobile number"
+- inputText: ${PARENT_MOBILE}
+- hideKeyboard
+- tapOn: "Save with Razorpay"
+- runFlow: razorpay-card.yaml
+- extendedWaitUntil:
+    visible: "Charges .*ending.*"
+    timeout: 30000

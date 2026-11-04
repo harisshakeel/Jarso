@@ -6,6 +6,13 @@ const { hairlineWidth } = require("nativewind/theme");
 const plugin = require("tailwindcss/plugin");
 const { fontFamily, mobileFontSize, palette, radius, semantic } = require("@jarso/brand/tokens");
 
+// Phone-only tints for the card payment notes (wave 3 mockup F): the brand has a gold tint for
+// "in progress" but none for a payment that went through or didn't. Same keys in both schemes.
+const phoneTints = {
+  light: { "tint-success": "#e8f5ee", "tint-danger": "#fdecec" },
+  dark: { "tint-success": "#123826", "tint-danger": "#3d1c1e" },
+};
+
 const vars = (scheme) =>
   Object.fromEntries(Object.entries(scheme).map(([key, value]) => [`--${key}`, value]));
 
@@ -20,7 +27,10 @@ const sans = fontFamily.sans;
 // Spreading the palette over the semantic keys would drop `bg-gold` with no warning.
 function mergeColors() {
   const colors = Object.fromEntries(
-    Object.keys(semantic.light).map((key) => [key, `var(--${key})`]),
+    [...Object.keys(semantic.light), ...Object.keys(phoneTints.light)].map((key) => [
+      key,
+      `var(--${key})`,
+    ]),
   );
   for (const [name, value] of Object.entries(palette)) {
     colors[name] =
@@ -75,7 +85,10 @@ module.exports = {
   plugins: [
     require("tailwindcss-animate"),
     plugin(({ addBase }) => {
-      addBase({ ":root": vars(semantic.light), ".dark:root": vars(semantic.dark) });
+      addBase({
+        ":root": vars({ ...semantic.light, ...phoneTints.light }),
+        ".dark:root": vars({ ...semantic.dark, ...phoneTints.dark }),
+      });
     }),
   ],
 };

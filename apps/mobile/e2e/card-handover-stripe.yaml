@@ -1,0 +1,29 @@
+# Needs Stripe test keys on the web server (STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY,
+# STRIPE_WEBHOOK_SECRET) and `stripe listen --forward-to localhost:3000/api/v1/payments/webhooks/stripe`.
+# Hand over a due allowance with Stripe's test card in the native PaymentSheet. Needs an allowance
+# due for the test child in a GBP / EUR / USD family. Stripe draws the sheet: its field labels
+# are Stripe's and unchecked on a device.
+#   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... e2e/card-handover-stripe.yaml
+appId: app.jarso.mobile
+---
+- runFlow: parent-sign-in.yaml
+- scrollUntilVisible:
+    element:
+      text: "Hand over allowance to .*"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    text: "Hand over allowance to .*"
+    index: 0
+- scrollUntilVisible:
+    element:
+      text: "Pay by card|Pay with Stripe"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Pay by card|Pay with Stripe"
+- runFlow: stripe-card.yaml
+  env:
+    CARD_NUMBER: "4242424242424242"
+- extendedWaitUntil:
+    visible: "Payment received\\.|Your family"
+    timeout: 60000

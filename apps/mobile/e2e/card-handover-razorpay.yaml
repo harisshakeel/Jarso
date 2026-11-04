@@ -1,0 +1,28 @@
+# Needs Razorpay test keys on the web server (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET,
+# RAZORPAY_WEBHOOK_SECRET) and a tunnel to localhost:3000 registered as the test webhook URL.
+# Hand over a due allowance in an INR family with a Razorpay test card from Razorpay's docs
+# (e.g. Visa 4100 2800 0000 1007), any future expiry and CVC, then Success on the test OTP page.
+# Razorpay draws Checkout: its labels are unchecked on a device.
+#   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... -e RAZORPAY_CARD=4100280000001007
+#     e2e/card-handover-razorpay.yaml
+appId: app.jarso.mobile
+---
+- runFlow: parent-sign-in.yaml
+- scrollUntilVisible:
+    element:
+      text: "Hand over allowance to .*"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    text: "Hand over allowance to .*"
+    index: 0
+- scrollUntilVisible:
+    element:
+      text: "Pay by card|Pay with Razorpay"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Pay by card|Pay with Razorpay"
+- runFlow: razorpay-card.yaml
+- extendedWaitUntil:
+    visible: "Payment received\\.|Your family"
+    timeout: 60000

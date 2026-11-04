@@ -116,4 +116,14 @@ export const keys = {
   /** One of the parent's chats. Refreshed with `parentChats`. */
   parentTranscript: (userId: string, conversationId: string) =>
     ["parentChats", userId, conversationId] as const,
+
+  // Card payments (parents). All share the `payments` prefix.
+  /** Every card payment read: refreshed after a card write. */
+  payments: () => ["payments"] as const,
+  /** In-app providers and saved cards; with an item (`kind:id`), its card handover state too. */
+  paymentProviders: (item?: string) => ["payments", "providers", item ?? "all"] as const,
+  /** One card payment's status, polled after the native sheet closes. */
+  paymentStatus: (id: string) => ["payments", "status", id] as const,
+  /** One schedule's or gift's auto-charge switch. */
+  autoCharge: (type: string, id: string) => ["payments", "autoCharge", type, id] as const,
 };

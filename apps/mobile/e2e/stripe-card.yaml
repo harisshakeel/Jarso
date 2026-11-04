@@ -1,0 +1,21 @@
+# Sub-flow: fills Stripe's PaymentSheet card form with a test card and pays. CARD_NUMBER comes
+# from the calling flow; expiry is any future date, CVC any three digits (Stripe test mode).
+# Stripe draws this form: its labels are unchecked on a device.
+appId: app.jarso.mobile
+---
+- extendedWaitUntil:
+    visible: "Card information|Card number"
+    timeout: 30000
+- tapOn: "Card number"
+- inputText: ${CARD_NUMBER}
+- inputText: "1234"
+- inputText: "123"
+- hideKeyboard
+- runFlow:
+    when:
+      visible: "ZIP|Postal code"
+    commands:
+      - tapOn: "ZIP|Postal code"
+      - inputText: "10001"
+      - hideKeyboard
+- tapOn: "Pay.*|Set up"

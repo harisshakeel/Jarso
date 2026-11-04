@@ -77,6 +77,11 @@ export const paymentCopy = {
   fakeDecline: "Decline",
   fakeSaveOk: "Save a card that works",
   fakeSaveDecline: "Save a card that declines",
+  /** The card block's title on the phone's handover screen, under the cash split. */
+  orPayByCard: "Or pay by card",
+  /** The phone's saved-card row and its confirm: "Remove" beside the card, "Keep it" to back out. */
+  remove: "Remove",
+  keepCard: "Keep it",
 } as const;
 
 /** Plain words for why a card didn't go through. */

@@ -13,6 +13,11 @@ describe("tailwind colours", () => {
     expect(gold["300"]).toBe(palette.gold["300"]);
   });
 
+  it("adds the phone's payment note tints as scheme variables", () => {
+    expect(colors["tint-success"]).toBe("var(--tint-success)");
+    expect(colors["tint-danger"]).toBe("var(--tint-danger)");
+  });
+
   it("resolves every colour class used in the app", () => {
     const names = Object.keys(colors).sort((a, b) => b.length - a.length);
     const missing: string[] = [];

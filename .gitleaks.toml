@@ -38,6 +38,18 @@ regex = '''\bwhsec_[A-Za-z0-9]{16,}'''
 keywords = ["whsec_"]
 
 [[rules]]
+id = "stripe-client-secret"
+description = "Stripe PaymentIntent or SetupIntent client secret (the phone's card sheet)"
+regex = '''\b(?:pi|seti)_[A-Za-z0-9]+_secret_[A-Za-z0-9]{8,}'''
+keywords = ["_secret_"]
+
+[[rules]]
+id = "stripe-ephemeral-key"
+description = "Stripe ephemeral key (the phone's card sheet)"
+regex = '''\bek_(?:test|live)_[A-Za-z0-9_-]{16,}'''
+keywords = ["ek_test_", "ek_live_"]
+
+[[rules]]
 id = "razorpay-key-id"
 description = "Razorpay API key id (test or live)"
 regex = '''\brzp_(?:test|live)_[A-Za-z0-9]{14,}'''

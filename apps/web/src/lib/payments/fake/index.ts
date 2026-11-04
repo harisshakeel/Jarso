@@ -92,6 +92,7 @@ export function createFakePaymentProvider(opts: { hostedUrl: string }): PaymentP
     },
 
     async cancelInAppPayment() {},
+    cancelsInApp: true,
 
     async createInAppSetup(i) {
       return {

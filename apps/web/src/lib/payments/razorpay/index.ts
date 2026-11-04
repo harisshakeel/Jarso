@@ -455,6 +455,7 @@ export function createRazorpayPaymentProvider(opts: {
 
     // Razorpay orders can't be cancelled. A late order.paid after expiry posts as unapplied.
     async cancelInAppPayment() {},
+    cancelsInApp: false,
 
     async createInAppSetup(i) {
       const { orderId, customerId, contact } = await createSetupOrder(i);

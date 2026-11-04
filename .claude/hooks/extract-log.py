@@ -31,6 +31,9 @@ REDACTIONS: List[Tuple[re.Pattern, str]] = [
     (re.compile(r'sk-(?:proj-|live_|test_)' + _SECRET_CHARS + r'{12,}'), 'sk-[REDACTED]'),
     (re.compile(r'\b((?:sk|rk)_(?:test|live)_)[A-Za-z0-9]{16,}'), r'\1[REDACTED]'),
     (re.compile(r'\bwhsec_[A-Za-z0-9]{16,}'), 'whsec_[REDACTED]'),
+    # Stripe PaymentIntent/SetupIntent client secrets and ephemeral keys (the phone's card sheet)
+    (re.compile(r'\b(pi|seti)_[A-Za-z0-9]+_secret_[A-Za-z0-9]{8,}'), r'\1_[REDACTED]'),
+    (re.compile(r'\b(ek_(?:test|live)_)' + _SECRET_CHARS + r'{16,}'), r'\1[REDACTED]'),
     # Razorpay key ids (test and live)
     (re.compile(r'\b(rzp_(?:test|live)_)[A-Za-z0-9]{14,}'), r'\1[REDACTED]'),
     # Indian mobile numbers (Razorpay save card asks parents for one; Next's dev server prints

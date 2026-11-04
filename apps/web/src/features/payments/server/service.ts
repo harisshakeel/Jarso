@@ -557,9 +557,11 @@ export async function startInAppPayment(input: {
 
   const admin = createAdminClient();
   const description = await describeItem(row);
+  const cancellable = provider.cancelsInApp;
   const resume = async (live: Extract<LiveReuse, { kind: "in_app" }>) => ({
     paymentId: live.paymentId,
     expiresAt: live.expiresAt,
+    cancellable,
     sheet: await provider.resumeInAppPayment({
       paymentId: live.paymentId,
       providerRef: live.providerRef,
@@ -637,7 +639,7 @@ export async function startInAppPayment(input: {
     throw new AppError("CONFLICT", paymentCopy.inProgress);
   }
   logger.info("In-app card payment started", { paymentId, providerRef: created.providerRef });
-  return { paymentId, expiresAt: expiresAt.toISOString(), sheet: created.sheet };
+  return { paymentId, expiresAt: expiresAt.toISOString(), sheet: created.sheet, cancellable };
 }
 
 /**
@@ -887,8 +889,10 @@ export async function getPaymentStatus(paymentId: string): Promise<PaymentStatus
 /**
  * The parent cancels their own pending in-app payment (and its PaymentIntent). Anything else (a
  * hosted checkout, an auto charge, another parent's payment, one waiting on the bank or already
- * ended) is left alone: `{ canceled: false }`. A payment that still completes at the provider
- * posts anyway.
+ * ended) is left alone: `{ canceled: false }`. So is one at a provider that can't cancel it (a
+ * Razorpay order): ending it here would free the item for a second order while the first can
+ * still be paid, so it stays pending until it expires. A payment that still completes at the
+ * provider posts anyway.
  */
 export async function cancelInAppPaymentById(paymentId: string): Promise<{ canceled: boolean }> {
   if (!paymentsEnabled()) throw new AppError("NOT_FOUND", paymentCopy.off);
@@ -899,7 +903,8 @@ export async function cancelInAppPaymentById(paymentId: string): Promise<{ cance
     !row.inApp ||
     row.trigger !== "manual" ||
     row.status !== "pending" ||
-    row.payerId !== user.id
+    row.payerId !== user.id ||
+    getPaymentProviderById(row.provider)?.cancelsInApp !== true
   ) {
     return { canceled: false };
   }

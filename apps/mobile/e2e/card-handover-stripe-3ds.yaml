@@ -1,0 +1,33 @@
+# Needs Stripe test keys on the web server and `stripe listen` (see card-handover-stripe.yaml).
+# Hand over a due allowance with Stripe's 3-D Secure test card: the bank's test page opens,
+# Complete returns to the app through jarso://stripe-redirect, and the webhook posts it. A
+# `requires_action` on the way must not end the payment.
+#   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... e2e/card-handover-stripe-3ds.yaml
+appId: app.jarso.mobile
+---
+- runFlow: parent-sign-in.yaml
+- scrollUntilVisible:
+    element:
+      text: "Hand over allowance to .*"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    text: "Hand over allowance to .*"
+    index: 0
+- scrollUntilVisible:
+    element:
+      text: "Pay by card|Pay with Stripe"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Pay by card|Pay with Stripe"
+- runFlow: stripe-card.yaml
+  env:
+    CARD_NUMBER: "4000002760003184"
+# Stripe's test authentication page.
+- extendedWaitUntil:
+    visible: "Complete|COMPLETE"
+    timeout: 60000
+- tapOn: "Complete|COMPLETE"
+- extendedWaitUntil:
+    visible: "Payment received\\.|Your family"
+    timeout: 60000

@@ -131,6 +131,11 @@ export interface PaymentProvider {
   }): Promise<InAppSheet>;
   /** Best effort, so it can no longer succeed; a no-op where the provider can't cancel. */
   cancelInAppPayment(providerRef: string): Promise<void>;
+  /**
+   * Whether `cancelInAppPayment` really stops the payment (a Stripe PaymentIntent). False (a
+   * Razorpay order): the parent can't cancel it, so it stays pending until it expires.
+   */
+  readonly cancelsInApp: boolean;
   /** Starts saving a card in the phone's native sheet. `contact` as for `createHostedSetup`. */
   createInAppSetup(i: {
     setupId: string;

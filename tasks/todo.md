@@ -328,3 +328,19 @@ Not run: no Android device was available when the phone side was built. Run on a
 - [ ] "Pause all" stops everything on that phone
 - [ ] After signing out and back in, the settings start fresh
 - [ ] Android notifications turned off for Jarso: the settings page says so and "Open phone settings" opens them
+
+## Wave 3 card payments on the phone — pending device checks (plan 4 Tasks 8–12)
+
+Built and unit-tested; nothing below has run on a device (no device or Android build in the agent's session). Build a development build (`(cd apps/mobile && eas build --profile development --platform android)` or `npx expo run:android`): the Stripe SDK and Razorpay Checkout are native modules, so Expo Go can't run them.
+
+- [ ] Maestro with the fake provider (`pnpm dev` with `PAYMENTS_ALLOW_FAKE=true`, no provider keys): `card-handover-fake`, `card-close-early`
+- [ ] Maestro with Stripe test keys and `stripe listen`: `card-handover-stripe`, `card-handover-stripe-3ds`, `save-card`
+- [ ] Maestro with Razorpay test keys and a webhook tunnel (INR family): `card-handover-razorpay`, `save-card-razorpay`
+- [ ] Stripe 3-D Secure returns to the app through `jarso://stripe-redirect` (the `urlScheme` / `returnURL` the sheet is opened with) and lands back on the open sheet, not an Unmatched route screen (iOS and Android)
+- [ ] Razorpay recurring (saving a card) works on the test account (recurring payments enabled)
+- [ ] The ephemeral key's API version (the server's pinned Stripe API version) is accepted by `@stripe/stripe-react-native` 0.81.0
+- [ ] `react-native-razorpay` 3.0.0 links and opens under the new architecture on RN 0.88
+- [ ] The merged Android manifest (`npx expo prebuild` or the built APK) adds no permission beyond `POST_NOTIFICATIONS` from the Stripe or Razorpay SDKs (e.g. SMS or phone state for OTP autofill): children install the same APK
+- [ ] After a card handover the ledger rows match a cash handover, and the child's phone and the web show "Paid by card"
+- [ ] Closing the sheet early leaves "Card payment in progress"; after 31 minutes it reads expired, never paid
+- [ ] Maestro selectors inside the Stripe and Razorpay sheets (their own UI) are unchecked; fix `e2e/stripe-card.yaml` and `e2e/razorpay-card.yaml` on first run

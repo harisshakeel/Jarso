@@ -181,6 +181,7 @@ describe("startInAppPayment", () => {
       paymentId: "pay-1",
       expiresAt: new Date(NOW.getTime() + 31 * MIN).toISOString(),
       sheet: { provider: "fake", mode: "payment", ref: "pay-1" },
+      cancellable: true,
     });
   });
 
@@ -235,6 +236,7 @@ describe("startInAppPayment", () => {
       paymentId: "pay-old",
       expiresAt: liveInApp().expiresAt,
       sheet: { provider: "fake", mode: "payment", ref: "pay-old" },
+      cancellable: true,
     });
   });
 
@@ -442,6 +444,19 @@ describe("getPaymentStatus", () => {
 });
 
 describe("cancelInAppPaymentById", () => {
+  it("cancels a Stripe payment and its PaymentIntent", async () => {
+    const stripe = otherProvider({ cancelsInApp: true });
+    on = [stripe];
+    vi.mocked(repo.findPaymentById).mockResolvedValue(
+      paymentRow({ provider: "stripe", providerRef: "pi_old" }),
+    );
+    const cancel = vi.spyOn(stripe, "cancelInAppPayment");
+
+    expect(await service.cancelInAppPaymentById(PAYMENT_ID)).toEqual({ canceled: true });
+    expect(repo.cancelPayment).toHaveBeenCalledWith(ADMIN, PAYMENT_ID);
+    expect(cancel).toHaveBeenCalledWith("pi_old");
+  });
+
   it("cancels the payer's own pending in-app payment", async () => {
     vi.mocked(repo.findPaymentById).mockResolvedValue(paymentRow());
     const cancel = vi.spyOn(provider, "cancelInAppPayment");
@@ -449,6 +464,31 @@ describe("cancelInAppPaymentById", () => {
     expect(await service.cancelInAppPaymentById(PAYMENT_ID)).toEqual({ canceled: true });
     expect(repo.cancelPayment).toHaveBeenCalledWith(ADMIN, PAYMENT_ID);
     expect(cancel).toHaveBeenCalledWith(`fake_pi_${PAYMENT_ID}`);
+  });
+
+  it("leaves a Razorpay order pending: it can't be cancelled, so it blocks a new order", async () => {
+    const razorpay = otherProvider({ id: "razorpay", label: "Razorpay", cancelsInApp: false });
+    on = [razorpay];
+    const order = { provider: "razorpay" as const, providerRef: "order_old" };
+    vi.mocked(repo.findPaymentById).mockResolvedValue(paymentRow(order));
+    const cancel = vi.spyOn(razorpay, "cancelInAppPayment");
+
+    expect(await service.cancelInAppPaymentById(PAYMENT_ID)).toEqual({ canceled: false });
+    expect(repo.cancelPayment).not.toHaveBeenCalled();
+    expect(repo.expirePayment).not.toHaveBeenCalled();
+    expect(cancel).not.toHaveBeenCalled();
+
+    // Pay again reopens the same order: no second order while the first can still be paid.
+    vi.mocked(repo.findLivePayment).mockResolvedValue(liveInApp({ id: PAYMENT_ID, ...order }));
+    const create = vi.spyOn(razorpay, "createInAppPayment");
+    const resume = vi.spyOn(razorpay, "resumeInAppPayment");
+
+    const again = await payInApp({ provider: "razorpay" });
+
+    expect(again).toMatchObject({ paymentId: PAYMENT_ID, cancellable: false });
+    expect(resume).toHaveBeenCalledWith(expect.objectContaining({ providerRef: "order_old" }));
+    expect(create).not.toHaveBeenCalled();
+    expect(repo.insertPayment).not.toHaveBeenCalled();
   });
 
   it.each([
