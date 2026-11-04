@@ -58,6 +58,8 @@ export const routes = {
   authConfirm: "/auth/confirm",
   parent: "/parent",
   parentSetup: "/parent/setup",
+  /** The Children tab: the family's money as one picture, each child on tap. */
+  parentChildren: "/parent/children" as Route,
   parentNewChild: "/parent/children/new",
   /** The Allowance tab: every child's allowance at a glance. */
   parentAllowanceOverview: "/parent/allowance" as Route,

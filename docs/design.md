@@ -164,7 +164,7 @@ Design at 360 px first, then 768 and 1024. Single column on phones; parent scree
 
 | Child | Parent |
 | --- | --- |
-| Home · Diary · Learn · Jarso · News | Home · Allowance · Jarso · Inbox |
+| Home · Diary · Learn · Jarso · News | Home · Children · Allowance · Jarso · Inbox |
 
 Tab bar height 64 px plus the safe-area inset, icons 24 px, labels 12 px 600, active tab primary with a filled icon. The Inbox tab shows a count badge in gold with ink text. Family settings live under the parent's Home.
 

@@ -24,12 +24,17 @@ describe("ParentNav", () => {
       "/parent/allowance",
     );
     expect(screen.getByRole("link", { name: "Jarso" })).toHaveAttribute("href", "/parent/jarso");
+    expect(screen.getByRole("link", { name: "Children" })).toHaveAttribute(
+      "href",
+      "/parent/children",
+    );
   });
 
   it.each([
     ["/parent", "Home"],
-    ["/parent/children/abc", "Home"],
-    ["/parent/children/abc/allowance", "Home"],
+    ["/parent/children", "Children"],
+    ["/parent/children/abc", "Children"],
+    ["/parent/children/abc/allowance", "Children"],
     ["/parent/allowance", "Allowance"],
   ])("on %s lights %s", (path, tab) => {
     pathname.current = path;
