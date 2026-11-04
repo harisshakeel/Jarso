@@ -9,7 +9,7 @@ import {
   AmountInput,
   HomeWait,
   Notice,
-  SentView,
+  SentToast,
   SubmitButton,
   useSendOnce,
 } from "@/components/sheet";
@@ -103,7 +103,7 @@ export function ReceivedSheet({ onClose }: { onClose: () => void }) {
     });
   }
 
-  if (record.data) return <SentView message={entrySavedMessage} onClose={onClose} />;
+  if (record.data) return <SentToast message={entrySavedMessage} onClose={onClose} />;
 
   const labelError = fieldErrors?.label?.[0];
   return (

@@ -9,7 +9,7 @@ import {
   HomeWait,
   Notice,
   ReasonInput,
-  SentView,
+  SentToast,
   SubmitButton,
   useSendOnce,
 } from "@/components/sheet";
@@ -63,7 +63,7 @@ export function AskExtraSheet({ onClose }: { onClose: () => void }) {
   }
 
   if (send.data) {
-    return <SentView message={emergencyMessage(send.data, currency)} onClose={onClose} />;
+    return <SentToast message={emergencyMessage(send.data, currency)} onClose={onClose} />;
   }
 
   return (

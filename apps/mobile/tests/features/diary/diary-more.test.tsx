@@ -22,10 +22,12 @@ import type { ReactNode } from "react";
 import { EntryDetail, FixForm, ReceivedSheet } from "@/features/diary";
 import { HistoryList } from "@/features/history";
 import { apiFetch } from "@/lib/api";
+import { flash } from "@/lib/flash";
 import { keys } from "@/lib/query";
 
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
 jest.mock("@/lib/api", () => ({ apiFetch: jest.fn() }));
+jest.mock("@/lib/flash", () => ({ flash: jest.fn() }));
 jest.mock("@/features/auth/use-session", () => ({
   useSession: () => ({ status: "child", userId: "child-1" }),
 }));
@@ -128,7 +130,7 @@ describe("Got money", () => {
     await user.press(screen.getByRole("radio", { name: "Birthday" }));
     await user.press(screen.getByRole("radio", { name: "Save" }));
     await user.press(screen.getByRole("button", { name: receivedCopy.submit }));
-    expect(await screen.findByText(entrySavedMessage)).toBeOnTheScreen();
+    await waitFor(() => expect(flash).toHaveBeenCalledWith(entrySavedMessage));
     expect(received).toHaveBeenCalledWith(
       { id: "client" },
       {

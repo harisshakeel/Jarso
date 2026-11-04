@@ -10,7 +10,7 @@ import {
   HomeWait,
   Notice,
   RuleLines,
-  SentView,
+  SentToast,
   SubmitButton,
   useSendOnce,
 } from "@/components/sheet";
@@ -75,7 +75,7 @@ export function PutInSheet({ onClose }: { onClose: () => void }) {
   }
 
   if (send.data && send.data.status !== "over_available") {
-    return <SentView message={depositMessage(send.data, currency)} onClose={onClose} />;
+    return <SentToast message={depositMessage(send.data, currency)} onClose={onClose} />;
   }
 
   return (

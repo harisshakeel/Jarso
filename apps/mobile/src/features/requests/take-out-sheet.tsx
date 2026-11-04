@@ -16,7 +16,7 @@ import {
   Notice,
   ReasonInput,
   RuleLines,
-  SentView,
+  SentToast,
   SubmitButton,
   useSendOnce,
 } from "@/components/sheet";
@@ -90,7 +90,7 @@ export function TakeOutSheet({ onClose }: { onClose: () => void }) {
   }
 
   if (send.data && isSent(send.data)) {
-    return <SentView message={withdrawalMessage(send.data, currency)} onClose={onClose} />;
+    return <SentToast message={withdrawalMessage(send.data, currency)} onClose={onClose} />;
   }
 
   return (
