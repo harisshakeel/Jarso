@@ -95,7 +95,7 @@ async function AllowanceContent({ params }: { params: Promise<{ childId: string 
               href={routes.parentGiftNew(childId)}
               className="flex min-h-11 items-center gap-3 rounded-xl border border-hairline bg-card px-4 py-3 font-semibold hover:bg-muted"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold">
                 <GiftIcon aria-hidden className="size-5" />
               </span>
               Give a gift

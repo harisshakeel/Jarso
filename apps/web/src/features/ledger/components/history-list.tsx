@@ -63,17 +63,41 @@ function byDay(items: HistoryItem[]): { date: string; items: HistoryItem[] }[] {
  * No signs, no arrows: the words carry the direction.
  */
 const KIND: Record<HistoryItem["kind"], { icon: LucideIcon; tint: string; verb: string | null }> = {
-  allowance: { icon: CoinsIcon, tint: "bg-gold-100 text-gold-700", verb: "Came in" },
-  gift: { icon: GiftIcon, tint: "bg-gold-100 text-gold-700", verb: "Gift" },
-  extra: { icon: HandCoinsIcon, tint: "bg-gold-100 text-gold-700", verb: "Extra money" },
-  received: { icon: HandCoinsIcon, tint: "bg-gold-100 text-gold-700", verb: "Got" },
-  purchase: { icon: ShoppingBagIcon, tint: "bg-teal-100 text-teal-800", verb: "Spent" },
+  allowance: {
+    icon: CoinsIcon,
+    tint: "bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold",
+    verb: "Came in",
+  },
+  gift: {
+    icon: GiftIcon,
+    tint: "bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold",
+    verb: "Gift",
+  },
+  extra: {
+    icon: HandCoinsIcon,
+    tint: "bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold",
+    verb: "Extra money",
+  },
+  received: {
+    icon: HandCoinsIcon,
+    tint: "bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold",
+    verb: "Got",
+  },
+  purchase: {
+    icon: ShoppingBagIcon,
+    tint: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100",
+    verb: "Spent",
+  },
   withdrawal: {
     icon: ArrowRightLeftIcon,
-    tint: "bg-cyan-100 text-cyan-700",
+    tint: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300",
     verb: "Moved from Save to Spend",
   },
-  deposit: { icon: ArrowRightLeftIcon, tint: "bg-cyan-100 text-cyan-700", verb: "Moved into Save" },
+  deposit: {
+    icon: ArrowRightLeftIcon,
+    tint: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300",
+    verb: "Moved into Save",
+  },
   skipped: { icon: CalendarXIcon, tint: "bg-muted text-ink-2", verb: null },
 };
 

@@ -36,7 +36,7 @@ export function notEnoughSpendToLowerMessage(
 }
 
 /** The line after a purchase or money received is saved. */
-export const entrySavedMessage = "Saved. Nice one.";
+export const entrySavedMessage = "Written down. Nice one.";
 
 /** The line after an undo: a purchase puts the money back in Spend, money received comes out of its jar. */
 export const undoneSpendMessage = "Undone. The money is back in Spend.";
@@ -136,6 +136,10 @@ export const pendingCopy = {
   askAParentFor: (label: string) => `Ask a parent: ${label}`,
   removeFor: (label: string) => `Remove: ${label}`,
   askAParentNote: "Show this to a parent and decide together.",
+  /** Asked before Remove, since it can't be undone. */
+  removeTitle: (label: string) => `Remove "${label}"?`,
+  removeBody: "It hasn't been written down yet, so it will be gone.",
+  keep: "Keep it",
 } as const;
 
 /** The Diary page's own lines. */

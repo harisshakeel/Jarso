@@ -12,12 +12,15 @@ import { cn } from "@/lib";
 
 // Money in is gold, learning teal, a run cyan (design.md §2.5); a goal reached is the gold trophy.
 const STYLE: Record<MomentKind, { icon: LucideIcon; tint: string }> = {
-  mission: { icon: GraduationCapIcon, tint: "bg-teal-100 text-teal-800" },
-  allowance: { icon: CoinsIcon, tint: "bg-gold-100 text-gold-700" },
-  gift: { icon: GiftIcon, tint: "bg-gold-100 text-gold-700" },
-  extra: { icon: HandCoinsIcon, tint: "bg-gold-100 text-gold-700" },
+  mission: {
+    icon: GraduationCapIcon,
+    tint: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100",
+  },
+  allowance: { icon: CoinsIcon, tint: "bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold" },
+  gift: { icon: GiftIcon, tint: "bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold" },
+  extra: { icon: HandCoinsIcon, tint: "bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold" },
   goal: { icon: TrophyIcon, tint: "bg-gold text-gold-foreground" },
-  best: { icon: FlameIcon, tint: "bg-cyan-100 text-cyan-700" },
+  best: { icon: FlameIcon, tint: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300" },
 };
 
 const MONEY = new Set<MomentKind>(["allowance", "gift", "extra"]);

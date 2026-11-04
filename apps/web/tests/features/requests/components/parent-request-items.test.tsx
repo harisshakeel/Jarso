@@ -1,5 +1,5 @@
 import type { SavingsRequest } from "@jarso/core/requests";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ParentRequestItems } from "@/features/requests/components/parent-request-items";
@@ -106,6 +106,26 @@ describe("ParentRequestItems", () => {
     show(request({}));
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
     expect(await screen.findByText("There isn't enough in Save for this now.")).toBeInTheDocument();
+  });
+
+  it("spins the button that was pressed, and holds the other still", async () => {
+    let answer: (value: { ok: true; data: "rejected" }) => void = () => {};
+    vi.mocked(decideWithdrawalAction).mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+    );
+    show(request({}));
+    fireEvent.click(screen.getByRole("button", { name: "Not now" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Not now" })).toHaveAttribute("aria-busy", "true"),
+    );
+    const approve = screen.getByRole("button", { name: "Approve" });
+    expect(approve).not.toHaveAttribute("aria-busy");
+    expect(approve).toBeDisabled();
+    // Finish the action: React links pending transitions, so one left hanging stalls later tests.
+    await act(async () => answer({ ok: true, data: "rejected" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Not now" })).not.toBeDisabled());
   });
 
   it("declines with Not now", async () => {

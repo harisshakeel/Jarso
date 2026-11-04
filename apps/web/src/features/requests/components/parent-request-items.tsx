@@ -56,6 +56,8 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
   const { nickname, request } = item;
   const router = useRouter();
   const [pending, start] = useTransition();
+  // Which button started the running action, so its spinner shows and not its neighbour's.
+  const [running, setRunning] = useState<"primary" | "secondary">("primary");
   const [error, setError] = useState<{ code: string; message: string }>();
   // One key for this row's Confirm, made on first tap so server and client markup agree.
   const key = useRef<string | null>(null);
@@ -63,8 +65,13 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
   const amount = formatMoney(request.amountMinor, currency, { showMinor: "always" });
 
   /** Runs one action, then tells the parent what happened in calm words. */
-  function run<T>(call: () => Promise<ActionResult<T>>, onOk: (data: T) => void) {
+  function run<T>(
+    call: () => Promise<ActionResult<T>>,
+    onOk: (data: T) => void,
+    button: "primary" | "secondary" = "primary",
+  ) {
     setError(undefined);
+    setRunning(button);
     start(async () => {
       const result = await runOnline(call);
       start(() => {
@@ -96,6 +103,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           });
         else if (data === "rejected") toast.success(parentRequestCopy.rejected);
       },
+      approve ? "primary" : "secondary",
     );
 
   const settled = () => toast(parentRequestCopy.settled);
@@ -114,12 +122,14 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
     run(
       () => cancelRequestAction(null, { requestId: request.id }),
       (data) => (data === "cancelled" ? toast(parentRequestCopy.cancelled) : settled()),
+      "secondary",
     );
 
   const rejectDeposit = () =>
     run(
       () => rejectDepositAction(null, { requestId: request.id }),
       (data) => (data === "rejected" ? toast(parentRequestCopy.depositRejected) : settled()),
+      "secondary",
     );
 
   const sentence = requestSentence(request, nickname, amount);
@@ -130,7 +140,8 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
         <Button
           type="button"
           aria-describedby={sentenceId}
-          loading={pending}
+          disabled={pending}
+          loading={pending && running === "primary"}
           onClick={() =>
             complete({
               title: parentRequestCopy.celebrate.depositTitle,
@@ -145,6 +156,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           variant="outline"
           aria-describedby={sentenceId}
           disabled={pending}
+          loading={pending && running === "secondary"}
           onClick={rejectDeposit}
         >
           {parentRequestCopy.didntGetIt}
@@ -157,7 +169,8 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
         <Button
           type="button"
           aria-describedby={sentenceId}
-          loading={pending}
+          disabled={pending}
+          loading={pending && running === "primary"}
           onClick={() =>
             complete({
               title: parentRequestCopy.celebrate.handedOverTitle,
@@ -176,7 +189,8 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
         <Button
           type="button"
           aria-describedby={sentenceId}
-          loading={pending}
+          disabled={pending}
+          loading={pending && running === "primary"}
           onClick={() => decide(true)}
         >
           {parentRequestCopy.approve}
@@ -186,6 +200,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           variant="outline"
           aria-describedby={sentenceId}
           disabled={pending}
+          loading={pending && running === "secondary"}
           onClick={() => decide(false)}
         >
           {parentRequestCopy.notNow}
@@ -198,7 +213,8 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
         <Button
           type="button"
           aria-describedby={sentenceId}
-          loading={pending}
+          disabled={pending}
+          loading={pending && running === "primary"}
           onClick={() => decide(true)}
         >
           {parentRequestCopy.approve}
@@ -208,6 +224,7 @@ function ParentRequestRow({ item, currency }: { item: ParentRequestItem; currenc
           variant="outline"
           aria-describedby={sentenceId}
           disabled={pending}
+          loading={pending && running === "secondary"}
           onClick={() => decide(false)}
         >
           {parentRequestCopy.notNow}

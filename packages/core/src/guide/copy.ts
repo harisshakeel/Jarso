@@ -215,6 +215,10 @@ export const guideCopy = {
     empty:
       "Nothing yet. When you tell Jarso what you like or what you're saving for, it can remember.",
     forget: "Forget",
+    /** Asked before Forget, since it can't be undone. */
+    forgetTitle: "Forget this?",
+    forgetBody: (text: string) => `Jarso won't remember "${text}" any more.`,
+    keep: "Keep it",
     kinds: {
       interest: "Likes",
       thinking_about: "Thinking about",

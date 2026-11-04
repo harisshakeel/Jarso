@@ -22,7 +22,8 @@ import { FormSkeleton, PageShell } from "./page-shell";
 
 export const metadata: Metadata = { title: "Your child" };
 
-const back = { href: routes.parent, label: "Your family" };
+// Parents reach a child from the Children tab, so the way back is there.
+const back = { href: routes.parentChildren, label: "Children" };
 
 const tabValues = ["learning", "money", "jarso"] as const;
 const paramsSchema = z.object({ tab: z.enum(tabValues).catch("learning") });

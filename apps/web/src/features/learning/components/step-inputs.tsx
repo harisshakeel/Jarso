@@ -85,7 +85,7 @@ export function NumberInput({
           onChange={(event) => onChange({ kind: "number", text: event.target.value })}
           disabled={disabled}
           placeholder={placeholder}
-          className="h-12 w-40 rounded-xl border border-hairline-strong bg-card px-3 font-bold text-xl tabular-nums outline-none focus-visible:border-primary disabled:opacity-70"
+          className="h-12 w-40 rounded-xl border border-input bg-card px-3 font-bold text-xl tabular-nums focus-visible:border-primary disabled:opacity-70"
           aria-describedby={body.suffix ? `${idBase}-suffix` : undefined}
         />
         {body.suffix ? (
@@ -226,7 +226,7 @@ export function MatchInput({
               onChange({ kind: "match", pairs: { ...draft.pairs, [pair.id]: event.target.value } })
             }
             disabled={disabled}
-            className="h-11 w-full rounded-xl border border-hairline-strong bg-card px-3 font-semibold outline-none focus-visible:border-primary disabled:opacity-70"
+            className="h-11 w-full rounded-xl border border-input bg-card px-3 font-semibold focus-visible:border-primary disabled:opacity-70"
           >
             <option value="" disabled>
               {inputCopy.chooseMeaning}

@@ -45,7 +45,7 @@ describe("fix refusals", () => {
 
 describe("saved, undone and name-hint copy", () => {
   it("keeps the exact lines the web and the phone show", () => {
-    expect(entrySavedMessage).toBe("Saved. Nice one.");
+    expect(entrySavedMessage).toBe("Written down. Nice one.");
     expect(undoneSpendMessage).toBe("Undone. The money is back in Spend.");
     expect(undoneReceivedMessage).toBe("Undone. It's out of your jar.");
     expect(DEFAULT_NAME_HINT).toBe("What was it?");

@@ -228,7 +228,7 @@ export function JarGraph({
                 setActive(null);
               }}
               className={cn(
-                "min-h-9 rounded-full px-3 font-semibold text-sm transition-colors",
+                "min-h-11 rounded-full px-3 font-semibold text-sm transition-colors",
                 days === option.days
                   ? "bg-card text-foreground shadow-rest"
                   : "text-ink-2 hover:text-foreground",

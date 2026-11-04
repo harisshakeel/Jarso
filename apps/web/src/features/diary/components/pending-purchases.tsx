@@ -5,7 +5,20 @@ import { HourglassIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Button, Card, CardContent, Sheet } from "@/components/ui";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  Button,
+  Card,
+  CardContent,
+  Sheet,
+} from "@/components/ui";
 import {
   type OutboxItem,
   offlineCopy,
@@ -160,13 +173,29 @@ function PendingLine({
             >
               {pendingCopy.askAParent}
             </Button>
-            <Button
-              variant="ghost"
-              aria-label={pendingCopy.removeFor(label)}
-              onClick={() => void removeOutboxItem(item.id).catch(() => {})}
-            >
-              {pendingCopy.remove}
-            </Button>
+            {/* Removing can't be undone, so it asks first (design.md §6). */}
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={<Button variant="ghost" aria-label={pendingCopy.removeFor(label)} />}
+              >
+                {pendingCopy.remove}
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{pendingCopy.removeTitle(label)}</AlertDialogTitle>
+                  <AlertDialogDescription>{pendingCopy.removeBody}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{pendingCopy.keep}</AlertDialogCancel>
+                  <AlertDialogCancel
+                    render={<Button variant="destructive" />}
+                    onClick={() => void removeOutboxItem(item.id).catch(() => {})}
+                  >
+                    {pendingCopy.remove}
+                  </AlertDialogCancel>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
           <div role="status" className="grid gap-2">
             {unsent ? (

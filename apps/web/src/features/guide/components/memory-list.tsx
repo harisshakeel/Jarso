@@ -6,7 +6,19 @@ import { BrainIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FormError } from "@/components/form";
-import { Button, Card, CardContent } from "@/components/ui";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  Button,
+  Card,
+  CardContent,
+} from "@/components/ui";
 import { runOnline } from "@/features/offline";
 import { forgetMemoryAction } from "../server/actions";
 
@@ -52,12 +64,14 @@ function MemoryRow({ memory }: { memory: Memory }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<{ code: string; message: string }>();
+  const [open, setOpen] = useState(false);
   function forget() {
     setError(undefined);
     start(async () => {
       const result = await runOnline(() => forgetMemoryAction(null, { memoryId: memory.id }));
       // After an await, updates leave the transition unless wrapped again (see rule-row.tsx).
       start(() => {
+        setOpen(false);
         if (!result.ok) return setError(result.error);
         router.refresh();
       });
@@ -70,17 +84,36 @@ function MemoryRow({ memory }: { memory: Memory }) {
           <span className="text-ink-2 text-sm">{guideCopy.memories.kinds[memory.kind]}: </span>
           {memory.text}
         </span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="lg"
-          aria-label={`${guideCopy.memories.forget}: ${memory.text}`}
-          loading={pending}
-          onClick={forget}
-        >
-          <XIcon aria-hidden className="size-4" />
-          {guideCopy.memories.forget}
-        </Button>
+        {/* Forgetting can't be undone, so it asks first (design.md §6). */}
+        <AlertDialog open={open} onOpenChange={setOpen}>
+          <AlertDialogTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="lg"
+                aria-label={`${guideCopy.memories.forget}: ${memory.text}`}
+              />
+            }
+          >
+            <XIcon aria-hidden className="size-4" />
+            {guideCopy.memories.forget}
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{guideCopy.memories.forgetTitle}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {guideCopy.memories.forgetBody(memory.text)}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{guideCopy.memories.keep}</AlertDialogCancel>
+              <Button variant="destructive" loading={pending} onClick={forget}>
+                {guideCopy.memories.forget}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
       <FormError error={error} />
     </li>

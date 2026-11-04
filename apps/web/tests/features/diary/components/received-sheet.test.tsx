@@ -65,7 +65,7 @@ describe("ReceivedSheet", () => {
     expect(input.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
     await waitFor(() =>
       expect(toast).toHaveBeenCalledWith(
-        "Saved. Nice one.",
+        "Written down. Nice one.",
         expect.objectContaining({ icon: expect.anything() }),
       ),
     );

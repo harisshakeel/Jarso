@@ -302,8 +302,13 @@ function JarButton({
 /** The actions for one jar, shown once the jar is tapped. */
 function Tray({ id, open, children }: { id: string; open: boolean; children: React.ReactNode }) {
   if (!open) return <div id={id} hidden />;
+  // A tray is half the shelf, about 150 px on a 360 px phone: its buttons wrap onto two lines
+  // ("Put some in Save") instead of spilling into the other jar. Still at least 44 px tall.
   return (
-    <div id={id} className="rise-in grid w-full gap-2 pt-1">
+    <div
+      id={id}
+      className="rise-in grid w-full gap-2 pt-1 [&_button]:h-auto [&_button]:min-h-11 [&_button]:whitespace-normal [&_button]:py-2 [&_button]:text-center [&_button]:leading-tight"
+    >
       {children}
     </div>
   );

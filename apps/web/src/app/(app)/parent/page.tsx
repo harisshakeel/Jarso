@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
-import { CoachSays } from "@/components/brand";
 import { PageContainer, PageHeader } from "@/components/layout";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
@@ -158,6 +157,20 @@ async function NeedsYouSection({
   const shown = due.slice(0, HOME_DUE_LIMIT);
   const more = due.length - shown.length;
   const waiting = due.length + waitingRequests;
+  if (waiting === 0) {
+    // All clear: one line, the chip and a way on. No coach on a parent screen (design.md §7).
+    return (
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <NeedsYou items={shown} currency={currency} otherCount={waitingRequests} today={today} />
+        <Link
+          href={routes.parentChildren}
+          className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline"
+        >
+          {parentPageCopy.lookAround}
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="grid gap-3">
       <NeedsYou items={shown} currency={currency} otherCount={waitingRequests} today={today} />
@@ -168,16 +181,6 @@ async function NeedsYouSection({
         >
           {parentPageCopy.more(more)}
         </Link>
-      ) : null}
-      {waiting === 0 ? (
-        <CoachSays coach={{ key: "parent-home" }} says={parentPageCopy.quiet} size="sm">
-          <Link
-            href={routes.parentChildren}
-            className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline"
-          >
-            {parentPageCopy.lookAround}
-          </Link>
-        </CoachSays>
       ) : null}
     </div>
   );

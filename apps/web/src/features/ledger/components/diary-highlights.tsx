@@ -50,21 +50,21 @@ export function DiaryHighlightsStrip({
       <ul className="grid gap-3 sm:grid-cols-3">
         <Tile
           icon={<ShoppingBagIcon className="size-5" />}
-          tint="bg-teal-100 text-teal-800"
+          tint="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100"
           label={diaryHighlightsCopy.spent}
         >
           <span className="money">{money(view.spentMinor)}</span>
         </Tile>
         <Tile
           icon={<CoinsIcon className="size-5" />}
-          tint="bg-gold-100 text-gold-700"
+          tint="bg-gold-100 text-gold-700 dark:bg-gold-900 dark:text-gold"
           label={diaryHighlightsCopy.got}
         >
           <span className="money">{money(view.inMinor)}</span>
         </Tile>
         <Tile
           icon={<TagIcon className="size-5" />}
-          tint="bg-cyan-100 text-cyan-700"
+          tint="bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300"
           label={diaryHighlightsCopy.mostOn}
         >
           {view.top ? (

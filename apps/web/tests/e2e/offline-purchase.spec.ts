@@ -211,7 +211,7 @@ test("Change it on an expired purchase sends the old one once", async () => {
   const line = pending().getByRole("listitem").filter({ hasText: "Old snack" });
   await expect(line).toContainText("This one waited too long. Add it again?");
   await line.getByRole("button", { name: "Change it: Old snack" }).click();
-  await expect(child.getByText("Saved. Nice one.")).toBeVisible();
+  await expect(child.getByText("Written down. Nice one.")).toBeVisible();
   await expect(child.getByRole("dialog")).toHaveCount(0);
   await expect(pending()).toHaveCount(0);
   await expect(history().getByText("Old snack")).toHaveCount(1);
