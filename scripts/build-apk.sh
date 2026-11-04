@@ -7,7 +7,8 @@
 # Usage: pnpm build:apk [profile] [archs]
 #   profile  EAS build profile (default: preview)
 #   archs    comma list of ABIs (default: arm64-v8a,armeabi-v7a; real phones only)
-# Env: JARSO_APK_DIR (default ~/builds/jarso), JAVA_HOME (default JDK 21), ANDROID_HOME (default ~/Android/Sdk)
+# Env: JARSO_APK_DIR (default ~/builds/jarso), JAVA_HOME (default JDK 21), ANDROID_HOME (default ~/Android/Sdk),
+#      GOOGLE_SERVICES_JSON (default apps/mobile/google-services.json, git-ignored; without it no push)
 set -euo pipefail
 
 PROFILE="${1:-preview}"
@@ -23,6 +24,10 @@ UNIT="jarso-apk"
 PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
 JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}"
 ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+# eas build --local skips EAS file env vars, so the GOOGLE_SERVICES_JSON var on EAS never
+# reaches a local build: hand it a local copy instead. Absolute, since the build runs in a copy.
+GOOGLE_SERVICES_JSON="${GOOGLE_SERVICES_JSON:-$MOBILE_DIR/google-services.json}"
+GOOGLE_SERVICES_JSON="$(realpath -m "$GOOGLE_SERVICES_JSON")"
 
 if systemctl is-active -q "$UNIT"; then
   echo "A build is already running: sudo systemctl status $UNIT" >&2
@@ -43,6 +48,15 @@ case "$BUILD_TYPE" in
   *) echo "Profile $PROFILE builds ${BUILD_TYPE:-an app bundle}, not an APK" >&2; exit 1 ;;
 esac
 
+FCM_ARGS=()
+PUSH=off
+if [ -f "$GOOGLE_SERVICES_JSON" ]; then
+  FCM_ARGS=(--setenv=GOOGLE_SERVICES_JSON="$GOOGLE_SERVICES_JSON")
+  PUSH=on
+else
+  echo "No $GOOGLE_SERVICES_JSON: this build gets no push token (docs/mobile.md, Push credentials)" >&2
+fi
+
 # The unit starts with a clean environment: hand EXPO_TOKEN over as a systemd credential
 # (never --setenv, which anyone can read with systemctl show), else need a saved eas login.
 CRED_ARGS=()
@@ -62,7 +76,7 @@ fi
 mkdir -p "$OUT_DIR"
 # A watcher stopped with Ctrl+C leaves its .done file; never read a stale one.
 rm -f "$DONE"
-echo "Profile $PROFILE, ABIs $ARCHS"
+echo "Profile $PROFILE, ABIs $ARCHS, push $PUSH"
 echo "Log: $LOG"
 
 sudo systemd-run \
@@ -71,6 +85,7 @@ sudo systemd-run \
   --working-directory="$MOBILE_DIR" \
   -p Nice=10 \
   "${CRED_ARGS[@]}" \
+  "${FCM_ARGS[@]}" \
   --setenv=HOME="$HOME" \
   --setenv=PATH="$PNPM_HOME:$PATH" \
   --setenv=JAVA_HOME="$JAVA_HOME" \

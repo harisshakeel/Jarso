@@ -208,4 +208,29 @@ describe("createTimedFetch", () => {
     await timed("https://x.supabase.co/rest/v1/jars");
     expect(warn).not.toHaveBeenCalled();
   });
+
+  it("rebuilds the response from text, so a polyfill never re-decodes bytes as Latin-1", async () => {
+    // React Native's whatwg-fetch decodes an ArrayBuffer body one byte per char: "₹" → "â‚¹".
+    // A string body is handed back as is, so it must be the decoded text that is passed on.
+    const RealResponse = globalThis.Response;
+    const bodies: unknown[] = [];
+    globalThis.Response = class extends RealResponse {
+      constructor(body?: BodyInit | null, init?: ResponseInit) {
+        bodies.push(body);
+        super(body, init);
+      }
+    } as typeof Response;
+    try {
+      const json = JSON.stringify({ summary: "Save went up by ₹750.00 🎯 — Zoë" });
+      globalThis.fetch = vi.fn(async () => new RealResponse(json)) as unknown as typeof fetch;
+      const timed = createTimedFetch({ timeoutMs: 8000, name: "api" });
+
+      const res = await timed("https://jarso.test/api/v1/dashboard");
+
+      expect(bodies).toEqual([json]);
+      expect(await res.json()).toEqual({ summary: "Save went up by ₹750.00 🎯 — Zoë" });
+    } finally {
+      globalThis.Response = RealResponse;
+    }
+  });
 });
