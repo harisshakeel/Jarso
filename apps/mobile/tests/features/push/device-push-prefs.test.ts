@@ -100,15 +100,69 @@ describe("useDevicePushPrefs", () => {
     savePrefs.mockReturnValueOnce(new Promise((_resolve, reject) => (fail = reject)));
     const { result } = await ready();
     let first: Promise<void> = Promise.resolve();
+    let second: Promise<void> = Promise.resolve();
     await act(async () => {
       first = result.current.save({ mutedGroups: ["money"], paused: false });
     });
-    await act(() => result.current.save({ mutedGroups: ["money"], paused: true }));
+    await act(async () => {
+      second = result.current.save({ mutedGroups: ["money"], paused: true });
+    });
     await act(async () => {
       fail(new Error("down"));
-      await first.catch(() => undefined);
+      await Promise.all([first, second]);
     });
     expect(result.current.prefs).toEqual({ mutedGroups: ["money"], paused: true });
+    expect(savePrefs).toHaveBeenLastCalledWith(
+      {},
+      { token: TOKEN, mutedGroups: ["money"], paused: true },
+    );
+  });
+
+  it("saves one at a time, then sends only the latest change", async () => {
+    let finish: (value: boolean) => void = () => undefined;
+    savePrefs.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+    const { result } = await ready();
+    const saves: Promise<void>[] = [];
+    await act(async () => {
+      saves.push(result.current.save({ mutedGroups: ["money"], paused: false }));
+    });
+    await act(async () => {
+      saves.push(result.current.save({ mutedGroups: ["money"], paused: true }));
+    });
+    await act(async () => {
+      saves.push(result.current.save({ mutedGroups: [], paused: true }));
+    });
+    expect(savePrefs).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      finish(true);
+      await Promise.all(saves);
+    });
+    expect(savePrefs.mock.calls.map(([, record]) => record)).toEqual([
+      { token: TOKEN, mutedGroups: ["money"], paused: false },
+      { token: TOKEN, mutedGroups: [], paused: true },
+    ]);
+    expect(result.current.prefs).toEqual({ mutedGroups: [], paused: true });
+  });
+
+  it("when every queued save fails it rolls back to what the server last confirmed", async () => {
+    const fails: ((error: Error) => void)[] = [];
+    savePrefs.mockImplementation(() => new Promise((_resolve, reject) => fails.push(reject)));
+    const { result } = await ready();
+    const saves: Promise<void>[] = [];
+    await act(async () => {
+      saves.push(result.current.save({ mutedGroups: ["money"], paused: false }));
+    });
+    await act(async () => {
+      saves.push(result.current.save({ mutedGroups: ["money"], paused: true }));
+    });
+    await act(async () => fails[0]?.(new Error("down")));
+    await waitFor(() => expect(fails).toHaveLength(2));
+    await act(async () => {
+      fails[1]?.(new Error("down"));
+      await Promise.allSettled(saves);
+    });
+    expect(result.current.prefs).toEqual({ mutedGroups: [], paused: false });
+    await expect(saves[1]).rejects.toThrow();
   });
 
   it("an older load that finishes last doesn't replace a newer one", async () => {
