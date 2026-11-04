@@ -9,6 +9,7 @@ import { routes } from "@/config";
 import { mergeDue, NeedsYou } from "@/features/allowance";
 import { listDue } from "@/features/allowance/server";
 import {
+  ChildRow,
   FamilySummary,
   FamilySummarySkeleton,
   parentPageCopy,
@@ -33,10 +34,11 @@ export const metadata: Metadata = { title: "Home" };
 const HOME_DUE_LIMIT = 5;
 
 /**
- * The parent's Home (2026-11-04): only what needs the parent right now, on one screen. Jarso's
- * one line, then what is waiting (handovers, requests, limit notices), then this week in three
- * figures. Nothing waiting shows one calm line. Looking around (charts, categories, each child)
- * is the Children tab.
+ * The parent's Home (2026-11-04): only what needs the parent right now, on one screen. One row
+ * of children (each a tap away, plus Add a child), Jarso's one line, then what is waiting
+ * (handovers, requests, limit notices), then this week in three figures. Nothing waiting shows
+ * one calm line. Looking around (charts, categories, how each child is doing) is the Children
+ * tab.
  */
 async function ParentHome() {
   const { membership } = await requireRole("parent", routes.parent);
@@ -54,6 +56,7 @@ async function ParentHome() {
 
   return (
     <div className="grid gap-5">
+      <ChildRow items={children} />
       {isGuideConfigured() ? (
         <Suspense fallback={<FamilySummarySkeleton />}>
           <SummarySection />

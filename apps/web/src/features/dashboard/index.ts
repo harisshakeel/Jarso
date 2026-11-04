@@ -4,6 +4,7 @@ export * from "./components/activity-list";
 export * from "./components/callouts-card";
 export * from "./components/category-compare";
 export * from "./components/child-filter";
+export * from "./components/child-row";
 export * from "./components/child-tiles";
 export * from "./components/family-summary";
 export * from "./components/family-totals";
