@@ -706,9 +706,9 @@ function StepView({
 
   function tryAgain() {
     setOutcome(null);
-    // A wrong pick or number left in place reads as still chosen: clear it for a fresh go.
-    // Sorting, matching and the slider keep the child's work to adjust.
-    if (draft.kind === "option" || draft.kind === "number") setDraft(emptyDraft(body));
+    // A wrong pick left selected reads as still chosen: clear it for a fresh go. A typed
+    // number, sorting, matching and the slider keep the child's work to adjust.
+    if (draft.kind === "option") setDraft(emptyDraft(body));
     // The Try again button goes away: put focus back on the question.
     heading.current?.focus();
   }
