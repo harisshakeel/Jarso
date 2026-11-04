@@ -22,6 +22,16 @@ export const parentRequestCopy = {
   didntHandOverBody: "The money stays in Save and this request closes.",
   goBack: "Go back",
   didntHandOverConfirm: "Yes, didn't hand it over",
+  /** The success dialog (design.md §6); `amount` is already formatted. */
+  celebrate: {
+    approvedTitle: "Approved",
+    approvedBody: (amount: string, nickname: string) =>
+      `Next, hand ${amount} to ${nickname}, then press Confirm here.`,
+    depositTitle: "Added to Save",
+    depositBody: (nickname: string) => `${nickname} will see it in their Save jar.`,
+    handedOverTitle: "Handed over",
+    handedOverBody: (nickname: string) => `${nickname}'s Save is up to date.`,
+  },
 } as const;
 
 /**

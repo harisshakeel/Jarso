@@ -2,16 +2,16 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MatchSavingSheet } from "@/features/allowance/components/match-saving-sheet";
 
-const { matchSavingAction, success } = vi.hoisted(() => ({
+const { matchSavingAction, celebrate } = vi.hoisted(() => ({
   matchSavingAction: vi.fn(),
-  success: vi.fn(),
+  celebrate: vi.fn(),
 }));
 vi.mock("@/features/allowance/server/actions", () => ({ matchSavingAction }));
 vi.mock("@/features/offline", async (original) => ({
   ...(await original<typeof import("@/features/offline")>()),
   runOnline: (action: () => Promise<unknown>) => action(),
 }));
-vi.mock("sonner", () => ({ toast: { success } }));
+vi.mock("@/components/celebrate", () => ({ celebrate }));
 
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
@@ -43,7 +43,12 @@ describe("MatchSavingSheet", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add £8 to Save" }));
     await vi.waitFor(
       () =>
-        expect(success).toHaveBeenCalledWith("Added to Aisha's Save", { description: undefined }),
+        expect(celebrate).toHaveBeenCalledWith({
+          icon: "coins",
+          title: "Added to Aisha's Save",
+          amount: expect.stringMatching(/^£8(\.00)?$/),
+          body: "They'll see it in their Save jar.",
+        }),
       wait,
     );
     const form = matchSavingAction.mock.calls[0]?.[1] as FormData;
@@ -60,9 +65,12 @@ describe("MatchSavingSheet", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add £5 to Save" }));
     await vi.waitFor(
       () =>
-        expect(success).toHaveBeenCalledWith("Added to Aisha's Save", {
-          description: "The note didn't go. Send it from Send a note.",
-        }),
+        expect(celebrate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: "Added to Aisha's Save",
+            body: "The note didn't go. Send it from Send a note.",
+          }),
+        ),
       wait,
     );
   });

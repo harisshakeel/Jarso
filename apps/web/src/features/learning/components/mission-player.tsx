@@ -26,6 +26,7 @@ import {
   totalPoints,
 } from "@jarso/core/learning";
 import {
+  ArrowRightIcon,
   BookOpenIcon,
   CircleCheckIcon,
   HourglassIcon,
@@ -645,12 +646,14 @@ function StepView({
   const [lastTry, setLastTry] = useState<StepAnswer | null>(null);
   const [saving, startSaving] = useTransition();
   const heading = useFocusOnMount<HTMLHeadingElement>(focusOnMount);
-  const feedbackRef = useRef<HTMLDivElement>(null);
+  const actionRef = useRef<HTMLButtonElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const answer = draftToAnswer(body, draft, currency);
 
+  // After Check, focus goes to the one thing to do next ("Continue" or "Try again"), which also
+  // brings it into view on a phone. The feedback is announced by the bubble's live region.
   useEffect(() => {
-    if (outcome) feedbackRef.current?.focus();
+    if (outcome) actionRef.current?.focus();
   }, [outcome]);
 
   // A hint lands in the coach's bubble above the board: bring it into view, since the Hint
@@ -734,7 +737,11 @@ function StepView({
     <CurrentStepContext.Provider value={current}>
       <section
         aria-labelledby={`${idBase}-prompt`}
-        className="rise-in grid gap-5 rounded-2xl bg-card p-6 shadow-raised"
+        className={cn(
+          "rise-in grid gap-5 rounded-2xl bg-card p-6 shadow-raised transition-shadow duration-300",
+          // A right answer turns the card's edge green (design.md §2.4).
+          outcome?.correct && "ring-2 ring-success",
+        )}
       >
         <div ref={bubbleRef} className="scroll-mt-4">
           <CoachBubble
@@ -746,13 +753,7 @@ function StepView({
             reaction={outcome ? (outcome.correct ? "cheer" : "nod") : null}
           >
             {outcome ? (
-              <Feedback
-                ref={feedbackRef}
-                outcome={outcome}
-                body={body}
-                currency={currency}
-                topicHref={topicHref}
-              />
+              <Feedback outcome={outcome} body={body} currency={currency} topicHref={topicHref} />
             ) : null}
           </CoachBubble>
         </div>
@@ -786,17 +787,36 @@ function StepView({
 
         <ProblemText problem={error} />
 
+        {outcome && !checkIn ? <ResultStrip outcome={outcome} /> : null}
+
         <div className="flex flex-wrap items-center gap-3">
           {!outcome ? (
             <Button variant="keycap" size="lg" onClick={check} disabled={!answer} loading={saving}>
               {checkIn ? playerCopy.next : playerCopy.check}
             </Button>
           ) : outcome.final ? (
-            <Button variant="keycap" size="lg" onClick={continueOn} loading={saving}>
+            // Green after a right answer: done with this screen. Teal after the answer is shown.
+            <Button
+              ref={actionRef}
+              variant={outcome.correct ? "keycap-success" : "keycap"}
+              size="xl"
+              className="w-full sm:w-fit"
+              onClick={continueOn}
+              loading={saving}
+            >
               {playerCopy.continue}
+              <ArrowRightIcon aria-hidden />
             </Button>
           ) : (
-            <Button variant="keycap" size="lg" onClick={tryAgain}>
+            // Warm gold and full width on a phone, so the way forward after a miss is obvious.
+            <Button
+              ref={actionRef}
+              variant="keycap-gold"
+              size="xl"
+              className="w-full sm:w-fit"
+              onClick={tryAgain}
+            >
+              <RotateCcwIcon aria-hidden />
               {playerCopy.tryAgain}
             </Button>
           )}
@@ -813,6 +833,33 @@ function StepView({
   );
 }
 
+/**
+ * One line by the buttons once an answer is checked: green for a right answer, warm gold for
+ * a miss (never red, design.md §2.4). The bubble's live region already announces the feedback,
+ * so this is hidden from screen readers.
+ */
+function ResultStrip({ outcome }: { outcome: Outcome }) {
+  const Icon = outcome.correct ? CircleCheckIcon : outcome.final ? BookOpenIcon : RotateCcwIcon;
+  return (
+    <p
+      aria-hidden
+      className={cn(
+        "rise-in flex items-center gap-2 rounded-xl px-4 py-3 font-bold",
+        outcome.correct
+          ? "bg-success-soft text-success-text"
+          : "bg-tint-gold text-foreground [&>svg]:text-gold-text",
+      )}
+    >
+      <Icon className="size-5 shrink-0" />
+      {outcome.correct
+        ? playerCopy.rightStrip
+        : outcome.final
+          ? playerCopy.finalStrip
+          : playerCopy.againStrip}
+    </p>
+  );
+}
+
 function Feedback({
   ref,
   outcome,
@@ -820,7 +867,7 @@ function Feedback({
   currency,
   topicHref,
 }: {
-  ref: Ref<HTMLDivElement>;
+  ref?: Ref<HTMLDivElement>;
   outcome: Outcome;
   body: StepBody;
   currency: string;
@@ -844,9 +891,7 @@ function Feedback({
       tabIndex={-1}
       className={cn(
         "grid gap-3 rounded-xl p-4 outline-none",
-        outcome.correct
-          ? "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100"
-          : "bg-card",
+        outcome.correct ? "bg-success-soft text-success-text" : "bg-card",
       )}
     >
       <h3 className="flex items-center gap-2 font-bold text-lg">

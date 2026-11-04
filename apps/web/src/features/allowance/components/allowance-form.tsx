@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  allowanceCelebrationCopy,
   allowanceFormCopy,
   describeSchedule,
   type Frequency,
@@ -13,11 +14,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useActionState, useState } from "react";
 import { toast } from "sonner";
+import { celebrate } from "@/components/celebrate";
 import { AmountField, ChoiceChips, FieldError, FormError } from "@/components/form";
 import { Button, buttonVariants, Card, CardContent, Input, Label } from "@/components/ui";
 import { routes } from "@/config";
 import { runOnline } from "@/features/offline";
-import { type ActionState, addDays, idle, toMajorString } from "@/lib";
+import { type ActionState, addDays, formatMoney, idle, parseMoney, toMajorString } from "@/lib";
 import { changeAllowanceAction, createAllowanceAction } from "../server/actions";
 
 const ONE_TIME = "one_time";
@@ -43,7 +45,15 @@ export function AllowanceForm({ childId, currency, today, initial }: AllowanceFo
         ? await runOnline(() => changeAllowanceAction(null, formData))
         : await runOnline(() => createAllowanceAction(null, formData));
       if (result.ok) {
-        toast.success(allowanceFormCopy.saved);
+        const minor = parseMoney(amount, currency);
+        if (changing) toast.success(allowanceFormCopy.saved);
+        else
+          celebrate({
+            icon: "coins",
+            title: allowanceCelebrationCopy.allowanceTitle,
+            amount: minor === null ? undefined : formatMoney(minor, currency),
+            body: allowanceCelebrationCopy.allowanceBody(formatDay(date)),
+          });
         // Both stay on the Allowance page, where a first allowance due today shows at once.
         router.push(routes.parentAllowance(childId));
       }
