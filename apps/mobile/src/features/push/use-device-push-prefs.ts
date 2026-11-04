@@ -22,22 +22,27 @@ export function useDevicePushPrefs() {
   const [status, setStatus] = useState<DevicePushPrefsStatus>("loading");
   const [prefs, setPrefs] = useState<DevicePushPrefs | null>(null);
   const tokenRef = useRef<string | null>(null);
+  /** Bumped by every load: only the latest one may apply its result. */
+  const loadSeqRef = useRef(0);
 
   const load = useCallback(async () => {
     if (!userId) return;
+    const seq = ++loadSeqRef.current;
+    const latest = () => seq === loadSeqRef.current;
     try {
       const permission = await Notifications.getPermissionsAsync();
       if (!permission.granted && permission.status !== "undetermined") {
-        setStatus("denied");
+        if (latest()) setStatus("denied");
         return;
       }
       const token = permission.granted ? await getRegisteredToken(userId) : null;
       const stored = token ? await fetchDevicePushPrefs(supabase, token) : null;
+      if (!latest()) return;
       tokenRef.current = stored ? token : null;
       setPrefs(stored);
       setStatus(stored ? "ready" : "no-token");
     } catch {
-      setStatus("no-token");
+      if (latest()) setStatus("no-token");
     }
   }, [userId]);
 

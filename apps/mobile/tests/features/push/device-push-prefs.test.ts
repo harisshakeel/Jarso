@@ -2,6 +2,7 @@ import { fetchDevicePushPrefs, saveDevicePushPrefs } from "@jarso/data/notificat
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import * as Notifications from "expo-notifications";
+import { AppState, type AppStateStatus } from "react-native";
 import { useDevicePushPrefs } from "@/features/push";
 
 const TOKEN = "ExponentPushToken[abc]";
@@ -41,6 +42,16 @@ beforeEach(async () => {
   fetchPrefs.mockResolvedValue({ mutedGroups: [], paused: false });
   savePrefs.mockResolvedValue(true);
 });
+
+/** Captures the hook's AppState listener for its next mount. */
+function listenToAppState() {
+  let listener: (state: AppStateStatus) => void = () => undefined;
+  jest.spyOn(AppState, "addEventListener").mockImplementationOnce((_type, cb) => {
+    listener = cb as (state: AppStateStatus) => void;
+    return { remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>;
+  });
+  return (state: AppStateStatus) => listener(state);
+}
 
 async function ready() {
   const hook = await renderHook(() => useDevicePushPrefs());
@@ -98,6 +109,32 @@ describe("useDevicePushPrefs", () => {
       await first.catch(() => undefined);
     });
     expect(result.current.prefs).toEqual({ mutedGroups: ["money"], paused: true });
+  });
+
+  it("an older load that finishes last doesn't replace a newer one", async () => {
+    const onChange = listenToAppState();
+    let finishFirst: (value: unknown) => void = () => undefined;
+    fetchPrefs
+      .mockReturnValueOnce(new Promise((resolve) => (finishFirst = resolve)))
+      .mockResolvedValueOnce({ mutedGroups: ["money"], paused: true });
+    const { result } = await renderHook(() => useDevicePushPrefs());
+    await waitFor(() => expect(fetchPrefs).toHaveBeenCalledTimes(1));
+    await act(async () => onChange("active"));
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    await act(async () => finishFirst({ mutedGroups: [], paused: false }));
+    expect(result.current.prefs).toEqual({ mutedGroups: ["money"], paused: true });
+  });
+
+  it("an older load that fails last doesn't replace a newer one", async () => {
+    const onChange = listenToAppState();
+    let failFirst: (error: Error) => void = () => undefined;
+    fetchPrefs.mockReturnValueOnce(new Promise((_resolve, reject) => (failFirst = reject)));
+    const { result } = await renderHook(() => useDevicePushPrefs());
+    await waitFor(() => expect(fetchPrefs).toHaveBeenCalledTimes(1));
+    await act(async () => onChange("active"));
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    await act(async () => failFirst(new Error("down")));
+    expect(result.current.status).toBe("ready");
   });
 
   it("notifications off for Jarso → denied", async () => {
