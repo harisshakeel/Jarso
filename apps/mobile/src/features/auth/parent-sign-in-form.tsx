@@ -129,6 +129,7 @@ export function ParentSignInForm({ notice }: { notice?: string }) {
         </Button>
         <Button
           variant="link"
+          className="h-auto min-h-12"
           accessibilityRole="link"
           accessibilityLabel={SIGN_UP}
           onPress={() => void openSignUp()}
