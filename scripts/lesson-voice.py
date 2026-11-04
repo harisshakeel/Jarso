@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Makes the lesson films' voice: one soft, female AI recording per narration line.
 
-Reads every mission in packages/content/src/learning/missions with a "film", and writes
-apps/web/public/lessons/voice/<mission-key>-<n>-<hash>.mp3 for each line that has no file yet.
+Reads every mission in packages/content/src/learning/missions with a "film", and the check-in
+(key "check-in"), and writes apps/web/public/lessons/voice/<key>-<n>-<hash>.mp3 for each line
+that has no file yet.
 The hash is FNV-1a of the line's words (the same as filmVoicePath in @jarso/core/learning), so
 an edited line gets a new file and the old one is removed. Commit the files it writes.
 
@@ -25,6 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MISSIONS = ROOT / "packages/content/src/learning/missions"
+CHECK_IN = ROOT / "packages/content/src/learning/check-in.json"
 OUT = ROOT / "apps/web/public/lessons/voice"
 
 # How the voice should sound: very soft and female, for children aged 11 to 14.
@@ -47,6 +49,17 @@ def text_hash(text: str) -> str:
 
 def voice_file(key: str, index: int, line: str) -> Path:
     return OUT / f"{key}-{index + 1}-{text_hash(line)}.mp3"
+
+
+def films():
+    """(key, lines) for every filmed mission, then the check-in's film."""
+    for path in sorted(MISSIONS.glob("*.json")):
+        mission = json.loads(path.read_text(encoding="utf-8"))
+        if mission.get("film"):
+            yield mission["key"], mission["film"]["lines"]
+    check_in = json.loads(CHECK_IN.read_text(encoding="utf-8"))
+    if check_in.get("film"):
+        yield "check-in", check_in["film"]["lines"]
 
 
 def post(url: str, headers: dict, body: dict) -> bytes:
@@ -104,7 +117,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--provider", choices=["openai", "elevenlabs"], default="openai")
     parser.add_argument("--voice", default="", help="openai: shimmer (default); elevenlabs: a voice id")
-    parser.add_argument("--only", help="one mission key")
+    parser.add_argument("--only", help="one mission key, or check-in")
     parser.add_argument("--force", action="store_true", help="remake files that already exist")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -113,18 +126,16 @@ def main() -> None:
 
     OUT.mkdir(parents=True, exist_ok=True)
     made = kept = 0
-    for path in sorted(MISSIONS.glob("*.json")):
-        mission = json.loads(path.read_text(encoding="utf-8"))
-        key, film = mission["key"], mission.get("film")
-        if not film or (args.only and key != args.only):
+    for key, lines in films():
+        if args.only and key != args.only:
             continue
-        wanted = {voice_file(key, i, line).name for i, line in enumerate(film["lines"])}
+        wanted = {voice_file(key, i, line).name for i, line in enumerate(lines)}
         for old in OUT.glob(f"{key}-*.mp3"):
             if old.name not in wanted:
                 print(f"remove {old.name} (its line changed)")
                 if not args.dry_run:
                     old.unlink()
-        for i, line in enumerate(film["lines"]):
+        for i, line in enumerate(lines):
             target = voice_file(key, i, line)
             if target.exists() and not args.force:
                 kept += 1

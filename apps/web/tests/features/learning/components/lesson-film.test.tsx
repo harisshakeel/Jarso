@@ -1,4 +1,4 @@
-import { missions } from "@jarso/core/learning/content";
+import { checkIn, missions } from "@jarso/core/learning/content";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { filmScenes } from "@/features/learning/components/lesson-film/film-scenes";
@@ -96,13 +96,17 @@ describe("LessonFilm", () => {
 });
 
 describe("film scenes", () => {
-  it("has a scene for every filmed mission, one beat per line, beats covering 0 to 1", () => {
-    for (const mission of missions) {
-      if (!mission.film) continue;
-      const scene = filmScenes[mission.key];
-      expect(scene, mission.key).toBeDefined();
+  it("has a scene for every film, one beat per line, beats covering 0 to 1", () => {
+    const films = [
+      ...missions.map((m) => [m.key, m.film] as const),
+      ["check-in", checkIn.film] as const,
+    ];
+    for (const [key, film] of films) {
+      if (!film) continue;
+      const scene = filmScenes[key];
+      expect(scene, key).toBeDefined();
       if (!scene) continue;
-      expect(scene.beats).toHaveLength(mission.film.lines.length);
+      expect(scene.beats).toHaveLength(film.lines.length);
       expect(scene.beats[0]?.[0]).toBe(0);
       expect(scene.beats.at(-1)?.[1]).toBe(1);
       scene.beats.slice(1).forEach(([from], i) => {

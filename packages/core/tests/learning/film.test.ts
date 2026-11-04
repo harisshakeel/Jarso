@@ -1,5 +1,5 @@
 import { filmSchema, filmVoicePath, textHash } from "@jarso/core/learning";
-import { missions } from "@jarso/core/learning/content";
+import { checkIn, missions } from "@jarso/core/learning/content";
 import { describe, expect, it } from "vitest";
 
 describe("lesson film voice files", () => {
@@ -20,18 +20,19 @@ describe("lesson film voice files", () => {
     expect(textHash("Here comes your allowance.")).not.toBe(textHash("Here comes your allowance!"));
   });
 
-  it("films missions 1 and 3, in short coin-counted lines", () => {
+  it("films the check-in and missions 1 and 3, in short coin-counted lines", () => {
     const filmed = missions.filter((m) => m.film).map((m) => m.key);
     expect(filmed).toEqual(expect.arrayContaining(["whats-in-spend", "spend-and-save"]));
-    for (const mission of missions) {
-      if (!mission.film) continue;
-      expect(filmSchema.safeParse(mission.film).success).toBe(true);
-      const words = mission.film.lines.join(" ").split(/\s+/).length;
+    expect(checkIn.film).toBeDefined();
+    for (const film of [...missions.map((m) => m.film), checkIn.film]) {
+      if (!film) continue;
+      expect(filmSchema.safeParse(film).success).toBe(true);
+      const words = film.lines.join(" ").split(/\s+/).length;
       // 10 to 15 seconds spoken softly: about 25 to 40 words.
       expect(words).toBeGreaterThanOrEqual(20);
       expect(words).toBeLessThanOrEqual(40);
       // Spoken once for every family, so never a currency symbol.
-      expect(mission.film.lines.join(" ")).not.toMatch(/[£$€₹]|\{m:/);
+      expect(film.lines.join(" ")).not.toMatch(/[£$€₹]|\{m:/);
     }
   });
 });

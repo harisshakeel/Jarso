@@ -329,8 +329,192 @@ const spendAndSave: FilmScene = {
   },
 };
 
-/** The films so far, by mission key. A mission without one starts at its first step. */
+// ---------------------------------------------------------------------------------------------
+// The check-in, before day 1: five question cards, a padlock that opens (no score, nothing
+// locked), a tick on each, then the seven-day road with a coin landing on the first stop.
+
+const CARD = { w: 96, h: 116, gap: 22, y: 200 };
+const CARDS_X = 300;
+const ROAD = { y: 420, from: 330, to: 930 };
+const STOPS = 7;
+const QUESTIONS = ["q1", "q2", "q3", "q4", "q5"] as const;
+const DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
+
+/** One question card: a "?" while it waits, a tick once it has an answer. */
+function QuestionCard({ x, pop, ticked }: { x: number; pop: number; ticked: number }) {
+  if (pop <= 0) return null;
+  const cx = x + CARD.w / 2;
+  return (
+    <g transform={`translate(${cx} ${CARD.y}) scale(${pop}) translate(${-cx} ${-CARD.y})`}>
+      <rect
+        x={x}
+        y={CARD.y - CARD.h / 2}
+        width={CARD.w}
+        height={CARD.h}
+        rx={20}
+        strokeWidth={5}
+        className="fill-card stroke-teal-800 dark:stroke-teal-300"
+      />
+      <text
+        x={cx}
+        y={CARD.y + 22}
+        textAnchor="middle"
+        fontSize={64}
+        opacity={1 - ticked}
+        className="fill-primary font-extrabold"
+      >
+        ?
+      </text>
+      <path
+        d={`M${cx - 22} ${CARD.y + 2} l16 16 l30 -34`}
+        fill="none"
+        strokeWidth={10}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        pathLength={1}
+        strokeDasharray="1 1"
+        strokeDashoffset={1 - ticked}
+        className="stroke-teal-600 dark:stroke-teal-300"
+        opacity={ticked > 0 ? 1 : 0}
+      />
+    </g>
+  );
+}
+
+/** A padlock over the cards; `open` lifts and swings the shackle. */
+function Padlock({ x, y, open, shown }: { x: number; y: number; open: number; shown: number }) {
+  if (shown <= 0) return null;
+  return (
+    <g transform={`translate(${x} ${y})`} opacity={shown}>
+      <path
+        d="M-22 -6 V-30 a22 22 0 0 1 44 0 V-6"
+        fill="none"
+        strokeWidth={10}
+        strokeLinecap="round"
+        transform={`translate(0 ${-18 * open}) rotate(${-24 * open} 22 -6)`}
+        className="stroke-teal-800 dark:stroke-teal-200"
+      />
+      <rect
+        x={-38}
+        y={-8}
+        width={76}
+        height={60}
+        rx={14}
+        className="fill-teal-700 dark:fill-teal-400"
+      />
+      <circle cy={18} r={8} className="fill-card" />
+    </g>
+  );
+}
+
+const checkInFilm: FilmScene = {
+  beats: [
+    [0, 0.32],
+    [0.32, 0.68],
+    [0.68, 1],
+  ],
+  label:
+    "Nell beside five question cards. A padlock over them opens and each card gets a tick, then a road of seven stops appears and a coin lands on the first stop, marked Start here.",
+  Scene: ({ p, mood }) => {
+    const cardsAway = easeInOut(segment(p, 0.68, 0.76));
+    const road = easeInOut(segment(p, 0.72, 0.84));
+    const stopX = (i: number) => lerp(ROAD.from, ROAD.to, i / (STOPS - 1));
+    const coinT = segment(p, 0.84, 0.92);
+    const first = { x: stopX(0), y: ROAD.y };
+    const coinAt = hop({ x: first.x, y: 40 }, { x: first.x, y: ROAD.y - 6 }, coinT, 40);
+    return (
+      <>
+        <Nell mood={mood} />
+        <g opacity={1 - cardsAway} transform={`translate(0 ${-60 * cardsAway})`}>
+          {QUESTIONS.map((id, k) => {
+            const start = 0.05 + k * 0.045;
+            const tickAt = 0.5 + k * 0.03;
+            return (
+              <QuestionCard
+                key={id}
+                x={CARDS_X + k * (CARD.w + CARD.gap)}
+                pop={easeOutBack(segment(p, start, start + 0.06))}
+                ticked={easeOut(segment(p, tickAt, tickAt + 0.05))}
+              />
+            );
+          })}
+          <Chip
+            x={CARDS_X + (5 * CARD.w + 4 * CARD.gap) / 2}
+            y={78}
+            text="5 quick questions"
+            pop={easeOutBack(segment(p, 0.25, 0.3))}
+            size={30}
+          />
+          <Padlock
+            x={CARDS_X + (5 * CARD.w + 4 * CARD.gap) / 2}
+            y={CARD.y + 108}
+            open={easeOutBack(segment(p, 0.42, 0.5))}
+            shown={segment(p, 0.34, 0.38) * (1 - segment(p, 0.6, 0.66))}
+          />
+        </g>
+
+        {/* The seven-day road, drawn in, and a coin landing on day 1. */}
+        {road > 0 ? (
+          <g>
+            <path
+              d={`M${ROAD.from} ${ROAD.y} H${lerp(ROAD.from, ROAD.to, road)}`}
+              strokeWidth={10}
+              strokeLinecap="round"
+              strokeDasharray="4 22"
+              className="stroke-teal-300 dark:stroke-teal-700"
+            />
+            {DAYS.map((day) => {
+              const i = day - 1;
+              const shown = segment(road, i / STOPS, (i + 1) / STOPS);
+              if (shown <= 0) return null;
+              const isFirst = i === 0;
+              return (
+                <g
+                  key={day}
+                  transform={`translate(${stopX(i)} ${ROAD.y}) scale(${easeOutBack(shown)})`}
+                >
+                  <circle
+                    r={isFirst ? 34 : 26}
+                    strokeWidth={6}
+                    className={
+                      isFirst && coinT >= 1
+                        ? "fill-card stroke-gold"
+                        : "fill-card stroke-teal-700 dark:stroke-teal-300"
+                    }
+                  />
+                  <text
+                    y={isFirst ? 11 : 9}
+                    textAnchor="middle"
+                    fontSize={isFirst ? 30 : 24}
+                    className="fill-foreground font-extrabold"
+                  >
+                    {day}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        ) : null}
+        {coinT > 0 && coinT < 1 ? <Coin x={coinAt.x} y={coinAt.y} /> : null}
+        <Chip
+          x={first.x}
+          y={ROAD.y + 84}
+          text="Start here"
+          gold
+          size={28}
+          pop={easeOutBack(segment(p, 0.9, 0.96))}
+        />
+      </>
+    );
+  },
+};
+
+/**
+ * The films so far: by mission key, and "check-in" for the questions before day 1. Anything
+ * without one starts at its first step.
+ */
 export const filmScenes: Readonly<Partial<Record<string, FilmScene>>> = {
+  "check-in": checkInFilm,
   "whats-in-spend": whatsInSpend,
   "spend-and-save": spendAndSave,
 };

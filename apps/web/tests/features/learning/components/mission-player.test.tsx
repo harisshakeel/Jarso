@@ -182,6 +182,27 @@ describe("MissionPlayer", () => {
     expect(screen.getByRole("heading", { name: "The idea" })).toBeInTheDocument();
   });
 
+  it("plays the check-in's film after Start the questions", () => {
+    render(
+      <MissionPlayer
+        mode={{ kind: "check-in" }}
+        steps={[choice("q1"), choice("q2")]}
+        currency="GBP"
+        userId={USER_ID}
+        intro={{ eyebrow: "Before mission 1", heading: "Five quick questions.", body: "No score." }}
+        doneHref={"/child/learn" as never}
+        doneLabel="Go to your missions"
+        film={{ lines: ["One.", "Two.", "Three."] }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start the questions" }));
+    expect(
+      screen.getByRole("region", { name: "Intro: Five quick questions." }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Skip intro" }));
+    expect(screen.getByRole("heading", { name: "Question q1?" })).toBeInTheDocument();
+  });
+
   it("doesn't replay the film on a resumed mission, but offers it", () => {
     render(
       <MissionPlayer

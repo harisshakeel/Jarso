@@ -121,6 +121,7 @@ test("home offers the check-in first, and it places without scoring", async () =
   await child.getByRole("link", { name: "Start", exact: true }).click();
   await expect(child).toHaveURL(at("/child/learn/check-in"));
   await child.getByRole("button", { name: "Start the questions" }).click();
+  await skipFilm(child);
   for (let i = 0; i < 5; i++) {
     await expect(child.getByText(`Question ${i + 1} of 5`)).toBeVisible();
     await answerAnything(child);

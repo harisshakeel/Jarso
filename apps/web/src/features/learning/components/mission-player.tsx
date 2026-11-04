@@ -91,7 +91,7 @@ type MissionPlayerProps = {
   topicHref?: Route;
   /** Helpers beside every step, such as the guide's "Help me"; they read useCurrentStep(). */
   stepAside?: ReactNode;
-  /** A mission's animated intro (its narration lines); plays after Start mission. */
+  /** The animated intro (its narration lines): a mission's, or the check-in's. Plays on start. */
   film?: { lines: readonly string[] };
 };
 
@@ -187,8 +187,10 @@ export function MissionPlayer(props: MissionPlayerProps) {
   const doneHeading = useRef<HTMLHeadingElement>(null);
 
   const resumed = mode.kind === "mission" && mode.attemptId !== null;
-  // The film needs a scene drawn for this mission and one narration line per beat.
-  const filmScene = mode.kind === "mission" ? filmScenes[mode.missionKey] : undefined;
+  // The film needs a scene drawn for this mission (or the check-in) and one line per beat.
+  const filmKey =
+    mode.kind === "mission" ? mode.missionKey : mode.kind === "check-in" ? "check-in" : null;
+  const filmScene = filmKey ? filmScenes[filmKey] : undefined;
   const hasFilm = Boolean(film && filmScene && film.lines.length === filmScene.beats.length);
   const mainTotal = mode.kind === "mission" ? steps.length : queue.length;
 
@@ -211,7 +213,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
     if (mode.kind !== "mission" || attemptId) {
       // Every step was answered before the child left: just finish the mission.
       if (mode.kind === "mission" && queue.length === 0) finish(results, checkInAnswers, attemptId);
-      else setStage("playing");
+      else setStage(playFilm ? "film" : "playing");
       return;
     }
     startTransition(async () => {
@@ -377,10 +379,10 @@ export function MissionPlayer(props: MissionPlayerProps) {
     else setStage("playing");
   }
 
-  if (stage === "film" && film && filmScene && mode.kind === "mission") {
+  if (stage === "film" && film && filmScene && filmKey) {
     return (
       <LessonFilm
-        missionKey={mode.missionKey}
+        missionKey={filmKey}
         title={intro?.heading ?? ""}
         lines={film.lines}
         scene={filmScene}

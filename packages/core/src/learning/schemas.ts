@@ -274,6 +274,7 @@ export const checkInSchema = z
   .object({
     version: z.number().int().positive(),
     questions: z.array(answerableStepSchema).length(5),
+    film: filmSchema.optional(),
   })
   .superRefine((checkIn, ctx) => checkSteps(checkIn.questions, ctx, "check-in"));
 
