@@ -10,7 +10,7 @@ import { SCREEN_MODEL } from "./cost";
  * The family summary at the top of the parent's dashboard (spec answer 5): one Claude Haiku 5.5
  * call that turns the dashboard's facts into a sentence or two. The facts are built in code from
  * the parent's own reads and hold no text a child typed; the app checks the answer
- * (`checkSummary`) before a parent sees it, so no figure is the model's own.
+ * (`readableSummary`) before a parent sees it, so no figure is the model's own.
  *
  * Contract, as for the guide provider: a refused or unreadable answer is a result
  * (`text: null`), a throw is an infrastructure failure and feeds the circuit breaker.

@@ -972,6 +972,18 @@ describe("writeFamilySummary", () => {
     expect(summary.write).toHaveBeenCalledWith(expect.objectContaining({ facts }));
   });
 
+  it("puts back a pound sign whose UTF-8 bytes came back one per character", async () => {
+    // "£" is the bytes C2 A3; read one byte per character they come out as "Â£".
+    const summary = writer(async () => ({
+      text: "Zarrar's Save went up by \u00c2\u00a33.00 this week.",
+      usage: {},
+    }));
+    vi.mocked(config.getSummaryWriter).mockReturnValue(summary);
+    await expect(service.writeFamilySummary(facts)).resolves.toBe(
+      "Zarrar's Save went up by £3.00 this week.",
+    );
+  });
+
   it("drops a sentence that fails the check: a figure of its own, or children compared", async () => {
     for (const text of [
       "The children spent £8.00 between them.",
