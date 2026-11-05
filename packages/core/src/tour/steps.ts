@@ -1,8 +1,10 @@
 // The child's welcome tour (2026-11-06, demo 3 feedback): the buddy they pick walks them round
 // Home, then hops through each tab, pointing at one thing at a time like a game tutorial. The
-// script lives here so the phone can tell the same story. Nothing in the tour changes money:
-// every "tap" step only opens a tab. Child-facing words: short, warm, a bit excited.
+// steps live here and their words in @jarso/content/tour, so the phone can tell the same story
+// and scripts/lesson-voice.py can record it. Nothing in the tour changes money: every "tap" step
+// only opens a tab. Child-facing words: short, warm, a bit excited.
 import { type CoachId, coachNames } from "@jarso/core/learning";
+import { tourTemplate } from "./content";
 
 /** What a step points at. The web marks each with `data-tour="<target>"`. */
 export type TourTarget =
@@ -28,6 +30,12 @@ export type TourSpeaker = "buddy" | "jarso";
 
 type Words = { name: string; buddy: string };
 
+/** A bubble's words from the content, with the child's and the buddy's names filled in. */
+function line(lineId: string): (words: Words) => string {
+  const template = tourTemplate(lineId);
+  return ({ name, buddy }) => template.replaceAll("{name}", name).replaceAll("{buddy}", buddy);
+}
+
 export type TourStep =
   /** The four kids line up; the child taps one to be their buddy. */
   | { id: "pick"; kind: "pick"; say: (w: Words) => string }
@@ -52,61 +60,61 @@ export const tourSteps: readonly TourStep[] = [
   {
     id: "pick",
     kind: "pick",
-    say: ({ name }) => `Hi ${name}! Pick a buddy to show you around.`,
+    say: line("pick"),
   },
   {
     id: "hello",
     kind: "say",
     target: null,
-    say: ({ name, buddy }) => `Hey ${name}, I'm ${buddy}! Let's check out your money world.`,
+    say: line("hello"),
     next: "Let's go!",
   },
   {
     id: "streak",
     kind: "say",
     target: "streak",
-    say: () => "This flame is your run. Learn a little every day and watch it grow!",
+    say: line("streak"),
   },
   {
     id: "next-step",
     kind: "say",
     target: "next-step",
-    say: () => "Not sure what to do? This card always shows your one next move.",
+    say: line("next-step"),
   },
   {
     id: "road",
     kind: "say",
     target: "road",
-    say: () => "Seven missions to become a money pro. Your jar shows where you are.",
+    say: line("road"),
   },
   {
     id: "spend",
     kind: "say",
     target: "spend",
-    say: () => "Your Spend jar. This is money you can use right now.",
+    say: line("spend"),
   },
   {
     id: "save",
     kind: "say",
     target: "save",
-    say: () => "Your Save jar. Money you keep, growing toward something big.",
+    say: line("save"),
   },
   {
     id: "goal",
     kind: "say",
     target: "goal",
-    say: () => "And here's your goal. Every coin you save gets you closer!",
+    say: line("goal"),
   },
   {
     id: "diary",
     kind: "tap",
     tab: "diary",
     target: "tab-diary",
-    say: () => "Tap Diary!",
+    say: line("diary"),
     arrive: {
       target: "diary",
       speaker: "buddy",
-      say: () => "Your Diary. Write down what you buy and see where your money went.",
+      say: line("diary-arrive"),
     },
   },
   {
@@ -114,11 +122,11 @@ export const tourSteps: readonly TourStep[] = [
     kind: "tap",
     tab: "learn",
     target: "tab-learn",
-    say: () => "Now tap Learn!",
+    say: line("learn"),
     arrive: {
       target: "learn",
       speaker: "buddy",
-      say: () => "Your mission road. Tap the glowing stop to play.",
+      say: line("learn-arrive"),
     },
   },
   {
@@ -126,11 +134,11 @@ export const tourSteps: readonly TourStep[] = [
     kind: "tap",
     tab: "jarso",
     target: "tab-jarso",
-    say: () => "Tap Jarso. Someone wants to say hi!",
+    say: line("jarso"),
     arrive: {
       target: null,
       speaker: "jarso",
-      say: ({ name }) => `Hi ${name}! I'm Jarso. Ask me anything about money, any time.`,
+      say: line("jarso-arrive"),
     },
   },
   {
@@ -138,17 +146,17 @@ export const tourSteps: readonly TourStep[] = [
     kind: "tap",
     tab: "inbox",
     target: "tab-inbox",
-    say: () => "Last one. Tap Notifications!",
+    say: line("inbox"),
     arrive: {
       target: "inbox",
       speaker: "buddy",
-      say: () => "Your big moments and messages from your parent land here.",
+      say: line("inbox-arrive"),
     },
   },
   {
     id: "finish",
     kind: "finish",
-    say: ({ name }) => `You're all set, ${name}! Watch this again any time from Me.`,
+    say: line("finish"),
     next: "Let's go!",
   },
 ];

@@ -7,7 +7,10 @@ import {
   type TourTab,
   type TourTarget,
   tourCopy,
+  tourLineId,
   tourSteps,
+  tourVoice,
+  tourVoicePath,
 } from "@jarso/core/tour";
 import { PointerIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
 import type { Route } from "next";
@@ -234,11 +237,14 @@ export function WelcomeTour({
           : step.target
         : null;
 
-  // Read each bubble once, as it appears.
+  // Read each bubble once, as it appears, in the speaker's recorded voice when there is one.
+  const lineId = tourLineId(step, arrived);
+  const voice = tourVoice(lineId, buddy);
+  const clip = voice ? tourVoicePath(lineId, voice) : null;
   useEffect(() => {
     if (!open || muted) return;
-    sayLine(line, speaker === "jarso" ? 1.15 : 1);
-  }, [open, muted, line, speaker]);
+    sayLine(line, speaker === "jarso" ? 1.15 : 1, clip);
+  }, [open, muted, line, speaker, clip]);
   useEffect(() => () => hush(), []);
 
   // Escape skips, like the Skip button.

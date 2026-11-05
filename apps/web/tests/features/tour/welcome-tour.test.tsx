@@ -15,13 +15,23 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn(), refresh: vi.fn() }),
 }));
 
+import { tourVoicePath } from "@jarso/core/tour";
 import { startTour, WelcomeTour } from "@/features/tour";
 
 Element.prototype.scrollIntoView = vi.fn();
 
+// jsdom can't play audio: record which recording each bubble asks for instead.
+const played: string[] = [];
+HTMLMediaElement.prototype.play = vi.fn(function (this: HTMLMediaElement) {
+  played.push(new URL(this.src, window.location.href).pathname);
+  return Promise.resolve();
+});
+HTMLMediaElement.prototype.pause = vi.fn();
+
 beforeEach(() => {
   window.sessionStorage.clear();
   saveTourAction.mockClear();
+  played.length = 0;
 });
 afterEach(cleanup);
 
@@ -47,6 +57,13 @@ describe("WelcomeTour", () => {
     expect(
       screen.getByText("This flame is your run. Learn a little every day and watch it grow!"),
     ).toBeInTheDocument();
+
+    // Each bubble plays its speaker's recording: Nell asks, then Pip in Pip's own voice.
+    expect(played.slice(0, 3)).toEqual([
+      tourVoicePath("pick", "nell"),
+      tourVoicePath("hello", "pip"),
+      tourVoicePath("streak", "pip"),
+    ]);
 
     fireEvent.click(screen.getByRole("button", { name: "Skip" }));
     expect(saveTourAction).toHaveBeenLastCalledWith(null, { finished: true });
