@@ -11,9 +11,10 @@ Standard library only. The API key comes from the environment and is never print
 
     OPENAI_API_KEY=... python3 scripts/lesson-voice.py                    # OpenAI (default)
     ELEVENLABS_API_KEY=... python3 scripts/lesson-voice.py --provider elevenlabs --voice <voice id>
+    OPENROUTER_API_KEY=... python3 scripts/lesson-voice.py --provider openrouter    # free Fish Audio
 
-Options: --voice to choose the voice, --only <mission-key>, --force to remake every file,
---dry-run to list what it would do.
+Options: --voice to choose the voice, --model for the OpenRouter model slug, --only <mission-key>,
+--force to remake every file, --dry-run to list what it would do.
 """
 
 import argparse
@@ -36,6 +37,14 @@ STYLE = (
     "the voice, never loud or over-excited. Pace: slow and unhurried, with small pauses at commas "
     "and full stops. Accent: neutral British English."
 )
+# Fish Audio models get `instructions` as a [bracketed] direction in front of the words, so they
+# get this short form of STYLE instead of the whole paragraph.
+SHORT_STYLE = "soft, warm and gentle, calm and unhurried, with a quiet smile in the voice"
+
+# OpenRouter's free text-to-speech model, and Fish Audio's own "Megan": a young British (en-gb)
+# woman, warm, friendly and relaxed (https://fish.audio/m/705690224f264386b87fb598083ab022).
+OPENROUTER_MODEL = "fish-audio/s2.1-pro-free:free"
+OPENROUTER_VOICE = "705690224f264386b87fb598083ab022"
 
 
 def text_hash(text: str) -> str:
@@ -113,16 +122,52 @@ def elevenlabs_speech(line: str, voice: str) -> bytes:
     )
 
 
+def is_mp3(audio: bytes) -> bool:
+    """An ID3 tag, or an MPEG audio frame header (eleven sync bits), at the very start."""
+    return audio[:3] == b"ID3" or (len(audio) > 1 and audio[0] == 0xFF and audio[1] & 0xE0 == 0xE0)
+
+
+def openrouter_speech(line: str, voice: str, model: str) -> bytes:
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key:
+        sys.exit("Set OPENROUTER_API_KEY in your shell first (never paste it into a chat).")
+    audio = post(
+        "https://openrouter.ai/api/v1/audio/speech",
+        {"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        {
+            "model": model,
+            "voice": voice,
+            "input": line,
+            "instructions": SHORT_STYLE if model.startswith("fish-audio/") else STYLE,
+            "response_format": "mp3",
+        },
+    )
+    if not is_mp3(audio):
+        sys.exit(f"{model} did not send back mp3 audio, so nothing was written for this line.")
+    return audio
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--provider", choices=["openai", "elevenlabs"], default="openai")
-    parser.add_argument("--voice", default="", help="openai: shimmer (default); elevenlabs: a voice id")
+    parser.add_argument("--provider", choices=["openai", "elevenlabs", "openrouter"], default="openai")
+    parser.add_argument(
+        "--voice",
+        default="",
+        help="openai: shimmer (default); elevenlabs: a voice id; openrouter: Fish Audio Megan (default)",
+    )
+    parser.add_argument("--model", default=OPENROUTER_MODEL, help="openrouter only: the model slug")
     parser.add_argument("--only", help="one mission key, or check-in")
     parser.add_argument("--force", action="store_true", help="remake files that already exist")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    voice = args.voice or ("shimmer" if args.provider == "openai" else "")
-    speak = openai_speech if args.provider == "openai" else elevenlabs_speech
+    voice = args.voice or {"openai": "shimmer", "openrouter": OPENROUTER_VOICE}.get(args.provider, "")
+    speak = {
+        "openai": openai_speech,
+        "elevenlabs": elevenlabs_speech,
+        "openrouter": lambda line, voice: openrouter_speech(line, voice, args.model),
+    }[args.provider]
+    if args.provider == "openrouter":
+        print(f"openrouter: model {args.model}, voice {voice}")
 
     OUT.mkdir(parents=True, exist_ok=True)
     made = kept = 0
