@@ -50,10 +50,12 @@ export function HandoverSheet({
   const last = useLastSplit(childId);
   const goal = useChildGoal(childId);
   // The card block's read, started with the others so the form opens with the block in place
-  // rather than pushing Confirm down when it lands. Only its first fetch is waited for: a failed
-  // read (which the slot fetches again on mount) or a paused, offline one opens the form anyway.
+  // rather than pushing Confirm down when it lands. Each opening waits for its own read (a failed
+  // one still cached from an earlier opening is read again), but only until the form is up: a
+  // failed read, which the slot fetches again on mount, or a paused, offline one opens it anyway.
   const card = usePaymentProviders({ childId, kind, id });
-  const cardLoading = card.fetchStatus === "fetching" && !card.isFetched;
+  const [shown, setShown] = useState(false);
+  const cardLoading = !shown && card.fetchStatus === "fetching" && card.data === undefined;
   // Set once this sheet wrote: the refetch that follows must not read as "already sorted".
   const finished = useRef(false);
   const child = family.data?.children.find((c) => c.id === childId);
@@ -71,6 +73,7 @@ export function HandoverSheet({
   if (!family.data || !child || !item || !last.isSuccess || cardLoading) {
     return <HomeWait error={family.error ?? due.error} onClose={onClose} />;
   }
+  if (!shown) setShown(true);
 
   return (
     <HandoverForm

@@ -81,13 +81,16 @@ function setup(items: unknown[] = [due]) {
   (apiFetch as jest.Mock).mockResolvedValue(cardsOff);
 }
 
-function renderSheet(kind: "allowance" | "gift" = "allowance") {
-  const client = new QueryClient({
+function newClient() {
+  return new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: Number.POSITIVE_INFINITY },
       mutations: { gcTime: Number.POSITIVE_INFINITY },
     },
   });
+}
+
+function renderSheet(kind: "allowance" | "gift" = "allowance", client = newClient()) {
   return render(
     <QueryClientProvider client={client}>
       <HandoverSheet childId={CHILD} kind={kind} id={OCC} onClose={onClose} />
@@ -259,5 +262,32 @@ describe("HandoverSheet", () => {
     await renderSheet();
     expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
     expect(screen.queryByText(paymentCopy.orPayByCard)).toBeNull();
+    // The slot reads again on mount; the form stays up while it does.
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+  });
+
+  it("reopened after a failed card read, waits for the new read before showing the form", async () => {
+    setup();
+    const client = newClient();
+    (apiFetch as jest.Mock).mockRejectedValue(new AppError("UNAVAILABLE", "Offline"));
+    const first = await renderSheet("allowance", client);
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    await first.unmount();
+
+    // The failed read is still cached; this opening reads again and waits for it.
+    let finish: (value: unknown) => void = () => {};
+    (apiFetch as jest.Mock).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    await renderSheet("allowance", client);
+    expect(screen.queryByRole("button", { name: handoverCopy.confirm })).toBeNull();
+    expect(screen.getByLabelText("Loading")).toBeOnTheScreen();
+
+    finish(cardsOn);
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    expect(screen.getByText(paymentCopy.orPayByCard)).toBeOnTheScreen();
   });
 });
