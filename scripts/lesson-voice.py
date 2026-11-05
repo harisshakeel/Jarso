@@ -80,7 +80,11 @@ def api_key(name: str) -> str:
         for raw in ENV_FILE.read_text(encoding="utf-8").splitlines():
             found, sep, value = raw.strip().removeprefix("export ").partition("=")
             if sep and found.strip() == name:
-                key = value.strip().strip("\"'")
+                value = value.strip()
+                if value[:1] in ("'", '"'):
+                    key = value[1:].partition(value[0])[0]
+                else:
+                    key = value.split(" #", 1)[0].strip()  # drop an inline comment
                 break
     if not key:
         sys.exit(f"Set {name} in your shell or apps/web/.env.local first (never in a chat).")
@@ -134,9 +138,36 @@ def elevenlabs_speech(line: str, voice: str) -> bytes:
     )
 
 
+# MPEG layer III bitrates (kbit/s) by index, and sample rates by MPEG version (3: 1, 2: 2, 0: 2.5).
+MP3_BITRATES = {
+    3: [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320],
+    2: [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160],
+}
+MP3_RATES = {3: [44100, 48000, 32000], 2: [22050, 24000, 16000], 0: [11025, 12000, 8000]}
+
+
+def mp3_frame_length(audio: bytes, at: int) -> int:
+    """Bytes in the MPEG layer III frame starting at `at`, or 0 when no valid header is there."""
+    if at + 4 > len(audio) or audio[at] != 0xFF or audio[at + 1] & 0xE0 != 0xE0:
+        return 0
+    version = (audio[at + 1] >> 3) & 3
+    layer = (audio[at + 1] >> 1) & 3
+    bitrate = audio[at + 2] >> 4
+    rate = (audio[at + 2] >> 2) & 3
+    if version == 1 or layer != 1 or bitrate in (0, 15) or rate == 3:
+        return 0
+    padding = (audio[at + 2] >> 1) & 1
+    kbps = MP3_BITRATES[3 if version == 3 else 2][bitrate]
+    per_frame = 144_000 if version == 3 else 72_000
+    return per_frame * kbps // MP3_RATES[version][rate] + padding
+
+
 def is_mp3(audio: bytes) -> bool:
-    """An ID3 tag, or an MPEG audio frame header (eleven sync bits), at the very start."""
-    return audio[:3] == b"ID3" or (len(audio) > 1 and audio[0] == 0xFF and audio[1] & 0xE0 == 0xE0)
+    """An ID3 tag, or two MPEG layer III frames back to back (raw PCM can't pass for both)."""
+    if audio[:3] == b"ID3":
+        return True
+    first = mp3_frame_length(audio, 0)
+    return first > 0 and mp3_frame_length(audio, first) > 0
 
 
 def openrouter_speech(line: str, voice: str, model: str) -> bytes:
