@@ -8,6 +8,7 @@ import {
   type TourTarget,
   tourCopy,
   tourLineId,
+  tourSaidAloud,
   tourSteps,
   tourVoice,
   tourVoicePath,
@@ -238,13 +239,15 @@ export function WelcomeTour({
         : null;
 
   // Read each bubble once, as it appears, in the speaker's recorded voice when there is one.
+  // The voice leaves the child's name out, even the device's (it can be a cloud service).
   const lineId = tourLineId(step, arrived);
   const voice = tourVoice(lineId, buddy);
   const clip = voice ? tourVoicePath(lineId, voice) : null;
+  const aloud = tourSaidAloud(lineId, buddy);
   useEffect(() => {
     if (!open || muted) return;
-    sayLine(line, speaker === "jarso" ? 1.15 : 1, clip);
-  }, [open, muted, line, speaker, clip]);
+    sayLine(aloud, speaker === "jarso" ? 1.15 : 1, clip);
+  }, [open, muted, aloud, speaker, clip]);
   useEffect(() => () => hush(), []);
 
   // Escape skips, like the Skip button.

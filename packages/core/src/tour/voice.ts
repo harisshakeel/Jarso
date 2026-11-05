@@ -4,7 +4,7 @@
 // edited line is simply missing and the device's voice says it instead.
 import { type CoachId, coachIds, coachNames, textHash } from "@jarso/core/learning";
 import { type TourVoice, tourContent, tourTemplate } from "./content";
-import type { TourStep } from "./steps";
+import { buddyName, type TourStep } from "./steps";
 
 /** The line a bubble shows: the step's own, or "<step>-arrive" once its tab has opened. */
 export function tourLineId(step: TourStep, arrived: boolean): string {
@@ -21,11 +21,25 @@ export function tourVoice(lineId: string, buddy: CoachId | null): TourVoice | nu
   return tourContent.voices[lineId] ?? buddy;
 }
 
+/**
+ * A line with the child's name taken out. The tour never says the name out loud: one recording
+ * fits every child that way, and a device's voice can be a cloud service.
+ */
+function withoutName(template: string): string {
+  return template.replace(/,? \{name\}/g, "");
+}
+
 /** The words a recording says: the line without the child's name, with the speaker's own name. */
 export function spokenTourLine(lineId: string, voice: TourVoice): string {
-  return tourTemplate(lineId)
-    .replace(/,? \{name\}/g, "")
-    .replaceAll("{buddy}", voice === "jarso" ? "Jarso" : coachNames[voice]);
+  return withoutName(tourTemplate(lineId)).replaceAll(
+    "{buddy}",
+    voice === "jarso" ? "Jarso" : coachNames[voice],
+  );
+}
+
+/** What is said out loud for a bubble, by a recording or the device's voice: never the name. */
+export function tourSaidAloud(lineId: string, buddy: CoachId | null): string {
+  return withoutName(tourTemplate(lineId)).replaceAll("{buddy}", buddyName(buddy));
 }
 
 /** Where a line's recording is served: /tour/voice/<voice>-<line>-<hash>.mp3 */

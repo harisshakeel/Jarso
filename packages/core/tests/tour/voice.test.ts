@@ -3,6 +3,7 @@ import {
   spokenTourLine,
   tourContent,
   tourLineId,
+  tourSaidAloud,
   tourSteps,
   tourVoice,
   tourVoiceClips,
@@ -57,6 +58,18 @@ describe("spokenTourLine", () => {
     expect(spokenTourLine("streak", "pip")).toBe(
       "This flame is your run. Learn a little every day and watch it grow!",
     );
+  });
+});
+
+describe("tourSaidAloud", () => {
+  it("never says the child's name, even on a line the device reads", () => {
+    expect(tourSaidAloud("jarso-arrive", "pip")).toBe(
+      "Hi! I'm Jarso. Ask me anything about money, any time.",
+    );
+    expect(tourSaidAloud("hello", "bo")).toBe("Hey, I'm Bo! Let's check out your money world.");
+    for (const lineId of Object.keys(tourContent.lines)) {
+      expect(tourSaidAloud(lineId, "zuzu")).not.toMatch(/[{}]/);
+    }
   });
 });
 
