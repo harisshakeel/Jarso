@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { Alert } from "react-native";
+import { Alert, AppState, type AppStateStatus } from "react-native";
 import { runBeforeSignOut } from "@/features/auth";
 import {
   askForPush,
@@ -38,6 +38,7 @@ jest.mock("expo-notifications", () => ({
     return { granted: true, status: "granted" };
   }),
   requestPermissionsAsync: jest.fn(async () => ({ granted: true, status: "granted" })),
+  getDevicePushTokenAsync: jest.fn(async () => ({ type: "android", data: "fcm-1" })),
   getExpoPushTokenAsync: jest.fn(async () => ({ type: "expo", data: "ExponentPushToken[abc]" })),
   unregisterForNotificationsAsync: jest.fn(async () => undefined),
   addPushTokenListener: jest.fn((listener: (token: unknown) => void) => {
@@ -57,6 +58,8 @@ jest.mock("@/features/auth/use-session", () => ({ useSession: () => mockSession 
 const api = apiFetch as jest.Mock;
 const getPermissions = Notifications.getPermissionsAsync as jest.Mock;
 const requestPermissions = Notifications.requestPermissionsAsync as jest.Mock;
+const getDeviceToken = Notifications.getDevicePushTokenAsync as jest.Mock;
+const getExpoToken = Notifications.getExpoPushTokenAsync as jest.Mock;
 
 beforeEach(async () => {
   jest.clearAllMocks();
@@ -89,7 +92,10 @@ describe("registerForPush", () => {
   it("already granted → posts the token without asking", async () => {
     await expect(registerForPush({ userId: "user-1", role: "parent", ask })).resolves.toBe(TOKEN);
     expect(ask).not.toHaveBeenCalled();
-    expect(Notifications.getExpoPushTokenAsync).toHaveBeenCalledWith({ projectId: "project-1" });
+    expect(Notifications.getExpoPushTokenAsync).toHaveBeenCalledWith({
+      projectId: "project-1",
+      devicePushToken: { type: "android", data: "fcm-1" },
+    });
     expect(api).toHaveBeenCalledWith("/api/v1/push/tokens", {
       method: "POST",
       auth: true,
@@ -241,10 +247,8 @@ describe("usePushRegistration", () => {
   it("a rotated token is posted again", async () => {
     await renderHook(() => usePushRegistration());
     await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
-    (Notifications.getExpoPushTokenAsync as jest.Mock).mockResolvedValueOnce({
-      type: "expo",
-      data: ROTATED,
-    });
+    getDeviceToken.mockResolvedValueOnce({ type: "android", data: "fcm-2" });
+    getExpoToken.mockResolvedValueOnce({ type: "expo", data: ROTATED });
     mockTokenListener?.({ type: "android", data: "fcm-2" });
     await waitFor(() =>
       expect(api).toHaveBeenLastCalledWith("/api/v1/push/tokens", {
@@ -255,13 +259,61 @@ describe("usePushRegistration", () => {
     );
   });
 
-  it("the same device token again (Android echoes every token fetch) posts nothing more", async () => {
+  it("Android's echo of our own token fetch posts nothing more, then or later", async () => {
+    // As on Android: fetching the token also fires the token listener with it.
+    getDeviceToken.mockImplementationOnce(async () => {
+      mockTokenListener?.({ type: "android", data: "fcm-1" });
+      return { type: "android", data: "fcm-1" };
+    });
     await renderHook(() => usePushRegistration());
     await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
     mockTokenListener?.({ type: "android", data: "fcm-1" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(api).toHaveBeenCalledTimes(1);
+  });
+
+  it("a token that rotates while a sign-up runs is posted once that sign-up ends", async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    api.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+    // The first fetch echoes its own token, as on Android; the second fetch sees the rotation.
+    getDeviceToken
+      .mockImplementationOnce(async () => {
+        mockTokenListener?.({ type: "android", data: "fcm-1" });
+        return { type: "android", data: "fcm-1" };
+      })
+      .mockImplementationOnce(async () => {
+        mockTokenListener?.({ type: "android", data: "fcm-2" });
+        return { type: "android", data: "fcm-2" };
+      });
+    getExpoToken
+      .mockResolvedValueOnce({ type: "expo", data: TOKEN })
+      .mockResolvedValueOnce({ type: "expo", data: ROTATED });
+    await renderHook(() => usePushRegistration());
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    mockTokenListener?.({ type: "android", data: "fcm-2" });
+    finish({ id: "row-1" });
     await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
-    mockTokenListener?.({ type: "android", data: "fcm-1" });
-    mockTokenListener?.({ type: "android", data: "fcm-1" });
+    expect(api).toHaveBeenLastCalledWith("/api/v1/push/tokens", {
+      method: "POST",
+      auth: true,
+      body: { token: ROTATED, platform: "android" },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(api).toHaveBeenCalledTimes(2);
+  });
+
+  it("a sign-up that failed tries again when the app comes back, and only then", async () => {
+    let onAppState: ((state: AppStateStatus) => void) | undefined;
+    jest.spyOn(AppState, "addEventListener").mockImplementationOnce((_type, listener) => {
+      onAppState = listener;
+      return { remove: jest.fn() };
+    });
+    api.mockRejectedValueOnce(new Error("offline"));
+    await renderHook(() => usePushRegistration());
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    onAppState?.("active");
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
+    onAppState?.("active");
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(api).toHaveBeenCalledTimes(2);
   });

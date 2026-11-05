@@ -1,5 +1,6 @@
 import * as Notifications from "expo-notifications";
 import { useEffect, useRef } from "react";
+import { AppState } from "react-native";
 import { registerBeforeSignOut, useSession } from "@/features/auth";
 import {
   askForPush,
@@ -45,28 +46,53 @@ export function usePushRegistration(): void {
     // Aborted when sign-out begins: a registration still running can't post or store after it.
     const signingOut = new AbortController();
     tokenRef.current = null;
+    let registering = false;
+    let registered = false;
+    // The newest token the listener reported, the one the running sign-up fetched, and whether
+    // the listener reported a new token while that sign-up ran.
+    let deviceToken: string | null = null;
+    let fetched: string | null = null;
+    let missed = false;
     const register = () => {
-      if (signingOut.signal.aborted) return Promise.resolve();
-      const pending = registerForPush({
+      if (signingOut.signal.aborted || registering) return;
+      registering = true;
+      fetched = null;
+      missed = false;
+      pendingRef.current = registerForPush({
         userId,
         role,
         ask: askForPush,
         signal: signingOut.signal,
-      }).then((token) => {
-        if (active && token) tokenRef.current = token;
-      });
-      pendingRef.current = pending;
-      return pending;
+        onDeviceToken: (token) => {
+          fetched = token;
+        },
+      })
+        .then((token) => {
+          registered = token !== null;
+          if (active && token) tokenRef.current = token;
+        })
+        .finally(() => {
+          registering = false;
+          // The token rotated while this ran: the one it posted is already old.
+          if (active && missed && fetched && deviceToken !== fetched) register();
+        });
     };
-    void register();
+    register();
 
     // Android fires this on every token fetch too, ours included: only a new token is a rotation,
-    // else each registration would set off the next one, forever.
-    let deviceToken: string | null = null;
+    // else each registration would set off the next one, forever. Our own fetch's event lands
+    // while its registration is still running, so `register` skips it; a real rotation then is
+    // posted once that sign-up ends.
     const tokens = Notifications.addPushTokenListener(({ data }) => {
       if (data === deviceToken) return;
       deviceToken = data;
-      void register();
+      if (registering) missed = true;
+      register();
+    });
+    // A sign-up that came to nothing (offline, a failed POST, notifications off) tries again when
+    // the app comes back: cheap, it asks the user nothing more and posts only once allowed.
+    const foreground = AppState.addEventListener("change", (state) => {
+      if (state === "active" && !registered) register();
     });
     const dispose = registerBeforeSignOut(async function dropPushToken() {
       signingOut.abort();
@@ -82,6 +108,7 @@ export function usePushRegistration(): void {
     return () => {
       active = false;
       tokens.remove();
+      foreground.remove();
       dispose();
     };
   }, [role, userId]);
