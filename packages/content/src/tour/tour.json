@@ -1,0 +1,25 @@
+{
+  "lines": {
+    "pick": "Hi {name}! Pick a buddy to show you around.",
+    "hello": "Hey {name}, I'm {buddy}! Let's check out your money world.",
+    "streak": "This flame is your run. Learn a little every day and watch it grow!",
+    "next-step": "Not sure what to do? This card always shows your one next move.",
+    "road": "Seven missions to become a money pro. Your jar shows where you are.",
+    "spend": "Your Spend jar. This is money you can use right now.",
+    "save": "Your Save jar. Money you keep, growing toward something big.",
+    "goal": "And here's your goal. Every coin you save gets you closer!",
+    "diary": "Tap Diary!",
+    "diary-arrive": "Your Diary. Write down what you buy and see where your money went.",
+    "learn": "Now tap Learn!",
+    "learn-arrive": "Your mission road. Tap the glowing stop to play.",
+    "jarso": "Tap Jarso. Someone wants to say hi!",
+    "jarso-arrive": "Hi {name}! I'm Jarso. Ask me anything about money, any time.",
+    "inbox": "Last one. Tap Notifications!",
+    "inbox-arrive": "Your big moments and messages from your parent land here.",
+    "finish": "You're all set, {name}! Watch this again any time from Me."
+  },
+  "voices": {
+    "pick": "nell"
+  },
+  "deviceVoice": ["jarso-arrive"]
+}

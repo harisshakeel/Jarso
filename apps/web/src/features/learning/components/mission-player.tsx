@@ -12,6 +12,7 @@ import type {
 import {
   attemptSummary,
   bodyFor,
+  coaches,
   coachFor,
   type Draft,
   describeAnswer,
@@ -62,6 +63,7 @@ import { startMissionAction } from "../server/actions";
 import { Blackboard } from "./blackboard";
 import { CoachBubble } from "./coach-bubble";
 import { type CurrentStep, CurrentStepContext, publishShownStep } from "./current-step";
+import { useLessonBuddy } from "./lesson-buddy";
 import { filmScenes } from "./lesson-film/film-scenes";
 import { primeFilmVoice } from "./lesson-film/film-voice";
 import { LessonFilm } from "./lesson-film/lesson-film";
@@ -778,8 +780,10 @@ function StepView({
 
   const locked = outcome !== null || saving;
   const hints = body.hints;
-  // The same step always brings the same coach back, replay or refresh.
-  const coach = coachFor(item.step.key);
+  // The buddy the child picked on the welcome tour coaches every step (2026-11-06); before
+  // they pick one, the same step always brings the same coach back, replay or refresh.
+  const buddy = useLessonBuddy();
+  const coach = buddy ? coaches[buddy] : coachFor(item.step.key);
 
   return (
     <CurrentStepContext.Provider value={current}>

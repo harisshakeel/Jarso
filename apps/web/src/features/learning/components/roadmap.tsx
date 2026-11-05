@@ -64,7 +64,7 @@ export function Roadmap({ journey }: { journey: JourneyMission[] }) {
   const pct = (value: number, of: number) => `${(value / of) * 100}%`;
 
   return (
-    <section aria-labelledby="road-heading" className="grid gap-3">
+    <section aria-labelledby="road-heading" data-tour="learn" className="grid gap-3">
       <h2 id="road-heading" className="sr-only">
         {roadmapCopy.heading}
       </h2>
