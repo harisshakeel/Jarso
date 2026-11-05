@@ -22,6 +22,8 @@ export type BottomNavItem = {
    * it another way, so the bar stays five wide.
    */
   railOnly?: boolean;
+  /** What the welcome tour calls this tab (`data-tour`), so it can glow. */
+  tour?: string;
 };
 
 const matches = (pathname: string, href: string) =>
@@ -99,11 +101,12 @@ export function BottomNav({
 }
 
 function NavTab({ item, active }: { item: BottomNavItem; active: boolean }) {
-  const { href, label, icon: Icon, count, tone = "teal" } = item;
+  const { href, label, icon: Icon, count, tone = "teal", tour } = item;
   return (
     <li className="flex flex-1 md:flex-none">
       <Link
         href={href}
+        data-tour={tour}
         aria-current={active ? "page" : undefined}
         className={cn(
           "my-1.5 flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-2xl font-semibold text-xs transition-colors",

@@ -82,13 +82,15 @@ async function ChildHome() {
           <Suspense fallback={null}>
             <HomePlan childId={user.id} currency={family.currency} />
           </Suspense>
-          <Suspense fallback={<Skeleton className="h-56" />}>
-            <HomeGoal
-              childId={user.id}
-              currency={family.currency}
-              allowanceMinor={allowanceMinor}
-            />
-          </Suspense>
+          <div data-tour="goal">
+            <Suspense fallback={<Skeleton className="h-56" />}>
+              <HomeGoal
+                childId={user.id}
+                currency={family.currency}
+                allowanceMinor={allowanceMinor}
+              />
+            </Suspense>
+          </div>
         </div>
       </div>
     </>
@@ -132,21 +134,25 @@ async function HomeStep({
             aria-label="Learning today"
             className="grid gap-5 md:grid-cols-[auto_minmax(0,1fr)] lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,22rem)] lg:items-center lg:gap-8"
           >
-            <StreakBadge points={learning.points} streak={learning.streak} />
-            <HomeStepCard
-              bare
-              step={step}
-              currency={currency}
-              takeOutLimitMinor={takeOutLimit(availability)}
-              goalSheet={{
-                goal: goal?.goal ?? null,
-                currency,
-                allowanceMinor,
-                saveMinor: availability.saveMinor,
-                reservedMinor: availability.reservedSaveMinor,
-              }}
-            />
-            <div className="md:col-span-2 lg:col-span-1">
+            <div data-tour="streak">
+              <StreakBadge points={learning.points} streak={learning.streak} />
+            </div>
+            <div data-tour="next-step" className="min-w-0">
+              <HomeStepCard
+                bare
+                step={step}
+                currency={currency}
+                takeOutLimitMinor={takeOutLimit(availability)}
+                goalSheet={{
+                  goal: goal?.goal ?? null,
+                  currency,
+                  allowanceMinor,
+                  saveMinor: availability.saveMinor,
+                  reservedMinor: availability.reservedSaveMinor,
+                }}
+              />
+            </div>
+            <div data-tour="road" className="md:col-span-2 lg:col-span-1">
               <MiniRoad journey={learning.journey} />
             </div>
           </section>

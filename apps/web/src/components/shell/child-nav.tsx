@@ -12,10 +12,28 @@ import { NavBrand } from "./nav-brand";
 // section colour (design.md §2.7).
 const items: BottomNavItem[] = [
   { href: routes.child, label: "Home", icon: HomeIcon, tone: "teal" },
-  { href: routes.childDiary, label: "Diary", icon: NotebookPenIcon, tone: "gold" },
-  { href: routes.childLearn, label: "Learn", icon: GraduationCapIcon, tone: "cyan" },
-  { href: routes.childJarso, label: "Jarso", icon: SparklesIcon, tone: "grape" },
-  { href: routes.childInbox, label: "Notifications", icon: BellIcon, tone: "teal" },
+  {
+    href: routes.childDiary,
+    label: "Diary",
+    icon: NotebookPenIcon,
+    tone: "gold",
+    tour: "tab-diary",
+  },
+  {
+    href: routes.childLearn,
+    label: "Learn",
+    icon: GraduationCapIcon,
+    tone: "cyan",
+    tour: "tab-learn",
+  },
+  { href: routes.childJarso, label: "Jarso", icon: SparklesIcon, tone: "grape", tour: "tab-jarso" },
+  {
+    href: routes.childInbox,
+    label: "Notifications",
+    icon: BellIcon,
+    tone: "teal",
+    tour: "tab-inbox",
+  },
 ];
 
 /** The child's navigation. `unread` badges the Notifications tab. */

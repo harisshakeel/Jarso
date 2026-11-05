@@ -21,6 +21,11 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  /** The child's welcome tour on their first visit (2026-11-06). On unless "false" (e2e turns it off). */
+  FEATURE_WELCOME_TOUR: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
   /** Daily spend cap across all children, in US cents; the guide pauses when it is reached. */
   GUIDE_DAILY_BUDGET_CENTS: z.coerce.number().int().positive().default(1000),
   /** Monthly spend cap across all children, in US cents (calendar month, UTC). */

@@ -44,7 +44,7 @@ function when(on: string, today: string): string {
  */
 export function BigMoments({ items, today }: { items: Moment[]; today: string }) {
   return (
-    <section aria-labelledby="big-moments-title" className="grid gap-2">
+    <section aria-labelledby="big-moments-title" data-tour="inbox" className="grid gap-2">
       <h2 id="big-moments-title" className="text-h3">
         {momentsCopy.heading}
       </h2>

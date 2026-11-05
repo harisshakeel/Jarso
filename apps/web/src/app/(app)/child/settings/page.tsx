@@ -3,7 +3,7 @@ import { LogOutIcon, PaletteIcon, UserRoundIcon } from "lucide-react";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { Suspense } from "react";
-import { CoachSays } from "@/components/brand";
+import { CoachHead, CoachSays } from "@/components/brand";
 import { PageContainer, PageHeader, PageSkeleton, toneIcon } from "@/components/layout";
 import { SlowFallback } from "@/components/shell";
 import { SoundsToggle } from "@/components/sounds";
@@ -15,6 +15,9 @@ import { getChildNickname, requireRole } from "@/features/family/server";
 import { MemoryList } from "@/features/guide";
 import { getGuideState, getMemories } from "@/features/guide/server";
 import { PushToggle } from "@/features/notifications";
+import { ReplayTourButton } from "@/features/tour";
+import { getTour } from "@/features/tour/server";
+import { fallback } from "@/lib";
 
 export const metadata: Metadata = { title: "Me" };
 
@@ -23,10 +26,11 @@ const rise = (index: number) => ({ "--rise-index": index }) as CSSProperties;
 async function ChildSettings() {
   const { user } = await requireRole("child", routes.childSettings);
   // Memories show whenever any exist, even with Jarso off: the child can always forget them.
-  const [nickname, guide, memories] = await Promise.all([
+  const [nickname, guide, memories, tour] = await Promise.all([
     getChildNickname(),
     getGuideState(user.id),
     getMemories(user.id),
+    fallback(getTour(user.id), { buddy: null, finishedAt: null }, "Tour on Me"),
   ]);
   const showMemories = guide.available || memories.length > 0;
   return (
@@ -40,11 +44,18 @@ async function ChildSettings() {
               <span
                 aria-hidden
                 className={cn(
-                  "grid size-14 shrink-0 place-items-center rounded-full font-extrabold text-h2",
+                  "grid size-14 shrink-0 place-items-center overflow-hidden rounded-full font-extrabold text-h2",
                   toneIcon.teal,
                 )}
               >
-                {nickname ? nickname.charAt(0).toUpperCase() : <UserRoundIcon className="size-7" />}
+                {/* The buddy they picked on the welcome tour (2026-11-06), else their initial. */}
+                {tour.buddy ? (
+                  <CoachHead coach={tour.buddy} size={56} />
+                ) : nickname ? (
+                  nickname.charAt(0).toUpperCase()
+                ) : (
+                  <UserRoundIcon className="size-7" />
+                )}
               </span>
               <div className="grid gap-1">
                 <h2 id="me-you" className="text-h3">
@@ -54,6 +65,9 @@ async function ChildSettings() {
                   {nickname ? `You sign in as ${nickname}.` : "Your nickname is how you sign in."} A
                   parent can change your nickname or PIN.
                 </p>
+                <div className="pt-2">
+                  <ReplayTourButton />
+                </div>
               </div>
             </section>
           </CardContent>
