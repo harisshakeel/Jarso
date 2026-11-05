@@ -16,10 +16,10 @@ appId: app.jarso.mobile
     index: 0
 - scrollUntilVisible:
     element:
-      text: "Pay by card|Pay with Stripe"
+      text: "Pay with Stripe"
     direction: DOWN
     timeout: 20000
-- tapOn: "Pay by card|Pay with Stripe"
+- tapOn: "Pay with Stripe"
 - runFlow: stripe-card.yaml
   env:
     CARD_NUMBER: "4000002760003184"

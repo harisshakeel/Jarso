@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { Modal, Pressable, View } from "react-native";
 import { KeyboardAvoidingView } from "@/components/screen";
 import { Text } from "@/components/ui";
-import { cn } from "@/lib";
 
 /**
  * Jarso's own short sheet before a provider's (mockup I): a scrim, a grab handle, an h2 title
@@ -48,44 +47,5 @@ export function BottomSheet({
         </View>
       </KeyboardAvoidingView>
     </Modal>
-  );
-}
-
-/** A two-or-more option choice (mockup I's provider pick): one radio per option, 48 dp tall. */
-export function SegmentedChoice<T extends string>({
-  options,
-  value,
-  onChange,
-  disabled,
-}: {
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (value: T) => void;
-  disabled: boolean;
-}) {
-  return (
-    <View accessibilityRole="radiogroup" className="flex-row gap-2">
-      {options.map((option) => {
-        const on = option.value === value;
-        return (
-          <Pressable
-            key={option.value}
-            accessibilityRole="radio"
-            accessibilityLabel={option.label}
-            accessibilityState={{ checked: on, disabled }}
-            disabled={disabled}
-            onPress={() => onChange(option.value)}
-            className={cn(
-              "min-h-12 flex-1 items-center justify-center rounded-xl px-3",
-              on ? "bg-primary" : "bg-muted",
-            )}
-          >
-            <Text className={cn("font-sans-bold", on && "text-primary-foreground")}>
-              {option.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
   );
 }

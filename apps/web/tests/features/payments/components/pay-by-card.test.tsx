@@ -33,15 +33,15 @@ function renderPay(state: Partial<CardPaymentState> = {}, split = { cash: 300, s
 }
 
 describe("PayByCard", () => {
-  it("offers Pay by card when a card can pay", () => {
+  it("offers a row named after the provider when a card can pay", () => {
     renderPay();
-    expect(screen.getByRole("button", { name: "Pay by card" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Pay with Test card" })).toBeEnabled();
   });
 
   it("starts a card payment for the full amount with the split", async () => {
     startCardPaymentAction.mockResolvedValue({ ok: true, data: undefined });
     renderPay();
-    fireEvent.click(screen.getByRole("button", { name: "Pay by card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pay with Test card" }));
     await waitFor(() =>
       expect(startCardPaymentAction).toHaveBeenCalledWith(null, {
         kind: "allowance",
@@ -59,7 +59,7 @@ describe("PayByCard", () => {
       error: { code: "UNAVAILABLE", message: "Card payments aren't available right now." },
     });
     renderPay();
-    fireEvent.click(screen.getByRole("button", { name: "Pay by card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pay with Test card" }));
     expect(await screen.findByText("Card payments aren't available right now.")).toBeVisible();
   });
 
@@ -72,7 +72,7 @@ describe("PayByCard", () => {
   const stripe = { id: "stripe" as const, label: "Stripe" };
   const razorpay = { id: "razorpay" as const, label: "Razorpay" };
 
-  it("offers one button per provider that can pay, named after it", async () => {
+  it("offers one row per provider that can pay, named after it", async () => {
     startCardPaymentAction.mockResolvedValue({ ok: true, data: undefined });
     renderPay({
       providers: [
@@ -100,7 +100,7 @@ describe("PayByCard", () => {
       ],
     });
     expect(screen.getAllByRole("button")).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: "Pay by card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pay with Test card" }));
     await waitFor(() =>
       expect(startCardPaymentAction).toHaveBeenCalledWith(
         null,
@@ -165,13 +165,13 @@ describe("PayByCard", () => {
 
   it("is disabled while the split doesn't add up to the full amount", () => {
     renderPay({}, { cash: 100, saved: 0 });
-    expect(screen.getByRole("button", { name: "Pay by card" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Pay with Test card" })).toBeDisabled();
     expect(screen.getByText("Card pays the full amount")).toBeInTheDocument();
   });
 
   it("renders nothing when card payments are off", () => {
     renderPay({ providers: [] });
-    expect(screen.queryByRole("button", { name: "Pay by card" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("says a card payment is in progress", () => {
@@ -182,7 +182,7 @@ describe("PayByCard", () => {
   it("blocks a second payment while an auto charge is in flight", () => {
     renderPay({ pending: { provider: "fake", redirectUrl: null } });
     expect(screen.getByText("Card payment in progress")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Pay by card" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Pay with Test card" })).toBeDisabled();
   });
 
   it("tells the parent to refund a card payment that arrived after a cash handover", () => {
@@ -198,5 +198,34 @@ describe("PayByCard", () => {
     renderPay({ lastOutcome: { status: "failed", failureCode: "insufficient_funds" } });
     expect(screen.getByText("Card payment didn't go through")).toBeInTheDocument();
     expect(screen.getByText(/The card didn't have enough money\./)).toBeInTheDocument();
+  });
+
+  it("puts each provider's logo before its name, hidden from assistive tech", () => {
+    renderPay({
+      providers: [
+        { id: "stripe", label: "Stripe", available: true, unavailableReason: null },
+        { id: "razorpay", label: "Razorpay", available: true, unavailableReason: null },
+      ],
+    });
+    for (const [id, label] of [
+      ["stripe", "Stripe"],
+      ["razorpay", "Razorpay"],
+    ] as const) {
+      const button = screen.getByRole("button", { name: `Pay with ${label}` });
+      expect(button.querySelector(`[data-provider-logo="${id}"]`)).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+    }
+  });
+
+  it("shows the provider's name, not Pay by card, with one provider", () => {
+    renderPay({
+      providers: [{ ...razorpay, available: true, unavailableReason: null }],
+    });
+    const button = screen.getByRole("button", { name: "Pay with Razorpay" });
+    expect(button).toHaveTextContent(/^Razorpay$/);
+    expect(button.querySelector('[data-provider-logo="razorpay"]')).toBeInTheDocument();
+    expect(screen.queryByText("Pay by card")).not.toBeInTheDocument();
   });
 });

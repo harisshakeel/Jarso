@@ -14,7 +14,9 @@ import { Field, useSession } from "@/features/auth";
 import { actionErrorMessage, isAppError } from "@/lib";
 import { keys } from "@/lib/query";
 import { setAutoCharge } from "./api";
-import { BottomSheet, SegmentedChoice } from "./bottom-sheet";
+import { BottomSheet } from "./bottom-sheet";
+import { ProviderLogo } from "./provider-logo";
+import { ProviderChoice } from "./provider-rows";
 import { presentSheet, type SheetOutcome, useFakeSheet } from "./sheets";
 import {
   type AutoChargeSlotTarget,
@@ -203,21 +205,17 @@ function AutoChargeBlock({
     setQuestion(savedCards.length > 1 ? { kind: "choose", options: savedCards } : { kind: "save" });
   }
 
-  // While on, name the card it charges (the parent's own) or only its provider (another's).
-  const current = cards.find((card) => card.provider === provider);
-  const named =
-    on && current
-      ? mine && current.card
-        ? paymentCopy.charges(
-            cards.length > 1
-              ? paymentCopy.cardAt(
-                  paymentCopy.cardEnding(current.card.brand, current.card.last4),
-                  current.label,
-                )
-              : paymentCopy.cardEnding(current.card.brand, current.card.last4),
-          )
-        : paymentCopy.chargesOther(current.label)
-      : null;
+  // While on, the card it charges on its own line: the parent's own by brand and last four, with
+  // the provider it's saved with; another parent's by provider only.
+  const current = on ? cards.find((card) => card.provider === provider) : undefined;
+  const charged = current
+    ? mine && current.card
+      ? {
+          title: paymentCopy.cardEnding(current.card.brand, current.card.last4),
+          detail: paymentCopy.savedWith(current.label),
+        }
+      : { title: paymentCopy.chargesOther(current.label), detail: null }
+    : null;
 
   const detail =
     target.type === "allowance_schedule"
@@ -244,10 +242,22 @@ function AutoChargeBlock({
           onValueChange={toggle}
         />
       </View>
-      {named ? (
+      {current && charged ? (
         <>
           <CardSeparator />
-          <Text>{named}</Text>
+          <View
+            accessible
+            accessibilityLabel={[charged.title, charged.detail].filter(Boolean).join(", ")}
+            className="flex-row items-center gap-3"
+          >
+            <ProviderLogo provider={current.provider} size="sm" />
+            <View className="min-w-0 flex-1 gap-0.5">
+              <Text className="font-sans-bold">{charged.title}</Text>
+              {charged.detail ? (
+                <Text className="text-muted-foreground text-small">{charged.detail}</Text>
+              ) : null}
+            </View>
+          </View>
         </>
       ) : null}
       {later ? <Text accessibilityLiveRegion="polite">{paymentCopy.autoChargeLater}</Text> : null}
@@ -283,6 +293,7 @@ function AutoChargeBlock({
                   void save(true, option.provider);
                 }}
               >
+                <ProviderLogo provider={option.provider} size="sm" />
                 <Text>{label}</Text>
               </Button>
             );
@@ -306,7 +317,7 @@ function AutoChargeBlock({
           onClose={() => setQuestion(null)}
         >
           {usable.length > 1 ? (
-            <SegmentedChoice
+            <ProviderChoice
               options={usable.map((card) => ({ value: card.provider, label: card.label }))}
               value={chosen.provider}
               disabled={pending}
@@ -334,7 +345,7 @@ function AutoChargeBlock({
           ) : null}
           <Notice message={sheetError} />
           <Button
-            accessibilityLabel={paymentCopy.saveWith(chosen.label)}
+            accessibilityLabel={paymentCopy.proceedWith(chosen.label)}
             accessibilityState={{ busy: pending, disabled: pending }}
             disabled={pending}
             onPress={() =>
@@ -344,7 +355,8 @@ function AutoChargeBlock({
             {pending ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text>{paymentCopy.saveWith(chosen.label)}</Text>
+              // The chosen row already shows the provider; the label names it for screen readers.
+              <Text>{paymentCopy.proceed}</Text>
             )}
           </Button>
           <NotNow pending={pending} onPress={() => setQuestion(null)} />

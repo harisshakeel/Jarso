@@ -118,8 +118,16 @@ describe("AutoChargeSlot", () => {
   it("names the card it charges while on", async () => {
     setup([saved("stripe")], onWith("stripe"));
     await renderSlot();
+    // On its own line: the card, the provider it's saved with, and that provider's logo.
+    expect(await screen.findByText(paymentCopy.cardEnding("visa", "4242"))).toBeTruthy();
+    expect(screen.getByText(paymentCopy.savedWith("Stripe"))).toBeTruthy();
     expect(
-      await screen.findByText(paymentCopy.charges(paymentCopy.cardEnding("visa", "4242"))),
+      screen.getByLabelText(
+        `${paymentCopy.cardEnding("visa", "4242")}, ${paymentCopy.savedWith("Stripe")}`,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("provider-logo-stripe", { includeHiddenElements: true }),
     ).toBeTruthy();
     expect(screen.getByText(paymentCopy.testMode)).toBeTruthy();
   });
@@ -135,6 +143,13 @@ describe("AutoChargeSlot", () => {
     await renderSlot();
     await turn(true);
     expect(await screen.findByText(paymentCopy.chooseCardTitle)).toBeTruthy();
+    // Each choice carries its provider's logo.
+    expect(
+      screen.getByTestId("provider-logo-stripe", { includeHiddenElements: true }),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("provider-logo-razorpay", { includeHiddenElements: true }),
+    ).toBeTruthy();
     const label = paymentCopy.cardAt(paymentCopy.cardEnding("visa", "4242"), "Razorpay");
     await userEvent.setup().press(screen.getByRole("button", { name: label }));
     await waitFor(() =>
@@ -153,13 +168,20 @@ describe("AutoChargeSlot", () => {
     await turn(true);
     expect(await screen.findByText(paymentCopy.saveCardTitle)).toBeTruthy();
     expect(screen.getByText(paymentCopy.mandate)).toBeTruthy();
-    // Stripe is first: no phone needed yet.
+    // Stripe is first and chosen: no phone needed yet.
+    expect(screen.getByRole("radio", { name: "Stripe" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Razorpay" })).not.toBeChecked();
     expect(screen.queryByText(paymentCopy.phoneLabel)).toBeNull();
     const user = userEvent.setup();
     await user.press(screen.getByRole("radio", { name: "Razorpay" }));
+    expect(screen.getByRole("radio", { name: "Razorpay" })).toBeChecked();
+    // The button just says Proceed; its accessible name says which provider.
+    expect(
+      screen.getByRole("button", { name: paymentCopy.proceedWith("Razorpay") }),
+    ).toHaveTextContent(paymentCopy.proceed);
     expect(screen.getByText(paymentCopy.phoneHelp("Razorpay"))).toBeTruthy();
     await user.type(screen.getByLabelText(paymentCopy.phoneLabel), "+910000000000");
-    await user.press(screen.getByRole("button", { name: paymentCopy.saveWith("Razorpay") }));
+    await user.press(screen.getByRole("button", { name: paymentCopy.proceedWith("Razorpay") }));
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith({
         type: "allowance_schedule",
@@ -183,7 +205,7 @@ describe("AutoChargeSlot", () => {
     await turn(true);
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText(paymentCopy.phoneLabel), "12");
-    await user.press(screen.getByRole("button", { name: paymentCopy.saveWith("Razorpay") }));
+    await user.press(screen.getByRole("button", { name: paymentCopy.proceedWith("Razorpay") }));
     expect(await screen.findByText(paymentCopy.phoneInvalid)).toBeTruthy();
     expect(screen.getByText(paymentCopy.saveCardTitle)).toBeTruthy();
     expect(present).not.toHaveBeenCalled();
@@ -208,7 +230,7 @@ describe("AutoChargeSlot", () => {
       present.mockResolvedValue("completed");
       await renderSlot();
       await turn(true);
-      const save = await screen.findByRole("button", { name: paymentCopy.saveWith("Stripe") });
+      const save = await screen.findByRole("button", { name: paymentCopy.proceedWith("Stripe") });
       await act(async () => {
         fireEvent.press(save);
       });
@@ -232,7 +254,7 @@ describe("AutoChargeSlot", () => {
     await turn(true);
     await userEvent
       .setup()
-      .press(await screen.findByRole("button", { name: paymentCopy.saveWith("Stripe") }));
+      .press(await screen.findByRole("button", { name: paymentCopy.proceedWith("Stripe") }));
     expect(await screen.findByText(paymentCopy.cardFormFailed)).toBeTruthy();
     expect(screen.queryByText(paymentCopy.saveCardTitle)).toBeNull();
     expect(screen.getByRole("switch", { name: paymentCopy.autoCharge }).props.value).toBe(false);

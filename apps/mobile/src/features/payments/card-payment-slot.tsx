@@ -14,6 +14,7 @@ import { actionErrorMessage, flash } from "@/lib";
 import { keys } from "@/lib/query";
 import { cancelInAppPayment, startInAppPayment } from "./api";
 import { CardNote } from "./card-note";
+import { ProviderRow } from "./provider-rows";
 import { presentSheet, type SheetOutcome, useFakeSheet } from "./sheets";
 import { usePaymentProviders } from "./use-payment-providers";
 import { usePaymentStatus } from "./use-payment-status";
@@ -46,8 +47,8 @@ const failedLine = (code: keyof typeof failureCopy | null) =>
 
 /**
  * Paying a handover by card in the native sheet (mockups D, F, G), the web's `PayByCard` and
- * `PaymentStatusNote`. One button per provider that can take the amount. After the sheet the
- * block reads the status back from the server and shows only what the server says: the phone
+ * `PaymentStatusNote`. One row per provider that can take the amount (logo and name). After the
+ * sheet the block reads the status back from the server and shows only what the server says: the phone
  * never reports a payment as paid. A sheet closed early leaves the payment in progress, with
  * Pay again (the server reuses the same intent) and Cancel where the provider can cancel it.
  * Renders nothing when card payments are off. Parents only.
@@ -183,13 +184,6 @@ function ChooseProvider({
       : state.providers.some((p) => p.unavailableReason === "too_small")
         ? paymentCopy.tooSmall
         : paymentCopy.unsupportedCurrency;
-  const buttons =
-    available.length > 0
-      ? available.map((p) => ({
-          id: p.id as PaymentProviderId | null,
-          label: available.length === 1 ? paymentCopy.payByCard : paymentCopy.payWith(p.label),
-        }))
-      : [{ id: null, label: paymentCopy.payByCard }];
   const last = state.lastOutcome;
 
   return (
@@ -206,21 +200,28 @@ function ChooseProvider({
       ) : last?.status === "succeeded_unapplied" ? (
         <CardNote tone="warn" title={paymentCopy.unapplied} />
       ) : null}
-      {buttons.map((button) => {
-        const disabled = busy || button.id === null || !fullAmount;
-        return (
-          <Button
-            key={button.id ?? "none"}
-            variant="outline"
-            accessibilityLabel={button.label}
-            accessibilityState={{ busy, disabled }}
-            disabled={disabled}
-            onPress={() => button.id && onPay(button.id)}
-          >
-            <Text>{button.label}</Text>
-          </Button>
-        );
-      })}
+      {available.length > 0 ? (
+        available.map((p) => (
+          <ProviderRow
+            key={p.id}
+            provider={p.id}
+            label={p.label}
+            accessibilityLabel={paymentCopy.payWith(p.label)}
+            busy={busy}
+            disabled={busy || !fullAmount}
+            onPress={() => onPay(p.id)}
+          />
+        ))
+      ) : (
+        <Button
+          variant="outline"
+          accessibilityLabel={paymentCopy.payByCard}
+          accessibilityState={{ disabled: true }}
+          disabled
+        >
+          <Text>{paymentCopy.payByCard}</Text>
+        </Button>
+      )}
       {reason || !fullAmount ? (
         <Text className="text-muted-foreground text-small">{reason ?? paymentCopy.fullAmount}</Text>
       ) : null}

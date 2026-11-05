@@ -18,10 +18,10 @@ appId: app.jarso.mobile
     index: 0
 - scrollUntilVisible:
     element:
-      text: "Pay by card|Pay with Razorpay"
+      text: "Pay with Razorpay"
     direction: DOWN
     timeout: 20000
-- tapOn: "Pay by card|Pay with Razorpay"
+- tapOn: "Pay with Razorpay"
 - runFlow: razorpay-card.yaml
 - extendedWaitUntil:
     visible: "Payment received\\.|Your family"

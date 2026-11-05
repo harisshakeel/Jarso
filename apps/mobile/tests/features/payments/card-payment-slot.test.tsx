@@ -118,11 +118,14 @@ describe("CardPaymentSlot", () => {
     expect(screen.toJSON()).toBeNull();
   });
 
-  it("shows Pay by card with one provider, and the test-mode line", async () => {
+  it("shows one row per provider, by name, with the action for screen readers", async () => {
     (getPaymentProviders as jest.Mock).mockResolvedValue(item());
     await renderSlot();
     expect(await screen.findByText(paymentCopy.orPayByCard)).toBeTruthy();
-    expect(screen.getByRole("button", { name: paymentCopy.payByCard })).toBeTruthy();
+    // The row shows the provider's name; its accessible name keeps the verb.
+    expect(screen.getByText("Stripe")).toBeTruthy();
+    expect(screen.getByRole("button", { name: paymentCopy.payWith("Stripe") })).toBeTruthy();
+    expect(screen.queryByText(paymentCopy.payByCard)).toBeNull();
     expect(screen.getByText(paymentCopy.testMode)).toBeTruthy();
     expect(getPaymentProviders).toHaveBeenCalledWith({
       childId: CHILD,
@@ -131,13 +134,22 @@ describe("CardPaymentSlot", () => {
     });
   });
 
-  it("shows Pay with Stripe and Pay with Razorpay when both are on", async () => {
+  it("shows a Stripe row and a Razorpay row, each with its logo, when both are on", async () => {
     (getPaymentProviders as jest.Mock).mockResolvedValue(
       item({ providers: [provider("stripe", "Stripe"), provider("razorpay", "Razorpay")] }),
     );
     await renderSlot();
     expect(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") })).toBeTruthy();
     expect(screen.getByRole("button", { name: paymentCopy.payWith("Razorpay") })).toBeTruthy();
+    expect(screen.getByText("Razorpay")).toBeTruthy();
+    // Each row carries its provider's logo, hidden from screen readers.
+    expect(
+      screen.getByTestId("provider-logo-stripe", { includeHiddenElements: true }),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("provider-logo-razorpay", { includeHiddenElements: true }),
+    ).toBeTruthy();
+    expect(screen.queryByTestId("provider-logo-stripe")).toBeNull();
   });
 
   it("says why when no provider can take the amount", async () => {
@@ -161,7 +173,7 @@ describe("CardPaymentSlot", () => {
     await renderSlot();
     await userEvent
       .setup()
-      .press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+      .press(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") }));
     expect(await screen.findByText(paymentCopy.received)).toBeTruthy();
     expect(start).toHaveBeenCalledTimes(1);
     expect(present).toHaveBeenCalledWith(sheet, expect.anything());
@@ -175,7 +187,7 @@ describe("CardPaymentSlot", () => {
     await renderSlot();
     await userEvent
       .setup()
-      .press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+      .press(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") }));
     expect(await screen.findByText(paymentCopy.confirming)).toBeTruthy();
   });
 
@@ -202,11 +214,11 @@ describe("CardPaymentSlot", () => {
     (cancelInAppPayment as jest.Mock).mockResolvedValue({ canceled: true });
     await renderSlot();
     const user = userEvent.setup();
-    await user.press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+    await user.press(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") }));
     await user.press(await screen.findByRole("button", { name: paymentCopy.cancelPayment }));
     await waitFor(() => expect(cancelInAppPayment).toHaveBeenCalledWith("p1"));
     await waitFor(() => expect(flash).toHaveBeenCalledWith(paymentCopy.cancelled));
-    expect(await screen.findByRole("button", { name: paymentCopy.payByCard })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") })).toBeTruthy();
   });
 
   it("offers no Cancel for a Razorpay order, only Pay again on the same order", async () => {
@@ -223,7 +235,7 @@ describe("CardPaymentSlot", () => {
     read.mockResolvedValue(status("pending"));
     await renderSlot();
     const user = userEvent.setup();
-    await user.press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+    await user.press(await screen.findByRole("button", { name: paymentCopy.payWith("Razorpay") }));
     expect(await screen.findByText(paymentCopy.pendingTitle)).toBeTruthy();
     // Razorpay orders can't be cancelled: it stays open until it expires.
     expect(screen.queryByRole("button", { name: paymentCopy.cancelPayment })).toBeNull();
@@ -244,7 +256,7 @@ describe("CardPaymentSlot", () => {
     });
     await renderSlot();
     const user = userEvent.setup();
-    await user.press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+    await user.press(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") }));
     await user.press(await screen.findByRole("button", { name: paymentCopy.cancelPayment }));
     expect(await screen.findByText(paymentCopy.received)).toBeTruthy();
     expect(flash).not.toHaveBeenCalledWith(paymentCopy.cancelled);
@@ -258,7 +270,7 @@ describe("CardPaymentSlot", () => {
       read.mockResolvedValue(status("pending"));
       await renderSlot();
       await act(async () => {
-        fireEvent.press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+        fireEvent.press(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") }));
       });
       await act(async () => {
         await jest.advanceTimersByTimeAsync(125_000);
@@ -300,7 +312,7 @@ describe("CardPaymentSlot", () => {
     await renderSlot();
     await userEvent
       .setup()
-      .press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+      .press(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") }));
     expect(await screen.findByText(paymentCopy.failedTitle)).toBeTruthy();
     expect(screen.getByText(failureCopy.insufficient_funds)).toBeTruthy();
     expect(screen.getByRole("button", { name: paymentCopy.payAgain })).toBeTruthy();
@@ -312,7 +324,7 @@ describe("CardPaymentSlot", () => {
     read.mockResolvedValue(status("expired"));
     await renderSlot();
     const user = userEvent.setup();
-    await user.press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+    await user.press(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") }));
     await waitFor(() => expect(read).toHaveBeenCalled());
     expect(await screen.findByText(paymentCopy.orPayByCard)).toBeTruthy();
     expect(screen.queryByText(paymentCopy.pendingTitle)).toBeNull();
@@ -325,7 +337,7 @@ describe("CardPaymentSlot", () => {
     await renderSlot({ split: { spendMinor: 300, saveMinor: 200 } });
     await userEvent
       .setup()
-      .press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+      .press(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") }));
     await waitFor(() =>
       expect(start).toHaveBeenCalledWith({
         kind: "allowance",
@@ -340,7 +352,7 @@ describe("CardPaymentSlot", () => {
   it("waits for the full amount when the split is short", async () => {
     (getPaymentProviders as jest.Mock).mockResolvedValue(item());
     await renderSlot({ split: { spendMinor: 300, saveMinor: 100 } });
-    const button = await screen.findByRole("button", { name: paymentCopy.payByCard });
+    const button = await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") });
     expect(button.props.accessibilityState).toMatchObject({ disabled: true });
     expect(screen.getByText(paymentCopy.fullAmount)).toBeTruthy();
   });
@@ -351,7 +363,7 @@ describe("CardPaymentSlot", () => {
     await renderSlot();
     await userEvent
       .setup()
-      .press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+      .press(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") }));
     expect(await screen.findByText(paymentCopy.cardFormFailed)).toBeTruthy();
   });
 
@@ -361,7 +373,7 @@ describe("CardPaymentSlot", () => {
     await renderSlot();
     await userEvent
       .setup()
-      .press(await screen.findByRole("button", { name: paymentCopy.payByCard }));
+      .press(await screen.findByRole("button", { name: paymentCopy.payWith("Stripe") }));
     expect(await screen.findByText(paymentCopy.inProgress)).toBeTruthy();
     expect(present).not.toHaveBeenCalled();
   });

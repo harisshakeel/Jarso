@@ -102,9 +102,10 @@ async function occurrenceStatus(id: string): Promise<string> {
   return data.status;
 }
 
-// A developer's env may turn Stripe on beside the fake: then the buttons name their provider.
-const PAY_WITH_FAKE = /^(Pay by card|Pay with Test card)$/;
-const SAVE_WITH_FAKE = /^(Save a card|Save with Test card)$/;
+// Each provider's row is read as "Pay with {label}", and the save dialog's Proceed as "Proceed
+// with {label}". A developer's env may turn Stripe on beside the fake: the fake is then picked.
+const PAY_WITH_FAKE = "Pay with Test card";
+const SAVE_WITH_FAKE = "Proceed with Test card";
 
 const handoverPath = (childId: string, id: string) =>
   `/parent/children/${childId}/handover/allowance/${id}`;
@@ -121,6 +122,9 @@ async function turnOnAutoCharge(
   const toggle = page.getByRole("switch", { name: "Auto charge" });
   await expect(toggle).toHaveAttribute("aria-checked", "false");
   await toggle.click();
+  // With another provider on too, the dialog lists them as radio rows: pick the fake.
+  const fakeRow = page.getByRole("radio", { name: "Test card" });
+  if ((await fakeRow.count()) > 0) await fakeRow.check();
   await page.getByRole("button", { name: SAVE_WITH_FAKE }).click();
   await expect(page).toHaveURL(onFakeCheckout);
   await page.getByRole("button", { name: card }).click();

@@ -32,8 +32,8 @@ appId: app.jarso.mobile
 - tapOn: "Mobile number"
 - inputText: ${PARENT_MOBILE}
 - hideKeyboard
-- tapOn: "Save with Razorpay"
+- tapOn: "Proceed with Razorpay"
 - runFlow: razorpay-card.yaml
 - extendedWaitUntil:
-    visible: "Charges .*ending.*"
+    visible: ".*ending.*Saved with Razorpay"
     timeout: 30000

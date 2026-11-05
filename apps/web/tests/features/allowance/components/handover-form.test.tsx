@@ -67,9 +67,9 @@ describe("HandoverForm", () => {
     expect(screen.getByRole("status")).toHaveTextContent("less than was due");
   });
 
-  it("offers Pay by card beside the cash button only with a card state", () => {
+  it("offers paying by card beside the cash button only with a card state", () => {
     renderForm();
-    expect(screen.queryByRole("button", { name: "Pay by card" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pay with Test card" })).not.toBeInTheDocument();
     cleanup();
     render(
       <HandoverForm
@@ -89,9 +89,9 @@ describe("HandoverForm", () => {
         }}
       />,
     );
-    expect(screen.getByRole("button", { name: "Pay by card" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Pay with Test card" })).toBeEnabled();
     fireEvent.change(screen.getByLabelText("Spend (cash to Sam)"), { target: { value: "1" } });
-    expect(screen.getByRole("button", { name: "Pay by card" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Pay with Test card" })).toBeDisabled();
   });
 
   it("shows no shortfall for a gift given in full or in part", () => {
