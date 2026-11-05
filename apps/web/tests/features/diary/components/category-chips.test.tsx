@@ -29,7 +29,10 @@ describe("CategoryChips", () => {
   it("names each chip by its label; its icon is a line icon, not an emoji, and hidden", () => {
     const { container } = setup();
     expect(screen.getByRole("radio", { name: "Snacks" })).toBeInTheDocument();
-    expect(container.querySelector('svg[data-category="snacks"]')).toHaveAttribute("aria-hidden", "true");
+    expect(container.querySelector('svg[data-category="snacks"]')).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
     expect(screen.queryByText("🍫")).toBeNull();
   });
 

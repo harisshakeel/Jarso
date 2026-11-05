@@ -88,11 +88,9 @@ function StepBody({ step, currency, takeOutLimitMinor, goalSheet }: HomeStepCard
       );
     case "all-done":
       return (
-        <>
-          <h2 id="home-step-heading" className="text-h3">
-            {goalCopy.home.allDoneTitle}
-          </h2>
-        </>
+        <h2 id="home-step-heading" className="text-h3">
+          {goalCopy.home.allDoneTitle}
+        </h2>
       );
     default:
       return null;

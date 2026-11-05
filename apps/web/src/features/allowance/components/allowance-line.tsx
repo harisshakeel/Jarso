@@ -23,9 +23,12 @@ export function AllowanceLine({ schedule, currency }: AllowanceLineProps) {
           ? `Your pocket money is on a break until ${formatDay(schedule.pausedThrough)}.`
           : "Your pocket money is on a break."
         : `You get ${money(schedule.amountMinor)} ${cadenceAfterAmount(schedule.frequency, schedule.anchorOn)}.`;
+  // A parent's note with a pause ("Back after the holiday") is real news for the child: it stays.
+  const note = schedule?.status === "paused" ? schedule.pauseMessage : null;
   return (
-    <section aria-label="Your pocket money">
+    <section aria-label="Your pocket money" className="grid gap-0.5">
       <p className={schedule?.status === "active" ? "font-semibold" : "text-ink-2"}>{line}</p>
+      {note ? <p className="font-semibold">“{note}”</p> : null}
     </section>
   );
 }

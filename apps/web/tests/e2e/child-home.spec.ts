@@ -135,9 +135,9 @@ test("child sees jars and a revealed gift", async () => {
   await expect(parent.getByText("Paused until a parent resumes it.")).toBeVisible();
 
   await child.reload();
-  await expect(child.getByText("Paused", { exact: true })).toBeVisible();
-  await expect(child.getByText("Paused until a parent resumes it.")).toBeVisible();
-  await expect(child.getByText("Back after the holiday")).toBeVisible();
+  // Plain words (2026-11-06), and the parent's note stays.
+  await expect(child.getByText("Your pocket money is on a break.")).toBeVisible();
+  await expect(child.getByText("“Back after the holiday”")).toBeVisible();
 });
 
 test("child sets a goal and the goal card shows the climb", async () => {
