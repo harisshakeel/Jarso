@@ -2,6 +2,7 @@
 
 export type { Jars as JarBalances } from "@jarso/core/ledger";
 export * from "@jarso/core/ledger";
+export * from "./components/category-icon";
 export * from "./components/diary-highlights";
 export * from "./components/history-list";
 export * from "./components/jar-graph";

@@ -81,7 +81,6 @@ function StepBody({ step, currency, takeOutLimitMinor, goalSheet }: HomeStepCard
           <h2 id="home-step-heading" className="text-h3">
             {goalCopy.home.setGoalTitle}
           </h2>
-          <p className="text-ink-2">{goalCopy.home.setGoalBody}</p>
           <div className="flex">
             <GoalSheet {...goalSheet} goal={null} />
           </div>
@@ -89,12 +88,9 @@ function StepBody({ step, currency, takeOutLimitMinor, goalSheet }: HomeStepCard
       );
     case "all-done":
       return (
-        <>
-          <h2 id="home-step-heading" className="text-h3">
-            {goalCopy.home.allDoneTitle}
-          </h2>
-          <p className="text-ink-2">{goalCopy.home.allDoneBody}</p>
-        </>
+        <h2 id="home-step-heading" className="text-h3">
+          {goalCopy.home.allDoneTitle}
+        </h2>
       );
     default:
       return null;
@@ -130,7 +126,6 @@ function GoalReached({
       <h2 id="home-step-heading" className="text-h3">
         {title}
       </h2>
-      <p className="text-ink-2">{goalCopy.home.reachedBody}</p>
       <div className="flex">
         <TakeOutSheet
           currency={currency}

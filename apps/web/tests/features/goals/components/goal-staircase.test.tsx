@@ -38,8 +38,9 @@ describe("GoalStaircase", () => {
     expect(container.querySelector("[data-coach-at]")).toHaveAttribute("data-coach-at", "6");
     expect(container.querySelector("[data-coach]")).toHaveAttribute("data-coach", "pip");
     expect(container.querySelector("[data-goal-item]")).toHaveTextContent("⚽");
-    expect(screen.getByText("About 5 allowances to go")).toBeInTheDocument();
-    expect(screen.getByText("£26 saved · £19 to go · £4 each allowance")).toBeInTheDocument();
+    // No words under the climb since 2026-11-06: the picture's name above carries the figures.
+    expect(screen.queryByText("About 5 allowances to go")).toBeNull();
+    expect(screen.queryByText("The amounts")).toBeNull();
   });
 
   it("lights the step and cheers once when a quarter mark is passed, never on first paint", () => {
@@ -59,9 +60,9 @@ describe("GoalStaircase", () => {
     expect(container.querySelector("[data-lit]")).toBeNull();
   });
 
-  it("says it is reached and puts the coach on the top step", () => {
+  it("says it is reached in its name and puts the coach on the top step", () => {
     const { container } = render(<GoalStaircase goal={goal} progress={at(4500)} currency="GBP" />);
-    expect(screen.getByText("Reached. Time to ask your parent.")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Football boots/ })).toBeInTheDocument();
     expect(container.querySelector("[data-coach-at]")).toHaveAttribute("data-coach-at", "12");
   });
 });
@@ -78,7 +79,9 @@ describe("GoalCard", () => {
       />,
     );
     expect(screen.getByRole("region", { name: "Your goal" })).toBeInTheDocument();
-    expect(screen.getByText("⚽ Football boots, £45.")).toBeInTheDocument();
+    expect(screen.getByText("⚽ Football boots · £26 of £45")).toBeInTheDocument();
+    expect(screen.getByText("Keep going! 5 more pocket money days")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Football boots, £45/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "See it" })).toHaveAttribute("href", "/child/goal");
   });
 

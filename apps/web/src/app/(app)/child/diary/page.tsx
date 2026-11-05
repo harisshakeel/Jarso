@@ -57,12 +57,16 @@ async function Diary({ searchParams }: PageProps<"/child/diary">) {
         <div className="grid gap-1">
           <h1 className="text-h1">{diaryCopy.heading}</h1>
           {jars ? (
-            <section aria-label={diaryCopy.spendJarLabel} className="text-lg">
-              {diaryCopy.youHave}{" "}
-              <span className="money font-extrabold">
+            // Just the jar and the amount (2026-11-06, simpler for kids): it drops as soon as a
+            // buy is written down, even offline.
+            <section
+              aria-label={diaryCopy.spendJarLabel}
+              className="inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary"
+            >
+              {diaryCopy.spendChip}
+              <span className="money font-extrabold text-lg">
                 {formatMoney(jars.spend, family.currency, { showMinor: "nonzero" })}
-              </span>{" "}
-              {diaryCopy.inSpend}
+              </span>
             </section>
           ) : null}
         </div>

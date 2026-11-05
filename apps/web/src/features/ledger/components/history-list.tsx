@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 import { CoachSays } from "@/components/brand";
 import { Card, CardContent } from "@/components/ui";
 import { cn, formatMoney } from "@/lib";
+import { CategoryIcon } from "./category-icon";
 
 const JAR_NAME = { spend: "Spend", save: "Save" } as const;
 
@@ -198,7 +199,7 @@ export function HistoryList({
           {renderTag ? renderTag(item) : null}
           <span className="flex min-w-0 items-center gap-1.5 font-semibold">
             {item.kind === "purchase" || item.kind === "received" ? (
-              <span aria-hidden>{categoryOf(item.category, item.kind).emoji}</span>
+              <CategoryIcon category={item.category} kind={item.kind} className="text-ink-2" />
             ) : null}
             <span className="truncate">{title(item, skippedLabel)}</span>
           </span>

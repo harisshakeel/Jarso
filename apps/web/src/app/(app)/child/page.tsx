@@ -30,8 +30,9 @@ export const metadata: Metadata = { title: "Home" };
 /**
  * The child's Home, learning first (2026-11-04): one card with the run and points as a big
  * number, the one next thing and the seven missions as a short line; then the money (jars, one
- * gold keycap to record a purchase, the allowance in a line) and the goal. How the jars moved
- * and pending purchases are on the Diary.
+ * gold keycap to record a purchase) and the goal. How the jars moved and pending purchases
+ * are on the Diary. Simpler for kids (2026-11-06): short plain lines (the pocket money, the
+ * goal's progress) under clear headings, no captions under the jars, no explanation lines.
  * Ask Jarso has its own page (the Jarso tab). The week and the
  * skills live on Learn. requireRole sends signed-out users to the PIN sign-in and parents home.
  */

@@ -1,4 +1,4 @@
-import { type GoalView, goalCopy } from "@jarso/core/goals";
+import { type GoalView, goalCheer, goalCopy } from "@jarso/core/goals";
 import { ChevronRightIcon, TargetIcon } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
@@ -49,8 +49,19 @@ export function GoalCard({
           </div>
           {goal ? (
             <>
+              {/* One plain line (2026-11-06): what it is and how far, e.g. "🎧 Gaming PC ·
+                  US$250 of US$800", or "Saved up!" once it is reached. */}
               <p className="text-center font-semibold">
-                {goalCopy.card.title(goal.goal.emoji, goal.goal.name, money(goal.goal.targetMinor))}
+                {goalCopy.card.progress(
+                  goal.goal.emoji,
+                  goal.goal.name,
+                  goal.progress.reached
+                    ? null
+                    : goalCopy.card.ofTarget(
+                        money(goal.progress.countedMinor),
+                        money(goal.goal.targetMinor),
+                      ),
+                )}
               </p>
               <GoalStaircase
                 goal={goal.goal}
@@ -58,6 +69,9 @@ export function GoalCard({
                 currency={currency}
                 size="compact"
               />
+              <p className="text-balance text-center font-bold text-gold-text">
+                {goalCheer(goal.progress, money)}
+              </p>
             </>
           ) : (
             <div className="grid justify-items-center gap-3 text-center">

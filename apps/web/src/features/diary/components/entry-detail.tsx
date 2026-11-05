@@ -23,7 +23,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui";
-import { categoryOf, type HistoryItem } from "@/features/ledger";
+import { CategoryIcon, categoryOf, type HistoryItem } from "@/features/ledger";
 import { runOnline } from "@/features/offline";
 import { formatMoney } from "@/lib";
 import { listEntryVersionsAction, undoDiaryEntryAction } from "../server/actions";
@@ -55,7 +55,10 @@ export function EntryDetail({ item, currency }: { item: HistoryItem; currency: s
       <SheetContent side="bottom" className="sm:mx-auto sm:w-full sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>
-            <span aria-hidden>{categoryOf(item.category, kind).emoji}</span> {item.label}
+            <span className="inline-flex items-center gap-2">
+              <CategoryIcon category={item.category} kind={kind} className="size-5" />
+              {item.label}
+            </span>
           </SheetTitle>
           <SheetDescription>
             {item.amountMinor === null

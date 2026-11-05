@@ -25,7 +25,7 @@ type JarShelfProps = {
   rules: MoneyRule[];
   goal: GoalView;
   allowanceMinor: number | null;
-  /** Allowance money due but not handed over yet. Never inside a jar. */
+  /** Pocket money due but not handed over yet. Never inside a jar. */
   dueMinor: number;
   /** Pending and approved requests, shown under the jar they affect. */
   openRequests: SavingsRequest[];
@@ -113,12 +113,17 @@ export function JarShelf({
   const toggle = (jar: Jar) => setOpen((current) => (current === jar ? null : jar));
 
   return (
-    <section aria-label="Your jars" className="grid gap-4">
-      {dueMinor > 0 ? (
-        <p className="justify-self-center rounded-full border border-cyan-700 border-dashed px-3 py-1 font-semibold text-cyan-700 dark:border-cyan-300 dark:text-cyan-300">
-          {money(dueMinor)} on its way · waiting for a parent
-        </p>
-      ) : null}
+    <section aria-labelledby={`${trayId}-title`} className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id={`${trayId}-title`} className="text-h3">
+          Your jars
+        </h2>
+        {dueMinor > 0 ? (
+          <p className="rounded-full border border-cyan-700 border-dashed px-3 py-1 font-semibold text-cyan-700 dark:border-cyan-300 dark:text-cyan-300">
+            {money(dueMinor)} is on its way
+          </p>
+        ) : null}
+      </div>
       <div className="@container relative grid grid-cols-2 gap-4">
         {flight ? <CoinFlightOverlay key={flight.key} flight={flight.flight} /> : null}
         <section aria-label="Spend jar" data-tour="spend" className="grid content-start gap-2">
@@ -126,7 +131,6 @@ export function JarShelf({
             jar="spend"
             name="Spend"
             amount={money(spendMinor)}
-            caption="Cash you have"
             open={open === "spend"}
             controls={`${trayId}-spend`}
             onToggle={() => toggle("spend")}
@@ -164,7 +168,6 @@ export function JarShelf({
             jar="save"
             name="Save"
             amount={money(saveMinor)}
-            caption="Kept by your parent"
             open={open === "save"}
             controls={`${trayId}-save`}
             onToggle={() => toggle("save")}
@@ -206,7 +209,6 @@ export function JarShelf({
           </Tray>
         </section>
       </div>
-      <Legend reserved={reservedSaveMinor > 0} due={dueMinor > 0} />
     </section>
   );
 }
@@ -248,12 +250,14 @@ function CoinFlightOverlay({ flight }: { flight: CoinFlight }) {
   );
 }
 
-/** The jar itself is the button: picture, name, balance, caption, and a small chevron. */
+/**
+ * The jar itself is the button: picture, name, balance and a small chevron. No caption under
+ * the amount (2026-11-06, simpler for kids): the name and the jar say what it is.
+ */
 function JarButton({
   jar,
   name,
   amount,
-  caption,
   open,
   controls,
   onToggle,
@@ -262,7 +266,6 @@ function JarButton({
   jar: Jar;
   name: string;
   amount: string;
-  caption: string;
   open: boolean;
   controls: string;
   onToggle: () => void;
@@ -294,7 +297,6 @@ function JarButton({
         />
       </span>
       <span className="money font-extrabold text-money-l">{amount}</span>
-      <span className="text-ink-2">{caption}</span>
     </button>
   );
 }
@@ -311,35 +313,5 @@ function Tray({ id, open, children }: { id: string; open: boolean; children: Rea
     >
       {children}
     </div>
-  );
-}
-
-/** Only the keys the drawing is using right now. */
-function Legend({ reserved, due }: { reserved: boolean; due: boolean }) {
-  if (!reserved && !due) return null;
-  return (
-    <ul
-      aria-label="What the jars show"
-      className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-ink-2"
-    >
-      {reserved ? (
-        <li className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="size-3 rounded-sm bg-[repeating-linear-gradient(45deg,var(--color-gold-400)_0_3px,transparent_3px_8px)]"
-          />
-          Waiting to come out
-        </li>
-      ) : null}
-      {due ? (
-        <li className="flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="size-3 rounded-full border border-cyan-700 border-dashed dark:border-cyan-300"
-          />
-          On its way
-        </li>
-      ) : null}
-    </ul>
   );
 }
