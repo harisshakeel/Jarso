@@ -27,6 +27,9 @@ import { useChildDue } from "./use-due";
 import { useChildGoal, useConfirmHandover, useLastSplit, useMarkNotGiven } from "./use-handover";
 
 type Kind = "allowance" | "gift";
+
+/** The longest the handover waits for the optional card block before opening without it. */
+const CARD_WAIT_MS = 3_000;
 type FieldErrors = { cash?: string[]; saved?: string[] };
 
 /**
@@ -53,9 +56,18 @@ export function HandoverSheet({
   // rather than pushing Confirm down when it lands. Each opening waits for its own read (a failed
   // one still cached from an earlier opening is read again), but only until the form is up: a
   // failed read, which the slot fetches again on mount, or a paused, offline one opens it anyway.
+  // The block is optional, so a slow read is waited for only briefly (the request timeout and its
+  // retry would hold the spinner for half a minute); it then lands in the slot when it can.
   const card = usePaymentProviders({ childId, kind, id });
   const [shown, setShown] = useState(false);
-  const cardLoading = !shown && card.fetchStatus === "fetching" && card.data === undefined;
+  const [cardWaitOver, setCardWaitOver] = useState(false);
+  const cardLoading =
+    !shown && !cardWaitOver && card.fetchStatus === "fetching" && card.data === undefined;
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCardWaitOver(true), CARD_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, []);
   // Set once this sheet wrote: the refetch that follows must not read as "already sorted".
   const finished = useRef(false);
   const child = family.data?.children.find((c) => c.id === childId);

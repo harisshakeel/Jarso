@@ -11,7 +11,7 @@ import {
 import { findFamilyById, findMembership, listChildMembers } from "@jarso/data/family";
 import { getGoalView } from "@jarso/data/goals";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, userEvent, waitFor } from "@testing-library/react-native";
+import { act, render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { Alert, type AlertButton } from "react-native";
 import { HandoverSheet } from "@/features/allowance";
 import { formatMoney } from "@/lib";
@@ -289,5 +289,31 @@ describe("HandoverSheet", () => {
     finish(cardsOn);
     expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
     expect(screen.getByText(paymentCopy.orPayByCard)).toBeOnTheScreen();
+  });
+
+  it("a slow card read holds the form only briefly, then the block lands in place", async () => {
+    jest.useFakeTimers();
+    try {
+      setup();
+      let finish: (value: unknown) => void = () => {};
+      (apiFetch as jest.Mock).mockReturnValue(
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+      );
+      await renderSheet();
+      await waitFor(() => expect(getGoalView).toHaveBeenCalled());
+      expect(screen.queryByRole("button", { name: handoverCopy.confirm })).toBeNull();
+
+      // Past the short wait, the form opens without the block; the read keeps going.
+      await act(() => jest.advanceTimersByTimeAsync(3_000));
+      expect(screen.getByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+      expect(screen.queryByText(paymentCopy.orPayByCard)).toBeNull();
+
+      finish(cardsOn);
+      expect(await screen.findByText(paymentCopy.orPayByCard)).toBeOnTheScreen();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
