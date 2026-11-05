@@ -1,5 +1,6 @@
 import { allowanceErrors, handoverCopy } from "@jarso/core/allowance";
 import { AppError } from "@jarso/core/lib";
+import { paymentCopy } from "@jarso/core/payments";
 import { parentRequestCopy } from "@jarso/core/requests";
 import {
   confirmHandover,
@@ -14,6 +15,7 @@ import { render, screen, userEvent, waitFor } from "@testing-library/react-nativ
 import { Alert, type AlertButton } from "react-native";
 import { HandoverSheet } from "@/features/allowance";
 import { formatMoney } from "@/lib";
+import { apiFetch } from "@/lib/api";
 import { flash } from "@/lib/flash";
 import { dispatchNotices } from "@/lib/notices";
 import { keys } from "@/lib/query";
@@ -49,6 +51,15 @@ const OCC = "11111111-1111-4111-8111-111111111111";
 const due = { kind: "allowance", id: OCC, dueOn: "2026-11-03", amountMinor: 300, note: null };
 const confirm = confirmHandover as jest.Mock;
 const onClose = jest.fn();
+const cardsOff = { cards: [], item: { providers: [], pending: null, lastOutcome: null } };
+const cardsOn = {
+  cards: [],
+  item: {
+    providers: [{ id: "stripe", label: "Stripe", available: true, unavailableReason: null }],
+    pending: null,
+    lastOutcome: null,
+  },
+};
 
 function setup(items: unknown[] = [due]) {
   (findMembership as jest.Mock).mockResolvedValue({
@@ -66,6 +77,8 @@ function setup(items: unknown[] = [due]) {
   (listDueForParent as jest.Mock).mockResolvedValue(items);
   (getLastSplitWith as jest.Mock).mockResolvedValue(null);
   (getGoalView as jest.Mock).mockResolvedValue(null);
+  // GET /api/v1/payments/providers: card payments off unless a test says otherwise.
+  (apiFetch as jest.Mock).mockResolvedValue(cardsOff);
 }
 
 function renderSheet(kind: "allowance" | "gift" = "allowance") {
@@ -213,5 +226,38 @@ describe("HandoverSheet", () => {
     await renderSheet();
     await waitFor(() => expect(flash).toHaveBeenCalledWith(parentRequestCopy.settled));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("opens with the card block already in place, not pushed in later", async () => {
+    setup();
+    let finish: (value: unknown) => void = () => {};
+    (apiFetch as jest.Mock).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    await renderSheet();
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/v1/payments/providers?"),
+        { auth: true },
+      ),
+    );
+    // Everything else has loaded; the form still waits for the card read.
+    await waitFor(() => expect(getGoalView).toHaveBeenCalled());
+    expect(screen.queryByRole("button", { name: handoverCopy.confirm })).toBeNull();
+    expect(screen.getByLabelText("Loading")).toBeOnTheScreen();
+
+    finish(cardsOn);
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    expect(screen.getByText(paymentCopy.orPayByCard)).toBeOnTheScreen();
+  });
+
+  it("a failed card read still opens the form, without the card block", async () => {
+    setup();
+    (apiFetch as jest.Mock).mockRejectedValue(new AppError("UNAVAILABLE", "Offline"));
+    await renderSheet();
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    expect(screen.queryByText(paymentCopy.orPayByCard)).toBeNull();
   });
 });
