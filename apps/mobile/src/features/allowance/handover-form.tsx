@@ -53,16 +53,16 @@ export function HandoverSheet({
   const last = useLastSplit(childId);
   const goal = useChildGoal(childId);
   // The card block's read, started with the others so the form opens with the block in place
-  // rather than pushing Confirm down when it lands. Each opening waits for its own read (a failed
-  // one still cached from an earlier opening is read again), but only until the form is up: a
-  // failed read, which the slot fetches again on mount, or a paused, offline one opens it anyway.
+  // rather than pushing Confirm down when it lands. Each opening waits for its own read, even
+  // with an earlier opening's answer cached (cards may have come on, or a payment gone pending),
+  // but only until the form is up: a failed read, which the slot fetches again on mount, or a
+  // paused, offline one opens it anyway.
   // The block is optional, so a slow read is waited for only briefly (the request timeout and its
   // retry would hold the spinner for half a minute); it then lands in the slot when it can.
   const card = usePaymentProviders({ childId, kind, id });
   const [shown, setShown] = useState(false);
   const [cardWaitOver, setCardWaitOver] = useState(false);
-  const cardLoading =
-    !shown && !cardWaitOver && card.fetchStatus === "fetching" && card.data === undefined;
+  const cardLoading = !shown && !cardWaitOver && card.fetchStatus === "fetching";
 
   useEffect(() => {
     const timer = setTimeout(() => setCardWaitOver(true), CARD_WAIT_MS);
