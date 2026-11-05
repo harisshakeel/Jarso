@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import * as Notifications from "expo-notifications";
 import { Linking } from "react-native";
-import { NotificationSettings, NotificationsRow } from "@/features/push";
+import { NotificationSettings } from "@/features/push";
 
 const TOKEN = "ExponentPushToken[abc]";
 
@@ -25,8 +25,6 @@ jest.mock("@jarso/data/notifications", () => ({
   fetchDevicePushPrefs: jest.fn(),
   saveDevicePushPrefs: jest.fn(),
 }));
-const mockPush = jest.fn();
-jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock("@/lib/api", () => ({ apiFetch: jest.fn(async () => ({ id: "row-1" })) }));
 jest.mock("@/lib/supabase/client", () => ({ supabase: {} }));
 
@@ -135,19 +133,5 @@ describe("NotificationSettings", () => {
     expect(screen.getByText(noticeGroupCopy.notOn.title)).toBeOnTheScreen();
     await act(async () => fireEvent.press(turnOn));
     expect(await screen.findByRole("switch", { name: pause.label })).toBeOnTheScreen();
-  });
-});
-
-describe("NotificationsRow", () => {
-  it.each([
-    ["parent", "/(parent)/notifications"],
-    ["child", "/(child)/notifications"],
-  ])("a %s opens their own Notifications page", async (status, href) => {
-    mockSession.status = status;
-    await render(<NotificationsRow />);
-    await act(async () =>
-      fireEvent.press(screen.getByRole("button", { name: noticeGroupCopy.title })),
-    );
-    expect(mockPush).toHaveBeenCalledWith(href);
   });
 });

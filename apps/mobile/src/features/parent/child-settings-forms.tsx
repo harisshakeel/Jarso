@@ -11,84 +11,10 @@ import { z } from "zod";
 import { Button, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
 import { useRemoveChild, useRenameChild, useSetChildPin } from "@/features/family";
-import { GuideSwitch } from "@/features/guide";
 import { actionErrorMessage, flash, isAppError } from "@/lib";
 
-type Mode = "rename" | "pin" | null;
-
-/**
- * One child in settings (the web's ChildrenSettingsList row): rename, a new PIN, remove, and
- * Jarso on or off while the guide is set up. Rename and PIN open in place; remove asks first.
- */
-export function ChildSettingsRow({
-  child,
-  guide,
-}: {
-  child: ChildSummary;
-  /** Jarso's switch for this child, when the guide is set up. */
-  guide: { enabled: boolean } | null;
-}) {
-  const [mode, setMode] = useState<Mode>(null);
-  const [removing, setRemoving] = useState(false);
-  const toggle = (next: Mode) => setMode((current) => (current === next ? null : next));
-  const forName = familySettingsCopy.resetPinFor(child.nickname);
-
-  return (
-    <View className="gap-3 py-2">
-      <View className="flex-row items-center gap-3">
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          className="h-10 w-10 items-center justify-center rounded-full bg-muted"
-        >
-          <Text className="font-sans-extrabold">{child.nickname.charAt(0).toUpperCase()}</Text>
-        </View>
-        <Text numberOfLines={1} className="min-w-0 flex-1 font-sans-bold">
-          {child.nickname}
-        </Text>
-      </View>
-      <View className="flex-row flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          accessibilityLabel={`${familySettingsCopy.rename}${forName}`}
-          accessibilityState={{ expanded: mode === "rename" }}
-          onPress={() => toggle("rename")}
-        >
-          <Text>{familySettingsCopy.rename}</Text>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          accessibilityLabel={`${familySettingsCopy.resetPin}${forName}`}
-          accessibilityState={{ expanded: mode === "pin" }}
-          onPress={() => toggle("pin")}
-        >
-          <Text>{familySettingsCopy.resetPin}</Text>
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          accessibilityLabel={`${familySettingsCopy.remove}${forName}`}
-          onPress={() => setRemoving(true)}
-        >
-          <Text className="text-destructive">{familySettingsCopy.remove}</Text>
-        </Button>
-      </View>
-      {mode === "rename" ? <RenameForm child={child} onDone={() => setMode(null)} /> : null}
-      {mode === "pin" ? <PinForm child={child} onDone={() => setMode(null)} /> : null}
-      {guide ? (
-        <GuideSwitch
-          childId={child.id}
-          nickname={child.nickname}
-          enabled={guide.enabled}
-          detail="none"
-        />
-      ) : null}
-      {removing ? <RemoveDialog child={child} onClose={() => setRemoving(false)} /> : null}
-    </View>
-  );
-}
+// One child's account forms (the web's ChildrenSettingsList row), used by the child's settings
+// page: a new nickname and a new PIN open in place under their row; remove asks first.
 
 function Submit({
   label,
@@ -120,7 +46,7 @@ function FormError({ message }: { message?: string }) {
   );
 }
 
-function RenameForm({ child, onDone }: { child: ChildSummary; onDone: () => void }) {
+export function RenameForm({ child, onDone }: { child: ChildSummary; onDone: () => void }) {
   const rename = useRenameChild();
   const [nickname, setNickname] = useState(child.nickname);
   const [fieldError, setFieldError] = useState<string[]>();
@@ -170,7 +96,7 @@ function RenameForm({ child, onDone }: { child: ChildSummary; onDone: () => void
   );
 }
 
-function PinForm({ child, onDone }: { child: ChildSummary; onDone: () => void }) {
+export function PinForm({ child, onDone }: { child: ChildSummary; onDone: () => void }) {
   const setPin = useSetChildPin();
   const [pin, setPinValue] = useState("");
   const [fieldError, setFieldError] = useState<string[]>();
@@ -219,8 +145,19 @@ function PinForm({ child, onDone }: { child: ChildSummary; onDone: () => void })
   );
 }
 
-/** Asks before removing; a failure keeps the dialog open with the error (nothing was removed). */
-function RemoveDialog({ child, onClose }: { child: ChildSummary; onClose: () => void }) {
+/**
+ * Asks before removing; a failure keeps the dialog open with the error (nothing was removed).
+ * Once the child is removed, `onRemoved` runs instead of `onClose` (the page leaves).
+ */
+export function RemoveDialog({
+  child,
+  onClose,
+  onRemoved,
+}: {
+  child: ChildSummary;
+  onClose: () => void;
+  onRemoved: () => void;
+}) {
   const remove = useRemoveChild();
   const [error, setError] = useState<string>();
 
@@ -230,7 +167,7 @@ function RemoveDialog({ child, onClose }: { child: ChildSummary; onClose: () => 
     try {
       await remove.mutateAsync(child.id);
       flash(familySettingsCopy.removed(child.nickname));
-      onClose();
+      onRemoved();
     } catch (cause) {
       setError(await actionErrorMessage(cause));
     }

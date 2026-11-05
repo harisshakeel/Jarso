@@ -75,6 +75,8 @@ export const familySettingsCopy = {
   codeTitle: "Give this code to your child",
   codeBody: "They sign in with this code, their nickname and their PIN.",
   copyCode: "Copy code",
+  /** The phone's compact family code card in Settings. */
+  codeShort: "Your child signs in with it",
   noChildren: "No children yet.",
   addChild: "Add a child",
   rename: "Rename",
@@ -107,4 +109,10 @@ export const familySettingsCopy = {
   save: "Save",
   firstChild: "Add your first child to get started.",
   acceptInvitation: "Accept an invitation",
+  /** The phone's page for one child, opened from Settings. */
+  childSignsIn: (code: string) => `Signs in with family code ${code}, nickname and PIN`,
+  signInGroup: "Sign-in",
+  nicknameIs: (nickname: string) => `Nickname: ${nickname}`,
+  pinRowBody: "Set a new PIN (4 to 6 numbers)",
+  removeFromFamily: (nickname: string) => `Remove ${nickname} from your family`,
 } as const;

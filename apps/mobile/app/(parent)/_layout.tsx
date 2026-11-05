@@ -3,6 +3,7 @@ import { familySettingsCopy } from "@jarso/core/family";
 import { parentGuideCopy } from "@jarso/core/guide";
 import { parentLearningCopy } from "@jarso/core/learning";
 import { noticeGroupCopy } from "@jarso/core/notifications";
+import { profileCopy } from "@jarso/core/profiles";
 import { rulesCopy } from "@jarso/core/rules";
 import { Redirect, Stack, useGlobalSearchParams, usePathname, useSegments } from "expo-router";
 import type { ComponentProps } from "react";
@@ -25,7 +26,11 @@ const SHEETS: string[] = ["children/[childId]/handover/[kind]/[id]"];
 
 /** Pages pushed over the tabs, with the native back button and the web's page title. */
 const PAGES: { name: string; title: string }[] = [
-  { name: "settings", title: parentPageCopy.settings },
+  { name: "settings/index", title: parentPageCopy.settings },
+  { name: "settings/timezone", title: familySettingsCopy.timezone },
+  { name: "settings/account", title: profileCopy.accountTitle },
+  // The child's settings page sets its own title (the child's nickname) once the family has loaded.
+  { name: "settings/children/[childId]", title: parentPageCopy.child },
   { name: "notifications", title: noticeGroupCopy.title },
   { name: "children/new", title: familySettingsCopy.addChild },
   { name: "invite", title: familySettingsCopy.acceptInvitation },
@@ -74,8 +79,11 @@ const SHARED_PATHS: Record<string, string> = {
   "/jarso": "/(parent)/(tabs)/jarso",
 };
 
-/** Routes open before setup is done: setup itself, and settings (so a parent can sign out). */
-const OPEN_BEFORE_SETUP = new Set(["/setup", "/settings"]);
+/**
+ * Routes open before setup is done: setup itself, settings (so a parent can sign out) and the
+ * parent's own account page. The timezone and child pages need a family, so they wait.
+ */
+const OPEN_BEFORE_SETUP = new Set(["/setup", "/settings", "/settings/account"]);
 
 function Loading() {
   return (
@@ -87,7 +95,8 @@ function Loading() {
 
 /**
  * The parent's area (tabs, then pages and sheets). Only a `parent` session gets past this guard,
- * and until the parent's details and family exist (ADR 0008) only setup and settings open.
+ * and until the parent's details and family exist (ADR 0008) only setup, settings and the
+ * parent's account page open.
  */
 export default function ParentLayout() {
   const { status, userId } = useSession();

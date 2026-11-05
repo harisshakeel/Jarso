@@ -1,263 +1,113 @@
-import { parentPageCopy } from "@jarso/core/dashboard";
-import {
-  currencyLabels,
-  familySettingsCopy,
-  isCurrency,
-  updateFamilySettingsSchema,
-} from "@jarso/core/family";
-import { profileCopy, updateProfileSchema } from "@jarso/core/profiles";
+import { familySettingsCopy } from "@jarso/core/family";
+import { parentGuideCopy } from "@jarso/core/guide";
+import { noticeGroupCopy } from "@jarso/core/notifications";
+import { profileCopy } from "@jarso/core/profiles";
 import { useRouter } from "expo-router";
-import { Fragment, type ReactNode, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { z } from "zod";
-import { Card, CardSeparator, KeyboardScrollView, ScreenHeader } from "@/components/screen";
+import { BellIcon, ClockIcon, MailIcon, MoonIcon, PlusIcon, UserIcon } from "lucide-react-native";
+import { ActivityIndicator, ScrollView } from "react-native";
+import { InitialAvatar, ListGroup, ListRow, RowIcon } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
-import { Field, useSession } from "@/features/auth";
-import {
-  FamilyCode,
-  type FamilyData,
-  useFamily,
-  useParentProfile,
-  useSaveDisplayName,
-  useUpdateTimezone,
-} from "@/features/family";
+import { useSession } from "@/features/auth";
+import { FamilyCode, type FamilyData, useFamily, useParentProfile } from "@/features/family";
 import { type ParentGuideState, useParentGuideState } from "@/features/guide";
 import { SavedCardsSlot } from "@/features/payments";
-import { NotificationsRow } from "@/features/push";
-import { ThemeSection } from "@/features/settings";
-import { ParentDetailsForm } from "@/features/setup";
-import { actionErrorMessage, flash } from "@/lib";
-import { ChildSettingsRow } from "./child-settings-row";
-
-/** A settings card: its title, an optional muted line, then its controls. */
-function Section({
-  title,
-  body,
-  children,
-}: {
-  title: string;
-  body?: string;
-  children?: ReactNode;
-}) {
-  return (
-    <Card>
-      <View className="gap-1">
-        <Text accessibilityRole="header" className="font-sans-bold text-h3">
-          {title}
-        </Text>
-        {body ? <Text className="text-muted-foreground">{body}</Text> : null}
-      </View>
-      {children}
-    </Card>
-  );
-}
-
-/** One text field and its save button, for the name and the timezone. */
-function SingleFieldForm({
-  label,
-  description,
-  initial,
-  submitLabel,
-  schema,
-  save,
-  pending,
-  saved,
-}: {
-  label: string;
-  description?: string;
-  initial: string;
-  submitLabel: string;
-  schema: z.ZodType<string>;
-  save: (value: string) => Promise<unknown>;
-  pending: boolean;
-  saved: string;
-}) {
-  const [value, setValue] = useState(initial);
-  const [fieldError, setFieldError] = useState<string[]>();
-  const [formError, setFormError] = useState<string>();
-
-  async function submit() {
-    if (pending) return;
-    setFormError(undefined);
-    const parsed = schema.safeParse(value);
-    if (!parsed.success) {
-      setFieldError(z.flattenError(parsed.error).formErrors);
-      return;
-    }
-    setFieldError(undefined);
-    try {
-      await save(parsed.data);
-      flash(saved);
-    } catch (error) {
-      setFormError(await actionErrorMessage(error));
-    }
-  }
-
-  return (
-    <View className="gap-3">
-      <Field
-        label={label}
-        description={description}
-        value={value}
-        onChangeText={setValue}
-        autoCorrect={false}
-        errors={fieldError}
-      />
-      {formError ? (
-        <Text accessibilityRole="alert" className="text-destructive">
-          {formError}
-        </Text>
-      ) : null}
-      <Button
-        variant="secondary"
-        accessibilityLabel={submitLabel}
-        accessibilityState={{ busy: pending, disabled: pending }}
-        disabled={pending}
-        onPress={() => void submit()}
-      >
-        {pending ? <ActivityIndicator /> : <Text>{submitLabel}</Text>}
-      </Button>
-    </View>
-  );
-}
-
-const nameSchema = updateProfileSchema.shape.fullName;
-const timezoneSchema = updateFamilySettingsSchema.shape.timezone;
+import { DarkModeRow } from "@/features/settings";
 
 /**
- * The parent's settings (the web's parent settings, minus push; cards are plan 4's slot): the
- * family code, the family's timezone, each child's account and Jarso switch, the parent's name
- * and details, looks, and signing out. One scrolling page; the web's three tabs become sections.
+ * The parent's settings as a short menu that fits one screen (spec 2026-11-05): the family code,
+ * the children, the family, the parent, and signing out. Each form opens on its own page. Before
+ * setup there is no family yet, so only the You group and Sign out show (the parent can leave).
  */
 export function ParentSettingsScreen() {
   const { signOut } = useSession();
+  const router = useRouter();
   const family = useFamily();
   const profile = useParentProfile();
   const guide = useParentGuideState().data;
-  const saveName = useSaveDisplayName();
 
   return (
-    <KeyboardScrollView
-      className="bg-background"
-      contentContainerClassName="gap-4 px-4 pt-4 pb-10"
-      keyboardShouldPersistTaps="handled"
-    >
-      <ScreenHeader title={parentPageCopy.settings} />
-      {/* Settings also opens before setup (to sign out), when there is no family yet. */}
+    <ScrollView className="bg-background" contentContainerClassName="gap-4 px-4 pt-4 pb-10">
       {family.data ? (
-        <FamilySections data={family.data} guide={guide} />
+        <FamilyGroups data={family.data} guide={guide} />
       ) : family.isPending ? (
         <ActivityIndicator accessibilityLabel="Loading" />
       ) : null}
 
-      <Section title={profileCopy.accountTitle}>
-        {profile.data ? (
-          <SingleFieldForm
-            label={profileCopy.name}
-            initial={profile.data.fullName ?? ""}
-            submitLabel={profileCopy.saveName}
-            schema={nameSchema}
-            save={(name) => saveName.mutateAsync(name)}
-            pending={saveName.isPending}
-            saved={profileCopy.nameSaved}
-          />
-        ) : (
-          <ActivityIndicator accessibilityLabel="Loading" />
-        )}
-      </Section>
+      <ListGroup label={profileCopy.youGroup}>
+        <ListRow
+          label={profileCopy.accountTitle}
+          detail={profile.data?.fullName ?? undefined}
+          leading={<RowIcon icon={UserIcon} />}
+          onPress={() => router.push("/(parent)/settings/account")}
+        />
+        {/* No subtitle: push has several states, and summing them up is new work (spec). */}
+        <ListRow
+          label={noticeGroupCopy.title}
+          leading={<RowIcon icon={BellIcon} />}
+          onPress={() => router.push("/(parent)/notifications")}
+        />
+        <DarkModeRow leading={<RowIcon icon={MoonIcon} />} />
+      </ListGroup>
 
-      {/* Before first completion setup asks for these, so there is nothing to change yet. */}
-      {profile.data?.details ? (
-        <Section title={profileCopy.detailsTitle} body={profileCopy.detailsBody}>
-          <ParentDetailsForm
-            defaults={profile.data.details}
-            submitLabel={profileCopy.detailsSubmit}
-            successMessage={profileCopy.detailsSaved}
-          />
-        </Section>
-      ) : null}
-
-      {/* Saved cards (plan 4): renders nothing until card payments land. */}
+      {/* Saved cards: renders nothing until card payments are on. */}
       <SavedCardsSlot />
 
-      <NotificationsRow />
-
-      <ThemeSection />
-
-      <Section title={profileCopy.signOutTitle} body={profileCopy.signOutBody}>
-        <Button variant="outline" accessibilityLabel="Sign out" onPress={() => void signOut()}>
-          <Text>Sign out</Text>
-        </Button>
-      </Section>
-    </KeyboardScrollView>
+      <Button variant="outline" accessibilityLabel="Sign out" onPress={() => void signOut()}>
+        <Text>Sign out</Text>
+      </Button>
+    </ScrollView>
   );
 }
 
-/** The family code, the family's timezone and each child's account. */
-function FamilySections({
-  data,
-  guide,
-}: {
-  data: FamilyData;
-  guide: ParentGuideState | undefined;
-}) {
+/** The family code, a row per child (and Add a child), then the family's own settings. */
+function FamilyGroups({ data, guide }: { data: FamilyData; guide: ParentGuideState | undefined }) {
   const router = useRouter();
-  const saveTimezone = useUpdateTimezone();
   const { family: home, children } = data;
-  const currency = isCurrency(home.currency) ? currencyLabels[home.currency] : home.currency;
 
   return (
     <>
       <FamilyCode code={home.code} />
 
-      <Section
-        title={familySettingsCopy.familyTitle}
-        body={familySettingsCopy.familyBody(currency)}
-      >
-        <SingleFieldForm
-          key={home.timezone}
-          label={familySettingsCopy.timezone}
-          description={familySettingsCopy.timezoneHelp}
-          initial={home.timezone}
-          submitLabel={familySettingsCopy.save}
-          schema={timezoneSchema}
-          save={(timezone) => saveTimezone.mutateAsync(timezone)}
-          pending={saveTimezone.isPending}
-          saved={familySettingsCopy.saved}
-        />
-        <Button
-          variant="ghost"
-          accessibilityLabel={familySettingsCopy.acceptChildInvitation}
-          onPress={() => router.push("/(parent)/invite")}
-        >
-          <Text className="text-primary">{familySettingsCopy.acceptChildInvitation}</Text>
-        </Button>
-      </Section>
-
-      <Section title={familySettingsCopy.childrenTitle} body={familySettingsCopy.childrenBody}>
-        {children.length === 0 ? (
-          <Text className="text-muted-foreground">{familySettingsCopy.noChildren}</Text>
-        ) : (
-          children.map((child, index) => (
-            <Fragment key={child.id}>
-              {index > 0 ? <CardSeparator /> : null}
-              <ChildSettingsRow
-                child={child}
-                guide={
-                  guide?.configured ? { enabled: guide.enabledChildIds.includes(child.id) } : null
-                }
-              />
-            </Fragment>
-          ))
-        )}
-        <Button
-          variant="secondary"
-          accessibilityLabel={familySettingsCopy.addChild}
+      <ListGroup label={familySettingsCopy.childrenTitle}>
+        {children.map((child) => (
+          <ListRow
+            key={child.id}
+            label={child.nickname}
+            detail={
+              guide?.configured
+                ? parentGuideCopy.childState(guide.enabledChildIds.includes(child.id))
+                : undefined
+            }
+            leading={<InitialAvatar name={child.nickname} />}
+            onPress={() =>
+              router.push({
+                pathname: "/(parent)/settings/children/[childId]",
+                params: { childId: child.id },
+              })
+            }
+          />
+        ))}
+        <ListRow
+          label={familySettingsCopy.addChild}
+          labelClassName="text-primary"
+          leading={<RowIcon icon={PlusIcon} />}
           onPress={() => router.push("/(parent)/children/new")}
-        >
-          <Text>{familySettingsCopy.addChild}</Text>
-        </Button>
-      </Section>
+        />
+      </ListGroup>
+
+      <ListGroup label={familySettingsCopy.familyTitle}>
+        <ListRow
+          label={familySettingsCopy.timezone}
+          detail={home.timezone}
+          leading={<RowIcon icon={ClockIcon} />}
+          onPress={() => router.push("/(parent)/settings/timezone")}
+        />
+        <ListRow
+          label={familySettingsCopy.acceptChildInvitation}
+          leading={<RowIcon icon={MailIcon} />}
+          onPress={() => router.push("/(parent)/invite")}
+        />
+      </ListGroup>
     </>
   );
 }

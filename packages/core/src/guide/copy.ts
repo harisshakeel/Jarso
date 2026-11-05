@@ -214,6 +214,8 @@ export const guideCopy = {
   remembered: "Jarso will remember:",
   memories: {
     title: "What Jarso remembers",
+    /** The row in the phone's Me that opens the list. */
+    count: (notes: number) => (notes === 1 ? "1 note" : `${notes} notes`),
     intro: "Short notes Jarso keeps so it can pick up where you left off. Delete any you like.",
     empty:
       "Nothing yet. When you tell Jarso what you like or what you're saving for, it can remember.",

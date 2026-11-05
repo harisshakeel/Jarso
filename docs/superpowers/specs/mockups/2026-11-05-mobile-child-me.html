@@ -1,0 +1,87 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Child Me screen (v1)</title><style>body{background:#1e1e1e;color:#eee;font-family:system-ui;padding:24px}.subtitle{color:#aaa}</style></head><body>
+<style>
+  .phones { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+  .ph-wrap { display:flex; flex-direction:column; gap:10px; width:290px; }
+  .ph { --bg:#f4f8fa; --fg:#141c1f; --card:#fff; --bd:#dce5ea; --mut:#52636b; --pri:#02627d; --sec:#c4f4ff; --secfg:#014b62; --muted:#ebf1f4; --inp:#7d8d95; --des:#e10000; --hdr:#fff;
+        width:290px; height:640px; border-radius:34px; border:8px solid #141c1f; background:var(--bg); color:var(--fg);
+        overflow:hidden; position:relative; font-family:"Nunito",system-ui,sans-serif; font-size:12px; }
+  .ph.dark { --bg:#0b1f26; --fg:#e6f1f4; --card:#12303a; --bd:#234853; --mut:#9db6be; --pri:#6facc2; --sec:#003444; --secfg:#c4f4ff; --muted:#1c3a44; --inp:#577d89; --des:#ff6467; --hdr:#12303a; border-color:#000; }
+  .sb { height:22px; display:flex; justify-content:space-between; padding:4px 16px 0; font-size:11px; font-weight:700; background:var(--hdr); }
+  .hdr { background:var(--hdr); height:44px; display:flex; align-items:center; gap:14px; padding:0 14px; font-size:17px; font-weight:600; border-bottom:1px solid var(--bd); }
+  .body { padding:10px 12px; display:flex; flex-direction:column; gap:6px; }
+  .crd { background:var(--card); border:1px solid var(--bd); border-radius:18px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+  .h3 { font-weight:800; font-size:14px; }
+  .mut { color:var(--mut); font-size:12px; }
+  .lbl { color:var(--pri); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; }
+  .code { font-family:ui-monospace,monospace; font-size:19px; font-weight:700; letter-spacing:.2em; }
+  .btn2 { background:var(--sec); color:var(--secfg); border-radius:999px; text-align:center; padding:8px 14px; font-weight:700; font-size:12.5px; }
+  .btnO { border:1.5px solid var(--bd); border-radius:999px; text-align:center; padding:8px; font-weight:700; font-size:12.5px; }
+  .grp { background:var(--card); border:1px solid var(--bd); border-radius:18px; overflow:hidden; }
+  .row { display:flex; align-items:center; gap:10px; padding:7px 12px; border-top:1px solid var(--muted); min-height:24px; }
+  .row:first-child { border-top:none; }
+  .ic { width:26px; height:26px; border-radius:9px; background:var(--sec); color:var(--pri); display:flex; align-items:center; justify-content:center; font-size:13px; flex:none; }
+  .rt { flex:1; min-width:0; }
+  .rt b { display:block; font-size:12.5px; }
+  .rt span { color:var(--mut); font-size:11px; }
+  .chev { color:var(--inp); font-size:17px; }
+  .gt { font-size:10.5px; font-weight:700; color:var(--mut); text-transform:uppercase; letter-spacing:.06em; padding:2px 4px 0; }
+  .av { width:26px; height:26px; border-radius:50%; background:var(--muted); display:flex; align-items:center; justify-content:center; font-weight:800; flex:none; }
+  .avL { width:52px; height:52px; font-size:22px; }
+  .sw { width:34px; height:20px; border-radius:999px; background:var(--pri); position:relative; flex:none; }
+  .sw::after { content:""; position:absolute; right:3px; top:3px; width:14px; height:14px; border-radius:50%; background:var(--bg); } .sw[style]::after { right:auto; left:3px; }
+  .inp { border:1px solid var(--inp); border-radius:12px; padding:8px 10px; background:var(--muted); font-size:12.5px; }
+  .fl { font-weight:600; font-size:12px; margin-bottom:-4px; }
+  .pill { display:flex; gap:6px; }
+  .pill div { flex:1; text-align:center; padding:7px 0; border-radius:999px; border:1.5px solid var(--bd); font-weight:700; font-size:11px; }
+  .pill .on { background:var(--pri); color:var(--bg); border-color:var(--pri); }
+  .cap b { font-size:13.5px; } .cap { font-size:12.5px; line-height:1.45; }
+.kid .rt b{font-size:14px} .kid .rt span{font-size:12px} .kid .row{padding:10px 12px} .mem{border:1px solid var(--bd);border-radius:14px;padding:9px 11px;display:flex;align-items:center;gap:8px;background:var(--card)} .mem .t{flex:1;font-size:12.5px} .mem .t i{font-style:normal;color:var(--mut)} .fg{border:1.5px solid var(--bd);border-radius:999px;padding:5px 10px;font-weight:700;font-size:11px}</style>
+<h2>Child "Me" screen, v1: same menu style</h2>
+<p class="subtitle">Today it's one scroll: your card, Notifications, Looks, What Jarso remembers (can grow long), then Sign out. Text stays a bit bigger than the parent's, for 11 to 14 year olds.</p>
+<div class="phones">
+<div class="ph-wrap"><div class="ph kid"><div class="sb"><span>4:12</span><span>▲ ▮ 64%</span></div><div class="body" style="height:calc(100% - 22px);box-sizing:border-box;padding-bottom:22px">
+  <div style="font-size:24px;font-weight:800;padding:8px 2px 2px">Me</div>
+  <div class="crd" style="flex-direction:row;align-items:center;gap:12px">
+    <div class="av avL">T</div>
+    <div class="rt"><b style="font-size:16px">Tina</b><span>You sign in as Tina. A parent can change your nickname or PIN.</span></div>
+  </div>
+  <div class="grp">
+    <div class="row"><div class="ic">🔔</div><div class="rt"><b>Notifications</b></div><div class="chev">›</div></div>
+    <div class="row"><div class="ic">◐</div><div class="rt"><b>Dark mode</b></div><div class="sw" style="background:var(--inp)"></div></div>
+    <div class="row"><div class="ic" style="background:#ebeaff;color:#6a4fd6">✦</div><div class="rt"><b>What Jarso remembers</b><span>3 notes</span></div><div class="chev">›</div></div>
+  </div>
+  <div style="margin-top:auto" class="mut">You can sign back in with your family code, nickname and PIN.</div>
+  <div class="btnO" style="padding:11px">Sign out</div></div></div><div class="cap"><b>1 · Me (light)</b><br><span class="mut">Same menu style as the parent's Settings. Your nickname card at the top, then one group: Notifications, the Dark mode switch, and What Jarso remembers (shows how many notes). Sign out sits at the bottom with its reminder line.</span></div></div>
+<div class="ph-wrap"><div class="ph kid dark"><div class="sb"><span>4:12</span><span>▲ ▮ 64%</span></div><div class="body" style="height:calc(100% - 22px);box-sizing:border-box;padding-bottom:22px">
+  <div style="font-size:24px;font-weight:800;padding:8px 2px 2px">Me</div>
+  <div class="crd" style="flex-direction:row;align-items:center;gap:12px">
+    <div class="av avL">T</div>
+    <div class="rt"><b style="font-size:16px">Tina</b><span>You sign in as Tina. A parent can change your nickname or PIN.</span></div>
+  </div>
+  <div class="grp">
+    <div class="row"><div class="ic">🔔</div><div class="rt"><b>Notifications</b></div><div class="chev">›</div></div>
+    <div class="row"><div class="ic">◐</div><div class="rt"><b>Dark mode</b></div><div class="sw"></div></div>
+    <div class="row"><div class="ic" style="background:#ebeaff;color:#6a4fd6">✦</div><div class="rt"><b>What Jarso remembers</b><span>3 notes</span></div><div class="chev">›</div></div>
+  </div>
+  <div style="margin-top:auto" class="mut">You can sign back in with your family code, nickname and PIN.</div>
+  <div class="btnO" style="padding:11px">Sign out</div></div></div><div class="cap"><b>2 · Me (dark)</b><br><span class="mut">Dark mode switch on.</span></div></div>
+<div class="ph-wrap"><div class="ph kid"><div class="sb"><span>4:12</span><span>▲ ▮ 64%</span></div><div class="hdr">← What Jarso remembers</div><div class="body" style="height:calc(100% - 88px);box-sizing:border-box;padding-bottom:22px">
+  <div class="mut" style="padding:2px 2px 4px">Short notes Jarso keeps so it can pick up where you left off. Delete any you like.</div>
+  <div class="mem"><div class="t"><i>Likes: </i>football and drawing</div><div class="fg">Forget</div></div>
+  <div class="mem"><div class="t"><i>Thinking about: </i>saving for new headphones</div><div class="fg">Forget</div></div>
+  <div class="mem"><div class="t"><i>Finds tricky: </i>waiting a week before buying</div><div class="fg">Forget</div></div></div></div><div class="cap"><b>3 · What Jarso remembers</b><br><span class="mut">The memory list moves to its own page, so a long list no longer pushes Sign out down. Forget still asks first.</span></div></div>
+<div class="ph-wrap"><div class="ph kid"><div class="sb"><span>4:12</span><span>▲ ▮ 64%</span></div><div class="body" style="height:calc(100% - 22px);box-sizing:border-box;padding-bottom:22px">
+  <div style="font-size:24px;font-weight:800;padding:8px 2px 2px">Me</div>
+  <div class="crd" style="flex-direction:row;align-items:center;gap:12px">
+    <div class="av avL">T</div>
+    <div class="rt"><b style="font-size:16px">Tina</b><span>You sign in as Tina. A parent can change your nickname or PIN.</span></div>
+  </div>
+  <div class="grp">
+    <div class="row"><div class="ic">🔔</div><div class="rt"><b>Notifications</b></div><div class="chev">›</div></div>
+    <div class="row"><div class="ic">◐</div><div class="rt"><b>Dark mode</b></div><div class="sw" style="background:var(--inp)"></div></div>
+    <div class="row"><div class="ic" style="background:#ebeaff;color:#6a4fd6">✦</div><div class="rt"><b>What Jarso remembers</b><span>3 notes</span></div><div class="chev">›</div></div>
+  </div>
+  <div style="margin-top:auto;font-weight:800;font-size:12.5px">Some of your buys are still waiting on this phone. They'll send next time you sign in.</div>
+  <div class="btnO" style="padding:11px;color:var(--des);border-color:var(--des)">Sign out anyway</div></div></div><div class="cap"><b>4 · Sign out with buys still waiting</b><br><span class="mut">Today's offline warning, unchanged: the first tap shows the line and the button turns into Sign out anyway.</span></div></div>
+</div>
+</body></html>

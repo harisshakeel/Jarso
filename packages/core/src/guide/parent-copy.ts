@@ -14,6 +14,9 @@ export const parentGuideCopy = {
   switchLabel: (nickname: string) => `Jarso for ${nickname}`,
   on: "On",
   off: "Off",
+  /** A child's row in the phone's Settings, and the group on that child's settings page. */
+  childState: (enabled: boolean) => (enabled ? "Jarso on" : "Jarso off"),
+  settingsGroup: "Jarso",
   /** The child page's one sentence; the link follows it. */
   shortBody: (nickname: string) =>
     `An AI helper for ${nickname}'s money questions. It sees only ${nickname}'s own jars and learning, never moves money, and you can read every chat.`,

@@ -3,6 +3,7 @@ import {
   Card,
   CardSeparator,
   Eyebrow,
+  ListGroup,
   ListRow,
   ProgressBar,
   ScreenHeader,
@@ -48,6 +49,24 @@ describe("calm screen parts", () => {
     await render(<ListRow label="Mia" />);
     expect(screen.getByText("Mia")).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("list row says when it is expanded and shows what leads it", async () => {
+    await render(<ListRow label="Rename" leading={<Text>R</Text>} expanded onPress={jest.fn()} />);
+    expect(screen.getByRole("button", { name: "Rename", expanded: true })).toBeTruthy();
+    expect(screen.getByText("R")).toBeTruthy();
+  });
+
+  it("list group names its rows and skips empty ones", async () => {
+    await render(
+      <ListGroup label="Family">
+        <ListRow label="Timezone" onPress={jest.fn()} />
+        {null}
+        <ListRow label="Invite" onPress={jest.fn()} />
+      </ListGroup>,
+    );
+    expect(screen.getByRole("header", { name: "Family" })).toBeTruthy();
+    expect(screen.getAllByRole("button")).toHaveLength(2);
   });
 
   it("screen header is a header with its overline", async () => {
