@@ -1,3 +1,4 @@
+import { guideCopy } from "@jarso/core/guide";
 import { noticeGroupCopy } from "@jarso/core/notifications";
 import { Redirect, Stack } from "expo-router";
 import type { ComponentProps } from "react";
@@ -30,6 +31,7 @@ const PAGES: { name: string; title: string }[] = [
   { name: "requests", title: "Requests" },
   { name: "me", title: "Me" },
   { name: "notifications", title: noticeGroupCopy.title },
+  { name: "memories", title: guideCopy.memories.title },
   { name: "goal", title: "Your goal" },
   { name: "entry/[entryId]", title: "Diary" },
   { name: "learn/[missionKey]", title: "Mission" },

@@ -1,8 +1,7 @@
 import { type DevicePushPrefs, NOTICE_GROUPS, noticeGroupCopy } from "@jarso/core/notifications";
-import { useRouter } from "expo-router";
 import { Fragment, useState } from "react";
 import { ActivityIndicator, Linking, ScrollView, View } from "react-native";
-import { Card, CardSeparator, ListRow, ScreenHeader } from "@/components/screen";
+import { Card, CardSeparator, ScreenHeader } from "@/components/screen";
 import { Button, Switch, Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
 import { actionErrorMessage, cn, logger } from "@/lib";
@@ -173,17 +172,5 @@ export function NotificationSettings() {
         {viewer === "child" ? copy.newsStillShows : copy.inboxStillShows}
       </Text>
     </ScrollView>
-  );
-}
-
-/** The "Notifications" row with a chevron in Settings (parent) and Me (child) (mockup J). */
-export function NotificationsRow() {
-  const { status } = useSession();
-  const router = useRouter();
-  if (status !== "child" && status !== "parent") return null;
-  return (
-    <Card className="py-1">
-      <ListRow label={copy.title} onPress={() => router.push(`/(${status})/notifications`)} />
-    </Card>
   );
 }

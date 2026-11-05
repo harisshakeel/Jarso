@@ -13,10 +13,11 @@ jest.mock("@/features/auth/use-session", () => ({
 jest.mock("@/features/news", () => ({ NoticeListener: () => null }));
 jest.mock("@/lib/outbox", () => ({ OutboxSync: () => null }));
 jest.mock("@/lib/supabase/client", () => ({ supabase: {} }));
-// The setup gate is under test in tests/features/setup; here the parent is set up.
+// The setup gate's reads are under test in tests/features/setup; here a flag says set up or not.
+let mockSetUp = true;
 jest.mock("@/features/setup", () => ({
-  useParentSetup: () => ({ data: { profileComplete: true, familyId: "family-1" } }),
-  isSetUp: () => true,
+  useParentSetup: () => ({ data: { profileComplete: mockSetUp, familyId: "family-1" } }),
+  isSetUp: () => mockSetUp,
 }));
 
 function Root() {
@@ -46,7 +47,13 @@ function renderApp(initialUrl: string) {
       "(parent)/(tabs)/index": FamilyStub,
       "(parent)/(tabs)/children": () => <Text>Children</Text>,
       "(parent)/(tabs)/inbox": () => <Text>Inbox</Text>,
-      "(parent)/settings": () => <Text>Settings</Text>,
+      "(parent)/setup": () => <Text>Setup</Text>,
+      "(parent)/notifications": () => <Text>Notifications</Text>,
+      "(parent)/settings/index": () => <Text>Settings</Text>,
+      "(parent)/settings/account": () => <Text>Your account</Text>,
+      "(parent)/settings/timezone": () => <Text>Timezone</Text>,
+      "(parent)/settings/children/[childId]": () => <Text>Child settings</Text>,
+      "(parent)/children/[childId]/index": () => <Text>Child hub</Text>,
       "(parent)/invite": () => <Text>Invite</Text>,
       "(parent)/children/[childId]/history": () => <Text>History</Text>,
       "(auth)/sign-in": SignInStub,
@@ -104,9 +111,43 @@ describe("role guards", () => {
     expect(await screen.findByText("Settings")).toBeOnTheScreen();
   });
 
+  it("opens a child's settings page apart from the child's hub", async () => {
+    mockSession = { status: "parent", role: "parent", userId: "parent-1" };
+    await renderApp("/settings/children/child-1");
+    expect(await screen.findByText("Child settings")).toBeOnTheScreen();
+    expect(screen.queryByText("Child hub")).not.toBeOnTheScreen();
+  });
+
   it("wraps the parent stack in the parent body size", async () => {
     mockSession = { status: "parent", role: "parent", userId: "parent-1" };
     await renderApp("/diary");
     expect(await screen.findByText("Family home text-body-parent")).toBeOnTheScreen();
   });
+});
+
+describe("before setup", () => {
+  beforeEach(() => {
+    mockSession = { status: "parent", role: "parent", userId: "parent-1" };
+    mockSetUp = false;
+  });
+  afterAll(() => {
+    mockSetUp = true;
+  });
+
+  it.each([
+    ["/settings", "Settings"],
+    ["/settings/account", "Your account"],
+  ])("opens %s", async (path, text) => {
+    await renderApp(path);
+    expect(await screen.findByText(text)).toBeOnTheScreen();
+  });
+
+  it.each([["/settings/timezone"], ["/settings/children/child-1"], ["/notifications"]])(
+    "sends %s to setup",
+    async (path) => {
+      await renderApp(path);
+      expect(await screen.findByText("Setup")).toBeOnTheScreen();
+      expect(screen).toHavePathname("/setup");
+    },
+  );
 });

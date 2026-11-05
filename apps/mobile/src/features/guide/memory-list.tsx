@@ -18,12 +18,22 @@ export function MemoryList({ child }: { child?: Kid } = {}) {
   return child ? <ChildMemories child={child} /> : <OwnMemories />;
 }
 
-function OwnMemories() {
+/**
+ * The child's own memories and whether "What Jarso remembers" shows: while the guide is on, and
+ * whenever any memory exists even with Jarso off. Me's row and the list share this rule.
+ */
+export function useOwnMemories(): { show: boolean; list: Memory[] } {
   const guide = useGuideState();
   const memories = useMemories();
   const list = memories.data ?? [];
-  if (!(guide.data?.available === true || list.length > 0)) return null;
-  return <MemoryCard intro={guideCopy.memories.intro} list={list} />;
+  return { show: guide.data?.available === true || list.length > 0, list };
+}
+
+function OwnMemories() {
+  const { show, list } = useOwnMemories();
+  if (!show) return null;
+  // Its own page, whose header already reads "What Jarso remembers".
+  return <MemoryCard intro={guideCopy.memories.intro} list={list} titled={false} />;
 }
 
 function ChildMemories({ child }: { child: Kid }) {
@@ -42,16 +52,29 @@ function ChildMemories({ child }: { child: Kid }) {
   );
 }
 
-function MemoryCard({ intro, list, childId }: { intro: string; list: Memory[]; childId?: string }) {
+function MemoryCard({
+  intro,
+  list,
+  childId,
+  titled = true,
+}: {
+  intro: string;
+  list: Memory[];
+  childId?: string;
+  /** False where the page header already names the list. */
+  titled?: boolean;
+}) {
   const tokens = useTokens();
   return (
     <View className="gap-3 rounded-xl bg-card p-4">
-      <View className="flex-row items-center gap-2">
-        <BrainIcon size={20} color={tokens.foreground} />
-        <Text accessibilityRole="header" className="font-sans-extrabold text-h3">
-          {guideCopy.memories.title}
-        </Text>
-      </View>
+      {titled ? (
+        <View className="flex-row items-center gap-2">
+          <BrainIcon size={20} color={tokens.foreground} />
+          <Text accessibilityRole="header" className="font-sans-extrabold text-h3">
+            {guideCopy.memories.title}
+          </Text>
+        </View>
+      ) : null}
       <Text className="text-muted-foreground">{intro}</Text>
       {list.length === 0 ? (
         <Text className="text-muted-foreground">{guideCopy.memories.empty}</Text>
