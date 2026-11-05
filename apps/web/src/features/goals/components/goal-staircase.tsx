@@ -1,14 +1,7 @@
 "use client";
 
 import type { Goal, GoalProgress } from "@jarso/core/goals";
-import {
-  goalCopy,
-  goalLine,
-  milestoneCrossed,
-  staircaseFor,
-  staircaseLabel,
-  stepsCaption,
-} from "@jarso/core/goals";
+import { milestoneCrossed, staircaseFor, staircaseLabel } from "@jarso/core/goals";
 import { useEffect, useRef, useState } from "react";
 import { CoachFigure, type CoachReaction, coachIdFor } from "@/components/brand";
 import { cn, formatMoney } from "@/lib";
@@ -58,8 +51,8 @@ function Coin({ x, y, ghost }: { x: number; y: number; ghost: boolean }) {
  * The goal as a staircase of coins (FR02): one step per allowance, climbed steps solid gold,
  * the rest ghosted, the goal's item on the top step and the child's coach on the step they
  * have reached. Passing a quarter mark lights that step and the coach cheers once; reduced
- * motion shows the lit step still. One line under it says how far to go; the amounts sit in a
- * disclosure. Every figure is also in the words.
+ * motion shows the lit step still. No words under it since 2026-11-06 (simpler for kids): the
+ * climb says how far, and the picture's label still gives every figure to screen readers.
  */
 export function GoalStaircase({
   goal,
@@ -100,7 +93,6 @@ export function GoalStaircase({
   // Crop the box to what is drawn (the item on the top step, or the coach if higher), so a short
   // staircase leaves no empty band above it.
   const viewTop = Math.floor(Math.min(top.top - 14 - itemSize, stand.y - coachHeight) - 4);
-  const caption = stepsCaption(stair);
   const steps = Array.from({ length: stair.steps }, (_, index) => {
     const step = stepAt(index, stair.steps);
     return {
@@ -175,24 +167,6 @@ export function GoalStaircase({
           <CoachFigure coach={coach} size={coachHeight} reaction={reaction} />
         </svg>
       </svg>
-      <figcaption className="grid justify-items-center gap-1 text-center">
-        <p className={cn("font-semibold", size === "full" && "text-lg")}>
-          {goalLine(progress, money)}
-        </p>
-        {caption ? <p className="text-ink-2 text-sm">{caption}</p> : null}
-        <details className="text-ink-2 text-sm">
-          <summary className="cursor-pointer rounded-full px-2 py-1 font-semibold hover:bg-muted">
-            {goalCopy.staircase.amountsSummary}
-          </summary>
-          <p className="pt-1">
-            {goalCopy.staircase.amounts(
-              money(progress.countedMinor),
-              money(progress.remainingMinor),
-              goal.planMinor ? money(goal.planMinor) : null,
-            )}
-          </p>
-        </details>
-      </figcaption>
     </figure>
   );
 }

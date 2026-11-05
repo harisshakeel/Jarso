@@ -32,9 +32,6 @@ export function HomeStepCard({
   if (step.kind === "learning") return <NextStepCard step={step.step} bare={bare} />;
   const section = (
     <section aria-labelledby="home-step-heading" className="grid content-center gap-3">
-      <p className="eyebrow">
-        {step.kind === "goal-reached" ? goalCopy.home.goalReachedEyebrow : goalCopy.home.doThisNext}
-      </p>
       <StepBody
         step={step}
         currency={currency}
@@ -81,7 +78,6 @@ function StepBody({ step, currency, takeOutLimitMinor, goalSheet }: HomeStepCard
           <h2 id="home-step-heading" className="text-h3">
             {goalCopy.home.setGoalTitle}
           </h2>
-          <p className="text-ink-2">{goalCopy.home.setGoalBody}</p>
           <div className="flex">
             <GoalSheet {...goalSheet} goal={null} />
           </div>
@@ -93,7 +89,6 @@ function StepBody({ step, currency, takeOutLimitMinor, goalSheet }: HomeStepCard
           <h2 id="home-step-heading" className="text-h3">
             {goalCopy.home.allDoneTitle}
           </h2>
-          <p className="text-ink-2">{goalCopy.home.allDoneBody}</p>
         </>
       );
     default:
@@ -130,7 +125,6 @@ function GoalReached({
       <h2 id="home-step-heading" className="text-h3">
         {title}
       </h2>
-      <p className="text-ink-2">{goalCopy.home.reachedBody}</p>
       <div className="flex">
         <TakeOutSheet
           currency={currency}

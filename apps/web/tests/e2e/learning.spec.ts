@@ -293,9 +293,8 @@ test("a due review shows up as practice, then nothing is due", async () => {
 });
 
 test("your week sums the week and asks one fresh question", async () => {
-  await child.goto("/child/learn");
-  await child.getByRole("link", { name: "Your week" }).click();
-  await expect(child).toHaveURL(at("/child/learn/week"));
+  // Learn no longer links to the week (2026-11-06, simpler for kids); the page is still there.
+  await child.goto("/child/learn/week");
   const week = child.getByRole("region", { name: "Your week" });
   await expect(week.getByText(/^This week .*\.$|^No money moved this week\.$/)).toBeVisible();
   // The child has learned a skill, so the review can show understanding and ask about it.

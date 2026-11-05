@@ -2,13 +2,11 @@ import { pointsLine } from "@jarso/core/learning";
 import { FlameIcon, StarIcon } from "lucide-react";
 import { cn } from "@/lib";
 
-/** The words under the big number. A broken run is never called lost (FR12). */
-const runWords = (streak: number) =>
-  streak === 0 ? "Learn today to start a run" : streak === 1 ? "day in a row" : "days in a row";
-
 /**
- * The child's run and points as one block (2026-11-04): the run as a big number, the main thing,
- * the points under it. On Home's learning card and Learn's header. Points are never money.
+ * The child's run and points as one block (2026-11-04): the run as a big number with its flame,
+ * the main thing, and the points as a star and a number (no words since 2026-11-06, simpler for
+ * kids; screen readers still hear "3 days in a row, 120 points"). On Home's learning card and
+ * Learn's header. Points are never money.
  */
 export function StreakBadge({
   points,
@@ -44,17 +42,7 @@ export function StreakBadge({
           )}
         />
         <span className="font-extrabold text-6xl tabular-nums leading-none">{streak}</span>
-        {layout === "row" ? (
-          <span className={cn("max-w-28 font-bold leading-tight", !on && "text-ink-2")}>
-            {runWords(streak)}
-          </span>
-        ) : null}
       </p>
-      {layout === "column" ? (
-        <p aria-hidden className={cn("font-bold leading-tight", !on && "text-ink-2")}>
-          {runWords(streak)}
-        </p>
-      ) : null}
       <p
         aria-hidden
         className={cn(
@@ -65,7 +53,7 @@ export function StreakBadge({
         )}
       >
         <StarIcon className="size-5 fill-gold text-gold-text" />
-        <span className="font-extrabold tabular-nums">{pointsLine(points)}</span>
+        <span className="font-extrabold tabular-nums">{points}</span>
       </p>
     </div>
   );

@@ -76,7 +76,6 @@ function shelf(props: Partial<Parameters<typeof JarShelf>[0]> = {}) {
       rules={[]}
       goal={goal(2600)}
       allowanceMinor={500}
-      dueMinor={0}
       openRequests={[]}
       {...props}
     />,
@@ -84,12 +83,12 @@ function shelf(props: Partial<Parameters<typeof JarShelf>[0]> = {}) {
 }
 
 describe("JarShelf", () => {
-  it("writes both balances and what each jar is", () => {
+  it("writes both balances under the jar names, with no captions (2026-11-06)", () => {
     shelf();
     expect(screen.getByText("£8")).toBeInTheDocument();
-    expect(screen.getByText("Cash you have")).toBeInTheDocument();
     expect(screen.getByText("£31")).toBeInTheDocument();
-    expect(screen.getByText("Kept by your parent")).toBeInTheDocument();
+    expect(screen.queryByText("Cash you have")).toBeNull();
+    expect(screen.queryByText("Kept by your parent")).toBeNull();
   });
 
   it("keeps the goal off the jars: its words live in the goal card", () => {
@@ -119,11 +118,6 @@ describe("JarShelf", () => {
     expect(screen.getByRole("button", { name: "Take out" })).toBeInTheDocument();
   });
 
-  it("shows money that is due outside the jars", () => {
-    shelf({ dueMinor: 500 });
-    expect(screen.getByText("£5 on its way · waiting for a parent")).toBeInTheDocument();
-  });
-
   it("puts open requests under the jar they affect", () => {
     shelf({
       openRequests: [
@@ -143,28 +137,10 @@ describe("JarShelf", () => {
     expect(spend).toHaveTextContent("£6 extra · your parent said yes");
   });
 
-  it("explains the jar drawing in words", () => {
-    shelf({ dueMinor: 500 });
-    expect(screen.queryByText("Counts toward your goal")).toBeNull();
-    expect(screen.getByText("Waiting to come out")).toBeInTheDocument();
-    expect(screen.getByText("On its way")).toBeInTheDocument();
-  });
-
-  it("draws due money between the jars, not on the Save jar", () => {
-    const { container } = render(
-      <JarShelf
-        currency="GBP"
-        userId="c1"
-        availability={availability}
-        rules={[]}
-        goal={null}
-        allowanceMinor={500}
-        dueMinor={500}
-        openRequests={[]}
-      />,
-    );
-    expect(container.querySelector("[data-due-coin]")).toBeNull();
-    expect(screen.getByText("£5 on its way · waiting for a parent")).toBeInTheDocument();
+  it("lets the drawing speak for itself: no legend under the jars (2026-11-06)", () => {
+    shelf();
+    expect(screen.queryByRole("list", { name: "What the jars show" })).toBeNull();
+    expect(screen.queryByText("Waiting to come out")).toBeNull();
   });
 
   it("flies coins from Save to Spend when a take-out lands, and out of Spend for a purchase", () => {
@@ -174,7 +150,6 @@ describe("JarShelf", () => {
       rules: [],
       goal: null,
       allowanceMinor: 500,
-      dueMinor: 0,
       openRequests: [],
     };
     const { container, rerender } = render(<JarShelf {...props} availability={availability} />);
@@ -204,7 +179,6 @@ describe("JarShelf", () => {
         rules={[]}
         goal={null}
         allowanceMinor={500}
-        dueMinor={0}
         openRequests={[]}
         justMoved={{ from: "spend", to: "save" }}
       />,

@@ -5,13 +5,8 @@ import { PageContainer, PageHeader, PageSkeleton } from "@/components/layout";
 import { SlowFallback } from "@/components/shell";
 import { Card, CardContent, Skeleton } from "@/components/ui";
 import { routes } from "@/config";
-import { AllowanceLine, runningSchedule } from "@/features/allowance";
-import {
-  getFamilyContext,
-  getSchedule,
-  getTodaysAllowance,
-  listDueForChild,
-} from "@/features/allowance/server";
+import { runningSchedule } from "@/features/allowance";
+import { getFamilyContext, getSchedule, getTodaysAllowance } from "@/features/allowance/server";
 import { PurchaseSheet } from "@/features/diary";
 import { getChildNickname, requireRole } from "@/features/family/server";
 import { GoalCard } from "@/features/goals";
@@ -30,18 +25,18 @@ export const metadata: Metadata = { title: "Home" };
 /**
  * The child's Home, learning first (2026-11-04): one card with the run and points as a big
  * number, the one next thing and the seven missions as a short line; then the money (jars, one
- * gold keycap to record a purchase, the allowance in a line) and the goal. How the jars moved
- * and pending purchases are on the Diary.
+ * gold keycap to record a purchase) and the goal. How the jars moved and pending purchases
+ * are on the Diary. Simpler for kids (2026-11-06): no allowance line under the greeting, no
+ * captions under the jars, fewer words on the run, the next step and the goal.
  * Ask Jarso has its own page (the Jarso tab). The week and the
  * skills live on Learn. requireRole sends signed-out users to the PIN sign-in and parents home.
  */
 async function ChildHome() {
   const { user } = await requireRole("child", routes.child);
-  const [nickname, family, schedule, due] = await Promise.all([
+  const [nickname, family, schedule] = await Promise.all([
     getChildNickname(),
     getFamilyContext(),
     getSchedule(user.id),
-    listDueForChild(user.id),
   ]);
   const allowanceMinor = runningSchedule(schedule)?.amountMinor ?? null;
   return (
@@ -49,7 +44,6 @@ async function ChildHome() {
       <PageHeader
         className="rise-in"
         title={nickname ? `Hi, ${nickname}!` : "Hi!"}
-        description={<AllowanceLine schedule={schedule} currency={family.currency} />}
         action={
           <PurchaseSheet
             currency={family.currency}
@@ -73,7 +67,6 @@ async function ChildHome() {
                 childId={user.id}
                 currency={family.currency}
                 allowanceMinor={allowanceMinor}
-                dueMinor={due.totalMinor}
               />
             </Suspense>
           </CardContent>
@@ -243,12 +236,10 @@ async function HomeShelf({
   childId,
   currency,
   allowanceMinor,
-  dueMinor,
 }: {
   childId: string;
   currency: string;
   allowanceMinor: number | null;
-  dueMinor: number;
 }) {
   try {
     // Only the balances can fail the shelf; the goal, requests and rules are nice to have.
@@ -266,7 +257,6 @@ async function HomeShelf({
         rules={rules?.rules ?? []}
         goal={goal}
         allowanceMinor={allowanceMinor}
-        dueMinor={dueMinor}
         openRequests={requests.filter((r) => r.status === "pending" || r.status === "approved")}
         movesWithoutAsking={rules?.jarMovesApproval === "notify"}
       />

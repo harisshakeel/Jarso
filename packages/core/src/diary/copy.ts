@@ -146,6 +146,8 @@ export const pendingCopy = {
 export const diaryCopy = {
   heading: "Diary",
   spendJarLabel: "Spend jar",
+  /** The Spend chip on the Diary (2026-11-06): the jar's name before its amount. */
+  spendChip: "Spend",
   /** "You have" ‹amount› "in Spend." The amount sits between, styled as money. */
   youHave: "You have",
   inSpend: "in Spend.",
