@@ -7,7 +7,8 @@ that has no file yet.
 The hash is FNV-1a of the line's words (the same as filmVoicePath in @jarso/core/learning), so
 an edited line gets a new file and the old one is removed. Commit the files it writes.
 
-Standard library only. The API key comes from the environment and is never printed:
+Standard library only. The API key comes from the environment, or else from the gitignored
+apps/web/.env.local, and is never printed:
 
     OPENAI_API_KEY=... python3 scripts/lesson-voice.py                    # OpenAI (default)
     ELEVENLABS_API_KEY=... python3 scripts/lesson-voice.py --provider elevenlabs --voice <voice id>
@@ -29,6 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 MISSIONS = ROOT / "packages/content/src/learning/missions"
 CHECK_IN = ROOT / "packages/content/src/learning/check-in.json"
 OUT = ROOT / "apps/web/public/lessons/voice"
+ENV_FILE = ROOT / "apps/web/.env.local"
 
 # How the voice should sound: very soft and female, for children aged 11 to 14.
 STYLE = (
@@ -71,6 +73,20 @@ def films():
         yield "check-in", check_in["film"]["lines"]
 
 
+def api_key(name: str) -> str:
+    """The key from the environment, else from apps/web/.env.local (gitignored). Never printed."""
+    key = os.environ.get(name, "")
+    if not key and ENV_FILE.is_file():
+        for raw in ENV_FILE.read_text(encoding="utf-8").splitlines():
+            found, sep, value = raw.strip().removeprefix("export ").partition("=")
+            if sep and found.strip() == name:
+                key = value.strip().strip("\"'")
+                break
+    if not key:
+        sys.exit(f"Set {name} in your shell or apps/web/.env.local first (never in a chat).")
+    return key
+
+
 def post(url: str, headers: dict, body: dict) -> bytes:
     request = urllib.request.Request(
         url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST"
@@ -84,9 +100,7 @@ def post(url: str, headers: dict, body: dict) -> bytes:
 
 
 def openai_speech(line: str, voice: str) -> bytes:
-    key = os.environ.get("OPENAI_API_KEY")
-    if not key:
-        sys.exit("Set OPENAI_API_KEY in your shell first (never paste it into a chat).")
+    key = api_key("OPENAI_API_KEY")
     return post(
         "https://api.openai.com/v1/audio/speech",
         {"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
@@ -101,9 +115,7 @@ def openai_speech(line: str, voice: str) -> bytes:
 
 
 def elevenlabs_speech(line: str, voice: str) -> bytes:
-    key = os.environ.get("ELEVENLABS_API_KEY")
-    if not key:
-        sys.exit("Set ELEVENLABS_API_KEY in your shell first (never paste it into a chat).")
+    key = api_key("ELEVENLABS_API_KEY")
     if not voice:
         sys.exit("ElevenLabs needs --voice <voice id> (a soft female voice from its library).")
     return post(
@@ -128,9 +140,7 @@ def is_mp3(audio: bytes) -> bool:
 
 
 def openrouter_speech(line: str, voice: str, model: str) -> bytes:
-    key = os.environ.get("OPENROUTER_API_KEY")
-    if not key:
-        sys.exit("Set OPENROUTER_API_KEY in your shell first (never paste it into a chat).")
+    key = api_key("OPENROUTER_API_KEY")
     audio = post(
         "https://openrouter.ai/api/v1/audio/speech",
         {"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
