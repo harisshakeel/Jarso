@@ -8,6 +8,7 @@ export * from "./components/coach-bubble";
 export * from "./components/current-step";
 export * from "./components/home-step-card";
 export * from "./components/learning-summary";
+export * from "./components/lesson-buddy";
 export * from "./components/mini-road";
 export * from "./components/mission-player";
 export * from "./components/next-step-card";

@@ -3,12 +3,14 @@ import { Suspense } from "react";
 import { ChildNav } from "@/components/shell";
 import { routes } from "@/config";
 import { getCurrentUser } from "@/features/auth/server";
-import { currentRole, getFamily } from "@/features/family/server";
+import { currentRole, getChildNickname, getFamily } from "@/features/family/server";
 import { JarsoBuddy } from "@/features/guide";
 import { getGuideState } from "@/features/guide/server";
 import { NoticeListener } from "@/features/notifications";
 import { getUnreadCount } from "@/features/notifications/server";
 import { OutboxSync } from "@/features/offline";
+import { WelcomeTour } from "@/features/tour";
+import { getTour, welcomeTourOn } from "@/features/tour/server";
 import { logger } from "@/lib";
 import { RailAvatar } from "../header-avatar";
 
@@ -36,6 +38,9 @@ export default function ChildLayout({ children }: LayoutProps<"/child">) {
       </Suspense>
       <Suspense fallback={null}>
         <ChildJarsoBuddy />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ChildWelcomeTour />
       </Suspense>
     </>
   );
@@ -65,6 +70,32 @@ async function ChildJarsoBuddy() {
     return state.available ? <JarsoBuddy introNeeded={state.introNeeded} /> : null;
   } catch (error) {
     unstable_rethrow(error);
+    return null;
+  }
+}
+
+/**
+ * The welcome tour (2026-11-06): on the child's first visit, and again from Me. Lives in the
+ * layout so it carries on as the child taps through the tabs. On a read error it stays away;
+ * the child can still start it from Me once it reads again.
+ */
+async function ChildWelcomeTour() {
+  try {
+    const user = await getCurrentUser();
+    if (!user || (await currentRole()) !== "child") return null;
+    const [tour, nickname] = await Promise.all([getTour(user.id), getChildNickname()]);
+    return (
+      <WelcomeTour
+        name={nickname}
+        buddy={tour.buddy}
+        show={welcomeTourOn() && tour.finishedAt === null}
+      />
+    );
+  } catch (error) {
+    unstable_rethrow(error);
+    logger.warn("Welcome tour unavailable", {
+      error: error instanceof Error ? error.name : "unknown",
+    });
     return null;
   }
 }

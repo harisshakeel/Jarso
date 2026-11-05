@@ -203,6 +203,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"child_tours": {
+                  Row: {
+                    "buddy": string | null,"child_id": string,"created_at": string,"family_id": string,"finished_at": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "buddy"?: string | null,"child_id": string,"created_at"?: string,"family_id": string,"finished_at"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "buddy"?: string | null,"child_id"?: string,"created_at"?: string,"family_id"?: string,"finished_at"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_tours_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "child_tours_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"device_push_tickets": {
                   Row: {
                     "created_at": string,"id": string,"token_id": string
@@ -1423,6 +1449,9 @@ isOneToOne: false
                            },
 "send_child_note":
 { Args: { "p_child_id": string,"p_idempotency_key": string,"p_text": string }; Returns: string
+                           },
+"save_welcome_tour":
+{ Args: { "p_buddy": string,"p_finished": boolean }; Returns: undefined
                            },
 "send_handover_reminders":
 { Args: { "p_now"?: string }; Returns: number

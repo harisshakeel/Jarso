@@ -126,7 +126,7 @@ export function JarShelf({
       </div>
       <div className="@container relative grid grid-cols-2 gap-4">
         {flight ? <CoinFlightOverlay key={flight.key} flight={flight.flight} /> : null}
-        <section aria-label="Spend jar" className="grid content-start gap-2">
+        <section aria-label="Spend jar" data-tour="spend" className="grid content-start gap-2">
           <JarButton
             jar="spend"
             name="Spend"
@@ -163,7 +163,7 @@ export function JarShelf({
             </Link>
           </Tray>
         </section>
-        <section aria-label="Save jar" className="grid content-start gap-2">
+        <section aria-label="Save jar" data-tour="save" className="grid content-start gap-2">
           <JarButton
             jar="save"
             name="Save"

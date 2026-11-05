@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./learning": "./src/learning/index.ts"
+    "./learning": "./src/learning/index.ts",
+    "./tour": "./src/tour/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

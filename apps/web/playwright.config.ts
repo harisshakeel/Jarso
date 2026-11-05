@@ -33,6 +33,8 @@ const serverEnv: Record<string, string> = {
   // keys (a provider is on only when its keys are set).
   PAYMENTS_ALLOW_FAKE: "true",
   CRON_SECRET: E2E_CRON_SECRET,
+  // The welcome tour would cover a new child's first page in every spec; its own tests cover it.
+  FEATURE_WELCOME_TOUR: "false",
 };
 
 export default defineConfig({

@@ -44,7 +44,7 @@ export function DiaryHighlightsStrip({
 }) {
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
   return (
-    <section aria-labelledby="diary-highlights-title" className="grid gap-2">
+    <section aria-labelledby="diary-highlights-title" data-tour="diary" className="grid gap-2">
       <h2 id="diary-highlights-title" className="eyebrow">
         {diaryHighlightsCopy.heading}
       </h2>
