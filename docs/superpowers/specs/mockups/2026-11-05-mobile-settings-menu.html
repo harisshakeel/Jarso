@@ -1,0 +1,179 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Mobile settings menu (option A, v6)</title><style>body{background:#1e1e1e;color:#eee;font-family:system-ui;padding:24px}.subtitle{color:#aaa}</style></head><body>
+<style>
+  .phones { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+  .ph-wrap { display:flex; flex-direction:column; gap:10px; width:290px; }
+  .ph { --bg:#f4f8fa; --fg:#141c1f; --card:#fff; --bd:#dce5ea; --mut:#52636b; --pri:#02627d; --sec:#c4f4ff; --secfg:#014b62; --muted:#ebf1f4; --inp:#7d8d95; --des:#e10000; --hdr:#fff;
+        width:290px; height:640px; border-radius:34px; border:8px solid #141c1f; background:var(--bg); color:var(--fg);
+        overflow:hidden; position:relative; font-family:"Nunito",system-ui,sans-serif; font-size:12px; }
+  .ph.dark { --bg:#0b1f26; --fg:#e6f1f4; --card:#12303a; --bd:#234853; --mut:#9db6be; --pri:#6facc2; --sec:#003444; --secfg:#c4f4ff; --muted:#1c3a44; --inp:#577d89; --des:#ff6467; --hdr:#12303a; border-color:#000; }
+  .sb { height:22px; display:flex; justify-content:space-between; padding:4px 16px 0; font-size:11px; font-weight:700; background:var(--hdr); }
+  .hdr { background:var(--hdr); height:44px; display:flex; align-items:center; gap:14px; padding:0 14px; font-size:17px; font-weight:600; border-bottom:1px solid var(--bd); }
+  .body { padding:10px 12px; display:flex; flex-direction:column; gap:6px; }
+  .crd { background:var(--card); border:1px solid var(--bd); border-radius:18px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+  .h3 { font-weight:800; font-size:14px; }
+  .mut { color:var(--mut); font-size:12px; }
+  .lbl { color:var(--pri); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; }
+  .code { font-family:ui-monospace,monospace; font-size:19px; font-weight:700; letter-spacing:.2em; }
+  .btn2 { background:var(--sec); color:var(--secfg); border-radius:999px; text-align:center; padding:8px 14px; font-weight:700; font-size:12.5px; }
+  .btnO { border:1.5px solid var(--bd); border-radius:999px; text-align:center; padding:8px; font-weight:700; font-size:12.5px; }
+  .grp { background:var(--card); border:1px solid var(--bd); border-radius:18px; overflow:hidden; }
+  .row { display:flex; align-items:center; gap:10px; padding:7px 12px; border-top:1px solid var(--muted); min-height:24px; }
+  .row:first-child { border-top:none; }
+  .ic { width:26px; height:26px; border-radius:9px; background:var(--sec); color:var(--pri); display:flex; align-items:center; justify-content:center; font-size:13px; flex:none; }
+  .rt { flex:1; min-width:0; }
+  .rt b { display:block; font-size:12.5px; }
+  .rt span { color:var(--mut); font-size:11px; }
+  .chev { color:var(--inp); font-size:17px; }
+  .gt { font-size:10.5px; font-weight:700; color:var(--mut); text-transform:uppercase; letter-spacing:.06em; padding:2px 4px 0; }
+  .av { width:26px; height:26px; border-radius:50%; background:var(--muted); display:flex; align-items:center; justify-content:center; font-weight:800; flex:none; }
+  .avL { width:52px; height:52px; font-size:22px; }
+  .sw { width:34px; height:20px; border-radius:999px; background:var(--pri); position:relative; flex:none; }
+  .sw::after { content:""; position:absolute; right:3px; top:3px; width:14px; height:14px; border-radius:50%; background:var(--bg); } .sw[style]::after { right:auto; left:3px; }
+  .inp { border:1px solid var(--inp); border-radius:12px; padding:8px 10px; background:var(--muted); font-size:12.5px; }
+  .fl { font-weight:600; font-size:12px; margin-bottom:-4px; }
+  .pill { display:flex; gap:6px; }
+  .pill div { flex:1; text-align:center; padding:7px 0; border-radius:999px; border:1.5px solid var(--bd); font-weight:700; font-size:11px; }
+  .pill .on { background:var(--pri); color:var(--bg); border-color:var(--pri); }
+  .cap b { font-size:13.5px; } .cap { font-size:12.5px; line-height:1.45; }
+</style>
+
+<h2>Option A, v6: a Dark mode switch instead of Looks</h2>
+<p class="subtitle">Main screen in light and dark, then three of the pages a row opens. "Same as my phone" is gone. Dark mode is now a switch right on the Settings screen, so it no longer needs its own page.</p>
+
+<div class="phones">
+
+  <!-- MAIN LIGHT -->
+  <div class="ph-wrap">
+    <div class="ph">
+      <div class="sb"><span>8:31</span><span>▲ ▮ 82%</span></div>
+      <div class="hdr">← Settings</div>
+      <div class="body">
+        <div class="crd" style="flex-direction:row;align-items:center;gap:10px">
+          <div style="flex:1"><div class="lbl">Family code</div><div class="code">6D42DK</div><div class="mut" style="font-size:11px">Your child signs in with it</div></div>
+          <div class="btn2">Share</div>
+        </div>
+        <div class="gt">Children</div>
+        <div class="grp">
+          <div class="row"><div class="av">A</div><div class="rt"><b>Aarav</b><span>Jarso on</span></div><div class="chev">›</div></div>
+          <div class="row"><div class="av">M</div><div class="rt"><b>Mira</b><span>Jarso off</span></div><div class="chev">›</div></div>
+          <div class="row"><div class="ic">＋</div><div class="rt"><b style="color:var(--pri)">Add a child</b></div></div>
+        </div>
+        <div class="gt">Family</div>
+        <div class="grp">
+          <div class="row"><div class="ic">🕒</div><div class="rt"><b>Timezone</b><span>Asia/Calcutta</span></div><div class="chev">›</div></div>
+          <div class="row"><div class="ic">✉</div><div class="rt"><b>Accept a child's invitation</b></div><div class="chev">›</div></div>
+        </div>
+        <div class="gt">You</div>
+        <div class="grp">
+          <div class="row"><div class="ic">👤</div><div class="rt"><b>Your account</b><span>Priya Sharma</span></div><div class="chev">›</div></div>
+          <div class="row"><div class="ic">🔔</div><div class="rt"><b>Notifications</b><span>On</span></div><div class="chev">›</div></div>
+          <div class="row" style="outline:2px dashed #fdc300;outline-offset:-3px"><div class="ic">◐</div><div class="rt"><b>Dark mode</b><span>Switch between light and dark</span></div><div class="sw" style="background:var(--inp)"></div></div>
+        </div>
+        <div class="btnO">Sign out</div>
+      </div>
+    </div>
+    <div class="cap"><b>1 · Settings (light): switch off</b><br><span class="mut">Children got their own group, since they're what you'll change most. Row subtitles show the current value. Sign out sits at the bottom with no card around it.</span></div>
+  </div>
+
+  <!-- MAIN DARK -->
+  <div class="ph-wrap">
+    <div class="ph dark">
+      <div class="sb"><span>8:31</span><span>▲ ▮ 82%</span></div>
+      <div class="hdr">← Settings</div>
+      <div class="body">
+        <div class="crd" style="flex-direction:row;align-items:center;gap:10px">
+          <div style="flex:1"><div class="lbl">Family code</div><div class="code">6D42DK</div><div class="mut" style="font-size:11px">Your child signs in with it</div></div>
+          <div class="btn2">Share</div>
+        </div>
+        <div class="gt">Children</div>
+        <div class="grp">
+          <div class="row"><div class="av">A</div><div class="rt"><b>Aarav</b><span>Jarso on</span></div><div class="chev">›</div></div>
+          <div class="row"><div class="av">M</div><div class="rt"><b>Mira</b><span>Jarso off</span></div><div class="chev">›</div></div>
+          <div class="row"><div class="ic">＋</div><div class="rt"><b style="color:var(--pri)">Add a child</b></div></div>
+        </div>
+        <div class="gt">Family</div>
+        <div class="grp">
+          <div class="row"><div class="ic">🕒</div><div class="rt"><b>Timezone</b><span>Asia/Calcutta</span></div><div class="chev">›</div></div>
+          <div class="row"><div class="ic">✉</div><div class="rt"><b>Accept a child's invitation</b></div><div class="chev">›</div></div>
+        </div>
+        <div class="gt">You</div>
+        <div class="grp">
+          <div class="row"><div class="ic">👤</div><div class="rt"><b>Your account</b><span>Priya Sharma</span></div><div class="chev">›</div></div>
+          <div class="row"><div class="ic">🔔</div><div class="rt"><b>Notifications</b><span>On</span></div><div class="chev">›</div></div>
+          <div class="row" style="outline:2px dashed #fdc300;outline-offset:-3px"><div class="ic">◐</div><div class="rt"><b>Dark mode</b><span>Switch between light and dark</span></div><div class="sw"></div></div>
+        </div>
+        <div class="btnO">Sign out</div>
+      </div>
+    </div>
+    <div class="cap"><b>2 · Settings (dark): switch on</b><br><span class="mut">The dashed yellow outline only marks the new switch for this review. Flipping it changes the whole app at once, and the app remembers it.</span></div>
+  </div>
+
+  <!-- CHILD PAGE -->
+  <div class="ph-wrap">
+    <div class="ph">
+      <div class="sb"><span>8:31</span><span>▲ ▮ 82%</span></div>
+      <div class="hdr">← Aarav</div>
+      <div class="body" style="height:calc(100% - 66px - 22px);box-sizing:border-box;padding-bottom:22px">
+        <div class="crd" style="flex-direction:row;align-items:center;gap:12px">
+          <div class="av avL">A</div>
+          <div class="rt"><b style="font-size:15px">Aarav</b><span>Signs in with family code 6D42DK, nickname and PIN</span></div>
+        </div>
+        <div class="gt">Sign-in</div>
+        <div class="grp">
+          <div class="row"><div class="ic">✎</div><div class="rt"><b>Rename</b><span>Nickname: Aarav</span></div><div class="chev">›</div></div>
+          <div class="row"><div class="ic">#</div><div class="rt"><b>Reset PIN</b><span>Set a new PIN (4 to 6 numbers)</span></div><div class="chev">›</div></div>
+        </div>
+        <div class="gt">Jarso</div>
+        <div class="grp">
+          <div class="row"><div class="rt"><b>Jarso, the money guide</b><span>Let Aarav chat with Jarso</span></div><div class="sw"></div></div>
+        </div>
+        <div class="btnO" style="margin-top:auto;color:var(--des);border-color:var(--des)">Remove Aarav from your family</div>
+        </div>
+      </div>
+    </div>
+    <div class="cap"><b>3 · A child's page (v6)</b><br><span class="mut">Settings sit together at the top. Remove is a red-outlined button fixed to the bottom of the screen, well away from the other controls, and it still asks to confirm.</span></div>
+  </div>
+
+  <!-- TIMEZONE PAGE -->
+  <div class="ph-wrap">
+    <div class="ph">
+      <div class="sb"><span>8:31</span><span>▲ ▮ 82%</span></div>
+      <div class="hdr">← Timezone</div>
+      <div class="body">
+        <div class="crd">
+          <div class="fl">Timezone</div>
+          <div class="inp">Asia/Calcutta</div>
+          <div class="mut">Allowance due dates and reminders follow this timezone.</div>
+          <div class="btn2">Save</div>
+        </div>
+        <div class="mut" style="padding:0 4px">Money is kept in Indian rupee (₹). That can't change once the family exists.</div>
+      </div>
+    </div>
+    <div class="cap"><b>4 · Timezone</b><br><span class="mut">The Family card's timezone form, now on its own page. The currency note moves here as small print.</span></div>
+  </div>
+
+  <!-- ACCOUNT PAGE -->
+  <div class="ph-wrap">
+    <div class="ph">
+      <div class="sb"><span>8:31</span><span>▲ ▮ 82%</span></div>
+      <div class="hdr">← Your account</div>
+      <div class="body">
+        <div class="crd">
+          <div class="fl">Name</div><div class="inp">Priya Sharma</div>
+          <div class="btn2">Save name</div>
+        </div>
+        <div class="crd">
+          <div class="h3">Your details</div><div class="mut">Only you can see these.</div>
+          <div class="fl">Date of birth</div><div class="inp">12 Mar 1988</div>
+          <div class="fl">Country</div><div class="inp">India</div>
+          <div class="fl">Gender</div><div class="inp">Female</div>
+          <div class="btn2">Save details</div>
+        </div>
+      </div>
+    </div>
+    <div class="cap"><b>5 · Your account</b><br><span class="mut">Name and the details form together. This is the only page that can still scroll, and only with the keyboard open.</span></div>
+  </div>
+
+  
+
+</body></html>
