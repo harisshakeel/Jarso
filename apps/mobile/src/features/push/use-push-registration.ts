@@ -1,5 +1,6 @@
 import * as Notifications from "expo-notifications";
 import { useEffect, useRef } from "react";
+import { AppState } from "react-native";
 import { registerBeforeSignOut, useSession } from "@/features/auth";
 import {
   askForPush,
@@ -46,6 +47,7 @@ export function usePushRegistration(): void {
     const signingOut = new AbortController();
     tokenRef.current = null;
     let registering = false;
+    let registered = false;
     const register = () => {
       if (signingOut.signal.aborted || registering) return;
       registering = true;
@@ -56,6 +58,7 @@ export function usePushRegistration(): void {
         signal: signingOut.signal,
       })
         .then((token) => {
+          registered = token !== null;
           if (active && token) tokenRef.current = token;
         })
         .finally(() => {
@@ -73,6 +76,11 @@ export function usePushRegistration(): void {
       deviceToken = data;
       register();
     });
+    // A sign-up that came to nothing (offline, a failed POST, notifications off) tries again when
+    // the app comes back: cheap, it asks the user nothing more and posts only once allowed.
+    const foreground = AppState.addEventListener("change", (state) => {
+      if (state === "active" && !registered) register();
+    });
     const dispose = registerBeforeSignOut(async function dropPushToken() {
       signingOut.abort();
       if (pendingRef.current) await settledWithin(pendingRef.current, PENDING_WAIT_MS);
@@ -87,6 +95,7 @@ export function usePushRegistration(): void {
     return () => {
       active = false;
       tokens.remove();
+      foreground.remove();
       dispose();
     };
   }, [role, userId]);

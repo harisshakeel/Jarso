@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { Alert } from "react-native";
+import { Alert, AppState, type AppStateStatus } from "react-native";
 import { runBeforeSignOut } from "@/features/auth";
 import {
   askForPush,
@@ -266,6 +266,22 @@ describe("usePushRegistration", () => {
     mockTokenListener?.({ type: "android", data: "fcm-1" });
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(api).toHaveBeenCalledTimes(1);
+  });
+
+  it("a sign-up that failed tries again when the app comes back, and only then", async () => {
+    let onAppState: ((state: AppStateStatus) => void) | undefined;
+    jest.spyOn(AppState, "addEventListener").mockImplementationOnce((_type, listener) => {
+      onAppState = listener;
+      return { remove: jest.fn() };
+    });
+    api.mockRejectedValueOnce(new Error("offline"));
+    await renderHook(() => usePushRegistration());
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    onAppState?.("active");
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
+    onAppState?.("active");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(api).toHaveBeenCalledTimes(2);
   });
 
   it("the sign-out hook is registered once per signed-in user and disposed on unmount", async () => {
