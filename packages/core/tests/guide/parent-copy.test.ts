@@ -16,6 +16,8 @@ describe("parentGuideCopy", () => {
     expect(parentGuideCopy.questions(1)).toBe("1 question");
     expect(parentGuideCopy.questions(2)).toBe("2 questions");
     expect(parentGuideCopy.lookedAt(["jars", "goal"])).toBe("Looked at: jars, goal");
+    expect(parentGuideCopy.childState(true)).toBe("Jarso on");
+    expect(parentGuideCopy.childState(false)).toBe("Jarso off");
   });
 });
 

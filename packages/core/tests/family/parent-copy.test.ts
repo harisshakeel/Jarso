@@ -32,6 +32,11 @@ describe("parent family copy", () => {
     expect(familySettingsCopy.pinBody("Ada")).toBe(
       "The old PIN stops working straight away. Tell Ada the new one.",
     );
+    expect(familySettingsCopy.childSignsIn("6D42DK")).toBe(
+      "Signs in with family code 6D42DK, nickname and PIN",
+    );
+    expect(familySettingsCopy.nicknameIs("Ada")).toBe("Nickname: Ada");
+    expect(familySettingsCopy.removeFromFamily("Ada")).toBe("Remove Ada from your family");
     expect(familySettingsCopy.familyBody("Pound sterling (£)")).toBe(
       "Money is kept in Pound sterling (£). That can't change once the family exists.",
     );

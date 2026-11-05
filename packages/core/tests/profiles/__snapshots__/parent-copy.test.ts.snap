@@ -10,6 +10,8 @@ exports[`profileCopy > keeps every line 1`] = `
   "country": "Country",
   "countryHelp": "So Jarso shows the right helplines and money for where you live.",
   "countryPlaceholder": "Choose your country",
+  "darkMode": "Dark mode",
+  "darkModeBody": "Switch between light and dark",
   "dateOfBirth": "Date of birth",
   "dateOfBirthHelp": "Parents need to be 18 or over.",
   "detailsBody": "Only you can see these.",
@@ -26,5 +28,6 @@ exports[`profileCopy > keeps every line 1`] = `
   "saveName": "Save name",
   "signOutBody": "Sign out of Jarso on this device.",
   "signOutTitle": "Done for now?",
+  "youGroup": "You",
 }
 `;

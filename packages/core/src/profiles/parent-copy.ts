@@ -6,8 +6,14 @@ export const profileCopy = {
   accountTitle: "Your account",
   detailsTitle: "Your details",
   detailsBody: "Only you can see these.",
+  /** The web's theme card. The phone has one Dark mode switch instead. */
   looksTitle: "Looks",
   looksBody: "Light, dark, or follow your device.",
+  /** The phone's settings groups: "You" holds the account, notifications and dark mode. */
+  youGroup: "You",
+  /** The phone's one theme switch (parent Settings and the child's Me). */
+  darkMode: "Dark mode",
+  darkModeBody: "Switch between light and dark",
   signOutTitle: "Done for now?",
   signOutBody: "Sign out of Jarso on this device.",
   nameSaved: "Name saved",
