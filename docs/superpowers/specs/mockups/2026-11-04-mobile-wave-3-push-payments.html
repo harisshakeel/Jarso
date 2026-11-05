@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jarso wave 3: card payments and notifications (mockups)</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; padding:32px; background:#e9eef1; font-family:system-ui, sans-serif; color:#141c1f; }
+  h1 { font:800 24px/32px Nunito, sans-serif; margin:0 0 4px; }
+  h2 { font:800 18px/24px Nunito, sans-serif; margin:40px 0 4px; }
+  .lead { margin:0 0 20px; color:#52636b; font:400 15px/22px system-ui; max-width:900px; }
+  .jr-row { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; }
+  .jr-col { display:flex; flex-direction:column; gap:10px; width:376px; }
+  .jr-cap { font: 600 13px/18px system-ui, sans-serif; color:#52636b; }
+  .jr-cap b { color:#141c1f; }
+  .ph { width:360px; height:740px; overflow:hidden; border-radius:28px; border:8px solid #141c1f;
+        background:#f4f8fa; color:#141c1f; font-family:Nunito, system-ui, sans-serif; position:relative;
+        font-variant-numeric: tabular-nums lining-nums; }
+  .ph * { box-sizing:border-box; margin:0; }
+  .sb { height:24px; display:flex; justify-content:space-between; padding:4px 16px; font:600 12px/16px Nunito, sans-serif; color:#52636b; }
+  .scr { padding:8px 16px 90px; display:flex; flex-direction:column; gap:14px; }
+  .card { background:#fff; border-radius:20px; box-shadow:0 0 0 1px rgb(20 28 31/.06),0 1px 2px rgb(20 28 31/.06); padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+  .muted { color:#52636b; }
+  .teal { color:oklch(0.462 0.087 225); }
+  .gold { color:oklch(0.54 0.111 86); }
+  .red { color:#c4373c; }
+  .green { color:#1f7a4d; }
+  .pill { border-radius:9999px; border:0; font-family:Nunito, sans-serif; font-weight:700; height:44px; font-size:15px; width:100%; }
+  .pill.p { background:oklch(0.462 0.087 225); color:#fff; }
+  .pill.s { background:#ebf1f4; color:#141c1f; }
+  .pill.o { background:#fff; color:#141c1f; box-shadow:inset 0 0 0 1px #dce5ea; }
+  .pill.link { background:none; color:oklch(0.462 0.087 225); height:auto; }
+  .pill.dis { opacity:.5; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .sep { height:1px; background:#ebf1f4; }
+  .t-h1 { font:800 22px/28px Nunito, sans-serif; letter-spacing:-0.3px; }
+  .t-h2 { font:700 18px/24px Nunito, sans-serif; }
+  .t-h3 { font:700 16px/22px Nunito, sans-serif; }
+  .t-body { font:400 15px/21px Nunito, sans-serif; }
+  .t-bodyc { font:400 16px/22px Nunito, sans-serif; }
+  .t-bold { font:700 15px/21px Nunito, sans-serif; }
+  .t-small { font:600 13px/18px Nunito, sans-serif; }
+  .t-cap { font:600 12px/16px Nunito, sans-serif; letter-spacing:.08em; }
+  .t-money-xl { font:800 32px/36px Nunito, sans-serif; }
+  .t-money { font:700 17px/22px Nunito, sans-serif; }
+  .back { font:700 15px/21px Nunito, sans-serif; color:oklch(0.462 0.087 225); }
+  .sw { width:44px; height:26px; border-radius:9999px; background:#cfd9de; position:relative; flex:none; }
+  .sw::after { content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgb(0 0 0/.2); }
+  .sw.on { background:oklch(0.462 0.087 225); }
+  .sw.on::after { left:21px; }
+  .sw.dim { opacity:.45; }
+  .seg { display:flex; gap:8px; }
+  .seg div { flex:1; text-align:center; padding:10px 0; border-radius:14px; font:700 15px/20px Nunito, sans-serif; background:#ebf1f4; }
+  .seg .on { background:oklch(0.462 0.087 225); color:#fff; }
+  .note { border-radius:14px; padding:10px 12px; font:400 15px/21px Nunito, sans-serif; }
+  .note.info { background:#eef5f8; }
+  .note.warn { background:#fff6df; }
+  .note.err { background:#fdecec; }
+  .note.ok { background:#e8f5ee; }
+  .spin { display:inline-block; width:14px; height:14px; border:2px solid #cfd9de; border-top-color:oklch(0.462 0.087 225); border-radius:50%; vertical-align:-2px; margin-right:6px; }
+  .tabs { position:absolute; left:0; right:0; bottom:0; height:64px; background:#fff; border-top:1px solid #dce5ea;
+          display:flex; justify-content:space-around; align-items:center; font:600 11px/14px Nunito, sans-serif; color:#52636b; }
+  .tabs span { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .tabs span::before { content:""; width:22px; height:22px; border-radius:7px; background:#dce5ea; }
+  .tabs .on { color:oklch(0.462 0.087 225); }
+  .tabs .on::before { background:oklch(0.462 0.087 225); }
+  .scrim { position:absolute; inset:0; background:rgb(20 28 31/.45); }
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:#fff; border-radius:20px 20px 0 0; padding:10px 16px 20px; display:flex; flex-direction:column; gap:12px; }
+  .grab { width:36px; height:4px; border-radius:2px; background:#cfd9de; align-self:center; }
+  .stripe { font-family:system-ui, sans-serif; }
+  .stripe .fld { border:1px solid #d5dbe1; border-radius:6px; padding:10px 12px; font:400 15px/20px system-ui; color:#8792a2; }
+  .stripe .pay { background:#635bff; color:#fff; border-radius:6px; height:44px; display:flex; align-items:center; justify-content:center; font:600 15px system-ui; }
+  .vendor { position:absolute; top:-26px; left:16px; right:16px; text-align:center; font:600 11px/14px system-ui; color:#fff; }
+  .alert { position:absolute; left:28px; right:28px; top:250px; background:#fff; border-radius:24px; padding:22px 22px 14px; font-family:system-ui, sans-serif; }
+  .alert h4 { font:500 20px/26px system-ui; margin:0 0 10px; }
+  .alert p { font:400 15px/21px system-ui; color:#3b4a51; }
+  .alert .btns { display:flex; justify-content:flex-end; gap:22px; margin-top:18px; font:600 15px system-ui; color:oklch(0.462 0.087 225); }
+  .field { border:1px solid #c9d4da; border-radius:14px; height:46px; padding:12px 14px; font:400 15px/21px Nunito, sans-serif; background:#f9fbfc; }
+  .label { font:600 13px/18px Nunito, sans-serif; color:#52636b; }
+  .chev::after { content:"›"; font:700 20px/1 Nunito, sans-serif; color:#a3b1b8; }
+  .tag { font:700 11px/16px Nunito, sans-serif; padding:1px 8px; border-radius:9999px; background:#ebf1f4; color:#52636b; }
+</style>
+</head>
+<body>
+
+<h1>Card payments and notifications on the phone</h1>
+<p class="lead">Phone width (360 dp), wave 3 type scale. Parent screens use body 15, child screens body 16. Copy is the real copy from <code>@jarso/core</code>. The Stripe and Razorpay card forms are their own native sheets: we choose when they open and what follows, not how they look.</p>
+
+<h2>1. Hand over an allowance by card (parent)</h2>
+<p class="lead">The card option sits under the cash hand-over on the existing screen. With one provider the button reads "Pay by card"; with two, one button each.</p>
+
+<div class="jr-row">
+
+  <div class="jr-col">
+    <div class="jr-cap"><b>D · Hand-over screen</b>, card option under the cash split</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr">
+        <p class="back">‹ Sam</p>
+        <p class="t-h1">Hand over</p>
+        <div class="card">
+          <p class="t-bold">Allowance due Tuesday 4 November</p>
+          <p class="t-money-xl">£5.00</p>
+        </div>
+        <div class="card">
+          <p class="t-h3">How Sam gets it</p>
+          <div class="row"><p class="t-body">Cash to Spend</p><p class="t-money">£3.00</p></div>
+          <div class="row"><p class="t-body">Into Save</p><p class="t-money gold">£2.00</p></div>
+        </div>
+        <div class="card">
+          <p class="t-h3">Or pay by card</p>
+          <button type="button" class="pill o">Pay with Stripe</button>
+          <button type="button" class="pill o">Pay with Razorpay</button>
+          <p class="t-small muted">Test mode. No real money moves.</p>
+        </div>
+        <button type="button" class="pill p">I've handed it over</button>
+        <button type="button" class="pill link">Not given</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="jr-col">
+    <div class="jr-cap"><b>E · Stripe's sheet opens</b> (Stripe draws this; shown for flow only)</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr" style="filter:blur(0.5px)">
+        <p class="back">‹ Sam</p>
+        <p class="t-h1">Hand over</p>
+        <div class="card"><p class="t-bold">Allowance due Tuesday 4 November</p><p class="t-money-xl">£5.00</p></div>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet stripe" style="padding-top:10px">
+        <div class="grab"></div>
+        <div class="row"><b style="font:600 17px system-ui">Jarso</b><span style="font:400 15px system-ui;color:#8792a2">✕</span></div>
+        <p style="font:600 13px system-ui;color:#6a7383">Card information</p>
+        <div class="fld">1234 1234 1234 1234</div>
+        <div style="display:flex;gap:8px"><div class="fld" style="flex:1">MM / YY</div><div class="fld" style="flex:1">CVC</div></div>
+        <p style="font:600 13px system-ui;color:#6a7383">Country</p>
+        <div class="fld" style="color:#30313d">United Kingdom</div>
+        <div class="pay">Pay £5.00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="jr-col">
+    <div class="jr-cap"><b>F · After the sheet closes</b>: we never say "paid" until the server confirms</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr">
+        <p class="back">‹ Sam</p>
+        <p class="t-h1">Hand over</p>
+        <div class="card"><p class="t-bold">Allowance due Tuesday 4 November</p><p class="t-money-xl">£5.00</p></div>
+        <p class="t-cap teal">THE CARD BLOCK, BY STATE</p>
+        <div class="card">
+          <p class="t-body"><span class="spin"></span>Checking the payment…</p>
+          <p class="t-small muted">After 15 s: "Still confirming with the bank. The jars update as soon as it's through."</p>
+        </div>
+        <div class="card">
+          <div class="note ok"><b>Payment received.</b></div>
+          <p class="t-small muted">Then the screen returns to Sam with the jars updated.</p>
+        </div>
+        <div class="card">
+          <div class="note err"><b>Card payment didn't go through</b><br>The card was declined. Try another card.</div>
+          <button type="button" class="pill o">Pay again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="jr-col">
+    <div class="jr-cap"><b>G · Sheet closed early</b>: payment still open (also shown on reopen)</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr">
+        <p class="back">‹ Sam</p>
+        <p class="t-h1">Hand over</p>
+        <div class="card"><p class="t-bold">Allowance due Tuesday 4 November</p><p class="t-money-xl">£5.00</p></div>
+        <div class="card">
+          <div class="note warn"><b>Card payment in progress</b><br>You can still hand it over in cash.</div>
+          <button type="button" class="pill p">Pay again</button>
+          <button type="button" class="pill o">Cancel card payment</button>
+          <p class="t-small muted">Test mode. No real money moves.</p>
+        </div>
+        <button type="button" class="pill s">I've handed it over</button>
+        <button type="button" class="pill link">Not given</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h2>2. Auto charge and saved cards (parent)</h2>
+<p class="lead">Auto charge is a switch on the child's Allowance screen (and on a gift). With no saved card, turning it on opens a short sheet first; then the provider's own save-card sheet.</p>
+
+<div class="jr-row">
+
+  <div class="jr-col">
+    <div class="jr-cap"><b>H · Allowance screen</b>, auto charge on</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr">
+        <p class="back">‹ Sam</p>
+        <p class="t-h1">Allowance</p>
+        <div class="card">
+          <div class="row"><p class="t-h3">£5.00 every Tuesday</p><p class="t-small teal">Edit</p></div>
+          <p class="t-body muted">Next: Tuesday 11 November</p>
+        </div>
+        <div class="card">
+          <div class="row" style="min-height:48px">
+            <div>
+              <p class="t-bold">Auto charge</p>
+              <p class="t-body muted">Pay each allowance by card on the day it's due.</p>
+            </div>
+            <div class="sw on"></div>
+          </div>
+          <div class="sep"></div>
+          <p class="t-body">Charges Visa ending 4242.</p>
+          <p class="t-small muted">Test mode. No real money moves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="jr-col">
+    <div class="jr-cap"><b>I · Turning it on with no saved card</b> (our sheet, before the provider's)</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr">
+        <p class="back">‹ Sam</p>
+        <p class="t-h1">Allowance</p>
+        <div class="card"><p class="t-h3">£5.00 every Tuesday</p></div>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <p class="t-h2">Save a card first</p>
+        <p class="t-body muted">Jarso will charge this card the allowance or gift amount on the day it's due, until you turn auto charge off.</p>
+        <div class="seg"><div class="on">Stripe</div><div>Razorpay</div></div>
+        <p class="label">Mobile number <span class="muted">(Razorpay only)</span></p>
+        <div class="field muted">+91</div>
+        <p class="t-small muted">Razorpay needs your mobile number to save a card. Jarso doesn't keep it.</p>
+        <button type="button" class="pill p">Save with Stripe</button>
+        <button type="button" class="pill link">Not now</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="jr-col">
+    <div class="jr-cap"><b>J · Settings</b>: saved cards and the new Notifications row</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr">
+        <p class="t-h1">Settings</p>
+        <div class="card">
+          <p class="t-h3">Saved card</p>
+          <div class="row" style="min-height:48px">
+            <div><p class="t-bold">Visa ending 4242</p><p class="t-small muted">Stripe</p></div>
+            <button type="button" class="pill o" style="width:auto;padding:0 16px;height:40px">Remove</button>
+          </div>
+        </div>
+        <div class="card" style="padding:4px 16px">
+          <div class="row" style="min-height:52px"><p class="t-bold">Notifications</p><span class="chev"></span></div>
+          <div class="sep"></div>
+          <div class="row" style="min-height:52px"><p class="t-bold">Theme</p><span class="t-body muted">System</span></div>
+        </div>
+        <div class="card">
+          <p class="t-h3">Account</p>
+          <p class="t-body muted">pat@example.com</p>
+        </div>
+      </div>
+      <div class="scrim" style="background:rgb(20 28 31/.35)"></div>
+      <div class="alert" style="top:230px">
+        <h4>Remove this card?</h4>
+        <p>Auto charge turns off everywhere it uses this card. You can still pay by card when you hand over.</p>
+        <div class="btns"><span>Keep it</span><span class="red">Remove</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h2>3. Notifications (parent and child)</h2>
+<p class="lead">Per phone. Asked once after the first sign-in, with our message before Android's own prompt. The settings page is the same for both roles; the child also sees the fixed quiet hours.</p>
+
+<div class="jr-row">
+
+  <div class="jr-col">
+    <div class="jr-cap"><b>K · First sign-in on a phone</b> (child copy; parent copy below)</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr">
+        <p class="t-small muted">Tuesday 4 November</p>
+        <p style="font:800 26px/32px Nunito, sans-serif">Hi Sam</p>
+        <div class="card"><p class="t-h2">Your jars</p><p class="t-bodyc muted">…</p></div>
+      </div>
+      <div class="scrim"></div>
+      <div class="alert">
+        <h4>Get a ping from Jarso?</h4>
+        <p>We'll tell you when money arrives or a parent answers. Never late at night.</p>
+        <div class="btns"><span>Not now</span><span>Turn on</span></div>
+      </div>
+      <p style="position:absolute;left:28px;right:28px;top:470px;font:600 12px/16px system-ui;color:#fff;text-align:center">"Turn on" then shows Android's own permission prompt.<br>Parent: "We'll tell you when your child asks for something or a handover is due."</p>
+    </div>
+  </div>
+
+  <div class="jr-col">
+    <div class="jr-cap"><b>L · Parent: Settings › Notifications</b></div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr">
+        <p class="back">‹ Settings</p>
+        <p class="t-h1">Notifications</p>
+        <p class="t-body muted">For this phone only.</p>
+        <div class="card">
+          <div class="row" style="min-height:48px">
+            <div><p class="t-bold">Pause all</p><p class="t-body muted">No pings on this phone until you turn them back on.</p></div>
+            <div class="sw"></div>
+          </div>
+        </div>
+        <div class="card" style="gap:0;padding:4px 16px">
+          <div class="row" style="min-height:64px"><div><p class="t-bold">Requests and answers</p><p class="t-small muted">When someone asks for money, or gets an answer.</p></div><div class="sw on"></div></div>
+          <div class="sep"></div>
+          <div class="row" style="min-height:64px"><div><p class="t-bold">Allowance and money</p><p class="t-small muted">Allowance days, money coming in and changes to the jars.</p></div><div class="sw"></div></div>
+          <div class="sep"></div>
+          <div class="row" style="min-height:64px"><div><p class="t-bold">Learning and Jarso</p><p class="t-small muted">Nudges from Jarso about learning.</p></div><div class="sw on"></div></div>
+          <div class="sep"></div>
+          <div class="row" style="min-height:64px"><div><p class="t-bold">Notes from family</p><p class="t-small muted">Short notes from your family.</p></div><div class="sw on"></div></div>
+        </div>
+        <p class="t-small muted">Notices still show in your inbox.</p>
+      </div>
+      <div class="tabs"><span>Family</span><span>Children</span><span>Jarso</span><span class="on">Inbox</span></div>
+    </div>
+  </div>
+
+  <div class="jr-col">
+    <div class="jr-cap"><b>M · Child: Me › Notifications</b>, paused, with quiet hours</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr">
+        <p class="back">‹ Me</p>
+        <p class="t-h1">Notifications</p>
+        <p class="t-bodyc muted">For this phone only.</p>
+        <div class="card">
+          <div class="row" style="min-height:48px">
+            <div><p class="t-h3">Pause all</p><p class="t-bodyc muted">No pings on this phone until you turn them back on.</p></div>
+            <div class="sw on"></div>
+          </div>
+        </div>
+        <div class="card" style="gap:0;padding:4px 16px;opacity:.55">
+          <div class="row" style="min-height:56px"><p class="t-h3">Requests and answers</p><div class="sw on dim"></div></div>
+          <div class="sep"></div>
+          <div class="row" style="min-height:56px"><p class="t-h3">Allowance and money</p><div class="sw on dim"></div></div>
+          <div class="sep"></div>
+          <div class="row" style="min-height:56px"><p class="t-h3">Learning and Jarso</p><div class="sw on dim"></div></div>
+          <div class="sep"></div>
+          <div class="row" style="min-height:56px"><p class="t-h3">Notes from family</p><div class="sw on dim"></div></div>
+        </div>
+        <div class="note info"><b>Quiet from 9pm to 7am.</b><br>Pings that come at night wait until morning.</div>
+        <p class="t-small muted">Notices still show in News.</p>
+      </div>
+      <div class="tabs"><span>Home</span><span>Diary</span><span>Learn</span><span>Jarso</span><span class="on">News</span></div>
+    </div>
+  </div>
+
+  <div class="jr-col">
+    <div class="jr-cap"><b>N · Notifications blocked</b> in Android settings</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr">
+        <p class="back">‹ Settings</p>
+        <p class="t-h1">Notifications</p>
+        <div class="card">
+          <p class="t-bold">Notifications are off for Jarso on this phone.</p>
+          <p class="t-body muted">Turn them on in the phone's settings to get pings.</p>
+          <button type="button" class="pill p">Open phone settings</button>
+        </div>
+        <p class="t-small muted">Notices still show in your inbox.</p>
+        <p class="t-cap teal" style="margin-top:12px">NEVER ASKED / NOT REGISTERED</p>
+        <div class="card">
+          <p class="t-bold">Pings are off on this phone.</p>
+          <button type="button" class="pill p">Turn on</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,193 @@
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  .jr-row { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; }
+  .jr-col { display:flex; flex-direction:column; gap:10px; }
+  .jr-cap { font: 600 13px/18px system-ui, sans-serif; color:#52636b; }
+  .jr-cap b { color:#141c1f; }
+  .ph { width:360px; height:740px; overflow:hidden; border-radius:28px; border:8px solid #141c1f;
+        background:#f4f8fa; color:#141c1f; font-family:Nunito, system-ui, sans-serif; position:relative;
+        font-variant-numeric: tabular-nums lining-nums; }
+  .ph * { box-sizing:border-box; margin:0; }
+  .sb { height:24px; display:flex; justify-content:space-between; padding:4px 16px; font:600 12px/16px Nunito, sans-serif; color:#52636b; }
+  .scr { padding:8px 16px 90px; display:flex; flex-direction:column; }
+  .card { background:#fff; border-radius:20px; box-shadow:0 0 0 1px rgb(20 28 31/.06),0 1px 2px rgb(20 28 31/.06); }
+  .muted { color:#52636b; }
+  .teal { color:oklch(0.462 0.087 225); }
+  .gold { color:oklch(0.54 0.111 86); }
+  .pill { border-radius:9999px; border:0; font-family:Nunito, sans-serif; font-weight:700; }
+  .pill.p { background:oklch(0.462 0.087 225); color:#fff; }
+  .pill.s { background:#ebf1f4; color:#141c1f; }
+  .jar { width:34px; height:40px; border-radius:8px 8px 12px 12px; border:2px solid #141c1f; position:relative; overflow:hidden; background:#fff; }
+  .jar i { position:absolute; left:0; right:0; bottom:0; }
+  .tabs { position:absolute; left:0; right:0; bottom:0; height:64px; background:#fff; border-top:1px solid #dce5ea;
+          display:flex; justify-content:space-around; align-items:center; font:600 11px/14px Nunito, sans-serif; color:#52636b; }
+  .tabs span { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .tabs span::before { content:""; width:22px; height:22px; border-radius:7px; background:#dce5ea; }
+  .tabs .on { color:oklch(0.462 0.087 225); }
+  .tabs .on::before { background:oklch(0.462 0.087 225); }
+  .badge { background:#e5484d; color:#fff; border-radius:9999px; font:700 11px/16px Nunito, sans-serif; padding:0 6px; margin-left:4px; }
+  .rowline { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .sep { height:1px; background:#ebf1f4; }
+  .av { width:36px; height:36px; border-radius:9999px; display:flex; align-items:center; justify-content:center; font:800 15px/1 Nunito, sans-serif; }
+</style>
+
+<h2>Phone type scale: now vs proposed</h2>
+<p class="subtitle">Real sizes at 360 dp, the width of a typical Android phone. Same content in the first two phones; the third is the new parent home.</p>
+
+<div class="jr-row">
+
+  <!-- NOW: child home -->
+  <div class="jr-col">
+    <div class="jr-cap"><b>A · Child Home, now</b> (greeting 40, section 24, card title 20, balance 28)</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr" style="gap:16px">
+        <p style="font:800 40px/44px Nunito, sans-serif; letter-spacing:-0.8px">Hi Sam!</p>
+        <p style="font:700 24px/30px Nunito, sans-serif">Your jars</p>
+        <div style="display:flex; gap:12px">
+          <div class="card" style="flex:1; padding:16px 12px; display:flex; flex-direction:column; align-items:center; gap:6px">
+            <div class="jar"><i style="height:55%; background:oklch(0.462 0.087 225)"></i></div>
+            <p style="font:700 20px/26px Nunito, sans-serif">Spend</p>
+            <p style="font:700 28px/32px Nunito, sans-serif">£12.50</p>
+            <p style="font:400 16px/24px Nunito, sans-serif; text-align:center" class="muted">Cash you have</p>
+          </div>
+          <div class="card" style="flex:1; padding:16px 12px; display:flex; flex-direction:column; align-items:center; gap:6px">
+            <div class="jar"><i style="height:70%; background:oklch(0.846 0.173 87)"></i></div>
+            <p style="font:700 20px/26px Nunito, sans-serif">Save</p>
+            <p style="font:700 28px/32px Nunito, sans-serif">£34</p>
+            <p style="font:400 16px/24px Nunito, sans-serif; text-align:center" class="muted">Kept by your parent</p>
+          </div>
+        </div>
+        <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:8px">
+          <p style="font:700 20px/26px Nunito, sans-serif">Do this next</p>
+          <p style="font:400 16px/24px Nunito, sans-serif">Mission 3: Needs or wants? Sort five things you bought.</p>
+          <button type="button" class="pill p" style="height:48px; font-size:16px">Start mission</button>
+        </div>
+        <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:8px">
+          <p style="font:700 20px/26px Nunito, sans-serif">Your goal</p>
+          <p style="font:400 16px/24px Nunito, sans-serif">New football boots</p>
+        </div>
+      </div>
+      <div class="tabs"><span class="on">Home</span><span>Diary</span><span>Learn</span><span>Jarso</span><span>News</span></div>
+    </div>
+  </div>
+
+  <!-- PROPOSED: child home -->
+  <div class="jr-col">
+    <div class="jr-cap"><b>B · Child Home, proposed</b> (greeting 26, section 18, card title 16, balance 22, body 16)</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr" style="gap:14px">
+        <div style="padding-top:4px">
+          <p class="muted" style="font:600 13px/18px Nunito, sans-serif">Tuesday 3 November</p>
+          <p style="font:800 26px/32px Nunito, sans-serif; letter-spacing:-0.4px">Hi Sam</p>
+        </div>
+        <div class="card" style="padding:14px 16px; display:flex; flex-direction:column; gap:12px">
+          <div class="rowline">
+            <p style="font:700 18px/24px Nunito, sans-serif">Your jars</p>
+            <p class="muted" style="font:600 13px/18px Nunito, sans-serif">£46.50 in all</p>
+          </div>
+          <div style="display:flex; gap:12px">
+            <div style="flex:1; display:flex; gap:10px; align-items:center">
+              <div class="jar" style="width:28px;height:34px"><i style="height:55%; background:oklch(0.462 0.087 225)"></i></div>
+              <div>
+                <p class="muted" style="font:600 13px/18px Nunito, sans-serif">Spend</p>
+                <p style="font:700 22px/26px Nunito, sans-serif">£12.50</p>
+              </div>
+            </div>
+            <div style="flex:1; display:flex; gap:10px; align-items:center">
+              <div class="jar" style="width:28px;height:34px"><i style="height:70%; background:oklch(0.846 0.173 87)"></i></div>
+              <div>
+                <p class="muted" style="font:600 13px/18px Nunito, sans-serif">Save</p>
+                <p class="gold" style="font:700 22px/26px Nunito, sans-serif">£34</p>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px">
+            <button type="button" class="pill s" style="flex:1; height:44px; font-size:15px">Log a buy</button>
+            <button type="button" class="pill s" style="flex:1; height:44px; font-size:15px">Put in</button>
+          </div>
+        </div>
+        <div class="card" style="padding:14px 16px; display:flex; flex-direction:column; gap:6px">
+          <p class="teal" style="font:600 12px/16px Nunito, sans-serif; letter-spacing:.08em">Do this next</p>
+          <p style="font:700 16px/22px Nunito, sans-serif">Mission 3: Needs or wants?</p>
+          <p style="font:400 16px/22px Nunito, sans-serif" class="muted">Sort five things you bought.</p>
+          <button type="button" class="pill p" style="height:44px; font-size:15px; margin-top:6px">Start mission</button>
+        </div>
+        <div class="card" style="padding:14px 16px; display:flex; flex-direction:column; gap:8px">
+          <div class="rowline">
+            <p style="font:700 16px/22px Nunito, sans-serif">New football boots</p>
+            <p class="muted" style="font:600 13px/18px Nunito, sans-serif">£34 of £60</p>
+          </div>
+          <div style="height:8px; border-radius:9999px; background:#ebf1f4"><div style="width:57%; height:100%; border-radius:9999px; background:oklch(0.846 0.173 87)"></div></div>
+          <p class="muted" style="font:400 16px/22px Nunito, sans-serif">About 4 more allowances to go.</p>
+        </div>
+      </div>
+      <div class="tabs"><span class="on">Home</span><span>Diary</span><span>Learn</span><span>Jarso</span><span>News</span></div>
+    </div>
+  </div>
+
+  <!-- PROPOSED: parent home -->
+  <div class="jr-col">
+    <div class="jr-cap"><b>C · Parent Family home, proposed</b> (title 22, section 18, body 15, money 17)</div>
+    <div class="ph">
+      <div class="sb"><span>9:41</span><span>●●● 82%</span></div>
+      <div class="scr" style="gap:14px">
+        <div class="rowline" style="padding-top:4px">
+          <div>
+            <p class="muted" style="font:600 13px/18px Nunito, sans-serif">Tuesday 3 November</p>
+            <p style="font:800 22px/28px Nunito, sans-serif; letter-spacing:-0.3px">Your family</p>
+          </div>
+          <div class="av" style="background:#ebf1f4">P</div>
+        </div>
+
+        <div class="card" style="padding:14px 16px; display:flex; flex-direction:column; gap:12px">
+          <div class="rowline">
+            <p style="font:700 18px/24px Nunito, sans-serif">Needs you</p>
+            <span class="badge">2</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <div class="rowline">
+              <p style="font:700 15px/21px Nunito, sans-serif">Sam wants £5 from Save</p>
+              <p style="font:700 17px/22px Nunito, sans-serif">£5</p>
+            </div>
+            <p class="muted" style="font:400 15px/21px Nunito, sans-serif">"For a book at the school fair" · 20 min ago</p>
+            <div style="display:flex; gap:8px">
+              <button type="button" class="pill p" style="flex:1; height:40px; font-size:15px">Approve</button>
+              <button type="button" class="pill s" style="flex:1; height:40px; font-size:15px">Say no</button>
+            </div>
+          </div>
+          <div class="sep"></div>
+          <div class="rowline">
+            <div>
+              <p style="font:700 15px/21px Nunito, sans-serif">Mia's allowance is due</p>
+              <p class="muted" style="font:400 15px/21px Nunito, sans-serif">Due today</p>
+            </div>
+            <button type="button" class="pill s" style="height:36px; padding:0 14px; font-size:14px">Hand over</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:6px 16px">
+          <p style="font:700 18px/24px Nunito, sans-serif; padding:8px 0 4px">Children</p>
+          <div class="rowline" style="padding:10px 0">
+            <div style="display:flex; gap:12px; align-items:center">
+              <div class="av" style="background:oklch(0.9 0.04 225)">S</div>
+              <div><p style="font:700 15px/21px Nunito, sans-serif">Sam</p><p class="muted" style="font:400 13px/18px Nunito, sans-serif">Bought lunch · 2h ago</p></div>
+            </div>
+            <div style="text-align:right"><p style="font:700 17px/22px Nunito, sans-serif">£46.50</p><p class="muted" style="font:400 13px/18px Nunito, sans-serif">£12.50 · <span class="gold">£34</span></p></div>
+          </div>
+          <div class="sep"></div>
+          <div class="rowline" style="padding:10px 0">
+            <div style="display:flex; gap:12px; align-items:center">
+              <div class="av" style="background:oklch(0.93 0.07 87)">M</div>
+              <div><p style="font:700 15px/21px Nunito, sans-serif">Mia</p><p class="muted" style="font:400 13px/18px Nunito, sans-serif">Finished mission 2 · yesterday</p></div>
+            </div>
+            <div style="text-align:right"><p style="font:700 17px/22px Nunito, sans-serif">£18</p><p class="muted" style="font:400 13px/18px Nunito, sans-serif">£8 · <span class="gold">£10</span></p></div>
+          </div>
+        </div>
+      </div>
+      <div class="tabs"><span class="on">Family</span><span>Children</span><span>Jarso</span><span>Inbox<b class="badge" style="display:none"></b></span></div>
+    </div>
+  </div>
+
+</div>
