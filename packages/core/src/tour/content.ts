@@ -9,6 +9,7 @@ export type TourVoice = (typeof tourVoices)[number];
 const tourContentSchema = z.object({
   lines: z.record(z.string(), z.string().min(1)),
   voices: z.record(z.string(), z.enum(tourVoices)),
+  deviceVoice: z.array(z.string()).default([]),
 });
 
 function parseTour(): z.infer<typeof tourContentSchema> {

@@ -60,7 +60,7 @@ OPENROUTER_VOICE = "705690224f264386b87fb598083ab022"
 OPENROUTER_GAP = 3.1
 
 # The welcome tour's cast: a Fish Audio Official British voice (https://fish.audio/m/<id>) for
-# each kid and for Jarso, and how they should sound. Nell narrates the lesson films, so she keeps
+# each kid, and how they should sound (Jarso's one line is read by the device's voice). Nell narrates the lesson films, so she keeps
 # their voice. The kids, in the order coachIds lists them (design.md §7):
 TOUR_CAST = {
     # Pip, a curious girl: "Briony", engaging, enthusiastic yet composed.
@@ -71,8 +71,6 @@ TOUR_CAST = {
     "zuzu": ("43d0c55ea6814a9dab44a06ddfe03658", "cheeky and playful, warm and friendly"),
     # Nell, a thoughtful girl: "Megan", the lesson films' narrator.
     "nell": (OPENROUTER_VOICE, "warm and thoughtful, gentle and friendly"),
-    # Jarso, the app's AI helper: "Freya", clear and natural, made for voice assistants.
-    "jarso": ("8abfa9ebd4c24a3399b68c3cdac8c7b5", "bright and friendly, warm and welcoming"),
 }
 # Names as coachNames in @jarso/core/learning says them (the buddy says their own on "hello").
 SPEAKER_NAMES = {"pip": "Pip", "bo": "Bo", "zuzu": "Zuzu", "nell": "Nell", "jarso": "Jarso"}
@@ -108,12 +106,14 @@ def tour_clips():
     tour = json.loads(TOUR.read_text(encoding="utf-8"))
     clips = []
     for line_id, template in tour["lines"].items():
+        if line_id in tour.get("deviceVoice", []):
+            continue  # read by the device's own voice, never recorded
         fixed = tour["voices"].get(line_id)
         for voice in [fixed] if fixed else KIDS:
             # spokenTourLine: no child's name, so one recording fits every child.
             words = re.sub(r",? \{name\}", "", template).replace("{buddy}", SPEAKER_NAMES[voice])
             clips.append((voice, words, TOUR_OUT / f"{voice}-{line_id}-{text_hash(words)}.mp3"))
-    order = ["nell", *[kid for kid in KIDS if kid != "nell"], "jarso"]
+    order = ["nell", *[kid for kid in KIDS if kid != "nell"]]
     return sorted(clips, key=lambda clip: order.index(clip[0]))
 
 

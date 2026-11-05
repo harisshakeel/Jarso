@@ -12,10 +12,12 @@ export function tourLineId(step: TourStep, arrived: boolean): string {
 }
 
 /**
- * Who says a line out loud: its fixed voice (Nell asks the child to pick a buddy; Jarso says hi on
- * its own tab), otherwise the child's buddy. Null before a buddy is picked.
+ * Whose recording says a line: its fixed voice (Nell asks the child to pick a buddy), otherwise
+ * the child's buddy. Null for a line the device reads (Jarso saying hi on its own tab), and
+ * before a buddy is picked.
  */
 export function tourVoice(lineId: string, buddy: CoachId | null): TourVoice | null {
+  if (tourContent.deviceVoice.includes(lineId)) return null;
   return tourContent.voices[lineId] ?? buddy;
 }
 
@@ -36,6 +38,7 @@ export type TourVoiceClip = { lineId: string; voice: TourVoice; words: string; p
 /** Every recording the tour can play: each buddy line once per kid, a fixed line once. */
 export function tourVoiceClips(): TourVoiceClip[] {
   return Object.keys(tourContent.lines).flatMap((lineId) => {
+    if (tourContent.deviceVoice.includes(lineId)) return [];
     const fixed = tourContent.voices[lineId];
     const voices: readonly TourVoice[] = fixed ? [fixed] : coachIds;
     return voices.map((voice) => ({

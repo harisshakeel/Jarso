@@ -19,7 +19,7 @@
     "finish": "You're all set, {name}! Watch this again any time from Me."
   },
   "voices": {
-    "pick": "nell",
-    "jarso-arrive": "jarso"
-  }
+    "pick": "nell"
+  },
+  "deviceVoice": ["jarso-arrive"]
 }
