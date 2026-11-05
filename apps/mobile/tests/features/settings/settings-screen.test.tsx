@@ -10,7 +10,13 @@ import * as SecureStore from "expo-secure-store";
 import { colorScheme } from "nativewind";
 import type { ReactElement } from "react";
 import { Appearance } from "react-native";
-import { loadTheme, MemoriesScreen, SettingsScreen, THEME_KEY } from "@/features/settings";
+import {
+  loadTheme,
+  MemoriesScreen,
+  SettingsScreen,
+  setTheme,
+  THEME_KEY,
+} from "@/features/settings";
 import { apiFetch } from "@/lib/api";
 import { useOutboxItems } from "@/lib/outbox";
 
@@ -237,5 +243,40 @@ describe("loadTheme", () => {
     jest.spyOn(Appearance, "getColorScheme").mockReturnValue("dark");
     expect(await loadTheme()).toBe("dark");
     expect(SecureStore.setItemAsync).not.toHaveBeenCalled();
+  });
+
+  it("keeps a flip made while the stored choice is being read", async () => {
+    let finishRead: (value: string | null) => void = () => {};
+    (SecureStore.getItemAsync as jest.Mock).mockImplementationOnce(
+      () => new Promise<string | null>((resolve) => (finishRead = resolve)),
+    );
+    jest.spyOn(Appearance, "getColorScheme").mockReturnValue("dark");
+    const loading = loadTheme();
+    await act(() => setTheme("light"));
+    finishRead(null);
+    expect(await loading).toBe("light");
+    expect(mockStore.get(THEME_KEY)).toBe("light");
+    expect(SecureStore.setItemAsync).not.toHaveBeenCalledWith(THEME_KEY, "dark");
+  });
+
+  it("keeps a flip made while the phone's scheme is being saved", async () => {
+    let finishSave: () => void = () => {};
+    (SecureStore.setItemAsync as jest.Mock).mockImplementationOnce(
+      (key: string, value: string) =>
+        new Promise<void>((resolve) => {
+          finishSave = () => {
+            mockStore.set(key, value);
+            resolve();
+          };
+        }),
+    );
+    jest.spyOn(Appearance, "getColorScheme").mockReturnValue("dark");
+    const loading = loadTheme();
+    await waitFor(() => expect(SecureStore.setItemAsync).toHaveBeenCalledWith(THEME_KEY, "dark"));
+    const flipping = act(() => setTheme("light"));
+    finishSave();
+    await flipping;
+    expect(await loading).toBe("light");
+    expect(mockStore.get(THEME_KEY)).toBe("light");
   });
 });
