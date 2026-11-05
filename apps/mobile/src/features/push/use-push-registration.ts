@@ -45,28 +45,33 @@ export function usePushRegistration(): void {
     // Aborted when sign-out begins: a registration still running can't post or store after it.
     const signingOut = new AbortController();
     tokenRef.current = null;
+    let registering = false;
     const register = () => {
-      if (signingOut.signal.aborted) return Promise.resolve();
-      const pending = registerForPush({
+      if (signingOut.signal.aborted || registering) return;
+      registering = true;
+      pendingRef.current = registerForPush({
         userId,
         role,
         ask: askForPush,
         signal: signingOut.signal,
-      }).then((token) => {
-        if (active && token) tokenRef.current = token;
-      });
-      pendingRef.current = pending;
-      return pending;
+      })
+        .then((token) => {
+          if (active && token) tokenRef.current = token;
+        })
+        .finally(() => {
+          registering = false;
+        });
     };
-    void register();
+    register();
 
     // Android fires this on every token fetch too, ours included: only a new token is a rotation,
-    // else each registration would set off the next one, forever.
+    // else each registration would set off the next one, forever. Our own fetch's event lands
+    // while its registration is still running, so `register` skips it.
     let deviceToken: string | null = null;
     const tokens = Notifications.addPushTokenListener(({ data }) => {
       if (data === deviceToken) return;
       deviceToken = data;
-      void register();
+      register();
     });
     const dispose = registerBeforeSignOut(async function dropPushToken() {
       signingOut.abort();

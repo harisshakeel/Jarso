@@ -255,15 +255,17 @@ describe("usePushRegistration", () => {
     );
   });
 
-  it("the same device token again (Android echoes every token fetch) posts nothing more", async () => {
+  it("Android's echo of our own token fetch posts nothing more, then or later", async () => {
+    // As on Android: fetching the token also fires the token listener with it.
+    (Notifications.getExpoPushTokenAsync as jest.Mock).mockImplementationOnce(async () => {
+      mockTokenListener?.({ type: "android", data: "fcm-1" });
+      return { type: "expo", data: TOKEN };
+    });
     await renderHook(() => usePushRegistration());
     await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
     mockTokenListener?.({ type: "android", data: "fcm-1" });
-    await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
-    mockTokenListener?.({ type: "android", data: "fcm-1" });
-    mockTokenListener?.({ type: "android", data: "fcm-1" });
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(api).toHaveBeenCalledTimes(2);
+    expect(api).toHaveBeenCalledTimes(1);
   });
 
   it("the sign-out hook is registered once per signed-in user and disposed on unmount", async () => {
