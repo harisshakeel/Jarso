@@ -1,8 +1,9 @@
-import { type GoalView, goalCopy } from "@jarso/core/goals";
-import { ChevronRightIcon } from "lucide-react";
+import { type GoalView, goalCheer, goalCopy } from "@jarso/core/goals";
+import { ChevronRightIcon, TargetIcon } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
+import { formatMoney } from "@/lib";
 import { GoalSheet } from "./goal-sheet";
 import { GoalStaircase } from "./goal-staircase";
 
@@ -26,13 +27,16 @@ export function GoalCard({
   saveMinor,
   reservedMinor,
 }: GoalCardProps) {
+  const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
   return (
     <Card className="shadow-raised">
       <CardContent>
         <section aria-label={goalCopy.card.heading} className="grid gap-3">
-          {/* No visible heading since 2026-11-06 (simpler for kids): the climb says what it is;
-              the region keeps its name for screen readers. */}
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-h3">
+              <TargetIcon aria-hidden className="size-5 text-gold-text" />
+              {goalCopy.card.heading}
+            </h2>
             {goal ? (
               <Link
                 href={routes.childGoal}
@@ -44,12 +48,31 @@ export function GoalCard({
             ) : null}
           </div>
           {goal ? (
-            <GoalStaircase
-              goal={goal.goal}
-              progress={goal.progress}
-              currency={currency}
-              size="compact"
-            />
+            <>
+              {/* One plain line (2026-11-06): what it is and how far, e.g. "🎧 Gaming PC ·
+                  US$250 of US$800", or "Saved up!" once it is reached. */}
+              <p className="text-center font-semibold">
+                {goalCopy.card.progress(
+                  goal.goal.emoji,
+                  goal.goal.name,
+                  goal.progress.reached
+                    ? null
+                    : goalCopy.card.ofTarget(
+                        money(goal.progress.countedMinor),
+                        money(goal.goal.targetMinor),
+                      ),
+                )}
+              </p>
+              <GoalStaircase
+                goal={goal.goal}
+                progress={goal.progress}
+                currency={currency}
+                size="compact"
+              />
+              <p className="text-balance text-center font-bold text-gold-text">
+                {goalCheer(goal.progress, money)}
+              </p>
+            </>
           ) : (
             <div className="grid justify-items-center gap-3 text-center">
               <p className="text-ink-2">{goalCopy.card.empty}</p>

@@ -91,10 +91,10 @@ test.afterAll(async () => {
 });
 
 test("child sees jars and a revealed gift", async () => {
-  // Simpler Home (2026-11-06): no allowance line under the greeting and no "on its way" badge;
-  // a due allowance is simply not in the jars yet.
-  await expect(child.getByText(/every \w+day/)).toHaveCount(0);
-  await expect(child.getByText("waiting for a parent")).toHaveCount(0);
+  // Plain words (2026-11-06): the pocket money under the greeting, and money that is due is
+  // "on its way", not in the jars yet.
+  await expect(child.getByText(/^You get US\$500 every \w+day\.$/)).toBeVisible();
+  await expect(child.getByText("US$500 is on its way")).toBeVisible();
   await expect(child.getByRole("region", { name: "Spend jar" })).toContainText("US$0");
   await expect(child.getByRole("region", { name: "Save jar" })).toContainText("US$0");
 
@@ -107,16 +107,16 @@ test("child sees jars and a revealed gift", async () => {
   await expect(parent.getByRole("region", { name: "Due now" }).getByText(NOTE)).toBeVisible();
 
   await child.reload();
-  await expect(child.getByRole("region", { name: "Spend jar" })).toContainText("US$0");
+  await expect(child.getByText("US$500 is on its way")).toBeVisible();
   expect(await child.content()).not.toContain(NOTE);
 
-  // Hand over both: jars update and the gift shows with its note.
+  // Hand over both: jars update, the gift shows with its note, nothing is on its way.
   await handOver(/^Allowance/);
   await handOver(/^Gift/);
   await child.reload();
   await expect(child.getByRole("region", { name: "Spend jar" })).toContainText("US$550");
   await expect(child.getByRole("region", { name: "Save jar" })).toContainText("US$0");
-  await expect(child.getByText("waiting for a parent")).toHaveCount(0);
+  await expect(child.getByText(/is on its way$/)).toHaveCount(0);
   // History lives on the Diary tab.
   await child.getByRole("link", { name: "Diary" }).click();
   await expect(child).toHaveURL(at("/child/diary"));
@@ -157,8 +157,12 @@ test("child sets a goal and the goal card shows the climb", async () => {
   await expect(child.getByRole("dialog")).toHaveCount(0);
 
   const goalCard = child.getByRole("region", { name: "Your goal" });
-  // The climb alone (2026-11-06): no title or "to go" line; its picture's name has the figures.
+  // One plain line over the climb (2026-11-06); no "to go" line.
+  await expect(goalCard.getByText("⚽ Football boots · US$0 of US$45")).toBeVisible();
   await expect(goalCard.getByText("About 12 allowances to go")).toHaveCount(0);
+  await expect(
+    goalCard.getByText("Great start! 12 more pocket money days and it's yours"),
+  ).toBeVisible();
   await expect(
     goalCard.getByRole("img", { name: /Football boots, US\$45\. 0 of 12 steps/ }),
   ).toBeVisible();

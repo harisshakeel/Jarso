@@ -1,4 +1,6 @@
+import { CalendarCheckIcon, ChevronRightIcon } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { SlowFallback } from "@/components/shell";
 import { routes } from "@/config";
@@ -23,6 +25,16 @@ async function LearnContent() {
         <StreakBadge points={overview.points} streak={overview.streak} layout="row" />
         {cardFirst ? <NextStepCard step={overview.nextStep} /> : null}
         <PersonalBests overview={overview} />
+        <Link
+          href={routes.childWeek}
+          className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-hairline bg-card px-4 py-3 font-semibold hover:bg-muted"
+        >
+          <span className="flex items-center gap-2">
+            <CalendarCheckIcon aria-hidden className="size-5 text-primary" />
+            {learnCopy.yourWeek}
+          </span>
+          <ChevronRightIcon aria-hidden className="size-5" />
+        </Link>
       </div>
       <Roadmap journey={overview.journey} />
     </div>

@@ -79,7 +79,8 @@ describe("GoalCard", () => {
       />,
     );
     expect(screen.getByRole("region", { name: "Your goal" })).toBeInTheDocument();
-    expect(screen.queryByText("⚽ Football boots, £45.")).toBeNull();
+    expect(screen.getByText("⚽ Football boots · £26 of £45")).toBeInTheDocument();
+    expect(screen.getByText("Keep going! 5 more pocket money days")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Football boots, £45/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "See it" })).toHaveAttribute("href", "/child/goal");
   });

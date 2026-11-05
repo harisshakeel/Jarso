@@ -84,6 +84,12 @@ export const goalCopy = {
     empty: "Something to save for? Pick it and see the climb.",
     /** "⚽ Football boots, ₹450." `target` is already formatted. */
     title: (emoji: string, name: string, target: string) => `${emoji} ${name}, ${target}.`,
+    /**
+     * The goal card's one line (2026-11-06): "🎧 Gaming PC · US$250 of US$800", or
+     * "🎧 Gaming PC · Saved up!" when `ofTarget` is null (reached).
+     */
+    progress: (emoji: string, name: string, ofTarget: string | null) =>
+      `${emoji} ${name} · ${ofTarget ?? "Saved up!"}`,
     /** "£34 of £60" on the phone goal card. Amounts are already formatted. */
     ofTarget: (saved: string, target: string) => `${saved} of ${target}`,
   },

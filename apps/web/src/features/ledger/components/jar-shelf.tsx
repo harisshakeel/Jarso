@@ -25,6 +25,8 @@ type JarShelfProps = {
   rules: MoneyRule[];
   goal: GoalView;
   allowanceMinor: number | null;
+  /** Pocket money due but not handed over yet. Never inside a jar. */
+  dueMinor: number;
   /** Pending and approved requests, shown under the jar they affect. */
   openRequests: SavingsRequest[];
   /** The parent set jar moves to "just tell me": the trays say the move happens at once. */
@@ -62,6 +64,7 @@ export function JarShelf({
   rules,
   goal,
   allowanceMinor,
+  dueMinor,
   openRequests,
   movesWithoutAsking = false,
   justMoved = null,
@@ -110,7 +113,17 @@ export function JarShelf({
   const toggle = (jar: Jar) => setOpen((current) => (current === jar ? null : jar));
 
   return (
-    <section aria-label="Your jars" className="grid gap-4">
+    <section aria-labelledby={`${trayId}-title`} className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id={`${trayId}-title`} className="text-h3">
+          Your jars
+        </h2>
+        {dueMinor > 0 ? (
+          <p className="rounded-full border border-cyan-700 border-dashed px-3 py-1 font-semibold text-cyan-700 dark:border-cyan-300 dark:text-cyan-300">
+            {money(dueMinor)} is on its way
+          </p>
+        ) : null}
+      </div>
       <div className="@container relative grid grid-cols-2 gap-4">
         {flight ? <CoinFlightOverlay key={flight.key} flight={flight.flight} /> : null}
         <section aria-label="Spend jar" className="grid content-start gap-2">

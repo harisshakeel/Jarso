@@ -2,8 +2,9 @@
 
 import { cn } from "cn";
 import { useId } from "react";
+import { CategoryIcon } from "@/features/ledger";
 
-type ChipOption = { key: string; emoji: string; label: string };
+type ChipOption = { key: string; label: string };
 
 type CategoryChipsProps = {
   options: readonly ChipOption[];
@@ -11,14 +12,16 @@ type CategoryChipsProps = {
   value: string | null;
   onChange: (key: string) => void;
   legend: string;
+  /** Which list the options are from, for their icons. */
+  kind: "purchase" | "received";
 };
 
 /**
  * "What was it for?" as a 3-column grid of chips (design.md §6). Native radios, so arrow keys
- * move the choice, Space picks and screen readers announce the group. The emoji is decoration:
- * the label names the chip. A hidden `category` input carries the key into the form.
+ * move the choice, Space picks and screen readers announce the group. The icon (the app's own
+ * line icons, not emoji, since 2026-11-06) is decoration: the label names the chip. A hidden `category` input carries the key into the form.
  */
-export function CategoryChips({ options, value, onChange, legend }: CategoryChipsProps) {
+export function CategoryChips({ options, value, onChange, legend, kind }: CategoryChipsProps) {
   // The radios only group themselves; the hidden input is what the form posts.
   const group = useId();
   return (
@@ -42,9 +45,7 @@ export function CategoryChips({ options, value, onChange, legend }: CategoryChip
                 "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring",
               )}
             >
-              <span aria-hidden className="text-xl leading-none">
-                {option.emoji}
-              </span>
+              <CategoryIcon category={option.key} kind={kind} className="size-6" />
               {option.label}
             </span>
           </label>

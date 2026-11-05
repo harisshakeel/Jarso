@@ -58,6 +58,35 @@ export function goalLine(
     : `About ${progress.paymentsLeft} allowances to go`;
 }
 
+/**
+ * The cheer under the climb on the child's goal card (2026-11-06): easy words that get more
+ * excited as the goal gets closer. "Great start! 28 more pocket money days and it's yours",
+ * "Keep going! 14 more pocket money days", "Almost there! Just 3 more pocket money days",
+ * "You did it!". Without a saving plan it counts the money left instead.
+ */
+export function goalCheer(
+  progress: Pick<GoalProgress, "reached" | "paymentsLeft" | "remainingMinor" | "fillRatio">,
+  money: (minor: number) => string,
+): string {
+  if (progress.reached) return "You did it!";
+  const left = progress.paymentsLeft;
+  const days = (n: number) => `${n} more pocket money ${n === 1 ? "day" : "days"}`;
+  if (left === 1) return "So close! Just 1 more pocket money day";
+  if (progress.fillRatio >= 0.75) {
+    return left === null
+      ? `Almost there! Just ${money(progress.remainingMinor)} more`
+      : `Almost there! Just ${days(left)}`;
+  }
+  if (progress.fillRatio >= 0.25) {
+    return left === null
+      ? `Keep going! ${money(progress.remainingMinor)} more`
+      : `Keep going! ${days(left)}`;
+  }
+  return left === null
+    ? `Great start! ${money(progress.remainingMinor)} more and it's yours`
+    : `Great start! ${days(left)} and it's yours`;
+}
+
 /** A note when a step stands for more than one allowance. */
 export function stepsCaption(stair: Staircase): string | null {
   if (stair.perStep <= 1) return null;

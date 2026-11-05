@@ -149,7 +149,7 @@ describe("HistoryList categories and fixes", () => {
         showMinor="always"
       />,
     );
-    expect(screen.getByText("🍫")).toBeInTheDocument();
+    expect(document.querySelector('svg[data-category="snacks"]')).toBeInTheDocument();
     expect(screen.getByText(/Fixed · was £5\.00/)).toBeInTheDocument();
     expect(screen.queryByText(/Fixed · was.*Snacks/)).not.toBeInTheDocument();
   });
@@ -182,7 +182,7 @@ describe("HistoryList categories and fixes", () => {
         currency="GBP"
       />,
     );
-    expect(screen.getByText("🎂")).toBeInTheDocument();
+    expect(document.querySelector('svg[data-category="birthday"]')).toBeInTheDocument();
     expect(screen.getByText(/^Got · /)).toBeInTheDocument();
   });
 

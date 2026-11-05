@@ -76,6 +76,7 @@ function shelf(props: Partial<Parameters<typeof JarShelf>[0]> = {}) {
       rules={[]}
       goal={goal(2600)}
       allowanceMinor={500}
+      dueMinor={0}
       openRequests={[]}
       {...props}
     />,
@@ -118,6 +119,12 @@ describe("JarShelf", () => {
     expect(screen.getByRole("button", { name: "Take out" })).toBeInTheDocument();
   });
 
+  it("heads the jars and says, in plain words, when money is on its way", () => {
+    shelf({ dueMinor: 500 });
+    expect(screen.getByRole("region", { name: "Your jars" })).toBeInTheDocument();
+    expect(screen.getByText("£5 is on its way")).toBeInTheDocument();
+  });
+
   it("puts open requests under the jar they affect", () => {
     shelf({
       openRequests: [
@@ -150,6 +157,7 @@ describe("JarShelf", () => {
       rules: [],
       goal: null,
       allowanceMinor: 500,
+      dueMinor: 0,
       openRequests: [],
     };
     const { container, rerender } = render(<JarShelf {...props} availability={availability} />);
@@ -179,6 +187,7 @@ describe("JarShelf", () => {
         rules={[]}
         goal={null}
         allowanceMinor={500}
+        dueMinor={0}
         openRequests={[]}
         justMoved={{ from: "spend", to: "save" }}
       />,

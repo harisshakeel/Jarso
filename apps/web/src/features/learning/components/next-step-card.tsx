@@ -1,5 +1,5 @@
-import { describeStep, type NextStep } from "@jarso/core/learning";
-import { ArrowRightIcon } from "lucide-react";
+import { describeStep, NEXT_STEP_EYEBROW, type NextStep } from "@jarso/core/learning";
+import { ArrowRightIcon, GraduationCapIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui";
@@ -25,7 +25,7 @@ function hrefFor(step: NextStep): Route {
 /**
  * The first thing on the child's Home (design.md §5, FR12): one clear next step and its button.
  * Since 2026-11-06 (simpler for kids) only the title and the button: no line under the title and
- * no coach line, and no "Next step" eyebrow over it. `bare` drops the card, for Home's learning card, which holds it beside the run
+ * no coach line; the "Next step" eyebrow stays so the child knows what the card is. `bare` drops the card, for Home's learning card, which holds it beside the run
  * and the road.
  */
 export function NextStepCard({ step, bare = false }: { step: NextStep; bare?: boolean }) {
@@ -33,6 +33,10 @@ export function NextStepCard({ step, bare = false }: { step: NextStep; bare?: bo
   const href = hrefFor(step);
   const section = (
     <section aria-labelledby="next-step-heading" className="grid content-center gap-3">
+      <p className="eyebrow flex items-center gap-2">
+        <GraduationCapIcon aria-hidden className="size-4" />
+        {NEXT_STEP_EYEBROW}
+      </p>
       <h2 id="next-step-heading" className="text-balance text-h3">
         {heading}
       </h2>

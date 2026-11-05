@@ -152,6 +152,7 @@ function PurchaseForm({
       />
       <CategoryChips
         options={SPEND_CATEGORIES}
+        kind="purchase"
         value={category}
         onChange={setCategory}
         legend="What was it for?"

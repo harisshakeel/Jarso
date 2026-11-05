@@ -10,6 +10,7 @@ function setup(value: string | null = null) {
   const { container } = render(
     <CategoryChips
       options={SPEND_CATEGORIES}
+      kind="purchase"
       value={value}
       onChange={onChange}
       legend="What was it for?"
@@ -25,10 +26,11 @@ describe("CategoryChips", () => {
     expect(screen.getAllByRole("radio")).toHaveLength(SPEND_CATEGORIES.length);
   });
 
-  it("names each chip by its label, not its emoji", () => {
-    setup();
+  it("names each chip by its label; its icon is a line icon, not an emoji, and hidden", () => {
+    const { container } = setup();
     expect(screen.getByRole("radio", { name: "Snacks" })).toBeInTheDocument();
-    expect(screen.getByText("🍫")).toHaveAttribute("aria-hidden", "true");
+    expect(container.querySelector('svg[data-category="snacks"]')).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByText("🍫")).toBeNull();
   });
 
   it("calls onChange with the key when a chip is chosen", () => {

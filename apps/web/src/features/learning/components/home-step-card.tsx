@@ -32,6 +32,9 @@ export function HomeStepCard({
   if (step.kind === "learning") return <NextStepCard step={step.step} bare={bare} />;
   const section = (
     <section aria-labelledby="home-step-heading" className="grid content-center gap-3">
+      <p className="eyebrow">
+        {step.kind === "goal-reached" ? goalCopy.home.goalReachedEyebrow : goalCopy.home.doThisNext}
+      </p>
       <StepBody
         step={step}
         currency={currency}

@@ -86,6 +86,7 @@ export function FixForm({
       />
       <CategoryChips
         options={kind === "received" ? RECEIVED_CATEGORIES : SPEND_CATEGORIES}
+        kind={kind}
         value={category}
         onChange={setCategory}
         legend={

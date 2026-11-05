@@ -2,6 +2,7 @@ import { type DiaryHighlights, diaryHighlightsCopy } from "@jarso/core/ledger";
 import { CoinsIcon, ShoppingBagIcon, TagIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn, formatMoney } from "@/lib";
+import { CategoryIcon } from "./category-icon";
 
 function Tile({
   icon,
@@ -69,7 +70,8 @@ export function DiaryHighlightsStrip({
         >
           {view.top ? (
             <>
-              <span aria-hidden>{view.top.emoji}</span> {view.top.label}{" "}
+              <CategoryIcon category={view.top.key} kind="purchase" className="mr-1 size-5" />
+              {view.top.label}{" "}
               <span className="money font-bold text-ink-2 text-base">
                 {money(view.top.totalMinor)}
               </span>

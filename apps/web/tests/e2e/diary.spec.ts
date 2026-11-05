@@ -99,7 +99,8 @@ test("child records 3.50 on snacks and the line shows the snacks emoji", async (
   await sheet.getByRole("radio", { name: "Snacks" }).check({ force: true });
   await sheet.getByRole("button", { name: "Write it down", exact: true }).click();
   await expect(line("Crisps")).toBeVisible();
-  await expect(line("Crisps")).toContainText("🍫");
+  // A line icon for the category, not an emoji (2026-11-06).
+  await expect(line("Crisps").locator('svg[data-category="snacks"]')).toBeVisible();
   await expect(line("Crisps")).toContainText("US$3.50");
 });
 
@@ -133,7 +134,8 @@ test("the highlights name the biggest category", async () => {
   await child.goto("/child/diary");
   const week = child.getByRole("region", { name: "This week" });
   await expect(week).toContainText("Most went on");
-  await expect(week).toContainText("🍫 Snacks US$3");
+  await expect(week).toContainText("Snacks US$3");
+  await expect(week.locator('svg[data-category="snacks"]')).toBeVisible();
 });
 
 test("the parent sees the money received and fixed notices, and the fix in history", async () => {

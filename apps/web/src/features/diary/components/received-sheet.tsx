@@ -95,6 +95,7 @@ function ReceivedForm({ currency, onDone }: { currency: string; onDone: () => vo
       />
       <CategoryChips
         options={RECEIVED_CATEGORIES}
+        kind="received"
         value={category}
         onChange={setCategory}
         legend={receivedCopy.categoryLegend}
