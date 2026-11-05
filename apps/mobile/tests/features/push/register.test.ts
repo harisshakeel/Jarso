@@ -255,6 +255,17 @@ describe("usePushRegistration", () => {
     );
   });
 
+  it("the same device token again (Android echoes every token fetch) posts nothing more", async () => {
+    await renderHook(() => usePushRegistration());
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    mockTokenListener?.({ type: "android", data: "fcm-1" });
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
+    mockTokenListener?.({ type: "android", data: "fcm-1" });
+    mockTokenListener?.({ type: "android", data: "fcm-1" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(api).toHaveBeenCalledTimes(2);
+  });
+
   it("the sign-out hook is registered once per signed-in user and disposed on unmount", async () => {
     const { rerender, unmount } = await renderHook(() => usePushRegistration());
     await waitFor(() => expect(api).toHaveBeenCalledTimes(1));

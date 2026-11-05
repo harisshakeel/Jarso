@@ -60,7 +60,14 @@ export function usePushRegistration(): void {
     };
     void register();
 
-    const tokens = Notifications.addPushTokenListener(() => void register());
+    // Android fires this on every token fetch too, ours included: only a new token is a rotation,
+    // else each registration would set off the next one, forever.
+    let deviceToken: string | null = null;
+    const tokens = Notifications.addPushTokenListener(({ data }) => {
+      if (data === deviceToken) return;
+      deviceToken = data;
+      void register();
+    });
     const dispose = registerBeforeSignOut(async function dropPushToken() {
       signingOut.abort();
       if (pendingRef.current) await settledWithin(pendingRef.current, PENDING_WAIT_MS);
