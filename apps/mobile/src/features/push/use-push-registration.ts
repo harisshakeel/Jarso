@@ -48,14 +48,24 @@ export function usePushRegistration(): void {
     tokenRef.current = null;
     let registering = false;
     let registered = false;
+    // The newest token the listener reported, the one the running sign-up fetched, and whether
+    // the listener reported a new token while that sign-up ran.
+    let deviceToken: string | null = null;
+    let fetched: string | null = null;
+    let missed = false;
     const register = () => {
       if (signingOut.signal.aborted || registering) return;
       registering = true;
+      fetched = null;
+      missed = false;
       pendingRef.current = registerForPush({
         userId,
         role,
         ask: askForPush,
         signal: signingOut.signal,
+        onDeviceToken: (token) => {
+          fetched = token;
+        },
       })
         .then((token) => {
           registered = token !== null;
@@ -63,17 +73,20 @@ export function usePushRegistration(): void {
         })
         .finally(() => {
           registering = false;
+          // The token rotated while this ran: the one it posted is already old.
+          if (active && missed && fetched && deviceToken !== fetched) register();
         });
     };
     register();
 
     // Android fires this on every token fetch too, ours included: only a new token is a rotation,
     // else each registration would set off the next one, forever. Our own fetch's event lands
-    // while its registration is still running, so `register` skips it.
-    let deviceToken: string | null = null;
+    // while its registration is still running, so `register` skips it; a real rotation then is
+    // posted once that sign-up ends.
     const tokens = Notifications.addPushTokenListener(({ data }) => {
       if (data === deviceToken) return;
       deviceToken = data;
+      if (registering) missed = true;
       register();
     });
     // A sign-up that came to nothing (offline, a failed POST, notifications off) tries again when

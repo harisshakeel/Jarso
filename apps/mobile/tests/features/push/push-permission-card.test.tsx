@@ -16,6 +16,7 @@ jest.mock("expo-notifications", () => ({
   setNotificationChannelAsync: jest.fn(async () => null),
   getPermissionsAsync: jest.fn(),
   requestPermissionsAsync: jest.fn(),
+  getDevicePushTokenAsync: jest.fn(async () => ({ type: "android", data: "fcm-1" })),
   getExpoPushTokenAsync: jest.fn(async () => ({ type: "expo", data: "ExponentPushToken[abc]" })),
 }));
 jest.mock("@/lib/api", () => ({ apiFetch: jest.fn(async () => ({ id: "row-1" })) }));

@@ -40,6 +40,8 @@ export type RegisterArgs = {
   force?: boolean;
   /** Sign-out began: post nothing more, store nothing, and take back a token already posted. */
   signal?: AbortSignal;
+  /** Told which device token this sign-up fetched (and so will post, as its Expo token). */
+  onDeviceToken?: (token: string) => void;
 };
 
 /**
@@ -69,7 +71,13 @@ export async function registerForPush(args: RegisterArgs): Promise<string | null
     await ensureNoticeChannel();
     if (!(await permitted(args))) return null;
     const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
-    const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
+    // Fetched here, once, so the caller can tell a rotation from this fetch's own echo.
+    const devicePushToken = await Notifications.getDevicePushTokenAsync();
+    args.onDeviceToken?.(String(devicePushToken.data));
+    const { data: token } = await Notifications.getExpoPushTokenAsync({
+      projectId,
+      devicePushToken,
+    });
     if (args.signal?.aborted) return null;
     await apiFetch(TOKENS_PATH, {
       method: "POST",
