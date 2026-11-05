@@ -1,8 +1,8 @@
 "use client";
 
 import type { CardPaymentState, PaymentProviderId } from "@jarso/core/payments";
-import { paymentCopy } from "@jarso/core/payments";
-import { CreditCardIcon } from "lucide-react";
+import { paymentCopy, providerLogo } from "@jarso/core/payments";
+import { ChevronRightIcon, CreditCardIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { FormError } from "@/components/form";
 import { Button } from "@/components/ui";
@@ -10,6 +10,7 @@ import { runOnline } from "@/features/offline";
 import { toMajorString } from "@/lib";
 import { startCardPaymentAction } from "../server/actions";
 import { PaymentStatusNote } from "./payment-status-note";
+import { ProviderLogo } from "./provider-logo";
 
 type PayByCardProps = {
   childId: string;
@@ -26,13 +27,12 @@ type PayByCardProps = {
 };
 
 /**
- * Pay by card on the handover screen, beside the cash button (spec §6.5). One button per provider
- * that can take this amount: "Pay by card" when there is one, "Pay with {label}" when there are
- * several (multi-provider spec D2). With none, one disabled "Pay by card" says why. The card
- * always pays the full amount with the split as set; the action sends the parent to the chosen
- * provider's hosted page. A provider whose checkout is open reopens it; another provider replaces
- * it (D7). Shows the payment state above the buttons. Renders nothing when card payments are off.
- * Parents only.
+ * Pay by card on the handover screen, beside the cash button (spec §6.5). One row per provider
+ * that can take this amount: its logo and name, read as "Pay with {label}" (multi-provider spec
+ * D2). With none, one disabled "Pay by card" says why. The card always pays the full amount with
+ * the split as set; the action sends the parent to the chosen provider's hosted page. A provider
+ * whose checkout is open reopens it; another provider replaces it (D7). Shows the payment state
+ * above the rows. Renders nothing when card payments are off. Parents only.
  */
 export function PayByCard({
   childId,
@@ -84,32 +84,36 @@ export function PayByCard({
     });
   }
 
-  const buttons =
-    available.length > 0
-      ? available.map((p) => ({
-          id: p.id,
-          label: available.length === 1 ? paymentCopy.payByCard : paymentCopy.payWith(p.label),
-        }))
-      : [{ id: null, label: paymentCopy.payByCard }];
-
   return (
     <div className="grid gap-3">
       <PaymentStatusNote state={state} />
-      {buttons.map((button) => (
-        <Button
-          key={button.id ?? "none"}
-          type="button"
-          variant="outline"
-          size="lg"
-          loading={pending && paying === button.id}
-          disabled={disabled || button.id === null || blocked || !fullAmount || pending}
-          aria-describedby={helpId}
-          onClick={() => button.id && pay(button.id)}
-        >
+      {available.length > 0 ? (
+        available.map((p) => (
+          // A row per provider: its logo and name (the card's heading says what it does), with
+          // the verb kept in the accessible name.
+          <Button
+            key={p.id}
+            type="button"
+            variant="outline"
+            size="lg"
+            className="h-auto min-h-12 w-full justify-start gap-3 rounded-2xl px-3 py-2"
+            aria-label={paymentCopy.payWith(p.label)}
+            loading={pending && paying === p.id}
+            disabled={disabled || blocked || !fullAmount || pending}
+            aria-describedby={helpId}
+            onClick={() => pay(p.id)}
+          >
+            {providerLogo(p.id) ? <ProviderLogo provider={p.id} /> : <CreditCardIcon aria-hidden />}
+            <span className="flex-1 text-left">{p.label}</span>
+            <ChevronRightIcon aria-hidden className="text-ink-2" />
+          </Button>
+        ))
+      ) : (
+        <Button type="button" variant="outline" size="lg" disabled aria-describedby={helpId}>
           <CreditCardIcon aria-hidden />
-          {button.label}
+          {paymentCopy.payByCard}
         </Button>
-      ))}
+      )}
       <p id={helpId} className="text-center text-ink-2 text-sm">
         {reason ?? paymentCopy.fullAmount}
       </p>

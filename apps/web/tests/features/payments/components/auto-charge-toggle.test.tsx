@@ -93,7 +93,17 @@ describe("AutoChargeToggle", () => {
     expect(await screen.findByText("Which card should pay?")).toBeInTheDocument();
     expect(setAutoChargeAction).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Mastercard ending 4444, Stripe" }));
+    // Stripe's choice carries its logo; the fake has none. The name stays the label alone.
+    const stripe = screen.getByRole("button", { name: "Mastercard ending 4444, Stripe" });
+    expect(stripe.querySelector('[data-provider-logo="stripe"]')).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(
+      screen.getByRole("button", { name: "Visa ending 4242, Test card" }).querySelector("svg"),
+    ).toBeNull();
+
+    fireEvent.click(stripe);
     await waitFor(() =>
       expect(setAutoChargeAction).toHaveBeenCalledWith(null, {
         ...target,
@@ -113,7 +123,11 @@ describe("AutoChargeToggle", () => {
     expect(await screen.findByText(MANDATE)).toBeInTheDocument();
     expect(setAutoChargeAction).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Save a card" }));
+    // One provider: no choice to make, just Proceed (named for it).
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    const proceed = screen.getByRole("button", { name: "Proceed with Test card" });
+    expect(proceed).toHaveTextContent(/^Proceed$/);
+    fireEvent.click(proceed);
     await waitFor(() =>
       expect(setAutoChargeAction).toHaveBeenCalledWith(null, {
         ...target,
@@ -135,11 +149,13 @@ describe("AutoChargeToggle", () => {
     });
     fireEvent.click(toggle());
     expect(await screen.findByText(MANDATE)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Save a card" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Save with Razorpay" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save with Stripe" })).toBeInTheDocument();
+    // A row per usable provider, the first chosen; one that can't charge isn't offered.
+    expect(screen.queryByRole("radio", { name: "Razorpay" })).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Stripe" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Proceed with Stripe" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Save with Test card" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Test card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Proceed with Test card" }));
     await waitFor(() =>
       expect(setAutoChargeAction).toHaveBeenCalledWith(null, {
         ...target,
@@ -150,17 +166,24 @@ describe("AutoChargeToggle", () => {
     );
   });
 
-  it("stacks several choices in provider order with Not now last", async () => {
+  it("lists providers as radio rows with logos, in provider order, then Not now and Proceed", async () => {
     renderToggle({ cards: [card("stripe", "Stripe"), card("razorpay", "Razorpay")] });
     fireEvent.click(toggle());
     await screen.findByText(MANDATE);
+    const radios = screen.getAllByRole("radio");
+    expect(radios.map((radio) => radio.closest("label")?.textContent)).toEqual([
+      "Stripe",
+      "Razorpay",
+    ]);
+    expect(
+      radios[1]?.closest("label")?.querySelector('[data-provider-logo="razorpay"]'),
+    ).toHaveAttribute("aria-hidden", "true");
     const footer = screen.getByRole("button", { name: "Not now" }).parentElement;
-    expect(footer).toHaveClass("flex-col", "sm:flex-col");
     expect(
       within(footer as HTMLElement)
         .getAllByRole("button")
         .map((button) => button.textContent),
-    ).toEqual(["Save with Stripe", "Save with Razorpay", "Not now"]);
+    ).toEqual(["Not now", "Proceed"]);
   });
 
   it("asks for the mobile number before saving a card with a provider that needs it", async () => {
@@ -170,7 +193,7 @@ describe("AutoChargeToggle", () => {
     await screen.findByText(MANDATE);
     expect(screen.queryByLabelText("Mobile number")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Save a card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Proceed with Razorpay" }));
     const phone = await screen.findByLabelText("Mobile number");
     expect(phone).toHaveAttribute("type", "tel");
     expect(phone).toHaveAttribute("autocomplete", "tel");
@@ -195,7 +218,8 @@ describe("AutoChargeToggle", () => {
   it("moves focus to the mobile number field when it appears", async () => {
     renderToggle({ cards: [card("stripe", "Stripe"), razorpay()] });
     fireEvent.click(toggle());
-    fireEvent.click(await screen.findByRole("button", { name: "Save with Razorpay" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Razorpay" }));
+    fireEvent.click(screen.getByRole("button", { name: "Proceed with Razorpay" }));
     const phone = await screen.findByLabelText("Mobile number");
     await waitFor(() => expect(phone).toHaveFocus());
   });
@@ -204,7 +228,7 @@ describe("AutoChargeToggle", () => {
     setAutoChargeAction.mockResolvedValue({ ok: true, data: undefined });
     renderToggle({ cards: [card("stripe", "Stripe"), razorpay()] });
     fireEvent.click(toggle());
-    fireEvent.click(await screen.findByRole("button", { name: "Save with Stripe" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Proceed with Stripe" }));
     await waitFor(() =>
       expect(setAutoChargeAction).toHaveBeenCalledWith(null, {
         ...target,
@@ -227,7 +251,7 @@ describe("AutoChargeToggle", () => {
     });
     renderToggle({ cards: [razorpay()] });
     fireEvent.click(toggle());
-    fireEvent.click(await screen.findByRole("button", { name: "Save a card" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Proceed with Razorpay" }));
     fireEvent.change(await screen.findByLabelText("Mobile number"), { target: { value: "12" } });
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
@@ -240,14 +264,19 @@ describe("AutoChargeToggle", () => {
     );
   });
 
-  it("names the card it uses when several providers are on", () => {
+  it("shows the card it uses on its own line, with its provider and logo", () => {
     renderToggle({
       on: true,
       provider: "stripe",
       mine: true,
       cards: [card("stripe", "Stripe", visa), card("fake", "Test card", mastercard)],
     });
-    expect(screen.getByText("Charges Visa ending 4242, Stripe.")).toBeInTheDocument();
+    expect(screen.getByText("Visa ending 4242")).toBeInTheDocument();
+    const line = screen.getByText("Saved with Stripe").closest("div");
+    expect(line?.querySelector('[data-provider-logo="stripe"]')).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
   });
 
   it("names only the provider when another parent's card pays", () => {
@@ -261,9 +290,10 @@ describe("AutoChargeToggle", () => {
     expect(screen.queryByText(/Visa ending 4242/)).not.toBeInTheDocument();
   });
 
-  it("doesn't name the card when only one provider is on", () => {
+  it("shows the card it uses with only one provider on too", () => {
     renderToggle({ on: true, provider: "fake", mine: true });
-    expect(screen.queryByText(/^Charges/)).not.toBeInTheDocument();
+    expect(screen.getByText("Visa ending 4242")).toBeInTheDocument();
+    expect(screen.getByText("Saved with Test card")).toBeInTheDocument();
   });
 
   it("turns off without a provider", async () => {

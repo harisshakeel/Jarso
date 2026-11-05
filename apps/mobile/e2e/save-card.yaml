@@ -22,11 +22,11 @@ appId: app.jarso.mobile
 - extendedWaitUntil:
     visible: "Save a card first"
     timeout: 15000
-- tapOn: "Save with Stripe"
+- tapOn: "Proceed with Stripe"
 - runFlow: stripe-card.yaml
   env:
     CARD_NUMBER: "4242424242424242"
-# On once the webhook saved the card: the switch names it.
+# On once the webhook saved the card: the line under the switch names it.
 - extendedWaitUntil:
-    visible: "Charges .*ending 4242.*"
+    visible: ".*ending 4242.*Saved with Stripe"
     timeout: 30000

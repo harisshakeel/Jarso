@@ -20,6 +20,49 @@ import {
 } from "@/components/ui";
 import { runOnline } from "@/features/offline";
 import { setAutoChargeAction } from "../server/actions";
+import { ProviderLogo } from "./provider-logo";
+
+/**
+ * Which provider to save a card with (mockup v3 5): stacked full-width radio rows with the logo,
+ * the name and a radio on the right; the chosen row has the primary border on secondary.
+ */
+function ProviderChoice({
+  label,
+  options,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  options: readonly AutoChargeCard[];
+  value: PaymentProviderId;
+  disabled: boolean;
+  onChange: (value: PaymentProviderId) => void;
+}) {
+  const name = useId();
+  return (
+    <fieldset className="grid gap-2" disabled={disabled}>
+      <legend className="sr-only">{label}</legend>
+      {options.map((option) => (
+        <label
+          key={option.provider}
+          className="flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] border-hairline-strong px-3 py-2 font-bold has-checked:border-primary has-checked:bg-secondary has-checked:text-secondary-foreground has-disabled:opacity-50"
+        >
+          <ProviderLogo provider={option.provider} />
+          <span className="flex-1">{option.label}</span>
+          <input
+            type="radio"
+            name={name}
+            value={option.provider}
+            checked={option.provider === value}
+            onChange={() => onChange(option.provider)}
+            className="size-[18px] accent-primary"
+          />
+        </label>
+      ))}
+    </fieldset>
+  );
+}
 
 type AutoChargeToggleProps = {
   target: AutoChargeTarget;
@@ -44,8 +87,8 @@ type AutoChargeToggleProps = {
  * none, the parent first reads the mandate (and picks a provider when several are on), then goes
  * to the provider's page to save a card; the toggle turns on once the card is saved. A provider
  * that needs the parent's mobile number asks for it in the same dialog first; it goes to the
- * provider with the account email, never into Jarso. While on,
- * with several providers on, it names the card it charges. Parents only.
+ * provider with the account email, never into Jarso. While on, it names the card it charges.
+ * Parents only.
  */
 export function AutoChargeToggle(props: AutoChargeToggleProps) {
   const usable = props.cards.filter((card) => card.unavailableReason === null);
@@ -111,6 +154,8 @@ function AutoChargeSwitch({
     if (contactFor) phoneRef.current?.focus();
   }, [contactFor]);
   const [saving, setSaving] = useState<PaymentProviderId>();
+  // The provider picked in "Save a card first" (the first usable one until the parent picks).
+  const [saveWith, setSaveWith] = useState<PaymentProviderId>();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<ActionError>();
   // An error from the mobile number step, shown in the dialog next to its fields.
@@ -175,26 +220,35 @@ function AutoChargeSwitch({
     setError(undefined);
     setContactError(undefined);
     setContactFor(null);
+    setSaveWith(usable[0]?.provider);
     setQuestion(saved.length > 1 ? { kind: "choose", options: saved } : { kind: "save" });
     setAsking(true);
   }
 
-  // Name the card only when there is more than one it could be (several providers on).
-  const current = cards.find((card) => card.provider === provider);
-  const named =
-    on && cards.length > 1 && current
-      ? mine && current.card
-        ? paymentCopy.charges(
-            paymentCopy.cardAt(
-              paymentCopy.cardEnding(current.card.brand, current.card.last4),
-              current.label,
-            ),
-          )
-        : paymentCopy.chargesOther(current.label)
-      : null;
+  // While on, the card it charges on its own line: the parent's own by brand and last four, with
+  // the provider it's saved with; another parent's by provider only.
+  const current = on ? cards.find((card) => card.provider === provider) : undefined;
+  const charged = current
+    ? mine && current.card
+      ? {
+          title: paymentCopy.cardEnding(current.card.brand, current.card.last4),
+          detail: paymentCopy.savedWith(current.label),
+        }
+      : { title: paymentCopy.chargesOther(current.label), detail: null }
+    : null;
 
-  const choices = question.kind === "choose" ? question.options : usable;
-  const stacked = choices.length > 1;
+  const chosen = usable.find((card) => card.provider === saveWith) ?? usable[0];
+
+  /** Saves a card with the chosen provider, after its mobile number step when it needs one. */
+  function proceed() {
+    if (!chosen) return;
+    if (chosen.needsPhone && !chosen.card) {
+      setContactError(undefined);
+      setContactFor(chosen);
+      return;
+    }
+    save(true, chosen.provider);
+  }
   const cancel = <AlertDialogCancel disabled={pending}>{paymentCopy.notNow}</AlertDialogCancel>;
   const contactFieldErrors = contactError?.fieldErrors;
 
@@ -218,7 +272,15 @@ function AutoChargeSwitch({
             : paymentCopy.autoChargeGift}{" "}
           {paymentCopy.testMode}
         </p>
-        {named ? <p className="font-semibold text-sm">{named}</p> : null}
+        {current && charged ? (
+          <div className="flex items-center gap-3 border-hairline border-t pt-3">
+            <ProviderLogo provider={current.provider} size="sm" />
+            <p className="grid gap-0.5 text-sm">
+              <span className="font-semibold">{charged.title}</span>
+              {charged.detail ? <span className="text-ink-2">{charged.detail}</span> : null}
+            </p>
+          </div>
+        ) : null}
         <FormError error={error} />
       </CardContent>
 
@@ -263,39 +325,56 @@ function AutoChargeSwitch({
                   {question.kind === "choose" ? paymentCopy.chooseCardDetail : paymentCopy.mandate}
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              {/* Several choices don't fit one row: stack them full width, in provider order, with
-                "Not now" last. One choice keeps the usual footer (Cancel beside the action). */}
-              <AlertDialogFooter className={stacked ? "flex-col sm:flex-col" : undefined}>
-                {stacked ? null : cancel}
-                {choices.map((option) => (
-                  <Button
-                    key={option.provider}
-                    loading={pending && saving === option.provider}
-                    disabled={pending}
-                    onClick={() => {
-                      // A saved card turns on straight away; saving one first waits for the provider,
-                      // after asking for the parent's mobile number when that provider needs it.
-                      if (question.kind === "choose") setChecked(true);
-                      if (question.kind === "save" && option.needsPhone && !option.card) {
-                        setContactError(undefined);
-                        setContactFor(option);
-                        return;
-                      }
-                      save(true, option.provider);
-                    }}
-                  >
-                    {question.kind === "choose" && option.card
-                      ? paymentCopy.cardAt(
-                          paymentCopy.cardEnding(option.card.brand, option.card.last4),
-                          option.label,
-                        )
-                      : usable.length === 1
-                        ? paymentCopy.saveCard
-                        : paymentCopy.saveWith(option.label)}
-                  </Button>
-                ))}
-                {stacked ? cancel : null}
-              </AlertDialogFooter>
+              {question.kind === "choose" ? (
+                // Several saved cards don't fit one row: stack them full width, in provider
+                // order, with "Not now" last.
+                <AlertDialogFooter className="flex-col sm:flex-col">
+                  {question.options.map((option) => (
+                    <Button
+                      key={option.provider}
+                      loading={pending && saving === option.provider}
+                      disabled={pending}
+                      onClick={() => {
+                        setChecked(true);
+                        save(true, option.provider);
+                      }}
+                    >
+                      <ProviderLogo provider={option.provider} size="sm" />
+                      {option.card
+                        ? paymentCopy.cardAt(
+                            paymentCopy.cardEnding(option.card.brand, option.card.last4),
+                            option.label,
+                          )
+                        : option.label}
+                    </Button>
+                  ))}
+                  {cancel}
+                </AlertDialogFooter>
+              ) : (
+                <>
+                  {usable.length > 1 && chosen ? (
+                    <ProviderChoice
+                      label={paymentCopy.saveCardTitle}
+                      options={usable}
+                      value={chosen.provider}
+                      disabled={pending}
+                      onChange={setSaveWith}
+                    />
+                  ) : null}
+                  <AlertDialogFooter>
+                    {cancel}
+                    {/* The chosen row already shows the provider; the name says it too. */}
+                    <Button
+                      aria-label={chosen ? paymentCopy.proceedWith(chosen.label) : undefined}
+                      loading={pending}
+                      disabled={pending || !chosen}
+                      onClick={proceed}
+                    >
+                      {paymentCopy.proceed}
+                    </Button>
+                  </AlertDialogFooter>
+                </>
+              )}
             </>
           )}
         </AlertDialogContent>

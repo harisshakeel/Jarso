@@ -1,7 +1,7 @@
 # Hand over a due allowance by card with the fake provider's test card (dev builds only), then
 # see "Paid by card" in the child's Diary. No provider keys: run `pnpm dev` with
-# PAYMENTS_ALLOW_FAKE=true and no STRIPE_* / RAZORPAY_* keys, so the only button is
-# "Pay by card". Needs an allowance due for the test child.
+# PAYMENTS_ALLOW_FAKE=true and no STRIPE_* / RAZORPAY_* keys, so the only row is
+# "Test card" (read as "Pay with Test card"). Needs an allowance due for the test child.
 #   maestro test -e PARENT_EMAIL=... -e PARENT_PASSWORD=... -e CHILD_FAMILY_CODE=...
 #     -e CHILD_NICKNAME=... -e CHILD_PIN=... e2e/card-handover-fake.yaml
 appId: app.jarso.mobile
@@ -20,7 +20,7 @@ appId: app.jarso.mobile
       text: "Or pay by card"
     direction: DOWN
     timeout: 20000
-- tapOn: "Pay by card"
+- tapOn: "Pay with Test card"
 # The dev build's test-card dialog stands in for the provider's sheet.
 - extendedWaitUntil:
     visible: "Test card \\(dev build\\)"

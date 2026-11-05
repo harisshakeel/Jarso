@@ -18,7 +18,7 @@ appId: app.jarso.mobile
       text: "Or pay by card"
     direction: DOWN
     timeout: 20000
-- tapOn: "Pay by card"
+- tapOn: "Pay with Test card|Pay with Stripe"
 - extendedWaitUntil:
     visible: "Test card \\(dev build\\)"
     timeout: 15000

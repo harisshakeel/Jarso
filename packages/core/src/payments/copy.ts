@@ -34,11 +34,12 @@ export const paymentCopy = {
     "This gift's day has passed, so auto charge can't pay it. Hand it over instead.",
   saveCardTitle: "Save a card first",
   saveCard: "Save a card",
-  saveWith: (label: string) => `Save with ${label}`,
+  proceed: "Proceed",
+  proceedWith: (label: string) => `Proceed with ${label}`,
   chooseCardTitle: "Which card should pay?",
   chooseCardDetail: "Auto charge uses this card on the day it's due.",
   cardAt: (card: string, label: string) => `${card}, ${label}`,
-  charges: (card: string) => `Charges ${card}.`,
+  savedWith: (label: string) => `Saved with ${label}`,
   chargesOther: (label: string) => `Charges a card saved with ${label}.`,
   /** Singular only for exactly one saved card; providers listed with no card don't count. */
   savedCardTitle: (cards: readonly SavedCard[]) =>

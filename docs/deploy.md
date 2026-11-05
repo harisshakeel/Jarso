@@ -80,7 +80,7 @@ Do these once, in order, when the multi-provider change first reaches a deployme
 
 ### Turning card payments on (test mode)
 
-Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no real money moves. There is no provider switch: a provider is on when all its keys are set, and several can be on at once. The parent picks one at checkout ("Pay by card" with one provider on, "Pay with {label}" with several). A provider with only some of its keys stays off, and the server logs the missing names once. Add every value in the Vercel dashboard or pipe it (`printf '<value>' | vercel env add NAME production --sensitive --force`); never type one on a command line and never paste one into a chat, doc or log.
+Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no real money moves. There is no provider switch: a provider is on when all its keys are set, and several can be on at once. The parent picks one at checkout: one row per provider on, with its logo and name (read by screen readers as "Pay with {label}"). A provider with only some of its keys stays off, and the server logs the missing names once. Add every value in the Vercel dashboard or pipe it (`printf '<value>' | vercel env add NAME production --sensitive --force`); never type one on a command line and never paste one into a chat, doc or log.
 
 **Stripe.**
 
@@ -140,8 +140,8 @@ Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no r
 
 **Manual pass against real test mode** (not run by the agent; it needs real test keys). Run it once per deployment and per provider after the steps above, with `stripe listen` for local Stripe runs. With several providers on, the buttons read "Pay with Stripe" and so on; pick the provider under test:
 
-- [ ] Family with a due allowance. On the handover screen, tap Pay by card, pay with `4242 4242 4242 4242`. The jars fill, history says "Paid by card", the allowance is no longer due.
-- [ ] Open Pay by card, then hand over cash before paying. Pay on the Stripe page afterwards: nothing posts again and the screen shows the refund note.
+- [ ] Family with a due allowance. On the handover screen, tap the Stripe row under "Or pay by card", pay with `4242 4242 4242 4242`. The jars fill, history says "Paid by card", the allowance is no longer due.
+- [ ] Open the Stripe card page, then hand over cash before paying. Pay on the Stripe page afterwards: nothing posts again and the screen shows the refund note.
 - [ ] Allowance screen: turn auto charge on for a schedule. With no saved card it asks to save one first: save `4000 0000 0000 0341` on the Stripe page. Back in the app the toggle is on, and Settings → saved card shows its brand and last 4.
 - [ ] With that card saved, let an item fall due (or fast-forward the data), run the cron route (`curl -X POST -H "Authorization: Bearer $CRON_SECRET" …`, using the env var so the secret never appears in a log). The charge fails, the allowance stays due and the parent gets a "didn't go through" notice.
 - [ ] Remove the card in Settings, turn auto charge on again and save `4242 4242 4242 4242` this time. With another item due, the cron run charges it once and the jars fill. A second run does nothing.

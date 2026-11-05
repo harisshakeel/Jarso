@@ -1,5 +1,6 @@
 import { allowanceErrors, handoverCopy } from "@jarso/core/allowance";
 import { AppError } from "@jarso/core/lib";
+import { paymentCopy } from "@jarso/core/payments";
 import { parentRequestCopy } from "@jarso/core/requests";
 import {
   confirmHandover,
@@ -10,10 +11,11 @@ import {
 import { findFamilyById, findMembership, listChildMembers } from "@jarso/data/family";
 import { getGoalView } from "@jarso/data/goals";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, userEvent, waitFor } from "@testing-library/react-native";
+import { act, render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { Alert, type AlertButton } from "react-native";
 import { HandoverSheet } from "@/features/allowance";
 import { formatMoney } from "@/lib";
+import { apiFetch } from "@/lib/api";
 import { flash } from "@/lib/flash";
 import { dispatchNotices } from "@/lib/notices";
 import { keys } from "@/lib/query";
@@ -49,6 +51,15 @@ const OCC = "11111111-1111-4111-8111-111111111111";
 const due = { kind: "allowance", id: OCC, dueOn: "2026-11-03", amountMinor: 300, note: null };
 const confirm = confirmHandover as jest.Mock;
 const onClose = jest.fn();
+const cardsOff = { cards: [], item: { providers: [], pending: null, lastOutcome: null } };
+const cardsOn = {
+  cards: [],
+  item: {
+    providers: [{ id: "stripe", label: "Stripe", available: true, unavailableReason: null }],
+    pending: null,
+    lastOutcome: null,
+  },
+};
 
 function setup(items: unknown[] = [due]) {
   (findMembership as jest.Mock).mockResolvedValue({
@@ -66,15 +77,20 @@ function setup(items: unknown[] = [due]) {
   (listDueForParent as jest.Mock).mockResolvedValue(items);
   (getLastSplitWith as jest.Mock).mockResolvedValue(null);
   (getGoalView as jest.Mock).mockResolvedValue(null);
+  // GET /api/v1/payments/providers: card payments off unless a test says otherwise.
+  (apiFetch as jest.Mock).mockResolvedValue(cardsOff);
 }
 
-function renderSheet(kind: "allowance" | "gift" = "allowance") {
-  const client = new QueryClient({
+function newClient() {
+  return new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: Number.POSITIVE_INFINITY },
       mutations: { gcTime: Number.POSITIVE_INFINITY },
     },
   });
+}
+
+function renderSheet(kind: "allowance" | "gift" = "allowance", client = newClient()) {
   return render(
     <QueryClientProvider client={client}>
       <HandoverSheet childId={CHILD} kind={kind} id={OCC} onClose={onClose} />
@@ -213,5 +229,115 @@ describe("HandoverSheet", () => {
     await renderSheet();
     await waitFor(() => expect(flash).toHaveBeenCalledWith(parentRequestCopy.settled));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("opens with the card block already in place, not pushed in later", async () => {
+    setup();
+    let finish: (value: unknown) => void = () => {};
+    (apiFetch as jest.Mock).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    await renderSheet();
+    await waitFor(() =>
+      expect(apiFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/v1/payments/providers?"),
+        { auth: true },
+      ),
+    );
+    // Everything else has loaded; the form still waits for the card read.
+    await waitFor(() => expect(getGoalView).toHaveBeenCalled());
+    expect(screen.queryByRole("button", { name: handoverCopy.confirm })).toBeNull();
+    expect(screen.getByLabelText("Loading")).toBeOnTheScreen();
+
+    finish(cardsOn);
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    expect(screen.getByText(paymentCopy.orPayByCard)).toBeOnTheScreen();
+  });
+
+  it("a failed card read still opens the form, without the card block", async () => {
+    setup();
+    (apiFetch as jest.Mock).mockRejectedValue(new AppError("UNAVAILABLE", "Offline"));
+    await renderSheet();
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    expect(screen.queryByText(paymentCopy.orPayByCard)).toBeNull();
+    // The slot reads again on mount; the form stays up while it does.
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+  });
+
+  it("reopened after a failed card read, waits for the new read before showing the form", async () => {
+    setup();
+    const client = newClient();
+    (apiFetch as jest.Mock).mockRejectedValue(new AppError("UNAVAILABLE", "Offline"));
+    const first = await renderSheet("allowance", client);
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    await first.unmount();
+
+    // The failed read is still cached; this opening reads again and waits for it.
+    let finish: (value: unknown) => void = () => {};
+    (apiFetch as jest.Mock).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    await renderSheet("allowance", client);
+    expect(screen.queryByRole("button", { name: handoverCopy.confirm })).toBeNull();
+    expect(screen.getByLabelText("Loading")).toBeOnTheScreen();
+
+    finish(cardsOn);
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    expect(screen.getByText(paymentCopy.orPayByCard)).toBeOnTheScreen();
+  });
+
+  it("a slow card read holds the form only briefly, then the block lands in place", async () => {
+    jest.useFakeTimers();
+    try {
+      setup();
+      let finish: (value: unknown) => void = () => {};
+      (apiFetch as jest.Mock).mockReturnValue(
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+      );
+      await renderSheet();
+      await waitFor(() => expect(getGoalView).toHaveBeenCalled());
+      expect(screen.queryByRole("button", { name: handoverCopy.confirm })).toBeNull();
+
+      // Past the short wait, the form opens without the block; the read keeps going.
+      await act(() => jest.advanceTimersByTimeAsync(3_000));
+      expect(screen.getByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+      expect(screen.queryByText(paymentCopy.orPayByCard)).toBeNull();
+
+      finish(cardsOn);
+      expect(await screen.findByText(paymentCopy.orPayByCard)).toBeOnTheScreen();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("reopened with an earlier answer cached, waits for the new read before showing the form", async () => {
+    setup();
+    const client = newClient();
+    const first = await renderSheet("allowance", client);
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    expect(screen.queryByText(paymentCopy.orPayByCard)).toBeNull();
+    await first.unmount();
+
+    // Card payments came on since: the cached "off" must not open the form early.
+    let finish: (value: unknown) => void = () => {};
+    (apiFetch as jest.Mock).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    await renderSheet("allowance", client);
+    expect(screen.queryByRole("button", { name: handoverCopy.confirm })).toBeNull();
+    expect(screen.getByLabelText("Loading")).toBeOnTheScreen();
+
+    finish(cardsOn);
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    expect(screen.getByText(paymentCopy.orPayByCard)).toBeOnTheScreen();
   });
 });

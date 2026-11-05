@@ -21,12 +21,15 @@ import { HomeWait, Notice, useSendOnce } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
 import { useFamily } from "@/features/family";
-import { CardPaymentSlot } from "@/features/payments";
+import { CardPaymentSlot, usePaymentProviders } from "@/features/payments";
 import { actionErrorMessage, flash, formatMoney, parseMoney, toMajorString } from "@/lib";
 import { useChildDue } from "./use-due";
 import { useChildGoal, useConfirmHandover, useLastSplit, useMarkNotGiven } from "./use-handover";
 
 type Kind = "allowance" | "gift";
+
+/** The longest the handover waits for the optional card block before opening without it. */
+const CARD_WAIT_MS = 3_000;
 type FieldErrors = { cash?: string[]; saved?: string[] };
 
 /**
@@ -49,6 +52,22 @@ export function HandoverSheet({
   const due = useChildDue(childId);
   const last = useLastSplit(childId);
   const goal = useChildGoal(childId);
+  // The card block's read, started with the others so the form opens with the block in place
+  // rather than pushing Confirm down when it lands. Each opening waits for its own read, even
+  // with an earlier opening's answer cached (cards may have come on, or a payment gone pending),
+  // but only until the form is up: a failed read, which the slot fetches again on mount, or a
+  // paused, offline one opens it anyway.
+  // The block is optional, so a slow read is waited for only briefly (the request timeout and its
+  // retry would hold the spinner for half a minute); it then lands in the slot when it can.
+  const card = usePaymentProviders({ childId, kind, id });
+  const [shown, setShown] = useState(false);
+  const [cardWaitOver, setCardWaitOver] = useState(false);
+  const cardLoading = !shown && !cardWaitOver && card.fetchStatus === "fetching";
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCardWaitOver(true), CARD_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, []);
   // Set once this sheet wrote: the refetch that follows must not read as "already sorted".
   const finished = useRef(false);
   const child = family.data?.children.find((c) => c.id === childId);
@@ -63,9 +82,10 @@ export function HandoverSheet({
     onClose();
   }, [gone, onClose]);
 
-  if (!family.data || !child || !item || !last.isSuccess) {
+  if (!family.data || !child || !item || !last.isSuccess || cardLoading) {
     return <HomeWait error={family.error ?? due.error} onClose={onClose} />;
   }
+  if (!shown) setShown(true);
 
   return (
     <HandoverForm
