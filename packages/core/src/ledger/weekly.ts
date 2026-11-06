@@ -73,9 +73,11 @@ export function weekLine(totals: WeekTotal[], jar: Jar, money: (minor: number) =
     return jar === "save" ? "Your first save shows here." : "Nothing moved yet.";
   }
   if (jar === "save") {
-    if (cur > 0 && cur > prev) return `${money(cur - prev)} more than last week!`;
-    if (cur === prev) return "Same as last week. Steady!";
     if (cur < 0) return "You used some savings.";
+    // A negative last week counts as zero, so it never inflates "more than last week".
+    const before = Math.max(prev, 0);
+    if (cur > before) return `${money(cur - before)} more than last week!`;
+    if (cur === prev) return "Same as last week. Steady!";
     return "Every coin counts. Keep going!";
   }
   // This week only, no comparison: a child can't misread "more than last week" for spending.

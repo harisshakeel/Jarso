@@ -147,6 +147,18 @@ describe("weekLine", () => {
     expect(line).not.toContain("less");
   });
 
+  it("two weeks of using savings is not steady", () => {
+    expect(weekLine(weeksOf(0, 0, 0, 0, -500, -500), "save", pounds)).toBe(
+      "You used some savings.",
+    );
+  });
+
+  it("compares with zero when last week was negative", () => {
+    expect(weekLine(weeksOf(0, 0, 0, 0, -500, 2000), "save", pounds)).toBe(
+      "£20 more than last week!",
+    );
+  });
+
   it("for a quiet week after a big one keeps going", () => {
     expect(weekLine(weeksOf(0, 0, 0, 0, 5000, 0), "save", pounds)).toBe(
       "Every coin counts. Keep going!",
