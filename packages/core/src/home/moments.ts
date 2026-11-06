@@ -6,14 +6,14 @@ export type HomeMoment =
   | { kind: "allowance-due"; amountMinor: number }
   | { kind: "waiting"; request: SavingsRequest; more: number };
 
-const MAX_MOMENTS = 3;
+const MAX_MOMENTS = 2;
 
 const newestFirst = (a: SavingsRequest, b: SavingsRequest) =>
   b.occurredAt.localeCompare(a.occurredAt);
 
 /**
  * Which cards Home shows, most welcome first: parent said yes, pocket money due, then one
- * waiting ask. Rejected and cancelled asks never show. At most 3.
+ * waiting ask. Rejected and cancelled asks never show. At most 2, so Home stays short.
  */
 export function selectMoments(input: {
   requests: SavingsRequest[] | null;

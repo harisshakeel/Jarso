@@ -272,6 +272,20 @@ describe("HomeScreen", () => {
     expect(await wordsOutsideCards()).toBeLessThanOrEqual(30);
   });
 
+  it("fits the word budget with two moment cards showing", async () => {
+    (listRequestsFor as jest.Mock).mockResolvedValue([
+      request({ id: "r-2", kind: "withdrawal", status: "approved", amountMinor: 6000 }),
+      request(),
+    ]);
+    (sumDueOccurrences as jest.Mock).mockResolvedValue({ totalMinor: 10000, count: 1 });
+    await renderHome();
+    await screen.findByText(describeStep(step).title);
+    await screen.findByText("Mum said yes!");
+    await screen.findByText("Pocket money day!");
+    expect(screen.queryByText("Save £50")).toBeNull();
+    expect(await wordsOutsideCards()).toBeLessThanOrEqual(30);
+  });
+
   it("a moment card's label includes its chip", async () => {
     (listRequestsFor as jest.Mock).mockResolvedValue([request()]);
     await renderHome();

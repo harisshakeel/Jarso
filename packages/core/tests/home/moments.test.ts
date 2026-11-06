@@ -20,7 +20,9 @@ describe("selectMoments", () => {
     const newer = req("emergency", "approved", "2026-11-05T10:00:00Z");
     const pending = req("deposit", "pending", "2026-11-05T12:00:00Z");
     const kinds = selectMoments({ requests: [older, pending, newer], due }).map((m) => m.kind);
-    expect(kinds).toEqual(["said-yes", "said-yes", "allowance-due"]);
+    expect(kinds).toEqual(["said-yes", "said-yes"]);
+    const withDue = selectMoments({ requests: [newer, pending], due }).map((m) => m.kind);
+    expect(withDue).toEqual(["said-yes", "allowance-due"]);
     const first = selectMoments({ requests: [older, newer], due })[0];
     expect(first).toEqual({ kind: "said-yes", request: newer });
     expect(selectMoments({ requests: [pending], due }).map((m) => m.kind)).toEqual([
@@ -28,9 +30,9 @@ describe("selectMoments", () => {
       "waiting",
     ]);
   });
-  it("caps at 3", () => {
+  it("caps at 2", () => {
     const list = [1, 2, 3, 4].map((i) => req("withdrawal", "approved", `2026-11-0${i}T00:00:00Z`));
-    expect(selectMoments({ requests: list, due })).toHaveLength(3);
+    expect(selectMoments({ requests: list, due })).toHaveLength(2);
   });
   it("rejected and cancelled never show", () => {
     const list = [
