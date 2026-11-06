@@ -1,3 +1,4 @@
+import { palette } from "@jarso/brand/tokens";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import * as Haptics from "expo-haptics";
 import { AccessibilityInfo, Pressable, Text } from "react-native";
@@ -263,6 +264,25 @@ describe("celebrate()", () => {
       fireEvent.press(screen.getByText("Nice"));
     });
     expect(screen.getByTestId("celebration-sheet")).toHaveStyle({ paddingBottom: 52 });
+  });
+
+  // Android: a Modal opened while the screen behind it swaps (the intro handing over to Home) left a
+  // percentage-sized Svg smaller than the screen, and Home showed around the gradient.
+  it("the gradient fills the measured screen and has a solid colour before it is measured", async () => {
+    await show([{ ...WRITTEN, tone: "grape" }]);
+    const fill = screen.getByTestId("celebration-gradient", { includeHiddenElements: true });
+    expect(fill).toHaveStyle({ backgroundColor: palette.grape["900"] });
+    expect(
+      screen.queryByTestId("celebration-gradient-svg", { includeHiddenElements: true }),
+    ).toBeNull();
+    await act(async () => {
+      fireEvent(fill, "layout", {
+        nativeEvent: { layout: { x: 0, y: 0, width: 412, height: 915 } },
+      });
+    });
+    const svg = screen.getByTestId("celebration-gradient-svg", { includeHiddenElements: true });
+    expect(svg.props.width).toBe(412);
+    expect(svg.props.height).toBe(915);
   });
 
   it("Jarso cheers by default", async () => {
