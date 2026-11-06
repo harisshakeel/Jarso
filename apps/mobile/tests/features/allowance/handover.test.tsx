@@ -1,4 +1,5 @@
 import { allowanceErrors, handoverCopy } from "@jarso/core/allowance";
+import { familyCardsCopy } from "@jarso/core/dashboard";
 import { AppError } from "@jarso/core/lib";
 import { paymentCopy } from "@jarso/core/payments";
 import { parentRequestCopy } from "@jarso/core/requests";
@@ -10,6 +11,7 @@ import {
 } from "@jarso/data/allowance";
 import { findFamilyById, findMembership, listChildMembers } from "@jarso/data/family";
 import { getGoalView } from "@jarso/data/goals";
+import { getProgress } from "@jarso/data/progress";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { Alert, type AlertButton } from "react-native";
@@ -45,6 +47,7 @@ jest.mock("@jarso/data/allowance", () => ({
   markNotGiven: jest.fn(),
 }));
 jest.mock("@jarso/data/goals", () => ({ getGoalView: jest.fn() }));
+jest.mock("@jarso/data/progress", () => ({ getProgress: jest.fn() }));
 
 const CHILD = "22222222-2222-4222-8222-222222222222";
 const OCC = "11111111-1111-4111-8111-111111111111";
@@ -77,6 +80,7 @@ function setup(items: unknown[] = [due]) {
   (listDueForParent as jest.Mock).mockResolvedValue(items);
   (getLastSplitWith as jest.Mock).mockResolvedValue(null);
   (getGoalView as jest.Mock).mockResolvedValue(null);
+  (getProgress as jest.Mock).mockRejectedValue(new Error("off"));
   // GET /api/v1/payments/providers: card payments off unless a test says otherwise.
   (apiFetch as jest.Mock).mockResolvedValue(cardsOff);
 }
@@ -104,6 +108,23 @@ beforeEach(() => {
 });
 
 describe("HandoverSheet", () => {
+  it("the sheet opens on Jarso and the amount to the child", async () => {
+    setup();
+    await renderSheet();
+    expect(
+      await screen.findByRole("header", { name: familyCardsCopy.handoverTitle("£3.00", "Sam") }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+  });
+
+  it("the sheet does not wait for progress", async () => {
+    setup();
+    (getProgress as jest.Mock).mockReturnValue(new Promise(() => {}));
+    await renderSheet();
+    expect(await screen.findByRole("button", { name: handoverCopy.confirm })).toBeOnTheScreen();
+    expect(getProgress).toHaveBeenCalledWith({ id: "client" }, CHILD);
+  });
+
   it("double tap confirms once", async () => {
     setup();
     let finish: (value: string) => void = () => {};

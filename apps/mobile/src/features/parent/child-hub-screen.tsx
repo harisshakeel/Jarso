@@ -1,16 +1,18 @@
 import { upcomingGifts } from "@jarso/core/allowance";
-import { parentPageCopy } from "@jarso/core/dashboard";
+import { childCardLine, parentPageCopy, weekMissions } from "@jarso/core/dashboard";
 import type { ChildSummary, Family } from "@jarso/core/family";
 import { parentGuideCopy } from "@jarso/core/guide";
 import { parentLearningCopy } from "@jarso/core/learning";
 import type { HistoryItem } from "@jarso/core/ledger";
+import { jarsoFill } from "@jarso/core/mascot";
 import { rulesCopy } from "@jarso/core/rules";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { FlagIcon } from "lucide-react-native";
 import { Fragment, useEffect, useMemo } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
-import { Card, CardSeparator, Eyebrow, ListRow } from "@/components/screen";
+import { Jarso } from "@/components/brand";
+import { Card, CardSeparator, ListRow } from "@/components/screen";
 import { Text } from "@/components/ui";
 import {
   AllowanceCard,
@@ -18,14 +20,16 @@ import {
   GiftList,
   useChildDue,
   useChildGifts,
+  useChildGoal,
   useChildSchedule,
 } from "@/features/allowance";
 import { useSession } from "@/features/auth";
-import { SendNoteSheet, useFamily } from "@/features/family";
+import { SendNoteSheet, useChildProgress, useFamily } from "@/features/family";
 import { useParentGuideState } from "@/features/guide";
 import { ParentRequestItems, useParentRequests } from "@/features/requests";
 import { dayOfDate, familyToday, formatMoney, useTokens } from "@/lib";
 import { keys } from "@/lib/query";
+import { goalTile, MoneyTiles } from "./child-card";
 import { ScreenState } from "./screen-state";
 import {
   useChild,
@@ -88,21 +92,17 @@ function Hub({ child, family }: { child: ChildSummary; family: Family }) {
       contentContainerClassName="gap-4 px-4 pt-2 pb-10"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
-      <Card>
-        <View className="flex-row gap-4">
-          <JarFigure label="Spend" minor={jars.data?.spend} currency={currency} />
-          <JarFigure label="Save" minor={jars.data?.save} currency={currency} gold />
-        </View>
-        {jars.error ? (
-          <Text className="text-small text-muted-foreground">{UNAVAILABLE}</Text>
-        ) : null}
-        <SendNoteSheet childId={childId} nickname={nickname} />
-      </Card>
+      <ChildHero
+        childId={childId}
+        nickname={nickname}
+        currency={currency}
+        timezone={timezone}
+        jars={jars.data}
+        failed={Boolean(jars.error)}
+      />
 
       {requests.data && requests.data.items.length > 0 ? (
-        <Card>
-          <ParentRequestItems items={requests.data.items} currency={currency} />
-        </Card>
+        <ParentRequestItems items={requests.data.items} currency={currency} />
       ) : null}
       {requests.data && requests.data.failed.length > 0 ? (
         <Text className="text-small text-muted-foreground">
@@ -127,7 +127,7 @@ function Hub({ child, family }: { child: ChildSummary; family: Family }) {
         />
       ) : null}
 
-      <Card className="py-1">
+      <Card className="rounded-3xl py-1">
         <ListRow label={rulesCopy.title} onPress={() => router.push(`${base}/rules`)} />
       </Card>
 
@@ -143,29 +143,64 @@ function Hub({ child, family }: { child: ChildSummary; family: Family }) {
   );
 }
 
-function JarFigure({
-  label,
-  minor,
+/**
+ * The top of the child's page (the rework's look, calm): their Jarso in their own look, level,
+ * streak and the week's missions in one line, the three money tiles, then "Send a note".
+ */
+function ChildHero({
+  childId,
+  nickname,
   currency,
-  gold = false,
+  timezone,
+  jars,
+  failed,
 }: {
-  label: string;
-  minor: number | undefined;
+  childId: string;
+  nickname: string;
   currency: string;
-  gold?: boolean;
+  timezone: string;
+  jars: { spend: number; save: number } | undefined;
+  failed: boolean;
 }) {
+  const progress = useChildProgress(childId);
+  const learning = useChildLearning(childId, timezone);
+  const goal = useChildGoal(childId);
+  const money = (minor: number | undefined) =>
+    minor === undefined ? "…" : formatMoney(minor, currency, { showMinor: "nonzero" });
+  const line = childCardLine({
+    level: progress.data?.level ?? null,
+    streak: progress.data?.streak ?? null,
+    missions: learning.data ? weekMissions(learning.data.journey) : null,
+  });
+  const fill = jarsoFill({
+    saveMinor: jars?.save ?? 0,
+    spendMinor: jars?.spend ?? 0,
+    goalTargetMinor: goal.data?.goal.targetMinor ?? null,
+  });
   return (
-    <View className="flex-1 gap-0.5">
-      <Eyebrow tone={gold ? "primary" : "muted"}>{label}</Eyebrow>
-      <Text
-        className={
-          gold
-            ? "font-sans-extrabold text-gold-text text-money-l"
-            : "font-sans-extrabold text-money-l"
-        }
-      >
-        {minor === undefined ? "…" : formatMoney(minor, currency, { showMinor: "always" })}
-      </Text>
+    <View className="gap-3 rounded-3xl border border-border bg-card p-4">
+      <View className="flex-row items-center gap-3">
+        <View className="h-[72px] w-[72px] items-center justify-center rounded-full bg-tint-grape">
+          <Jarso size={64} fill={fill} look={progress.data?.look} />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text
+            accessibilityRole="header"
+            numberOfLines={1}
+            className="font-sans-extrabold text-h2"
+          >
+            {nickname}
+          </Text>
+          {line ? <Text className="text-small text-muted-foreground">{line}</Text> : null}
+        </View>
+      </View>
+      <MoneyTiles
+        spend={money(jars?.spend)}
+        save={money(jars?.save)}
+        goal={goal.isSuccess ? goalTile(goal.data) : "…"}
+      />
+      {failed ? <Text className="text-small text-muted-foreground">{UNAVAILABLE}</Text> : null}
+      <SendNoteSheet childId={childId} nickname={nickname} />
     </View>
   );
 }
@@ -187,7 +222,7 @@ function LearningCard({
   const done = learning.data.journey.filter((mission) => mission.status === "done").length;
   const days = learning.data.daysThisWeek;
   return (
-    <Card className="gap-1">
+    <Card className="gap-1 rounded-3xl">
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
         {parentLearningCopy.title}
       </Text>
@@ -220,7 +255,7 @@ function GuideCard({ childId, nickname }: { childId: string; nickname: string })
   const on = state.data.enabledChildIds.includes(childId);
   const count = flagged.data ?? 0;
   return (
-    <Card className="gap-1">
+    <Card className="gap-1 rounded-3xl">
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
         {parentGuideCopy.cardTitle}
       </Text>
@@ -268,7 +303,7 @@ function RecentHistory({
   const history = useRecentHistory(childId, timezone);
   const items = history.data?.items.slice(0, RECENT) ?? [];
   return (
-    <Card className="gap-1">
+    <Card className="gap-1 rounded-3xl">
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
         {parentPageCopy.history(nickname)}
       </Text>

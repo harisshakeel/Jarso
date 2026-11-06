@@ -35,6 +35,15 @@ appId: app.jarso.mobile
       - inputText: ${CHILD_PIN}
       - hideKeyboard
       - tapOn: "Sign in"
+# A test child who never finished the intro sees it first: skip it (replayable from Me).
+- extendedWaitUntil:
+    visible: "What happened\\?|Skip"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
 # Home: the + button ("What happened?") sits on every child tab, with the Spend and Save tiles.
 - extendedWaitUntil:
     visible: "What happened?"

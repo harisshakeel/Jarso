@@ -1,3 +1,3 @@
-import { SettingsScreen } from "@/features/settings";
+import { MeScreen } from "@/features/me";
 
-export default SettingsScreen;
+export default MeScreen;

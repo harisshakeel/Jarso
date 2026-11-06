@@ -9,7 +9,7 @@ const TAB_SCREEN_FILES = [
   "learn-screen",
   "news-screen",
   "guide-screens",
-  "settings/settings-screen",
+  "me/me-screen",
   "parent/family-home-screen",
   "parent/children-screen",
 ].map((name) => sourceFiles().find((f) => f.endsWith(`/${name}.tsx`)) ?? `${root}/missing/${name}`);

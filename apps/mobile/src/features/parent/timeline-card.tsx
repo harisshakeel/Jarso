@@ -15,7 +15,7 @@ export function TimelineCard({ events }: { events: TimelineEvent[] }) {
   const tokens = useTokens();
   const days = [...new Set(events.map((event) => event.date))];
   return (
-    <Card>
+    <Card className="rounded-3xl p-4">
       <Text accessibilityRole="header" className="font-sans-bold text-h2">
         {dashboardCopy.timelineTitle}
       </Text>

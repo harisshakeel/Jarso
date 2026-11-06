@@ -1,12 +1,14 @@
-import { allowanceSummaryCopy, dueListCopy } from "@jarso/core/allowance";
+import { allowanceSummaryCopy, dueListCopy, formatDay } from "@jarso/core/allowance";
 import { parentGuideCopy } from "@jarso/core/guide";
 import { noteCopy } from "@jarso/core/notifications";
 import { getParentSchedule, listDueForParent, listGiftsFor } from "@jarso/data/allowance";
 import { findFamilyById, findMembership, listChildMembers } from "@jarso/data/family";
+import { getGoalView } from "@jarso/data/goals";
 import { countFlaggedSince } from "@jarso/data/guide";
 import { getLearningOverview } from "@jarso/data/learning";
 import { getHistoryPage, getJars } from "@jarso/data/ledger";
 import { insertChildNote } from "@jarso/data/notifications";
+import { getProgress } from "@jarso/data/progress";
 import { listOpenRequests } from "@jarso/data/requests";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, userEvent, waitFor } from "@testing-library/react-native";
@@ -50,6 +52,8 @@ jest.mock("@jarso/data/ledger", () => ({ getJars: jest.fn(), getHistoryPage: jes
 jest.mock("@jarso/data/guide", () => ({ countFlaggedSince: jest.fn() }));
 jest.mock("@jarso/data/learning", () => ({ getLearningOverview: jest.fn() }));
 jest.mock("@jarso/data/notifications", () => ({ insertChildNote: jest.fn() }));
+jest.mock("@jarso/data/progress", () => ({ getProgress: jest.fn() }));
+jest.mock("@jarso/data/goals", () => ({ getGoalView: jest.fn() }));
 
 const CHILD = "22222222-2222-4222-8222-222222222222";
 const push = jest.fn();
@@ -112,6 +116,19 @@ function setup() {
     completed: [],
   });
   (getHistoryPage as jest.Mock).mockResolvedValue({ items: [], olderBefore: null });
+  (getGoalView as jest.Mock).mockResolvedValue(null);
+  (getProgress as jest.Mock).mockResolvedValue({
+    sparks: 120,
+    level: 3,
+    nextLevelAt: 200,
+    streak: 2,
+    bestStreak: 4,
+    restUsedThisWeek: false,
+    checkedInToday: true,
+    look: { lid: "grape", wear: "shades" },
+    badges: [],
+    recent: [],
+  });
 }
 
 function renderHub(childId = CHILD) {
@@ -161,6 +178,28 @@ describe("ChildHubScreen", () => {
       .setup()
       .press(screen.getByRole("button", { name: parentGuideCopy.readChats("Sam") }));
     expect(push).toHaveBeenCalledWith(`/(parent)/children/${CHILD}/guide`);
+  });
+
+  it("the hub hero shows Jarso's line and the three tiles", async () => {
+    setup();
+    await renderHub();
+    expect(await screen.findByText("Level 3 · 2-day streak")).toBeOnTheScreen();
+    expect(await screen.findByText("£12.50")).toBeOnTheScreen();
+    expect(screen.getByText("£34")).toBeOnTheScreen();
+    expect(screen.getByText("No goal")).toBeOnTheScreen();
+    expect(screen.queryByText(/120|spark/i)).toBeNull();
+  });
+
+  it("a due allowance is a handover card", async () => {
+    setup();
+    await renderHub();
+    const day = formatDay("2026-11-03");
+    await userEvent.setup().press(
+      await screen.findByRole("button", {
+        name: `${dueListCopy.handOver}: Allowance, ${dueListCopy.due(day)}, £3.00`,
+      }),
+    );
+    expect(push).toHaveBeenCalledWith(`/(parent)/children/${CHILD}/handover/allowance/occ-1`);
   });
 
   it("note sends once per opening", async () => {

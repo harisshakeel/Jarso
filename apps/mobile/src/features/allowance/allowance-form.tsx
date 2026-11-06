@@ -169,6 +169,7 @@ export function AllowanceForm({
 
       <Notice message={error} />
       <Button
+        variant="keycap"
         size="lg"
         accessibilityLabel={allowanceFormCopy.save}
         accessibilityState={{ busy: pending, disabled: pending }}

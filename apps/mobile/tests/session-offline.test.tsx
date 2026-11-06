@@ -13,6 +13,15 @@ import { supabase } from "@/lib/supabase/client";
 // These tests are about being offline: the notice reads the phone's connection to pick its wording.
 // The outbox's sync has its own tests (tests/lib/outbox); here only the gate is under test.
 jest.mock("@/lib/outbox", () => ({ OutboxSync: () => null }));
+// The first-open intro needs the query client; it has its own tests.
+jest.mock("@/features/onboarding", () => ({
+  OnboardingGate: ({ children }: { children: unknown }) => children,
+}));
+// The level-up watcher needs the query client; it has its own tests.
+jest.mock("@/features/progress", () => ({
+  ...jest.requireActual("@/features/progress"),
+  LevelUpWatcher: () => null,
+}));
 // The live notices need Realtime and the query client; not under test here.
 jest.mock("@/features/news", () => ({
   NoticeListener: () => null,

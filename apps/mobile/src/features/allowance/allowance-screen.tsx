@@ -167,6 +167,7 @@ function Summary({
 
       <Notice message={error} />
       <Button
+        variant="keycap"
         size="lg"
         accessibilityLabel={allowanceSummaryCopy.change}
         disabled={pending}

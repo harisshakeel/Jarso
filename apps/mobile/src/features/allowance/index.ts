@@ -4,6 +4,7 @@ export * from "./allowance-screen";
 export * from "./due-list";
 export * from "./gift-form";
 export * from "./gift-screen";
+export * from "./handover-card";
 export * from "./handover-form";
 export * from "./pause-sheet";
 export * from "./use-allowance-mutations";

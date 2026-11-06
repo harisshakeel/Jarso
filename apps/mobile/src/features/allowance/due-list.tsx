@@ -1,21 +1,17 @@
-import {
-  type DueItem,
-  dueKindLabel,
-  dueListCopy,
-  formatDay,
-  type Gift,
-} from "@jarso/core/allowance";
+import { type DueItem, dueListCopy, formatDay, type Gift } from "@jarso/core/allowance";
 import { useRouter } from "expo-router";
 import { Fragment } from "react";
+import { View } from "react-native";
 import { Card, CardSeparator, ListRow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { formatMoney } from "@/lib";
+import { HandoverCard } from "./handover-card";
 
 function withNote(title: string, note: string | null): string {
   return note ? `${title} · ${note}` : title;
 }
 
-/** What is waiting for the parent to hand over. Each row opens the handover sheet. */
+/** What is waiting for the parent to hand over: a handover card each, opening the handover sheet. */
 export function DueList({
   childId,
   items,
@@ -25,33 +21,21 @@ export function DueList({
   items: DueItem[];
   currency: string;
 }) {
-  const router = useRouter();
   if (items.length === 0) return null;
   return (
-    <Card className="gap-1">
+    <View className="gap-3">
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
         {dueListCopy.dueTitle}
       </Text>
-      {items.map((item, index) => {
-        const label = withNote(dueKindLabel(item.kind), item.note);
-        const day = dueListCopy.due(formatDay(item.dueOn));
-        const amount = formatMoney(item.amountMinor, currency);
-        return (
-          <Fragment key={`${item.kind}-${item.id}`}>
-            {index > 0 ? <CardSeparator /> : null}
-            <ListRow
-              label={label}
-              detail={day}
-              trailing={<Text className="font-sans-bold text-money">{amount}</Text>}
-              accessibilityLabel={`${dueListCopy.handOver}: ${label}, ${day}, ${amount}`}
-              onPress={() =>
-                router.push(`/(parent)/children/${childId}/handover/${item.kind}/${item.id}`)
-              }
-            />
-          </Fragment>
-        );
-      })}
-    </Card>
+      {items.map((item) => (
+        <HandoverCard
+          key={`${item.kind}-${item.id}`}
+          childId={childId}
+          item={item}
+          currency={currency}
+        />
+      ))}
+    </View>
   );
 }
 
@@ -70,7 +54,7 @@ export function GiftList({
 }) {
   const router = useRouter();
   return (
-    <Card className="gap-1">
+    <Card className="gap-1 rounded-3xl">
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
         {dueListCopy.giftsTitle}
       </Text>
@@ -93,7 +77,7 @@ export function GiftList({
       })}
       <Button
         className="mt-2 self-start"
-        variant="secondary"
+        variant="keycap-white"
         accessibilityLabel={dueListCopy.giveGift}
         onPress={() => router.push(`/(parent)/children/${childId}/gifts/new`)}
       >

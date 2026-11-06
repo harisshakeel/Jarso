@@ -1,3 +1,4 @@
+import { familyCardsCopy } from "@jarso/core/dashboard";
 import { familySettingsCopy } from "@jarso/core/family";
 import { getFamilyDashboard } from "@jarso/data/dashboard";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -13,6 +14,12 @@ jest.mock("@/features/auth/use-session", () => ({
   useSession: () => ({ status: "parent", role: "parent", userId: "parent-1" }),
 }));
 jest.mock("@jarso/data/dashboard", () => ({ getFamilyDashboard: jest.fn() }));
+jest.mock("@jarso/data/progress", () => ({
+  getProgress: jest.fn().mockRejectedValue(new Error("off")),
+}));
+jest.mock("@jarso/data/learning", () => ({
+  getLearningOverview: jest.fn().mockRejectedValue(new Error("off")),
+}));
 
 const push = jest.fn();
 
@@ -71,17 +78,16 @@ function renderChildren(children: unknown[]) {
 beforeEach(() => jest.clearAllMocks());
 
 describe("ChildrenScreen", () => {
-  it("children rows show total and split", async () => {
+  it("child cards show Spend, Save and the goal", async () => {
     await renderChildren([sam]);
-    expect(await screen.findByText("£46.50")).toBeOnTheScreen();
-    expect(screen.getByText("£12.50")).toBeOnTheScreen();
+    expect(await screen.findByText("£12.50")).toBeOnTheScreen();
     expect(screen.getByText("£34")).toBeOnTheScreen();
-    expect(screen.getByText("Bought lunch · 3 Nov")).toBeOnTheScreen();
+    expect(screen.getByText(familyCardsCopy.noGoal)).toBeOnTheScreen();
   });
 
   it("opens the child hub from a row", async () => {
     await renderChildren([sam]);
-    await userEvent.setup().press(await screen.findByRole("button", { name: /^Sam/ }));
+    await userEvent.setup().press(await screen.findByRole("button", { name: /^Sam\./ }));
     expect(push).toHaveBeenCalledWith("/(parent)/children/child-1");
   });
 

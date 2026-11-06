@@ -1,5 +1,6 @@
 export * from "./copy";
 export * from "./group";
+export * from "./kid-copy";
 export * from "./links";
 export * from "./moments";
 export * from "./parent-copy";

@@ -1,4 +1,5 @@
 export * from "./inbox-list";
+export * from "./kid-inbox-screen";
 export * from "./news-screen";
 export * from "./notice-listener";
 export * from "./use-notices";

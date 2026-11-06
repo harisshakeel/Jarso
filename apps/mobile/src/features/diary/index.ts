@@ -10,4 +10,5 @@ export * from "./use-fix-entry";
 export * from "./use-record-purchase";
 export * from "./use-record-received";
 export * from "./use-undo";
+export * from "./week-spent-card";
 export * from "./where-it-went";
