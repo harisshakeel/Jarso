@@ -1,5 +1,5 @@
 import type { AnswerableStep, Step } from "@jarso/core/learning";
-import { learnCopy, playerCopy, renderText } from "@jarso/core/learning";
+import { learnCopy, playerCopy, questCopy, renderText } from "@jarso/core/learning";
 import { findMission, findTopic } from "@jarso/core/learning/content";
 import type { OutboxItem } from "@jarso/core/offline";
 import { getFamilyContext } from "@jarso/data/family";
@@ -15,6 +15,10 @@ import { CheckInScreen, MissionScreen, PracticeScreen, TopicScreen } from "@/fea
 import { NextStepCard, withQueuedSteps } from "@/features/learning";
 import { outboxPlatform, submit } from "@/lib/outbox";
 
+jest.mock("@/lib/sound", () => ({ playSound: jest.fn() }));
+jest.mock("@jarso/data/progress", () => ({
+  getProgress: jest.fn().mockRejectedValue(new Error("off")),
+}));
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
 jest.mock("@/lib/api", () => ({ apiFetch: jest.fn().mockRejectedValue(new Error("off")) }));
 jest.mock("@/features/auth/use-session", () => ({
@@ -134,14 +138,26 @@ describe("learn", () => {
 
     await user.press(screen.getByRole("radio", { name: optionText(choice, "game") }));
     await user.press(screen.getByRole("button", { name: playerCopy.check }));
-    expect(await screen.findByText(playerCopy.again)).toBeOnTheScreen();
+    expect(await screen.findByText(questCopy.sheet.wrong)).toBeOnTheScreen();
+    // Wrong but not final: a hint can still be asked for.
+    expect(screen.getByRole("button", { name: playerCopy.hint })).toBeOnTheScreen();
     expect(Haptics.notificationAsync).not.toHaveBeenCalled();
     expect(submit).not.toHaveBeenCalled();
+
+    // The hint opens next to the sheet, above the options, not below them.
+    await user.press(screen.getByRole("button", { name: playerCopy.hint }));
+    const hintText = renderText(choice.hints[0] ?? "", "GBP");
+    const tree = JSON.stringify(screen.toJSON());
+    const hintAt = tree.indexOf(JSON.stringify(hintText).slice(1, -1));
+    expect(hintAt).toBeGreaterThan(-1);
+    expect(hintAt).toBeLessThan(
+      tree.indexOf(JSON.stringify(optionText(choice, "game")).slice(1, -1)),
+    );
 
     await user.press(screen.getByRole("button", { name: playerCopy.tryAgain }));
     await user.press(screen.getByRole("radio", { name: optionText(choice, "comic") }));
     await user.press(screen.getByRole("button", { name: playerCopy.check }));
-    expect(await screen.findByText(playerCopy.right)).toBeOnTheScreen();
+    expect(await screen.findByText(questCopy.sheet.right)).toBeOnTheScreen();
     expect(Haptics.notificationAsync).toHaveBeenCalledWith("success");
 
     await user.press(screen.getByRole("button", { name: playerCopy.continue }));
@@ -154,7 +170,7 @@ describe("learn", () => {
           stepKey: "which-can-you-buy",
           phase: "main",
           answer: { kind: "option", optionId: "comic" },
-          hintsUsed: 0,
+          hintsUsed: 1,
           tries: 2,
         },
         idempotencyKey: "33333333-3333-4333-8333-333333333333",

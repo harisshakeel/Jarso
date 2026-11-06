@@ -3,6 +3,7 @@ import { type Draft, inputCopy, renderText, stableShuffle } from "@jarso/core/le
 import { Pressable, View } from "react-native";
 import { Button, Input, Label, Text } from "@/components/ui";
 import { cn, formatMoney, minorDigits } from "@/lib";
+import { PictureOptions } from "./picture-options";
 
 type InputProps<D extends Draft["kind"]> = {
   body: StepBody;
@@ -38,7 +39,7 @@ function Radio({
       onPress={onPress}
       className={cn(
         "min-h-11 justify-center border border-border",
-        chip ? "flex-1 items-center rounded-full px-4" : "rounded-xl bg-card px-4 py-3",
+        chip ? "flex-1 items-center rounded-full px-4" : "rounded-[18px] bg-card px-4 py-3",
         checked && (chip ? "border-primary bg-primary" : "border-primary bg-secondary"),
       )}
     >
@@ -55,21 +56,19 @@ function Radio({
   );
 }
 
-/** Choice, predict and reason steps: one option from two to four. */
+/** Choice, predict and reason steps: one option from two to four, as picture tiles. */
 function OptionInput({ body, draft, onChange, currency, disabled }: InputProps<"option">) {
   if (body.type !== "choice" && body.type !== "predict" && body.type !== "reason") return null;
   return (
-    <View accessibilityRole="radiogroup" accessibilityLabel={inputCopy.pickOne} className="gap-3">
-      {body.options.map((option) => (
-        <Radio
-          key={option.id}
-          label={renderText(option.text, currency)}
-          checked={draft.optionId === option.id}
-          disabled={disabled}
-          onPress={() => onChange({ kind: "option", optionId: option.id })}
-        />
-      ))}
-    </View>
+    <PictureOptions
+      options={body.options.map((option) => ({
+        id: option.id,
+        text: renderText(option.text, currency),
+      }))}
+      selected={draft.optionId}
+      disabled={disabled}
+      onSelect={(optionId) => onChange({ kind: "option", optionId })}
+    />
   );
 }
 
@@ -132,11 +131,11 @@ function SplitInput({ body, draft, onChange, currency, disabled }: InputProps<"s
   return (
     <View className="gap-4">
       <View accessibilityLiveRegion="polite" className="flex-row gap-3">
-        <View className="flex-1 rounded-xl bg-secondary p-3">
+        <View className="flex-1 rounded-[18px] bg-secondary p-3">
           <Text className="font-sans-semibold">{inputCopy.spend}</Text>
           <Text className="font-sans-extrabold text-money-l">{money(spend)}</Text>
         </View>
-        <View className="flex-1 rounded-xl bg-accent p-3">
+        <View className="flex-1 rounded-[18px] bg-accent p-3">
           <Text className="font-sans-semibold">{inputCopy.save}</Text>
           <Text className="font-sans-extrabold text-money-l">{money(draft.save)}</Text>
         </View>
@@ -194,7 +193,7 @@ function SortInput({ body, draft, onChange, currency, disabled }: InputProps<"so
             key={item.id}
             accessibilityRole="radiogroup"
             accessibilityLabel={text}
-            className="gap-2 rounded-xl border border-border bg-card p-3"
+            className="gap-2 rounded-[24px] border border-border bg-card p-3"
           >
             <Text className="font-sans-semibold">{text}</Text>
             <View className="flex-row gap-2">

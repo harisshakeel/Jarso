@@ -14,6 +14,7 @@ import { getAvailability, listRequestsFor } from "@jarso/data/requests";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { useRouter } from "expo-router";
+import { useCheckinPrompt } from "@/features/checkin";
 import { HomeScreen, JarTile } from "@/features/home";
 import { keys } from "@/lib/query";
 
@@ -44,6 +45,7 @@ jest.mock("@jarso/data/notifications", () => ({
   fetchUnreadCount: jest.fn(),
 }));
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
+jest.mock("@/features/checkin", () => ({ useCheckinPrompt: jest.fn() }));
 jest.mock("@/components/celebrate", () => ({ useCelebrate: () => jest.fn() }));
 
 const push = jest.fn();
@@ -106,6 +108,11 @@ beforeEach(() => {
 });
 
 describe("HomeScreen", () => {
+  it("Home asks the daily check-in on its first open of the day", async () => {
+    await renderHome();
+    expect(useCheckinPrompt).toHaveBeenCalled();
+  });
+
   it("greets the child by nickname", async () => {
     await renderHome();
     expect(await screen.findByRole("header", { name: "Hi Sam!" })).toBeOnTheScreen();

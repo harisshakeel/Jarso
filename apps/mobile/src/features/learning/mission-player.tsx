@@ -1,4 +1,3 @@
-import { palette } from "@jarso/brand/tokens";
 import type {
   AnswerableStep,
   InfoStep,
@@ -11,10 +10,8 @@ import type {
 import {
   attemptSummary,
   bodyFor,
-  type Coach,
   coachFor,
   type Draft,
-  describeAnswer,
   draftToAnswer,
   emptyDraft,
   gradeStep,
@@ -23,6 +20,7 @@ import {
   renderText,
   resumePosition,
 } from "@jarso/core/learning";
+import type { JarsoLook } from "@jarso/core/mascot";
 import { type OutboxKind, offlineCopy, showsAsPending } from "@jarso/core/offline";
 import { useQueryClient } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
@@ -36,13 +34,18 @@ import {
   RotateCcwIcon,
 } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { Jarso } from "@/components/brand";
+import { Confetti } from "@/components/celebrate";
 import { Eyebrow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
-import { cn, isAppError, useTokens } from "@/lib";
+import { useProgress } from "@/features/progress";
+import { isAppError, useTokens } from "@/lib";
 import { outboxPlatform, submit, useOnline, useOutboxItems } from "@/lib/outbox";
 import { keys as queryKeys } from "@/lib/query";
+import { AnswerSheet } from "./answer-sheet";
 import { CurrentStepContext } from "./current-step";
+import { JarsoHint } from "./jarso-hint";
 import { finishQueued } from "./queued";
 import { StepInput } from "./step-views";
 import { type MissionSessionView, useStartMission } from "./use-learning";
@@ -154,6 +157,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
   const tokens = useTokens();
   const queryClient = useQueryClient();
   const start = useStartMission();
+  const progress = useProgress();
   const initialResults = mode.kind === "mission" ? mode.results : [];
   const [stage, setStage] = useState<"intro" | "playing" | "finishing" | "finished">(
     intro ? "intro" : "playing",
@@ -339,8 +343,13 @@ export function MissionPlayer(props: MissionPlayerProps) {
   if (stage === "finishing" || stage === "finished") {
     const done = stage === "finished" && finishText;
     return (
-      <View className="items-center gap-5 rounded-2xl bg-card p-5">
-        {done ? <DoneBadge /> : null}
+      <View className="items-center gap-5 overflow-hidden rounded-2xl bg-card p-5">
+        {done ? (
+          <DoneBadge
+            cheer={mode.kind === "mission" || mode.kind === "practice"}
+            look={progress.data?.look}
+          />
+        ) : null}
         <Text
           accessibilityRole="header"
           accessibilityLiveRegion="polite"
@@ -370,6 +379,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
               label={doneLabel}
               pending={false}
               onPress={() => router.dismissTo(doneHref)}
+              variant="keycap-grape"
             />
             {topicHref && mode.kind === "mission" ? (
               <Button
@@ -438,7 +448,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
   );
 }
 
-/** The screen's one keycap (design.md §6): teal, green after a right answer, gold to try again. */
+/** The screen's one keycap (design.md §6): teal, grape on the finish card. */
 function PrimaryButton({
   label,
   pending,
@@ -448,7 +458,7 @@ function PrimaryButton({
   label: string;
   pending: boolean;
   onPress: () => void;
-  variant?: "keycap" | "keycap-success" | "keycap-gold";
+  variant?: "keycap" | "keycap-grape";
 }) {
   return (
     <Button
@@ -496,21 +506,19 @@ function ProblemText({ problem }: { problem: Problem | null }) {
 }
 
 function ProgressDots({ label, done, total }: { label: string; done: number; total: number }) {
+  const now = Math.min(done, total);
   return (
     <View
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel={label}
-      accessibilityValue={{ min: 0, max: total, now: Math.min(done, total) }}
-      className="flex-row gap-1.5"
+      accessibilityValue={{ min: 0, max: total, now }}
+      className="h-2.5 overflow-hidden rounded-full bg-muted"
     >
-      {Array.from({ length: total }, (_, i) => (
-        <View
-          // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length decoration
-          key={i}
-          className={cn("h-2 flex-1 rounded-full", i < done ? "bg-primary" : "bg-muted")}
-        />
-      ))}
+      <View
+        className="h-2.5 rounded-full bg-grape-500"
+        style={{ width: `${total > 0 ? (now / total) * 100 : 0}%` }}
+      />
     </View>
   );
 }
@@ -582,6 +590,7 @@ function StepView({
   // Two taps in one frame both see the old render: a ref keeps one save at a time.
   const busy = useRef(false);
   const answer = draftToAnswer(body, draft, currency);
+  const look = useProgress().data?.look;
 
   async function send(result: StepOutcome) {
     if (busy.current) return;
@@ -622,6 +631,31 @@ function StepView({
   const hints = body.hints;
   // The same step always brings the same coach back, replay or restart.
   const coach = coachFor(item.step.key);
+  // Offered until the step is settled, so also after a wrong answer that allows another try.
+  const hintButton = (className?: string) =>
+    !checkIn && !outcome?.final && hintsShown < hints.length ? (
+      <Button
+        variant="keycap-white"
+        size="lg"
+        className={className}
+        accessibilityLabel={hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}
+        onPress={() => setHintsShown((n) => n + 1)}
+      >
+        <LightbulbIcon size={18} color={tokens.foreground} />
+        <Text>{hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}</Text>
+      </Button>
+    ) : null;
+  // Once settled the idle nudge is moot; hints already shown stay.
+  const line = checkIn ? coach.says.checkIn : hintsShown > 0 ? coach.says.hint : coach.says.idle;
+  // After a wrong try it sits by the sheet and Hint button, where the child is looking.
+  const hintBubble = (
+    <JarsoHint
+      line={outcome?.final ? null : line}
+      hints={checkIn ? [] : hints.slice(0, hintsShown)}
+      currency={currency}
+      look={look}
+    />
+  );
 
   return (
     <CurrentStepContext.Provider
@@ -635,27 +669,34 @@ function StepView({
         answer: outcome?.final ? answer : null,
       }}
     >
-      <View className="gap-5 rounded-2xl bg-card p-5">
-        <CoachBubble
-          coach={coach}
-          hints={checkIn ? [] : hints.slice(0, hintsShown)}
-          currency={currency}
-          checkIn={checkIn}
-        >
-          {outcome ? (
-            <Feedback outcome={outcome} body={body} currency={currency} topicHref={topicHref} />
-          ) : null}
-        </CoachBubble>
-
-        <View className="gap-2 rounded-2xl border-[6px] border-gold-800 bg-teal-950 p-4">
-          <Eyebrow className="text-teal-200">{position}</Eyebrow>
-          <Text accessibilityRole="header" className="font-sans-extrabold text-h1 text-teal-50">
+      <View className="gap-5">
+        <View className="gap-2">
+          <Eyebrow>{position}</Eyebrow>
+          <Text accessibilityRole="header" className="font-sans-extrabold text-h1">
             {renderText(body.prompt, currency)}
           </Text>
           {body.type === "predict" ? (
-            <Text className="text-teal-100">{playerCopy.predictNote}</Text>
+            <Text className="text-muted-foreground">{playerCopy.predictNote}</Text>
           ) : null}
         </View>
+
+        {outcome ? (
+          // Right under the prompt, so it is on screen without scrolling on a long step.
+          <>
+            <AnswerSheet
+              outcome={outcome}
+              body={body}
+              currency={currency}
+              topicHref={topicHref}
+              pending={saving}
+              look={look}
+              onContinue={continueOn}
+              onTryAgain={() => setOutcome(null)}
+            />
+            {hintButton()}
+            {outcome.final ? null : hintBubble}
+          </>
+        ) : null}
 
         <StepInput
           body={body}
@@ -666,45 +707,25 @@ function StepView({
           idBase={idBase}
         />
 
+        {outcome && !outcome.final ? null : hintBubble}
         <ProblemText problem={error} />
 
         <View className="gap-3">
           {!outcome ? (
-            <Button
-              variant="keycap"
-              size="lg"
-              accessibilityLabel={checkIn ? playerCopy.next : playerCopy.check}
-              disabled={!answer}
-              loading={saving}
-              onPress={check}
-            >
-              <Text>{checkIn ? playerCopy.next : playerCopy.check}</Text>
-            </Button>
-          ) : outcome.final ? (
-            // Green once it's right, so the child knows they're done here (design.md §2.4).
-            <PrimaryButton
-              label={playerCopy.continue}
-              pending={saving}
-              onPress={continueOn}
-              variant={outcome.correct ? "keycap-success" : "keycap"}
-            />
-          ) : (
-            <PrimaryButton
-              label={playerCopy.tryAgain}
-              pending={false}
-              onPress={() => setOutcome(null)}
-              variant="keycap-gold"
-            />
-          )}
-          {!checkIn && !outcome?.final && hintsShown < hints.length ? (
-            <Button
-              variant="outline"
-              accessibilityLabel={hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}
-              onPress={() => setHintsShown((n) => n + 1)}
-            >
-              <LightbulbIcon size={18} color={tokens.foreground} />
-              <Text>{hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}</Text>
-            </Button>
+            <View className="flex-row gap-3">
+              {hintButton("flex-1")}
+              <Button
+                variant="keycap-grape"
+                size="lg"
+                className="flex-[2]"
+                accessibilityLabel={checkIn ? playerCopy.next : playerCopy.check}
+                disabled={!answer}
+                loading={saving}
+                onPress={check}
+              >
+                <Text>{checkIn ? playerCopy.next : playerCopy.check}</Text>
+              </Button>
+            </View>
           ) : null}
           {!checkIn ? stepAside : null}
         </View>
@@ -713,109 +734,17 @@ function StepView({
   );
 }
 
-/** The coach beside the question: one line, then the hints asked for, then the feedback. */
-function CoachBubble({
-  coach,
-  hints,
-  currency,
-  checkIn,
-  children,
-}: {
-  coach: Coach;
-  hints: string[];
-  currency: string;
-  checkIn: boolean;
-  children?: ReactNode;
-}) {
-  const line = checkIn ? coach.says.checkIn : hints.length > 0 ? coach.says.hint : coach.says.idle;
-  return (
-    <View className="gap-1">
-      <Text className="font-sans-semibold text-muted-foreground text-small">{coach.name}</Text>
-      <View className="gap-2 rounded-2xl rounded-bl-sm bg-secondary p-4">
-        {!children || hints.length > 0 ? (
-          <Text className="font-sans-semibold text-secondary-foreground">{line}</Text>
-        ) : null}
-        {!checkIn && hints.length > 0 ? (
-          <View accessibilityLabel={playerCopy.hints} className="gap-2">
-            {hints.map((hint) => (
-              <View key={hint} className="flex-row gap-2 rounded-xl bg-gold-100 p-3">
-                <LightbulbIcon size={18} color={palette.gold[700]} />
-                <Text className="flex-1 font-sans-semibold text-gold-700">
-                  {renderText(hint, currency)}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-        <View accessibilityLiveRegion="polite">{children}</View>
-      </View>
-    </View>
-  );
-}
-
-function Feedback({
-  outcome,
-  body,
-  currency,
-  topicHref,
-}: {
-  outcome: Outcome;
-  body: StepBody;
-  currency: string;
-  topicHref?: Href;
-}) {
-  const router = useRouter();
+/** Done: Jarso cheers under confetti after a mission or practice; a topic or check-in stays calm. */
+function DoneBadge({ cheer, look }: { cheer: boolean; look?: JarsoLook }) {
   const tokens = useTokens();
-  const heading = outcome.correct
-    ? playerCopy.right
-    : outcome.final
-      ? playerCopy.final
-      : playerCopy.again;
-  return (
-    <View className={cn("gap-3 rounded-xl p-4", outcome.correct ? "bg-teal-100" : "bg-card")}>
-      <View className="flex-row items-center gap-2">
-        {outcome.correct ? (
-          <CircleCheckIcon size={22} color={tokens.primary} />
-        ) : (
-          <LightbulbIcon size={22} color={tokens.foreground} />
-        )}
-        <Text
-          accessibilityRole="header"
-          className={cn("font-sans-bold text-h3", outcome.correct && "text-teal-800")}
-        >
-          {heading}
-        </Text>
-      </View>
-      <Text className={cn(outcome.correct && "text-teal-800")}>
-        {renderText(outcome.feedback, currency)}
-      </Text>
-      {outcome.final && !outcome.correct ? (
-        <Text className="font-sans-semibold">
-          {playerCopy.answerLine(describeAnswer(body, currency))}
-        </Text>
-      ) : null}
-      {outcome.final && body.type === "predict" ? (
-        <Text className={cn("font-sans-semibold", outcome.correct && "text-teal-800")}>
-          {renderText(body.outcome, currency)}
-        </Text>
-      ) : null}
-      {!outcome.correct && topicHref ? (
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={playerCopy.readAboutTopic}
-          onPress={() => router.push(topicHref)}
-          className="min-h-11 justify-center"
-        >
-          <Text className="font-sans-semibold underline">{playerCopy.readAboutTopic}</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
-/** Done: a calm badge (the web's ring closes; the phone keeps it still). */
-function DoneBadge() {
-  const tokens = useTokens();
+  if (cheer) {
+    return (
+      <>
+        <Jarso mood="cheer" size={120} look={look} />
+        <Confetti />
+      </>
+    );
+  }
   return (
     <View
       accessibilityElementsHidden

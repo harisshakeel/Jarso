@@ -6,6 +6,7 @@ import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-nativ
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
+import { useCheckinPrompt } from "@/features/checkin";
 import { PendingPurchases } from "@/features/diary";
 import { GoalCard, useGoal } from "@/features/goals";
 import { useHome } from "@/features/jars";
@@ -28,6 +29,7 @@ import { useAllowanceDue, useHomeWeek } from "./use-home-extras";
  * have: if it can't load, Home goes on without it.
  */
 export function HomeScreen() {
+  useCheckinPrompt();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { userId } = useSession();
