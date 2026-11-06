@@ -1,3 +1,4 @@
+import type { Frequency } from "@jarso/core/allowance";
 import { findLatestSchedule } from "@jarso/data/allowance";
 import { getGoalView } from "@jarso/data/goals";
 import { useQuery } from "@tanstack/react-query";
@@ -27,4 +28,19 @@ export function useAllowance() {
     queryFn: () => findLatestSchedule(supabase, userId as string),
     select: (schedule) => (schedule && schedule.status !== "stopped" ? schedule.amountMinor : null),
   });
+}
+
+/**
+ * The goal's allowance pace for "about N weeks": the running schedule's frequency, or null (no
+ * schedule, or a stopped one). Reads the same cache as `useAllowance`.
+ */
+export function useSavingPace(): { frequency: Frequency | null } {
+  const { userId } = useSession();
+  const { data } = useQuery({
+    queryKey: keys.schedule(userId ?? ""),
+    enabled: Boolean(userId),
+    queryFn: () => findLatestSchedule(supabase, userId as string),
+    select: (schedule) => (schedule && schedule.status !== "stopped" ? schedule.frequency : null),
+  });
+  return { frequency: data ?? null };
 }

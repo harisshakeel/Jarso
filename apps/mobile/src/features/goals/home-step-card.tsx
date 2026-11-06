@@ -32,17 +32,23 @@ function useHomeStep(timezone: string): HomeStep | null {
     enabled: Boolean(userId),
     queryFn: () => listRequestsFor(supabase, userId as string),
   });
+  // Marking the goal celebrated rewrites the cached goal, which would swap this card away at
+  // once. The reached card stays up while the same goal is still the active one.
+  const reached = useRef<Extract<HomeStep, { kind: "goal-reached" }> | null>(null);
   if (!learning.data) return null;
   if (goal.isPending && !goal.error) return null;
   if (requests.isPending && !requests.error) return null;
+  if (reached.current && goal.data?.goal.id !== reached.current.goalId) reached.current = null;
   const approved = (requests.data ?? []).find(
     (r) => r.kind === "withdrawal" && r.status === "approved",
   );
-  return chooseHomeStep({
+  const chosen = chooseHomeStep({
     goal: goal.data ?? null,
     approvedWithdrawal: approved ? { amountMinor: approved.amountMinor } : null,
     learning: learning.data.nextStep,
   });
+  if (chosen.kind === "goal-reached") reached.current = chosen;
+  return reached.current ?? chosen;
 }
 
 /** "Do this next" on child Home: one thing, in plain words, with at most one button. */
