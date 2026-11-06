@@ -8,6 +8,7 @@ export * from "./grade";
 export * from "./home-step";
 export * from "./journey";
 export * from "./next-step-copy";
+export * from "./option-art";
 export * from "./parent-copy";
 export * from "./player-copy";
 export * from "./quest";
