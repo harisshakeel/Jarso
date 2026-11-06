@@ -60,7 +60,7 @@ describe("checkinDecision", () => {
       checkinDecision({
         timezone: "Europe/London",
         now: new Date("2026-11-06T18:31:00Z"),
-        lastPromptDay: "2026-11-06",
+        lastPromptDay: null,
         progress: { checkedInToday: true, readAt: new Date("2026-11-06T18:29:00Z") },
       }),
     ).toBe("skip");
