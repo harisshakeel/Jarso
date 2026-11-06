@@ -166,7 +166,7 @@ Design at 360 px first, then 768 and 1024. Single column on phones; parent scree
 
 | Child | Parent |
 | --- | --- |
-| Home · Diary · Learn · Jarso · Notifications | Home · Children · Money · Jarso · Notifications |
+| Home · Learn · + · Diary · Jarso (phone: raised gold + keycap opens the add sheet; no Notifications tab, the bell on Home opens News) | Home · Children · Money · Jarso · Notifications |
 
 Tab bar height 64 px plus the safe-area inset, icons 24 px, labels 12 px 600, active tab primary with a filled icon. The Notifications tab shows a count badge in gold with ink text. Family settings live under the parent's Home.
 
@@ -292,7 +292,7 @@ Warm coach, plain words, second person, short sentences. Parent screens use the 
 | Try again? Here's a hint. | Incorrect |
 | mission, practice | task, assignment, lesson module |
 | Notifications (child tab), Me (child settings) | Notifications, Settings |
-| Move my money, ask for extra | Requests |
+| Move my money, ask for extra | My asks |
 | Said yes, Not now, Waiting, Done | Approved, Rejected, Pending, Completed |
 | put in, take out, each time | deposit, withdrawal, per time |
 | Something went wrong. Please try again. | Failed to load…, any message written for a developer |
