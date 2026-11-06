@@ -13,7 +13,7 @@ export default function PurchaseRoute() {
   const router = useRouter();
   const { change, amount, label, category } = useLocalSearchParams<Params>();
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView edges={["bottom"]} className="flex-1 bg-background">
       <PurchaseSheet
         initial={change ? { amount: amount ?? "", label: label ?? "", category } : undefined}
         replaces={change}
