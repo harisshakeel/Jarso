@@ -74,6 +74,8 @@ For a local APK without EAS's build servers, `pnpm build:apk [profile] [archs]` 
 
 The child area is being reworked in plans. The foundation: Jarso the mascot replaces the four coaches (`@jarso/core/mascot`, `src/components/brand`), `useCelebrate()` shows full-screen or sheet celebrations with confetti, sound and haptics (`src/components/celebrate`, wrapped by `CelebrationProvider`), and `playSound` plays short clips (`src/lib/sound.ts`). Flows now celebrate: buying, getting money, saving and asking use keypad screens that call `celebrate()` (with Undo where it applies), and child refusals read calm (`Notice calm`). Home is Jarso with a short line, jar tiles and moment cards. Spec: `docs/superpowers/specs/2026-11-06-mobile-kid-rework-design.md`; look and motion rules in `docs/design.md` §7 and §8.
 
+Child jar and goal pages (plan 4): each jar opens its own page at `/(child)/jar/spend` or `/(child)/jar/save` (`app/(child)/jar/[jar].tsx`, `features/jars/jar-screen.tsx`) with the balance, a weekly-bars chart (`weekly-bars.tsx`, `use-balance-history.ts`) and the jar's history. The goal page (`/(child)/goal`) shows a gold progress ring with the goal emoji (`goals/goal-ring.tsx`), four milestone stars (25 / 50 / 75 % and "Got it!", `milestone-stars.tsx`) and the to-go line. `useGoalMoments` (mounted by the Home goal card) celebrates a milestone or the goal once, re-runs when the goal changes and waits for the server mark (`callMarkCelebrated`). The Home goal card is one link labelled with the goal name and what is left, with "See it" as its hint.
+
 ## Layout
 
 ```
