@@ -1,5 +1,7 @@
 # Mobile Kid Rework, Plan 4: Jar pages and goal Implementation Plan
 
+> **Status: shipped** in #146.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the child app's line graph and goal staircase with pictures a child reads at a glance:

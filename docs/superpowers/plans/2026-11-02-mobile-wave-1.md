@@ -1,5 +1,7 @@
 # Mobile app wave 1 (child money loop) Implementation Plan
 
+> **Status: shipped** in `00200a92`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** On a phone, a child signs in with a PIN, sees the Spend and Save jars, logs and undoes a purchase, puts money into Save, takes money out, asks for extra, manages open requests, reads History and signs out. The rules, results and copy are the same as on the web.

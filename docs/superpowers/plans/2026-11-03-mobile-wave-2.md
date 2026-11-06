@@ -1,5 +1,7 @@
 # Mobile app wave 2 (rest of the child app) Implementation Plan
 
+> **Status: shipped** in #94.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A child can do everything on the phone that they can do on the web: goals, the full diary, Learn (missions, practice, check-in, topics, week), Jarso, News and Me, with offline purchases and learning progress queued and replayed.

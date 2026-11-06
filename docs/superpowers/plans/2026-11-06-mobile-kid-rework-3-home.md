@@ -1,5 +1,7 @@
 # Mobile Kid Rework, Plan 3: Child shell and Home Implementation Plan
 
+> **Status: shipped** in #145.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rebuild the child's shell and Home:

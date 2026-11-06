@@ -1,5 +1,7 @@
 # Mobile Kid Rework, Plan 2: Progress backend (Sparks, levels, badges, streak, check-in, Jarso look, child-facing name)
 
+> **Status: shipped** in #143.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the server side of the fun loop. Sparks are awarded inside the database whenever a child logs money, saves, does a lesson step or reaches a goal milestone, plus a daily check-in. On top of that come levels, badges and a forgiving streak, the child's chosen Jarso look, and the name the child calls each parent. The app gets a single read model through `get_progress`.

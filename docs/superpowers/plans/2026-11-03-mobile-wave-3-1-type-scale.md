@@ -1,5 +1,7 @@
 # Mobile wave 3, plan 1: phone type scale and visual calm Implementation Plan
 
+> **Status: shipped** in #98.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** The existing child phone app uses a smaller, calmer phone type scale (tokens only, no raw Tailwind sizes), titles and money stop growing past 1.3× system font scale, child Home matches mockup B, and the shared tokens, primitives and calm components exist for the parent screens (plan 2).

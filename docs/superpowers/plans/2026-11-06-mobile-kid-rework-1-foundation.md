@@ -1,5 +1,7 @@
 # Mobile Kid Rework, Plan 1: Foundation (Jarso mascot, keycaps, celebrations, sound) Implementation Plan
 
+> **Status: shipped** in #141.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship the building blocks every later rework screen uses:

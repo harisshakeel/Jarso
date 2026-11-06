@@ -1,5 +1,7 @@
 # Inbox, Savings Goal and Jar Home Implementation Plan
 
+> **Status: shipped** in #37, #41 and #42.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship the in-app inbox with handover reminders, one savings goal per child, and a child Home and parent Home built around the Spend and Save jars, with history moved to a Diary tab.

@@ -446,9 +446,9 @@ additional_redirect_urls = [
 ]
 
 [remotes.production.auth.email]
-# Temporarily OFF for development (2026-10-29) so sign-up needs no email. Turn back on before
-# any real family joins: with it off, anyone can sign up as a parent's address and read the
-# invitations meant for them (see docs/auth.md → Hosted setup).
+# Off while the hosted project holds test families only (2026-10-29), so demo sign-ups need no
+# inbox. Turn on before any real family joins: with it off, anyone can sign up as a parent's
+# address and read the invitations meant for them (see docs/auth.md → Hosted setup).
 enable_confirmations = false
 double_confirm_changes = true
 secure_password_change = true

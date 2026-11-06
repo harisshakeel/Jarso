@@ -1,5 +1,7 @@
 # Monorepo and shared core Implementation Plan
 
+> **Status: shipped** in #72, #73 and #75.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn Jarso into a pnpm + Turborepo workspace with the web app in `apps/web` and all pure domain code, plus its tests, in `packages/core`. Web behaviour does not change.

@@ -1,5 +1,7 @@
 # Slices 3 and 4 — Purchases, Money Rules, Withdrawals and Deposits Implementation Plan
 
+> **Status: shipped** in #30 and #40.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** The child records purchases (with undo for 24 hours) and asks to move money out of or into Save. The parent sets flexible per-child money rules (spending limit, withdrawal cap, auto-approve, auto-confirm; each per item, week or month) and an overspend switch. Every money move posts exactly once, and notices land as rows for slice 5's inbox.

@@ -1,5 +1,7 @@
 # Slice 1 — Family & Onboarding Implementation Plan
 
+> **Status: shipped** in #10.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A parent signs up, creates a family, and adds a child either directly or by accepting a child-started invitation; the child signs in with family code + nickname + PIN. Nobody can see another family.
