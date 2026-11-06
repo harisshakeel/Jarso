@@ -16,7 +16,12 @@ import { signUp } from "../server/actions";
  */
 const SLOW_AUTH_MS = 45_000;
 
-export function SignUpForm({ next }: { next?: string }) {
+/**
+ * `placeholder` renders it disabled, for the page to show while the real form (which knows `next`)
+ * streams in. React swaps the real form in after the page has loaded, so anything typed into an
+ * enabled placeholder would be thrown away and the empty real form sent instead.
+ */
+export function SignUpForm({ next, placeholder }: { next?: string; placeholder?: boolean }) {
   const [state, formAction, pending, submit, ready] = useOnlineActionState(signUp, {
     timeoutMs: SLOW_AUTH_MS,
   });
@@ -34,6 +39,7 @@ export function SignUpForm({ next }: { next?: string }) {
         label="Name"
         autoComplete="name"
         required
+        disabled={placeholder}
         errors={fieldErrors?.fullName}
       />
       <Field
@@ -42,6 +48,7 @@ export function SignUpForm({ next }: { next?: string }) {
         type="email"
         autoComplete="email"
         required
+        disabled={placeholder}
         errors={fieldErrors?.email}
       />
       <Field
@@ -50,10 +57,11 @@ export function SignUpForm({ next }: { next?: string }) {
         type="password"
         autoComplete="new-password"
         required
+        disabled={placeholder}
         errors={fieldErrors?.password}
       />
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
-      <Button type="submit" disabled={pending || !ready}>
+      <Button type="submit" disabled={placeholder || pending || !ready}>
         {pending ? "Creating account…" : "Create account"}
       </Button>
       <p className="text-muted-foreground text-center text-sm">

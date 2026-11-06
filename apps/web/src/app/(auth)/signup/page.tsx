@@ -22,7 +22,7 @@ export default function SignUpPage({ searchParams }: PageProps<"/signup">) {
         <CardDescription>Get started in seconds.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Suspense fallback={<SignUpForm />}>
+        <Suspense fallback={<SignUpForm placeholder />}>
           <SignUpFormWithNext searchParams={searchParams} />
         </Suspense>
       </CardContent>

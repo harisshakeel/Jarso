@@ -39,7 +39,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           <CardDescription>Welcome back.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Suspense fallback={<SignInForm />}>
+          <Suspense fallback={<SignInForm placeholder />}>
             <SignInFormWithNext searchParams={searchParams} />
           </Suspense>
         </CardContent>

@@ -16,7 +16,12 @@ import { signIn } from "../server/actions";
  */
 const SLOW_AUTH_MS = 45_000;
 
-export function SignInForm({ next }: { next?: string }) {
+/**
+ * `placeholder` renders it disabled, for the page to show while the real form (which knows `next`)
+ * streams in. React swaps the real form in after the page has loaded, so anything typed into an
+ * enabled placeholder would be thrown away and the empty real form sent instead.
+ */
+export function SignInForm({ next, placeholder }: { next?: string; placeholder?: boolean }) {
   const [state, formAction, pending, submit, ready] = useOnlineActionState(signIn, {
     timeoutMs: SLOW_AUTH_MS,
   });
@@ -31,6 +36,7 @@ export function SignInForm({ next }: { next?: string }) {
         type="email"
         autoComplete="email"
         required
+        disabled={placeholder}
         errors={fieldErrors?.email}
       />
       <Field
@@ -39,10 +45,11 @@ export function SignInForm({ next }: { next?: string }) {
         type="password"
         autoComplete="current-password"
         required
+        disabled={placeholder}
         errors={fieldErrors?.password}
       />
       <FormError error={state?.ok === false && !fieldErrors ? state.error : undefined} />
-      <Button type="submit" disabled={pending || !ready}>
+      <Button type="submit" disabled={placeholder || pending || !ready}>
         {pending ? "Signing in…" : "Sign in"}
       </Button>
       <p className="text-muted-foreground text-center text-sm">
