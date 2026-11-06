@@ -215,6 +215,8 @@ describe("PutInSheet", () => {
       expect(invalidate).toHaveBeenCalledWith({ queryKey: key("child-1") });
     }
     expect(dispatch).toHaveBeenCalledTimes(1);
+    // One haptic: the celebration's. The mutation adds none of its own.
+    expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
     expect(Haptics.notificationAsync).toHaveBeenCalledWith("success");
   });
 
