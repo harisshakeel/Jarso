@@ -164,11 +164,12 @@ export async function dueOccurrence(
 /**
  * After "Create account" on the local stack (email confirmation off): the setup page. When it
  * does not arrive, the failure says where the page is and what the form said, so a flaky
- * sign-up explains itself instead of reading as a timeout.
+ * sign-up explains itself instead of reading as a timeout. The wait ends well inside the 30 s
+ * test timeout: past it the page is closed and there is nothing left to read.
  */
 export async function expectSetupPage(page: Page): Promise<void> {
   try {
-    await expect(page).toHaveURL((url) => url.pathname === "/parent/setup", { timeout: 45_000 });
+    await expect(page).toHaveURL((url) => url.pathname === "/parent/setup", { timeout: 20_000 });
   } catch (error) {
     // Errors are alerts; "taking a while" and "check your email" are statuses: read both.
     const said = await page
