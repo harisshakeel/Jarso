@@ -108,6 +108,9 @@ export const goalCopy = {
     reachedSub: (amount: string, name: string) => `${amount} saved for your ${name}`,
     askToBuy: (parent: string) => `Ask ${parent} to buy it`,
     keepSaving: "Keep saving",
+    nice: "Nice!",
+    /** The ring's own label; the name and amount are read by the heading and the line under it. */
+    ringLabel: "Goal progress",
     saveSome: "Save some",
   },
   staircase: {

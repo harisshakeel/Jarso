@@ -61,6 +61,14 @@ describe("phone type scale", () => {
     expect(Object.keys(fontSizes).sort()).toEqual(Object.keys(mobileFontSize).sort());
   });
 
+  it("uses only money sizes the scale has", () => {
+    const known = Object.keys(mobileFontSize).filter((key) => key.startsWith("money"));
+    const used = hits(/(?<![\w-])text-money(?:-[a-z0-9]+)?(?![\w-])/g).filter(
+      (hit) => !known.includes((hit.split(" ")[0] ?? "").replace("text-", "")),
+    );
+    expect(used).toEqual([]);
+  });
+
   it("uses Display or Money XL at most once per file", () => {
     expect(filesWithMoreThanOne(/(?<![\w-])text-(?:display|money-xl)(?![\w-])/g)).toEqual([]);
   });

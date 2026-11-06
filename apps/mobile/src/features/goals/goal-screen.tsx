@@ -89,12 +89,12 @@ export function GoalScreen() {
           emoji={g.emoji}
           value={progress.fillRatio}
           size={200}
-          label={`${g.name}, ${saved}`}
+          label={goalCopy.page.ringLabel}
         />
         <Text accessibilityRole="header" className="text-center font-sans-extrabold text-h1">
           {g.name}
         </Text>
-        <Text className="font-sans-bold text-gold-text text-money-m">{saved}</Text>
+        <Text className="font-sans-bold text-gold-text text-money">{saved}</Text>
       </View>
       <MilestoneStars lit={starsLit(progress)} />
       {toGo ? (

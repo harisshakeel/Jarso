@@ -82,7 +82,10 @@ describe("GoalScreen", () => {
     setGoal(2000);
     await renderScreen();
     expect(await screen.findByText("Football boots")).toBeOnTheScreen();
-    expect(screen.getByRole("progressbar").props.accessibilityValue.now).toBe(44);
+    const ring = screen.getByRole("progressbar");
+    expect(ring.props.accessibilityValue.now).toBe(44);
+    // The name and amount are read once, by the heading and the line under it.
+    expect(ring.props.accessibilityLabel).toBe("Goal progress");
     expect(screen.getByText("⚽")).toBeOnTheScreen();
     expect(screen.getByText("£20 of £45")).toBeOnTheScreen();
   });

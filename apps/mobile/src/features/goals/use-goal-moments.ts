@@ -135,7 +135,7 @@ async function handle(
     title: goalCopy.page.starTitle(star),
     mood: "cheer",
     sheet: true,
-    primary: { label: "Nice!" },
+    primary: { label: goalCopy.page.nice },
   });
   return false;
 }
