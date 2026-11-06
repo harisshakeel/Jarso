@@ -21,7 +21,8 @@
     "./guide": "./src/guide/index.ts",
     "./dashboard": "./src/dashboard/index.ts",
     "./payments": "./src/payments/index.ts",
-    "./tour": "./src/tour/index.ts"
+    "./tour": "./src/tour/index.ts",
+    "./progress": "./src/progress/index.ts"
   },
   "dependencies": {
     "@jarso/core": "workspace:*",
