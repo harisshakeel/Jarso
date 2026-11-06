@@ -1,5 +1,4 @@
 import { type GoalView, goalCopy, starsLit, starToCheer } from "@jarso/core/goals";
-import { BADGES, SPARKS } from "@jarso/core/progress";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -40,9 +39,10 @@ async function writeSeen(goalId: string, stars: number): Promise<void> {
 }
 
 /**
- * Fires the goal's moments once: a star cheer (sheet celebration, Sparks chip) when a new quarter
+ * Fires the goal's moments once: a star cheer (sheet celebration) when a new quarter
  * lights, and the full reached celebration (then marks it celebrated). Goals seen for the first
- * time on this phone get no cheer, only the stars stored. Never throws.
+ * time on this phone get no cheer, only the stars stored. No reward chips: the server sometimes
+ * pays nothing (capped or already passed), so a chip here could be false. Never throws.
  */
 export function useGoalMoments(view: GoalView, currency: string): void {
   const celebrate = useCelebrate();
@@ -113,10 +113,6 @@ async function handle(
       tone: "gold",
       mood: "cheer",
       fill: 0.95,
-      chips: [
-        { icon: "zap", label: `+${SPARKS.goalReached}` },
-        { icon: "award", label: BADGES.goal_reached.name },
-      ],
       primary: {
         label: goalCopy.page.askToBuy(parent),
         onPress: () => router.push("/(child)/take-out"),
@@ -139,7 +135,6 @@ async function handle(
     title: goalCopy.page.starTitle(star),
     mood: "cheer",
     sheet: true,
-    chips: [{ icon: "zap", label: `+${SPARKS.goalMilestone}` }],
     primary: { label: "Nice!" },
   });
   return false;

@@ -81,7 +81,7 @@ describe("useGoalMoments", () => {
     expect(celebrate).not.toHaveBeenCalled();
   });
 
-  it("a new star cheers once with a Sparks chip", async () => {
+  it("a new star cheers once, with no reward chip", async () => {
     await AsyncStorage.setItem("jarso.goalStars.goal-1", "1");
     const { rerender } = await setup(view(0.5));
     await waitFor(() => expect(celebrate).toHaveBeenCalledTimes(1));
@@ -89,9 +89,10 @@ describe("useGoalMoments", () => {
       expect.objectContaining({
         sheet: true,
         title: "Halfway there!",
-        chips: [{ icon: "zap", label: "+25" }],
+        primary: { label: "Nice!" },
       }),
     );
+    expect(celebrate.mock.calls[0][0].chips).toBeUndefined();
     await rerender({ v: view(0.5) });
     await settle();
     expect(celebrate).toHaveBeenCalledTimes(1);
@@ -125,14 +126,11 @@ describe("useGoalMoments", () => {
       title: "You did it!",
       subtitle: "₹45 saved for your Football boots",
       tone: "gold",
-      chips: [
-        { icon: "zap", label: "+100" },
-        { icon: "award", label: "Goal Getter" },
-      ],
       primary: { label: "Ask Mum to buy it" },
       secondary: { label: "Keep saving" },
     });
     expect(c.sheet).toBeUndefined();
+    expect(c.chips).toBeUndefined();
     c.primary.onPress();
     expect(push).toHaveBeenCalledWith("/(child)/take-out");
     await waitFor(() => expect(callMarkCelebrated).toHaveBeenCalledTimes(1));
