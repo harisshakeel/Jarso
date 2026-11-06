@@ -56,7 +56,7 @@ export function WeeklyBars({
                 </Text>
                 <View className="w-full justify-end" style={{ height: PLOT_HEIGHT }}>
                   <View
-                    testID={week.current ? "bar-current" : undefined}
+                    testID={negative ? "bar-negative" : week.current ? "bar-current" : undefined}
                     className={
                       negative || week.amountMinor === 0 ? "rounded-md bg-muted" : "rounded-md"
                     }

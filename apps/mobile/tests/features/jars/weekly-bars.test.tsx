@@ -53,7 +53,8 @@ describe("WeeklyBars", () => {
       <WeeklyBars jar="save" currency="GBP" totals={totals([1000, 2000, 500, 0, -3000, 100])} />,
     );
     expect(screen.getByText("−£30", { includeHiddenElements: true })).toBeOnTheScreen();
-    const stub = screen.getByTestId("bar-current", { includeHiddenElements: true });
+    const stub = screen.getByTestId("bar-negative", { includeHiddenElements: true });
+    expect(JSON.stringify(stub.props.style)).not.toContain("backgroundColor");
     expect(String(stub.props.className ?? "")).not.toMatch(/destructive|red/);
     expect(JSON.stringify(stub.props.style)).not.toMatch(/red/);
   });
