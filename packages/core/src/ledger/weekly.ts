@@ -37,11 +37,13 @@ export function weeklyTotals(
 ): WeekTotal[] {
   const byDate = new Map<string, BalancePoint>(history.points.map((p) => [p.date, p]));
   const first = history.points[0];
+  const last = history.points.at(-1);
   const balanceOn = (date: string): number => {
     const point = byDate.get(date);
     if (point) return point[jar];
-    // Before the history begins a day reads as the first point's balance.
-    return first ? first[jar] : 0;
+    // Before the history begins a day reads as the first point's balance; after it ends, the last's.
+    if (!first || !last) return 0;
+    return date < first.date ? first[jar] : last[jar];
   };
 
   const thisWeek = startOfWeek(today);
@@ -71,13 +73,14 @@ export function weekLine(totals: WeekTotal[], jar: Jar, money: (minor: number) =
     return jar === "save" ? "Your first save shows here." : "Nothing moved yet.";
   }
   if (jar === "save") {
-    if (cur > prev) return `${money(cur - prev)} more than last week!`;
+    if (cur > 0 && cur > prev) return `${money(cur - prev)} more than last week!`;
     if (cur === prev) return "Same as last week. Steady!";
     if (cur < 0) return "You used some savings.";
     return "Every coin counts. Keep going!";
   }
-  if (cur > prev) return `${money(cur - prev)} more than last week.`;
-  if (cur < prev) return `${money(prev - cur)} less than last week.`;
+  // Bars are net changes, so say what the jar did, not whether spending was more or less.
+  if (cur > prev) return `Spend grew ${money(cur - prev)} more than last week.`;
+  if (cur < prev) return `Spend dropped ${money(prev - cur)} more than last week.`;
   return "Same as last week.";
 }
 

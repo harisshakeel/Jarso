@@ -29,13 +29,14 @@ export const jarPageCopy = {
   },
   actions: {
     spend: [
-      { label: "I bought something", hint: "Write down a purchase", href: "/(child)/purchase" },
-      { label: "I got money", hint: "Add money you received", href: "/(child)/received" },
+      { label: "I bought something", hint: "From Spend", href: "/(child)/purchase" },
+      { label: "I got money", hint: "Gift, pay, found", href: "/(child)/received" },
     ],
-    save: [
-      { label: "Save some", hint: "Move money into Save", href: "/(child)/put-in" },
-      { label: "Use savings", hint: "Ask to take money out", href: "/(child)/take-out" },
-    ],
+    save: (parent: string) =>
+      [
+        { label: "Save some", hint: `Give cash to ${parent}`, href: "/(child)/put-in" },
+        { label: "Use savings", hint: `Ask ${parent} for it`, href: "/(child)/take-out" },
+      ] as const,
   },
   /** Screen-reader summary of the six bars; `totals` is already a spoken list. */
   barsLabel: (jar: Jar, totals: string) =>

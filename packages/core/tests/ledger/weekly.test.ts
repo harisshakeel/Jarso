@@ -104,6 +104,15 @@ describe("weeklyTotals", () => {
     expect(later).toEqual(["Oct 5", "12", "19", "26", "Nov 2", "This week"]);
   });
 
+  it("a history that ends before today holds its last balance", () => {
+    const h = days("2026-10-20", "2026-11-03", (date) => ({
+      spend: 0,
+      save: date >= "2026-11-02" ? 800 : 100,
+    }));
+    const totals = weeklyTotals(h, "save", TODAY);
+    expect(totals.at(-1)?.amountMinor).toBe(700);
+  });
+
   it("spend and save are bucketed separately", () => {
     const h = days("2026-10-25", TODAY, (date) => ({
       spend: date >= "2026-11-02" ? 100 : 400,
@@ -147,6 +156,21 @@ describe("weekLine", () => {
   it("says the first time for both jars", () => {
     expect(weekLine(weeksOf(0, 0, 0, 0, 0, 0), "save", pounds)).toBe("Your first save shows here.");
     expect(weekLine(weeksOf(0, 0, 0, 0, 0, 0), "spend", pounds)).toBe("Nothing moved yet.");
+  });
+
+  it("does not cheer a save week that only climbed back to zero", () => {
+    expect(weekLine(weeksOf(0, 0, 0, 0, -500, 0), "save", pounds)).toBe(
+      "Every coin counts. Keep going!",
+    );
+  });
+
+  it("describes spend as the jar's net change", () => {
+    expect(weekLine(weeksOf(0, 0, 0, 0, -1000, -3000), "spend", pounds)).toBe(
+      "Spend dropped £20 more than last week.",
+    );
+    expect(weekLine(weeksOf(0, 0, 0, 0, -3000, -1000), "spend", pounds)).toBe(
+      "Spend grew £20 more than last week.",
+    );
   });
 
   const cases: Array<[string, WeekTotal[]]> = [
@@ -198,7 +222,15 @@ describe("jarPageCopy", () => {
       ["I bought something", "/(child)/purchase"],
       ["I got money", "/(child)/received"],
     ]);
-    expect(jarPageCopy.actions.save.map((a) => [a.label, a.href])).toEqual([
+    expect(jarPageCopy.actions.spend.map((a) => a.hint)).toEqual([
+      "From Spend",
+      "Gift, pay, found",
+    ]);
+    expect(jarPageCopy.actions.save("Mum").map((a) => a.hint)).toEqual([
+      "Give cash to Mum",
+      "Ask Mum for it",
+    ]);
+    expect(jarPageCopy.actions.save("Mum").map((a) => [a.label, a.href])).toEqual([
       ["Save some", "/(child)/put-in"],
       ["Use savings", "/(child)/take-out"],
     ]);
