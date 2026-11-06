@@ -181,8 +181,14 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
             {undoError}
           </Text>
         ) : null}
-        <Button size="lg" accessibilityLabel="Done" onPress={onClose}>
-          <Text>Done</Text>
+        <Button
+          size="lg"
+          accessibilityLabel="Done"
+          accessibilityState={{ busy: undo.isPending, disabled: undo.isPending }}
+          disabled={undo.isPending}
+          onPress={onClose}
+        >
+          {undo.isPending ? <ActivityIndicator color="white" /> : <Text>Done</Text>}
         </Button>
       </View>
     );

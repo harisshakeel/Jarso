@@ -309,6 +309,21 @@ describe("PurchaseSheet", () => {
     expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
   });
 
+  it("shows a busy Done while the undo is running", async () => {
+    record.mockResolvedValue(sent("entry-9"));
+    let finish: (value: unknown) => void = () => undefined;
+    undo.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    const user = userEvent.setup();
+    await renderSheet();
+    await fill(user, "2.50");
+    await press(user, DONE);
+    await screen.findByText("Written down!");
+    await user.press(screen.getByRole("button", { name: "Undo" }));
+    expect(await screen.findByRole("button", { name: "Done", busy: true })).toBeDisabled();
+    finish("undone");
+    expect(await screen.findByText("Undone. The money is back in Spend.")).toBeOnTheScreen();
+  });
+
   it("shows the calm message when undo is refused", async () => {
     record.mockResolvedValue(sent("entry-9"));
     undo.mockRejectedValue(new AppError("CONFLICT", "You can only undo within a day."));
