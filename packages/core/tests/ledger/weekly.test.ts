@@ -1,5 +1,5 @@
-import type { BalanceHistory } from "@jarso/core/ledger";
-import { weeklyTotals } from "@jarso/core/ledger";
+import type { BalanceHistory, WeekTotal } from "@jarso/core/ledger";
+import { isBestWeek, jarPageCopy, jarPageFill, weekLine, weeklyTotals } from "@jarso/core/ledger";
 import { describe, expect, it } from "vitest";
 
 const TODAY = "2026-11-06";
@@ -111,5 +111,97 @@ describe("weeklyTotals", () => {
     }));
     expect(weeklyTotals(h, "spend", TODAY).at(-1)?.amountMinor).toBe(-300);
     expect(weeklyTotals(h, "save", TODAY).at(-1)?.amountMinor).toBe(700);
+  });
+});
+
+const pounds = (minor: number) => `£${minor / 100}`;
+
+function weeksOf(...amounts: number[]): WeekTotal[] {
+  return amounts.map((amountMinor, i) => ({
+    weekStart: `2026-10-${String(5 + i * 7).padStart(2, "0")}`,
+    label: String(i),
+    amountMinor,
+    current: i === amounts.length - 1,
+  }));
+}
+
+describe("weekLine", () => {
+  it("says how much more than last week", () => {
+    expect(weekLine(weeksOf(0, 0, 0, 0, 2000, 7000), "save", pounds)).toBe(
+      "£50 more than last week!",
+    );
+  });
+
+  it("is calm when savings went down", () => {
+    const line = weekLine(weeksOf(0, 0, 0, 0, 1000, -500), "save", pounds);
+    expect(line).toBe("You used some savings.");
+    expect(line).not.toContain("less");
+  });
+
+  it("for a quiet week after a big one keeps going", () => {
+    expect(weekLine(weeksOf(0, 0, 0, 0, 5000, 0), "save", pounds)).toBe(
+      "Every coin counts. Keep going!",
+    );
+  });
+
+  it("says the first time for both jars", () => {
+    expect(weekLine(weeksOf(0, 0, 0, 0, 0, 0), "save", pounds)).toBe("Your first save shows here.");
+    expect(weekLine(weeksOf(0, 0, 0, 0, 0, 0), "spend", pounds)).toBe("Nothing moved yet.");
+  });
+
+  const cases: Array<[string, WeekTotal[]]> = [
+    ["more", weeksOf(0, 0, 0, 0, 2000, 7000)],
+    ["same", weeksOf(0, 0, 0, 0, 2000, 2000)],
+    ["down", weeksOf(0, 0, 0, 0, 1000, -500)],
+    ["quiet", weeksOf(0, 0, 0, 0, 5000, 0)],
+    ["less", weeksOf(0, 0, 0, 0, 5000, 100)],
+    ["none", weeksOf(0, 0, 0, 0, 0, 0)],
+  ];
+
+  it("for spend never cheers", () => {
+    for (const [, totals] of cases) expect(weekLine(totals, "spend", pounds)).not.toContain("!");
+  });
+
+  it("every week line is at most 8 words", () => {
+    for (const jar of ["save", "spend"] as const) {
+      for (const [, totals] of cases) {
+        const words = weekLine(totals, jar, (m) => `₹${m / 100}`).split(/\s+/);
+        expect(words.length).toBeLessThanOrEqual(8);
+      }
+    }
+  });
+});
+
+describe("isBestWeek", () => {
+  it("needs a positive week above every earlier one", () => {
+    expect(isBestWeek(weeksOf(100, 200, 0, 50, 300, 400))).toBe(true);
+    expect(isBestWeek(weeksOf(100, 400, 0, 50, 300, 400))).toBe(false);
+    expect(isBestWeek(weeksOf(100, 200, 0, 50, 300, -400))).toBe(false);
+    expect(isBestWeek(weeksOf(0, 0, 0, 0, 0, 0))).toBe(false);
+  });
+});
+
+describe("jarPageFill", () => {
+  it("save matches jarsoFill and spend is its share", () => {
+    const input = { spendMinor: 300, saveMinor: 100, goalTargetMinor: null };
+    expect(jarPageFill("save", input)).toBe(0.25);
+    expect(jarPageFill("spend", input)).toBe(0.75);
+    expect(jarPageFill("save", { ...input, goalTargetMinor: 50 })).toBe(1);
+    expect(jarPageFill("save", { spendMinor: -5, saveMinor: -5, goalTargetMinor: 100 })).toBe(0);
+    expect(jarPageFill("spend", { spendMinor: -5, saveMinor: 100, goalTargetMinor: null })).toBe(0);
+  });
+});
+
+describe("jarPageCopy", () => {
+  it("jar actions link to the existing money routes", () => {
+    expect(jarPageCopy.actions.spend.map((a) => [a.label, a.href])).toEqual([
+      ["I bought something", "/(child)/purchase"],
+      ["I got money", "/(child)/received"],
+    ]);
+    expect(jarPageCopy.actions.save.map((a) => [a.label, a.href])).toEqual([
+      ["Save some", "/(child)/put-in"],
+      ["Use savings", "/(child)/take-out"],
+    ]);
+    expect(jarPageCopy.caption.save("mum")).toBe("Mum keeps it safe");
   });
 });

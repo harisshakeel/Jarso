@@ -1,4 +1,5 @@
 import { addDays, startOfWeek } from "@jarso/core/lib";
+import { jarsoFill } from "@jarso/core/mascot";
 import type { BalanceHistory, BalancePoint } from "./balance-history";
 import type { Jar } from "./types";
 
@@ -60,4 +61,45 @@ export function weeklyTotals(
     });
   }
   return totals;
+}
+
+/** The one sentence under the bars (at most 8 words, never sad, never cheering spending). */
+export function weekLine(totals: WeekTotal[], jar: Jar, money: (minor: number) => string): string {
+  const cur = totals.at(-1)?.amountMinor ?? 0;
+  const prev = totals.at(-2)?.amountMinor ?? 0;
+  if (totals.every((week) => week.amountMinor === 0)) {
+    return jar === "save" ? "Your first save shows here." : "Nothing moved yet.";
+  }
+  if (jar === "save") {
+    if (cur > prev) return `${money(cur - prev)} more than last week!`;
+    if (cur === prev) return "Same as last week. Steady!";
+    if (cur < 0) return "You used some savings.";
+    return "Every coin counts. Keep going!";
+  }
+  if (cur > prev) return `${money(cur - prev)} more than last week.`;
+  if (cur < prev) return `${money(prev - cur)} less than last week.`;
+  return "Same as last week.";
+}
+
+/** True when this week is above zero and above every earlier week shown. */
+export function isBestWeek(totals: WeekTotal[]): boolean {
+  const cur = totals.at(-1);
+  if (!cur || cur.amountMinor <= 0) return false;
+  return totals.slice(0, -1).every((week) => week.amountMinor < cur.amountMinor);
+}
+
+/**
+ * How full the big jar looks, 0..1: Save as Jarso on Home (goal ratio, else share of both);
+ * Spend its share of both. One formula, swapped.
+ */
+export function jarPageFill(
+  jar: Jar,
+  input: { spendMinor: number; saveMinor: number; goalTargetMinor: number | null },
+): number {
+  if (jar === "save") return jarsoFill(input);
+  return jarsoFill({
+    saveMinor: input.spendMinor,
+    spendMinor: input.saveMinor,
+    goalTargetMinor: null,
+  });
 }
