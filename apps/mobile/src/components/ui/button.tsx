@@ -6,12 +6,21 @@ import { cn } from "@/lib/utils";
 
 /**
  * The web's Button on the phone (design.md §6): a pill, never a rounded rectangle. `keycap`,
- * `keycap-gold` and `keycap-success` are the child's one main action on a screen, with the
- * 3 dp ledge under it; pressed, the ledge goes and the face sinks into its place, so nothing
- * around the button moves. Heights stay phone-sized (48 / 56 dp) for thumbs.
+ * `keycap-gold`, `keycap-success`, `keycap-grape` and `keycap-white` are the child's one main
+ * action on a screen, with the 5 dp ledge under it; pressed, the ledge goes and the face sinks
+ * into its place, so nothing around the button moves. Heights stay phone-sized (48 / 56 dp,
+ * and 72 dp for the big `xl` choice buttons) for thumbs.
  */
 const KEYCAP =
-  "border-b-[3px] active:border-b-0 active:translate-y-[3px] active:mb-[3px] shadow-none";
+  "border-b-[5px] active:border-b-0 active:translate-y-[5px] active:mb-[5px] shadow-none";
+
+const KEYCAPS: `keycap${"" | `-${"gold" | "success" | "grape" | "white"}`}`[] = [
+  "keycap",
+  "keycap-gold",
+  "keycap-success",
+  "keycap-grape",
+  "keycap-white",
+];
 
 const buttonVariants = cva(
   cn(
@@ -30,6 +39,8 @@ const buttonVariants = cva(
         keycap: cn(KEYCAP, "bg-primary border-keycap-ledge"),
         "keycap-gold": cn(KEYCAP, "bg-gold border-keycap-ledge-gold"),
         "keycap-success": cn(KEYCAP, "bg-success border-keycap-ledge-success"),
+        "keycap-grape": cn(KEYCAP, "bg-grape-600 border-keycap-ledge-grape"),
+        "keycap-white": cn(KEYCAP, "bg-keycap-white border-keycap-ledge-white"),
         destructive: cn(
           "bg-destructive active:bg-destructive/90 dark:bg-destructive/60",
           Platform.select({
@@ -52,29 +63,35 @@ const buttonVariants = cva(
         sm: cn("h-11 gap-1.5 px-4", Platform.select({ web: "has-[>svg]:px-2.5" })),
         lg: cn("h-14 px-6", Platform.select({ web: "has-[>svg]:px-4" })),
         icon: "h-11 w-11",
+        xl: cn("h-[72px] px-8", Platform.select({ web: "has-[>svg]:px-6" })),
       },
     },
-    // A pressed keycap loses its 3 dp ledge from its height and gets it back as margin.
+    // A pressed keycap loses its 5 dp ledge from its height and gets it back as margin.
     compoundVariants: [
       {
-        variant: ["keycap", "keycap-gold", "keycap-success"],
+        variant: KEYCAPS,
         size: "default",
-        class: "active:h-[45px]",
+        class: "active:h-[43px]",
       },
       {
-        variant: ["keycap", "keycap-gold", "keycap-success"],
+        variant: KEYCAPS,
         size: "sm",
-        class: "active:h-[41px]",
+        class: "active:h-[39px]",
       },
       {
-        variant: ["keycap", "keycap-gold", "keycap-success"],
+        variant: KEYCAPS,
         size: "lg",
-        class: "active:h-[53px]",
+        class: "active:h-[51px]",
       },
       {
-        variant: ["keycap", "keycap-gold", "keycap-success"],
+        variant: KEYCAPS,
         size: "icon",
-        class: "active:h-[41px]",
+        class: "active:h-[39px]",
+      },
+      {
+        variant: KEYCAPS,
+        size: "xl",
+        class: "active:h-[67px]",
       },
     ],
     defaultVariants: {
@@ -96,6 +113,8 @@ const buttonTextVariants = cva(
         keycap: "text-primary-foreground",
         "keycap-gold": "text-gold-foreground",
         "keycap-success": "text-success-foreground",
+        "keycap-grape": "text-white",
+        "keycap-white": "text-keycap-white-foreground",
         destructive: "text-white",
         outline: "",
         secondary: "text-secondary-foreground",
@@ -110,6 +129,7 @@ const buttonTextVariants = cva(
         sm: "",
         lg: "",
         icon: "",
+        xl: "",
       },
     },
     defaultVariants: {
@@ -124,12 +144,19 @@ type ButtonVariant = NonNullable<VariantProps<typeof buttonVariants>["variant"]>
 /** The spinner's colour on each fill: the label's own colour. */
 const SPINNER: Record<
   ButtonVariant,
-  "primary-foreground" | "gold-foreground" | "success-foreground" | "foreground"
+  | "primary-foreground"
+  | "gold-foreground"
+  | "success-foreground"
+  | "keycap-white-foreground"
+  | "white"
+  | "foreground"
 > = {
   default: "primary-foreground",
   keycap: "primary-foreground",
   "keycap-gold": "gold-foreground",
   "keycap-success": "success-foreground",
+  "keycap-grape": "white",
+  "keycap-white": "keycap-white-foreground",
   destructive: "primary-foreground",
   outline: "foreground",
   secondary: "foreground",
@@ -159,6 +186,8 @@ function Button({
 }: ButtonProps) {
   const tokens = useTokens();
   const off = Boolean(disabled) || loading;
+  const spin = SPINNER[variant ?? "default"];
+  const spinnerColor = spin === "white" ? "#ffffff" : tokens[spin];
   return (
     <TextClassContext.Provider value={buttonTextVariants({ variant, size })}>
       <Pressable
@@ -178,7 +207,7 @@ function Button({
               {children as React.ReactNode}
             </View>
             <View className="absolute inset-0 items-center justify-center">
-              <ActivityIndicator color={tokens[SPINNER[variant ?? "default"]]} />
+              <ActivityIndicator color={spinnerColor} />
             </View>
           </>
         ) : (
