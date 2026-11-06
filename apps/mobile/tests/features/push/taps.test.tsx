@@ -103,7 +103,7 @@ describe("usePushTaps", () => {
     mockSession.userId = CHILD;
     mockResponse = response({ kind: "summary", recipientId: CHILD, role: "child", count: 3 });
     await tapped();
-    expect(push).toHaveBeenCalledWith("/(child)/(tabs)/news");
+    expect(push).toHaveBeenCalledWith("/(child)/news");
     expect(markRead).not.toHaveBeenCalled();
   });
 

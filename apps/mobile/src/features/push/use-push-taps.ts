@@ -52,7 +52,7 @@ export function usePushTaps(): void {
       }
       const data = parsed.data;
       if (data.kind === "summary") {
-        router.push("/(child)/(tabs)/news");
+        router.push("/(child)/news");
         return;
       }
       markReadRef.current([data.noticeId], {

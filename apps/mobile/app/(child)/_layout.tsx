@@ -18,6 +18,7 @@ const SHEET: Options = {
 
 /** Actions are sheets over the tabs. Each opening mounts the screen anew. */
 const SHEETS = [
+  "add",
   "purchase",
   "put-in",
   "take-out",
@@ -31,6 +32,7 @@ const SHEETS = [
 const PAGES: { name: string; title: string }[] = [
   { name: "requests", title: "Requests" },
   { name: "me", title: "Me" },
+  { name: "news", title: noticeGroupCopy.title },
   { name: "notifications", title: noticeGroupCopy.title },
   { name: "memories", title: guideCopy.memories.title },
   { name: "goal", title: "Your goal" },

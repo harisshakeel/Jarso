@@ -31,7 +31,7 @@ const affected = (userId: string, role: NoticeRole): QueryKey[] =>
 
 /** Each role's inbox: the Notifications tab. */
 const INBOX: Record<NoticeRole, Href> = {
-  child: "/(child)/(tabs)/news",
+  child: "/(child)/news",
   parent: "/(parent)/(tabs)/inbox",
 };
 
