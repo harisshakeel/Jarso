@@ -1,7 +1,6 @@
 import { spendPictures } from "@jarso/core/home";
 import { trackerSteps } from "@jarso/core/requests";
 import { getProgress } from "@jarso/data/progress";
-import { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, renderHook, screen } from "@testing-library/react-native";
 import { useState } from "react";
 import { Text } from "react-native";
@@ -14,7 +13,7 @@ import {
   useSparkChips,
 } from "@/features/flows";
 import { keys } from "@/lib/query";
-import { renderFlow } from "../../flow-render";
+import { renderFlow, testQueryClient } from "../../flow-render";
 import { sourceFiles } from "../../source-files";
 
 const { readFileSync } = require("node:fs");
@@ -192,7 +191,7 @@ describe("SentCelebration", () => {
 
 describe("useSparkChips", () => {
   function setup() {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const client = testQueryClient();
     client.setQueryData(keys.progress("child-1"), { sparks: 230, streak: 5 });
     const { QueryClientProvider } = require("@tanstack/react-query");
     const wrapper = ({ children }: { children: React.ReactNode }) => (

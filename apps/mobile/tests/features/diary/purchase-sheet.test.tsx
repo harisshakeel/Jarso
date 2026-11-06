@@ -6,7 +6,6 @@ import { getFamilyContext } from "@jarso/data/family";
 import { getJars } from "@jarso/data/ledger";
 import { getProgress } from "@jarso/data/progress";
 import { getAvailability } from "@jarso/data/requests";
-import { QueryClient } from "@tanstack/react-query";
 import { fireEvent, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { randomUUID } from "expo-crypto";
 import * as Haptics from "expo-haptics";
@@ -15,7 +14,7 @@ import { PurchaseSheet } from "@/features/diary";
 import { apiFetch } from "@/lib/api";
 import { removeItem, submit } from "@/lib/outbox";
 import { keys } from "@/lib/query";
-import { renderFlow } from "../../flow-render";
+import { renderFlow, testQueryClient } from "../../flow-render";
 
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
 jest.mock("@/lib/api", () => ({ apiFetch: jest.fn() }));
@@ -53,14 +52,7 @@ const uuid = randomUUID as jest.Mock;
 const KEY_1 = "11111111-1111-4111-8111-111111111111";
 const KEY_2 = "22222222-2222-4222-8222-222222222222";
 
-async function renderSheet(
-  client = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: Number.POSITIVE_INFINITY },
-      mutations: { gcTime: Number.POSITIVE_INFINITY },
-    },
-  }),
-) {
+async function renderSheet(client = testQueryClient()) {
   const onClose = jest.fn();
   return { onClose, ...(await renderFlow(<PurchaseSheet onClose={onClose} />, client)) };
 }
@@ -258,9 +250,7 @@ describe("PurchaseSheet", () => {
   it("on success: celebrates Written down with +10 and Undo, refreshes, one dispatch, haptic", async () => {
     record.mockResolvedValue(sent("entry-9"));
     const user = userEvent.setup();
-    const client = new QueryClient({
-      defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } },
-    });
+    const client = testQueryClient();
     client.setQueryData(keys.progress("child-1"), { sparks: 0, streak: 1 });
     await renderSheet(client);
     const invalidate = jest.spyOn(client, "invalidateQueries");
