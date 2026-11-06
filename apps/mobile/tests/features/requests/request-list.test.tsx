@@ -109,6 +109,24 @@ describe("RequestList", () => {
     expect(screen.queryByTestId("tracker-step-now")).toBeNull();
   });
 
+  it("keeps the Cancelled note once the ask moves to closed", async () => {
+    setup([{ ...base, id: "req-1", kind: "withdrawal", status: "pending" }]);
+    cancel.mockImplementation(async () => {
+      list.mockResolvedValue([{ ...base, id: "req-1", kind: "withdrawal", status: "cancelled" }]);
+      return "cancelled";
+    });
+    await renderList();
+    await userEvent.setup().press(await screen.findByLabelText("Cancel take out of £5"));
+    await waitFor(() => expect(screen.queryByTestId("tracker-step-now")).toBeNull());
+    expect(screen.getAllByText("Cancelled").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("keeps the reason on a closed ask", async () => {
+    setup([{ ...base, id: "a", kind: "emergency", status: "rejected", reason: "Game" }]);
+    await renderList();
+    expect(await screen.findByText("2 Nov · Game")).toBeOnTheScreen();
+  });
+
   it("asks the child about notifications after the first ask", async () => {
     (usePushPermission as jest.Mock).mockReturnValue({
       state: "ask",

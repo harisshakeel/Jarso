@@ -21,9 +21,25 @@ import { actionErrorMessage, dayInZone, formatMoney, toUserMessage } from "@/lib
 import { cn } from "@/lib/utils";
 import { useCancelRequest, useRequests } from "./use-requests";
 
+type Note = { text: string; bad: boolean };
+
+/** What happened to a cancel, kept by request id so it survives the ask moving to Closed. */
+function NoteLine({ note }: { note?: Note }) {
+  if (!note) return null;
+  return (
+    <View accessibilityLiveRegion="polite">
+      {note.bad ? (
+        <Notice calm message={note.text} />
+      ) : (
+        <Text className="text-primary">{note.text}</Text>
+      )}
+    </View>
+  );
+}
+
 const OPEN: RequestStatus[] = ["pending", "approved"];
 
-/** "Today, 4:10 pm" style: the day and the time in the family's timezone. */
+/** "2 Nov, 4:10 pm": the day and the time in the family's timezone. */
 function whenInZone(iso: string, timeZone: string): string {
   const time = new Intl.DateTimeFormat("en-GB", {
     hour: "numeric",
@@ -51,6 +67,8 @@ const CHIP: Record<RequestStatus, string> = {
 /** The child's take-outs and put-ins, newest first. A Waiting one can be cancelled. */
 export function RequestList() {
   const parent = useParentLabel();
+  const [notes, setNotes] = useState<Record<string, Note | undefined>>({});
+  const setNote = (id: string, note?: Note) => setNotes((all) => ({ ...all, [id]: note }));
   const requests = useRequests();
   const home = useHome();
   const refetching = requests.isRefetching || home.isRefetching;
@@ -108,6 +126,8 @@ export function RequestList() {
                 key={request.id}
                 request={request}
                 parent={parent}
+                note={notes[request.id]}
+                onNote={(note) => setNote(request.id, note)}
                 currency={currency}
                 timezone={timezone}
               />
@@ -116,6 +136,7 @@ export function RequestList() {
               <ClosedAsk
                 key={request.id}
                 request={request}
+                note={notes[request.id]}
                 currency={currency}
                 timezone={timezone}
               />
@@ -129,27 +150,33 @@ export function RequestList() {
 
 function ClosedAsk({
   request,
+  note,
   currency,
   timezone,
 }: {
   request: SavingsRequest;
+  note?: Note;
   currency: string;
   timezone: string;
 }) {
   const m = formatMoney(request.amountMinor, currency, { showMinor: "nonzero" });
   return (
-    <View className="flex-row items-center gap-3 rounded-xl bg-card p-3">
-      <View className="min-w-0 flex-1">
-        <Text className="font-sans-bold">{kindTitle(request.kind, m)}</Text>
-        <Text className="text-small text-muted-foreground">
-          {dayInZone(request.occurredAt, timezone)}
+    <View className="gap-1 rounded-xl bg-card p-3">
+      <View className="flex-row items-center gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="font-sans-bold">{kindTitle(request.kind, m)}</Text>
+          <Text numberOfLines={1} className="text-small text-muted-foreground">
+            {dayInZone(request.occurredAt, timezone)}
+            {request.reason ? ` · ${request.reason}` : ""}
+          </Text>
+        </View>
+        <Text
+          className={cn("rounded-full px-3 py-1 text-caption font-sans-bold", CHIP[request.status])}
+        >
+          {statusLabel(request.kind, request.status)}
         </Text>
       </View>
-      <Text
-        className={cn("rounded-full px-3 py-1 text-caption font-sans-bold", CHIP[request.status])}
-      >
-        {statusLabel(request.kind, request.status)}
-      </Text>
+      <NoteLine note={note} />
     </View>
   );
 }
@@ -157,32 +184,35 @@ function ClosedAsk({
 function OpenAsk({
   request,
   parent,
+  note,
+  onNote,
   currency,
   timezone,
 }: {
   request: SavingsRequest;
   parent: string;
+  note?: Note;
+  onNote: (note?: Note) => void;
   currency: string;
   timezone: string;
 }) {
   const cancel = useCancelRequest();
   const sendOnce = useSendOnce();
-  const [note, setNote] = useState<{ text: string; bad: boolean }>();
   const what = WHAT[request.kind];
   const amount = formatMoney(request.amountMinor, currency, { showMinor: "nonzero" });
   const steps = trackerSteps(request, amount, parent, whenInZone(request.occurredAt, timezone));
 
   const onCancel = () =>
     sendOnce(async () => {
-      setNote(undefined);
+      onNote(undefined);
       try {
         const result = await cancel.mutateAsync(request.id);
-        setNote({
+        onNote({
           text: result === "already_closed" ? requestAlreadyMovedOnMessage : trackerCopy.cancelled,
           bad: false,
         });
       } catch (error) {
-        setNote({ text: await actionErrorMessage(error), bad: true });
+        onNote({ text: await actionErrorMessage(error), bad: true });
       }
     });
 
@@ -206,15 +236,7 @@ function OpenAsk({
           {cancel.isPending ? <ActivityIndicator /> : <Text>{trackerCopy.cancel}</Text>}
         </Button>
       ) : null}
-      {note ? (
-        <View accessibilityLiveRegion="polite">
-          {note.bad ? (
-            <Notice calm message={note.text} />
-          ) : (
-            <Text className="text-primary">{note.text}</Text>
-          )}
-        </View>
-      ) : null}
+      <NoteLine note={note} />
     </View>
   );
 }
