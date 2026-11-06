@@ -35,7 +35,7 @@ export function MomentCard({
         importantForAccessibility="no-hide-descendants"
         className={cn(
           "h-11 w-11 items-center justify-center rounded-2xl",
-          kind === "said-yes" ? "bg-white" : "bg-tint-gold",
+          kind === "said-yes" ? "bg-card" : "bg-tint-gold",
         )}
       >
         {kind === "said-yes" ? (
