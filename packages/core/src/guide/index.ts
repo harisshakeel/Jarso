@@ -7,6 +7,7 @@ export * from "./price-photo";
 export * from "./proposal";
 export * from "./schemas";
 export * from "./send-turn";
+export * from "./tab-copy";
 export * from "./thread-messages";
 export * from "./types";
 export * from "./ui-copy";

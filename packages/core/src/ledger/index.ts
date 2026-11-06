@@ -6,5 +6,6 @@ export * from "./graph-geometry";
 export * from "./jar-scale";
 export * from "./schemas";
 export * from "./types";
+export * from "./week-bars";
 export * from "./weekly";
 export * from "./where-it-went";
