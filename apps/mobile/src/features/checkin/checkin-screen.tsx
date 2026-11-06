@@ -31,7 +31,7 @@ export function CheckinScreen() {
 
   const stats = progress.data;
   return (
-    <SafeAreaView className="flex-1 bg-primary">
+    <SafeAreaView className="flex-1 bg-teal-700">
       <View className="flex-1 items-center gap-4 px-6 pt-4 pb-6">
         <Text className="font-sans-bold text-caption text-teal-100">
           {questCopy.checkin.eyebrow}
