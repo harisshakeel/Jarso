@@ -2,6 +2,7 @@ import { wordCount } from "@jarso/core/home";
 import { describe, expect, it } from "vitest";
 import {
   type AskKind,
+  type AskStatusOf,
   askCelebration,
   askFlowCopy,
   askReasons,
@@ -73,7 +74,9 @@ describe("ask flow copy", () => {
     ).toBe(true);
   });
   it("askCelebration maps every status", () => {
-    const cases: [AskKind, string, string, string | undefined, boolean][] = [
+    const cases: {
+      [K in AskKind]: [K, AskStatusOf[K], string, string | undefined, boolean];
+    }[AskKind][] = [
       ["deposit", "pending", "Now give Mum ₹60", "Then it's in Save", true],
       ["deposit", "confirmed", "₹60 in Save!", undefined, false],
       ["deposit", "done", "₹60 in Save!", undefined, false],
@@ -85,6 +88,21 @@ describe("ask flow copy", () => {
       ["withdrawal", "already_sent", "Already sent to Mum", undefined, false],
       ["emergency", "already_sent", "Already sent to Mum", undefined, false],
     ];
+    const covered = new Set(cases.map(([kind, status]) => `${kind}:${status}`));
+    expect([...covered].sort()).toEqual(
+      [
+        "deposit:pending",
+        "deposit:confirmed",
+        "deposit:done",
+        "deposit:already_sent",
+        "withdrawal:pending",
+        "withdrawal:approved",
+        "withdrawal:done",
+        "withdrawal:already_sent",
+        "emergency:pending",
+        "emergency:already_sent",
+      ].sort(),
+    );
     for (const [kind, status, title, subtitle, tracked] of cases) {
       expect(askCelebration(kind, status, "₹60", "Mum")).toEqual({ title, subtitle, tracked });
     }

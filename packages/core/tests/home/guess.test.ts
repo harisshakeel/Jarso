@@ -33,5 +33,9 @@ describe("guessResult", () => {
     expect(r?.line).toBe("Good guess! 2 allowances further.");
     expect(wordCount(r?.line ?? "")).toBeLessThanOrEqual(BUBBLE_MAX_WORDS);
   });
+  it("wrong guess with no plan is still kind", () =>
+    expect(
+      guessResult(outcome({ actual: "further", before: null, after: null }), "closer")?.line,
+    ).toBe("Good guess! A bit further."));
   it("question reads", () => expect(guessCopy.question("⚽")).toBe("⚽ Your goal gets…"));
 });

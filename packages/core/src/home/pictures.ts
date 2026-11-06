@@ -7,7 +7,8 @@ export type PictureTint = "teal" | "grape" | "gold" | "cyan" | "success";
 export type PictureIcon = string;
 export type PictureOption = { key: string; label: string; icon: PictureIcon; tint: PictureTint };
 
-const TINTS: readonly PictureTint[] = ["teal", "grape", "gold", "cyan", "success"];
+/** Tints cycle in this order down any list of pictures. */
+export const PICTURE_TINTS: readonly PictureTint[] = ["teal", "grape", "gold", "cyan", "success"];
 
 const SPEND_ICONS: Record<string, PictureIcon> = {
   snacks: "cookie",
@@ -38,7 +39,7 @@ function pictures(
     key: c.key,
     label: c.label,
     icon: icons[c.key] ?? "ellipsis",
-    tint: TINTS[i % TINTS.length] as PictureTint,
+    tint: PICTURE_TINTS[i % PICTURE_TINTS.length] as PictureTint,
   }));
 }
 

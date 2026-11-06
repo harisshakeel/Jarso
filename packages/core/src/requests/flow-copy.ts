@@ -1,5 +1,5 @@
-import { capitalise, type PictureIcon, type PictureTint } from "@jarso/core/home";
-import type { SavingsRequest } from "./types";
+import { capitalise, PICTURE_TINTS, type PictureIcon, type PictureTint } from "@jarso/core/home";
+import type { DepositResult, EmergencyResult, SavingsRequest, WithdrawalResult } from "./types";
 
 // The phone's ask flows (put in, take out, extra), the celebration after one, and the tracker.
 
@@ -55,8 +55,10 @@ export function askReasons(
     kind === "withdrawal" && goal
       ? [{ key: "goal", label: "My goal", icon: "target", emoji: goal.emoji }, ...rest]
       : rest;
-  const tints: PictureTint[] = ["teal", "grape", "gold", "cyan", "success"];
-  return all.map((r, i) => ({ ...r, tint: tints[i % tints.length] as PictureTint }));
+  return all.map((r, i) => ({
+    ...r,
+    tint: PICTURE_TINTS[i % PICTURE_TINTS.length] as PictureTint,
+  }));
 }
 
 /** The reason sent with the ask. Other sends what was typed (empty is refused by the schema). */
@@ -71,34 +73,43 @@ export function reasonText(
   return options.find((o) => o.key === key)?.label ?? "";
 }
 
+/** The statuses of an ask that was sent (the over_* results never reach the celebration). */
+type Sent<T extends { status: string }> = Extract<T, { requestId: string }>["status"];
+export type AskStatusOf = {
+  deposit: Sent<DepositResult>;
+  withdrawal: Sent<WithdrawalResult>;
+  emergency: Sent<EmergencyResult>;
+};
+
 /** What the celebration says after an ask, and whether the tracker follows. */
-export function askCelebration(
-  kind: AskKind,
-  status: string,
+export function askCelebration<K extends AskKind>(
+  kind: K,
+  status: AskStatusOf[K],
   m: string,
   parent: string,
 ): { title: string; subtitle?: string; tracked: boolean } {
   const Parent = capitalise(parent);
   if (status === "already_sent") return { title: `Already sent to ${parent}`, tracked: false };
-  if (kind === "deposit") {
-    if (status === "pending") {
-      return { title: `Now give ${parent} ${m}`, subtitle: "Then it's in Save", tracked: true };
-    }
-    return { title: `${m} in Save!`, tracked: false };
+  switch (kind as AskKind) {
+    case "deposit":
+      return status === "pending"
+        ? { title: `Now give ${parent} ${m}`, subtitle: "Then it's in Save", tracked: true }
+        : { title: `${m} in Save!`, tracked: false };
+    case "withdrawal":
+      if (status === "approved") {
+        return {
+          title: `${Parent} said yes!`,
+          subtitle: `${Parent} will hand you ${m}`,
+          tracked: true,
+        };
+      }
+      if (status === "done") {
+        return { title: `${m} is yours`, subtitle: `${Parent} knows`, tracked: false };
+      }
+      return { title: `Asked ${Parent}!`, subtitle: `${m} from savings`, tracked: true };
+    default:
+      return { title: `Asked ${Parent}!`, subtitle: `${m} extra`, tracked: true };
   }
-  if (kind === "withdrawal") {
-    if (status === "approved") {
-      return {
-        title: `${Parent} said yes!`,
-        subtitle: `${Parent} will hand you ${m}`,
-        tracked: true,
-      };
-    }
-    if (status === "done")
-      return { title: `${m} is yours`, subtitle: `${Parent} knows`, tracked: false };
-    return { title: `Asked ${Parent}!`, subtitle: `${m} from savings`, tracked: true };
-  }
-  return { title: `Asked ${Parent}!`, subtitle: `${m} extra`, tracked: true };
 }
 
 export type TrackerStep = { state: "done" | "now" | "next"; title: string; sub?: string };
