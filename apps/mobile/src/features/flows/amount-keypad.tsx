@@ -25,7 +25,7 @@ function symbol(currency: string): string {
   return part?.value ?? currency;
 }
 
-/** Whole amounts without the zeros ("20", not "20.00"); fractions keep theirs ("2.50"). */
+/** Whole amounts without the zeros ("20", not "20.00"); fractions lose only trailing zeros ("2.5"). */
 function chipText(minor: number, currency: string): string {
   const text = toMajorString(minor, currency);
   return text.includes(".") ? text.replace(/\.?0+$/, "") : text;

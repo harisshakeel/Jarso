@@ -10,7 +10,6 @@ type PictureGridProps = {
   onChange: (key: string) => void;
   /** What the group is called to a screen reader ("On what?"). */
   legend: string;
-  columns?: 3;
 };
 
 /** A grid of picture tiles; one is chosen. Each tile is a radio with its label. */
