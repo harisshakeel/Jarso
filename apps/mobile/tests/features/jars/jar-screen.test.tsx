@@ -147,6 +147,32 @@ describe("JarScreen", () => {
     });
   });
 
+  const fillY = () =>
+    screen.getAllByTestId("jarso-fill", { includeHiddenElements: true })[0]?.props.y;
+
+  it("the goal target sets how full the Save jar looks", async () => {
+    const { rerender } = await render(wrap(<JarScreen jar="save" />));
+    await screen.findByText("£20");
+    const noGoal = fillY();
+    await rerender(wrap(<JarScreen jar="save" goalTargetMinor={4000} />));
+    expect(fillY()).not.toBe(noGoal);
+  });
+
+  it("the route reads the goal and hands its target to the jar page", async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ jar: "save" });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    await render(
+      <QueryClientProvider client={client}>
+        <JarRoute />
+      </QueryClientProvider>,
+    );
+    await screen.findByText("£20");
+    const noGoal = fillY();
+    (getGoalView as jest.Mock).mockResolvedValue({ goal: { targetMinor: 4000 } });
+    await act(() => client.invalidateQueries());
+    await waitFor(() => expect(fillY()).not.toBe(noGoal));
+  });
+
   it("route redirects an unknown jar", async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ jar: "piggy" });
     await render(wrap(<JarRoute />));

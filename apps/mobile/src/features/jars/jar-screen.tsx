@@ -13,7 +13,6 @@ import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-nativ
 import { Jarso } from "@/components/brand";
 import { Card } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
-import { useGoal } from "@/features/goals";
 import { useParentLabel, useProgress } from "@/features/progress";
 import { formatMoney, toUserMessage } from "@/lib";
 import { useBalanceHistory } from "./use-balance-history";
@@ -21,7 +20,14 @@ import { useHome } from "./use-jars";
 import { WeeklyBars } from "./weekly-bars";
 
 /** One jar's page: big jar + amount, six weekly bars, one sentence, the jar's two actions. */
-export function JarScreen({ jar }: { jar: Jar }) {
+export function JarScreen({
+  jar,
+  goalTargetMinor = null,
+}: {
+  jar: Jar;
+  /** The active goal's target, which sets how full the Save jar looks; null with no goal. */
+  goalTargetMinor?: number | null;
+}) {
   const home = useHome();
   if (!home.data) {
     return (
@@ -45,6 +51,7 @@ export function JarScreen({ jar }: { jar: Jar }) {
     <JarPage
       jar={jar}
       jars={home.data.jars}
+      goalTargetMinor={goalTargetMinor}
       context={home.data.context}
       refreshing={home.isRefetching}
       onRefresh={() => home.refetch()}
@@ -55,18 +62,19 @@ export function JarScreen({ jar }: { jar: Jar }) {
 function JarPage({
   jar,
   jars,
+  goalTargetMinor,
   context,
   refreshing,
   onRefresh,
 }: {
   jar: Jar;
   jars: Jars;
+  goalTargetMinor: number | null;
   context: FamilyContext;
   refreshing: boolean;
   onRefresh: () => Promise<unknown>;
 }) {
   const router = useRouter();
-  const goal = useGoal();
   const progress = useProgress();
   const parent = useParentLabel();
   const history = useBalanceHistory(jars, context);
@@ -83,7 +91,7 @@ function JarPage({
   const fill = jarPageFill(jar, {
     spendMinor: jars.spend,
     saveMinor: jars.save,
-    goalTargetMinor: goal.data?.goal.targetMinor ?? null,
+    goalTargetMinor,
   });
   const caption = jar === "save" ? jarPageCopy.caption.save(parent) : jarPageCopy.caption.spend;
   const [first, second] =
