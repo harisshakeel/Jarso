@@ -28,7 +28,8 @@
     "./dashboard": "./src/dashboard/index.ts",
     "./offline": "./src/offline/index.ts",
     "./tour": "./src/tour/index.ts",
-    "./mascot": "./src/mascot/index.ts"
+    "./mascot": "./src/mascot/index.ts",
+    "./progress": "./src/progress/index.ts"
   },
   "dependencies": {
     "@jarso/content": "workspace:*",
