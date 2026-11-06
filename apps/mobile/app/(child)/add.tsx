@@ -9,11 +9,9 @@ import { useRequests } from "@/features/requests";
 export default function AddRoute() {
   const router = useRouter();
   const parent = useParentLabel();
-  const waiting = (useRequests().data ?? []).filter(
-    (r) => r.status === "pending" || r.status === "approved",
-  ).length;
+  const waiting = (useRequests().data ?? []).filter((r) => r.status === "pending").length;
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView edges={["bottom"]} className="flex-1 bg-background">
       <AddSheet
         parent={parent}
         waiting={waiting}
