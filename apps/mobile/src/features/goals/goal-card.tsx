@@ -54,7 +54,8 @@ export function GoalCard({ currency }: { currency: string }) {
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={goalCopy.card.seeIt}
+      accessibilityLabel={`${g.name}. ${left}`}
+      accessibilityHint={goalCopy.card.seeIt}
       onPress={() => router.push("/(child)/goal")}
     >
       <Card className="flex-row items-center gap-4">

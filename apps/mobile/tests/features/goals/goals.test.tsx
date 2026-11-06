@@ -120,7 +120,10 @@ describe("goals", () => {
     expect(bar.props.accessibilityValue.now).toBe(44);
     expect(bar.props.accessibilityLabel).toBe("⚽ Football boots, £45.");
     expect(screen.getByText("£25 to go · about 5 weeks")).toBeOnTheScreen();
-    expect(screen.getByRole("link", { name: goalCopy.card.seeIt })).toBeOnTheScreen();
+    const link = screen.getByRole("link", {
+      name: "Football boots. £25 to go · about 5 weeks",
+    });
+    expect(link.props.accessibilityHint).toBe(goalCopy.card.seeIt);
   });
 
   it("no plan says what is left", async () => {
