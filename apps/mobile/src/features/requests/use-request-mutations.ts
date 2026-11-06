@@ -5,8 +5,7 @@ import {
   callCreateEmergency,
   callCreateWithdrawal,
 } from "@jarso/data/requests";
-import { findChildRules } from "@jarso/data/rules";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useSession } from "@/features/auth";
 import { dispatchNotices } from "@/lib/notices";
@@ -66,14 +65,4 @@ export function useCreateEmergency() {
     callCreateEmergency,
     () => true,
   );
-}
-
-/** The child's rules, for the plain-words lines in the Save sheets. Nice to have, never blocking. */
-export function useChildRules() {
-  const { userId } = useSession();
-  return useQuery({
-    queryKey: keys.rules(userId ?? ""),
-    enabled: Boolean(userId),
-    queryFn: () => findChildRules(supabase, userId as string),
-  });
 }
