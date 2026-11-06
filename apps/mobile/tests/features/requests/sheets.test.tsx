@@ -4,6 +4,7 @@ import { offlineCopy } from "@jarso/core/offline";
 import {
   askCelebration,
   depositMessage,
+  depositSchema,
   overCapMessage,
   withdrawalMessage,
 } from "@jarso/core/requests";
@@ -17,7 +18,6 @@ import {
   callCreateWithdrawal,
   getAvailability,
 } from "@jarso/data/requests";
-import { findChildRules } from "@jarso/data/rules";
 import { QueryClient } from "@tanstack/react-query";
 import { screen, userEvent, waitFor } from "@testing-library/react-native";
 import { randomUUID } from "expo-crypto";
@@ -48,7 +48,6 @@ jest.mock("@jarso/data/family", () => ({
   getFamilyContext: jest.fn(),
   findParentLabels: jest.fn(),
 }));
-jest.mock("@jarso/data/rules", () => ({ findChildRules: jest.fn() }));
 jest.mock("@jarso/data/requests", () => ({
   getAvailability: jest.fn(),
   callCreateDeposit: jest.fn(),
@@ -134,18 +133,10 @@ beforeEach(() => {
     timezone: "Europe/London",
     today: "2026-11-02",
   });
-  (findChildRules as jest.Mock).mockResolvedValue({
-    allowNegativeSpend: false,
-    jarMovesApproval: "ask",
-    rules: [
-      { kind: "withdrawal_cap", period: "week", amountMinor: 1500 },
-      { kind: "withdrawal_auto_approve", period: "item", amountMinor: 500 },
-      { kind: "deposit_auto_confirm", period: "item", amountMinor: 1000 },
-      { kind: "spend_limit", period: "week", amountMinor: 2000 },
-    ],
-  });
 });
 
+const badAmount = depositSchema("GBP").safeParse({ amount: "", idempotencyKey: KEY_1 });
+const BAD_AMOUNT = badAmount.success ? "" : (badAmount.error.issues[0]?.message ?? "");
 const DEPOSIT_PENDING = { status: "pending", requestId: "r1" } as const;
 const GOAL = {
   goal: { name: "Boots", emoji: "⚽", targetMinor: 10000, planMinor: 1000 },
@@ -183,6 +174,28 @@ describe("PutInSheet", () => {
     await waitFor(() => expect(getGoalView).toHaveBeenCalled());
     await keys_(user, "5");
     expect(await screen.findByText(guessCopy.question("⚽"))).toBeOnTheScreen();
+  });
+
+  it("shows no guess without a goal", async () => {
+    const user = userEvent.setup();
+    await open((onClose) => <PutInSheet onClose={onClose} />);
+    await waitFor(() => expect(getGoalView).toHaveBeenCalled());
+    await keys_(user, "5");
+    expect(screen.queryByText(guessCopy.question("⚽"))).toBeNull();
+  });
+
+  it("clears the refusal when the amount changes", async () => {
+    const refused = { status: "over_available", availableMinor: 300 } as const;
+    deposit.mockResolvedValue(refused);
+    const user = userEvent.setup();
+    await open((close) => <PutInSheet onClose={close} />);
+    await keys_(user, "50");
+    await press(user, "I'll give £50 to Mum");
+    const message = depositMessage(refused, "GBP");
+    expect(await screen.findByText(message)).toBeOnTheScreen();
+    expect(screen.getByText(message)).toHaveProp("accessibilityRole", "alert");
+    await press(user, "Delete");
+    expect(screen.queryByText(message)).toBeNull();
   });
 
   it("sends the amount in minor units with the opening's key, refreshes, dispatches", async () => {
@@ -252,7 +265,7 @@ describe("PutInSheet", () => {
     await open((close) => <PutInSheet onClose={close} />);
     await screen.findByRole("button", { name: "1" });
     await press(user, "Save some");
-    expect(await screen.findByText(/amount/i)).toBeOnTheScreen();
+    expect(await screen.findByText(BAD_AMOUNT)).toBeOnTheScreen();
     expect(deposit).not.toHaveBeenCalled();
   });
 
@@ -346,16 +359,8 @@ describe("TakeOutSheet", () => {
     await open((close) => <TakeOutSheet onClose={close} />);
     await ask(user, "4", "Games");
     await sent(title);
+    if (status === "approved") expect(screen.getByText("Track it")).toBeOnTheScreen();
     expect(dispatch).toHaveBeenCalledTimes(1);
-  });
-
-  it("approved celebrates Mum said yes", async () => {
-    withdraw.mockResolvedValue({ status: "approved", requestId: "r1" });
-    const user = userEvent.setup();
-    await open((close) => <TakeOutSheet onClose={close} />);
-    await ask(user, "4", "Games");
-    await sent("Mum said yes!");
-    expect(screen.getByText("Track it")).toBeOnTheScreen();
   });
 
   it("asks without a reason (it is optional)", async () => {
@@ -446,6 +451,18 @@ describe("AskExtraSheet", () => {
     expect(await screen.findByText("Say what it's for.")).toBeOnTheScreen();
     expect(screen.getByLabelText("What's it for?")).toHaveProp("aria-invalid", true);
     expect(emergency).not.toHaveBeenCalled();
+  });
+
+  it("clears the reason error once a picture is picked", async () => {
+    const user = userEvent.setup();
+    await open((close) => <AskExtraSheet onClose={close} />);
+    await keys_(user, "5");
+    await press(user, "Next");
+    await pick(user, "Other");
+    await press(user, "Ask Mum");
+    expect(await screen.findByText("Say what it's for.")).toBeOnTheScreen();
+    await pick(user, "School");
+    expect(screen.queryByText("Say what it's for.")).toBeNull();
   });
 
   it("a picked reason is sent as its label", async () => {

@@ -66,8 +66,10 @@ export function PutInSheet({ onClose }: { onClose: () => void }) {
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
   const amountMinor = parseMoney(amount, currency);
   const x = amountMinor ?? 0;
-  const spendAfter = Math.max(availability.availableSpendMinor - x, 0);
-  const saveAfter = availability.saveMinor + x;
+  // The jars never show more moving than Spend has (the server refuses it anyway).
+  const shown = Math.min(x, availability.availableSpendMinor);
+  const spendAfter = availability.availableSpendMinor - shown;
+  const saveAfter = availability.saveMinor + shown;
   const total = availability.availableSpendMinor + availability.saveMinor;
   const unreached = goal.data && !goal.data.progress.reached ? goal.data : null;
 
@@ -153,6 +155,7 @@ export function PutInSheet({ onClose }: { onClose: () => void }) {
         onChange={(value) => {
           setAmount(value);
           setAmountError(undefined);
+          setNotice(undefined);
         }}
         currency={currency}
         chips={quickChips(currency, availability.availableSpendMinor)}
@@ -168,7 +171,7 @@ export function PutInSheet({ onClose }: { onClose: () => void }) {
           reservedMinor={availability.reservedSaveMinor}
         />
       ) : null}
-      <Notice message={notice} />
+      <Notice calm message={notice} />
     </FlowShell>
   );
 }

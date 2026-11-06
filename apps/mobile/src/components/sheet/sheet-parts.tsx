@@ -4,7 +4,6 @@ import { Button, Input, Label, Text } from "@/components/ui";
 import { cn, toUserMessage } from "@/lib";
 
 const AMOUNT_LABEL = "Amount";
-const REASON_LABEL = "What's it for?";
 
 /**
  * Runs `task` unless one is already running. A ref, not the mutation's `isPending`: two taps in
@@ -76,56 +75,14 @@ export function AmountInput({
   );
 }
 
-export function ReasonInput({
-  id,
-  value,
-  onChange,
-  error,
-}: {
-  id: string;
-  value: string;
-  onChange: (value: string) => void;
-  error?: string;
-}) {
-  return (
-    <View className="gap-2">
-      <Label nativeID={`${id}-reason-label`}>{REASON_LABEL}</Label>
-      <Input
-        accessibilityLabel={REASON_LABEL}
-        aria-labelledby={`${id}-reason-label`}
-        aria-invalid={Boolean(error)}
-        value={value}
-        onChangeText={onChange}
-        autoComplete="off"
-        maxLength={140}
-      />
-      {error ? (
-        <Text accessibilityLiveRegion="polite" className="text-destructive">
-          {error}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
-export function RuleLines({ lines }: { lines: string[] }) {
-  if (lines.length === 0) return null;
-  return (
-    <View className="gap-1">
-      {lines.map((line) => (
-        <Text key={line} className="text-muted-foreground">
-          {line}
-        </Text>
-      ))}
-    </View>
-  );
-}
-
-/** A refusal or a failed send: the sheet stays open and the child can try again. */
-export function Notice({ message }: { message?: string }) {
+/**
+ * A refusal or a failed send: the sheet stays open and the child can try again. `calm` is for
+ * the child's flows (no red).
+ */
+export function Notice({ message, calm = false }: { message?: string; calm?: boolean }) {
   if (!message) return null;
   return (
-    <Text accessibilityRole="alert" className="text-destructive">
+    <Text accessibilityRole="alert" className={calm ? "text-primary" : "text-destructive"}>
       {message}
     </Text>
   );

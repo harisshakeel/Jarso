@@ -135,6 +135,8 @@ export function AskReasonFlow<R extends { status: string }>({
   }
 
   if (sent) {
+    // The server's sent statuses, which `askCelebration` types per kind: the refusals were
+    // handled above, and the flow's `R` is generic over the two kinds that reach here.
     const message = askCelebration(
       kind,
       sent.status as AskStatusOf[typeof kind],
@@ -175,6 +177,7 @@ export function AskReasonFlow<R extends { status: string }>({
           onChange={(value) => {
             setAmount(value);
             setFieldErrors(undefined);
+            setNotice(undefined);
           }}
           currency={currency}
           chips={quickChips(currency, limit)}
@@ -194,7 +197,7 @@ export function AskReasonFlow<R extends { status: string }>({
             reservedMinor={home.data.availability.reservedSaveMinor}
           />
         ) : null}
-        <Notice message={notice} />
+        <Notice calm message={notice} />
       </FlowShell>
     );
   }
@@ -223,7 +226,10 @@ export function AskReasonFlow<R extends { status: string }>({
       <PictureGrid
         options={options}
         value={reasonKey}
-        onChange={setReasonKey}
+        onChange={(key) => {
+          setReasonKey(key);
+          setFieldErrors(undefined);
+        }}
         legend={copy.forWhat}
       />
       {reasonKey === "other" ? (
@@ -231,7 +237,10 @@ export function AskReasonFlow<R extends { status: string }>({
           accessibilityLabel={REASON_LABEL}
           aria-invalid={Boolean(reasonError)}
           value={typed}
-          onChangeText={setTyped}
+          onChangeText={(text) => {
+            setTyped(text);
+            setFieldErrors(undefined);
+          }}
           placeholder={kind === "emergency" ? flow.emergency.otherHint : undefined}
           autoComplete="off"
           maxLength={140}
@@ -242,7 +251,7 @@ export function AskReasonFlow<R extends { status: string }>({
           {reasonError}
         </Text>
       ) : null}
-      <Notice message={notice} />
+      <Notice calm message={notice} />
     </FlowShell>
   );
 }
