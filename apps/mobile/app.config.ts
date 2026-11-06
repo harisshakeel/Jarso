@@ -47,6 +47,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     plugins: [
       ...(base.plugins ?? []),
+      // No "expo-audio" plugin: foreground clips need none, and its defaults would add
+      // RECORD_AUDIO and a media-playback foreground service to a children's app.
       [
         "expo-build-properties",
         {

@@ -73,6 +73,13 @@ describe("app config", () => {
     expect(build({ EAS_BUILD_PROFILE: "development" })[1].android.usesCleartextTraffic).toBe(true);
   });
 
+  it("leaves out the expo-audio plugin (no RECORD_AUDIO, no media service)", () => {
+    expect(pluginNamed(loadConfig({}).plugins as Plugin[], "expo-audio")).toBeUndefined();
+    expect((appJson.expo.android as { permissions?: string[] }).permissions ?? []).not.toContain(
+      "RECORD_AUDIO",
+    );
+  });
+
   it("tells R8 Stripe's push-provisioning classes are absent on purpose", () => {
     const [, options] = pluginNamed(
       loadConfig({}).plugins as Plugin[],
