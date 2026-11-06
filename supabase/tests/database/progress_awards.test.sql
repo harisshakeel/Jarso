@@ -115,7 +115,7 @@ select is(
   10::bigint, 'C2: a purchase gives 10'
 );
 select (public.correct_diary_entry(:'q1'::uuid, 40, 'other', null, 'f1'))->>'entry_id' as q1f \gset
-select isnt(:'q1f', :'q1', 'the fix writes a new line');
+select isnt(:'q1f'::uuid, :'q1'::uuid, 'the fix writes a new line');
 select is(
   (select sparks from public.child_progress where child_id = :'c2'::uuid),
   10::bigint, 'fixing an entry adds 0'
@@ -241,7 +241,7 @@ select ok(
   'the first_mission badge is granted'
 );
 select public.start_mission('whats-in-spend', 1) as a2 \gset
-select isnt(:'a2', :'a1', 'starting again opens a new attempt');
+select isnt(:'a2'::uuid, :'a1'::uuid, 'starting again opens a new attempt');
 select ok(
   public.record_step_result(:'a2'::uuid, 'which-can-you-buy', 'main', 'choice', 'balance.afford', true, 0, 1),
   'the same step in a new attempt is recorded'

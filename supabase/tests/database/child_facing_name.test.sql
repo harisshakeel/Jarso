@@ -37,21 +37,22 @@ select throws_ok(
 );
 
 -- Another parent's row is out of reach (policy filters it: 0 rows)
+update public.profiles set child_facing_name = 'Hacked' where id = :'pb'::uuid;
+select tests.clear_auth();
 select is(
-  (with u as (
-    update public.profiles set child_facing_name = 'Hacked' where id = :'pb'::uuid returning 1
-  ) select count(*)::int from u),
-  0, 'a parent cannot update another parent''s name'
+  (select child_facing_name from public.profiles where id = :'pb'::uuid),
+  null::text, 'a parent cannot update another parent''s name'
 );
 
 -- A child can't write it, and reads their parent's
 select tests.authenticate_as(:'c1'::uuid);
+update public.profiles set child_facing_name = 'Boss' where id = :'pa'::uuid;
+select tests.clear_auth();
 select is(
-  (with u as (
-    update public.profiles set child_facing_name = 'Boss' where id = :'pa'::uuid returning 1
-  ) select count(*)::int from u),
-  0, 'a child cannot update it'
+  (select child_facing_name from public.profiles where id = :'pa'::uuid),
+  'Mum'::text, 'a child cannot update it'
 );
+select tests.authenticate_as(:'c1'::uuid);
 select is(
   (select child_facing_name from public.profiles where id = :'pa'::uuid),
   'Mum', 'a child reads their parent''s name'
