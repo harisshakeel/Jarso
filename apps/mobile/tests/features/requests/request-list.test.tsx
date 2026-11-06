@@ -1,10 +1,10 @@
 import { AppError } from "@jarso/core/lib";
-import { statusLabel } from "@jarso/core/requests";
 import { getFamilyContext } from "@jarso/data/family";
 import { callCancel, listRequestsFor } from "@jarso/data/requests";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import * as Haptics from "expo-haptics";
+import { usePushPermission } from "@/features/push/use-push-permission";
 import { RequestList } from "@/features/requests";
 import { apiFetch } from "@/lib/api";
 import { keys } from "@/lib/query";
@@ -19,8 +19,15 @@ jest.mock("@jarso/data/requests", () => ({
   callCancel: jest.fn(),
   getAvailability: jest.fn().mockResolvedValue({}),
 }));
-jest.mock("@jarso/data/family", () => ({ getFamilyContext: jest.fn() }));
 jest.mock("@jarso/data/ledger", () => ({ getJars: jest.fn().mockResolvedValue({}) }));
+jest.mock("@jarso/data/progress", () => ({}));
+jest.mock("@jarso/data/family", () => ({
+  getFamilyContext: jest.fn(),
+  findParentLabels: jest.fn().mockResolvedValue(["Mum"]),
+}));
+jest.mock("@/features/push/use-push-permission", () => ({
+  usePushPermission: jest.fn(),
+}));
 jest.mock("expo-network", () => ({ getNetworkStateAsync: jest.fn() }));
 jest.mock("expo-haptics", () => ({
   notificationAsync: jest.fn().mockResolvedValue(undefined),
@@ -65,6 +72,7 @@ beforeEach(() => {
   list.mockReset();
   cancel.mockReset();
   dispatch.mockResolvedValue(undefined);
+  (usePushPermission as jest.Mock).mockReturnValue({ state: "hidden" });
 });
 
 describe("RequestList", () => {
@@ -77,27 +85,42 @@ describe("RequestList", () => {
     ).toBeOnTheScreen();
   });
 
-  it("shows each kind, amount, day, reason and the web's status label", async () => {
+  it("an open ask shows its tracker", async () => {
+    setup([{ ...base, id: "a", kind: "deposit", status: "pending", amountMinor: 5000 }]);
+    await renderList();
+    expect(await screen.findByText("My asks")).toBeOnTheScreen();
+    expect(screen.getByText("Save £50")).toBeOnTheScreen();
+    expect(screen.getByTestId("tracker-step-done")).toBeOnTheScreen();
+    expect(screen.getByTestId("tracker-step-now")).toBeOnTheScreen();
+    expect(screen.getByTestId("tracker-step-next")).toBeOnTheScreen();
+    expect(screen.getByText("Give Mum the £50")).toBeOnTheScreen();
+    expect(screen.getByText("£50 held in Spend till then")).toBeOnTheScreen();
+  });
+
+  it("closed asks keep the status chip", async () => {
     setup([
-      { ...base, id: "a", kind: "withdrawal", status: "pending", reason: "Game" },
       { ...base, id: "b", kind: "deposit", status: "confirmed", amountMinor: 1250 },
-      { ...base, id: "c", kind: "emergency", status: "approved" },
-      { ...base, id: "d", kind: "withdrawal", status: "handed_over" },
       { ...base, id: "e", kind: "emergency", status: "rejected" },
-      { ...base, id: "f", kind: "deposit", status: "cancelled" },
     ]);
     await renderList();
-
-    expect(await screen.findAllByText("Take out")).toHaveLength(2);
-    expect(screen.getAllByText("Put in")).toHaveLength(2);
-    expect(screen.getAllByText("Extra")).toHaveLength(2);
-    expect(screen.getByText("£12.50")).toBeOnTheScreen();
-    expect(screen.getByText("2 Nov · Game")).toBeOnTheScreen();
-    expect(screen.getAllByText(statusLabel("withdrawal", "pending"))).toHaveLength(1);
-    expect(screen.getAllByText("Done")).toHaveLength(2);
-    expect(screen.getByText("Said yes")).toBeOnTheScreen();
+    expect(await screen.findByText("Done")).toBeOnTheScreen();
     expect(screen.getByText("Not now")).toBeOnTheScreen();
-    expect(screen.getByText("Cancelled")).toBeOnTheScreen();
+    expect(screen.getByText("Save £12.50")).toBeOnTheScreen();
+    expect(screen.queryByTestId("tracker-step-now")).toBeNull();
+  });
+
+  it("asks the child about notifications after the first ask", async () => {
+    (usePushPermission as jest.Mock).mockReturnValue({
+      state: "ask",
+      busy: false,
+      role: "child",
+      turnOn: jest.fn(),
+      openSettings: jest.fn(),
+      dismiss: jest.fn(),
+    });
+    setup([{ ...base, id: "a", kind: "withdrawal", status: "pending" }]);
+    await renderList();
+    expect(await screen.findByText("Want to hear when Mum answers?")).toBeOnTheScreen();
   });
 
   it("offers Cancel only on a Waiting request", async () => {
@@ -108,8 +131,8 @@ describe("RequestList", () => {
       { ...base, id: "d", kind: "emergency", status: "rejected" },
     ]);
     await renderList();
-    await screen.findByText("Waiting");
-    expect(screen.getAllByText("Cancel")).toHaveLength(1);
+    await screen.findByText("Cancel this");
+    expect(screen.getAllByText("Cancel this")).toHaveLength(1);
     expect(screen.getByLabelText("Cancel take out of £5")).toBeOnTheScreen();
   });
 

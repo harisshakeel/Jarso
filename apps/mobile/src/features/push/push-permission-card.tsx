@@ -7,9 +7,10 @@ import { usePushPermission } from "./use-push-permission";
 /**
  * On the home screen while Jarso's notifications are off on this phone: "Turn on" shows our line
  * and Android's prompt; once Android won't ask again, "Open phone settings" goes there instead.
- * Gone once they're on, or after "Not now".
+ * Gone once they're on, or after "Not now". With `title` (the child's line after an ask) it shows
+ * just that line and the buttons.
  */
-export function PushPermissionCard() {
+export function PushPermissionCard({ title }: { title?: string } = {}) {
   const { state, busy, role, turnOn, openSettings, dismiss } = usePushPermission();
   if (state === "hidden" || !role) return null;
   const blocked = state === "blocked";
@@ -18,9 +19,11 @@ export function PushPermissionCard() {
   return (
     <Card>
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
-        {copy.title}
+        {title ?? copy.title}
       </Text>
-      <Text className="text-muted-foreground">{blocked ? copy.blocked : copy[role]}</Text>
+      {title ? null : (
+        <Text className="text-muted-foreground">{blocked ? copy.blocked : copy[role]}</Text>
+      )}
       <View className="flex-row gap-2">
         <Button
           className="flex-1"

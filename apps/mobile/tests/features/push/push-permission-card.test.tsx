@@ -47,6 +47,16 @@ describe("PushPermissionCard", () => {
     expect(screen.queryByText(pushOffCardCopy.title)).toBeNull();
   });
 
+  it("the child's after-ask line replaces the title and body", async () => {
+    permissions.mockResolvedValue({ granted: false, status: "undetermined", canAskAgain: true });
+    await render(<PushPermissionCard title="Want to hear when Mum answers?" />);
+    expect(await screen.findByText("Want to hear when Mum answers?")).toBeOnTheScreen();
+    expect(screen.queryByText(pushOffCardCopy.title)).toBeNull();
+    expect(screen.queryByText(pushOffCardCopy.parent)).toBeNull();
+    expect(screen.getByRole("button", { name: pushOffCardCopy.turnOn })).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: pushOffCardCopy.later })).toBeOnTheScreen();
+  });
+
   it("asks again after an earlier 'Don't allow' and registers the phone", async () => {
     // Asked once before: the automatic prompt won't come back, the card's button does.
     await AsyncStorage.setItem("jarso-push-asked:user-1", "1");

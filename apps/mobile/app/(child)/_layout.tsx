@@ -30,7 +30,7 @@ const SHEETS = [
 
 /** Pages pushed over the tabs, with the native back button and the web's page title. */
 const PAGES: { name: string; title: string }[] = [
-  { name: "requests", title: "Requests" },
+  { name: "requests", title: "My asks" },
   { name: "me", title: "Me" },
   { name: "news", title: noticeGroupCopy.title },
   { name: "notifications", title: noticeGroupCopy.title },
