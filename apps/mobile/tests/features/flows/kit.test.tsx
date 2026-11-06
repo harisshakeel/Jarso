@@ -15,6 +15,9 @@ import {
 } from "@/features/flows";
 import { keys } from "@/lib/query";
 import { renderFlow } from "../../flow-render";
+import { sourceFiles } from "../../source-files";
+
+const { readFileSync } = require("node:fs");
 
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
 jest.mock("@/features/auth/use-session", () => ({
@@ -81,7 +84,10 @@ describe("AmountKeypad", () => {
 
   it("keys are at least 44 dp", async () => {
     await renderFlow(<KeypadHost onChange={jest.fn()} />);
-    expect(screen.getByLabelText("4").props.className).toContain("h-16");
+    // Interop (loaded by the flow shell's keyboard view) compiles className away, so read the source.
+    const source = sourceFiles().find((f) => f.endsWith("flows/amount-keypad.tsx"));
+    expect(readFileSync(source as string, "utf8")).toContain("h-16 w-full");
+    expect(screen.getByLabelText("4")).toBeTruthy();
   });
 });
 

@@ -1,6 +1,7 @@
 import type { PictureIcon, PictureTint } from "@jarso/core/home";
 import type { ReactNode } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
+import { KeyboardScrollView } from "@/components/screen";
 import { Text } from "@/components/ui";
 import { cn, useTokens } from "@/lib";
 import { pictureIcon, TINT } from "./icons";
@@ -61,7 +62,7 @@ export function FlowShell({
         ) : null}
         <View className="size-11" />
       </View>
-      <ScrollView
+      <KeyboardScrollView
         className="flex-1"
         contentContainerClassName="gap-4 px-4 pt-3 pb-4"
         keyboardShouldPersistTaps="handled"
@@ -77,7 +78,7 @@ export function FlowShell({
           </Text>
         </View>
         {children}
-      </ScrollView>
+      </KeyboardScrollView>
       <View className="gap-2 px-4 pt-2 pb-4">{footer}</View>
     </View>
   );
