@@ -3,6 +3,7 @@ import { noticeGroupCopy } from "@jarso/core/notifications";
 import { Redirect, Stack } from "expo-router";
 import type { ComponentProps } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { CelebrationProvider } from "@/components/celebrate";
 import { homeFor, UnavailableNotice, useSession } from "@/features/auth";
 import { NoticeListener } from "@/features/news";
 import { OutboxSync } from "@/lib/outbox";
@@ -60,8 +61,9 @@ export default function ChildLayout() {
   if (status === "parent") return <Redirect href={homeFor("parent")} />;
   if (status !== "child" || !userId) return <Redirect href="/sign-in" />;
 
+  // Celebrations show over the whole child area, sheets included.
   return (
-    <>
+    <CelebrationProvider>
       {/* Sends purchases kept on the phone whenever they may get through. */}
       <OutboxSync userId={userId} />
       <Stack screenOptions={{ headerShown: false }}>
@@ -80,6 +82,6 @@ export default function ChildLayout() {
       {/* The Notifications badge, inbox and toast stay live while the app is in front (over the
           stack). */}
       <NoticeListener userId={userId} viewer="child" />
-    </>
+    </CelebrationProvider>
   );
 }
