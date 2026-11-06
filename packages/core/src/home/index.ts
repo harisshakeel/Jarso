@@ -1,4 +1,5 @@
 export * from "./copy";
+export * from "./guess";
 export * from "./hero";
 export * from "./keypad";
 export * from "./moments";
