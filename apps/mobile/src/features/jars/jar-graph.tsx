@@ -1,7 +1,5 @@
 import type { Jars } from "@jarso/core/ledger";
 import {
-  type BalanceHistory,
-  balanceHistory,
   type GraphPeriod,
   graphCaption,
   graphCopy,
@@ -11,19 +9,12 @@ import {
   smoothPath,
 } from "@jarso/core/ledger";
 import type { FamilyContext } from "@jarso/data/family";
-import { listMovementsSince, localDate } from "@jarso/data/ledger";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 import Svg, { Circle, Line, Path, Text as SvgText } from "react-native-svg";
 import { Text } from "@/components/ui";
-import { useSession } from "@/features/auth";
-import { addDays, cn, formatMoney, useTokens } from "@/lib";
-import { keys } from "@/lib/query";
-import { supabase } from "@/lib/supabase/client";
-
-/** Days the graph can look back; the longest period it offers. */
-const GRAPH_DAYS = 90;
+import { cn, formatMoney, useTokens } from "@/lib";
+import { useBalanceHistory } from "./use-balance-history";
 
 // The web's drawing box (jar-graph.tsx).
 const W = 360;
@@ -31,35 +22,6 @@ const H = 210;
 const PAD = { top: 40, right: 16, bottom: 30, left: 46 };
 const PLOT = { x: PAD.left, y: PAD.top, w: W - PAD.left - PAD.right, h: H - PAD.top - PAD.bottom };
 const GROUND = PLOT.y + PLOT.h + 3;
-
-/**
- * Where both jars stood at the end of each of the last 90 days, ending at Home's balances: one
- * read of the movements, then core's walk-back (the web's `getBalanceHistory`).
- */
-export function useBalanceHistory(jars: Jars, context: FamilyContext) {
-  const { userId } = useSession();
-  const movements = useQuery({
-    queryKey: keys.balance(userId ?? ""),
-    enabled: Boolean(userId),
-    queryFn: () => {
-      const from = addDays(context.today, -(GRAPH_DAYS - 1));
-      // A day earlier than `from` in UTC covers every timezone's start of that day.
-      return listMovementsSince(supabase, userId as string, `${addDays(from, -1)}T00:00:00Z`);
-    },
-  });
-  const data = useMemo<BalanceHistory | undefined>(() => {
-    if (!movements.data) return undefined;
-    const from = addDays(context.today, -(GRAPH_DAYS - 1));
-    const rows = movements.data.map((row) => ({
-      jar: row.jar,
-      direction: row.direction,
-      amountMinor: row.amountMinor,
-      occurredOn: localDate(row.occurredAt, context.timezone),
-    }));
-    return balanceHistory(jars, rows, from, context.today);
-  }, [movements.data, jars, context]);
-  return { data, error: movements.error };
-}
 
 /** "Fri 30 Oct" for an ISO date; a calendar day, so formatted in UTC. */
 function showDate(isoDate: string): string {
