@@ -21,6 +21,9 @@ export function useCheckinPrompt(): void {
   const run = useCallback(async () => {
     if (!userId || !timezone) return;
     const stored = await readPromptDay(userId);
+    const today = familyToday(timezone, new Date());
+    // Asked already today: nothing to decide, and no reason to fetch anything.
+    if (askedDay.current === today || stored === today) return;
     const decide = (data: { checkedInToday: boolean } | undefined, readAt: Date) => {
       const now = new Date();
       if (askedDay.current === familyToday(timezone, now)) return "skip" as const;
@@ -35,6 +38,8 @@ export function useCheckinPrompt(): void {
     let decision = decide(current.data, new Date(current.dataUpdatedAt));
     if (decision === "refresh" || (decision === "skip" && !current.data)) {
       const fresh = await current.refetch();
+      // A failed read leaves old data behind: never treat that as today's answer.
+      if (fresh.isError) return;
       decision = decide(fresh.data, new Date());
     }
     if (decision !== "show") return;

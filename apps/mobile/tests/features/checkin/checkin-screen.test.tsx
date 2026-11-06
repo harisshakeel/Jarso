@@ -1,7 +1,6 @@
 import { dailyCheckin, getProgress } from "@jarso/data/progress";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import { buttonVariants } from "@/components/ui";
 import { CheckinScreen } from "@/features/checkin";
 import { logger } from "@/lib";
 
@@ -11,6 +10,22 @@ jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
 jest.mock("@/features/auth/use-session", () => ({
   useSession: () => ({ status: "child", userId: "u1" }),
 }));
+const mockButton = jest.fn();
+jest.mock("@/components/ui", () => {
+  const actual = jest.requireActual("@/components/ui");
+  const { Pressable } = require("react-native");
+  return {
+    ...actual,
+    Button: (props: { children: unknown; onPress: () => void }) => {
+      mockButton(props);
+      return (
+        <Pressable role="button" onPress={props.onPress}>
+          {props.children as never}
+        </Pressable>
+      );
+    },
+  };
+});
 jest.mock("@jarso/data/progress", () => ({
   getProgress: jest.fn(),
   dailyCheckin: jest.fn(),
@@ -51,10 +66,12 @@ describe("CheckinScreen", () => {
 
   it("the buttons are xl keycaps", async () => {
     await renderScreen();
-    // className never reaches the host node under jest, so check the variant the screen asks for.
-    expect(buttonVariants({ variant: "keycap-white", size: "xl" })).toContain("h-[72px]");
-    expect(buttonVariants({ variant: "keycap-gold", size: "xl" })).toContain("h-[72px]");
-    expect(screen.getByRole("button", { name: "Nope" })).toBeOnTheScreen();
+    expect(mockButton).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: "keycap-white", size: "xl" }),
+    );
+    expect(mockButton).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: "keycap-gold", size: "xl" }),
+    );
   });
 
   it("Nope writes nope and closes", async () => {

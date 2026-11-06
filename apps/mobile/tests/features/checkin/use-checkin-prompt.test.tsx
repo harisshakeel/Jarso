@@ -51,7 +51,10 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   (getProgress as jest.Mock).mockResolvedValue(progress(false));
 });
-afterEach(() => jest.useRealTimers());
+afterEach(() => {
+  jest.useRealTimers();
+  jest.restoreAllMocks();
+});
 
 describe("useCheckinPrompt", () => {
   it("opens the check-in once on the first open of the day", async () => {
@@ -88,6 +91,23 @@ describe("useCheckinPrompt", () => {
     await setup();
     await waitFor(() => expect(getProgress).toHaveBeenCalled());
     await new Promise((r) => setTimeout(r, 20));
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+
+  it("does not show stale progress when the reread fails", async () => {
+    (getProgress as jest.Mock).mockRejectedValue(new Error("offline"));
+    await setup({ checkedInToday: true, at: new Date("2026-11-05T10:00:00Z") });
+    await waitFor(() => expect(getProgress).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+
+  it("does not fetch progress when already asked today", async () => {
+    await AsyncStorage.setItem(KEY, "2026-11-06");
+    await setup();
+    await new Promise((r) => setTimeout(r, 20));
+    // only the hook's own mount read, no extra refetch from the prompt
+    expect(getProgress).toHaveBeenCalledTimes(1);
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
