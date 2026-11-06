@@ -6,6 +6,8 @@ import { ActivityIndicator, View } from "react-native";
 import { CelebrationProvider } from "@/components/celebrate";
 import { homeFor, UnavailableNotice, useSession } from "@/features/auth";
 import { NoticeListener } from "@/features/news";
+import { OnboardingGate } from "@/features/onboarding";
+import { LevelUpWatcher } from "@/features/progress";
 import { OutboxSync } from "@/lib/outbox";
 
 type Options = ComponentProps<typeof Stack.Screen>["options"];
@@ -70,19 +72,24 @@ export default function ChildLayout() {
     <CelebrationProvider>
       {/* Sends purchases kept on the phone whenever they may get through. */}
       <OutboxSync userId={userId} />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        {PAGES.map(({ name, title }) => (
-          <Stack.Screen
-            key={name}
-            name={name}
-            options={{ headerShown: true, title, headerBackTitle: "Back" }}
-          />
-        ))}
-        {SHEETS.map((name) => (
-          <Stack.Screen key={name} name={name} options={SHEET} />
-        ))}
-      </Stack>
+      {/* A level-up celebrates once, over whatever screen the child is on. */}
+      <LevelUpWatcher />
+      {/* On a first open the intro shows instead of the tabs (replay: the `onboarding` page). */}
+      <OnboardingGate userId={userId}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          {PAGES.map(({ name, title }) => (
+            <Stack.Screen
+              key={name}
+              name={name}
+              options={{ headerShown: true, title, headerBackTitle: "Back" }}
+            />
+          ))}
+          {SHEETS.map((name) => (
+            <Stack.Screen key={name} name={name} options={SHEET} />
+          ))}
+        </Stack>
+      </OnboardingGate>
       {/* The Notifications badge, inbox and toast stay live while the app is in front (over the
           stack). */}
       <NoticeListener userId={userId} viewer="child" />

@@ -12,6 +12,10 @@ jest.mock("@/features/auth/use-session", () => ({
 // The live notices need Realtime and the query client; not under test here.
 jest.mock("@/features/news", () => ({ NoticeListener: () => null }));
 jest.mock("@/lib/outbox", () => ({ OutboxSync: () => null }));
+jest.mock("@/features/progress", () => ({ LevelUpWatcher: () => null }));
+jest.mock("@/features/onboarding", () => ({
+  OnboardingGate: ({ children }: { children: unknown }) => children,
+}));
 jest.mock("@/lib/supabase/client", () => ({ supabase: {} }));
 // The setup gate's reads are under test in tests/features/setup; here a flag says set up or not.
 let mockSetUp = true;
