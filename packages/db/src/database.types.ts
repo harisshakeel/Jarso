@@ -125,6 +125,58 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"child_activity_days": {
+                  Row: {
+                    "active": boolean | null,"checkin": string | null,"child_id": string,"day": string,"family_id": string,"goal_awards": number,"logs": number,"saves": number,"steps": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: never,"checkin"?: string | null,"child_id": string,"day": string,"family_id": string,"goal_awards"?: number,"logs"?: number,"saves"?: number,"steps"?: number
+                  }
+                  Update: {
+                    "active"?: never,"checkin"?: string | null,"child_id"?: string,"day"?: string,"family_id"?: string,"goal_awards"?: number,"logs"?: number,"saves"?: number,"steps"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_activity_days_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "child_activity_days_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"child_badges": {
+                  Row: {
+                    "badge_key": string,"child_id": string,"earned_at": string,"family_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "badge_key": string,"child_id": string,"earned_at"?: string,"family_id": string
+                  }
+                  Update: {
+                    "badge_key"?: string,"child_id"?: string,"earned_at"?: string,"family_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_badges_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "child_badges_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"child_credentials": {
                   Row: {
                     "frozen_at": string | null,"pin_hash": string,"profile_id": string,"recent_failures": number,"recent_failures_since": string | null,"set_by": string,"updated_at": string
@@ -168,6 +220,32 @@ isOneToOne: false
       columns: ["child_id"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"child_progress": {
+                  Row: {
+                    "best_streak": number,"checkins_count": number,"child_id": string,"created_at": string,"family_id": string,"goals_reached_count": number,"last_active_day": string | null,"level": number,"lid": string,"logs_count": number,"missions_count": number,"rest_week": string | null,"saves_count": number,"sparks": number,"steps_count": number,"streak": number,"updated_at": string,"wear": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "best_streak"?: number,"checkins_count"?: number,"child_id": string,"created_at"?: string,"family_id": string,"goals_reached_count"?: number,"last_active_day"?: string | null,"level"?: number,"lid"?: string,"logs_count"?: number,"missions_count"?: number,"rest_week"?: string | null,"saves_count"?: number,"sparks"?: number,"steps_count"?: number,"streak"?: number,"updated_at"?: string,"wear"?: string
+                  }
+                  Update: {
+                    "best_streak"?: number,"checkins_count"?: number,"child_id"?: string,"created_at"?: string,"family_id"?: string,"goals_reached_count"?: number,"last_active_day"?: string | null,"level"?: number,"lid"?: string,"logs_count"?: number,"missions_count"?: number,"rest_week"?: string | null,"saves_count"?: number,"sparks"?: number,"steps_count"?: number,"streak"?: number,"updated_at"?: string,"wear"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "child_progress_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "child_progress_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
       referencedColumns: ["id"]
     }
                   ]
@@ -879,14 +957,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_url": string | null,"created_at": string,"full_name": string | null,"id": string,"nickname": string | null,"role": string,"updated_at": string
+                    "avatar_url": string | null,"child_facing_name": string | null,"created_at": string,"full_name": string | null,"id": string,"nickname": string | null,"role": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_url"?: string | null,"created_at"?: string,"full_name"?: string | null,"id": string,"nickname"?: string | null,"role"?: string,"updated_at"?: string
+                    "avatar_url"?: string | null,"child_facing_name"?: string | null,"created_at"?: string,"full_name"?: string | null,"id": string,"nickname"?: string | null,"role"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "avatar_url"?: string | null,"created_at"?: string,"full_name"?: string | null,"id"?: string,"nickname"?: string | null,"role"?: string,"updated_at"?: string
+                    "avatar_url"?: string | null,"child_facing_name"?: string | null,"created_at"?: string,"full_name"?: string | null,"id"?: string,"nickname"?: string | null,"role"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -986,6 +1064,32 @@ isOneToOne: false
       columns: ["child_id"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"spark_events": {
+                  Row: {
+                    "amount": number,"child_id": string,"created_at": string,"day": string,"family_id": string,"id": string,"kind": string,"source_key": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount": number,"child_id": string,"created_at"?: string,"day": string,"family_id": string,"id"?: string,"kind": string,"source_key": string
+                  }
+                  Update: {
+                    "amount"?: number,"child_id"?: string,"created_at"?: string,"day"?: string,"family_id"?: string,"id"?: string,"kind"?: string,"source_key"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "spark_events_child_id_fkey"
+      columns: ["child_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "spark_events_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
       referencedColumns: ["id"]
     }
                   ]
@@ -1138,6 +1242,12 @@ isOneToOne: false
 "current_family_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"daily_checkin":
+{ Args: { "p_answer": string }; Returns: Json
+                           },
+"daily_checkin_at":
+{ Args: { "p_answer": string,"p_now": string }; Returns: Json
+                           },
 "decide_allowance_plan":
 { Args: { "p_occurrence_id": string }; Returns: undefined
                            },
@@ -1204,6 +1314,9 @@ isOneToOne: false
                            },
 "generate_for_schedule":
 { Args: { "p_schedule_id": string,"p_today": string }; Returns: number
+                           },
+"get_progress":
+{ Args: { "p_child_id": string }; Returns: Json
                            },
 "goal_child_family":
 { Args: Record<PropertyKey, never>; Returns: string
@@ -1382,6 +1495,40 @@ isOneToOne: false
 "post_request":
 { Args: { "p_actor": string,"p_request_id": string }; Returns: string
                            },
+"progress_award":
+{ Args: { "p_amount": number,"p_checkin"?: string,"p_child_id": string,"p_kind": string,"p_now"?: string,"p_source_key": string }; Returns: number
+                           },
+"progress_backfill":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"progress_check_badges":
+{ Args: { "p_child_id": string,"p_day": string }; Returns: undefined
+                           },
+"progress_check_goal":
+{ Args: { "p_award": boolean,"p_child_id": string }; Returns: undefined
+                           },
+"progress_level":
+{ Args: { "p_sparks": number }; Returns: number
+                           },
+"progress_lock":
+{ Args: { "p_child_id": string }; Returns: {
+              "best_streak": number,"checkins_count": number,"child_id": string,"created_at": string,"family_id": string,"goals_reached_count": number,"last_active_day": string | null,"level": number,"lid": string,"logs_count": number,"missions_count": number,"rest_week": string | null,"saves_count": number,"sparks": number,"steps_count": number,"streak": number,"updated_at": string,"wear": string
+            }
+                           },
+"progress_mark_active":
+{ Args: { "p_child_id": string,"p_kind": string,"p_now"?: string }; Returns: undefined
+                           },
+"progress_refresh_streak":
+{ Args: { "p_child_id": string,"p_day": string }; Returns: undefined
+                           },
+"progress_streak":
+{ Args: { "p_child_id": string,"p_today": string }; Returns: {
+              "rest_used_this_week": boolean,"streak": number
+            }[]
+                           },
+"progress_wear_level":
+{ Args: { "p_wear": string }; Returns: number
+                           },
 "push_subscribe":
 { Args: { "p_auth": string,"p_endpoint": string,"p_p256dh": string,"p_user_agent"?: string }; Returns: string
                            },
@@ -1473,6 +1620,9 @@ isOneToOne: false
                            },
 "set_jar_moves_approval":
 { Args: { "p_child_id": string,"p_mode": string }; Returns: undefined
+                           },
+"set_jarso_look":
+{ Args: { "p_lid": string,"p_wear": string }; Returns: undefined
                            },
 "set_money_rule":
 { Args: { "p_amount_minor": number,"p_child_id": string,"p_kind": string,"p_period": string }; Returns: undefined

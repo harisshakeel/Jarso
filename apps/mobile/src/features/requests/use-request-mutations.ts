@@ -36,6 +36,7 @@ function useSendRequest<V, R>(
       void queryClient.invalidateQueries({ queryKey: keys.home(id) });
       void queryClient.invalidateQueries({ queryKey: keys.requests(id) });
       void queryClient.invalidateQueries({ queryKey: keys.history(id) });
+      void queryClient.invalidateQueries({ queryKey: keys.progress(id) });
       void queryClient.invalidateQueries({ queryKey: keys.goal(id) });
       dispatchNotices();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);

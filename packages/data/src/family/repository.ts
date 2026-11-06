@@ -97,6 +97,27 @@ export async function listChildMembers(db: Client, familyId: string): Promise<Ch
   return data.map((row) => ({ id: row.profile_id, nickname: row.profile?.nickname ?? "" }));
 }
 
+/**
+ * What the child calls each approved parent in their family ("Mum", "Dad"), in the order the
+ * parents joined. Parents who haven't set one are left out.
+ */
+export async function findParentLabels(db: Client, childId: string): Promise<string[]> {
+  const membership = await findMembership(db, childId);
+  if (!membership) return [];
+  const { data, error } = await db
+    .from("family_members")
+    .select("created_at, profile:profiles!family_members_profile_id_fkey(child_facing_name)")
+    .eq("family_id", membership.familyId)
+    .eq("role", "parent")
+    .eq("status", "approved")
+    .order("created_at", { ascending: true });
+  if (error) throw toAppError(error, "Failed to load parents");
+  return data.flatMap((row) => {
+    const label = row.profile?.child_facing_name;
+    return label ? [label] : [];
+  });
+}
+
 export async function renameChildMember(
   db: Client,
   childId: string,

@@ -40,6 +40,10 @@ export const keys = {
   nickname: (userId: string) => ["nickname", userId] as const,
   rules: (userId: string) => ["rules", userId] as const,
   goal: (userId: string) => ["goal", userId] as const,
+  /** Sparks, level, streak, badges and Jarso's look. Refreshed after money, lesson and goal changes. */
+  progress: (userId: string) => ["progress", userId] as const,
+  /** The first parent's name for the child's copy. */
+  parentLabel: (userId: string) => ["parentLabel", userId] as const,
   schedule: (userId: string) => ["schedule", userId] as const,
   learning: (userId: string) => ["learning", userId] as const,
   unread: (userId: string) => ["unread", userId] as const,
