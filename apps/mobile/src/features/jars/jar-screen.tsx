@@ -47,7 +47,7 @@ export function JarScreen({ jar }: { jar: Jar }) {
       jars={home.data.jars}
       context={home.data.context}
       refreshing={home.isRefetching}
-      onRefresh={() => void home.refetch()}
+      onRefresh={() => home.refetch()}
     />
   );
 }
@@ -63,13 +63,15 @@ function JarPage({
   jars: Jars;
   context: FamilyContext;
   refreshing: boolean;
-  onRefresh: () => void;
+  onRefresh: () => Promise<unknown>;
 }) {
   const router = useRouter();
   const goal = useGoal();
   const progress = useProgress();
   const parent = useParentLabel();
   const history = useBalanceHistory(jars, context);
+  // One pull refreshes the jar and its weekly bars.
+  const refreshAll = () => void Promise.all([onRefresh(), history.refetch()]);
   const totals = useMemo(
     () => (history.data ? weeklyTotals(history.data, jar, context.today) : null),
     [history.data, jar, context.today],
@@ -91,9 +93,10 @@ function JarPage({
 
   return (
     <ScrollView
+      testID="jar-scroll"
       className="bg-background"
       contentContainerClassName="gap-4 p-4 pb-8"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshAll} />}
     >
       <Card className="items-center gap-2 py-5">
         <Jarso tint={jar} fill={fill} look={progress.data?.look} size={120} />

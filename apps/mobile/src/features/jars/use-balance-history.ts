@@ -37,5 +37,5 @@ export function useBalanceHistory(jars: Jars, context: FamilyContext) {
     }));
     return balanceHistory(jars, rows, from, context.today);
   }, [movements.data, jars, context]);
-  return { data, error: movements.error };
+  return { data, error: movements.error, refetch: movements.refetch };
 }

@@ -5,7 +5,7 @@ import { getJars, listMovementsSince } from "@jarso/data/ledger";
 import { getProgress } from "@jarso/data/progress";
 import { getAvailability } from "@jarso/data/requests";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, userEvent, waitFor } from "@testing-library/react-native";
+import { act, render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import JarRoute from "@/../app/(child)/jar/[jar]";
@@ -130,6 +130,21 @@ describe("JarScreen", () => {
     expect(await screen.findByRole("button", { name: "Try again" })).toBeOnTheScreen();
     expect(screen.queryByText(/boom/)).not.toBeOnTheScreen();
     expect(screen.getByText(GENERIC_FAILURE)).toBeOnTheScreen();
+  });
+
+  it("pull to refresh reads the jars and the weekly bars again", async () => {
+    await render(wrap(<JarScreen jar="save" />));
+    expect(await screen.findByText("Saved each week")).toBeOnTheScreen();
+    const jarsReads = (getJars as jest.Mock).mock.calls.length;
+    const barsReads = (listMovementsSince as jest.Mock).mock.calls.length;
+    const { onRefresh } = screen.getByTestId("jar-scroll").props.refreshControl.props;
+    await act(async () => {
+      onRefresh();
+    });
+    await waitFor(() => {
+      expect(getJars).toHaveBeenCalledTimes(jarsReads + 1);
+      expect(listMovementsSince).toHaveBeenCalledTimes(barsReads + 1);
+    });
   });
 
   it("route redirects an unknown jar", async () => {
