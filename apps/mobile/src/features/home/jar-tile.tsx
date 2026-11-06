@@ -7,7 +7,7 @@ const JARS = {
   spend: {
     name: "Spend",
     Icon: WalletIcon,
-    fill: "bg-teal-600",
+    fill: "bg-teal-700",
     ink: "text-white",
     icon: "white" as const,
   },
