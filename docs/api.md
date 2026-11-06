@@ -101,9 +101,10 @@ Called straight from the phone's Supabase client through `@jarso/data/progress`;
 | --- | --- | --- |
 | `daily_checkin(p_answer)` | an approved child (`authenticated`) | `yes` or `nope`, once a family-local day. The first answer is kept and pays 5 Sparks; it makes the day active. Returns `{status: "recorded" \| "already", sparks}` (`sparks` 0 when already). |
 | `set_jarso_look(p_lid, p_wear)` | an approved child | Sets the lid colour (`cyan`, `grape`, `blush`, `green`, `ink`) and outfit (`none`, `cap`, `shades`, `headphones`, `crown`). Returns nothing. |
+| `complete_child_onboarding()` | an approved child | Finishes the phone intro: marks the welcome tour done and, once for life, pays 50 Sparks and the `jar_starter` badge. Returns `{sparks, badge}` for this call (`0` and `null` on a replay). |
 | `get_progress(p_child_id)` | the child, or a parent of the child | Returns `{sparks, level, nextLevelAt (null at 10), streak (live), bestStreak, restUsedThisWeek, checkedInToday, look: {lid, wear}, badges: [{key, earnedAt}], recent: [{kind, amount, createdAt}]}`; `recent` is the last 10 paid events. A child with no row yet reads as a fresh start. |
 
-Errors (`errcode`): `JA403` for a caller who is not an approved child (`daily_checkin`, `set_jarso_look`) or not the child or their parent, or an id that is not an approved child (`get_progress`, message "Not allowed"); `22023` for an answer that is not `yes`/`nope` or a lid or outfit that does not exist; `JA409` "Not unlocked yet" when the outfit needs a higher level than the child's.
+Errors (`errcode`): `JA403` for a caller who is not an approved child (`daily_checkin`, `set_jarso_look`, `complete_child_onboarding`) or not the child or their parent, or an id that is not an approved child (`get_progress`, message "Not allowed"); `22023` for an answer that is not `yes`/`nope` or a lid or outfit that does not exist; `JA409` "Not unlocked yet" when the outfit needs a higher level than the child's.
 
 `@jarso/data/progress` (takes a Supabase client; the only place that names the functions):
 
