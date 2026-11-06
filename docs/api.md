@@ -93,6 +93,26 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | GET, POST | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Push sweep (ADR 0012), web and phone, then the Expo receipt check (`receipts: { checked, dropped }` in the answer), every 15 minutes from pg_cron (`push-sweep` → `trigger_push_sweep`, POST via pg_net); GET for a manual run; 404 when the secret is unset |
 | GET | `/api/cron/guide/noticed` | `Authorization: Bearer $CRON_SECRET` | Jarso noticed: the weekly nudges (demo 3); 404 when the secret is unset |
 
+### Progress RPCs (Sparks, levels, streak)
+
+Called straight from the phone's Supabase client through `@jarso/data/progress`; there is no Route Handler. Sparks are never money and are never taken back (`docs/domain.md`). The award triggers have no grants and are not callable.
+
+| RPC | Who | Does |
+| --- | --- | --- |
+| `daily_checkin(p_answer)` | an approved child (`authenticated`) | `yes` or `nope`, once a family-local day. The first answer is kept and pays 5 Sparks; it makes the day active. Returns `{status: "recorded" \| "already", sparks}` (`sparks` 0 when already). |
+| `set_jarso_look(p_lid, p_wear)` | an approved child | Sets the lid colour (`cyan`, `grape`, `blush`, `green`, `ink`) and outfit (`none`, `cap`, `shades`, `headphones`, `crown`). Returns nothing. |
+| `get_progress(p_child_id)` | the child, or a parent of the child | Returns `{sparks, level, nextLevelAt (null at 10), streak (live), bestStreak, restUsedThisWeek, checkedInToday, look: {lid, wear}, badges: [{key, earnedAt}], recent: [{kind, amount, createdAt}]}`; `recent` is the last 10 paid events. A child with no row yet reads as a fresh start. |
+
+Errors (`errcode`): `JA403` for a caller who is not an approved child (`daily_checkin`, `set_jarso_look`) or not the child or their parent, or an id that is not an approved child (`get_progress`, message "Not allowed"); `22023` for an answer that is not `yes`/`nope` or a lid or outfit that does not exist; `JA409` "Not unlocked yet" when the outfit needs a higher level than the child's.
+
+`@jarso/data/progress` (takes a Supabase client; the only place that names the functions):
+
+- `getProgress(db, childId) → Progress` parses the result with `progressSchema` from `@jarso/core/progress` (unknown badge keys are dropped); an unreadable shape is `INTERNAL`, other failures go through `toAppError`.
+- `dailyCheckin(db, answer) → { status, sparks }` checks the jsonb shape instead of trusting it; asking twice in a day is fine.
+- `setJarsoLook(db, look)` maps `JA409` to `AppError("VALIDATION", "Not unlocked yet")`; other failures go through `toAppError`.
+
+`@jarso/core/progress` holds the pure side: `SPARKS`, `DAILY_CAPS`, `GOAL_REACHED_COOLDOWN_DAYS`, `LEVEL_THRESHOLDS`, `levelFor`, `levelProgress`, `BADGES`/`BADGE_KEYS`, `progressSchema`, `checkinAnswerSchema` and `childFacingNameSchema`. The SQL mirrors its numbers; change both together.
+
 ### `POST /api/v1/outbox`
 
 Called only by the device outbox (`packages/core/src/offline/outbox/send.ts`, on the web and the phone), one item at a time.
