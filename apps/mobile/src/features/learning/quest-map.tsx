@@ -23,9 +23,8 @@ import Svg, { Path } from "react-native-svg";
 import { Jarso } from "@/components/brand";
 import { Text } from "@/components/ui";
 import { cn, useTokens } from "@/lib";
+import { ON_GRAPE } from "./on-grape";
 
-/** White on a grape fill in both themes, as `keycap-grape` does in button.tsx (`text-white`, spinner `"white"`). */
-const ON_GRAPE = "white";
 const STOP = 64;
 const JARSO = 80;
 /** Jarso and his bubble share one column this wide. */
@@ -60,14 +59,12 @@ export function QuestMap({
   width: mapWidth,
   reward,
   look,
-  fill,
 }: {
   week: QuestWeek;
   /** The width the week was laid out for (`questMap`'s `width`). */
   width: number;
   reward: ChestReward;
   look?: JarsoLook;
-  fill?: number;
 }) {
   const tokens = useTokens();
   const onStop = week.jarso.on === "stop";
@@ -118,7 +115,7 @@ export function QuestMap({
             {week.jarso.day === null ? questCopy.allDone : questCopy.today(week.jarso.day)}
           </Text>
         </View>
-        <Jarso mood={onStop ? "wave" : "cheer"} size={JARSO} look={look} fill={fill} />
+        <Jarso mood={onStop ? "wave" : "cheer"} size={JARSO} look={look} />
       </View>
     </View>
   );

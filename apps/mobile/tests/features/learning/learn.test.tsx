@@ -144,6 +144,16 @@ describe("learn", () => {
     expect(Haptics.notificationAsync).not.toHaveBeenCalled();
     expect(submit).not.toHaveBeenCalled();
 
+    // The hint opens next to the sheet, above the options, not below them.
+    await user.press(screen.getByRole("button", { name: playerCopy.hint }));
+    const hintText = renderText(choice.hints[0] ?? "", "GBP");
+    const tree = JSON.stringify(screen.toJSON());
+    const hintAt = tree.indexOf(JSON.stringify(hintText).slice(1, -1));
+    expect(hintAt).toBeGreaterThan(-1);
+    expect(hintAt).toBeLessThan(
+      tree.indexOf(JSON.stringify(optionText(choice, "game")).slice(1, -1)),
+    );
+
     await user.press(screen.getByRole("button", { name: playerCopy.tryAgain }));
     await user.press(screen.getByRole("radio", { name: optionText(choice, "comic") }));
     await user.press(screen.getByRole("button", { name: playerCopy.check }));
@@ -160,7 +170,7 @@ describe("learn", () => {
           stepKey: "which-can-you-buy",
           phase: "main",
           answer: { kind: "option", optionId: "comic" },
-          hintsUsed: 0,
+          hintsUsed: 1,
           tries: 2,
         },
         idempotencyKey: "33333333-3333-4333-8333-333333333333",

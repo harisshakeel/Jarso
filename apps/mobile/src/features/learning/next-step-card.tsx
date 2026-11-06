@@ -3,9 +3,7 @@ import { type Href, useRouter } from "expo-router";
 import { GraduationCapIcon } from "lucide-react-native";
 import { View } from "react-native";
 import { Button, Text } from "@/components/ui";
-
-/** White on the grape square in both themes, as `keycap-grape` does in button.tsx. */
-const ON_GRAPE = "white";
+import { ON_GRAPE } from "./on-grape";
 
 /** Where each next step leads on the phone (the web's `hrefFor`). */
 export function nextStepHref(step: NextStep): Href {

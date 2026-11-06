@@ -17,6 +17,16 @@ describe("JarsoHint", () => {
     expect(screen.queryByLabelText(playerCopy.hints)).toBeNull();
   });
 
+  it("drops the line but keeps hints once there is nothing left to say", async () => {
+    await render(<JarsoHint line={null} hints={["Divide by the count"]} currency="GBP" />);
+    expect(screen.getByText("Divide by the count")).toBeOnTheScreen();
+  });
+
+  it("renders nothing with no line and no hints", async () => {
+    await render(<JarsoHint line={null} hints={[]} currency="GBP" />);
+    expect(screen.toJSON()).toBeNull();
+  });
+
   it("Jarso is decorative", async () => {
     await render(<JarsoHint line="Hmm" hints={[]} currency="GBP" />);
     expect(screen.queryByRole("image")).toBeNull();

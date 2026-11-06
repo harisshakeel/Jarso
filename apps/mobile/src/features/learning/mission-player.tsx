@@ -20,6 +20,7 @@ import {
   renderText,
   resumePosition,
 } from "@jarso/core/learning";
+import type { JarsoLook } from "@jarso/core/mascot";
 import { type OutboxKind, offlineCopy, showsAsPending } from "@jarso/core/offline";
 import { useQueryClient } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
@@ -38,6 +39,7 @@ import { Jarso } from "@/components/brand";
 import { Confetti } from "@/components/celebrate";
 import { Eyebrow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
+import { useProgress } from "@/features/progress";
 import { isAppError, useTokens } from "@/lib";
 import { outboxPlatform, submit, useOnline, useOutboxItems } from "@/lib/outbox";
 import { keys as queryKeys } from "@/lib/query";
@@ -155,6 +157,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
   const tokens = useTokens();
   const queryClient = useQueryClient();
   const start = useStartMission();
+  const progress = useProgress();
   const initialResults = mode.kind === "mission" ? mode.results : [];
   const [stage, setStage] = useState<"intro" | "playing" | "finishing" | "finished">(
     intro ? "intro" : "playing",
@@ -341,7 +344,12 @@ export function MissionPlayer(props: MissionPlayerProps) {
     const done = stage === "finished" && finishText;
     return (
       <View className="items-center gap-5 overflow-hidden rounded-2xl bg-card p-5">
-        {done ? <DoneBadge cheer={mode.kind === "mission" || mode.kind === "practice"} /> : null}
+        {done ? (
+          <DoneBadge
+            cheer={mode.kind === "mission" || mode.kind === "practice"}
+            look={progress.data?.look}
+          />
+        ) : null}
         <Text
           accessibilityRole="header"
           accessibilityLiveRegion="polite"
@@ -582,6 +590,7 @@ function StepView({
   // Two taps in one frame both see the old render: a ref keeps one save at a time.
   const busy = useRef(false);
   const answer = draftToAnswer(body, draft, currency);
+  const look = useProgress().data?.look;
 
   async function send(result: StepOutcome) {
     if (busy.current) return;
@@ -636,7 +645,17 @@ function StepView({
         <Text>{hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}</Text>
       </Button>
     ) : null;
+  // Once settled the idle nudge is moot; hints already shown stay.
   const line = checkIn ? coach.says.checkIn : hintsShown > 0 ? coach.says.hint : coach.says.idle;
+  // After a wrong try it sits by the sheet and Hint button, where the child is looking.
+  const hintBubble = (
+    <JarsoHint
+      line={outcome?.final ? null : line}
+      hints={checkIn ? [] : hints.slice(0, hintsShown)}
+      currency={currency}
+      look={look}
+    />
+  );
 
   return (
     <CurrentStepContext.Provider
@@ -670,10 +689,12 @@ function StepView({
               currency={currency}
               topicHref={topicHref}
               pending={saving}
+              look={look}
               onContinue={continueOn}
               onTryAgain={() => setOutcome(null)}
             />
             {hintButton()}
+            {outcome.final ? null : hintBubble}
           </>
         ) : null}
 
@@ -686,11 +707,7 @@ function StepView({
           idBase={idBase}
         />
 
-        <JarsoHint
-          line={line}
-          hints={checkIn ? [] : hints.slice(0, hintsShown)}
-          currency={currency}
-        />
+        {outcome && !outcome.final ? null : hintBubble}
         <ProblemText problem={error} />
 
         <View className="gap-3">
@@ -718,12 +735,12 @@ function StepView({
 }
 
 /** Done: Jarso cheers under confetti after a mission or practice; a topic or check-in stays calm. */
-function DoneBadge({ cheer }: { cheer: boolean }) {
+function DoneBadge({ cheer, look }: { cheer: boolean; look?: JarsoLook }) {
   const tokens = useTokens();
   if (cheer) {
     return (
       <>
-        <Jarso mood="cheer" size={120} />
+        <Jarso mood="cheer" size={120} look={look} />
         <Confetti />
       </>
     );

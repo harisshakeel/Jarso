@@ -8,7 +8,7 @@ import {
 import { BADGES } from "@jarso/core/progress";
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { useRouter } from "expo-router";
-import { jarsoCenterX, QuestMap } from "@/features/learning";
+import { jarsoCenterX, QuestMap } from "@/features/learning/quest-map";
 
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
 
