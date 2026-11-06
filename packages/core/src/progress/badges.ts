@@ -22,6 +22,8 @@ export const BADGE_KEYS = [
   "goal_reached",
   "level_3",
   "level_5",
+  // Granted by complete_child_onboarding (the phone's intro), not progress_check_badges.
+  "jar_starter",
 ] as const;
 
 export type BadgeKey = (typeof BADGE_KEYS)[number];
@@ -57,4 +59,5 @@ export const BADGES: Record<BadgeKey, BadgeInfo> = {
   goal_reached: { name: "Goal Getter", how: "Reach a savings goal", icon: "party-popper" },
   level_3: { name: "Smart Saver", how: "Reach level 3", icon: "star" },
   level_5: { name: "Money Maker", how: "Reach level 5", icon: "crown" },
+  jar_starter: { name: "Jar Starter", how: "Finish your Jarso intro", icon: "sparkles" },
 };
