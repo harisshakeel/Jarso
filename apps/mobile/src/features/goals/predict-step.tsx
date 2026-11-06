@@ -9,8 +9,10 @@ import {
   type Prediction,
   predictOutcome,
 } from "@jarso/core/goals";
+import { guessCopy, guessResult } from "@jarso/core/home";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
+import { Jarso } from "@/components/brand";
 import { Button, Text } from "@/components/ui";
 import { cn, formatMoney } from "@/lib";
 
@@ -131,6 +133,82 @@ export function PredictStep({
               ) : null}
             </View>
           ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+type JarsoGuessProps = {
+  move: "put_in" | "take_out";
+  amountMinor: number | null;
+  goal: Pick<Goal, "name" | "emoji" | "targetMinor" | "planMinor">;
+  saveMinor: number;
+  reservedMinor: number;
+};
+
+/**
+ * The kid flows' quick version of the guess: Jarso asks "closer or further?", then one calm line
+ * with the real answer. Same `predictOutcome` as `PredictStep`; nothing here moves money.
+ */
+export function JarsoGuess({ move, amountMinor, goal, saveMinor, reservedMinor }: JarsoGuessProps) {
+  // A guess is about one amount: change the amount and the question is asked again.
+  const [answered, setAnswered] = useState<{
+    amountMinor: number;
+    guess: "further" | "closer";
+  } | null>(null);
+  if (amountMinor === null || amountMinor <= 0) return null;
+  const outcome = predictOutcome({
+    move,
+    amountMinor,
+    saveMinor,
+    reservedMinor,
+    targetMinor: goal.targetMinor,
+    planMinor: goal.planMinor,
+  });
+  // Nothing moves the goal: nothing to ask.
+  if (guessResult(outcome, "closer") === null) return null;
+  const guess = answered?.amountMinor === amountMinor ? answered.guess : null;
+  const result = guess ? guessResult(outcome, guess) : null;
+  const question = guessCopy.question(goal.emoji);
+  const options = [
+    { key: "further", label: guessCopy.further },
+    { key: "closer", label: guessCopy.closer },
+  ] as const;
+
+  return (
+    <View className="gap-2">
+      <View className="flex-row items-center gap-3">
+        <Jarso size={44} mood={result ? (result.right ? "cheer" : "happy") : "think"} />
+        <View className="flex-1 rounded-xl bg-muted px-3 py-2">
+          <Text accessibilityRole="header" className="font-sans-bold">
+            {question}
+          </Text>
+        </View>
+      </View>
+      <View className="flex-row gap-2">
+        {options.map((option) => (
+          <Button
+            key={option.key}
+            variant="outline"
+            className={cn("flex-1", guess === option.key && "border-primary bg-secondary")}
+            accessibilityLabel={option.label}
+            accessibilityState={{ selected: guess === option.key, disabled: guess !== null }}
+            disabled={guess !== null}
+            onPress={() => setAnswered({ amountMinor, guess: option.key })}
+          >
+            <Text>{option.label}</Text>
+          </Button>
+        ))}
+      </View>
+      {result ? (
+        <View
+          accessibilityLiveRegion="polite"
+          className="self-center rounded-full bg-secondary px-4 py-2"
+        >
+          <Text className="font-sans-bold text-secondary-foreground">
+            {goal.emoji} {result.line}
+          </Text>
         </View>
       ) : null}
     </View>
