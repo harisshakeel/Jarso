@@ -24,6 +24,8 @@ import { Jarso } from "@/components/brand";
 import { Text } from "@/components/ui";
 import { cn, useTokens } from "@/lib";
 
+/** White on a grape fill in both themes, as `keycap-grape` does in button.tsx (`text-white`, spinner `"white"`). */
+const ON_GRAPE = "white";
 const STOP = 64;
 const JARSO = 80;
 /** Jarso and his bubble share one column this wide. */
@@ -185,7 +187,7 @@ function Stop({ stop }: { stop: QuestStop }) {
         {done ? (
           <CheckIcon size={30} color={tokens["primary-foreground"]} />
         ) : (
-          <PlayIcon size={28} color={tokens["ai-foreground"]} fill={tokens["ai-foreground"]} />
+          <PlayIcon size={28} color={ON_GRAPE} fill={ON_GRAPE} />
         )}
       </Pressable>
     </>
