@@ -24,14 +24,14 @@ export type Client = SupabaseClient<Database>;
 // Child-safe reads (no payment columns)
 // ---------------------------------------------------------------------------
 
-/** The child's most recent schedule's amount and status, or null. A stopped one too. */
+/** The child's most recent schedule's amount, frequency and status, or null. A stopped one too. */
 export async function findLatestSchedule(
   db: Client,
   childId: string,
-): Promise<{ amountMinor: number; status: ScheduleStatus } | null> {
+): Promise<{ amountMinor: number; frequency: Frequency; status: ScheduleStatus } | null> {
   const { data, error } = await db
     .from("allowance_schedules")
-    .select("amount_minor, status")
+    .select("amount_minor, frequency, status")
     .eq("child_id", childId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -40,7 +40,7 @@ export async function findLatestSchedule(
   if (!data) return null;
   const status: ScheduleStatus =
     data.status === "paused" || data.status === "stopped" ? data.status : "active";
-  return { amountMinor: Number(data.amount_minor), status };
+  return { amountMinor: Number(data.amount_minor), frequency: asFrequency(data.frequency), status };
 }
 
 /** Allowances waiting for a parent (total and count). Allowances only: gifts stay secret. */
