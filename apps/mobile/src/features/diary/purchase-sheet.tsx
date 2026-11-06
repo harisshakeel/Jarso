@@ -171,6 +171,7 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
 
   // Under the celebration: what is left once it closes (an undo's result, or just Done).
   if (record.data?.status === "sent") {
+    const entryId = sentEntryId(record.data);
     return (
       <View className="flex-1 gap-4 bg-background p-6">
         <Text accessibilityLiveRegion="polite" className="font-sans-bold text-h3">
@@ -180,6 +181,18 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
           <Text accessibilityRole="alert" className="text-primary">
             {undoError}
           </Text>
+        ) : null}
+        {undoError && !undone && entryId ? (
+          <Button
+            variant="outline"
+            size="lg"
+            accessibilityLabel="Undo"
+            accessibilityState={{ busy: undo.isPending, disabled: undo.isPending }}
+            disabled={undo.isPending}
+            onPress={() => void takeBack(entryId)}
+          >
+            {undo.isPending ? <ActivityIndicator /> : <Text>Undo</Text>}
+          </Button>
         ) : null}
         <Button
           size="lg"

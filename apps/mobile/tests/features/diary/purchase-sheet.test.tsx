@@ -336,6 +336,22 @@ describe("PurchaseSheet", () => {
     expect(await screen.findByText("You can only undo within a day.")).toBeOnTheScreen();
   });
 
+  it("keeps an Undo retry after a refused undo, and it can succeed", async () => {
+    record.mockResolvedValue(sent("entry-9"));
+    undo.mockResolvedValueOnce("not_enough_spend").mockResolvedValueOnce("undone");
+    const user = userEvent.setup();
+    await renderSheet();
+    await fill(user, "2.50");
+    await press(user, DONE);
+    await screen.findByText("Written down!");
+    await user.press(screen.getByRole("button", { name: "Undo" }));
+    expect(await screen.findByRole("alert")).toBeOnTheScreen();
+    await user.press(await screen.findByRole("button", { name: "Undo" }));
+    expect(await screen.findByText("Undone. The money is back in Spend.")).toBeOnTheScreen();
+    expect(undo).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+  });
+
   it("does not fail the purchase when the notice dispatch fails", async () => {
     record.mockResolvedValue(sent("e1"));
     dispatch.mockRejectedValue(new AppError("UNAVAILABLE", "offline"));
