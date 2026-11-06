@@ -6,7 +6,7 @@ import { getFamilyContext } from "@jarso/data/family";
 import { getJars } from "@jarso/data/ledger";
 import { getProgress } from "@jarso/data/progress";
 import { getAvailability } from "@jarso/data/requests";
-import { fireEvent, screen, userEvent, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { randomUUID } from "expo-crypto";
 import * as Haptics from "expo-haptics";
 import { getNetworkStateAsync } from "expo-network";
@@ -363,9 +363,13 @@ describe("PurchaseSheet", () => {
     await renderSheet();
     await fill(user, "2.50");
     const button = screen.getByRole("button", { name: DONE });
-    // Both presses start before React re-renders, which is what overlaps act() calls.
+    // Both presses start before React re-renders. One outer act() holds them: sibling act()
+    // calls would overlap, and React then never runs the unmount cleanups (Jarso's blink
+    // interval stayed alive and kept Jest from exiting).
     const quiet = jest.spyOn(console, "error").mockImplementation(() => undefined);
-    await Promise.all([fireEvent.press(button), fireEvent.press(button)]);
+    await act(async () => {
+      await Promise.all([fireEvent.press(button), fireEvent.press(button)]);
+    });
     quiet.mockRestore();
     expect(record).toHaveBeenCalledTimes(1);
     finish(sent("e1"));
