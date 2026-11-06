@@ -1,11 +1,11 @@
-import { parentRequestCopy, requestSentence } from "@jarso/core/requests";
+import { type AskCardKind, askCard, parentRequestCopy } from "@jarso/core/requests";
 import { randomUUID } from "expo-crypto";
-import { Fragment, useState } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
-import { CardSeparator } from "@/components/screen";
+import { BanknoteIcon, HandCoinsIcon, type LucideIcon, PiggyBankIcon } from "lucide-react-native";
+import { useState } from "react";
+import { Alert, View } from "react-native";
 import { useSendOnce } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
-import { actionErrorMessage, flash, formatMoney } from "@/lib";
+import { actionErrorMessage, cn, flash, formatMoney, useTokens } from "@/lib";
 import {
   type FamilyRequestItem,
   useCancelHandover,
@@ -28,10 +28,20 @@ function timeAgo(iso: string, now = Date.now()): string {
   return relative.format(-Math.floor(elapsed / DAY), "day");
 }
 
+type Answer = "yes" | "no";
+
+/** Money coming in is gold (Save); a decision or cash to hand over is teal (action). */
+const LOOK: Record<AskCardKind, { Icon: LucideIcon; tint: string }> = {
+  receive: { Icon: PiggyBankIcon, tint: "bg-tint-gold" },
+  decide: { Icon: HandCoinsIcon, tint: "bg-tint-teal" },
+  handover: { Icon: BanknoteIcon, tint: "bg-tint-teal" },
+};
+
 /**
- * The requests waiting on the parent, as rows of the "Needs you" card (the web's
- * ParentRequestItems): the web's sentence, when it was asked, and the row's own actions. Nothing
- * to show, nothing drawn.
+ * The requests waiting on the parent, one card each, answered in one tap (mobile kid rework,
+ * plan 10): "Got it" / "Not yet" for a put-in, "Yes" / "Not now" for an ask, "Handed over" /
+ * "Didn't give it" for an approved take-out. The writes, keys and messages are the web's
+ * ParentRequestItems'. Nothing to show, nothing drawn.
  */
 export function ParentRequestItems({
   items,
@@ -40,11 +50,8 @@ export function ParentRequestItems({
   items: FamilyRequestItem[];
   currency: string;
 }) {
-  return items.map((item, index) => (
-    <Fragment key={item.request.id}>
-      {index > 0 ? <CardSeparator /> : null}
-      <ParentRequestRow item={item} currency={currency} />
-    </Fragment>
+  return items.map((item) => (
+    <ParentRequestRow key={item.request.id} item={item} currency={currency} />
   ));
 }
 
@@ -58,9 +65,11 @@ function ParentRequestRow({ item, currency }: { item: FamilyRequestItem; currenc
   // One key for this row's Confirm, kept across retries.
   const [idempotencyKey] = useState(() => randomUUID());
   const [error, setError] = useState<string>();
+  // Which answer was tapped, so only that button spins.
+  const [pressed, setPressed] = useState<Answer | null>(null);
+  const tokens = useTokens();
   const pending = decide.isPending || complete.isPending || reject.isPending || cancel.isPending;
   const amount = formatMoney(request.amountMinor, currency, { showMinor: "always" });
-  const sentence = requestSentence(request, nickname, amount);
   const ids = { childId, requestId: request.id };
 
   /** Runs one write, then says what happened in the web's calm words. */
@@ -113,54 +122,54 @@ function ParentRequestRow({ item, currency }: { item: FamilyRequestItem; currenc
       },
     ]);
 
-  let primary: { label: string; onPress: () => void };
-  let secondary: { label: string; onPress: () => void; ghost?: boolean };
-  if (request.kind === "deposit") {
-    primary = {
-      label: parentRequestCopy.confirm,
-      onPress: () => void onComplete(parentRequestCopy.depositDone),
-    };
-    secondary = { label: parentRequestCopy.didntGetIt, onPress: () => void onRejectDeposit() };
-  } else if (request.status === "approved") {
-    primary = {
-      label: parentRequestCopy.confirm,
-      onPress: () => void onComplete(parentRequestCopy.handedOver),
-    };
-    secondary = { label: parentRequestCopy.didntHandOver, onPress: onCancel, ghost: true };
-  } else {
-    primary = { label: parentRequestCopy.approve, onPress: () => void onDecide(true) };
-    secondary = { label: parentRequestCopy.notNow, onPress: () => void onDecide(false) };
-  }
+  const card = askCard(request, nickname, amount);
+  const answers: Record<Answer, () => void> =
+    card.kind === "receive"
+      ? {
+          yes: () => void onComplete(parentRequestCopy.depositDone),
+          no: () => void onRejectDeposit(),
+        }
+      : card.kind === "handover"
+        ? { yes: () => void onComplete(parentRequestCopy.handedOver), no: onCancel }
+        : { yes: () => void onDecide(true), no: () => void onDecide(false) };
+  const { Icon, tint } = LOOK[card.kind];
 
   return (
-    <View className="gap-2">
-      <View className="flex-row items-start justify-between gap-3">
-        <Text className="min-w-0 flex-1 font-sans-bold">{sentence}</Text>
-        <Text className="font-sans-bold text-money">{amount}</Text>
+    <View className="gap-3 rounded-3xl border border-border bg-card p-4">
+      <View className="flex-row items-center gap-3">
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          className={cn("h-11 w-11 items-center justify-center rounded-2xl", tint)}
+        >
+          <Icon size={22} color={tokens["ink-2"]} />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text className="font-sans-bold text-h3">{card.title}</Text>
+          <Text className="text-small text-muted-foreground">
+            {`${card.line} · ${timeAgo(request.occurredAt)}`}
+          </Text>
+        </View>
       </View>
-      <Text className="text-small text-muted-foreground">{timeAgo(request.occurredAt)}</Text>
       <View className="flex-row gap-2">
-        <Button
-          className="flex-1"
-          accessibilityLabel={primary.label}
-          accessibilityHint={sentence}
-          accessibilityState={{ busy: pending, disabled: pending }}
-          disabled={pending}
-          onPress={primary.onPress}
-        >
-          {pending ? <ActivityIndicator color="white" /> : <Text>{primary.label}</Text>}
-        </Button>
-        <Button
-          className="flex-1"
-          variant={secondary.ghost ? "ghost" : "outline"}
-          accessibilityLabel={secondary.label}
-          accessibilityHint={sentence}
-          accessibilityState={{ disabled: pending }}
-          disabled={pending}
-          onPress={secondary.onPress}
-        >
-          <Text>{secondary.label}</Text>
-        </Button>
+        {(["yes", "no"] as const).map((answer) => (
+          <Button
+            key={answer}
+            className="flex-1"
+            size="sm"
+            variant={answer === "yes" ? "keycap" : "keycap-white"}
+            accessibilityLabel={card[answer]}
+            accessibilityHint={card.title}
+            loading={pending && pressed === answer}
+            disabled={pending}
+            onPress={() => {
+              setPressed(answer);
+              answers[answer]();
+            }}
+          >
+            <Text>{card[answer]}</Text>
+          </Button>
+        ))}
       </View>
       {error ? (
         <Text accessibilityRole="alert" className="text-destructive">

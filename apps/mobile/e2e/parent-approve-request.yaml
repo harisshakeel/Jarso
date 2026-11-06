@@ -21,15 +21,16 @@ appId: app.jarso.mobile
 - runFlow: parent-sign-in.yaml
 - scrollUntilVisible:
     element:
-      text: "${CHILD_NICKNAME} asks for .* extra: ${output.reason}"
+      text: "For: ${output.reason}.*"
     direction: DOWN
     timeout: 20000
+# Each ask is a card answered in one tap: "Yes" / "Not now".
 - tapOn:
-    text: "Approve"
+    text: "Yes"
     below:
-      text: "${CHILD_NICKNAME} asks for .* extra: ${output.reason}"
+      text: "For: ${output.reason}.*"
     index: 0
-# Approved, the row turns into the handover: "Hand over … extra to {nickname}".
+# Approved, the card turns into the handover: "Hand … to {nickname}".
 - extendedWaitUntil:
-    visible: "Hand over .* extra to ${CHILD_NICKNAME}"
+    visible: "Hand .* to ${CHILD_NICKNAME}"
     timeout: 15000
