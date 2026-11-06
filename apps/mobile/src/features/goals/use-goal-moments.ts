@@ -10,9 +10,10 @@ import { useMarkCelebrated } from "./use-goal-mutations";
 
 const starsKey = (goalId: string) => `jarso.goalStars.${goalId}`;
 
-// Goal ids being handled right now: a GoalCard and a GoalScreen mounted together must not both
-// cheer for the same new star.
-const inFlight = new Set<string>();
+// Per goal: a run in progress, and whether the inputs changed during it. A GoalCard and a
+// GoalScreen mounted together must not both cheer for the same new star, and a change that lands
+// while a run is reading storage is handled by one more run, never dropped.
+const runs = new Map<string, { again: boolean }>();
 
 /** The stars seen so far on this phone, or null on first sight (or when storage fails). */
 async function readSeen(goalId: string): Promise<number | null> {
@@ -56,53 +57,90 @@ export function useGoalMoments(view: GoalView, currency: string): void {
   const reached = Boolean(view?.goal.reachedAt && !view.goal.celebratedAt);
 
   // Fires on these three only; the rest is read through `latest`.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `lit` and `reached` are triggers, read fresh from `latest`.
   useEffect(() => {
-    if (!goalId || inFlight.has(goalId)) return;
-    inFlight.add(goalId);
+    if (!goalId) return;
+    const running = runs.get(goalId);
+    if (running) {
+      running.again = true;
+      return;
+    }
+    const run = { again: false };
+    runs.set(goalId, run);
     void (async () => {
       try {
-        const seen = await readSeen(goalId);
-        await writeSeen(goalId, Math.max(seen ?? 0, lit));
-        const { celebrate, router, parent, mark, currency, view } = latest.current;
-        if (!view) return;
-        if (reached) {
-          const money = formatMoney(view.goal.targetMinor, currency, { showMinor: "nonzero" });
-          celebrate({
-            title: goalCopy.page.reachedTitle,
-            subtitle: goalCopy.page.reachedSub(money, view.goal.name),
-            tone: "gold",
-            mood: "cheer",
-            fill: 0.95,
-            chips: [
-              { icon: "zap", label: `+${SPARKS.goalReached}` },
-              { icon: "award", label: BADGES.goal_reached.name },
-            ],
-            primary: {
-              label: goalCopy.page.askToBuy(parent),
-              onPress: () => router.push("/(child)/take-out"),
-            },
-            secondary: { label: goalCopy.page.keepSaving },
-          });
-          mark.mutateAsync(goalId).catch((error: unknown) => {
-            // Offline: the moment simply shows again next time.
-            logger.warn("Could not save the goal moment", {
-              error: error instanceof Error ? error.name : "unknown",
-            });
-          });
-          return;
-        }
-        const star = starToCheer(seen, lit);
-        if (star === null) return;
-        celebrate({
-          title: goalCopy.page.starTitle(star),
-          mood: "cheer",
-          sheet: true,
-          chips: [{ icon: "zap", label: `+${SPARKS.goalMilestone}` }],
-          primary: { label: "Nice!" },
-        });
+        // A re-run must not celebrate the reached goal again: its mark has settled, but another
+        // mounted component may still hold the old view.
+        let reachedDone = false;
+        do {
+          run.again = false;
+          reachedDone = (await handle(goalId, latest, reachedDone)) || reachedDone;
+        } while (run.again);
       } finally {
-        inFlight.delete(goalId);
+        runs.delete(goalId);
       }
     })();
   }, [goalId, lit, reached]);
+}
+
+type Inputs = {
+  celebrate: ReturnType<typeof useCelebrate>;
+  router: ReturnType<typeof useRouter>;
+  parent: string;
+  mark: ReturnType<typeof useMarkCelebrated>;
+  currency: string;
+  view: GoalView;
+};
+
+/** Handles the goal's current moment; true when it played the reached celebration. */
+async function handle(
+  goalId: string,
+  latest: { current: Inputs },
+  reachedDone: boolean,
+): Promise<boolean> {
+  const seen = await readSeen(goalId);
+  // Read after the await: the newest props, not the ones that started this run.
+  const { celebrate, router, parent, mark, currency, view } = latest.current;
+  if (!view) return false;
+  const lit = starsLit(view.progress);
+  await writeSeen(goalId, Math.max(seen ?? 0, lit));
+  if (view.goal.reachedAt && !view.goal.celebratedAt) {
+    if (reachedDone) return false;
+    const money = formatMoney(view.goal.targetMinor, currency, { showMinor: "nonzero" });
+    celebrate({
+      title: goalCopy.page.reachedTitle,
+      subtitle: goalCopy.page.reachedSub(money, view.goal.name),
+      tone: "gold",
+      mood: "cheer",
+      fill: 0.95,
+      chips: [
+        { icon: "zap", label: `+${SPARKS.goalReached}` },
+        { icon: "award", label: BADGES.goal_reached.name },
+      ],
+      primary: {
+        label: goalCopy.page.askToBuy(parent),
+        onPress: () => router.push("/(child)/take-out"),
+      },
+      secondary: { label: goalCopy.page.keepSaving },
+    });
+    try {
+      await mark.mutateAsync(goalId);
+    } catch (error) {
+      // Offline: the moment simply shows again next time.
+      logger.warn("Could not save the goal moment", {
+        error: error instanceof Error ? error.name : "unknown",
+      });
+    }
+    return true;
+  }
+  const star = starToCheer(seen, lit);
+  if (star === null) return false;
+  celebrate({
+    title: goalCopy.page.starTitle(star),
+    mood: "cheer",
+    sheet: true,
+    chips: [{ icon: "zap", label: `+${SPARKS.goalMilestone}` }],
+    primary: { label: "Nice!" },
+  });
+  return false;
 }

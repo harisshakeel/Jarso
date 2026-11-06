@@ -178,6 +178,38 @@ describe("useGoalMoments", () => {
     expect(celebrate).toHaveBeenCalledTimes(1);
   });
 
+  it("two mounts of a reached goal celebrate once, even before the mark lands", async () => {
+    await AsyncStorage.setItem("jarso.goalStars.goal-1", "4");
+    let release: () => void = () => {};
+    (callMarkCelebrated as jest.Mock).mockReturnValue(
+      new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+    );
+    const reached = view(1, { reachedAt: "2026-11-05T10:00:00Z" });
+    await setup(reached);
+    await setup(reached);
+    await waitFor(() => expect(celebrate).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(celebrate).toHaveBeenCalledTimes(1);
+    release();
+    await settle();
+    expect(celebrate).toHaveBeenCalledTimes(1);
+    expect(callMarkCelebrated).toHaveBeenCalledTimes(1);
+  });
+
+  it("a star that lights while the first run reads storage still cheers", async () => {
+    await AsyncStorage.setItem("jarso.goalStars.goal-1", "0");
+    jest.spyOn(AsyncStorage, "getItem").mockImplementationOnce(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      return "0";
+    });
+    const { rerender } = await setup(view(0.1));
+    await rerender({ v: view(0.55) });
+    await waitFor(() => expect(celebrate).toHaveBeenCalledTimes(1));
+    expect(celebrate.mock.calls[0][0].title).toBe("Halfway there!");
+  });
+
   it("storage that fails never throws and never cheers", async () => {
     jest.spyOn(AsyncStorage, "getItem").mockRejectedValueOnce(new Error("disk"));
     jest.spyOn(AsyncStorage, "setItem").mockRejectedValueOnce(new Error("disk"));
