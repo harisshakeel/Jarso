@@ -1,6 +1,5 @@
 import type { SubmitResult } from "@jarso/core/offline";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as Haptics from "expo-haptics";
 import { useSession } from "@/features/auth";
 import { dispatchNotices } from "@/lib/notices";
 import { removeItem, submit } from "@/lib/outbox";
@@ -17,7 +16,7 @@ export type PurchasePayload = {
 
 /**
  * Records a purchase through the phone's outbox, like the web: stored on the phone, then sent.
- * `sent`: refresh Home and History, tell the parent, a light haptic. `queued`: it waits on the
+ * `sent`: refresh Home and History, tell the parent. The celebration gives the haptic. `queued`: it waits on the
  * phone. `refused`: the child is right here to fix it, so it doesn't wait in the outbox.
  */
 export function useRecordPurchase() {
@@ -43,7 +42,6 @@ export function useRecordPurchase() {
       void queryClient.invalidateQueries({ queryKey: keys.history(id) });
       void queryClient.invalidateQueries({ queryKey: keys.progress(id) });
       dispatchNotices();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     },
   });
 }
