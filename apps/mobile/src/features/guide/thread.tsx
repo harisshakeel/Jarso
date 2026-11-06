@@ -48,6 +48,8 @@ type GuideThreadProps = {
    */
   audience?: "child" | "parent";
   kid?: Kid;
+  /** A question already typed in the box (a starter from the Jarso tab); never sent by itself. */
+  draft?: string;
 };
 
 /**
@@ -64,6 +66,7 @@ export function GuideThread({
   variant = "page",
   audience = "child",
   kid,
+  draft,
 }: GuideThreadProps) {
   const tokens = useTokens();
   const bodyClass = useBodySizeClass();
@@ -78,7 +81,7 @@ export function GuideThread({
   const [conversationId, setConversationId] = useState(reopened?.conversationId ?? null);
   const [messages, setMessages] = useState<ThreadMessage[]>(reopened?.messages ?? []);
   const [turnsLeft, setTurnsLeft] = useState<number | null>(reopened?.turnsLeft ?? null);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(draft ?? "");
   // The question on its way: shown as sent while Jarso works, put back in the box if it fails.
   const [sending, setSending] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);

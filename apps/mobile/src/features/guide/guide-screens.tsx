@@ -5,17 +5,28 @@ import {
   guideContextSchema,
   guideCopy,
   guideUi,
+  jarsoTabCopy,
   MAX_TURNS,
   threadMessagesFrom,
 } from "@jarso/core/guide";
 import { useRouter } from "expo-router";
-import { BotIcon, MessageSquarePlusIcon } from "lucide-react-native";
+import {
+  BotIcon,
+  GraduationCapIcon,
+  type LucideIcon,
+  MessageSquarePlusIcon,
+  PiggyBankIcon,
+  ShoppingBagIcon,
+  SparklesIcon,
+} from "lucide-react-native";
 import { type ReactNode, useEffect } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Card, CardSeparator, ListRow, ScreenHeader } from "@/components/screen";
+import { Jarso } from "@/components/brand";
+import { Card, CardSeparator, ListGroup, ListRow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { useHome } from "@/features/jars";
+import { useParentLabel, useProgress } from "@/features/progress";
 import { toUserMessage, useTokens } from "@/lib";
 import { GuideThread } from "./thread";
 import { useMyChats, useTranscript } from "./use-guide";
@@ -56,12 +67,25 @@ export function JarsoScreen() {
   return <GuideGate>{() => <ChatList />}</GuideGate>;
 }
 
+const STARTER_ICONS: Record<
+  (typeof jarsoTabCopy.starters)[number]["key"],
+  { icon: LucideIcon; tint: string; colour: "gold-text" | "primary" | "ai" }
+> = {
+  saving: { icon: PiggyBankIcon, tint: "bg-tint-gold", colour: "gold-text" },
+  spent: { icon: ShoppingBagIcon, tint: "bg-tint-teal", colour: "primary" },
+  learning: { icon: GraduationCapIcon, tint: "bg-tint-grape", colour: "ai" },
+};
+
 function ChatList() {
   const router = useRouter();
   const tokens = useTokens();
   const home = useHome();
   const chats = useMyChats();
+  const { data: progress } = useProgress();
+  const parent = useParentLabel();
   const timezone = home.data?.context.timezone ?? "UTC";
+  const open = (params: { conversationId: string; draft?: string }) =>
+    router.push({ pathname: "/(child)/jarso/[conversationId]", params });
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-background">
       <ScrollView
@@ -70,26 +94,50 @@ function ChatList() {
           <RefreshControl refreshing={chats.isRefetching} onRefresh={() => void chats.refetch()} />
         }
       >
-        <ScreenHeader
-          title={guideCopy.name}
-          trailing={<BotIcon size={24} color={tokens["muted-foreground"]} />}
-        />
-        <Text className="text-muted-foreground">{guideCopy.disclosure}</Text>
+        <View className="items-center gap-2">
+          <Jarso mood="wave" size={120} fill={0.6} look={progress?.look} />
+          <Text accessibilityRole="header" className="text-center font-sans-extrabold text-h1">
+            {jarsoTabCopy.heading}
+          </Text>
+          {/* The AI notice (FR09): who Jarso is and who can read the chats. */}
+          <View className="flex-row items-center gap-1.5 rounded-full bg-tint-grape px-3 py-1.5">
+            <SparklesIcon size={16} color={tokens.ai} />
+            <Text className="font-sans-bold text-small">{jarsoTabCopy.notice(parent)}</Text>
+          </View>
+        </View>
         <Button
           size="lg"
+          variant="keycap"
           accessibilityLabel={guideUi.newChat}
-          onPress={() =>
-            router.push({
-              pathname: "/(child)/jarso/[conversationId]",
-              params: { conversationId: "new" },
-            })
-          }
+          onPress={() => open({ conversationId: "new" })}
         >
           <MessageSquarePlusIcon size={20} color={tokens["primary-foreground"]} />
           <Text>{guideUi.newChat}</Text>
         </Button>
+        <ListGroup label={jarsoTabCopy.startersLabel}>
+          {jarsoTabCopy.starters.map((starter) => {
+            const { icon: Icon, tint, colour } = STARTER_ICONS[starter.key];
+            return (
+              <ListRow
+                key={starter.key}
+                label={starter.question}
+                labelClassName="text-h3"
+                leading={
+                  <View
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                    className={`size-10 items-center justify-center rounded-xl ${tint}`}
+                  >
+                    <Icon size={20} color={tokens[colour]} />
+                  </View>
+                }
+                onPress={() => open({ conversationId: "new", draft: starter.question })}
+              />
+            );
+          })}
+        </ListGroup>
         <Text accessibilityRole="header" className="font-sans-bold text-h3">
-          {guideUi.pastChats}
+          {jarsoTabCopy.pastChats}
         </Text>
         {!chats.data ? (
           chats.error ? (
@@ -111,12 +159,7 @@ function ChatList() {
                     label={title}
                     detail={day}
                     accessibilityLabel={`${title}, ${day}`}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(child)/jarso/[conversationId]",
-                        params: { conversationId: chat.id },
-                      })
-                    }
+                    onPress={() => open({ conversationId: chat.id })}
                   />
                 </View>
               );
@@ -129,10 +172,19 @@ function ChatList() {
 }
 
 /** One chat: a new one ("new"), or one of the child's own picked up again with its turns. */
-export function JarsoChatScreen({ conversationId }: { conversationId: string }) {
+export function JarsoChatScreen({
+  conversationId,
+  draft,
+}: {
+  conversationId: string;
+  /** A starter question typed into a new chat's box (the Jarso tab). */
+  draft?: string;
+}) {
   return (
     <GuideGate>
-      {(introNeeded) => <ChatThread conversationId={conversationId} introNeeded={introNeeded} />}
+      {(introNeeded) => (
+        <ChatThread conversationId={conversationId} introNeeded={introNeeded} draft={draft} />
+      )}
     </GuideGate>
   );
 }
@@ -140,9 +192,11 @@ export function JarsoChatScreen({ conversationId }: { conversationId: string }) 
 function ChatThread({
   conversationId,
   introNeeded,
+  draft,
 }: {
   conversationId: string;
   introNeeded: boolean;
+  draft?: string;
 }) {
   const fresh = conversationId === "new";
   const home = useHome();
@@ -175,6 +229,7 @@ function ChatThread({
         introNeeded={introNeeded}
         suggestions={SUGGESTIONS}
         reopened={reopened}
+        draft={fresh ? draft : undefined}
       />
     </View>
   );
