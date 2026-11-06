@@ -44,6 +44,8 @@ export const keys = {
   progress: (userId: string) => ["progress", userId] as const,
   /** The first parent's name for the child's copy. */
   parentLabel: (userId: string) => ["parentLabel", userId] as const,
+  /** The welcome tour row (finished or not): gates the phone intro. */
+  tour: (userId: string) => ["tour", userId] as const,
   schedule: (userId: string) => ["schedule", userId] as const,
   learning: (userId: string) => ["learning", userId] as const,
   unread: (userId: string) => ["unread", userId] as const,
@@ -113,6 +115,8 @@ export const keys = {
   /** How many of the child's chats in the last 30 days are worth a look. */
   childFlagged: (childId: string) => ["child", childId, "flagged"] as const,
   childLearning: (childId: string) => ["child", childId, "learning"] as const,
+  /** The child's level, streak and Jarso look, as their parent reads them (no Sparks shown). */
+  childProgress: (childId: string) => ["child", childId, "progress"] as const,
   childChats: (childId: string) => ["child", childId, "chats"] as const,
   /** One of the child's chats. Refreshed with `childChats` (it shares the prefix). */
   childTranscript: (childId: string, conversationId: string) =>

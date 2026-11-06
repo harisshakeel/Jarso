@@ -116,6 +116,7 @@ export function GiftForm({
 
       <Notice message={error} />
       <Button
+        variant="keycap"
         size="lg"
         accessibilityLabel={giftCopy.save}
         accessibilityState={{ busy: pending, disabled: pending }}

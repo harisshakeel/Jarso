@@ -382,6 +382,7 @@ function AmountForm({
       />
       <View className="flex-row gap-2">
         <Button
+          variant="keycap"
           accessibilityLabel={rulesCopy.save}
           accessibilityState={{ busy: pending, disabled: pending }}
           disabled={pending}

@@ -1,30 +1,26 @@
-import { dashboardCopy, parentPageCopy, timeline } from "@jarso/core/dashboard";
+import { dashboardCopy, familyCardsCopy, parentPageCopy, timeline } from "@jarso/core/dashboard";
 import { useQueryClient } from "@tanstack/react-query";
-import { ActivityIndicator, RefreshControl, ScrollView } from "react-native";
-import { Card, Eyebrow, ScreenHeader } from "@/components/screen";
+import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
+import { Jarso } from "@/components/brand";
+import { Eyebrow, ScreenHeader } from "@/components/screen";
 import { Text } from "@/components/ui";
 import { useFamilyDue } from "@/features/allowance";
 import { useSession } from "@/features/auth";
-import {
-  ChildrenList,
-  FirstChildCard,
-  useDashboard,
-  useFamily,
-  useFamilySummary,
-} from "@/features/family";
+import { FirstChildCard, useDashboard, useFamily, useFamilySummary } from "@/features/family";
 import { PushPermissionCard } from "@/features/push";
 import { useParentRequests } from "@/features/requests";
 import { todayLine } from "@/lib";
 import { keys } from "@/lib/query";
+import { ChildCards } from "./child-card";
 import { NeedsYouCard } from "./needs-you-card";
 import { ScreenState } from "./screen-state";
 import { TimelineCard } from "./timeline-card";
 
 /**
- * The parent's Family home (mockup C, the web's parent Home made calm): the date over "Your
- * family", then "Needs you" (requests and handovers, each with its action), Jarso's summary when
- * there is one, the children as rows and the next two weeks. The web's filter, chart and other
- * dashboard sections stay on the web. Settings opens from the tab header (one place on every tab).
+ * The parent's Family home (mockup PA1, the rework's look made calm): the date over "Your
+ * family", then "Needs you" (each ask a card answered in one tap, each handover a card), Jarso's
+ * summary when there is one, a card per child (their Jarso, level, streak, missions and three
+ * money tiles) and the next two weeks. No Sparks, no confetti. Settings opens from the tab header.
  */
 export function FamilyHomeScreen() {
   const { userId } = useSession();
@@ -73,14 +69,29 @@ export function FamilyHomeScreen() {
             <ActivityIndicator accessibilityLabel="Loading" />
           )}
           {summaryText ? (
-            <Card accessibilityLabel={dashboardCopy.summaryLabel}>
-              <Eyebrow>{dashboardCopy.summaryEyebrow}</Eyebrow>
-              <Text>{summaryText}</Text>
-            </Card>
+            <View
+              accessibilityLabel={dashboardCopy.summaryLabel}
+              className="flex-row gap-3 rounded-3xl border border-border bg-card p-4"
+            >
+              <Jarso mood="happy" size={44} />
+              <View className="min-w-0 flex-1 gap-1">
+                <Eyebrow>{dashboardCopy.summaryEyebrow}</Eyebrow>
+                <Text>{summaryText}</Text>
+              </View>
+            </View>
           ) : null}
           {dashboard.data ? (
             <>
-              <ChildrenList items={dashboard.data.children} currency={currency} />
+              <View className="gap-3">
+                <Eyebrow header tone="muted">
+                  {familyCardsCopy.children}
+                </Eyebrow>
+                <ChildCards
+                  items={dashboard.data.children}
+                  currency={currency}
+                  timezone={timezone}
+                />
+              </View>
               <TimelineCard
                 events={timeline(dashboard.data.children, dashboard.data.today, currency)}
               />

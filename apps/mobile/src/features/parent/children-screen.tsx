@@ -4,12 +4,13 @@ import { useRouter } from "expo-router";
 import { RefreshControl, ScrollView } from "react-native";
 import { ScreenHeader } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
-import { ChildrenList, FirstChildCard, useDashboard } from "@/features/family";
+import { FirstChildCard, useDashboard } from "@/features/family";
+import { ChildCards } from "./child-card";
 import { ScreenState } from "./screen-state";
 
 /**
- * The Children tab (mockup C): every child as a row with their total and Spend · Save split,
- * each opening the child's hub, then "Add a child". With no children, the first-child card.
+ * The Children tab: every child as a card (their Jarso, level, streak, missions, Spend, Save and
+ * goal), each opening the child's hub, then "Add a child". With no children, the first-child card.
  */
 export function ChildrenScreen() {
   const router = useRouter();
@@ -36,9 +37,9 @@ export function ChildrenScreen() {
         <FirstChildCard />
       ) : (
         <>
-          <ChildrenList items={children} currency={currency} title={false} />
+          <ChildCards items={children} currency={currency} timezone={dashboard.data.timezone} />
           <Button
-            variant="secondary"
+            variant="keycap-white"
             accessibilityLabel={familySettingsCopy.addChild}
             onPress={() => router.push("/(parent)/children/new")}
           >

@@ -1,6 +1,6 @@
-import { NewsScreen } from "@/features/news";
+import { ParentInboxScreen } from "@/features/parent";
 
-/** The parent's inbox: the shared inbox in the parent's wording. */
+/** The parent's inbox: Notifications in the parent's calm look. */
 export default function ParentInbox() {
-  return <NewsScreen viewer="parent" />;
+  return <ParentInboxScreen />;
 }

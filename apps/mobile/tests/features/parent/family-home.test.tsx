@@ -1,10 +1,11 @@
 import { formatDay, needsYouCopy } from "@jarso/core/allowance";
-import { dashboardCopy } from "@jarso/core/dashboard";
-import { requestSentence } from "@jarso/core/requests";
+import { familyCardsCopy } from "@jarso/core/dashboard";
+import { askCard, askCardCopy } from "@jarso/core/requests";
 import { listDueForParent } from "@jarso/data/allowance";
 import { getFamilyDashboard } from "@jarso/data/dashboard";
 import { findFamilyById, findMembership, listChildMembers } from "@jarso/data/family";
-import { listOpenRequests } from "@jarso/data/requests";
+import { getProgress } from "@jarso/data/progress";
+import { callDecideWithdrawal, listOpenRequests } from "@jarso/data/requests";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { useRouter } from "expo-router";
@@ -35,6 +36,8 @@ jest.mock("@jarso/data/requests", () => ({
 }));
 jest.mock("@jarso/data/allowance", () => ({ listDueForParent: jest.fn() }));
 jest.mock("@jarso/data/dashboard", () => ({ getFamilyDashboard: jest.fn() }));
+jest.mock("@jarso/data/progress", () => ({ getProgress: jest.fn() }));
+jest.mock("@jarso/data/learning", () => ({ getLearningOverview: jest.fn() }));
 
 const push = jest.fn();
 const family = { id: "family-1", code: "ABC123", currency: "GBP", timezone: "Europe/London" };
@@ -93,6 +96,18 @@ function setup({
   (listDueForParent as jest.Mock).mockImplementation(
     async (_db, childId: string) => dues[childId] ?? [],
   );
+  (getProgress as jest.Mock).mockResolvedValue({
+    sparks: 40,
+    level: 2,
+    nextLevelAt: 100,
+    streak: 3,
+    bestStreak: 3,
+    restUsedThisWeek: false,
+    checkedInToday: false,
+    look: { lid: "cyan", wear: "none" },
+    badges: [],
+    recent: [],
+  });
   (getFamilyDashboard as jest.Mock).mockResolvedValue({
     currency: "GBP",
     timezone: "Europe/London",
@@ -118,16 +133,16 @@ function renderHome() {
 beforeEach(() => jest.clearAllMocks());
 
 describe("FamilyHomeScreen", () => {
-  it("needs you lists requests and due items, All caught up when empty", async () => {
+  it("needs you lists ask and handover cards, All caught up when empty", async () => {
     setup({ requests: [request], dues: { "child-2": [due] } });
     const { unmount } = await renderHome();
-    expect(await screen.findByText(requestSentence(request, "Sam", "£5.00"))).toBeOnTheScreen();
+    expect(await screen.findByText(askCard(request, "Sam", "£5.00").title)).toBeOnTheScreen();
     expect(
       await screen.findByRole("button", {
         name: needsYouCopy.handOverLabel("allowance", "Mia", formatDay("2026-11-03")),
       }),
     ).toBeOnTheScreen();
-    expect(screen.getByText(needsYouCopy.title)).toBeOnTheScreen();
+    expect(screen.getByText(familyCardsCopy.needsYou(2))).toBeOnTheScreen();
     expect(screen.queryByText(needsYouCopy.allCaughtUp)).not.toBeOnTheScreen();
     await unmount();
 
@@ -146,11 +161,27 @@ describe("FamilyHomeScreen", () => {
     expect(push).toHaveBeenCalledWith("/(parent)/children/child-2/handover/allowance/occ-1");
   });
 
-  it("shows the date line, the title and the children", async () => {
+  it("shows the date line, the title and the child cards", async () => {
     setup({});
     await renderHome();
     expect(await screen.findByText("Your family")).toBeOnTheScreen();
-    expect(await screen.findByText(dashboardCopy.childrenTitle)).toBeOnTheScreen();
-    await waitFor(() => expect(screen.getAllByText("£46.50")).toHaveLength(2));
+    expect(await screen.findByText(familyCardsCopy.children)).toBeOnTheScreen();
+    expect(await screen.findByRole("button", { name: /^Sam\./ })).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: /^Mia\./ })).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getAllByText("£12.50")).toHaveLength(2));
+    expect(screen.getAllByText("£34")).toHaveLength(2);
+    expect(await screen.findAllByText("Level 2 · 3-day streak")).toHaveLength(2);
+  });
+
+  it("answers an ask from Family in one tap", async () => {
+    setup({ requests: [request] });
+    (callDecideWithdrawal as jest.Mock).mockResolvedValue("approved");
+    await renderHome();
+    await userEvent.setup().press(await screen.findByRole("button", { name: askCardCopy.yes }));
+    await waitFor(() => expect(callDecideWithdrawal).toHaveBeenCalledTimes(1));
+    expect(callDecideWithdrawal).toHaveBeenCalledWith(
+      { id: "client" },
+      { requestId: "request-1", approve: true, note: "" },
+    );
   });
 });

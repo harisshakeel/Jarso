@@ -8,19 +8,21 @@ import {
   prefillSplit,
   type Split,
 } from "@jarso/core/allowance";
-import { parentPageCopy } from "@jarso/core/dashboard";
+import { familyCardsCopy } from "@jarso/core/dashboard";
 import { planNote } from "@jarso/core/goals";
+import type { JarsoLook } from "@jarso/core/mascot";
 import { parentRequestCopy } from "@jarso/core/requests";
 import { randomUUID } from "expo-crypto";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
+import { Alert, View } from "react-native";
 import { z } from "zod";
+import { Jarso } from "@/components/brand";
 import { Card, KeyboardScrollView } from "@/components/screen";
 import { HomeWait, Notice, useSendOnce } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
 import { Field } from "@/features/auth";
-import { useFamily } from "@/features/family";
+import { useChildProgress, useFamily } from "@/features/family";
 import { CardPaymentSlot, usePaymentProviders } from "@/features/payments";
 import { actionErrorMessage, flash, formatMoney, parseMoney, toMajorString } from "@/lib";
 import { useChildDue } from "./use-due";
@@ -52,6 +54,8 @@ export function HandoverSheet({
   const due = useChildDue(childId);
   const last = useLastSplit(childId);
   const goal = useChildGoal(childId);
+  // The child's Jarso look, a nice-to-have: the form never waits for it.
+  const progress = useChildProgress(childId);
   // The card block's read, started with the others so the form opens with the block in place
   // rather than pushing Confirm down when it lands. Each opening waits for its own read, even
   // with an earlier opening's answer cached (cards may have come on, or a payment gone pending),
@@ -95,6 +99,7 @@ export function HandoverSheet({
       item={item}
       prefill={prefillSplit(item.amountMinor, last.data)}
       goalNote={planNote(child.nickname, goal.data?.goal ?? null, family.data.family.currency)}
+      look={progress.data?.look}
       onDone={() => {
         finished.current = true;
         onClose();
@@ -111,6 +116,7 @@ export function HandoverForm({
   item,
   prefill,
   goalNote,
+  look,
   onDone,
 }: {
   childId: string;
@@ -119,6 +125,8 @@ export function HandoverForm({
   item: DueItem;
   prefill: Split;
   goalNote: string | null;
+  /** The child's Jarso look; the default look until it has loaded. */
+  look?: JarsoLook;
   onDone: () => void;
 }) {
   const router = useRouter();
@@ -219,16 +227,19 @@ export function HandoverForm({
       contentContainerClassName="gap-4 p-4 pb-10"
       keyboardShouldPersistTaps="handled"
     >
-      <Text accessibilityRole="header" className="font-sans-extrabold text-h1">
-        {parentPageCopy.handOverTo(nickname)}
-      </Text>
-      <Card>
-        <Text className="font-sans-bold">{handoverCopy.heading(kind, formatDay(item.dueOn))}</Text>
-        {item.note ? <Text className="text-muted-foreground">{item.note}</Text> : null}
-        <Text className="font-sans-extrabold text-money-xl">{amount}</Text>
-      </Card>
+      <View className="items-center gap-1.5 pt-2">
+        <Jarso mood="happy" size={88} look={look} />
+        <Text accessibilityRole="header" className="text-center font-sans-extrabold text-h1">
+          {familyCardsCopy.handoverTitle(amount, nickname)}
+        </Text>
+        <Text className="text-center text-muted-foreground">
+          {item.note
+            ? `${handoverCopy.heading(kind, formatDay(item.dueOn))} · ${item.note}`
+            : handoverCopy.heading(kind, formatDay(item.dueOn))}
+        </Text>
+      </View>
 
-      <Card className="gap-4">
+      <Card className="gap-4 rounded-3xl">
         <View
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
@@ -282,21 +293,19 @@ export function HandoverForm({
 
       <Notice message={error} />
       <Button
+        variant="keycap-gold"
         size="lg"
         accessibilityLabel={handoverCopy.confirm}
         accessibilityState={{ busy: confirm.isPending, disabled: pending || !valid || over }}
         disabled={pending || !valid || over}
+        loading={confirm.isPending}
         onPress={() => void submit()}
       >
-        {confirm.isPending ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text>{handoverCopy.confirm}</Text>
-        )}
+        <Text>{handoverCopy.confirm}</Text>
       </Button>
       {isAllowance ? (
         <Button
-          variant="outline"
+          variant="keycap-white"
           size="lg"
           accessibilityLabel={handoverCopy.notGiven}
           accessibilityState={{ disabled: pending }}
