@@ -1,5 +1,6 @@
 import { type CoachId, coachIds } from "@jarso/core/learning";
-import { toAppError } from "@jarso/core/lib";
+import { AppError, toAppError } from "@jarso/core/lib";
+import { type OnboardingReward, onboardingRewardSchema } from "@jarso/core/onboarding";
 import type { SaveTourInput, TourState } from "@jarso/core/tour";
 import type { Database } from "@jarso/db";
 // The child's welcome tour (2026-11-06): reads the child_tours row; writes go through
@@ -33,4 +34,18 @@ export async function saveTour(db: Client, input: SaveTourInput): Promise<void> 
     p_finished: input.finished ?? false,
   });
   if (error) throw toAppError(error, "Failed to save the tour");
+}
+
+/**
+ * Finishes the child's intro on the phone: the tour is marked done and the welcome reward (50
+ * Sparks and the Jar Starter badge) is paid once for life. A replay returns 0 and null.
+ */
+export async function completeOnboarding(db: Client): Promise<OnboardingReward> {
+  const { data, error } = await db.rpc("complete_child_onboarding");
+  if (error) throw toAppError(error, "Failed to finish the intro");
+  const parsed = onboardingRewardSchema.safeParse(data);
+  if (!parsed.success) {
+    throw new AppError("INTERNAL", "Failed to finish the intro", { cause: parsed.error });
+  }
+  return parsed.data;
 }

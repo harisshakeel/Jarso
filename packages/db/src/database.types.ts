@@ -1197,6 +1197,9 @@ isOneToOne: false
 "complete_checkin":
 { Args: { "p_content_version": number,"p_correct_count": number,"p_question_count": number }; Returns: boolean
                            },
+"complete_child_onboarding":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "complete_mission":
 { Args: { "p_attempt_id": string,"p_occurred_at"?: string }; Returns: boolean
                            },
