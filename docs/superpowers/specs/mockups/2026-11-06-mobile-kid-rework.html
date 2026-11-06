@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jarso mobile rework: every screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f8fa; --ink: #141c1f; --muted: #5b6b72; --line: #dce7ec;
+    --t50: #d2ffff; --t100: #c4f4ff; --t200: #abe1f6; --t300: #8ac8df; --t500: #3d92ae; --t600: #057b99; --t700: #00627d; --t800: #004b62; --t900: #003548; --t950: #002233;
+    --g50: #fff6c2; --g100: #ffe462; --g: #fdc300; --g300: #ebb500; --g500: #a87f00; --g800: #563e00; --g900: #3d2b00;
+    --c300: #00d6eb; --c100: #c9fbff;
+    --p100: #ebeaff; --p200: #d9d8ff; --p500: #7d66e9; --p600: #6a4fd6; --p800: #473097;
+    --blush: #f08a6b; --blush100: #ffe3d9; --ok: #1f9d6b; --ok100: #d8f5e8;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Nunito, system-ui, sans-serif; background: #e3ebef; color: var(--ink); padding: 40px 48px 120px; }
+  header.top { max-width: 1180px; margin-bottom: 36px; }
+  header.top h1 { font-size: 38px; font-weight: 900; }
+  header.top p { font-size: 17px; color: var(--muted); max-width: 820px; margin-top: 8px; font-weight: 600; }
+  .rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; margin-top: 22px; }
+  .rules div { background: #fff; border-radius: 18px; padding: 14px 16px; font-weight: 700; font-size: 14px; color: #33454c; }
+  .rules b { display: block; color: var(--t700); font-size: 15px; margin-bottom: 4px; }
+  table.names { margin-top: 20px; border-collapse: separate; border-spacing: 0; background: #fff; border-radius: 18px; overflow: hidden; font-size: 14px; }
+  table.names th, table.names td { padding: 9px 16px; text-align: left; border-bottom: 1px solid var(--line); font-weight: 700; }
+  table.names th { background: var(--t950); color: #fff; }
+  table.names td:first-child { color: #9a5b48; text-decoration: line-through; }
+  section.sec { margin-top: 64px; }
+  section.sec > h2 { font-size: 28px; font-weight: 900; }
+  section.sec > p { color: var(--muted); font-weight: 700; margin: 6px 0 22px; max-width: 900px; }
+  .row { display: flex; flex-wrap: wrap; gap: 44px 36px; }
+  figure { width: 360px; }
+  figcaption { margin-top: 12px; font-size: 13.5px; color: #3c4d54; font-weight: 600; line-height: 1.45; }
+  figcaption b { color: var(--ink); font-size: 15px; display: block; margin-bottom: 2px; }
+  figcaption .wc { display: inline-block; margin-top: 4px; background: #fff; border-radius: 99px; padding: 1px 9px; font-size: 12px; color: var(--t700); font-weight: 800; }
+
+  /* phone */
+  .phone { width: 360px; height: 760px; border-radius: 46px; background: var(--bg); border: 10px solid #10242c; overflow: hidden; position: relative; display: flex; flex-direction: column; box-shadow: 0 30px 60px -30px #0b2a35; }
+  .phone.dark { background: var(--t950); color: #fff; }
+  .phone.gold { background: linear-gradient(180deg, #fff3b0, #ffe066); }
+  .phone.teal { background: linear-gradient(180deg, #057b99, #003548); color: #fff; }
+  .phone.grape { background: linear-gradient(180deg, #7d66e9, #32236b); color: #fff; }
+  .sb { height: 34px; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; font-size: 13px; font-weight: 800; flex-shrink: 0; }
+  .sb span:last-child { letter-spacing: 2px; }
+  .body { flex: 1; padding: 6px 18px 14px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; position: relative; }
+  .center { align-items: center; justify-content: center; text-align: center; }
+  .grow { flex: 1; }
+  .tabs { height: 76px; background: #fff; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; flex-shrink: 0; position: relative; }
+  .tabs .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 800; color: #7a8a91; }
+  .tabs .tab.on { color: var(--t700); }
+  .tabs .tab.on .ic { background: var(--t100); }
+  .tabs .ic { width: 44px; height: 30px; border-radius: 99px; display: grid; place-items: center; }
+  .tabs .plus { width: 62px; height: 62px; border-radius: 22px; background: var(--g); box-shadow: 0 5px 0 var(--g500); display: grid; place-items: center; margin: -26px auto 0; color: var(--g900); }
+  .tabs .plus svg { width: 34px; height: 34px; stroke-width: 3; }
+
+  /* type */
+  .h0 { font-size: 34px; font-weight: 900; line-height: 1.05; }
+  .h1 { font-size: 26px; font-weight: 900; line-height: 1.1; }
+  .h2 { font-size: 19px; font-weight: 900; }
+  .h3 { font-size: 16px; font-weight: 900; }
+  .sm { font-size: 13px; font-weight: 800; color: var(--muted); }
+  .xs { font-size: 11px; font-weight: 800; color: var(--muted); }
+  .money { font-variant-numeric: tabular-nums; font-weight: 900; }
+  .wh { color: #fff; } .wh .sm, .wh.sm { color: #cfe9f1; }
+
+  /* pieces */
+  .card { background: #fff; border-radius: 24px; padding: 14px; box-shadow: 0 3px 0 #d3e1e7; }
+  .dark .card { background: #12303a; box-shadow: none; }
+  .hrow { display: flex; align-items: center; gap: 10px; }
+  .between { justify-content: space-between; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 12px; border-radius: 99px; background: #fff; color: var(--ink); font-weight: 900; font-size: 15px; box-shadow: 0 2px 0 #d3e1e7; }
+  .pill svg { width: 18px; height: 18px; }
+  .pill.fire { color: #d9542f; } .pill.zap { color: var(--p600); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 99px; background: #fff; font-weight: 800; font-size: 13px; border: 2px solid var(--line); }
+  .chip.on { border-color: var(--t600); background: var(--t100); color: var(--t800); }
+  .chip.gold { background: var(--g50); border-color: var(--g); color: var(--g900); }
+  .chip.grape { background: var(--p100); border-color: var(--p200); color: var(--p800); }
+  .chip svg { width: 15px; height: 15px; }
+  .key { display: flex; align-items: center; justify-content: center; gap: 8px; height: 56px; border-radius: 18px; background: var(--t600); color: #fff; font-weight: 900; font-size: 18px; box-shadow: 0 5px 0 var(--t900); }
+  .key.gold { background: var(--g); color: var(--g900); box-shadow: 0 5px 0 var(--g500); }
+  .key.grape { background: var(--p500); box-shadow: 0 5px 0 var(--p800); }
+  .key.white { background: #fff; color: var(--t800); box-shadow: 0 5px 0 #b9cdd5; }
+  .key.ghost { background: transparent; color: var(--t700); box-shadow: none; height: 40px; font-size: 15px; }
+  .wh .key.ghost, .teal .key.ghost, .grape .key.ghost { color: #fff; }
+  .key.sm { height: 44px; font-size: 15px; border-radius: 14px; }
+  .key svg { width: 20px; height: 20px; stroke-width: 2.6; }
+  .bubble { background: #fff; border-radius: 20px; padding: 10px 14px; font-weight: 900; font-size: 16px; position: relative; box-shadow: 0 3px 0 #d3e1e7; color: var(--ink); }
+  .bubble.l::before { content: ""; position: absolute; left: -9px; top: 22px; border: 9px solid transparent; border-right-color: #fff; border-left: 0; }
+  .bubble.b::before { content: ""; position: absolute; bottom: -9px; left: 50%; margin-left: -9px; border: 9px solid transparent; border-top-color: #fff; border-bottom: 0; }
+  .ibox { width: 46px; height: 46px; border-radius: 16px; display: grid; place-items: center; flex-shrink: 0; }
+  .ibox svg { width: 24px; height: 24px; stroke-width: 2.4; }
+  .ibox.t { background: var(--t100); color: var(--t700); } .ibox.g { background: var(--g50); color: var(--g800); }
+  .ibox.b { background: var(--blush100); color: #b54a2b; } .ibox.p { background: var(--p100); color: var(--p600); }
+  .ibox.ok { background: var(--ok100); color: var(--ok); }
+  .bar { height: 14px; border-radius: 99px; background: #e8eef1; overflow: hidden; }
+  .bar > i { display: block; height: 100%; border-radius: 99px; background: var(--g); }
+  .bar.p > i { background: var(--p500); }
+  .dots { display: flex; gap: 6px; justify-content: center; }
+  .dots i { width: 8px; height: 8px; border-radius: 99px; background: #c6d6dc; }
+  .dots i.on { width: 24px; background: var(--t600); }
+  .teal .dots i, .grape .dots i { background: #ffffff55; } .teal .dots i.on, .grape .dots i.on { background: #fff; }
+  .steps { display: flex; gap: 6px; } .steps i { flex: 1; height: 8px; border-radius: 99px; background: #d6e3e8; } .steps i.on { background: var(--t600); }
+  .field { background: #fff; border: 2px solid var(--line); border-radius: 16px; height: 54px; display: flex; align-items: center; padding: 0 16px; font-weight: 800; font-size: 17px; gap: 10px; }
+  .field.on { border-color: var(--t600); }
+  .field .ph { color: #9aaab0; }
+  .lbl { font-size: 13px; font-weight: 900; color: var(--muted); margin-bottom: -6px; }
+
+  /* home */
+  .jars { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .jar-tile { border-radius: 26px; padding: 14px; height: 156px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+  .jar-tile.spend { background: var(--t600); color: #fff; box-shadow: 0 5px 0 var(--t900); }
+  .jar-tile.save { background: var(--g); color: var(--g900); box-shadow: 0 5px 0 var(--g500); }
+  .jar-tile .nm { font-weight: 900; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+  .jar-tile .nm svg { width: 18px; height: 18px; }
+  .jar-tile .amt { font-size: 32px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .jar-tile .who { font-size: 12.5px; font-weight: 800; opacity: .85; }
+  .jar-tile .deco { position: absolute; right: -8px; top: 6px; opacity: .22; }
+  .jar-tile .deco svg { width: 74px; height: 74px; stroke-width: 2; }
+  .hero { background: linear-gradient(135deg, var(--t800), var(--t950)); border-radius: 28px; padding: 12px 14px 0; display: flex; align-items: flex-end; gap: 8px; color: #fff; min-height: 128px; position: relative; overflow: hidden; }
+  .hero .bubble { margin-bottom: 40px; }
+  .ring { width: 64px; height: 64px; border-radius: 99px; display: grid; place-items: center; flex-shrink: 0; }
+  .ring > span { width: 50px; height: 50px; border-radius: 99px; background: #fff; display: grid; place-items: center; font-size: 26px; }
+
+  /* sheets */
+  .dim { position: absolute; inset: 0; background: #0b1f26aa; z-index: 4; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); border-radius: 30px 30px 0 0; z-index: 5; padding: 10px 18px 22px; display: flex; flex-direction: column; gap: 12px; }
+  .sheet .grab { width: 44px; height: 5px; border-radius: 99px; background: #c6d6dc; margin: 0 auto 4px; }
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .act { background: #fff; border-radius: 22px; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 0 #d3e1e7; min-height: 118px; }
+  .act .ibox { width: 52px; height: 52px; border-radius: 18px; }
+  .act .ibox svg { width: 28px; height: 28px; }
+  .act b { font-size: 16px; font-weight: 900; line-height: 1.1; }
+  .act span { font-size: 12.5px; font-weight: 800; color: var(--muted); }
+  .act.wide { grid-column: span 2; flex-direction: row; align-items: center; min-height: 0; }
+
+  /* keypad */
+  .amount { font-size: 56px; font-weight: 900; text-align: center; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+  .amount small { font-size: 32px; color: var(--muted); vertical-align: 14px; margin-right: 4px; }
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .pad i { height: 52px; border-radius: 16px; background: #fff; display: grid; place-items: center; font-style: normal; font-size: 24px; font-weight: 900; box-shadow: 0 3px 0 #d3e1e7; }
+  .pad i svg { width: 24px; height: 24px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .cat { background: #fff; border-radius: 20px; padding: 12px 6px 10px; display: flex; flex-direction: column; align-items: center; gap: 7px; font-weight: 900; font-size: 13px; box-shadow: 0 3px 0 #d3e1e7; border: 3px solid transparent; }
+  .cat.on { border-color: var(--t600); background: var(--t50); }
+  .cat .ibox { width: 50px; height: 50px; border-radius: 99px; }
+
+  /* tracker */
+  .track { display: flex; flex-direction: column; gap: 0; }
+  .tstep { display: flex; gap: 12px; align-items: flex-start; min-height: 64px; position: relative; }
+  .tstep .dot { width: 34px; height: 34px; border-radius: 99px; display: grid; place-items: center; background: #e1eaee; color: #8a9aa1; flex-shrink: 0; z-index: 1; }
+  .tstep .dot svg { width: 18px; height: 18px; stroke-width: 3; }
+  .tstep.done .dot { background: var(--ok); color: #fff; }
+  .tstep.now .dot { background: var(--g); color: var(--g900); box-shadow: 0 0 0 6px #fdc30055; }
+  .tstep:not(:last-child)::after { content: ""; position: absolute; left: 16px; top: 34px; bottom: 0; width: 3px; background: #e1eaee; }
+  .tstep.done:not(:last-child)::after { background: var(--ok); }
+  .tstep b { font-size: 16px; font-weight: 900; display: block; margin-top: 6px; }
+
+  /* bars chart */
+  .bars { display: flex; align-items: flex-end; gap: 10px; height: 150px; padding-top: 22px; }
+  .bars div { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+  .bars div i { width: 100%; border-radius: 12px 12px 6px 6px; background: var(--g100); }
+  .bars div.now i { background: var(--g); box-shadow: 0 4px 0 var(--g500); }
+  .bars div em { font-style: normal; font-size: 11px; font-weight: 900; color: var(--muted); }
+  .bars div b { font-size: 12px; font-weight: 900; }
+
+  /* map */
+  .map { position: relative; flex: 1; }
+  .node { position: absolute; width: 70px; height: 64px; border-radius: 99px; display: grid; place-items: center; }
+  .node svg { width: 30px; height: 30px; stroke-width: 2.8; }
+  .node.done { background: var(--g); color: var(--g900); box-shadow: 0 6px 0 var(--g500); }
+  .node.now { background: var(--t600); color: #fff; box-shadow: 0 6px 0 var(--t900), 0 0 0 9px #057b9933; }
+  .node.lock { background: #dfe8ec; color: #98a8ae; box-shadow: 0 6px 0 #c3d1d7; }
+  .node.chest { background: var(--p500); color: #fff; box-shadow: 0 6px 0 var(--p800); }
+  .weekban { background: var(--t600); color: #fff; border-radius: 22px; padding: 12px 14px; box-shadow: 0 5px 0 var(--t900); display: flex; justify-content: space-between; align-items: center; }
+
+  /* misc */
+  .badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .badge { aspect-ratio: 1; border-radius: 22px; display: grid; place-items: center; }
+  .badge svg { width: 28px; height: 28px; stroke-width: 2.4; }
+  .badge.lock { background: #e5ecef; color: #a7b5ba; }
+  .list { background: #fff; border-radius: 22px; box-shadow: 0 3px 0 #d3e1e7; }
+  .list > div { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--line); font-weight: 900; }
+  .list > div:last-child { border-bottom: 0; }
+  .list .end { margin-left: auto; }
+  .confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  .confetti i { position: absolute; width: 9px; height: 15px; border-radius: 3px; }
+  .z1 { position: relative; z-index: 1; }
+  .code { display: flex; gap: 8px; justify-content: center; }
+  .code i { width: 40px; height: 52px; border-radius: 14px; background: #fff; display: grid; place-items: center; font-style: normal; font-weight: 900; font-size: 24px; border: 2px solid var(--line); }
+  .code i.on { border-color: var(--t600); }
+  .pindots { display: flex; gap: 14px; justify-content: center; }
+  .pindots i { width: 18px; height: 18px; border-radius: 99px; border: 3px solid var(--t600); }
+  .pindots i.f { background: var(--t600); }
+  .note { font-size: 11px; font-weight: 800; color: var(--muted); text-align: center; }
+  .choice { background: #fff; border: 3px solid var(--line); border-radius: 22px; padding: 14px; display: flex; gap: 12px; align-items: center; }
+  .choice.on { border-color: var(--t600); background: var(--t50); }
+  .choice b { font-size: 16px; font-weight: 900; display: block; }
+  .choice span { font-size: 13px; font-weight: 800; color: var(--muted); }
+  .flow { display: flex; align-items: center; justify-content: space-between; }
+  .ctag { position: absolute; top: 44px; right: 16px; z-index: 6; background: var(--p600); color: #fff; font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 99px; letter-spacing: .4px; }
+  .lock-line { display:flex; align-items:center; gap:8px; }
+  svg.lc { width: 20px; height: 20px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Jarso mobile rework: every screen</h1>
+  <p>Answers the review: less text, a mascot (Jarso the jar comes alive), kid-grade visuals, a home a 10-year-old reads in 3 seconds, actions named after what really happened, bars instead of the line graph, and real onboarding for parents and children that teaches the ideas by doing them. Phones are 360 px wide (our smallest target). Money is ₹ in these mocks.</p>
+  <div class="rules">
+    <div><b>3-second home</b>How much I have, what I'm saving for, what to do today. Everything else is one tap deeper.</div>
+    <div><b>Word budget</b>Labels 1–3 words. Jarso's bubble 8 words max. Home ≤ 30 words. No paragraph anywhere on the child side.</div>
+    <div><b>One question per screen</b>Money flows become 2–3 big steps (how much → what for → done) with a keypad, not a form.</div>
+    <div><b>Name the real event</b>"I bought something", "I got money", "Save some", "Use savings". Never "move", "take out", "put in".</div>
+    <div><b>Jarso reacts</b>One mascot, 6 moods (happy, cheer, think, wow, wave, sleepy). Fills with gold as Save grows. Never sad, never guilt.</div>
+    <div><b>Pictures, not charts</b>Filling jars, goal rings, weekly bars with the number on top. No line graphs for children.</div>
+    <div><b>Fun loop = good habits</b>Sparks ⚡ (not money) for logging, saving, missions. Levels unlock Jarso looks. Streaks with a free rest day.</div>
+    <div><b>Never manipulative</b>No random rewards, no paid boosts, no guilt, no streak loss shaming, no pushes after 8 pm. Sparks never become money.</div>
+  </div>
+  <table class="names">
+    <tr><th>Today</th><th>New</th><th>What actually happens</th></tr>
+    <tr><td>Spent something?</td><td>I bought something</td><td>Write down cash spent from Spend</td></tr>
+    <tr><td>Got money</td><td>I got money</td><td>Gift or pay goes into a jar now</td></tr>
+    <tr><td>Put some in Save</td><td>Save some</td><td>Hand cash to parent, it lands in Save</td></tr>
+    <tr><td>Take some out</td><td>Use savings</td><td>Ask parent for Save money as cash</td></tr>
+    <tr><td>Ask for extra</td><td>Ask for extra</td><td>Kept: it's already plain</td></tr>
+    <tr><td>Move my money</td><td>My asks</td><td>The list of what you asked for</td></tr>
+    <tr><td>Your money ride (line graph)</td><td>Save jar → weekly bars</td><td>6 bars, amount on top, one sentence</td></tr>
+  </table>
+</header>
+
+<!-- ============================ PARENT ONBOARDING ============================ -->
+<section class="sec">
+  <h2>1 · Parent onboarding</h2>
+  <p>Account creation moves into the phone (today it's web only). Seven short steps, each one screen. The ideas are taught with three swipe cards before any form, then each step says why in one line.</p>
+  <div class="row">
+
+    <figure>
+      <div class="phone teal"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body center" style="gap:18px">
+          <span class="j" data-o='{"mood":"wave","size":170,"fill":0.35}'></span>
+          <div class="h0 wh">Pocket money<br>kids get good at</div>
+          <div class="grow"></div>
+          <div style="width:100%;display:flex;flex-direction:column;gap:14px">
+            <div class="key gold">I'm a parent</div>
+            <div class="key white">I'm a kid</div>
+            <div class="key ghost">I have an account · Sign in</div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>P1 · Welcome</b>One choice. Parent and child split here. Jarso waves.<br><span class="wc">9 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="dots" style="margin-top:6px"><i class="on"></i><i></i><i></i></div>
+          <div class="center" style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:20px">
+            <div class="hrow" style="gap:18px;align-items:flex-end">
+              <div style="text-align:center"><span class="j" data-o='{"mood":"happy","size":96,"fill":0.3,"tint":"teal"}'></span><div class="h3" style="color:var(--t700)">Spend</div><div class="sm">Cash they hold</div></div>
+              <div style="text-align:center"><span class="j" data-o='{"mood":"wow","size":96,"fill":0.7}'></span><div class="h3" style="color:var(--g800)">Save</div><div class="sm">Cash you keep</div></div>
+            </div>
+            <div class="h1" style="margin-top:14px">Two jars</div>
+            <div style="font-weight:700;color:var(--muted);font-size:16px;max-width:280px">Your child carries Spend. You keep Save safe. Jarso keeps count of both.</div>
+          </div>
+          <div class="grow"></div>
+          <div class="card hrow" style="background:var(--t50);box-shadow:none"><div class="ibox t"><i data-lucide="hand-coins"></i></div><div class="sm" style="color:var(--t800)">No bank card needed. Real cash, tracked.</div></div>
+          <div class="key">Next</div>
+          <div class="key ghost">Skip</div>
+        </div>
+      </div>
+      <figcaption><b>P2 · How Jarso works (1 of 3)</b>Card 1 Two jars. Card 2 "They ask, you say yes" (Save some / Use savings need you to hand cash over). Card 3 "A 3-minute mission a day". Animated: coins slide between jars.<br><span class="wc">~30 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="steps"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+          <div class="h1" style="margin-top:10px">Create your account</div>
+          <div class="lbl">Email</div><div class="field on">priya@example.com</div>
+          <div class="lbl">Password</div><div class="field"><span class="ph">8+ characters</span><i data-lucide="eye" class="lc" style="margin-left:auto;color:#9aaab0"></i></div>
+          <div class="lbl">Your name</div><div class="field">Priya</div>
+          <div class="lbl">Your child calls you</div>
+          <div class="hrow" style="flex-wrap:wrap;gap:8px"><span class="chip on">Mum</span><span class="chip">Dad</span><span class="chip">Mama</span><span class="chip">Papa</span><span class="chip">Other…</span></div>
+          <div class="grow"></div>
+          <div class="key">Continue</div>
+          <div class="note">We check your email next. Kids never give us theirs.</div>
+        </div>
+      </div>
+      <figcaption><b>P3 · Account</b>Adds "Your child calls you" so every child screen says "Mum", not "your parent". Then email check (code entry, not link, so it works in-app).<br><span class="wc">~25 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="steps"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+          <div class="h1" style="margin-top:10px">Add your child</div>
+          <div class="lbl">Nickname they use</div><div class="field on">Sam</div>
+          <div class="lbl">Pick a 4-digit PIN</div>
+          <div class="code"><i class="on">4</i><i>7</i><i>1</i><i>•</i></div>
+          <div class="card hrow" style="box-shadow:none;border:2px solid var(--line)"><div class="ibox ok"><i data-lucide="shield-check"></i></div><div><div class="h3">Only a nickname</div><div class="sm">No email, surname or birthday.</div></div></div>
+          <div class="hrow" style="font-weight:800;font-size:14px"><span class="ibox t" style="width:28px;height:28px;border-radius:8px"><i data-lucide="check" style="width:18px;height:18px"></i></span>I'm their parent or guardian and I agree</div>
+          <div class="grow"></div>
+          <div class="key">Add Sam</div>
+          <div class="key ghost">+ Another child later</div>
+        </div>
+      </div>
+      <figcaption><b>P4 · Add child</b>Same `register_child` data (nickname, PIN, consent). The data-minimum promise is shown, not buried.<br><span class="wc">~30 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div>
+          <div class="h1" style="margin-top:10px">Sam's pocket money</div>
+          <div class="amount" style="margin-top:6px"><small>₹</small>100</div>
+          <div class="hrow" style="justify-content:center;gap:8px"><span class="chip">₹50</span><span class="chip on">₹100</span><span class="chip">₹200</span><span class="chip">Other</span></div>
+          <div class="lbl">How often</div>
+          <div class="hrow" style="gap:8px;flex-wrap:wrap"><span class="chip on">Every week</span><span class="chip">Every month</span><span class="chip">Not now</span></div>
+          <div class="lbl">Starting</div><div class="field"><i data-lucide="calendar" class="lc" style="color:var(--t600)"></i>Sunday 8 Nov</div>
+          <div class="card" style="background:var(--g50);box-shadow:none"><div class="lbl" style="margin:0 0 8px">Split it</div>
+            <div class="hrow"><div class="jar-split" style="flex:3;height:30px;border-radius:10px 0 0 10px;background:var(--t600);color:#fff;font-weight:900;font-size:13px;display:grid;place-items:center">₹70 Spend</div><div style="flex:1.3;height:30px;border-radius:0 10px 10px 0;background:var(--g);font-weight:900;font-size:13px;display:grid;place-items:center">₹30 Save</div></div>
+          </div>
+          <div class="grow"></div>
+          <div class="key">Looks good</div>
+        </div>
+      </div>
+      <figcaption><b>P5 · Pocket money</b>FR01 setup as taps. New: a default split so Save grows from day one (goal-gradient head start). Split is a draggable bar.<br><span class="wc">~20 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+          <div class="h1" style="margin-top:10px">How much freedom?</div>
+          <div class="sm" style="margin-top:-4px">When Sam saves or uses savings</div>
+          <div class="choice"><div class="ibox t"><i data-lucide="hand"></i></div><div><b>Ask me every time</b><span>Best to start</span></div></div>
+          <div class="choice on"><div class="ibox g"><i data-lucide="bell"></i></div><div><b>Small ones: just tell me</b><span>Under ₹50 goes through</span></div></div>
+          <div class="choice"><div class="ibox p"><i data-lucide="rocket"></i></div><div><b>Sam decides</b><span>You get a note</span></div></div>
+          <div class="sm" style="text-align:center">Change any time in Sam's rules.</div>
+          <div class="grow"></div>
+          <div class="key">Next</div>
+        </div>
+      </div>
+      <figcaption><b>P6 · Rules as 3 presets</b>Maps onto existing rules (approve / notify / auto-confirm with cap). Fine-tuning stays in Rules.<br><span class="wc">~30 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone gold"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body center">
+          <div class="steps" style="width:100%"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+          <span class="j" data-o='{"mood":"cheer","size":120,"fill":0.4}' style="margin-top:6px"></span>
+          <div class="h1" style="color:var(--g900)">Sam's ready!</div>
+          <div class="card" style="width:100%;display:flex;flex-direction:column;gap:10px;text-align:left">
+            <div class="xs">SAM SIGNS IN WITH</div>
+            <div class="hrow between"><span class="sm">Family code</span><span class="money" style="font-size:22px;letter-spacing:2px">KQ7-4MX</span></div>
+            <div class="hrow between"><span class="sm">Nickname</span><span class="h2">Sam</span></div>
+            <div class="hrow between"><span class="sm">PIN</span><span class="h2">The one you picked</span></div>
+            <div style="display:grid;place-items:center;height:96px;background:var(--t50);border-radius:14px"><i data-lucide="qr-code" style="width:70px;height:70px;color:var(--t800)"></i></div>
+          </div>
+          <div class="grow"></div>
+          <div class="key" style="width:100%"><i data-lucide="share-2"></i>Send to Sam's phone</div>
+          <div class="key ghost">Go to my family</div>
+        </div>
+      </div>
+      <figcaption><b>P7 · Hand-off</b>Login card to share or a QR the child's phone scans (fills code + nickname; PIN typed by child). Never shows the PIN.<br><span class="wc">~20 words</span></figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ CHILD ONBOARDING ============================ -->
+<section class="sec">
+  <h2>2 · Child onboarding: learn by playing</h2>
+  <p>About 2 minutes. Each idea is one screen where the child does the thing with practice coins (marked PRACTICE, never touches real jars). Ends with a goal and a Jarso that's theirs. Skippable, replayable from Me.</p>
+  <div class="row">
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow" style="justify-content:center;margin-top:6px"><span class="j" data-o='{"mood":"happy","size":90,"fill":0.3}'></span></div>
+          <div class="h1" style="text-align:center">Hi! Let's get you in</div>
+          <div class="key white sm"><i data-lucide="scan-line"></i>Scan Mum's code</div>
+          <div class="lbl">Family code</div>
+          <div class="code"><i>K</i><i>Q</i><i>7</i><i>4</i><i>M</i><i class="on">X</i></div>
+          <div class="lbl">Nickname</div><div class="field">Sam</div>
+          <div class="lbl">PIN</div>
+          <div class="pindots"><i class="f"></i><i class="f"></i><i></i><i></i></div>
+          <div class="pad" style="margin-top:2px"><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i style="background:transparent;box-shadow:none"></i><i>0</i><i><i data-lucide="delete"></i></i></div>
+          <div class="key ghost" style="height:30px">No parent on Jarso yet?</div>
+        </div>
+      </div>
+      <figcaption><b>C1 · Sign in</b>Scan first (QR from P7), boxes for the code, PIN on a big pad. "No parent yet?" starts FR13 child-first invite (nickname + parent email only).<br><span class="wc">~20 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone teal"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body center" style="gap:16px">
+          <div class="bubble b" style="font-size:20px">Hi Sam! I'm Jarso.</div>
+          <span class="j" data-o='{"mood":"wave","size":200,"fill":0.15}'></span>
+          <div class="h1 wh">I help your money<br>grow. Ready?</div>
+          <div class="grow"></div>
+          <div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+          <div class="key gold" style="width:100%">Let's go!</div>
+          <div class="key ghost">Skip</div>
+        </div>
+      </div>
+      <figcaption><b>C2 · Meet Jarso</b>Jarso hops in, waves, speaks the line (recorded voice, mute button top-right). Big friendly start, nothing to read.<br><span class="wc">11 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="ctag">PRACTICE</div>
+        <div class="body">
+          <div class="dots" style="margin-top:6px"><i></i><i class="on"></i><i></i><i></i><i></i></div>
+          <div class="h1" style="margin-top:6px">This is Spend</div>
+          <div class="sm" style="margin-top:-6px;font-size:16px">Money in your pocket.</div>
+          <div class="jar-tile spend" style="height:200px;margin-top:6px"><div class="nm"><i data-lucide="wallet"></i>Spend</div><div class="amt" style="font-size:46px">₹100</div><div class="who">In your pocket</div><div class="deco"><i data-lucide="wallet"></i></div></div>
+          <div class="hrow" style="margin-top:4px"><span class="j" data-o='{"mood":"happy","size":64,"fill":0.3}'></span><div class="bubble l">Bought a snack for ₹20? Tap it!</div></div>
+          <div class="cat" style="width:120px;align-self:center;border-color:var(--g);box-shadow:0 0 0 8px #fdc30044"><div class="ibox b"><i data-lucide="cookie"></i></div>Snack ₹20</div>
+          <div class="grow"></div>
+          <div class="note"><i data-lucide="pointer" style="width:16px;height:16px"></i> Tap the snack</div>
+        </div>
+      </div>
+      <figcaption><b>C3 · Spend, by doing</b>Child taps the snack; ₹100 ticks to ₹80 with a coin sound. Lesson: writing it down keeps the jar true. Practice money only.<br><span class="wc">~15 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="ctag">PRACTICE</div>
+        <div class="body">
+          <div class="dots" style="margin-top:6px"><i></i><i></i><i class="on"></i><i></i><i></i></div>
+          <div class="h1" style="margin-top:6px">This is Save</div>
+          <div class="sm" style="margin-top:-6px;font-size:16px">Mum keeps it safe for you.</div>
+          <div class="flow" style="margin-top:22px">
+            <div style="text-align:center"><span class="j" data-o='{"mood":"happy","size":100,"fill":0.45,"tint":"teal"}'></span><div class="h3" style="color:var(--t700)">Spend ₹80</div></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--g500)"><span style="width:38px;height:38px;border-radius:99px;background:var(--g);box-shadow:0 3px 0 var(--g500);display:grid;place-items:center;font-weight:900;color:var(--g900)">₹</span><i data-lucide="move-right" style="width:40px;height:30px"></i></div>
+            <div style="text-align:center"><span class="j" data-o='{"mood":"wow","size":100,"fill":0.15}'></span><div class="h3" style="color:var(--g800)">Save ₹0</div></div>
+          </div>
+          <div class="hrow" style="margin-top:16px"><span class="j" data-o='{"mood":"think","size":60,"fill":0.3}'></span><div class="bubble l">Drag a coin into Save!</div></div>
+          <div class="grow"></div>
+          <div class="card hrow" style="background:var(--g50);box-shadow:none"><div class="ibox g"><i data-lucide="hand-coins"></i></div><div class="sm" style="color:var(--g900)">For real, you hand the cash to Mum.</div></div>
+        </div>
+      </div>
+      <figcaption><b>C4 · Save, by dragging</b>Drag coins from Spend jar to Save jar; Save jar (Jarso) fills and smiles. The real-world step (hand cash to Mum) is said once, here.<br><span class="wc">~25 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="ctag">PRACTICE</div>
+        <div class="body">
+          <div class="dots" style="margin-top:6px"><i></i><i></i><i></i><i class="on"></i><i></i></div>
+          <div class="h1" style="margin-top:6px">Save for something</div>
+          <div class="sm" style="margin-top:-6px;font-size:16px">Pick one. You can change it.</div>
+          <div class="grid3" style="margin-top:6px">
+            <div class="cat"><span style="font-size:34px">🎮</span>Game</div>
+            <div class="cat on"><span style="font-size:34px">⚽</span>Boots</div>
+            <div class="cat"><span style="font-size:34px">🎧</span>Headphones</div>
+            <div class="cat"><span style="font-size:34px">📚</span>Books</div>
+            <div class="cat"><span style="font-size:34px">🎁</span>A gift</div>
+            <div class="cat"><span style="font-size:34px">✏️</span>My own</div>
+          </div>
+          <div class="lbl">It costs about</div>
+          <div class="field on"><span class="money" style="font-size:22px">₹ 450</span></div>
+          <div class="hrow"><div class="ring" style="background:conic-gradient(var(--g) 0 7%, #e8eef1 7%)"><span>⚽</span></div><div><div class="h3">With ₹30 a week</div><div class="sm">About 15 weeks</div></div></div>
+          <div class="grow"></div>
+          <div class="key">Set my goal</div>
+        </div>
+      </div>
+      <figcaption><b>C5 · Pick a goal</b>Real goal (saved). Shows "about 15 weeks" from the split in P5, so the child sees saving is a climb, not a wall. Goal emoji is child-picked, allowed by design.md.<br><span class="wc">~25 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="dots" style="margin-top:6px"><i></i><i></i><i></i><i></i><i class="on"></i></div>
+          <div class="h1" style="margin-top:6px">Make Jarso yours</div>
+          <div class="card center" style="display:flex;flex-direction:column;align-items:center;background:linear-gradient(180deg,var(--t50),#fff)">
+            <span class="j" data-o='{"mood":"happy","size":170,"fill":0.2,"lid":"#7d66e9","acc":"cap"}'></span>
+          </div>
+          <div class="lbl">Lid</div>
+          <div class="hrow" style="gap:10px"><span style="width:44px;height:44px;border-radius:99px;background:#00d6eb"></span><span style="width:44px;height:44px;border-radius:99px;background:#7d66e9;box-shadow:0 0 0 4px #fff,0 0 0 7px var(--t600)"></span><span style="width:44px;height:44px;border-radius:99px;background:#f08a6b"></span><span style="width:44px;height:44px;border-radius:99px;background:#1f9d6b"></span><span style="width:44px;height:44px;border-radius:99px;background:#141c1f"></span></div>
+          <div class="lbl">Wear</div>
+          <div class="hrow" style="gap:8px;flex-wrap:wrap"><span class="chip">None</span><span class="chip on">Cap</span><span class="chip">Shades</span><span class="chip"><i data-lucide="lock"></i>Crown · Lv 5</span></div>
+          <div class="grow"></div>
+          <div class="key gold">Done!</div>
+        </div>
+      </div>
+      <figcaption><b>C6 · Make Jarso yours</b>Self-expression, not baby cute. More looks unlock with levels (earned only, never bought).<br><span class="wc">~15 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone grape"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body center" style="gap:14px">
+          <div class="confetti" data-n="40"></div>
+          <span class="j z1" data-o='{"mood":"cheer","size":190,"fill":0.2,"lid":"#7d66e9","acc":"cap"}'></span>
+          <div class="h0 wh z1">You're in!</div>
+          <div class="hrow z1" style="gap:10px"><span class="pill zap"><i data-lucide="zap"></i>+50</span><span class="pill"><i data-lucide="award" style="color:var(--g500)"></i>First badge</span></div>
+          <div class="grow"></div>
+          <div class="key gold z1" style="width:100%">Go to my jars</div>
+        </div>
+      </div>
+      <figcaption><b>C7 · Done</b>Confetti, fanfare, haptic. First badge "Jar starter" and 50 Sparks so levels feel alive on day one.<br><span class="wc">6 words</span></figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ HOME ============================ -->
+<section class="sec">
+  <h2>3 · Child home and the + button</h2>
+  <p>Tabs: Home · Learn · + · Diary · Jarso. The + is the one way to record money. Bell and avatar sit on top. Home has 4 blocks, all big.</p>
+  <div class="row">
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between">
+            <div class="hrow" style="gap:8px"><span style="width:40px;height:40px;border-radius:99px;background:var(--p100);display:grid;place-items:center;overflow:hidden"><span class="j" data-o='{"mood":"happy","size":34,"fill":0.6,"lid":"#7d66e9"}'></span></span><span class="h2">Hi Sam!</span></div>
+            <div class="hrow" style="gap:6px"><span class="pill fire"><i data-lucide="flame"></i>5</span><span class="pill zap"><i data-lucide="zap"></i>240</span><span class="pill" style="width:34px;padding:0;justify-content:center;position:relative"><i data-lucide="bell"></i><i style="position:absolute;top:4px;right:5px;width:9px;height:9px;border-radius:9px;background:var(--blush)"></i></span></div>
+          </div>
+          <div class="hero">
+            <span class="j" data-o='{"mood":"cheer","size":118,"fill":0.6,"lid":"#7d66e9","acc":"cap"}' style="margin-bottom:-6px"></span>
+            <div class="bubble l">₹40 saved this week. Nice!</div>
+          </div>
+          <div class="jars">
+            <div class="jar-tile spend"><div class="nm"><i data-lucide="wallet"></i>Spend</div><div><div class="amt">₹120</div><div class="who">In your pocket</div></div><div class="deco"><i data-lucide="wallet"></i></div></div>
+            <div class="jar-tile save"><div class="nm"><i data-lucide="piggy-bank"></i>Save</div><div><div class="amt">₹340</div><div class="who">Mum keeps it</div></div><div class="deco"><i data-lucide="piggy-bank"></i></div></div>
+          </div>
+          <div class="card hrow">
+            <div class="ring" style="background:conic-gradient(var(--g) 0 75%, #e8eef1 75%)"><span>⚽</span></div>
+            <div class="grow"><div class="h3">Football boots</div><div class="bar" style="margin:6px 0 4px"><i style="width:75%"></i></div><div class="sm"><b class="money" style="color:var(--ink)">₹110</b> to go</div></div>
+            <i data-lucide="chevron-right" class="lc" style="color:#9aaab0"></i>
+          </div>
+          <div class="card hrow" style="background:var(--p100);box-shadow:0 3px 0 var(--p200)">
+            <div class="ibox p" style="background:#fff"><i data-lucide="target"></i></div>
+            <div class="grow"><div class="xs" style="color:var(--p600)">TODAY'S MISSION</div><div class="h3">Small buys add up</div></div>
+            <div class="key grape sm" style="padding:0 16px">Play</div>
+          </div>
+        </div>
+        <div class="tabs"><span class="tab on"><span class="ic"><i data-lucide="house"></i></span>Home</span><span class="tab"><span class="ic"><i data-lucide="map"></i></span>Learn</span><div class="plus"><i data-lucide="plus"></i></div><span class="tab"><span class="ic"><i data-lucide="book-open"></i></span>Diary</span><span class="tab"><span class="ic"><i data-lucide="message-circle"></i></span>Jarso</span></div>
+      </div>
+      <figcaption><b>H1 · Home</b>Jarso hero (fill = Save level, mood = what just happened), two jar tiles (tap → jar page), the goal, one mission. Streak and Sparks always visible. Old graph, list card and push card gone from here.<br><span class="wc">~25 words (was 120–180)</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><div class="hrow" style="gap:8px"><span style="width:40px;height:40px;border-radius:99px;background:var(--p100)"></span><span class="h2">Hi Sam!</span></div></div>
+          <div class="hero" style="min-height:120px"></div>
+          <div class="jars"><div class="jar-tile spend"></div><div class="jar-tile save"></div></div>
+          <div class="dim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <div class="hrow between"><div class="h1">What happened?</div><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="x"></i></span></div>
+            <div class="acts">
+              <div class="act"><div class="ibox b"><i data-lucide="shopping-bag"></i></div><b>I bought something</b><span>From Spend</span></div>
+              <div class="act"><div class="ibox ok"><i data-lucide="gift"></i></div><b>I got money</b><span>Gift, pay, found</span></div>
+              <div class="act"><div class="ibox g"><i data-lucide="piggy-bank"></i></div><b>Save some</b><span>Give cash to Mum</span></div>
+              <div class="act"><div class="ibox t"><i data-lucide="hand-coins"></i></div><b>Use savings</b><span>Ask Mum for it</span></div>
+              <div class="act wide"><div class="ibox p"><i data-lucide="hand-helping"></i></div><div><b>Ask for extra</b><br><span>Need a bit more?</span></div></div>
+            </div>
+            <div class="hrow between list" style="padding:12px 14px;border-radius:18px"><span class="h3 hrow" style="gap:8px"><i data-lucide="clock" class="lc" style="color:var(--g500)"></i>My asks</span><span class="chip gold">2 waiting</span></div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>H2 · The + sheet</b>Five picture tiles named after real moments, each with a 3-word hint. Replaces 6 labels spread over two places. "My asks" replaces "Move my money".<br><span class="wc">~30 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><div class="hrow" style="gap:8px"><span style="width:40px;height:40px;border-radius:99px;background:var(--p100);display:grid;place-items:center"><span class="j" data-o='{"mood":"happy","size":34,"fill":0.6,"lid":"#7d66e9"}'></span></span><span class="h2">Hi Sam!</span></div><div class="hrow" style="gap:6px"><span class="pill fire"><i data-lucide="flame"></i>5</span><span class="pill zap"><i data-lucide="zap"></i>240</span></div></div>
+          <div class="card" style="background:var(--g);box-shadow:0 5px 0 var(--g500)">
+            <div class="hrow"><span class="j" data-o='{"mood":"wow","size":80,"fill":0.6,"lid":"#7d66e9","acc":"cap"}'></span><div><div class="h2" style="color:var(--g900)">Pocket money day!</div><div class="money" style="font-size:30px;color:var(--g900)">+₹100</div></div></div>
+            <div class="hrow" style="gap:8px;margin-top:6px"><span class="chip" style="flex:1;justify-content:center">₹70 → Spend</span><span class="chip" style="flex:1;justify-content:center">₹30 → Save</span></div>
+            <div class="key white sm" style="margin-top:10px">Got it from Mum</div>
+          </div>
+          <div class="card hrow"><div class="ibox g"><i data-lucide="clock"></i></div><div class="grow"><div class="h3">Save ₹50</div><div class="sm">Give the cash to Mum</div></div><span class="chip gold">Waiting</span></div>
+          <div class="card hrow" style="background:var(--ok100);box-shadow:none"><div class="ibox ok" style="background:#fff"><i data-lucide="check"></i></div><div class="grow"><div class="h3">Mum said yes!</div><div class="sm">₹60 from savings is coming</div></div></div>
+          <div class="jars"><div class="jar-tile spend" style="height:110px"><div class="nm"><i data-lucide="wallet"></i>Spend</div><div class="amt">₹120</div></div><div class="jar-tile save" style="height:110px"><div class="nm"><i data-lucide="piggy-bank"></i>Save</div><div class="amt">₹340</div></div></div>
+        </div>
+        <div class="tabs"><span class="tab on"><span class="ic"><i data-lucide="house"></i></span>Home</span><span class="tab"><span class="ic"><i data-lucide="map"></i></span>Learn</span><div class="plus"><i data-lucide="plus"></i></div><span class="tab"><span class="ic"><i data-lucide="book-open"></i></span>Diary</span><span class="tab"><span class="ic"><i data-lucide="message-circle"></i></span>Jarso</span></div>
+      </div>
+      <figcaption><b>H3 · Home with things happening</b>Moments jump to the top as cards: pocket money due (confirm you got it), an ask waiting, a yes. Hero hides while a moment card shows. Each card is 2 lines max.<br><span class="wc">~35 words</span></figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ MONEY FLOWS ============================ -->
+<section class="sec">
+  <h2>4 · Money flows: one question per screen</h2>
+  <p>Every flow: how much (big keypad) → what for (picture grid) → celebration. Rules and limits show as one chip, not sentences. The "guess what happens to your goal" step becomes a quick Jarso question on the amount screen.</p>
+  <div class="row">
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="arrow-left"></i></span><div class="steps" style="width:110px"><i class="on"></i><i></i></div><span style="width:36px"></span></div>
+          <div class="hrow" style="margin-top:4px"><div class="ibox b"><i data-lucide="shopping-bag"></i></div><div class="h1">How much?</div></div>
+          <div class="amount" style="margin-top:8px"><small>₹</small>45</div>
+          <div class="hrow" style="justify-content:center"><span class="chip">Spend has ₹120</span></div>
+          <div class="hrow" style="gap:8px;justify-content:center"><span class="chip">₹10</span><span class="chip">₹20</span><span class="chip">₹50</span><span class="chip">₹100</span></div>
+          <div class="grow"></div>
+          <div class="pad"><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i>.</i><i>0</i><i><i data-lucide="delete"></i></i></div>
+          <div class="key">Next</div>
+        </div>
+      </div>
+      <figcaption><b>F1 · I bought something: amount</b>Number pad, quick chips, jar balance as a chip. No form labels.<br><span class="wc">~10 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="arrow-left"></i></span><div class="steps" style="width:110px"><i class="on"></i><i class="on"></i></div><span style="width:36px"></span></div>
+          <div class="h1" style="margin-top:4px">On what?</div>
+          <div class="grid3">
+            <div class="cat on"><div class="ibox b"><i data-lucide="cookie"></i></div>Snacks</div>
+            <div class="cat"><div class="ibox p"><i data-lucide="gamepad-2"></i></div>Games</div>
+            <div class="cat"><div class="ibox t"><i data-lucide="shirt"></i></div>Clothes</div>
+            <div class="cat"><div class="ibox g"><i data-lucide="bus"></i></div>Travel</div>
+            <div class="cat"><div class="ibox ok"><i data-lucide="book"></i></div>Books</div>
+            <div class="cat"><div class="ibox b"><i data-lucide="gift"></i></div>Gifts</div>
+            <div class="cat"><div class="ibox p"><i data-lucide="ticket"></i></div>Going out</div>
+            <div class="cat"><div class="ibox t"><i data-lucide="pencil-ruler"></i></div>School</div>
+            <div class="cat"><div class="ibox g"><i data-lucide="ellipsis"></i></div>Other</div>
+          </div>
+          <div class="field"><i data-lucide="pencil" class="lc" style="color:#9aaab0"></i><span class="ph">What snack? (if you want)</span></div>
+          <div class="grow"></div>
+          <div class="key">Done · ₹45 snacks</div>
+        </div>
+      </div>
+      <figcaption><b>F2 · On what?</b>3×3 picture grid (same categories as core's diary copy). Name stays optional, one line. Button repeats the choice.<br><span class="wc">~15 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone teal"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body center" style="gap:14px">
+          <div class="confetti" data-n="26"></div>
+          <span class="j z1" data-o='{"mood":"cheer","size":170,"fill":0.6,"lid":"#7d66e9","acc":"cap"}'></span>
+          <div class="h0 wh z1">Written down!</div>
+          <div class="h2 wh z1">₹45 · Snacks</div>
+          <div class="hrow z1" style="gap:8px"><span class="pill zap"><i data-lucide="zap"></i>+10</span><span class="pill fire"><i data-lucide="flame"></i>6 days</span></div>
+          <div class="card z1" style="background:#ffffff1a;color:#fff;width:100%"><div class="hrow between"><span class="sm wh">Spend now</span><span class="money" style="font-size:22px">₹75</span></div></div>
+          <div class="grow"></div>
+          <div class="key gold z1" style="width:100%">Nice</div>
+          <div class="key ghost z1"><i data-lucide="undo-2"></i>Undo</div>
+        </div>
+      </div>
+      <figcaption><b>F3 · Done</b>Celebrates honest logging, not spending. Sparks and streak tick up with a pop. Undo stays (existing outbox undo).<br><span class="wc">~10 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="x"></i></span><div class="h2">Save some</div><span style="width:36px"></span></div>
+          <div class="flow" style="margin-top:4px">
+            <div style="text-align:center"><span class="j" data-o='{"mood":"happy","size":88,"fill":0.4,"tint":"teal"}'></span><div class="sm">Spend</div><div class="money h2">₹70</div></div>
+            <div style="color:var(--g500);text-align:center"><span class="money" style="display:inline-grid;place-items:center;width:58px;height:58px;border-radius:99px;background:var(--g);color:var(--g900);font-size:18px;box-shadow:0 4px 0 var(--g500)">₹50</span><br><i data-lucide="move-right" style="width:44px;height:26px"></i></div>
+            <div style="text-align:center"><span class="j" data-o='{"mood":"wow","size":88,"fill":0.7,"lid":"#7d66e9"}'></span><div class="sm">Save</div><div class="money h2" style="color:var(--g800)">₹390</div></div>
+          </div>
+          <div class="card" style="padding:16px 14px"><div class="hrow between"><span class="money" style="font-size:22px">₹50</span><span class="xs">up to ₹120</span></div>
+            <div style="position:relative;height:16px;border-radius:99px;background:#e8eef1;margin-top:14px"><i style="position:absolute;left:0;top:0;bottom:0;width:42%;border-radius:99px;background:var(--g)"></i><span style="position:absolute;left:calc(42% - 17px);top:-9px;width:34px;height:34px;border-radius:99px;background:#fff;border:4px solid var(--g);box-shadow:0 3px 0 var(--g500)"></span></div>
+          </div>
+          <div class="hrow"><span class="j" data-o='{"mood":"think","size":56,"fill":0.6,"lid":"#7d66e9"}'></span><div class="bubble l" style="font-size:15px">Your boots get…</div></div>
+          <div class="hrow" style="gap:8px"><span class="chip" style="flex:1;justify-content:center">Further</span><span class="chip on" style="flex:1;justify-content:center">Closer ✓</span></div>
+          <div class="chip gold" style="align-self:center">⚽ 2 weeks closer!</div>
+          <div class="grow"></div>
+          <div class="key gold"><i data-lucide="hand-coins"></i>I'll give ₹50 to Mum</div>
+        </div>
+      </div>
+      <figcaption><b>F4 · Save some</b>Drag the coin slider; both jars update live. Jarso's guess replaces the predict panel (same core logic, 3 words). The button says the real action: hand cash to Mum.<br><span class="wc">~20 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="x"></i></span><div class="h2">Save ₹50</div><span style="width:36px"></span></div>
+          <div class="center" style="display:flex;flex-direction:column;align-items:center;gap:8px;margin:10px 0">
+            <span class="j" data-o='{"mood":"think","size":130,"fill":0.6,"lid":"#7d66e9","acc":"cap","look":"up"}'></span>
+            <div class="h1">Waiting for Mum</div>
+          </div>
+          <div class="card track" style="padding:16px">
+            <div class="tstep done"><span class="dot"><i data-lucide="check"></i></span><div><b>You asked</b><span class="sm">Today, 4:10 pm</span></div></div>
+            <div class="tstep now"><span class="dot"><i data-lucide="hand-coins"></i></span><div><b>Give Mum the ₹50</b><span class="sm">She taps "Got it"</span></div></div>
+            <div class="tstep"><span class="dot"><i data-lucide="piggy-bank"></i></span><div><b>In your Save jar</b></div></div>
+          </div>
+          <div class="chip gold" style="align-self:center">₹50 held in Spend till then</div>
+          <div class="grow"></div>
+          <div class="key ghost" style="color:#b54a2b">Cancel this</div>
+        </div>
+      </div>
+      <figcaption><b>F5 · Waiting, as a tracker</b>Like a delivery tracker: done, now, next. Works for all three asks (Save some, Use savings, Ask for extra) with their own steps. Push when Mum taps.<br><span class="wc">~25 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="x"></i></span><div class="h2">Use savings</div><span style="width:36px"></span></div>
+          <div class="amount" style="margin-top:2px"><small>₹</small>60</div>
+          <div class="hrow" style="justify-content:center;gap:8px"><span class="chip">You can ask up to ₹200</span></div>
+          <div class="lbl">For what?</div>
+          <div class="grid3">
+            <div class="cat on"><span style="font-size:28px">⚽</span>My goal</div>
+            <div class="cat"><div class="ibox p" style="width:40px;height:40px"><i data-lucide="gamepad-2"></i></div>Games</div>
+            <div class="cat"><div class="ibox b" style="width:40px;height:40px"><i data-lucide="gift"></i></div>A gift</div>
+          </div>
+          <div class="pad" style="margin-top:4px"><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i>.</i><i>0</i><i><i data-lucide="delete"></i></i></div>
+          <div class="key"><i data-lucide="send"></i>Ask Mum</div>
+        </div>
+      </div>
+      <figcaption><b>F6 · Use savings</b>Same pattern. Limit from rules shows as one chip. "Ask for extra" is identical with its own colour and lands in Spend.<br><span class="wc">~12 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="arrow-left"></i></span><div class="steps" style="width:110px"><i class="on"></i><i class="on"></i></div><span style="width:36px"></span></div>
+          <div class="hrow"><div class="ibox ok"><i data-lucide="gift"></i></div><div class="h1">Got ₹200!</div></div>
+          <div class="lbl">From</div>
+          <div class="grid3">
+            <div class="cat on"><div class="ibox b"><i data-lucide="cake"></i></div>Birthday</div>
+            <div class="cat"><div class="ibox ok"><i data-lucide="gift"></i></div>Gift</div>
+            <div class="cat"><div class="ibox t"><i data-lucide="briefcase"></i></div>Earned</div>
+          </div>
+          <div class="lbl">Put it in</div>
+          <div class="jars">
+            <div class="choice" style="flex-direction:column;align-items:flex-start"><div class="ibox t"><i data-lucide="wallet"></i></div><b>Spend</b><span>Keep the cash</span></div>
+            <div class="choice on" style="flex-direction:column;align-items:flex-start;border-color:var(--g);background:var(--g50)"><div class="ibox g"><i data-lucide="piggy-bank"></i></div><b>Save</b><span>Give it to Mum</span></div>
+          </div>
+          <div class="chip gold" style="align-self:center">⚽ Boots: ₹0 to go after this!</div>
+          <div class="grow"></div>
+          <div class="key gold">Put it in Save</div>
+        </div>
+      </div>
+      <figcaption><b>F7 · I got money</b>Amount first (keypad, not shown), then source + jar as two big picks. Goal effect shown live to nudge saving without preaching.<br><span class="wc">~20 words</span></figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ JARS & GOAL ============================ -->
+<section class="sec">
+  <h2>5 · Jars and goal</h2>
+  <p>The line graph is gone. Tap a jar tile → its page with a big drawn jar and 6 weekly bars with the number on each bar. The goal is a big picture with a ring and milestone stars.</p>
+  <div class="row">
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="arrow-left"></i></span><div class="h2">Save jar</div><span style="width:36px"></span></div>
+          <div class="card" style="background:linear-gradient(180deg,var(--g50),#fff);display:flex;align-items:center;gap:12px">
+            <span class="j" data-o='{"mood":"happy","size":120,"fill":0.6,"lid":"#7d66e9","acc":"cap"}'></span>
+            <div><div class="money" style="font-size:40px;color:var(--g800)">₹340</div><div class="sm">Mum keeps it safe</div></div>
+          </div>
+          <div class="card">
+            <div class="hrow between"><span class="h3">Saved each week</span><span class="chip gold" style="padding:3px 10px">Best week!</span></div>
+            <div class="bars">
+              <div><b>₹10</b><i style="height:14%"></i><em>Oct 5</em></div>
+              <div><b>₹30</b><i style="height:40%"></i><em>12</em></div>
+              <div><b>₹0</b><i style="height:3%"></i><em>19</em></div>
+              <div><b>₹30</b><i style="height:40%"></i><em>26</em></div>
+              <div><b>₹20</b><i style="height:27%"></i><em>Nov 2</em></div>
+              <div class="now"><b>₹70</b><i style="height:92%"></i><em>This wk</em></div>
+            </div>
+          </div>
+          <div class="hrow"><span class="j" data-o='{"mood":"cheer","size":50,"fill":0.6,"lid":"#7d66e9"}'></span><div class="bubble l" style="font-size:15px">₹50 more than last week!</div></div>
+          <div class="grow"></div>
+          <div class="hrow" style="gap:10px"><div class="key gold" style="flex:1">Save some</div><div class="key white" style="flex:1">Use savings</div></div>
+        </div>
+      </div>
+      <figcaption><b>J1 · Save jar page</b>Bars beat lines for 10–14s (graph-literacy research). Number on every bar, one sentence of meaning. Spend jar page is the same in teal ("Spent each week" + top category icons).<br><span class="wc">~25 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="arrow-left"></i></span><div class="h2">My goal</div><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="pencil"></i></span></div>
+          <div class="center" style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:10px">
+            <div class="ring" style="width:200px;height:200px;background:conic-gradient(var(--g) 0 75%, #e1eaee 75%)"><span style="width:166px;height:166px;font-size:84px">⚽</span></div>
+            <div class="h1">Football boots</div>
+            <div class="money" style="font-size:22px">₹340 <span class="sm">of ₹450</span></div>
+          </div>
+          <div class="card">
+            <div class="hrow between" style="padding:0 6px">
+              <div style="text-align:center"><div class="ibox g" style="border-radius:99px;background:var(--g)"><i data-lucide="star"></i></div><div class="xs">25%</div></div>
+              <div style="text-align:center"><div class="ibox g" style="border-radius:99px;background:var(--g)"><i data-lucide="star"></i></div><div class="xs">50%</div></div>
+              <div style="text-align:center"><div class="ibox g" style="border-radius:99px;background:var(--g)"><i data-lucide="star"></i></div><div class="xs">75%</div></div>
+              <div style="text-align:center"><div class="ibox" style="border-radius:99px;background:#e1eaee;color:#9aaab0"><i data-lucide="trophy"></i></div><div class="xs">Got it!</div></div>
+            </div>
+          </div>
+          <div class="hrow" style="justify-content:center"><span class="chip gold" style="font-size:15px">₹110 to go · about 4 weeks</span></div>
+          <div class="grow"></div>
+          <div class="key gold">Save some</div>
+        </div>
+      </div>
+      <figcaption><b>J2 · Goal</b>Big picture in a ring, four stars that light up (each quarter = cheer + Sparks), one line of what's left in weeks, not "allowances".<br><span class="wc">~15 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone gold"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body center" style="gap:14px">
+          <div class="confetti" data-n="44"></div>
+          <div class="ring z1" style="width:150px;height:150px;background:conic-gradient(var(--t600) 0 100%)"><span style="width:124px;height:124px;font-size:66px">⚽</span></div>
+          <span class="j z1" data-o='{"mood":"cheer","size":130,"fill":0.95,"lid":"#7d66e9","acc":"crown"}'></span>
+          <div class="h0 z1" style="color:var(--g900)">You did it!</div>
+          <div class="h3 z1" style="color:var(--g800)">₹450 saved for your boots</div>
+          <div class="hrow z1" style="gap:8px"><span class="pill zap"><i data-lucide="zap"></i>+100</span><span class="pill"><i data-lucide="award" style="color:var(--p600)"></i>Goal getter</span></div>
+          <div class="grow"></div>
+          <div class="key z1" style="width:100%">Ask Mum to buy them</div>
+          <div class="key ghost z1" style="color:var(--g900)">Keep saving</div>
+        </div>
+      </div>
+      <figcaption><b>J3 · Goal reached</b>The biggest moment in the app gets the biggest show (confetti, fanfare, crown). Then the real next step: ask to use savings.<br><span class="wc">~15 words</span></figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ LEARN ============================ -->
+<section class="sec">
+  <h2>6 · Learn: a quest map</h2>
+  <p>Missions become stops on a winding path, one week per stretch, with a chest at the end. Questions get big picture answers and Jarso reacts. A daily 1-tap check-in keeps the diary honest and the streak alive.</p>
+  <div class="row">
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="h1">Learn</span><div class="hrow" style="gap:6px"><span class="pill fire"><i data-lucide="flame"></i>5</span><span class="pill zap"><i data-lucide="zap"></i>240</span></div></div>
+          <div class="weekban"><div><div class="xs" style="color:var(--t100)">WEEK 2</div><div class="h2">Smart shopping</div></div><span class="chip" style="background:#ffffff22;border:0;color:#fff">3 / 7</span></div>
+          <div class="map">
+            <svg aria-hidden="true" width="324" height="440" style="position:absolute;inset:0"><path d="M162 30 C 60 70, 60 110, 110 140 S 260 200, 220 250 S 80 320, 130 360 S 230 410, 200 430" fill="none" stroke="#d6e3e8" stroke-width="14" stroke-linecap="round" stroke-dasharray="2 22"/></svg>
+            <div class="node done" style="left:127px;top:0"><i data-lucide="check"></i></div>
+            <div class="node done" style="left:62px;top:96px"><i data-lucide="check"></i></div>
+            <div class="node now" style="left:180px;top:200px"><i data-lucide="play"></i></div>
+            <span class="j" data-o='{"mood":"wave","size":80,"fill":0.6,"lid":"#7d66e9","acc":"cap"}' style="position:absolute;left:250px;top:170px"></span>
+            <div class="bubble b" style="position:absolute;left:120px;top:140px;font-size:14px;padding:6px 10px">Day 3!</div>
+            <div class="node lock" style="left:80px;top:300px"><i data-lucide="lock"></i></div>
+            <div class="node chest" style="left:160px;top:380px"><i data-lucide="gift"></i></div>
+          </div>
+        </div>
+        <div class="tabs"><span class="tab"><span class="ic"><i data-lucide="house"></i></span>Home</span><span class="tab on"><span class="ic"><i data-lucide="map"></i></span>Learn</span><div class="plus"><i data-lucide="plus"></i></div><span class="tab"><span class="ic"><i data-lucide="book-open"></i></span>Diary</span><span class="tab"><span class="ic"><i data-lucide="message-circle"></i></span>Jarso</span></div>
+      </div>
+      <figcaption><b>L1 · Quest map</b>Seven stops per week on a winding path, Jarso standing on today's. The chest at the end gives a badge + Jarso look (never money). Practice and topics sit under the map.<br><span class="wc">~10 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow"><i data-lucide="x" class="lc"></i><div class="bar p grow"><i style="width:45%"></i></div><span class="pill fire" style="height:28px"><i data-lucide="flame"></i>5</span></div>
+          <div class="h1" style="margin-top:8px">Which is cheaper per biscuit?</div>
+          <div class="jars" style="margin-top:4px">
+            <div class="choice on" style="flex-direction:column;gap:8px;padding:16px 10px"><div style="font-size:40px">🍪🍪<br>🍪🍪</div><b>4 for ₹20</b></div>
+            <div class="choice" style="flex-direction:column;gap:8px;padding:16px 10px"><div style="font-size:17px;line-height:1.2;white-space:nowrap">🍪🍪🍪🍪🍪<br>🍪🍪🍪🍪🍪</div><b>10 for ₹40</b></div>
+          </div>
+          <div class="hrow" style="margin-top:6px"><span class="j" data-o='{"mood":"think","size":70,"fill":0.6,"lid":"#7d66e9","acc":"cap"}'></span><div class="bubble l">Price for just one?</div></div>
+          <div class="grow"></div>
+          <div class="hrow" style="gap:10px"><div class="key white" style="flex:1"><i data-lucide="lightbulb"></i>Hint</div><div class="key grape" style="flex:2">Check</div></div>
+        </div>
+      </div>
+      <figcaption><b>L2 · A question</b>Picture answers, one-line prompt, Jarso nudge. Read-aloud button sits in the bubble. Same mission content from core.<br><span class="wc">~12 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow"><i data-lucide="x" class="lc"></i><div class="bar p grow"><i style="width:60%"></i></div><span class="pill fire" style="height:28px"><i data-lucide="flame"></i>5</span></div>
+          <div class="h1" style="margin-top:8px;opacity:.35">Which is cheaper per biscuit?</div>
+          <div class="jars" style="opacity:.35"><div class="choice" style="height:150px"></div><div class="choice on" style="height:150px"></div></div>
+          <div class="dim" style="background:#0b1f2644"></div>
+          <div class="sheet" style="background:var(--ok100);gap:10px">
+            <div class="confetti" data-n="16"></div>
+            <div class="hrow z1"><span class="j" data-o='{"mood":"cheer","size":96,"fill":0.6,"lid":"#7d66e9","acc":"cap"}'></span><div><div class="h0" style="color:var(--ok)">Nailed it!</div><div class="h3">₹4 each vs ₹5 each</div></div></div>
+            <div class="hrow z1" style="gap:8px"><span class="pill zap"><i data-lucide="zap"></i>+15</span><span class="pill"><i data-lucide="volume-2" style="color:var(--t600)"></i>Read it to me</span></div>
+            <div class="key z1" style="background:var(--ok);box-shadow:0 5px 0 #11603f">Continue</div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>L3 · Right answer</b>Green sheet, Jarso cheer + ding + haptic. Wrong answer: soft blue sheet, Jarso nods "Close! Try again", no red, no sad face.<br><span class="wc">~10 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone teal"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body center" style="gap:16px">
+          <div class="xs" style="color:var(--t100);margin-top:10px">DAILY CHECK-IN</div>
+          <span class="j" data-o='{"mood":"happy","size":150,"fill":0.6,"lid":"#7d66e9","acc":"cap"}'></span>
+          <div class="h1 wh">Spend anything today?</div>
+          <div class="hrow" style="gap:12px;width:100%"><div class="key white" style="flex:1;height:72px;font-size:20px">Nope</div><div class="key gold" style="flex:1;height:72px;font-size:20px">Yes</div></div>
+          <div class="grow"></div>
+          <div class="card" style="background:#ffffff14;width:100%">
+            <div class="hrow between">
+              <div style="text-align:center"><div class="ibox" style="border-radius:99px;background:var(--g);color:var(--g900);width:32px;height:32px"><i data-lucide="flame"></i></div><div class="xs wh">M</div></div>
+              <div style="text-align:center"><div class="ibox" style="border-radius:99px;background:var(--g);color:var(--g900);width:32px;height:32px"><i data-lucide="flame"></i></div><div class="xs wh">T</div></div>
+              <div style="text-align:center"><div class="ibox" style="border-radius:99px;background:var(--c300);color:var(--t950);width:32px;height:32px"><i data-lucide="moon"></i></div><div class="xs wh">W</div></div>
+              <div style="text-align:center"><div class="ibox" style="border-radius:99px;background:var(--g);color:var(--g900);width:32px;height:32px"><i data-lucide="flame"></i></div><div class="xs wh">T</div></div>
+              <div style="text-align:center"><div class="ibox" style="border-radius:99px;background:var(--g);color:var(--g900);width:32px;height:32px"><i data-lucide="flame"></i></div><div class="xs wh">F</div></div>
+              <div style="text-align:center"><div class="ibox" style="border-radius:99px;background:#ffffff22;border:3px dashed #fff;width:32px;height:32px"></div><div class="xs wh">S</div></div>
+              <div style="text-align:center"><div class="ibox" style="border-radius:99px;background:#ffffff14;width:32px;height:32px"></div><div class="xs wh">S</div></div>
+            </div>
+            <div class="sm wh" style="margin-top:8px">1 free rest day a week <i data-lucide="moon" style="width:13px;height:13px"></i></div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>L4 · Daily check-in</b>First open of the day. One tap. "Yes" opens I bought something. Keeps the diary true and the streak going; a rest day covers a miss automatically.<br><span class="wc">~12 words</span></figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ OTHER TABS ============================ -->
+<section class="sec">
+  <h2>7 · Diary, Jarso, Me, bell</h2>
+  <p>Same features, fewer words, bigger icons. Notifications move from a tab to the bell. Me becomes the trophy room.</p>
+  <div class="row">
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="h1">Diary</div>
+          <div class="card" style="background:var(--t950);color:#fff;box-shadow:none">
+            <div class="xs" style="color:var(--t200)">THIS WEEK YOU SPENT</div>
+            <div class="money" style="font-size:30px">₹185</div>
+            <div class="hrow" style="gap:6px;margin-top:8px;align-items:flex-end">
+              <div style="flex:5;text-align:center"><div style="height:28px;border-radius:8px;background:var(--blush)"></div><div class="xs wh" style="margin-top:3px">🍪 ₹95</div></div>
+              <div style="flex:3;text-align:center"><div style="height:28px;border-radius:8px;background:var(--p500)"></div><div class="xs wh" style="margin-top:3px">🎮 ₹60</div></div>
+              <div style="flex:1.6;text-align:center"><div style="height:28px;border-radius:8px;background:var(--c300)"></div><div class="xs wh" style="margin-top:3px">🚌 ₹30</div></div>
+            </div>
+          </div>
+          <div class="hrow" style="gap:8px"><span class="chip on">All</span><span class="chip">Spent</span><span class="chip">Got</span></div>
+          <div class="xs">TODAY</div>
+          <div class="list">
+            <div><div class="ibox b"><i data-lucide="cookie"></i></div><div>Chips<div class="xs">Snacks</div></div><span class="end money" style="color:#b54a2b">−₹45</span></div>
+            <div><div class="ibox ok"><i data-lucide="cake"></i></div><div>From Nani<div class="xs">Birthday · Save</div></div><span class="end money" style="color:var(--ok)">+₹200</span></div>
+          </div>
+          <div class="xs">YESTERDAY</div>
+          <div class="list">
+            <div><div class="ibox p"><i data-lucide="gamepad-2"></i></div><div>Game skin<div class="xs">Games</div></div><span class="end money" style="color:#b54a2b">−₹60</span></div>
+          </div>
+        </div>
+        <div class="tabs"><span class="tab"><span class="ic"><i data-lucide="house"></i></span>Home</span><span class="tab"><span class="ic"><i data-lucide="map"></i></span>Learn</span><div class="plus"><i data-lucide="plus"></i></div><span class="tab on"><span class="ic"><i data-lucide="book-open"></i></span>Diary</span><span class="tab"><span class="ic"><i data-lucide="message-circle"></i></span>Jarso</span></div>
+      </div>
+      <figcaption><b>T1 · Diary</b>Week summary as a picture bar (widths = amounts, number on each), then a day-grouped list with big icons. Tap a row to fix or undo (existing).<br><span class="wc">~20 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="center" style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:8px">
+            <span class="j" data-o='{"mood":"happy","size":120,"fill":0.6,"lid":"#7d66e9","acc":"cap"}'></span>
+            <div class="h1">Ask me anything</div>
+            <span class="chip" style="font-size:11.5px;padding:4px 10px"><i data-lucide="sparkles"></i>I'm an AI. Mum can see our chats.</span>
+          </div>
+          <div class="list" style="margin-top:6px">
+            <div><div class="ibox g"><i data-lucide="piggy-bank"></i></div>How do I save faster?<i data-lucide="chevron-right" class="lc end" style="color:#9aaab0"></i></div>
+            <div><div class="ibox b"><i data-lucide="shopping-bag"></i></div>Is this a good deal?<i data-lucide="chevron-right" class="lc end" style="color:#9aaab0"></i></div>
+            <div><div class="ibox t"><i data-lucide="landmark"></i></div>What's a bank for?<i data-lucide="chevron-right" class="lc end" style="color:#9aaab0"></i></div>
+          </div>
+          <div class="grow"></div>
+          <div class="hrow" style="gap:8px"><div class="field grow"><span class="ph">Type a question…</span></div><span class="key white" style="width:54px;height:54px;padding:0"><i data-lucide="mic"></i></span><span class="key" style="width:54px;height:54px;padding:0"><i data-lucide="send"></i></span></div>
+        </div>
+        <div class="tabs"><span class="tab"><span class="ic"><i data-lucide="house"></i></span>Home</span><span class="tab"><span class="ic"><i data-lucide="map"></i></span>Learn</span><div class="plus"><i data-lucide="plus"></i></div><span class="tab"><span class="ic"><i data-lucide="book-open"></i></span>Diary</span><span class="tab on"><span class="ic"><i data-lucide="message-circle"></i></span>Jarso</span></div>
+      </div>
+      <figcaption><b>T2 · Jarso chat</b>The mascot is the guide, so the chat finally has a face. AI notice kept (FR09), shortened. Starters as tappable rows, mic big.<br><span class="wc">~25 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="arrow-left"></i></span><div class="h2">Me</div><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="settings"></i></span></div>
+          <div class="card hrow" style="background:linear-gradient(135deg,var(--p500),var(--p800));color:#fff;box-shadow:0 5px 0 #32236b">
+            <span class="j" data-o='{"mood":"happy","size":96,"fill":0.6,"lid":"#7d66e9","acc":"cap"}'></span>
+            <div class="grow"><div class="h1">Sam</div><div class="h3" style="color:var(--p200)">Level 4 · Coin Keeper</div><div class="bar" style="background:#ffffff33;margin-top:8px"><i style="width:60%;background:var(--g)"></i></div><div class="xs" style="color:var(--p200);margin-top:4px">60 ⚡ to Level 5</div></div>
+          </div>
+          <div class="hrow between"><span class="h3">My badges</span><span class="sm">6 of 20</span></div>
+          <div class="badges">
+            <div class="badge" style="background:var(--g)"><i data-lucide="sprout" style="color:var(--g900)"></i></div>
+            <div class="badge" style="background:var(--blush)"><i data-lucide="flame" style="color:#fff"></i></div>
+            <div class="badge" style="background:var(--t600)"><i data-lucide="book-open" style="color:#fff"></i></div>
+            <div class="badge" style="background:var(--p500)"><i data-lucide="target" style="color:#fff"></i></div>
+            <div class="badge" style="background:var(--ok)"><i data-lucide="shield-check" style="color:#fff"></i></div>
+            <div class="badge" style="background:var(--c300)"><i data-lucide="search" style="color:var(--t950)"></i></div>
+            <div class="badge lock"><i data-lucide="lock"></i></div>
+            <div class="badge lock"><i data-lucide="lock"></i></div>
+          </div>
+          <div class="list">
+            <div><div class="ibox p"><i data-lucide="palette"></i></div>Change Jarso's look<i data-lucide="chevron-right" class="lc end" style="color:#9aaab0"></i></div>
+            <div><div class="ibox t"><i data-lucide="play-circle"></i></div>Show me around again<i data-lucide="chevron-right" class="lc end" style="color:#9aaab0"></i></div>
+            <div><div class="ibox g"><i data-lucide="clock"></i></div>My asks<i data-lucide="chevron-right" class="lc end" style="color:#9aaab0"></i></div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>T3 · Me = trophy room</b>Level, badges (tap for how you earned it), Jarso looks. Settings (sign out, theme, notifications, memories) behind the gear.<br><span class="wc">~25 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="arrow-left"></i></span><div class="h2">News</div><span style="width:36px"></span></div>
+          <div class="list">
+            <div style="background:var(--t50)"><div class="ibox ok"><i data-lucide="check"></i></div><div class="grow">Mum said yes!<div class="xs">₹60 from savings · 2 min</div></div></div>
+            <div style="background:var(--t50)"><div class="ibox g"><i data-lucide="coins"></i></div><div class="grow">Pocket money day<div class="xs">₹100 · today</div></div></div>
+            <div><div class="ibox b"><i data-lucide="mail"></i></div><div class="grow">Note from Mum<div class="xs">"Proud of you for saving!"</div></div></div>
+            <div><div class="ibox p"><i data-lucide="award"></i></div><div class="grow">New badge: Streak 5<div class="xs">Yesterday</div></div></div>
+            <div><div class="ibox t"><i data-lucide="piggy-bank"></i></div><div class="grow">₹50 is in Save<div class="xs">Mon</div></div></div>
+          </div>
+          <div class="grow"></div>
+          <div class="center" style="display:flex;flex-direction:column;align-items:center;gap:4px;opacity:.9"><span class="j" data-o='{"mood":"sleepy","size":70,"fill":0.6,"lid":"#7d66e9"}'></span><div class="sm">That's everything</div></div>
+        </div>
+      </div>
+      <figcaption><b>T4 · Bell (News)</b>One line + one small line each, icon by kind. Parent notes keep their own words. Jarso naps at the end of the list.<br><span class="wc">~35 words</span></figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone grape"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body center" style="gap:14px">
+          <div class="confetti" data-n="34"></div>
+          <div class="xs z1" style="color:var(--p200);margin-top:16px">LEVEL UP</div>
+          <div class="h0 wh z1" style="font-size:64px">5</div>
+          <span class="j z1" data-o='{"mood":"wow","size":180,"fill":0.6,"lid":"#7d66e9","acc":"crown"}'></span>
+          <div class="h1 wh z1">Money Maker!</div>
+          <div class="chip gold z1"><i data-lucide="unlock"></i>Crown unlocked</div>
+          <div class="grow"></div>
+          <div class="key gold z1" style="width:100%">Wear it</div>
+          <div class="key ghost z1">Later</div>
+        </div>
+      </div>
+      <figcaption><b>T5 · Level up</b>Levels come from Sparks (logging, saving, missions, check-ins). Each unlocks a look. Fixed reward per action, no chance, no purchase.<br><span class="wc">~8 words</span></figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<!-- ============================ PARENT ============================ -->
+<section class="sec">
+  <h2>8 · Parent app (same system, calmer)</h2>
+  <p>Parents get the new tokens, keycaps and Jarso, but denser and quieter: no Sparks, no confetti. What needs them is always on top, answerable in one tap.</p>
+  <div class="row">
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="h1">Family</span><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="settings"></i></span></div>
+          <div class="xs">NEEDS YOU · 2</div>
+          <div class="card" style="display:flex;flex-direction:column;gap:10px">
+            <div class="hrow"><div class="ibox g"><i data-lucide="piggy-bank"></i></div><div class="grow"><div class="h3">Sam is saving ₹50</div><div class="sm">Got the cash?</div></div></div>
+            <div class="hrow" style="gap:8px"><div class="key sm" style="flex:1">Got it</div><div class="key white sm" style="flex:1">Not yet</div></div>
+          </div>
+          <div class="card" style="display:flex;flex-direction:column;gap:10px">
+            <div class="hrow"><div class="ibox t"><i data-lucide="hand-coins"></i></div><div class="grow"><div class="h3">Sam asks ₹60 from Save</div><div class="sm">For: football boots</div></div></div>
+            <div class="hrow" style="gap:8px"><div class="key sm" style="flex:1">Yes</div><div class="key white sm" style="flex:1">Not now</div></div>
+          </div>
+          <div class="xs">CHILDREN</div>
+          <div class="card">
+            <div class="hrow"><span style="width:44px;height:44px;border-radius:99px;background:var(--p100);display:grid;place-items:center"><span class="j" data-o='{"mood":"happy","size":38,"fill":0.6,"lid":"#7d66e9"}'></span></span><div class="grow"><div class="h3">Sam</div><div class="sm">Level 4 · 5-day streak · Mission 3/7</div></div><i data-lucide="chevron-right" class="lc" style="color:#9aaab0"></i></div>
+            <div class="hrow" style="gap:8px;margin-top:10px"><div class="grow card" style="background:var(--t50);box-shadow:none;padding:10px"><div class="xs">Spend</div><div class="money h2">₹120</div></div><div class="grow card" style="background:var(--g50);box-shadow:none;padding:10px"><div class="xs">Save</div><div class="money h2" style="color:var(--g800)">₹340</div></div><div class="grow card" style="box-shadow:none;border:2px solid var(--line);padding:10px"><div class="xs">⚽ Goal</div><div class="money h2">75%</div></div></div>
+          </div>
+        </div>
+        <div class="tabs" style="grid-template-columns:repeat(4,1fr)"><span class="tab on"><span class="ic"><i data-lucide="house"></i></span>Family</span><span class="tab"><span class="ic"><i data-lucide="users"></i></span>Children</span><span class="tab"><span class="ic"><i data-lucide="message-circle"></i></span>Jarso</span><span class="tab"><span class="ic"><i data-lucide="inbox"></i></span>Inbox</span></div>
+      </div>
+      <figcaption><b>PA1 · Parent family</b>Asks answered right on the card. Each child: their Jarso, learning in one line, three money tiles. The longer hub (allowance, gifts, rules, history) is one tap in.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●●</span></div>
+        <div class="body">
+          <div class="hrow between"><span class="pill" style="width:36px;padding:0;justify-content:center"><i data-lucide="x"></i></span><div class="h2">Hand over</div><span style="width:36px"></span></div>
+          <div class="center" style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:6px"><span class="j" data-o='{"mood":"happy","size":90,"fill":0.6,"lid":"#7d66e9"}'></span><div class="h1">₹60 to Sam</div><div class="sm">From Save · for football boots</div></div>
+          <div class="choice on"><div class="ibox t"><i data-lucide="banknote"></i></div><div><b>Cash in hand</b><span>I gave it to Sam</span></div></div>
+          <div class="choice"><div class="ibox p"><i data-lucide="credit-card"></i></div><div><b>Card or UPI</b><span>Pay through Razorpay</span></div></div>
+          <div class="grow"></div>
+          <div class="key">Done, handed over</div>
+        </div>
+      </div>
+      <figcaption><b>PA2 · Handover</b>Same handover flow, two choices as big cards. Sam's Jarso cheers on their phone when this lands.</figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<script>
+  // Jarso, the mascot: the brand mark (same outline, lid, lid coin) with eyes, a mouth, arms and feet.
+  // Fill = how full Save is. Mood drives eyes, mouth and arms. Purely a mockup renderer.
+  const OUT = "M150 128C172 152 160 176 128 198C98 220 88 246 88 290L88 352C88 395 112 418 155 418L352 418C395 418 418 395 418 352L418 170";
+  let n = 0;
+  function jarso(o) {
+    const id = "c" + (n++);
+    const size = o.size || 120, fill = o.fill ?? 0.4, mood = o.mood || "happy";
+    const stroke = o.tint === "teal" ? "#057b99" : "#057b99";
+    const fillC = o.tint === "teal" ? "#3d92ae" : "#fdc300";
+    const fillTop = o.tint === "teal" ? "#65adc6" : "#ffe462";
+    const lid = o.lid || "#00d6eb";
+    const lvl = 418 - fill * 280;
+    const look = o.look === "up" ? [2, -14] : [4, 6];
+    const eye = (cx) => mood === "sleepy"
+      ? `<path d="M${cx - 30} 262 Q${cx} 284 ${cx + 30} 262" stroke="#002233" stroke-width="12" fill="none" stroke-linecap="round"/>`
+      : mood === "cheer"
+      ? `<path d="M${cx - 30} 268 Q${cx} 222 ${cx + 30} 268" stroke="#002233" stroke-width="14" fill="none" stroke-linecap="round"/>`
+      : `<ellipse cx="${cx}" cy="258" rx="${mood === "wow" ? 40 : 36}" ry="${mood === "wow" ? 50 : 46}" fill="#fff" stroke="${stroke}" stroke-width="8"/>
+         <circle cx="${cx + look[0]}" cy="${264 + look[1]}" r="${mood === "wow" ? 15 : 19}" fill="#002233"/>
+         <circle cx="${cx + look[0] + 7}" cy="${256 + look[1]}" r="6" fill="#fff"/>`;
+    const mouth = {
+      happy: `<path d="M226 330 Q257 362 288 330" stroke="#002233" stroke-width="12" fill="none" stroke-linecap="round"/>`,
+      wave: `<path d="M226 330 Q257 362 288 330" stroke="#002233" stroke-width="12" fill="none" stroke-linecap="round"/>`,
+      cheer: `<path d="M218 318 Q257 392 296 318 Z" fill="#002233"/><path d="M236 352 Q257 372 278 352 Q257 344 236 352Z" fill="#f08a6b"/>`,
+      wow: `<ellipse cx="257" cy="344" rx="20" ry="24" fill="#002233"/>`,
+      think: `<path d="M232 340 L282 332" stroke="#002233" stroke-width="12" stroke-linecap="round"/>`,
+      sleepy: `<path d="M240 336 Q257 346 274 336" stroke="#002233" stroke-width="10" fill="none" stroke-linecap="round"/><text x="420" y="110" font-size="70" font-weight="900" fill="#8ac8df" font-family="Nunito">z</text><text x="460" y="50" font-size="50" font-weight="900" fill="#8ac8df" font-family="Nunito">z</text>`,
+    }[mood];
+    const arm = (d) => `<path d="${d}" stroke="${stroke}" stroke-width="34" fill="none" stroke-linecap="round"/>`;
+    const arms = {
+      happy: arm("M84 300 Q40 330 52 380") + arm("M422 300 Q466 330 454 380"),
+      cheer: arm("M84 290 Q30 240 36 170") + arm("M422 290 Q476 240 470 170"),
+      wave: arm("M84 300 Q40 330 52 380") + arm("M422 290 Q480 250 486 180"),
+      wow: arm("M84 300 Q30 300 40 250") + arm("M422 300 Q476 300 466 250"),
+      think: arm("M84 300 Q40 330 52 380") + arm("M422 310 Q380 380 300 372"),
+      sleepy: arm("M84 310 Q50 350 70 390") + arm("M422 310 Q456 350 436 390"),
+    }[mood];
+    const acc = o.acc === "cap"
+      ? `<path d="M110 70 Q227 -40 344 70 Z" fill="#141c1f"/><rect x="300" y="56" width="140" height="22" rx="11" fill="#141c1f"/><circle cx="227" cy="12" r="12" fill="#fdc300"/>`
+      : o.acc === "crown"
+      ? `<path d="M120 62 L140 -10 L190 36 L227 -30 L264 36 L314 -10 L334 62 Z" fill="#fdc300" stroke="#a87f00" stroke-width="10" stroke-linejoin="round"/><circle cx="227" cy="-30" r="14" fill="#f08a6b"/>`
+      : "";
+    return `<svg viewBox="-10 -50 532 540" width="${size}" height="${size}" style="overflow:visible;display:block;flex-shrink:0">
+      <defs><clipPath id="${id}"><path d="${OUT}L418 128L150 128Z"/></clipPath></defs>
+      ${arms}
+      <ellipse cx="190" cy="446" rx="46" ry="22" fill="#004b62"/><ellipse cx="320" cy="446" rx="46" ry="22" fill="#004b62"/>
+      <path d="${OUT}L418 128L150 128Z" fill="#ffffff"/>
+      <g clip-path="url(#${id})"><rect x="60" y="${lvl}" width="400" height="400" fill="${fillC}"/><path d="M60 ${lvl} Q160 ${lvl - 18} 257 ${lvl} T460 ${lvl}" fill="${fillTop}" /></g>
+      <path d="${OUT}" fill="none" stroke="${stroke}" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="96" y="58" width="262" height="62" rx="31" fill="${lid}"/>
+      <ellipse cx="414" cy="95" rx="44" ry="18" fill="#004b62"/><ellipse cx="414" cy="88" rx="44" ry="18" fill="#fdc300"/>
+      ${acc}
+      <circle cx="160" cy="322" r="20" fill="#f08a6b" opacity=".55"/><circle cx="356" cy="322" r="20" fill="#f08a6b" opacity=".55"/>
+      ${eye(212)}${eye(302)}${mouth}
+    </svg>`;
+  }
+  document.querySelectorAll(".j").forEach((el) => { el.innerHTML = jarso(JSON.parse(el.dataset.o)); el.style.display = el.style.display || "inline-block"; });
+  const C = ["#fdc300", "#00d6eb", "#7d66e9", "#f08a6b", "#1f9d6b", "#ffffff"];
+  document.querySelectorAll(".confetti").forEach((el) => {
+    const k = +el.dataset.n || 30;
+    for (let i = 0; i < k; i++) {
+      const s = document.createElement("i");
+      s.style.left = Math.random() * 100 + "%"; s.style.top = Math.random() * 70 + "%";
+      s.style.background = C[i % C.length]; s.style.transform = `rotate(${Math.random() * 180}deg)`;
+      s.style.opacity = 0.85; el.appendChild(s);
+    }
+  });
+  lucide.createIcons({ attrs: { "stroke-width": 2.4 } });
+</script>
+</body>
+</html>

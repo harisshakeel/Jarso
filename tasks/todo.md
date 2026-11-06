@@ -344,3 +344,18 @@ Built and unit-tested; nothing below has run on a device (no device or Android b
 - [ ] After a card handover the ledger rows match a cash handover, and the child's phone and the web show "Paid by card"
 - [ ] Closing the sheet early leaves "Card payment in progress"; after 31 minutes it reads expired, never paid
 - [ ] Maestro selectors inside the Stripe and Razorpay sheets (their own UI) are unchecked; fix `e2e/stripe-card.yaml` and `e2e/razorpay-card.yaml` on first run
+
+## Mobile kid rework (2026-11-06)
+
+Spec: docs/superpowers/specs/2026-11-06-mobile-kid-rework-design.md · Mockups: docs/superpowers/specs/mockups/2026-11-06-mobile-kid-rework.html
+
+- [ ] Plan 1 Foundation (Jarso, keycaps, celebrate, sound): docs/superpowers/plans/2026-11-06-mobile-kid-rework-1-foundation.md
+- [ ] Plan 2 Progress backend (Sparks, levels, badges, streak, check-ins, child_facing_name)
+- [ ] Plan 3 Child shell, Home, + sheet, money flows
+- [ ] Plan 4 Jar pages (weekly bars) and goal
+- [ ] Plan 5 Learn quest map and daily check-in
+- [ ] Plan 6 Diary, Jarso tab, Me trophy room, bell, level-up
+- [ ] Plan 7 Allowance Spend/Save split (ADR 0019)
+- [ ] Plan 8 Child onboarding
+- [ ] Plan 9 Parent phone sign-up and onboarding
+- [ ] Plan 10 Parent restyle
