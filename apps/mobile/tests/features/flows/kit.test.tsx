@@ -20,8 +20,6 @@ jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
 jest.mock("@/features/auth/use-session", () => ({
   useSession: () => ({ status: "child", userId: "child-1" }),
 }));
-// The add sheet (same barrel) reads asks; the kit tests never render it.
-jest.mock("@/features/requests", () => ({ useRequests: jest.fn() }));
 jest.mock("@jarso/data/progress", () => ({ getProgress: jest.fn() }));
 jest.mock("@/lib/sound", () => ({ playSound: jest.fn(), getSoundOn: jest.fn(async () => true) }));
 jest.mock(

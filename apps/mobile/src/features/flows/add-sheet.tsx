@@ -1,24 +1,22 @@
 import { addSheetCopy, type MoneyActionKey, moneyActions } from "@jarso/core/home";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui";
-import { useParentLabel } from "@/features/progress";
-import { useRequests } from "@/features/requests";
 import { cn, useTokens } from "@/lib";
 import { pictureIcon, TINT } from "./icons";
 
 type AddSheetProps = {
+  /** What the child calls their parent ("Mum"). */
+  parent: string;
+  /** Asks still open (waiting or approved); the My asks row shows the count when above 0. */
+  waiting: number;
   onPick: (key: MoneyActionKey) => void;
   onAsks: () => void;
   onClose: () => void;
 };
 
 /** "What happened?": five picture tiles for the moments money moves, then My asks. */
-export function AddSheet({ onPick, onAsks, onClose }: AddSheetProps) {
+export function AddSheet({ parent, waiting, onPick, onAsks, onClose }: AddSheetProps) {
   const tokens = useTokens();
-  const parent = useParentLabel();
-  const waiting = (useRequests().data ?? []).filter(
-    (r) => r.status === "pending" || r.status === "approved",
-  ).length;
   const Close = pictureIcon("x");
   return (
     <View className="flex-1 gap-4 bg-background px-4 pt-2 pb-4">
