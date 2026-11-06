@@ -141,6 +141,14 @@ describe("FlowShell", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("keeps the footer inside the keyboard-avoiding view", () => {
+    const source: string = readFileSync("src/features/flows/flow-shell.tsx", "utf8");
+    const open = source.indexOf("<KeyboardAvoidingView");
+    expect(open).toBeGreaterThan(-1);
+    expect(source.indexOf("{footer}")).toBeGreaterThan(open);
+    expect(source.indexOf("{footer}")).toBeLessThan(source.indexOf("</KeyboardAvoidingView>"));
+  });
+
   it("title is a header", async () => {
     await renderFlow(shell({}));
     expect(screen.getByRole("header", { name: "On what?" })).toBeTruthy();

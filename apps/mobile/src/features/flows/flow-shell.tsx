@@ -1,7 +1,7 @@
 import type { PictureIcon, PictureTint } from "@jarso/core/home";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { KeyboardScrollView } from "@/components/screen";
+import { KeyboardAvoidingView, KeyboardScrollView } from "@/components/screen";
 import { Text } from "@/components/ui";
 import { cn, useTokens } from "@/lib";
 import { pictureIcon, TINT } from "./icons";
@@ -62,24 +62,27 @@ export function FlowShell({
         ) : null}
         <View className="size-11" />
       </View>
-      <KeyboardScrollView
-        className="flex-1"
-        contentContainerClassName="gap-4 px-4 pt-3 pb-4"
-        keyboardShouldPersistTaps="handled"
-      >
-        <View className="flex-row items-center gap-3">
-          {Title ? (
-            <View className={cn("size-11 items-center justify-center rounded-xl", paint.box)}>
-              <Title size={24} color={tokens[paint.icon]} />
-            </View>
-          ) : null}
-          <Text accessibilityRole="header" className="flex-1 font-sans-extrabold text-h1">
-            {title}
-          </Text>
-        </View>
-        {children}
-      </KeyboardScrollView>
-      <View className="gap-2 px-4 pt-2 pb-4">{footer}</View>
+      {/* The footer shares the avoiding view with the body, so the keyboard lifts the button too. */}
+      <KeyboardAvoidingView className="flex-1">
+        <KeyboardScrollView
+          className="flex-1"
+          contentContainerClassName="gap-4 px-4 pt-3 pb-4"
+          keyboardShouldPersistTaps="handled"
+        >
+          <View className="flex-row items-center gap-3">
+            {Title ? (
+              <View className={cn("size-11 items-center justify-center rounded-xl", paint.box)}>
+                <Title size={24} color={tokens[paint.icon]} />
+              </View>
+            ) : null}
+            <Text accessibilityRole="header" className="flex-1 font-sans-extrabold text-h1">
+              {title}
+            </Text>
+          </View>
+          {children}
+        </KeyboardScrollView>
+        <View className="gap-2 px-4 pt-2 pb-4">{footer}</View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
