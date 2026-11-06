@@ -5,7 +5,7 @@ appId: app.jarso.mobile
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: "Family code|I'm a child|Your family|Spent something\\?"
+    visible: "Family code|I'm a child|Your family|What happened\\?"
     timeout: 20000
 # A parent session left by a parent flow: clear the app so the sign-in screen shows.
 - runFlow:
@@ -35,7 +35,8 @@ appId: app.jarso.mobile
       - inputText: ${CHILD_PIN}
       - hideKeyboard
       - tapOn: "Sign in"
+# Home: the + button ("What happened?") sits on every child tab, with the Spend and Save tiles.
 - extendedWaitUntil:
-    visible: "Spent something?"
+    visible: "What happened?"
     timeout: 20000
-- assertVisible: "Put some in Save"
+- assertVisible: "Spend"

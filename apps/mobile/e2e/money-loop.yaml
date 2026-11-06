@@ -1,65 +1,75 @@
-# Purchase + undo, put in, take out, ask extra, cancel a request, got money.
+# Purchase + undo, save some, use savings, ask extra, cancel a request, got money.
+# Every flow starts from Home's + button ("What happened?"): pick a tile, tap the amount on the
+# keypad (digits are buttons labelled "1", "2", ...), Next, pick a picture, send.
 # Needs a seeded family whose rules let a 1-unit put-in and take-out through (or ask a parent);
-# a refused sheet is closed with `back` so the flow carries on.
+# a refused flow stays open, so it is closed with its Close button and the flow carries on.
 appId: app.jarso.mobile
 ---
 - runFlow: sign-in.yaml
-# Purchase, then undo it from the sheet.
-- tapOn: "Spent something?"
-- tapOn: "Amount"
-- inputText: "1"
-- hideKeyboard
+# Purchase, then undo it from the celebration.
+- tapOn: "What happened?"
+- tapOn: "I bought something"
+- tapOn: "1"
+- tapOn: "Next"
 - tapOn: "Snacks"
-- tapOn: "Write it down"
+- tapOn: "Done · .*"
 - assertVisible: "Undo"
 - tapOn: "Undo"
 - tapOn: "Done"
-# Put in (Save) and take out; either result ends on "Done", a refusal keeps the sheet (closed with back).
-- tapOn: "Put some in Save"
-- tapOn: "Amount"
-- inputText: "1"
-- hideKeyboard
-- tapOn: "Put in"
+# Save some: the celebration ends on "Nice"; a refusal keeps the flow (closed with Close).
+- tapOn: "What happened?"
+- tapOn: "Save some"
+- tapOn: "1"
+- tapOn: "I'll give .* to .*"
 - tapOn:
-    text: "Done"
+    text: "Nice"
     optional: true
 - runFlow:
     when:
-      visible: "Amount"
+      visible: "Close"
     commands:
-      - back
-- tapOn: "Take some out"
-- tapOn: "Amount"
-- inputText: "1"
-- hideKeyboard
-- tapOn: "Ask"
+      - tapOn: "Close"
+# Use savings: amount, then "For what?", then ask.
+- tapOn: "What happened?"
+- tapOn: "Use savings"
+- tapOn: "1"
+- tapOn: "Next"
+- runFlow:
+    when:
+      visible: "For what?"
+    commands:
+      - tapOn: "Games"
+      - tapOn: "Ask .*"
 - tapOn:
-    text: "Done"
+    text: "Nice"
     optional: true
 - runFlow:
     when:
-      visible: "Amount"
+      visible: "Close"
     commands:
-      - back
-# Ask extra, then cancel it from Requests.
+      - tapOn: "Close"
+# Ask extra, then cancel it from My asks.
+- tapOn: "What happened?"
 - tapOn: "Ask for extra"
-- tapOn: "Amount"
-- inputText: "1"
-- hideKeyboard
+- tapOn: "1"
+- tapOn: "Next"
+- tapOn: "Other"
 - tapOn: "What's it for?"
 - inputText: "A book"
 - hideKeyboard
-- tapOn: "Ask"
-- tapOn: "Done"
-- tapOn: "Move my money"
+- tapOn: "Ask .*"
+- tapOn: "Nice"
+- tapOn: "What happened?"
+- tapOn: "My asks"
 - tapOn:
     text: "Cancel .* of .*"
     index: 0
 - back
 # Got money.
-- tapOn: "Got money"
-- tapOn: "Amount"
-- inputText: "1"
-- hideKeyboard
-- tapOn: "Write it down"
-- tapOn: "Done"
+- tapOn: "What happened?"
+- tapOn: "I got money"
+- tapOn: "1"
+- tapOn: "Next"
+- tapOn: "Family"
+- tapOn: "Put it in Spend"
+- tapOn: "Nice"
