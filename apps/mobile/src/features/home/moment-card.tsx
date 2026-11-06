@@ -63,10 +63,11 @@ export function MomentCard({
       ) : null}
     </>
   );
+  const label = chip ? `${title} ${line} ${chip}` : `${title} ${line}`;
   const style = cn("flex-row items-center gap-3 rounded-xl border border-border px-4 py-3", tint);
   if (!onPress) {
     return (
-      <View accessible accessibilityLabel={`${title} ${line}`} className={style}>
+      <View accessible accessibilityLabel={label} className={style}>
         {body}
       </View>
     );
@@ -74,7 +75,7 @@ export function MomentCard({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${title} ${line}`}
+      accessibilityLabel={label}
       onPress={onPress}
       className={style}
     >

@@ -232,12 +232,8 @@ describe("HomeScreen", () => {
     expect(amount.props.adjustsFontSizeToFit).toBe(true);
   });
 
-  it("fits the word budget", async () => {
-    (getGoalView as jest.Mock).mockResolvedValue(null);
-    await renderHome();
-    await screen.findByText(describeStep(step).title);
-    await screen.findByText("Mum keeps it");
-    await screen.findByLabelText("240 Sparks");
+  /** Words Home shows outside the goal card and the mission card (the 30-word Home limit). */
+  async function wordsOutsideCards() {
     type Node = {
       type: string;
       props: Record<string, unknown>;
@@ -255,8 +251,33 @@ describe("HomeScreen", () => {
     };
     const { title, body, cta } = describeStep(step);
     const mission = [NEXT_STEP_EYEBROW, title, body, cta].reduce((n, t) => n + wordCount(t), 0);
-    const outside = words(screen.toJSON() as unknown as Node) - mission;
-    expect(outside).toBeLessThanOrEqual(20);
+    return words(screen.toJSON() as unknown as Node) - mission;
+  }
+
+  it("fits the word budget", async () => {
+    await renderHome();
+    await screen.findByText(describeStep(step).title);
+    await screen.findByText("Mum keeps it");
+    await screen.findByLabelText("240 Sparks");
+    expect(await wordsOutsideCards()).toBeLessThanOrEqual(30);
+  });
+
+  it("fits the word budget with a moment card showing", async () => {
+    (listRequestsFor as jest.Mock).mockResolvedValue([request()]);
+    await renderHome();
+    await screen.findByText(describeStep(step).title);
+    await screen.findByText("Mum keeps it");
+    await screen.findByLabelText("240 Sparks");
+    expect(await screen.findByText("Save £50")).toBeOnTheScreen();
+    expect(await wordsOutsideCards()).toBeLessThanOrEqual(30);
+  });
+
+  it("a moment card's label includes its chip", async () => {
+    (listRequestsFor as jest.Mock).mockResolvedValue([request()]);
+    await renderHome();
+    expect(
+      await screen.findByRole("button", { name: "Save £50 Give the cash to Mum Waiting" }),
+    ).toBeOnTheScreen();
   });
 
   it("has a key per screen", () => {
