@@ -2,7 +2,7 @@ import { goalCopy, PLAN_MESSAGES } from "@jarso/core/goals";
 import { AppError } from "@jarso/core/lib";
 import { findLatestSchedule } from "@jarso/data/allowance";
 import { getFamilyContext } from "@jarso/data/family";
-import { callArchiveGoal, callMarkCelebrated, callSaveGoal, getGoalView } from "@jarso/data/goals";
+import { callArchiveGoal, callSaveGoal, getGoalView } from "@jarso/data/goals";
 import { getLearningOverview } from "@jarso/data/learning";
 import { getJars } from "@jarso/data/ledger";
 import { getAvailability, listRequestsFor } from "@jarso/data/requests";
@@ -11,7 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
-import { GoalCard, GoalSheet, HomeStepCard } from "@/features/goals";
+import { GoalCard, GoalSheet } from "@/features/goals";
 import { keys } from "@/lib/query";
 
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
@@ -210,24 +210,5 @@ describe("goals", () => {
     await user.press(screen.getByRole("button", { name: goalCopy.newGoal.confirm }));
     await waitFor(() => expect(callArchiveGoal).toHaveBeenCalledWith({ id: "client" }, "goal-1"));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
-  });
-
-  it("reached goal marks celebrated once", async () => {
-    (getGoalView as jest.Mock).mockResolvedValue({
-      goal: { ...goal, reachedAt: "2026-11-03T10:00:00Z" },
-      progress: progress(4500),
-    });
-    (callMarkCelebrated as jest.Mock).mockResolvedValue(undefined);
-    const { ui } = wrap(<HomeStepCard currency="GBP" timezone="Europe/London" />);
-    const view = await render(ui);
-    expect(
-      await screen.findByText(goalCopy.home.reachedTitle("⚽", "Football boots")),
-    ).toBeOnTheScreen();
-    expect(screen.getByText(goalCopy.home.goalReachedEyebrow)).toBeOnTheScreen();
-    await view.rerender(ui);
-    await waitFor(() => expect(callMarkCelebrated).toHaveBeenCalledTimes(1));
-    expect(callMarkCelebrated).toHaveBeenCalledWith({ id: "client" }, "goal-1");
-    // The moment stays on screen: marking it does not refresh it away.
-    expect(screen.getByText(goalCopy.home.reachedTitle("⚽", "Football boots"))).toBeOnTheScreen();
   });
 });

@@ -2,7 +2,6 @@ export * from "./goal-card";
 export * from "./goal-ring";
 export * from "./goal-screen";
 export * from "./goal-sheet";
-export * from "./home-step-card";
 export * from "./milestone-stars";
 export * from "./predict-step";
 export * from "./use-goal";
