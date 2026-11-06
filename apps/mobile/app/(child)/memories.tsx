@@ -1,3 +1,3 @@
-import { MemoriesScreen } from "@/features/settings";
+import { MemoriesScreen } from "@/features/me";
 
 export default MemoriesScreen;
