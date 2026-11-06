@@ -619,6 +619,20 @@ function StepView({
   const hints = body.hints;
   // The same step always brings the same coach back, replay or restart.
   const coach = coachFor(item.step.key);
+  // Offered until the step is settled, so also after a wrong answer that allows another try.
+  const hintButton = (className?: string) =>
+    !checkIn && !outcome?.final && hintsShown < hints.length ? (
+      <Button
+        variant="keycap-white"
+        size="lg"
+        className={className}
+        accessibilityLabel={hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}
+        onPress={() => setHintsShown((n) => n + 1)}
+      >
+        <LightbulbIcon size={18} color={tokens.foreground} />
+        <Text>{hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}</Text>
+      </Button>
+    ) : null;
   const line = checkIn ? coach.says.checkIn : hintsShown > 0 ? coach.says.hint : coach.says.idle;
 
   return (
@@ -669,18 +683,7 @@ function StepView({
         <View className="gap-3">
           {!outcome ? (
             <View className="flex-row gap-3">
-              {!checkIn && hintsShown < hints.length ? (
-                <Button
-                  variant="keycap-white"
-                  size="lg"
-                  className="flex-1"
-                  accessibilityLabel={hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}
-                  onPress={() => setHintsShown((n) => n + 1)}
-                >
-                  <LightbulbIcon size={18} color={tokens.foreground} />
-                  <Text>{hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}</Text>
-                </Button>
-              ) : null}
+              {hintButton("flex-1")}
               <Button
                 variant="keycap-grape"
                 size="lg"
@@ -702,12 +705,15 @@ function StepView({
               variant={outcome.correct ? "keycap-success" : "keycap"}
             />
           ) : (
-            <PrimaryButton
-              label={playerCopy.tryAgain}
-              pending={false}
-              onPress={() => setOutcome(null)}
-              variant="keycap-gold"
-            />
+            <>
+              <PrimaryButton
+                label={playerCopy.tryAgain}
+                pending={false}
+                onPress={() => setOutcome(null)}
+                variant="keycap-gold"
+              />
+              {hintButton()}
+            </>
           )}
           {!checkIn ? stepAside : null}
         </View>

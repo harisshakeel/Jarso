@@ -135,6 +135,8 @@ describe("learn", () => {
     await user.press(screen.getByRole("radio", { name: optionText(choice, "game") }));
     await user.press(screen.getByRole("button", { name: playerCopy.check }));
     expect(await screen.findByText(playerCopy.again)).toBeOnTheScreen();
+    // Wrong but not final: a hint can still be asked for.
+    expect(screen.getByRole("button", { name: playerCopy.hint })).toBeOnTheScreen();
     expect(Haptics.notificationAsync).not.toHaveBeenCalled();
     expect(submit).not.toHaveBeenCalled();
 
