@@ -39,14 +39,14 @@ const MIDWAY: Status[] = ["done", "done", "current", "locked", "locked", "locked
 
 describe("QuestMap", () => {
   it("draws seven stops and a chest", async () => {
-    await render(<QuestMap week={weekOf(MIDWAY)} reward={reward()} />);
+    await render(<QuestMap week={weekOf(MIDWAY)} width={WIDTH} reward={reward()} />);
     expect(screen.getAllByRole("button")).toHaveLength(3);
     expect(screen.getAllByLabelText(/, locked$/)).toHaveLength(4);
     expect(screen.getByLabelText(questCopy.chestLocked)).toBeOnTheScreen();
   });
 
   it("the now stop opens its mission", async () => {
-    await render(<QuestMap week={weekOf(MIDWAY)} reward={reward()} />);
+    await render(<QuestMap week={weekOf(MIDWAY)} width={WIDTH} reward={reward()} />);
     await userEvent.press(screen.getByRole("button", { name: questCopy.playStop(3, "Mission 3") }));
     expect(router.push).toHaveBeenCalledWith({
       pathname: "/(child)/learn/[missionKey]",
@@ -57,7 +57,7 @@ describe("QuestMap", () => {
   });
 
   it("a locked stop is not a button", async () => {
-    await render(<QuestMap week={weekOf(MIDWAY)} reward={reward()} />);
+    await render(<QuestMap week={weekOf(MIDWAY)} width={WIDTH} reward={reward()} />);
     const name = roadmapCopy.locked(roadmapCopy.stopName(4, "Mission 4"));
     expect(screen.getByLabelText(name)).toBeOnTheScreen();
     expect(screen.queryByRole("button", { name })).toBeNull();
@@ -65,20 +65,22 @@ describe("QuestMap", () => {
 
   it("all done shows the open chest with its badge name and Jarso's line", async () => {
     const week = weekOf(Array<Status>(7).fill("done"));
-    await render(<QuestMap week={week} reward={reward(true)} />);
+    await render(<QuestMap week={week} width={WIDTH} reward={reward(true)} />);
     expect(screen.getByLabelText(questCopy.chestOpen)).toBeOnTheScreen();
     expect(screen.getByText(BADGES[reward().badge].name)).toBeOnTheScreen();
     expect(screen.getByText(questCopy.allDone)).toBeOnTheScreen();
   });
 
   it("a shut chest stays shut even when its badge is already earned", async () => {
-    await render(<QuestMap week={weekOf(MIDWAY)} reward={reward(true)} />);
+    await render(<QuestMap week={weekOf(MIDWAY)} width={WIDTH} reward={reward(true)} />);
     expect(screen.getByLabelText(questCopy.chestLocked)).toBeOnTheScreen();
     expect(screen.queryByText(BADGES[reward().badge].name)).toBeNull();
   });
 
   it("the chest never shows money", async () => {
-    await render(<QuestMap week={weekOf(Array<Status>(7).fill("done"))} reward={reward(true)} />);
+    await render(
+      <QuestMap week={weekOf(Array<Status>(7).fill("done"))} width={WIDTH} reward={reward(true)} />,
+    );
     expect(screen.queryByText(/[£₹$€]|\d+\.\d{2}/)).toBeNull();
   });
 
@@ -87,7 +89,7 @@ describe("QuestMap", () => {
     const week = weekOf(["done", "done", "done", "current", "locked", "locked", "locked"]);
     const stop = week.stops[3];
     if (!stop) throw new Error("no stop");
-    await render(<QuestMap week={week} reward={reward()} />);
+    await render(<QuestMap week={week} width={WIDTH} reward={reward()} />);
     const style = screen.getByTestId("quest-jarso").props.style;
     const { left, width } = Object.assign({}, ...[style].flat());
     expect(left + width).toBeLessThanOrEqual(stop.x - 32);

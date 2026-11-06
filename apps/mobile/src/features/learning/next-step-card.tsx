@@ -3,6 +3,7 @@ import { type Href, useRouter } from "expo-router";
 import { GraduationCapIcon } from "lucide-react-native";
 import { View } from "react-native";
 import { Button, Text } from "@/components/ui";
+import { useTokens } from "@/lib";
 
 /** Where each next step leads on the phone (the web's `hrefFor`). */
 export function nextStepHref(step: NextStep): Href {
@@ -24,6 +25,7 @@ export function nextStepHref(step: NextStep): Href {
 /** One clear next step in learning (FR12), from core's `describeStep`; it opens that step. */
 export function NextStepCard({ step }: { step: NextStep }) {
   const router = useRouter();
+  const tokens = useTokens();
   const { title, body, cta } = describeStep(step);
   return (
     <View className="gap-3 rounded-[24px] bg-tint-grape p-4">
@@ -33,7 +35,7 @@ export function NextStepCard({ step }: { step: NextStep }) {
           importantForAccessibility="no-hide-descendants"
           className="size-11 items-center justify-center rounded-2xl bg-grape-500"
         >
-          <GraduationCapIcon size={22} color="#ffffff" />
+          <GraduationCapIcon size={22} color={tokens["ai-foreground"]} />
         </View>
         <Text accessibilityRole="header" className="flex-1 font-sans-bold text-h3">
           {title}

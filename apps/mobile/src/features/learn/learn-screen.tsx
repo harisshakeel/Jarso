@@ -40,7 +40,7 @@ export function LearnScreen() {
     <View className="flex-row gap-2">
       <View
         accessible
-        accessibilityLabel={`${stats.streak}`}
+        accessibilityLabel={questCopy.streak(stats.streak)}
         className="h-9 flex-row items-center gap-1 rounded-full bg-muted px-3"
       >
         <FlameIcon size={16} color={palette.blush} />
@@ -48,7 +48,7 @@ export function LearnScreen() {
       </View>
       <View
         accessible
-        accessibilityLabel={`${stats.sparks}`}
+        accessibilityLabel={questCopy.sparks(stats.sparks)}
         className="h-9 flex-row items-center gap-1 rounded-full bg-tint-grape px-3"
       >
         <ZapIcon size={16} color={palette.grape["600"]} />
@@ -62,8 +62,9 @@ export function LearnScreen() {
       return <PageWait error={overview.error ?? home.error} onRetry={refresh} />;
     }
     const { nextStep, journey } = overview.data;
+    const mapWidth = width - MAP_MARGIN;
     const cardFirst = nextStep.kind !== "mission" && nextStep.kind !== "resume";
-    const week = currentQuestWeek(questMap(journey, { width: width - MAP_MARGIN }));
+    const week = currentQuestWeek(questMap(journey, { width: mapWidth }));
     const now = week?.stops.find((stop) => stop.state === "now");
     return (
       <>
@@ -88,6 +89,7 @@ export function LearnScreen() {
         {week ? (
           <QuestMap
             week={week}
+            width={mapWidth}
             reward={chestReward(week.week, {
               badges: stats?.badges.map((b) => b.key) ?? [],
               level: stats?.level ?? 1,

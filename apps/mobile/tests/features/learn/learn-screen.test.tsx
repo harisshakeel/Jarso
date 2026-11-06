@@ -97,7 +97,7 @@ describe("LearnScreen", () => {
 
   it("streak and Sparks pills come from progress", async () => {
     await renderScreen();
-    expect(await screen.findByLabelText("5")).toBeOnTheScreen();
-    expect(screen.getByLabelText("240")).toBeOnTheScreen();
+    expect(await screen.findByLabelText(questCopy.streak(5))).toBeOnTheScreen();
+    expect(screen.getByLabelText(questCopy.sparks(240))).toBeOnTheScreen();
   });
 });

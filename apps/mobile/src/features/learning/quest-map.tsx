@@ -55,11 +55,14 @@ export function jarsoCenterX(anchorX: number, mapWidth: number, anchorSize = STO
 /** One week as a winding path of stops with Jarso on today's and a chest at the end. */
 export function QuestMap({
   week,
+  width: mapWidth,
   reward,
   look,
   fill,
 }: {
   week: QuestWeek;
+  /** The width the week was laid out for (`questMap`'s `width`). */
+  width: number;
   reward: ChestReward;
   look?: JarsoLook;
   fill?: number;
@@ -70,7 +73,6 @@ export function QuestMap({
   const anchorX = onStop
     ? (week.stops.find((s) => s.day === week.jarso.day)?.x ?? week.jarso.x)
     : week.chest.x;
-  const mapWidth = mapWidthOf(week);
   const jarsoX = jarsoCenterX(anchorX, mapWidth, anchorSize);
 
   return (
@@ -118,11 +120,6 @@ export function QuestMap({
       </View>
     </View>
   );
-}
-
-/** The width `questMap` was built for: the chest sits at half of it. */
-function mapWidthOf(week: QuestWeek): number {
-  return Math.round(week.chest.x * 2);
 }
 
 const wearName = (wear: string) => `${wear.charAt(0).toUpperCase()}${wear.slice(1)}`;
@@ -188,7 +185,7 @@ function Stop({ stop }: { stop: QuestStop }) {
         {done ? (
           <CheckIcon size={30} color={tokens["primary-foreground"]} />
         ) : (
-          <PlayIcon size={28} color="#ffffff" fill="#ffffff" />
+          <PlayIcon size={28} color={tokens["ai-foreground"]} fill={tokens["ai-foreground"]} />
         )}
       </Pressable>
     </>

@@ -4,6 +4,8 @@ export const questCopy = {
   week: (n: number) => `Week ${n}`,
   count: (done: number, total: number) => `${done} / ${total}`,
   today: (day: number) => `Day ${day}!`,
+  streak: (n: number) => `${n} day streak`,
+  sparks: (n: number) => `${n} Sparks`,
   allDone: "All done!",
   chest: "Chest",
   chestLocked: "Finish the week",
