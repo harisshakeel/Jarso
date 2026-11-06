@@ -13,6 +13,19 @@ jest.mock(
   () => require("react-native-safe-area-context/jest/mock").default,
 );
 
+type Json = { type: string; children?: Json[] | string[] | null } | string;
+
+function findScroller(node: unknown): Json | undefined {
+  const list = Array.isArray(node) ? node : [node];
+  for (const n of list as Json[]) {
+    if (typeof n === "string" || !n) continue;
+    if (n.type === "RCTScrollView") return n;
+    const hit = findScroller(n.children);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
 async function open({ parent = "Mum", waiting = 0 } = {}) {
   const onPick = jest.fn();
   const onAsks = jest.fn();
@@ -74,5 +87,15 @@ describe("AddSheet", () => {
       .getAllByText(/.+/)
       .reduce((n, t) => n + wordCount(String(t.props.children)), 0);
     expect(words).toBeLessThanOrEqual(36);
+  });
+
+  it("scrolls the tiles and My asks, leaving the close button outside", async () => {
+    await open();
+    const scroller = findScroller(screen.toJSON());
+    expect(scroller).toBeDefined();
+    const inside = JSON.stringify(scroller);
+    expect(inside).toContain("My asks");
+    expect(inside).not.toContain('"Close"');
+    expect(JSON.stringify(screen.toJSON())).toContain('"Close"');
   });
 });
