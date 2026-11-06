@@ -133,6 +133,10 @@
   --keycap-ledge-success: #0f4a24;
   --keycap-ledge: oklch(0.3 0.06 223); /* teal-900 under the primary keycap */
   --keycap-ledge-gold: #705300; /* gold-700 under the gold keycap (literal: theme vars are tree-shaken) */
+  --keycap-ledge-grape: #473097; /* grape-800 */
+  --keycap-ledge-white: #b9cdd5;
+  --keycap-white: #ffffff;
+  --keycap-white-foreground: #004b62; /* teal-800 */
   --chart-1: oklch(0.541 0.1 223);
   --chart-2: oklch(0.846 0.173 87);
   --chart-3: oklch(0.622 0.107 208);
@@ -214,6 +218,10 @@
   --shadow-raised: 0 0 0 1px rgb(230 241 244 / 0.14);
   --keycap-ledge: oklch(0.385 0.074 227); /* teal-800 */
   --keycap-ledge-gold: #705300; /* gold-700 */
+  --keycap-ledge-grape: #32236b; /* grape-900 */
+  --keycap-ledge-white: #05121a;
+  --keycap-white: #1b3d48;
+  --keycap-white-foreground: #d2ffff; /* teal-50 */
   --chart-1: oklch(0.541 0.1 223);
   --chart-2: oklch(0.846 0.173 87);
   --chart-3: oklch(0.622 0.107 208);

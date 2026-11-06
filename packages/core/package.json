@@ -27,7 +27,8 @@
     "./review": "./src/review/index.ts",
     "./dashboard": "./src/dashboard/index.ts",
     "./offline": "./src/offline/index.ts",
-    "./tour": "./src/tour/index.ts"
+    "./tour": "./src/tour/index.ts",
+    "./mascot": "./src/mascot/index.ts"
   },
   "dependencies": {
     "@jarso/content": "workspace:*",

@@ -51,7 +51,7 @@ export function NewsScreen({ viewer: role }: { viewer: NoticeRole }) {
           )
         ) : items.length === 0 ? (
           <Card>
-            <CoachSays coachKey="inbox" moment="nothingNew" />
+            <CoachSays coachKey="inbox" moment="nothingNew" surface="secondary" />
           </Card>
         ) : (
           <>

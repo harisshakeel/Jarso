@@ -6,6 +6,8 @@ module.exports = {
   // pnpm keeps packages under node_modules/.pnpm/<name>/node_modules/<name>; workspace packages
   // (@jarso/*) ship TypeScript source, so they and React Native's ESM packages are transformed.
   // Its "react-native" entry is an .mjs file Jest won't transform; the CommonJS build is the same.
+  // A resolver (tests/reanimated-resolver.js) swaps its native-only files for the JS ones, so no worklets runtime is needed.
+  resolver: `${__dirname}/tests/reanimated-resolver.js`,
   moduleNameMapper: {
     "^lucide-react-native$": `${__dirname}/node_modules/lucide-react-native/dist/cjs/lucide-react-native.js`,
   },

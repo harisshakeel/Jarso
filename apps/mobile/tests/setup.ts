@@ -29,3 +29,10 @@ jest.mock("react-native-keyboard-controller", () =>
   require("react-native-keyboard-controller/jest"),
 );
 jest.mock("react-native-razorpay", () => ({ __esModule: true, default: { open: jest.fn() } }));
+// Reanimated and its worklets runtime are native: tests use the library's JS mock (jest.config.js resolver picks its web build).
+jest.mock("react-native-reanimated", () => require("react-native-reanimated/mock"));
+// expo-audio is native: tests assert on this fake player (the buddy's voice, sounds).
+jest.mock("expo-audio", () => ({
+  createAudioPlayer: jest.fn(() => ({ play: jest.fn(), seekTo: jest.fn(), remove: jest.fn() })),
+  setAudioModeAsync: jest.fn(async () => undefined),
+}));
