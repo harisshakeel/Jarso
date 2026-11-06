@@ -164,12 +164,15 @@ describe("weekLine", () => {
     );
   });
 
-  it("describes spend as the jar's net change", () => {
+  it("describes spend for this week only, with no comparison", () => {
     expect(weekLine(weeksOf(0, 0, 0, 0, -1000, -3000), "spend", pounds)).toBe(
-      "Spend dropped £20 more than last week.",
+      "£30 went out of Spend this week.",
     );
-    expect(weekLine(weeksOf(0, 0, 0, 0, -3000, -1000), "spend", pounds)).toBe(
-      "Spend grew £20 more than last week.",
+    expect(weekLine(weeksOf(0, 0, 0, 0, -3000, 2000), "spend", pounds)).toBe(
+      "Spend grew £20 this week.",
+    );
+    expect(weekLine(weeksOf(0, 0, 0, 0, -3000, 0), "spend", pounds)).toBe(
+      "Spend stayed the same this week.",
     );
   });
 

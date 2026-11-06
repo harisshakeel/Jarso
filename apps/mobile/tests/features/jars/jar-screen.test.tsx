@@ -107,7 +107,7 @@ describe("JarScreen", () => {
     await render(wrap(<JarScreen jar="spend" />));
     expect(await screen.findByText("Each week")).toBeOnTheScreen();
     expect(await screen.findByText("Cash you have")).toBeOnTheScreen();
-    expect(await screen.findByText("Spend dropped £5 more than last week.")).toBeOnTheScreen();
+    expect(await screen.findByText("£8 went out of Spend this week.")).toBeOnTheScreen();
     expect(screen.queryByText(/!$/)).not.toBeOnTheScreen();
     await user.press(screen.getByRole("button", { name: "I bought something" }));
     expect(push).toHaveBeenCalledWith("/(child)/purchase");

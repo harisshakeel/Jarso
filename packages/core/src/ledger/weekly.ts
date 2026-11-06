@@ -78,10 +78,10 @@ export function weekLine(totals: WeekTotal[], jar: Jar, money: (minor: number) =
     if (cur < 0) return "You used some savings.";
     return "Every coin counts. Keep going!";
   }
-  // Bars are net changes, so say what the jar did, not whether spending was more or less.
-  if (cur > prev) return `Spend grew ${money(cur - prev)} more than last week.`;
-  if (cur < prev) return `Spend dropped ${money(prev - cur)} more than last week.`;
-  return "Same as last week.";
+  // This week only, no comparison: a child can't misread "more than last week" for spending.
+  if (cur < 0) return `${money(-cur)} went out of Spend this week.`;
+  if (cur > 0) return `Spend grew ${money(cur)} this week.`;
+  return "Spend stayed the same this week.";
 }
 
 /** True when this week is above zero and above every earlier week shown. */
