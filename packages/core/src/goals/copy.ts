@@ -1,5 +1,6 @@
 import type { Move, Prediction } from "./predict";
 import { goalProgress } from "./progress";
+import type { Milestone } from "./staircase";
 
 /** What a child sees when `save_goal` refuses the plan (SQLSTATE 22023, message is the key). */
 export const PLAN_MESSAGES: Record<string, string> = {
@@ -92,6 +93,22 @@ export const goalCopy = {
       `${emoji} ${name} · ${ofTarget ?? "Saved up!"}`,
     /** "£34 of £60" on the phone goal card. Amounts are already formatted. */
     ofTarget: (saved: string, target: string) => `${saved} of ${target}`,
+    /** "₹110 to go" under the phone goal card; amount is already formatted. */
+    toGo: (amount: string) => `${amount} to go`,
+  },
+  /** The phone's goal page. */
+  page: {
+    heading: "My goal",
+    ofTarget: (saved: string, target: string) => `${saved} of ${target}`,
+    stars: ["25%", "50%", "75%", "Got it!"],
+    starsLabel: (lit: number) => `${lit} of 4 stars`,
+    starTitle: (milestone: Milestone) =>
+      milestone === 0.5 ? "Halfway there!" : milestone === 0.25 ? "First star!" : "Almost there!",
+    reachedTitle: "You did it!",
+    reachedSub: (amount: string, name: string) => `${amount} saved for your ${name}`,
+    askToBuy: (parent: string) => `Ask ${parent} to buy it`,
+    keepSaving: "Keep saving",
+    saveSome: "Save some",
   },
   staircase: {
     amountsSummary: "The amounts",
