@@ -5,9 +5,21 @@ appId: app.jarso.mobile
 - runFlow: sign-in.yaml
 - tapOn: "Learn"
 - extendedWaitUntil:
-    visible: "Continue|Start|Let's go|Practise|Start mission|See your skills"
+    visible: "Day [0-9]+!|All done!|Continue|Start|Let's go|Practise|Start mission|See your skills"
     timeout: 15000
-# Journey done: the card stays on Learn, with the road below it.
+# A mission is next: Jarso stands on its stop on the quest map, and the stop opens it.
+- runFlow:
+    when:
+      visible:
+        id: quest-stop-now
+    commands:
+      - tapOn:
+          id: quest-stop-now
+      - extendedWaitUntil:
+          visible: "Check|Next|Start the questions|Read the topic|Start mission"
+          timeout: 15000
+      - back
+# Journey done: the card stays on Learn, with the map below it.
 - runFlow:
     when:
       visible: "See your skills"
@@ -18,6 +30,7 @@ appId: app.jarso.mobile
 - runFlow:
     when:
       notVisible: "See your skills"
+      visible: "Continue|Start|Let's go|Practise|Start mission"
     commands:
       - tapOn: "Continue|Start|Let's go|Practise|Start mission"
       - extendedWaitUntil:
