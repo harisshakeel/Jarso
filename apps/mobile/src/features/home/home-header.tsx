@@ -50,6 +50,7 @@ export function HomeHeader({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={homeCopy.me}
+          hitSlop={4}
           onPress={() => router.push("/(child)/me")}
           className="h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-tint-grape"
         >
@@ -77,6 +78,7 @@ export function HomeHeader({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={unread > 0 ? `${homeCopy.bell}, ${unread} new` : homeCopy.bell}
+          hitSlop={6}
           onPress={() => router.push("/(child)/news")}
           className="h-9 w-9 items-center justify-center rounded-full bg-secondary"
         >
