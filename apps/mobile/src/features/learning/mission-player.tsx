@@ -1,4 +1,3 @@
-import { palette } from "@jarso/brand/tokens";
 import type {
   AnswerableStep,
   InfoStep,
@@ -11,7 +10,6 @@ import type {
 import {
   attemptSummary,
   bodyFor,
-  type Coach,
   coachFor,
   type Draft,
   describeAnswer,
@@ -43,6 +41,7 @@ import { cn, isAppError, useTokens } from "@/lib";
 import { outboxPlatform, submit, useOnline, useOutboxItems } from "@/lib/outbox";
 import { keys as queryKeys } from "@/lib/query";
 import { CurrentStepContext } from "./current-step";
+import { JarsoHint } from "./jarso-hint";
 import { finishQueued } from "./queued";
 import { StepInput } from "./step-views";
 import { type MissionSessionView, useStartMission } from "./use-learning";
@@ -496,21 +495,19 @@ function ProblemText({ problem }: { problem: Problem | null }) {
 }
 
 function ProgressDots({ label, done, total }: { label: string; done: number; total: number }) {
+  const now = Math.min(done, total);
   return (
     <View
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel={label}
-      accessibilityValue={{ min: 0, max: total, now: Math.min(done, total) }}
-      className="flex-row gap-1.5"
+      accessibilityValue={{ min: 0, max: total, now }}
+      className="h-2.5 overflow-hidden rounded-full bg-muted"
     >
-      {Array.from({ length: total }, (_, i) => (
-        <View
-          // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length decoration
-          key={i}
-          className={cn("h-2 flex-1 rounded-full", i < done ? "bg-primary" : "bg-muted")}
-        />
-      ))}
+      <View
+        className="h-2.5 rounded-full bg-grape-500"
+        style={{ width: `${total > 0 ? (now / total) * 100 : 0}%` }}
+      />
     </View>
   );
 }
@@ -622,6 +619,7 @@ function StepView({
   const hints = body.hints;
   // The same step always brings the same coach back, replay or restart.
   const coach = coachFor(item.step.key);
+  const line = checkIn ? coach.says.checkIn : hintsShown > 0 ? coach.says.hint : coach.says.idle;
 
   return (
     <CurrentStepContext.Provider
@@ -635,25 +633,14 @@ function StepView({
         answer: outcome?.final ? answer : null,
       }}
     >
-      <View className="gap-5 rounded-2xl bg-card p-5">
-        <CoachBubble
-          coach={coach}
-          hints={checkIn ? [] : hints.slice(0, hintsShown)}
-          currency={currency}
-          checkIn={checkIn}
-        >
-          {outcome ? (
-            <Feedback outcome={outcome} body={body} currency={currency} topicHref={topicHref} />
-          ) : null}
-        </CoachBubble>
-
-        <View className="gap-2 rounded-2xl border-[6px] border-gold-800 bg-teal-950 p-4">
-          <Eyebrow className="text-teal-200">{position}</Eyebrow>
-          <Text accessibilityRole="header" className="font-sans-extrabold text-h1 text-teal-50">
+      <View className="gap-5">
+        <View className="gap-2">
+          <Eyebrow>{position}</Eyebrow>
+          <Text accessibilityRole="header" className="font-sans-extrabold text-h1">
             {renderText(body.prompt, currency)}
           </Text>
           {body.type === "predict" ? (
-            <Text className="text-teal-100">{playerCopy.predictNote}</Text>
+            <Text className="text-muted-foreground">{playerCopy.predictNote}</Text>
           ) : null}
         </View>
 
@@ -666,20 +653,46 @@ function StepView({
           idBase={idBase}
         />
 
+        <JarsoHint
+          line={line}
+          hints={checkIn ? [] : hints.slice(0, hintsShown)}
+          currency={currency}
+        />
+        {outcome ? (
+          <View accessibilityLiveRegion="polite">
+            <Feedback outcome={outcome} body={body} currency={currency} topicHref={topicHref} />
+          </View>
+        ) : null}
+
         <ProblemText problem={error} />
 
         <View className="gap-3">
           {!outcome ? (
-            <Button
-              variant="keycap"
-              size="lg"
-              accessibilityLabel={checkIn ? playerCopy.next : playerCopy.check}
-              disabled={!answer}
-              loading={saving}
-              onPress={check}
-            >
-              <Text>{checkIn ? playerCopy.next : playerCopy.check}</Text>
-            </Button>
+            <View className="flex-row gap-3">
+              {!checkIn && hintsShown < hints.length ? (
+                <Button
+                  variant="keycap-white"
+                  size="lg"
+                  className="flex-1"
+                  accessibilityLabel={hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}
+                  onPress={() => setHintsShown((n) => n + 1)}
+                >
+                  <LightbulbIcon size={18} color={tokens.foreground} />
+                  <Text>{hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}</Text>
+                </Button>
+              ) : null}
+              <Button
+                variant="keycap-grape"
+                size="lg"
+                className="flex-[2]"
+                accessibilityLabel={checkIn ? playerCopy.next : playerCopy.check}
+                disabled={!answer}
+                loading={saving}
+                onPress={check}
+              >
+                <Text>{checkIn ? playerCopy.next : playerCopy.check}</Text>
+              </Button>
+            </View>
           ) : outcome.final ? (
             // Green once it's right, so the child knows they're done here (design.md §2.4).
             <PrimaryButton
@@ -696,60 +709,10 @@ function StepView({
               variant="keycap-gold"
             />
           )}
-          {!checkIn && !outcome?.final && hintsShown < hints.length ? (
-            <Button
-              variant="outline"
-              accessibilityLabel={hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}
-              onPress={() => setHintsShown((n) => n + 1)}
-            >
-              <LightbulbIcon size={18} color={tokens.foreground} />
-              <Text>{hintsShown === 0 ? playerCopy.hint : playerCopy.anotherHint}</Text>
-            </Button>
-          ) : null}
           {!checkIn ? stepAside : null}
         </View>
       </View>
     </CurrentStepContext.Provider>
-  );
-}
-
-/** The coach beside the question: one line, then the hints asked for, then the feedback. */
-function CoachBubble({
-  coach,
-  hints,
-  currency,
-  checkIn,
-  children,
-}: {
-  coach: Coach;
-  hints: string[];
-  currency: string;
-  checkIn: boolean;
-  children?: ReactNode;
-}) {
-  const line = checkIn ? coach.says.checkIn : hints.length > 0 ? coach.says.hint : coach.says.idle;
-  return (
-    <View className="gap-1">
-      <Text className="font-sans-semibold text-muted-foreground text-small">{coach.name}</Text>
-      <View className="gap-2 rounded-2xl rounded-bl-sm bg-secondary p-4">
-        {!children || hints.length > 0 ? (
-          <Text className="font-sans-semibold text-secondary-foreground">{line}</Text>
-        ) : null}
-        {!checkIn && hints.length > 0 ? (
-          <View accessibilityLabel={playerCopy.hints} className="gap-2">
-            {hints.map((hint) => (
-              <View key={hint} className="flex-row gap-2 rounded-xl bg-gold-100 p-3">
-                <LightbulbIcon size={18} color={palette.gold[700]} />
-                <Text className="flex-1 font-sans-semibold text-gold-700">
-                  {renderText(hint, currency)}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-        <View accessibilityLiveRegion="polite">{children}</View>
-      </View>
-    </View>
   );
 }
 
