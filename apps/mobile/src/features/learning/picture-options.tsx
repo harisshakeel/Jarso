@@ -31,7 +31,9 @@ function Art({ art }: { art: OptionArt }) {
       importantForAccessibility="no-hide-descendants"
       className="size-12 items-center justify-center rounded-full bg-tint-grape"
     >
-      <Text className="font-sans-extrabold text-h2 text-grape-700">{art.letter}</Text>
+      <Text className="font-sans-extrabold text-h2 text-grape-700 dark:text-grape-200">
+        {art.letter}
+      </Text>
     </View>
   );
 }
