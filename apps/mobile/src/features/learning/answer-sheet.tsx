@@ -30,7 +30,7 @@ type AnswerSheetProps = {
 };
 
 /**
- * Green once it's right; calm blue when it isn't, never red. Rounded on top like a bottom sheet,
+ * Green once it's right; calm blue when it isn't, never red. Rounded all round, sitting inline under the prompt,
  * with its content in a polite live region so the heading is read out.
  */
 export function AnswerSheet({
@@ -60,8 +60,10 @@ export function AnswerSheet({
 
   return (
     <View
-      className={cn("overflow-hidden p-5", correct ? "bg-success-soft" : "bg-tint-cyan")}
-      style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
+      className={cn(
+        "overflow-hidden rounded-[24px] p-5",
+        correct ? "bg-success-soft" : "bg-tint-cyan",
+      )}
     >
       <View accessibilityLiveRegion="polite" className="gap-3">
         <View className="flex-row items-center gap-3">
