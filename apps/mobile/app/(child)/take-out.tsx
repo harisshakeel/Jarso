@@ -7,7 +7,7 @@ import { TakeOutSheet } from "@/features/requests";
 export default function TakeOutRoute() {
   const router = useRouter();
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView edges={["bottom"]} className="flex-1 bg-background">
       <TakeOutSheet
         onClose={() => (router.canGoBack() ? router.back() : router.replace(homeFor("child")))}
       />
