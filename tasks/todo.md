@@ -349,8 +349,8 @@ Built and unit-tested; nothing below has run on a device (no device or Android b
 
 Spec: docs/superpowers/specs/2026-11-06-mobile-kid-rework-design.md · Mockups: docs/superpowers/specs/mockups/2026-11-06-mobile-kid-rework.html
 
-- [ ] Plan 1 Foundation (Jarso, keycaps, celebrate, sound): docs/superpowers/plans/2026-11-06-mobile-kid-rework-1-foundation.md
-- [ ] Plan 2 Progress backend (Sparks, levels, badges, streak, check-ins, child_facing_name)
+- [x] Plan 1 Foundation (PR #141) (Jarso, keycaps, celebrate, sound): docs/superpowers/plans/2026-11-06-mobile-kid-rework-1-foundation.md
+- [x] Plan 2 Progress backend (Sparks, levels, badges, streak, check-ins, child_facing_name): docs/superpowers/plans/2026-11-06-mobile-kid-rework-2-progress.md
 - [ ] Plan 3 Child shell, Home, + sheet, money flows
 - [ ] Plan 4 Jar pages (weekly bars) and goal
 - [ ] Plan 5 Learn quest map and daily check-in
