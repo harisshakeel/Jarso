@@ -1,7 +1,10 @@
+import { semantic } from "@jarso/brand/tokens";
+import { coachIdFor, coachLine, coachNames } from "@jarso/core/learning";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import {
   Card,
   CardSeparator,
+  CoachSays,
   Eyebrow,
   ListGroup,
   ListRow,
@@ -85,5 +88,47 @@ describe("calm screen parts", () => {
     );
     expect(screen.getByLabelText("Box")).toBeTruthy();
     expect(screen.getByText("Two")).toBeTruthy();
+  });
+});
+
+describe("coach says", () => {
+  it("shows Jarso, not a coach name", async () => {
+    await render(<CoachSays coachKey="learn" moment="learn" />);
+    const id = coachIdFor("learn");
+    expect(screen.queryByText(coachNames[id])).toBeNull();
+    expect(screen.getByText(coachLine(id, "learn"))).toBeTruthy();
+  });
+
+  it("bubble line is one Text", async () => {
+    await render(<CoachSays coachKey="learn" moment="learn" />);
+    const line = screen.getByText(coachLine(coachIdFor("learn"), "learn"));
+    expect(line.props.numberOfLines).toBeUndefined();
+  });
+
+  it("bubble has a decorative left tail", async () => {
+    await render(<CoachSays coachKey="learn" moment="learn" />);
+    const tail = screen.getByTestId("coach-says-tail", { includeHiddenElements: true });
+    expect(tail.props.importantForAccessibility).toBe("no-hide-descendants");
+  });
+
+  it("bubble and tail take the card colour by default", async () => {
+    await render(<CoachSays coachKey="learn" moment="learn" />);
+    const tail = screen.getByTestId("coach-says-tail", { includeHiddenElements: true });
+    expect(tail.props.style.borderRightColor).toBe(semantic.light.card);
+    expect(screen.getByTestId("coach-says-bubble")).toHaveStyle({
+      backgroundColor: semantic.light.card,
+    });
+  });
+
+  it("on a card the bubble switches to secondary so it stays visible", async () => {
+    await render(<CoachSays coachKey="learn" moment="learn" surface="secondary" />);
+    const tail = screen.getByTestId("coach-says-tail", { includeHiddenElements: true });
+    expect(tail.props.style.borderRightColor).toBe(semantic.light.secondary);
+    expect(screen.getByTestId("coach-says-bubble")).toHaveStyle({
+      backgroundColor: semantic.light.secondary,
+    });
+    expect(screen.getByText(coachLine(coachIdFor("learn"), "learn")).props.className).toContain(
+      "text-secondary-foreground",
+    );
   });
 });
