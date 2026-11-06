@@ -128,9 +128,15 @@ export function HomeScreen() {
         )}
         {userId ? <PendingPurchases userId={userId} currency={context.currency} /> : null}
         <View className="flex-row gap-3">
-          <JarTile jar="spend" amount={money(jars.spend)} caption={homeCopy.spendTile.caption} />
+          <JarTile
+            jar="spend"
+            amount={money(jars.spend)}
+            caption={homeCopy.spendTile.caption}
+            onPress={() => router.push("/(child)/jar/spend")}
+          />
           <JarTile
             jar="save"
+            onPress={() => router.push("/(child)/jar/save")}
             amount={money(jars.save)}
             caption={homeCopy.saveTile.caption(parent)}
           />

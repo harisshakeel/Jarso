@@ -44,6 +44,7 @@ jest.mock("@jarso/data/notifications", () => ({
   fetchUnreadCount: jest.fn(),
 }));
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
+jest.mock("@/components/celebrate", () => ({ useCelebrate: () => jest.fn() }));
 
 const push = jest.fn();
 const jars = getJars as jest.Mock;
@@ -125,11 +126,18 @@ describe("HomeScreen", () => {
     expect(jars).toHaveBeenCalledWith(expect.anything(), "child-1");
   });
 
-  it("tiles are not buttons yet", async () => {
+  it("Spend tile opens the Spend jar page", async () => {
+    const user = userEvent.setup();
     await renderHome();
-    await screen.findByText("In your pocket");
-    expect(screen.queryByRole("button", { name: /^Spend/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^Save/ })).toBeNull();
+    await user.press(await screen.findByRole("button", { name: "Spend £12.50" }));
+    expect(push).toHaveBeenCalledWith("/(child)/jar/spend");
+  });
+
+  it("Save tile opens the Save jar page", async () => {
+    const user = userEvent.setup();
+    await renderHome();
+    await user.press(await screen.findByRole("button", { name: "Save £40" }));
+    expect(push).toHaveBeenCalledWith("/(child)/jar/save");
   });
 
   it("a tile with onPress is a button named for the jar and amount", async () => {
