@@ -12,7 +12,6 @@ import {
   bodyFor,
   coachFor,
   type Draft,
-  describeAnswer,
   draftToAnswer,
   emptyDraft,
   gradeStep,
@@ -34,12 +33,15 @@ import {
   RotateCcwIcon,
 } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { Jarso } from "@/components/brand";
+import { Confetti } from "@/components/celebrate";
 import { Eyebrow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
-import { cn, isAppError, useTokens } from "@/lib";
+import { isAppError, useTokens } from "@/lib";
 import { outboxPlatform, submit, useOnline, useOutboxItems } from "@/lib/outbox";
 import { keys as queryKeys } from "@/lib/query";
+import { AnswerSheet } from "./answer-sheet";
 import { CurrentStepContext } from "./current-step";
 import { JarsoHint } from "./jarso-hint";
 import { finishQueued } from "./queued";
@@ -338,8 +340,8 @@ export function MissionPlayer(props: MissionPlayerProps) {
   if (stage === "finishing" || stage === "finished") {
     const done = stage === "finished" && finishText;
     return (
-      <View className="items-center gap-5 rounded-2xl bg-card p-5">
-        {done ? <DoneBadge /> : null}
+      <View className="items-center gap-5 overflow-hidden rounded-2xl bg-card p-5">
+        {done ? <DoneBadge cheer={mode.kind === "mission" || mode.kind === "practice"} /> : null}
         <Text
           accessibilityRole="header"
           accessibilityLiveRegion="polite"
@@ -369,6 +371,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
               label={doneLabel}
               pending={false}
               onPress={() => router.dismissTo(doneHref)}
+              variant="keycap-grape"
             />
             {topicHref && mode.kind === "mission" ? (
               <Button
@@ -437,7 +440,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
   );
 }
 
-/** The screen's one keycap (design.md §6): teal, green after a right answer, gold to try again. */
+/** The screen's one keycap (design.md §6): teal, grape on the finish card. */
 function PrimaryButton({
   label,
   pending,
@@ -447,7 +450,7 @@ function PrimaryButton({
   label: string;
   pending: boolean;
   onPress: () => void;
-  variant?: "keycap" | "keycap-success" | "keycap-gold";
+  variant?: "keycap" | "keycap-grape";
 }) {
   return (
     <Button
@@ -658,6 +661,22 @@ function StepView({
           ) : null}
         </View>
 
+        {outcome ? (
+          // Right under the prompt, so it is on screen without scrolling on a long step.
+          <>
+            <AnswerSheet
+              outcome={outcome}
+              body={body}
+              currency={currency}
+              topicHref={topicHref}
+              pending={saving}
+              onContinue={continueOn}
+              onTryAgain={() => setOutcome(null)}
+            />
+            {hintButton()}
+          </>
+        ) : null}
+
         <StepInput
           body={body}
           draft={draft}
@@ -672,12 +691,6 @@ function StepView({
           hints={checkIn ? [] : hints.slice(0, hintsShown)}
           currency={currency}
         />
-        {outcome ? (
-          <View accessibilityLiveRegion="polite">
-            <Feedback outcome={outcome} body={body} currency={currency} topicHref={topicHref} />
-          </View>
-        ) : null}
-
         <ProblemText problem={error} />
 
         <View className="gap-3">
@@ -696,25 +709,7 @@ function StepView({
                 <Text>{checkIn ? playerCopy.next : playerCopy.check}</Text>
               </Button>
             </View>
-          ) : outcome.final ? (
-            // Green once it's right, so the child knows they're done here (design.md §2.4).
-            <PrimaryButton
-              label={playerCopy.continue}
-              pending={saving}
-              onPress={continueOn}
-              variant={outcome.correct ? "keycap-success" : "keycap"}
-            />
-          ) : (
-            <>
-              <PrimaryButton
-                label={playerCopy.tryAgain}
-                pending={false}
-                onPress={() => setOutcome(null)}
-                variant="keycap-gold"
-              />
-              {hintButton()}
-            </>
-          )}
+          ) : null}
           {!checkIn ? stepAside : null}
         </View>
       </View>
@@ -722,69 +717,17 @@ function StepView({
   );
 }
 
-function Feedback({
-  outcome,
-  body,
-  currency,
-  topicHref,
-}: {
-  outcome: Outcome;
-  body: StepBody;
-  currency: string;
-  topicHref?: Href;
-}) {
-  const router = useRouter();
+/** Done: Jarso cheers under confetti after a mission or practice; a topic or check-in stays calm. */
+function DoneBadge({ cheer }: { cheer: boolean }) {
   const tokens = useTokens();
-  const heading = outcome.correct
-    ? playerCopy.right
-    : outcome.final
-      ? playerCopy.final
-      : playerCopy.again;
-  return (
-    <View className={cn("gap-3 rounded-xl p-4", outcome.correct ? "bg-teal-100" : "bg-card")}>
-      <View className="flex-row items-center gap-2">
-        {outcome.correct ? (
-          <CircleCheckIcon size={22} color={tokens.primary} />
-        ) : (
-          <LightbulbIcon size={22} color={tokens.foreground} />
-        )}
-        <Text
-          accessibilityRole="header"
-          className={cn("font-sans-bold text-h3", outcome.correct && "text-teal-800")}
-        >
-          {heading}
-        </Text>
-      </View>
-      <Text className={cn(outcome.correct && "text-teal-800")}>
-        {renderText(outcome.feedback, currency)}
-      </Text>
-      {outcome.final && !outcome.correct ? (
-        <Text className="font-sans-semibold">
-          {playerCopy.answerLine(describeAnswer(body, currency))}
-        </Text>
-      ) : null}
-      {outcome.final && body.type === "predict" ? (
-        <Text className={cn("font-sans-semibold", outcome.correct && "text-teal-800")}>
-          {renderText(body.outcome, currency)}
-        </Text>
-      ) : null}
-      {!outcome.correct && topicHref ? (
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={playerCopy.readAboutTopic}
-          onPress={() => router.push(topicHref)}
-          className="min-h-11 justify-center"
-        >
-          <Text className="font-sans-semibold underline">{playerCopy.readAboutTopic}</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
-/** Done: a calm badge (the web's ring closes; the phone keeps it still). */
-function DoneBadge() {
-  const tokens = useTokens();
+  if (cheer) {
+    return (
+      <>
+        <Jarso mood="cheer" size={120} />
+        <Confetti />
+      </>
+    );
+  }
   return (
     <View
       accessibilityElementsHidden
