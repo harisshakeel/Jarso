@@ -34,7 +34,7 @@ export function MilestoneStars({ lit }: { lit: number }) {
                 fill={on ? tokens["gold-foreground"] : "none"}
               />
             </Animated.View>
-            <Text className="text-muted-foreground text-xs">{caption}</Text>
+            <Text className="text-muted-foreground text-small">{caption}</Text>
           </View>
         );
       })}
