@@ -4,26 +4,28 @@ import {
   NAME_HINTS,
   notEnoughSaveMessage,
   notEnoughSpendToUndoMessage,
+  purchaseFlowCopy,
   purchaseSchema,
   undoneSpendMessage,
 } from "@jarso/core/diary";
+import { quickChips, spendPictures } from "@jarso/core/home";
 import { SPEND_CATEGORIES } from "@jarso/core/ledger";
 import { offlineCopy } from "@jarso/core/offline";
 import { randomUUID } from "expo-crypto";
 import { useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { z } from "zod";
-import { KeyboardScrollView } from "@/components/screen";
-import { Button, Input, Label, Text } from "@/components/ui";
+import { useCelebrate } from "@/components/celebrate";
+import { HomeWait } from "@/components/sheet";
+import { Button, Input, Text } from "@/components/ui";
+import { AmountKeypad, FlowShell, PictureGrid, useSparkChips } from "@/features/flows";
 import { useHome } from "@/features/jars";
-import { cn, toUserMessage } from "@/lib";
+import { formatMoney, parseMoney, toUserMessage } from "@/lib";
 import { removeItem } from "@/lib/outbox";
-import { CategoryChips } from "./category-chips";
 import { sentEntryId, useRecordPurchase } from "./use-record-purchase";
 import { useUndo } from "./use-undo";
 
-const AMOUNT_LABEL = "Amount";
-const NAME_LABEL = "Name it (optional)";
+const NAME_LABEL = "Name it";
 
 type FieldErrors = { amount?: string[]; label?: string[] };
 
@@ -39,14 +41,16 @@ type PurchaseSheetProps = {
 };
 
 /**
- * "Spent something?": amount, what it was for, an optional name. It goes through the phone's
- * outbox, so offline it waits on the phone and sends itself later. Mount it once per opening:
- * the idempotency key is made on mount, reused by every retry and new the next time it opens.
+ * "I bought something": how much (keypad), on what (picture grid), then a celebration. It goes
+ * through the phone's outbox, so offline it waits on the phone and sends itself later. Mount it
+ * once per opening: the idempotency key is made on mount, reused by every retry and new the next
+ * time it opens.
  */
 export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps) {
   const home = useHome();
   const currency = home.data?.context.currency;
   const [idempotencyKey] = useState(() => randomUUID());
+  const [step, setStep] = useState<1 | 2>(1);
   const [amount, setAmount] = useState(initial?.amount ?? "");
   const [label, setLabel] = useState(initial?.label ?? "");
   // A purchase saved before categories existed has none, so it starts unpicked.
@@ -61,24 +65,40 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
   const sending = useRef(false);
   const record = useRecordPurchase();
   const undo = useUndo();
+  const celebrate = useCelebrate();
+  const sparks = useSparkChips();
 
-  if (!currency) {
-    return (
-      <View className="flex-1 items-center justify-center gap-4 bg-background p-6">
-        {home.error ? (
-          <>
-            <Text accessibilityRole="alert" className="text-center">
-              {toUserMessage(home.error)}
-            </Text>
-            <Button accessibilityLabel="Close" onPress={onClose}>
-              <Text>Close</Text>
-            </Button>
-          </>
-        ) : (
-          <ActivityIndicator accessibilityLabel="Loading" />
-        )}
-      </View>
-    );
+  if (!currency) return <HomeWait error={home.error} onClose={onClose} />;
+
+  const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
+  const categoryLabel = SPEND_CATEGORIES.find((c) => c.key === category)?.label;
+
+  function next() {
+    // The same schema as the send, so the message is the one the web shows.
+    const parsed = purchaseSchema(currency as string).safeParse({
+      amount,
+      category: "other",
+      label: "",
+      idempotencyKey,
+    });
+    if (!parsed.success) {
+      setFieldErrors(z.flattenError(parsed.error).fieldErrors as FieldErrors);
+      return;
+    }
+    setFieldErrors(undefined);
+    setStep(2);
+  }
+
+  async function takeBack(entryId: string) {
+    setUndoError(undefined);
+    try {
+      const result = await undo.mutateAsync(entryId);
+      if (result === "not_enough_spend") return setUndoError(notEnoughSpendToUndoMessage);
+      if (result === "not_enough_save") return setUndoError(notEnoughSaveMessage);
+      setUndone(undoneSpendMessage);
+    } catch (error) {
+      setUndoError(toUserMessage(error));
+    }
   }
 
   async function submit() {
@@ -90,15 +110,37 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
     const payload = { amount, category: category ?? "", label, idempotencyKey };
     const parsed = purchaseSchema(currency).safeParse(payload);
     if (!parsed.success) {
-      setFieldErrors(z.flattenError(parsed.error).fieldErrors as FieldErrors);
+      const errors = z.flattenError(parsed.error).fieldErrors as FieldErrors;
+      setFieldErrors(errors);
+      if (errors.amount) setStep(1);
       return;
     }
     setFieldErrors(undefined);
     sending.current = true;
     try {
+      sparks.snapshot();
       const result = await record.mutateAsync(payload);
       switch (result.status) {
-        case "sent":
+        case "sent": {
+          if (replaces) await removeItem(replaces).catch(() => undefined);
+          const entryId = sentEntryId(result);
+          celebrate({
+            title: purchaseFlowCopy.celebrate,
+            subtitle: purchaseFlowCopy.celebrateSub(
+              money(parsed.data.amountMinor),
+              categoryLabel ?? "",
+            ),
+            tone: "teal",
+            mood: "cheer",
+            sound: "coin",
+            chips: await sparks.chips(),
+            primary: { label: purchaseFlowCopy.nice, onPress: onClose },
+            secondary: entryId
+              ? { label: purchaseFlowCopy.undo, onPress: () => void takeBack(entryId) }
+              : undefined,
+          });
+          return;
+        }
         case "queued":
           if (replaces) await removeItem(replaces).catch(() => undefined);
           return;
@@ -111,18 +153,6 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
       }
     } finally {
       sending.current = false;
-    }
-  }
-
-  async function takeBack(entryId: string) {
-    setUndoError(undefined);
-    try {
-      const result = await undo.mutateAsync(entryId);
-      if (result === "not_enough_spend") return setUndoError(notEnoughSpendToUndoMessage);
-      if (result === "not_enough_save") return setUndoError(notEnoughSaveMessage);
-      setUndone(undoneSpendMessage);
-    } catch (error) {
-      setUndoError(toUserMessage(error));
     }
   }
 
@@ -139,15 +169,20 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
     );
   }
 
-  const saved = record.data?.status === "sent" ? record.data : undefined;
-  if (saved) {
-    const entryId = sentEntryId(saved);
+  // Under the celebration: what is left once it closes (an undo's result, or just Done).
+  if (record.data?.status === "sent") {
+    const entryId = sentEntryId(record.data);
     return (
       <View className="flex-1 gap-4 bg-background p-6">
         <Text accessibilityLiveRegion="polite" className="font-sans-bold text-h3">
           {undone ?? entrySavedMessage}
         </Text>
-        {undone || !entryId ? null : (
+        {undoError ? (
+          <Text accessibilityRole="alert" className="text-primary">
+            {undoError}
+          </Text>
+        ) : null}
+        {undoError && !undone && entryId ? (
           <Button
             variant="outline"
             size="lg"
@@ -158,76 +193,102 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
           >
             {undo.isPending ? <ActivityIndicator /> : <Text>Undo</Text>}
           </Button>
-        )}
-        {undoError ? (
-          <Text accessibilityRole="alert" className="text-destructive">
-            {undoError}
-          </Text>
         ) : null}
-        <Button size="lg" accessibilityLabel="Done" onPress={onClose}>
-          <Text>Done</Text>
+        <Button
+          size="lg"
+          accessibilityLabel="Done"
+          accessibilityState={{ busy: undo.isPending, disabled: undo.isPending }}
+          disabled={undo.isPending}
+          onPress={onClose}
+        >
+          {undo.isPending ? <ActivityIndicator color="white" /> : <Text>Done</Text>}
         </Button>
       </View>
     );
   }
 
-  const amountError = fieldErrors?.amount?.[0];
-  const labelError = fieldErrors?.label?.[0];
-  return (
-    <KeyboardScrollView
-      className="bg-background"
-      contentContainerClassName="gap-6 p-6"
-      keyboardShouldPersistTaps="handled"
-    >
-      <View className="gap-1">
-        <Text accessibilityRole="header" className="font-sans-bold text-h3">
-          What did you spend?
-        </Text>
-        <Text className="text-muted-foreground">It comes out of your Spend jar.</Text>
-      </View>
-      <View className="gap-2">
-        <Label nativeID="purchase-amount-label">{AMOUNT_LABEL}</Label>
-        <Input
-          accessibilityLabel={AMOUNT_LABEL}
-          aria-labelledby="purchase-amount-label"
-          aria-invalid={Boolean(amountError)}
+  if (step === 1) {
+    const available = home.data?.availability?.availableSpendMinor;
+    const limit = typeof available === "number" ? available : null;
+    const amountError = fieldErrors?.amount?.[0];
+    return (
+      <FlowShell
+        title={purchaseFlowCopy.howMuch}
+        step={1}
+        steps={2}
+        onClose={onClose}
+        footer={
+          <Button
+            variant="keycap"
+            size="lg"
+            accessibilityLabel={purchaseFlowCopy.next}
+            onPress={next}
+          >
+            <Text>{purchaseFlowCopy.next}</Text>
+          </Button>
+        }
+      >
+        <AmountKeypad
           value={amount}
-          onChangeText={setAmount}
-          keyboardType="decimal-pad"
-          autoComplete="off"
-          className={cn("h-14 text-money-xl", amountError && "border-destructive")}
+          onChange={(value) => {
+            setAmount(value);
+            setFieldErrors(undefined);
+          }}
+          currency={currency}
+          chips={quickChips(currency, limit)}
+          limit={limit === null ? undefined : purchaseFlowCopy.spendHas(money(limit))}
+          error={amountError}
         />
-        {amountError ? (
-          <Text accessibilityLiveRegion="polite" className="text-destructive">
-            {amountError}
-          </Text>
-        ) : null}
-      </View>
-      <CategoryChips
-        options={SPEND_CATEGORIES}
+      </FlowShell>
+    );
+  }
+
+  const labelError = fieldErrors?.label?.[0];
+  const chosen = money(parseMoney(amount, currency) ?? 0);
+  const doneLabel = purchaseFlowCopy.done(chosen, categoryLabel ?? "").trimEnd();
+  return (
+    <FlowShell
+      title={purchaseFlowCopy.onWhat}
+      step={2}
+      steps={2}
+      onBack={() => setStep(1)}
+      onClose={onClose}
+      footer={
+        <Button
+          variant="keycap"
+          size="lg"
+          accessibilityLabel={doneLabel}
+          accessibilityState={{ busy: record.isPending, disabled: !category || record.isPending }}
+          disabled={!category || record.isPending}
+          onPress={() => void submit()}
+        >
+          {record.isPending ? <ActivityIndicator color="white" /> : <Text>{doneLabel}</Text>}
+        </Button>
+      }
+    >
+      <PictureGrid
+        options={spendPictures()}
         value={category}
         onChange={setCategory}
-        legend="What was it for?"
+        legend={purchaseFlowCopy.onWhat}
       />
-      <View className="gap-2">
-        <Label nativeID="purchase-label-label">{NAME_LABEL}</Label>
-        <Input
-          accessibilityLabel={NAME_LABEL}
-          aria-labelledby="purchase-label-label"
-          value={label}
-          onChangeText={setLabel}
-          placeholder={(category && NAME_HINTS[category]) || DEFAULT_NAME_HINT}
-          autoComplete="off"
-          maxLength={60}
-        />
-        {labelError ? (
-          <Text accessibilityLiveRegion="polite" className="text-destructive">
-            {labelError}
-          </Text>
-        ) : null}
-      </View>
+      <Input
+        accessibilityLabel={NAME_LABEL}
+        value={label}
+        onChangeText={setLabel}
+        placeholder={purchaseFlowCopy.nameHint(
+          (category && NAME_HINTS[category]) || DEFAULT_NAME_HINT,
+        )}
+        autoComplete="off"
+        maxLength={60}
+      />
+      {labelError ? (
+        <Text accessibilityLiveRegion="polite" className="text-primary">
+          {labelError}
+        </Text>
+      ) : null}
       {refused ? (
-        <Text accessibilityRole="alert" className="text-destructive">
+        <Text accessibilityRole="alert" className="text-primary">
           {refused}
         </Text>
       ) : null}
@@ -236,20 +297,6 @@ export function PurchaseSheet({ onClose, initial, replaces }: PurchaseSheetProps
           {notice}
         </Text>
       ) : null}
-      <View className="gap-2">
-        <Button
-          size="lg"
-          accessibilityLabel="Write it down"
-          accessibilityState={{ busy: record.isPending, disabled: !category || record.isPending }}
-          disabled={!category || record.isPending}
-          onPress={() => void submit()}
-        >
-          {record.isPending ? <ActivityIndicator color="white" /> : <Text>Write it down</Text>}
-        </Button>
-        {category ? null : (
-          <Text className="text-center text-muted-foreground">Pick what it was for</Text>
-        )}
-      </View>
-    </KeyboardScrollView>
+    </FlowShell>
   );
 }

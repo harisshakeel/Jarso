@@ -1,6 +1,5 @@
 import { callRecordMoneyReceived } from "@jarso/data/diary";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as Haptics from "expo-haptics";
 import { useSession } from "@/features/auth";
 import { dispatchNotices } from "@/lib/notices";
 import { keys } from "@/lib/query";
@@ -17,7 +16,7 @@ export type ReceivedVariables = {
 
 /**
  * Records money from another source (a gift, a job, a find). Counts at once, no approval;
- * online only, as on the web. Then: refresh Home, History and the goal, tell the parent, a haptic.
+ * online only, as on the web. Then: refresh Home, History and the goal, tell the parent. The celebration gives the haptic.
  */
 export function useRecordReceived() {
   const { userId } = useSession();
@@ -32,7 +31,6 @@ export function useRecordReceived() {
       void queryClient.invalidateQueries({ queryKey: keys.progress(id) });
       void queryClient.invalidateQueries({ queryKey: keys.goal(id) });
       dispatchNotices();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     },
   });
 }

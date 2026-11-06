@@ -36,3 +36,21 @@ jest.mock("expo-audio", () => ({
   createAudioPlayer: jest.fn(() => ({ play: jest.fn(), seekTo: jest.fn(), remove: jest.fn() })),
   setAudioModeAsync: jest.fn(async () => undefined),
 }));
+
+// React Query parks every unobserved query and mutation on a 5-minute GC timer. Tests that keep
+// the default gcTime leave those timers behind, and in one process (--runInBand, or a loaded
+// machine) they hold Jest open for 5 minutes per file. Unref'd timers still fire, fake timers
+// still drive them (the global is read per call), but they no longer keep the process alive.
+import { timeoutManager } from "@tanstack/react-query";
+
+type Unrefable = { unref?: () => unknown };
+const unref = <T>(id: T): T => {
+  (id as Unrefable).unref?.();
+  return id;
+};
+timeoutManager.setTimeoutProvider({
+  setTimeout: (callback, delay) => unref(setTimeout(callback, delay)),
+  clearTimeout: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
+  setInterval: (callback, delay) => unref(setInterval(callback, delay)),
+  clearInterval: (id) => clearInterval(id as ReturnType<typeof setInterval>),
+});

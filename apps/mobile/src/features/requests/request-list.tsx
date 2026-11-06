@@ -1,19 +1,57 @@
 import {
+  heldLine,
   type RequestStatus,
   requestAlreadyMovedOnMessage,
   type SavingsRequest,
   statusLabel,
+  trackerCopy,
+  trackerSteps,
 } from "@jarso/core/requests";
 import { useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ScreenHeader } from "@/components/screen";
-import { useSendOnce } from "@/components/sheet";
+import { Notice, useSendOnce } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
+import { AskTracker } from "@/features/flows";
 import { useHome } from "@/features/jars";
+import { useParentLabel } from "@/features/progress";
+import { PushPermissionCard } from "@/features/push";
 import { actionErrorMessage, dayInZone, formatMoney, toUserMessage } from "@/lib";
 import { cn } from "@/lib/utils";
 import { useCancelRequest, useRequests } from "./use-requests";
+
+type Note = { text: string; bad: boolean };
+
+/** What happened to a cancel, kept by request id so it survives the ask moving to Closed. */
+function NoteLine({ note }: { note?: Note }) {
+  if (!note) return null;
+  return (
+    <View accessibilityLiveRegion="polite">
+      {note.bad ? (
+        <Notice calm message={note.text} />
+      ) : (
+        <Text className="text-primary">{note.text}</Text>
+      )}
+    </View>
+  );
+}
+
+const OPEN: RequestStatus[] = ["pending", "approved"];
+
+/** "2 Nov, 4:10 pm": the day and the time in the family's timezone. */
+function whenInZone(iso: string, timeZone: string): string {
+  const time = new Intl.DateTimeFormat("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone,
+  }).format(new Date(iso));
+  return `${dayInZone(iso, timeZone)}, ${time}`;
+}
+
+const kindTitle = (kind: SavingsRequest["kind"], m: string) =>
+  kind === "deposit" ? `Save ${m}` : kind === "withdrawal" ? `Use ${m} savings` : `Extra ${m}`;
 
 const WHAT = { withdrawal: "Take out", deposit: "Put in", emergency: "Extra" } as const;
 
@@ -28,6 +66,9 @@ const CHIP: Record<RequestStatus, string> = {
 
 /** The child's take-outs and put-ins, newest first. A Waiting one can be cancelled. */
 export function RequestList() {
+  const parent = useParentLabel();
+  const [notes, setNotes] = useState<Record<string, Note | undefined>>({});
+  const setNote = (id: string, note?: Note) => setNotes((all) => ({ ...all, [id]: note }));
   const requests = useRequests();
   const home = useHome();
   const refetching = requests.isRefetching || home.isRefetching;
@@ -60,6 +101,8 @@ export function RequestList() {
   }
 
   const { currency, timezone } = home.data.context;
+  const open = requests.data.filter((r) => OPEN.includes(r.status));
+  const closed = requests.data.filter((r) => !OPEN.includes(r.status));
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-background">
       <ScrollView
@@ -67,97 +110,133 @@ export function RequestList() {
         contentContainerClassName="gap-4 px-4 pt-4 pb-10"
         refreshControl={<RefreshControl refreshing={refetching} onRefresh={refresh} />}
       >
-        <ScreenHeader title="What you asked for" />
+        <ScreenHeader title={trackerCopy.title} />
         {requests.data.length === 0 ? (
           <View className="items-center gap-2 py-6">
-            <Text className="font-sans-bold">Nothing here yet.</Text>
+            <Text className="font-sans-bold">{trackerCopy.empty}</Text>
             <Text className="text-center text-muted-foreground">
               When you move money or ask for extra, it shows up here.
             </Text>
           </View>
         ) : (
-          requests.data.map((request) => (
-            <RequestRow
-              key={request.id}
-              request={request}
-              currency={currency}
-              timezone={timezone}
-            />
-          ))
+          <>
+            <PushPermissionCard title={`Want to hear when ${parent} answers?`} />
+            {open.map((request) => (
+              <OpenAsk
+                key={request.id}
+                request={request}
+                parent={parent}
+                note={notes[request.id]}
+                onNote={(note) => setNote(request.id, note)}
+                currency={currency}
+                timezone={timezone}
+              />
+            ))}
+            {closed.map((request) => (
+              <ClosedAsk
+                key={request.id}
+                request={request}
+                note={notes[request.id]}
+                currency={currency}
+                timezone={timezone}
+              />
+            ))}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function RequestRow({
+function ClosedAsk({
   request,
+  note,
   currency,
   timezone,
 }: {
   request: SavingsRequest;
+  note?: Note;
+  currency: string;
+  timezone: string;
+}) {
+  const m = formatMoney(request.amountMinor, currency, { showMinor: "nonzero" });
+  return (
+    <View className="gap-1 rounded-xl bg-card p-3">
+      <View className="flex-row items-center gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="font-sans-bold">{kindTitle(request.kind, m)}</Text>
+          <Text numberOfLines={1} className="text-small text-muted-foreground">
+            {dayInZone(request.occurredAt, timezone)}
+            {request.reason ? ` · ${request.reason}` : ""}
+          </Text>
+        </View>
+        <Text
+          className={cn("rounded-full px-3 py-1 text-caption font-sans-bold", CHIP[request.status])}
+        >
+          {statusLabel(request.kind, request.status)}
+        </Text>
+      </View>
+      <NoteLine note={note} />
+    </View>
+  );
+}
+
+function OpenAsk({
+  request,
+  parent,
+  note,
+  onNote,
+  currency,
+  timezone,
+}: {
+  request: SavingsRequest;
+  parent: string;
+  note?: Note;
+  onNote: (note?: Note) => void;
   currency: string;
   timezone: string;
 }) {
   const cancel = useCancelRequest();
   const sendOnce = useSendOnce();
-  const [note, setNote] = useState<{ text: string; bad: boolean }>();
   const what = WHAT[request.kind];
   const amount = formatMoney(request.amountMinor, currency, { showMinor: "nonzero" });
-  const label = statusLabel(request.kind, request.status);
+  const steps = trackerSteps(request, amount, parent, whenInZone(request.occurredAt, timezone));
 
   const onCancel = () =>
     sendOnce(async () => {
-      setNote(undefined);
+      onNote(undefined);
       try {
         const result = await cancel.mutateAsync(request.id);
-        setNote({
-          text: result === "already_closed" ? requestAlreadyMovedOnMessage : "Cancelled",
+        onNote({
+          text: result === "already_closed" ? requestAlreadyMovedOnMessage : trackerCopy.cancelled,
           bad: false,
         });
       } catch (error) {
-        setNote({ text: await actionErrorMessage(error), bad: true });
+        onNote({ text: await actionErrorMessage(error), bad: true });
       }
     });
 
   return (
-    <View className="gap-1 rounded-xl bg-card p-3">
-      <View className="flex-row items-center gap-3">
-        <Text className="min-w-0 flex-1 font-sans-bold">{what}</Text>
-        <Text className="font-sans-bold">{amount}</Text>
-        <Text
-          className={cn("rounded-full px-3 py-1 text-caption font-sans-bold", CHIP[request.status])}
-        >
-          {label}
-        </Text>
-      </View>
-      <View className="flex-row items-center justify-between gap-3">
-        <Text className="flex-1 text-muted-foreground">
-          {dayInZone(request.occurredAt, timezone)}
-          {request.reason ? ` · ${request.reason}` : ""}
-        </Text>
-        {request.status === "pending" ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            accessibilityLabel={`Cancel ${what.toLowerCase()} of ${amount}`}
-            accessibilityState={{ busy: cancel.isPending, disabled: cancel.isPending }}
-            disabled={cancel.isPending}
-            onPress={() => void onCancel()}
-          >
-            {cancel.isPending ? <ActivityIndicator /> : <Text>Cancel</Text>}
-          </Button>
-        ) : null}
-      </View>
-      {note ? (
-        <Text
-          accessibilityRole={note.bad ? "alert" : undefined}
-          accessibilityLiveRegion="polite"
-          className={note.bad ? "text-destructive" : "text-muted-foreground"}
-        >
-          {note.text}
-        </Text>
+    <View className="gap-3">
+      <Text accessibilityRole="header" className="font-sans-bold text-h3">
+        {kindTitle(request.kind, amount)}
+      </Text>
+      {steps ? <AskTracker steps={steps} /> : null}
+      {request.kind === "deposit" && request.status === "pending" ? (
+        <Text className="text-muted-foreground">{heldLine(amount)}</Text>
       ) : null}
+      {request.status === "pending" ? (
+        <Button
+          variant="ghost"
+          accessibilityLabel={`Cancel ${what.toLowerCase()} of ${amount}`}
+          accessibilityState={{ busy: cancel.isPending, disabled: cancel.isPending }}
+          disabled={cancel.isPending}
+          onPress={() => void onCancel()}
+        >
+          {cancel.isPending ? <ActivityIndicator /> : <Text>{trackerCopy.cancel}</Text>}
+        </Button>
+      ) : null}
+      <NoteLine note={note} />
     </View>
   );
 }

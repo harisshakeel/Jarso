@@ -5,9 +5,7 @@ import {
   callCreateEmergency,
   callCreateWithdrawal,
 } from "@jarso/data/requests";
-import { findChildRules } from "@jarso/data/rules";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as Haptics from "expo-haptics";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/features/auth";
 import { dispatchNotices } from "@/lib/notices";
 import { keys } from "@/lib/query";
@@ -20,7 +18,7 @@ type Input<T extends (db: Client, input: never) => unknown> = Omit<Parameters<T>
  * One mutation per request kind. `sent` says whether the server took the request: a refusal
  * (`over_available`, `over_cap`) resolves too, but nothing was asked, so nothing refreshes or
  * dispatches. On a sent request: refresh Home, Requests, History and the goal (a move in or out
- * of Save changes its climb), tell the parent, a haptic.
+ * of Save changes its climb), tell the parent. No haptic here: the flow's celebration has the one.
  */
 function useSendRequest<V, R>(
   call: (db: Client, input: V & { childId: string }) => Promise<R>,
@@ -39,7 +37,6 @@ function useSendRequest<V, R>(
       void queryClient.invalidateQueries({ queryKey: keys.progress(id) });
       void queryClient.invalidateQueries({ queryKey: keys.goal(id) });
       dispatchNotices();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     },
   });
 }
@@ -66,14 +63,4 @@ export function useCreateEmergency() {
     callCreateEmergency,
     () => true,
   );
-}
-
-/** The child's rules, for the plain-words lines in the Save sheets. Nice to have, never blocking. */
-export function useChildRules() {
-  const { userId } = useSession();
-  return useQuery({
-    queryKey: keys.rules(userId ?? ""),
-    enabled: Boolean(userId),
-    queryFn: () => findChildRules(supabase, userId as string),
-  });
 }

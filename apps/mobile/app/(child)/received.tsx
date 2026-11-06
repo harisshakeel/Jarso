@@ -7,7 +7,7 @@ import { ReceivedSheet } from "@/features/diary";
 export default function ReceivedRoute() {
   const router = useRouter();
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView edges={["bottom"]} className="flex-1 bg-background">
       <ReceivedSheet
         onClose={() => (router.canGoBack() ? router.back() : router.replace(homeFor("child")))}
       />

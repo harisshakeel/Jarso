@@ -7,12 +7,12 @@ appId: app.jarso.mobile
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: "I'm a parent|Your family|Spent something\\?"
+    visible: "I'm a parent|Your family|What happened\\?"
     timeout: 20000
 # A child session left by a child flow: clear the app so the sign-in screen shows.
 - runFlow:
     when:
-      visible: "Spent something?"
+      visible: "What happened?"
     commands:
       - launchApp:
           clearState: true

@@ -1,8 +1,7 @@
 import {
   entryDetailCopy,
-  entrySavedMessage,
   fixRefusalMessage,
-  receivedCopy,
+  receivedFlowCopy,
   unchangedMessage,
 } from "@jarso/core/diary";
 import type { HistoryItem } from "@jarso/core/ledger";
@@ -13,7 +12,9 @@ import {
   callRecordMoneyReceived,
 } from "@jarso/data/diary";
 import { getFamilyContext } from "@jarso/data/family";
+import { getGoalView } from "@jarso/data/goals";
 import { getHistoryPage, getJars } from "@jarso/data/ledger";
+import { getProgress } from "@jarso/data/progress";
 import { getAvailability } from "@jarso/data/requests";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, userEvent, waitFor } from "@testing-library/react-native";
@@ -22,12 +23,18 @@ import type { ReactNode } from "react";
 import { EntryDetail, FixForm, ReceivedSheet } from "@/features/diary";
 import { HistoryList } from "@/features/history";
 import { apiFetch } from "@/lib/api";
-import { flash } from "@/lib/flash";
 import { keys } from "@/lib/query";
+import { renderFlow } from "../../flow-render";
 
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
 jest.mock("@/lib/api", () => ({ apiFetch: jest.fn() }));
-jest.mock("@/lib/flash", () => ({ flash: jest.fn() }));
+jest.mock("@jarso/data/goals", () => ({ getGoalView: jest.fn() }));
+jest.mock("@jarso/data/progress", () => ({ getProgress: jest.fn() }));
+jest.mock("@/lib/sound", () => ({ playSound: jest.fn(), getSoundOn: jest.fn(async () => true) }));
+jest.mock(
+  "react-native-safe-area-context",
+  () => require("react-native-safe-area-context/jest/mock").default,
+);
 jest.mock("@/features/auth/use-session", () => ({
   useSession: () => ({ status: "child", userId: "child-1" }),
 }));
@@ -39,11 +46,15 @@ jest.mock("@jarso/data/diary", () => ({
 }));
 jest.mock("@jarso/data/ledger", () => ({ getJars: jest.fn(), getHistoryPage: jest.fn() }));
 jest.mock("@jarso/data/requests", () => ({ getAvailability: jest.fn() }));
-jest.mock("@jarso/data/family", () => ({ getFamilyContext: jest.fn() }));
+jest.mock("@jarso/data/family", () => ({
+  getFamilyContext: jest.fn(),
+  findParentLabels: jest.fn(async () => ["Mum"]),
+}));
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
 jest.mock("expo-network", () => ({ getNetworkStateAsync: jest.fn() }));
 jest.mock("expo-crypto", () => ({ randomUUID: () => "33333333-3333-4333-8333-333333333333" }));
 jest.mock("expo-haptics", () => ({
+  selectionAsync: jest.fn().mockResolvedValue(undefined),
   notificationAsync: jest.fn().mockResolvedValue(undefined),
   NotificationFeedbackType: { Success: "success" },
 }));
@@ -96,41 +107,83 @@ beforeEach(() => {
   });
   (getJars as jest.Mock).mockResolvedValue({ spend: 1000, save: 2000 });
   (getAvailability as jest.Mock).mockResolvedValue({});
+  (getGoalView as jest.Mock).mockResolvedValue(null);
+  (getProgress as jest.Mock).mockResolvedValue({ sparks: 10, streak: 1 });
 });
 
+type User = ReturnType<typeof userEvent.setup>;
+
+const GOAL = {
+  goal: { id: "g1", name: "Boots", emoji: "⚽", targetMinor: 5000, planMinor: null },
+  progress: { countedMinor: 2000, remainingMinor: 3000, reached: false },
+};
+
+async function openReceived() {
+  const onClose = jest.fn();
+  const flow = await renderFlow(<ReceivedSheet onClose={onClose} />);
+  return { onClose, ...flow };
+}
+
+/** Keys the amount, then Next. */
+async function keyAmount(user: User, amount: string) {
+  await screen.findByRole("button", { name: "Next" });
+  for (const key of amount) await user.press(screen.getByRole("button", { name: key }));
+  await user.press(screen.getByRole("button", { name: "Next" }));
+}
+
 describe("Got money", () => {
-  it("received needs a category before submit", async () => {
+  it("needs a pick before Put it in", async () => {
     const user = userEvent.setup();
-    await render(wrap(<ReceivedSheet onClose={jest.fn()} />).ui);
-    await user.type(await screen.findByLabelText("Amount"), "5");
-    expect(screen.getByText(receivedCopy.pickCategory)).toBeOnTheScreen();
-    expect(screen.getByRole("button", { name: receivedCopy.submit })).toBeDisabled();
+    await openReceived();
+    await keyAmount(user, "5");
+    expect(await screen.findByText("Got £5!")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Put it in Spend" })).toBeDisabled();
     await user.press(screen.getByRole("radio", { name: "Birthday" }));
-    expect(screen.queryByText(receivedCopy.pickCategory)).toBeNull();
-    expect(screen.getByRole("button", { name: receivedCopy.submit })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Put it in Spend" })).toBeEnabled();
   });
 
-  it("Save jar shows the give-cash hint", async () => {
+  it("Spend is picked first and the button names the jar", async () => {
     const user = userEvent.setup();
-    await render(wrap(<ReceivedSheet onClose={jest.fn()} />).ui);
-    await screen.findByLabelText("Amount");
-    expect(screen.getByRole("radio", { name: "Spend", checked: true })).toBeOnTheScreen();
-    expect(screen.queryByText(receivedCopy.saveHint)).toBeNull();
+    await openReceived();
+    await keyAmount(user, "5");
+    expect(await screen.findByRole("radio", { name: "Spend" })).toBeChecked();
+    expect(screen.getByText(receivedFlowCopy.save.hint("Mum"))).toBeOnTheScreen();
     await user.press(screen.getByRole("radio", { name: "Save" }));
-    expect(screen.getByText(receivedCopy.saveHint)).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Put it in Save" })).toBeOnTheScreen();
+  });
+
+  it("Save shows the goal effect", async () => {
+    (getGoalView as jest.Mock).mockResolvedValue(GOAL);
+    const user = userEvent.setup();
+    await openReceived();
+    await keyAmount(user, "5");
+    await screen.findByRole("radio", { name: "Save" });
+    expect(screen.queryByText(/to go after this/)).toBeNull();
+    await user.press(screen.getByRole("radio", { name: "Save" }));
+    expect(await screen.findByText("⚽ Boots: £25 to go after this!")).toBeOnTheScreen();
+  });
+
+  it("says the goal is reached instead of 0 to go", async () => {
+    (getGoalView as jest.Mock).mockResolvedValue(GOAL);
+    const user = userEvent.setup();
+    await openReceived();
+    await keyAmount(user, "30");
+    await user.press(await screen.findByRole("radio", { name: "Save" }));
+    expect(await screen.findByText("⚽ Boots: that gets you there!")).toBeOnTheScreen();
+    expect(screen.queryByText(/to go after this/)).toBeNull();
   });
 
   it("records it once, refreshes and tells the parent", async () => {
     received.mockResolvedValue({ status: "recorded", entryId: ENTRY });
     const user = userEvent.setup();
-    const { client, ui } = wrap(<ReceivedSheet onClose={jest.fn()} />);
+    const { client } = await openReceived();
     const invalidate = jest.spyOn(client, "invalidateQueries");
-    await render(ui);
-    await user.type(await screen.findByLabelText("Amount"), "5");
-    await user.press(screen.getByRole("radio", { name: "Birthday" }));
+    await keyAmount(user, "5");
+    await user.press(await screen.findByRole("radio", { name: "Birthday" }));
     await user.press(screen.getByRole("radio", { name: "Save" }));
-    await user.press(screen.getByRole("button", { name: receivedCopy.submit }));
-    await waitFor(() => expect(flash).toHaveBeenCalledWith(entrySavedMessage, { long: true }));
+    await user.press(screen.getByRole("button", { name: "Put it in Save" }));
+    expect(await screen.findByText("Written down!")).toBeOnTheScreen();
+    expect(received).toHaveBeenCalledTimes(1);
     expect(received).toHaveBeenCalledWith(
       { id: "client" },
       {
@@ -150,14 +203,28 @@ describe("Got money", () => {
     });
   });
 
+  it("celebrates without Undo and Nice leaves", async () => {
+    received.mockResolvedValue({ status: "recorded", entryId: ENTRY });
+    const user = userEvent.setup();
+    const { onClose } = await openReceived();
+    await keyAmount(user, "5");
+    await user.press(await screen.findByRole("radio", { name: "Birthday" }));
+    await user.press(screen.getByRole("button", { name: "Put it in Spend" }));
+    expect(await screen.findByText("£5 · Birthday")).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    await user.press(screen.getByRole("button", { name: "Nice" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
   it("shows a refusal's safe message", async () => {
     received.mockRejectedValue(new AppError("CONFLICT", "That's too much in one go."));
     const user = userEvent.setup();
-    await render(wrap(<ReceivedSheet onClose={jest.fn()} />).ui);
-    await user.type(await screen.findByLabelText("Amount"), "5");
-    await user.press(screen.getByRole("radio", { name: "Birthday" }));
-    await user.press(screen.getByRole("button", { name: receivedCopy.submit }));
+    await openReceived();
+    await keyAmount(user, "5");
+    await user.press(await screen.findByRole("radio", { name: "Birthday" }));
+    await user.press(screen.getByRole("button", { name: "Put it in Spend" }));
     expect(await screen.findByText("That's too much in one go.")).toBeOnTheScreen();
+    expect(screen.queryByText("Written down!")).toBeNull();
   });
 });
 

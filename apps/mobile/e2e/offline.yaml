@@ -3,12 +3,12 @@ appId: app.jarso.mobile
 ---
 - runFlow: sign-in.yaml
 - setAirplaneMode: enabled
-- tapOn: "Spent something?"
-- tapOn: "Amount"
-- inputText: "1"
-- hideKeyboard
+- tapOn: "What happened?"
+- tapOn: "I bought something"
+- tapOn: "1"
+- tapOn: "Next"
 - tapOn: "Snacks"
-- tapOn: "Write it down"
+- tapOn: "Done · .*"
 - tapOn: "Done"
 - assertVisible: "Not sent yet"
 - setAirplaneMode: disabled

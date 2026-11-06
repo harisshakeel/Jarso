@@ -1,54 +1,58 @@
-import { jarCapacity } from "@jarso/core/ledger";
+import { heroLine, homeCopy, selectMoments } from "@jarso/core/home";
+import { jarsoFill, moodFor } from "@jarso/core/mascot";
 import { useQueryClient } from "@tanstack/react-query";
-import { type Href, useRouter } from "expo-router";
-import { CircleUserRoundIcon } from "lucide-react-native";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { useRouter } from "expo-router";
+import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Card, CardSeparator, ListRow, ScreenHeader } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { useSession } from "@/features/auth";
 import { PendingPurchases } from "@/features/diary";
-import { GoalCard, HomeStepCard } from "@/features/goals";
-import { JarGraph, JarsCard, useHome } from "@/features/jars";
-import { PushPermissionCard } from "@/features/push";
+import { GoalCard, useGoal } from "@/features/goals";
+import { useHome } from "@/features/jars";
+import { NextStepCard, useLearningOverview } from "@/features/learning";
+import { useUnreadCount } from "@/features/news";
+import { useParentLabel, useProgress } from "@/features/progress";
+import { useRequests } from "@/features/requests";
 import { useNickname } from "@/features/settings";
-import { formatMoney, todayLine, toUserMessage, useTokens } from "@/lib";
+import { formatMoney, toUserMessage } from "@/lib";
 import { keys } from "@/lib/query";
-
-type Action = { label: string; href: Href };
-
-/** The two quick actions inside the jars card. */
-const QUICK: Action[] = [
-  { label: "Spent something?", href: "/(child)/purchase" },
-  { label: "Put some in Save", href: "/(child)/put-in" },
-];
-
-/** The other actions, as rows of one card (lists over stacked buttons). */
-const MORE: Action[] = [
-  { label: "Take some out", href: "/(child)/take-out" },
-  { label: "Got money", href: "/(child)/received" },
-  { label: "Ask for extra", href: "/(child)/ask-extra" },
-  { label: "Move my money", href: "/(child)/requests" },
-];
+import { HomeHeader } from "./home-header";
+import { HomeHero } from "./home-hero";
+import { JarTile } from "./jar-tile";
+import { MomentCard } from "./moment-card";
+import { useAllowanceDue, useHomeWeek } from "./use-home-extras";
 
 /**
- * The child's Home (mockup B): the date over the greeting, both jars in one card with the two
- * quick actions, purchases not sent yet, the one next thing, the goal, the other actions as a
- * list, then how the jars moved. The avatar opens Me. The cards after the jars are nice to have:
- * each hides itself if it can't load.
+ * The child's Home: header, then either what just happened (moment cards) or Jarso with one
+ * line, then Spend and Save, the goal and today's mission. Every read after the jars is nice to
+ * have: if it can't load, Home goes on without it.
  */
 export function HomeScreen() {
   const router = useRouter();
-  const tokens = useTokens();
   const queryClient = useQueryClient();
   const { userId } = useSession();
   const { data, error, isPending, isRefetching, refetch } = useHome();
   const { data: nickname } = useNickname();
+  const { data: progress } = useProgress();
+  const { data: unread } = useUnreadCount();
+  const { data: requests } = useRequests();
+  const { data: goal } = useGoal();
+  const due = useAllowanceDue();
+  const parent = useParentLabel();
+  const learning = useLearningOverview(data?.context.timezone);
+  const week = useHomeWeek(data?.context);
+
   const refresh = () => {
-    void refetch();
     if (!userId) return;
-    // Pull to refresh reads the cards again too (the graph shares Home's key).
-    for (const key of [keys.goal(userId), keys.learning(userId), keys.requests(userId)]) {
+    // `home` also covers the due and week reads (they share its prefix).
+    for (const key of [
+      keys.home(userId),
+      keys.goal(userId),
+      keys.learning(userId),
+      keys.requests(userId),
+      keys.progress(userId),
+      keys.unread(userId),
+    ]) {
       void queryClient.invalidateQueries({ queryKey: key });
     }
   };
@@ -78,15 +82,15 @@ export function HomeScreen() {
     );
   }
 
-  const { jars, availability, context } = data;
+  const { jars, context } = data;
   const money = (minor: number) => formatMoney(minor, context.currency, { showMinor: "nonzero" });
-  const capacity = jarCapacity({
-    spendMinor: jars.spend,
+  const moments = selectMoments({ requests: requests ?? null, due });
+  const hero = heroLine({ jars, movements: week, today: context.today, money });
+  const fill = jarsoFill({
     saveMinor: jars.save,
-    allowanceMinor: null,
-    currency: context.currency,
+    spendMinor: jars.spend,
+    goalTargetMinor: goal?.goal.targetMinor ?? null,
   });
-  const counted = Math.max(jars.save - availability.reservedSaveMinor, 0);
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-background">
@@ -95,69 +99,44 @@ export function HomeScreen() {
         contentContainerClassName="gap-3.5 px-4 pt-2 pb-8"
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refresh} />}
       >
-        <ScreenHeader
-          size="display"
-          overline={todayLine(new Date(), context.timezone)}
-          title={nickname ? `Hi, ${nickname}!` : "Hi!"}
-          trailing={
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Me"
-              onPress={() => router.push("/(child)/me")}
-              className="h-12 w-12 items-center justify-center rounded-full bg-secondary"
-            >
-              <CircleUserRoundIcon size={26} color={tokens["secondary-foreground"]} />
-            </Pressable>
-          }
+        <HomeHeader
+          nickname={nickname ?? null}
+          look={progress?.look}
+          streak={progress?.streak ?? 0}
+          sparks={progress?.sparks ?? null}
+          unread={unread ?? 0}
         />
-        <PushPermissionCard />
-        <JarsCard
-          total={money(jars.spend + jars.save)}
-          spend={{
-            name: "Spend",
-            amount: money(jars.spend),
-            caption: "Cash you have",
-            share: jars.spend / capacity,
-            notes:
-              availability.heldSpendMinor > 0
-                ? [`${money(availability.heldSpendMinor)} to Save · give it to your parent`]
-                : [],
-          }}
-          save={{
-            name: "Save",
-            amount: money(jars.save),
-            caption: "Kept by your parent",
-            share: counted / capacity,
-            notes:
-              availability.reservedSaveMinor > 0
-                ? [`${money(availability.reservedSaveMinor)} · Waiting to come out`]
-                : [],
-          }}
-          actions={QUICK.map((action) => (
-            <Button
-              key={action.label}
-              variant="secondary"
-              className="h-12 flex-1 px-2"
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
-              onPress={() => router.push(action.href)}
-            >
-              <Text numberOfLines={1}>{action.label}</Text>
-            </Button>
-          ))}
-        />
+        {moments.length > 0 ? (
+          moments.map((moment) => (
+            <MomentCard
+              key={moment.kind === "allowance-due" ? "due" : `${moment.kind}-${moment.request.id}`}
+              moment={moment}
+              money={money}
+              parent={parent}
+              onPress={
+                moment.kind === "allowance-due" ? undefined : () => router.push("/(child)/requests")
+              }
+            />
+          ))
+        ) : (
+          <HomeHero
+            text={hero.text}
+            mood={moodFor(hero.moment)}
+            fill={fill}
+            look={progress?.look}
+          />
+        )}
         {userId ? <PendingPurchases userId={userId} currency={context.currency} /> : null}
-        <HomeStepCard currency={context.currency} timezone={context.timezone} />
+        <View className="flex-row gap-3">
+          <JarTile jar="spend" amount={money(jars.spend)} caption={homeCopy.spendTile.caption} />
+          <JarTile
+            jar="save"
+            amount={money(jars.save)}
+            caption={homeCopy.saveTile.caption(parent)}
+          />
+        </View>
         <GoalCard currency={context.currency} />
-        <Card className="gap-0 py-1">
-          {MORE.map((action, i) => (
-            <View key={action.label}>
-              {i > 0 ? <CardSeparator /> : null}
-              <ListRow label={action.label} onPress={() => router.push(action.href)} />
-            </View>
-          ))}
-        </Card>
-        <JarGraph jars={jars} context={context} />
+        {learning.data ? <NextStepCard step={learning.data.nextStep} /> : null}
       </ScrollView>
     </SafeAreaView>
   );

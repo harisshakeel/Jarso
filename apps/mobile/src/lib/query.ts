@@ -56,6 +56,10 @@ export const keys = {
   memories: (userId: string) => ["memories", userId] as const,
   /** The jar graph's 90 days. Refreshed with `home` (it shares the prefix). */
   balance: (userId: string) => ["home", userId, "balance"] as const,
+  /** Pocket money waiting for a parent, for Home's moment card. Refreshed with `home`. */
+  allowanceDue: (userId: string) => ["home", userId, "due"] as const,
+  /** The last week's movements, for Jarso's line on Home. Refreshed with `home`. */
+  homeWeek: (userId: string) => ["home", userId, "week"] as const,
   /** This week's lines for "Where your money went". Refreshed with `history`. */
   week: (userId: string) => ["history", userId, "week"] as const,
   versions: (entryId: string) => ["versions", entryId] as const,

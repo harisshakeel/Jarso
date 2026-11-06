@@ -155,3 +155,30 @@ export const diaryCopy = {
   notFound: "We couldn't find that.",
   backToDiary: "Back to the diary",
 } as const;
+
+/** The phone's "I bought something" flow (amount, what on, done). */
+export const purchaseFlowCopy = {
+  howMuch: "How much?",
+  onWhat: "On what?",
+  next: "Next",
+  spendHas: (m: string) => `Spend has ${m}`,
+  nameHint: (hint: string) => `${hint} (if you want)`,
+  done: (m: string, label: string) => `Done · ${m} ${label.toLowerCase()}`,
+  celebrate: "Written down!",
+  celebrateSub: (m: string, label: string) => `${m} · ${label}`,
+  nice: "Nice",
+  undo: "Undo",
+} as const;
+
+/** The phone's "I got money" flow (amount, where from, which jar). */
+export const receivedFlowCopy = {
+  howMuch: "How much?",
+  got: (m: string) => `Got ${m}!`,
+  from: "From",
+  putItIn: "Put it in",
+  spend: { label: "Spend", hint: "Keep the cash" },
+  save: { label: "Save", hint: (parent: string) => `Give it to ${parent}` },
+  submit: (jar: "Spend" | "Save") => `Put it in ${jar}`,
+  goalReached: (emoji: string, name: string) => `${emoji} ${name}: that gets you there!`,
+  goalAfter: (emoji: string, name: string, m: string) => `${emoji} ${name}: ${m} to go after this!`,
+} as const;

@@ -187,7 +187,7 @@ describe("news", () => {
     await waitFor(() => expect(screen.getByTestId("badge")).toHaveTextContent("1"));
 
     await user.press(screen.getByRole("button", { name: `${title}. ${inboxCopy.open}` }));
-    expect(push).toHaveBeenCalledWith("/(child)/(tabs)/news");
+    expect(push).toHaveBeenCalledWith("/(child)/news");
   });
 
   it("words a notice that lands before the currency in the family's currency", async () => {
