@@ -8,6 +8,7 @@ import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Jarso } from "@/components/brand";
 import { Button, Text } from "@/components/ui";
+import { homeFor } from "@/features/auth";
 import { useDailyCheckin, useProgress } from "@/features/progress";
 import { logger } from "@/lib";
 
@@ -26,7 +27,8 @@ export function CheckinScreen() {
     done.current = true;
     checkin.mutateAsync(value).catch(() => logger.warn("Could not save the daily check-in"));
     if (value === "yes") router.replace("/(child)/purchase");
-    else router.back();
+    else if (router.canGoBack()) router.back();
+    else router.replace(homeFor("child"));
   };
 
   const stats = progress.data;

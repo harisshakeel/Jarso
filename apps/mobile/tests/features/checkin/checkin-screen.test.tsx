@@ -1,10 +1,16 @@
 import { dailyCheckin, getProgress } from "@jarso/data/progress";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { homeFor } from "@/features/auth";
 import { CheckinScreen } from "@/features/checkin";
 import { logger } from "@/lib";
 
-const mockRouter = { back: jest.fn(), replace: jest.fn(), push: jest.fn() };
+const mockRouter = {
+  back: jest.fn(),
+  replace: jest.fn(),
+  push: jest.fn(),
+  canGoBack: jest.fn(() => true),
+};
 jest.mock("expo-router", () => ({ useRouter: () => mockRouter }));
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
 jest.mock("@/features/auth/use-session", () => ({
@@ -45,6 +51,7 @@ async function renderScreen() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockRouter.canGoBack.mockReturnValue(true);
   (getProgress as jest.Mock).mockResolvedValue({
     sparks: 10,
     level: 1,
@@ -79,6 +86,14 @@ describe("CheckinScreen", () => {
     await fireEvent.press(screen.getByRole("button", { name: "Nope" }));
     expect(mockRouter.back).toHaveBeenCalled();
     await waitFor(() => expect(dailyCheckin).toHaveBeenCalledWith({ id: "client" }, "nope"));
+  });
+
+  it("Nope with nothing to go back to lands on Home", async () => {
+    mockRouter.canGoBack.mockReturnValue(false);
+    await renderScreen();
+    await fireEvent.press(screen.getByRole("button", { name: "Nope" }));
+    expect(mockRouter.back).not.toHaveBeenCalled();
+    expect(mockRouter.replace).toHaveBeenCalledWith(homeFor("child"));
   });
 
   it("Yes writes yes and opens I bought something", async () => {
