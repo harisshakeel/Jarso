@@ -33,7 +33,7 @@ export function CheckinScreen() {
   return (
     <SafeAreaView className="flex-1 bg-primary">
       <View className="flex-1 items-center gap-4 px-6 pt-4 pb-6">
-        <Text className="font-sans-bold text-xs uppercase tracking-widest text-teal-100">
+        <Text className="font-sans-bold text-caption text-teal-100">
           {questCopy.checkin.eyebrow}
         </Text>
         <Jarso mood="happy" size={150} look={stats?.look} />
@@ -65,7 +65,7 @@ export function CheckinScreen() {
                 {progressCopy.streakDays(stats.streak)}
               </Text>
             </View>
-            <Text className="text-sm text-white">{progressCopy.restDay}</Text>
+            <Text className="text-caption text-white">{progressCopy.restDay}</Text>
           </View>
         ) : null}
       </View>
