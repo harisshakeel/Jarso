@@ -154,10 +154,25 @@ describe("phone outbox", () => {
     await waitFor(async () => expect(await stored()).toEqual([]));
     expect(invalidate).toHaveBeenCalledWith({ queryKey: keys.home(USER) });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: keys.history(USER) });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: keys.progress(USER) });
     expect(apiFetch).toHaveBeenCalledWith("/api/v1/notices/dispatch", {
       method: "POST",
       auth: true,
     });
+  });
+
+  it("a replayed lesson step refreshes learning and progress, not the diary", async () => {
+    const { invalidate } = await renderSync();
+    const store = await outboxPlatform.openStore();
+    await store?.put(item({ id: "s1", kind: "step", payload: { attemptId: "a1" } }));
+    fetchMock.mockResolvedValue(reply(200, { data: { ok: true } }));
+    invalidate.mockClear();
+    await act(async () => flush(USER));
+    await waitFor(async () => expect(await stored()).toEqual([]));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: keys.progress(USER) });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: keys.learning(USER) });
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: keys.history(USER) });
+    expect(apiFetch).not.toHaveBeenCalled();
   });
 
   it("401 pauses then sends after refresh", async () => {

@@ -41,6 +41,7 @@ import { Eyebrow } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { cn, isAppError, useTokens } from "@/lib";
 import { outboxPlatform, submit, useOnline, useOutboxItems } from "@/lib/outbox";
+import { keys as queryKeys } from "@/lib/query";
 import { CurrentStepContext } from "./current-step";
 import { finishQueued } from "./queued";
 import { StepInput } from "./step-views";
@@ -177,6 +178,7 @@ export function MissionPlayer(props: MissionPlayerProps) {
     setStage("finished");
     // Learn, Home's next step and the week read the new progress.
     void queryClient.invalidateQueries({ queryKey: ["learning", userId] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.progress(userId) });
   }
 
   function applyStart(session: MissionSessionView) {

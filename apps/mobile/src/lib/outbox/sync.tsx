@@ -9,7 +9,7 @@ import { supabase } from "../supabase/client";
 import {
   flush,
   isOnline,
-  onPurchaseSent,
+  onItemSent,
   outboxPlatform,
   setOnline,
   subscribeOnline,
@@ -65,7 +65,8 @@ const connected = (state: { isConnected?: boolean; isInternetReachable?: boolean
  * Sends the signed-in child's waiting items whenever they may get through: on mount, when the app
  * comes to the foreground, when the network comes back, after a token refresh, every 30 s while
  * the app is in front and something waits, and at the next item's backoff time. A purchase that
- * got through refreshes Home and History and tells the parent. Renders nothing.
+ * got through refreshes Home, History and progress and tells the parent; a lesson item refreshes
+ * learning and progress. Renders nothing.
  */
 export function OutboxSync({ userId }: { userId: string }) {
   const queryClient = useQueryClient();
@@ -92,10 +93,17 @@ export function OutboxSync({ userId }: { userId: string }) {
     const { data: auth } = supabase.auth.onAuthStateChange((event) => {
       if (event === "TOKEN_REFRESHED") setTimeout(run, 0);
     });
-    const sent = onPurchaseSent(() => {
-      void queryClient.invalidateQueries({ queryKey: keys.home(userId) });
-      void queryClient.invalidateQueries({ queryKey: keys.history(userId) });
-      dispatchNotices();
+    const sent = onItemSent((kind) => {
+      // Every kind can award Sparks or mark the day active.
+      void queryClient.invalidateQueries({ queryKey: keys.progress(userId) });
+      if (kind === "purchase") {
+        void queryClient.invalidateQueries({ queryKey: keys.home(userId) });
+        void queryClient.invalidateQueries({ queryKey: keys.history(userId) });
+        dispatchNotices();
+      } else {
+        // A lesson step, mission, practice or check-in: Learn and Home's next step re-read.
+        void queryClient.invalidateQueries({ queryKey: keys.learning(userId) });
+      }
     });
     return () => {
       appState.remove();

@@ -6,7 +6,7 @@ import { useSession } from "@/features/auth";
 import { keys } from "@/lib/query";
 import { supabase } from "@/lib/supabase/client";
 
-/** After a goal change: the goal and Home (its card and "do this next") read fresh. */
+/** After a goal change: the goal, Home (its card and "do this next") and progress read fresh. */
 function useRefreshGoal() {
   const { userId } = useSession();
   const queryClient = useQueryClient();
@@ -14,6 +14,7 @@ function useRefreshGoal() {
     const id = userId as string;
     void queryClient.invalidateQueries({ queryKey: keys.goal(id) });
     void queryClient.invalidateQueries({ queryKey: keys.home(id) });
+    void queryClient.invalidateQueries({ queryKey: keys.progress(id) });
   };
 }
 

@@ -40,12 +40,13 @@ export function subscribeOnline(listener: Listener): () => void {
   };
 }
 
-// --- A purchase reached the server through a flush or a resend: Home and History refresh. ---
+// --- A stored item reached the server through a flush or a resend: its screens refresh. ---
 
-const sentListeners = new Set<Listener>();
+type SentListener = (kind: OutboxKind) => void;
+const sentListeners = new Set<SentListener>();
 
-/** Runs `listener` each time a stored purchase is taken by the server. */
-export function onPurchaseSent(listener: Listener): () => void {
+/** Runs `listener` with the item's kind each time a stored item is taken by the server. */
+export function onItemSent(listener: SentListener): () => void {
   sentListeners.add(listener);
   return () => {
     sentListeners.delete(listener);
@@ -92,11 +93,11 @@ export const outboxPlatform: OutboxPlatform = {
   onNetworkSuccess: () => setOnline(true),
 };
 
-/** Sends one stored item; tells `onPurchaseSent` listeners when a purchase got through. */
+/** Sends one stored item; tells `onItemSent` listeners when it got through. */
 export async function sendItem(item: OutboxItem): Promise<SendOutcome> {
   const outcome = await sendToServer(outboxPlatform, item);
-  if (outcome.kind === "done" && item.kind === "purchase") {
-    for (const listener of sentListeners) listener();
+  if (outcome.kind === "done") {
+    for (const listener of sentListeners) listener(item.kind);
   }
   return outcome;
 }

@@ -29,6 +29,7 @@ export function useFixEntry() {
       const id = userId as string;
       void queryClient.invalidateQueries({ queryKey: keys.home(id) });
       void queryClient.invalidateQueries({ queryKey: keys.history(id) });
+      void queryClient.invalidateQueries({ queryKey: keys.progress(id) });
       void queryClient.invalidateQueries({ queryKey: keys.goal(id) });
       void queryClient.invalidateQueries({ queryKey: keys.versions(input.entryId) });
       dispatchNotices();

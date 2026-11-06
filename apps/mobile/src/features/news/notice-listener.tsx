@@ -25,6 +25,8 @@ const affected = (userId: string, role: NoticeRole): QueryKey[] =>
         keys.history(userId),
         keys.requests(userId),
         keys.goal(userId),
+        // A parent's action (a confirmed deposit) can award Sparks.
+        keys.progress(userId),
       ];
 
 /** Each role's inbox: the Notifications tab. */

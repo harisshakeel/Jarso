@@ -232,6 +232,7 @@ describe("PurchaseSheet", () => {
     expect(Haptics.notificationAsync).toHaveBeenCalledWith("success");
     expect(invalidate).toHaveBeenCalledWith({ queryKey: keys.home("child-1") });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: keys.history("child-1") });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: keys.progress("child-1") });
   });
 
   it("undo calls undoEntry with the returned entry id and refreshes", async () => {

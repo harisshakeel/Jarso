@@ -3,7 +3,7 @@
 export {
   flush,
   isOnline,
-  onPurchaseSent,
+  onItemSent,
   outboxPlatform,
   removeItem,
   sendItem,
