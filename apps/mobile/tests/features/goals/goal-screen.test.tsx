@@ -121,6 +121,17 @@ describe("GoalScreen", () => {
     expect(await screen.findByText("£25 to go")).toBeOnTheScreen();
   });
 
+  it("a paused allowance gives no weeks", async () => {
+    (findLatestSchedule as jest.Mock).mockResolvedValue({
+      amountMinor: 500,
+      frequency: "weekly",
+      status: "paused",
+    });
+    setGoal(2000);
+    await renderScreen();
+    expect(await screen.findByText("£25 to go")).toBeOnTheScreen();
+  });
+
   it("Save some opens put-in", async () => {
     setGoal(2000);
     const user = userEvent.setup();

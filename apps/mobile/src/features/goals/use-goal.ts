@@ -16,6 +16,12 @@ export function useGoal() {
   });
 }
 
+const scheduleQuery = (userId: string | undefined) => ({
+  queryKey: keys.schedule(userId ?? ""),
+  enabled: Boolean(userId),
+  queryFn: () => findLatestSchedule(supabase, userId as string),
+});
+
 /**
  * The child's allowance for the goal sheet's plan hint: the latest schedule's amount unless it was
  * stopped (the web's `runningSchedule`), otherwise null.
@@ -23,24 +29,20 @@ export function useGoal() {
 export function useAllowance() {
   const { userId } = useSession();
   return useQuery({
-    queryKey: keys.schedule(userId ?? ""),
-    enabled: Boolean(userId),
-    queryFn: () => findLatestSchedule(supabase, userId as string),
+    ...scheduleQuery(userId),
     select: (schedule) => (schedule && schedule.status !== "stopped" ? schedule.amountMinor : null),
   });
 }
 
 /**
- * The goal's allowance pace for "about N weeks": the running schedule's frequency, or null (no
- * schedule, or a stopped one). Reads the same cache as `useAllowance`.
+ * The goal's allowance pace for "about N weeks": the frequency of an active schedule, or null (no
+ * schedule, or one that is paused or stopped, which adds nothing). Shares `useAllowance`'s cache.
  */
 export function useSavingPace(): { frequency: Frequency | null } {
   const { userId } = useSession();
   const { data } = useQuery({
-    queryKey: keys.schedule(userId ?? ""),
-    enabled: Boolean(userId),
-    queryFn: () => findLatestSchedule(supabase, userId as string),
-    select: (schedule) => (schedule && schedule.status !== "stopped" ? schedule.frequency : null),
+    ...scheduleQuery(userId),
+    select: (schedule) => (schedule?.status === "active" ? schedule.frequency : null),
   });
   return { frequency: data ?? null };
 }

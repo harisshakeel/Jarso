@@ -238,11 +238,23 @@ describe("useSavingPace", () => {
     expect(result.current.frequency).toBeNull();
   });
 
-  it("is the frequency of a running schedule", async () => {
+  it("is null for a paused schedule", async () => {
+    (findLatestSchedule as jest.Mock).mockResolvedValue({
+      amountMinor: 500,
+      frequency: "weekly",
+      status: "paused",
+    });
+    const { result } = await pace();
+    await waitFor(() => expect(findLatestSchedule).toHaveBeenCalled());
+    await settle();
+    expect(result.current.frequency).toBeNull();
+  });
+
+  it("is the frequency of an active schedule", async () => {
     (findLatestSchedule as jest.Mock).mockResolvedValue({
       amountMinor: 500,
       frequency: "monthly",
-      status: "paused",
+      status: "active",
     });
     const { result } = await pace();
     await waitFor(() => expect(result.current.frequency).toBe("monthly"));
