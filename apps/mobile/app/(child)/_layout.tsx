@@ -36,6 +36,7 @@ const PAGES: { name: string; title: string }[] = [
   { name: "notifications", title: noticeGroupCopy.title },
   { name: "memories", title: guideCopy.memories.title },
   { name: "goal", title: "Your goal" },
+  { name: "jar/[jar]", title: "Jar" },
   { name: "entry/[entryId]", title: "Diary" },
   { name: "learn/[missionKey]", title: "Mission" },
   { name: "learn/practice", title: "Practice" },

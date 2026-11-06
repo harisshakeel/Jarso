@@ -1,5 +1,6 @@
 export * from "./copy";
 export * from "./emoji";
+export * from "./milestones";
 export * from "./plan-note";
 export * from "./predict";
 export * from "./progress";

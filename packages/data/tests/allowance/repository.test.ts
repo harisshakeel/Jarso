@@ -10,15 +10,16 @@ import { describe, expect, it } from "vitest";
 import { fakeClient, ok } from "../fake-client";
 
 describe("findLatestSchedule", () => {
-  it("reads only the amount and status of the newest schedule", async () => {
+  it("reads only the amount, frequency and status of the newest schedule", async () => {
     const { db, queries } = fakeClient({
-      allowance_schedules: ok({ amount_minor: 500, status: "paused" }),
+      allowance_schedules: ok({ amount_minor: 500, frequency: "monthly", status: "paused" }),
     });
     await expect(findLatestSchedule(db, "c1")).resolves.toEqual({
       amountMinor: 500,
+      frequency: "monthly",
       status: "paused",
     });
-    expect(queries[0]?.calls).toContainEqual(["select", "amount_minor, status"]);
+    expect(queries[0]?.calls).toContainEqual(["select", "amount_minor, frequency, status"]);
     expect(queries[0]?.calls).toContainEqual(["order", "created_at", { ascending: false }]);
   });
 

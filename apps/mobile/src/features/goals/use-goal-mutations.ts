@@ -1,4 +1,4 @@
-import type { GoalInput } from "@jarso/core/goals";
+import type { GoalInput, GoalView } from "@jarso/core/goals";
 import { callArchiveGoal, callMarkCelebrated, callSaveGoal } from "@jarso/data/goals";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
@@ -40,11 +40,21 @@ export function useArchiveGoal() {
 }
 
 /**
- * Marks the goal-reached moment as seen. No refresh, as on the web: refetching would replace the
- * moment the child is looking at. The next read has `celebrated_at`.
+ * Marks the goal-reached moment as seen. No refetch, as on the web: it would replace the moment
+ * the child is looking at. The cached goal gets `celebratedAt` instead, so a second screen that
+ * mounts with it never celebrates again.
  */
 export function useMarkCelebrated() {
+  const { userId } = useSession();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (goalId: string) => callMarkCelebrated(supabase, goalId),
+    onSuccess: (_result, goalId) => {
+      queryClient.setQueryData<GoalView>(keys.goal(userId ?? ""), (view) =>
+        view && view.goal.id === goalId
+          ? { ...view, goal: { ...view.goal, celebratedAt: new Date().toISOString() } }
+          : view,
+      );
+    },
   });
 }

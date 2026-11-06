@@ -2,7 +2,7 @@ import { goalCopy, PLAN_MESSAGES } from "@jarso/core/goals";
 import { AppError } from "@jarso/core/lib";
 import { findLatestSchedule } from "@jarso/data/allowance";
 import { getFamilyContext } from "@jarso/data/family";
-import { callArchiveGoal, callMarkCelebrated, callSaveGoal, getGoalView } from "@jarso/data/goals";
+import { callArchiveGoal, callSaveGoal, getGoalView } from "@jarso/data/goals";
 import { getLearningOverview } from "@jarso/data/learning";
 import { getJars } from "@jarso/data/ledger";
 import { getAvailability, listRequestsFor } from "@jarso/data/requests";
@@ -11,7 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
-import { GoalCard, GoalSheet, HomeStepCard } from "@/features/goals";
+import { GoalCard, GoalSheet } from "@/features/goals";
 import { keys } from "@/lib/query";
 
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
@@ -36,6 +36,8 @@ jest.mock("@jarso/data/requests", () => ({
 jest.mock("@jarso/data/rules", () => ({ findChildRules: jest.fn() }));
 jest.mock("@jarso/data/family", () => ({ getFamilyContext: jest.fn() }));
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
+jest.mock("@/components/celebrate", () => ({ useCelebrate: () => jest.fn() }));
+jest.mock("@/features/progress", () => ({ useParentLabel: () => "Mum" }));
 jest.mock("expo-network", () => ({ getNetworkStateAsync: jest.fn() }));
 jest.mock("expo-crypto", () => ({ randomUUID: () => "11111111-1111-4111-8111-111111111111" }));
 jest.mock("expo-haptics", () => ({
@@ -89,7 +91,11 @@ beforeEach(() => {
     availableSpendMinor: 1000,
     takeOutLimitMinor: null,
   });
-  (findLatestSchedule as jest.Mock).mockResolvedValue({ amountMinor: 500, status: "active" });
+  (findLatestSchedule as jest.Mock).mockResolvedValue({
+    amountMinor: 500,
+    frequency: "weekly",
+    status: "active",
+  });
   (listRequestsFor as jest.Mock).mockResolvedValue([]);
   (findChildRules as jest.Mock).mockResolvedValue({ jarMovesApproval: "ask", rules: [] });
   (getLearningOverview as jest.Mock).mockResolvedValue({ nextStep: { kind: "done" } });
@@ -113,8 +119,11 @@ describe("goals", () => {
     const bar = screen.getByRole("progressbar");
     expect(bar.props.accessibilityValue.now).toBe(44);
     expect(bar.props.accessibilityLabel).toBe("⚽ Football boots, £45.");
-    expect(screen.getByText("About 5 allowances to go")).toBeOnTheScreen();
-    expect(screen.getByRole("link", { name: goalCopy.card.seeIt })).toBeOnTheScreen();
+    expect(screen.getByText("£25 to go · about 5 weeks")).toBeOnTheScreen();
+    const link = screen.getByRole("link", {
+      name: "Football boots. £25 to go · about 5 weeks",
+    });
+    expect(link.props.accessibilityHint).toBe(goalCopy.card.seeIt);
   });
 
   it("no plan says what is left", async () => {
@@ -126,10 +135,19 @@ describe("goals", () => {
     expect(await screen.findByText("£25 to go")).toBeOnTheScreen();
   });
 
+  it("card has a decorative ring and still one progressbar", async () => {
+    (getGoalView as jest.Mock).mockResolvedValue({ goal, progress: progress(2000) });
+    await render(wrap(<GoalCard currency="GBP" />).ui);
+    await screen.findByText("⚽ Football boots");
+    const ring = screen.getByTestId("goal-ring", { includeHiddenElements: true });
+    expect(ring.props.accessibilityElementsHidden).toBe(true);
+    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+  });
+
   it("reached fills the bar", async () => {
     (getGoalView as jest.Mock).mockResolvedValue({ goal, progress: progress(5000) });
     await render(wrap(<GoalCard currency="GBP" />).ui);
-    expect(await screen.findByText("Reached. Time to ask your parent.")).toBeOnTheScreen();
+    expect(await screen.findByText("You did it!")).toBeOnTheScreen();
     expect(screen.getByRole("progressbar").props.accessibilityValue.now).toBe(100);
   });
 
@@ -192,24 +210,5 @@ describe("goals", () => {
     await user.press(screen.getByRole("button", { name: goalCopy.newGoal.confirm }));
     await waitFor(() => expect(callArchiveGoal).toHaveBeenCalledWith({ id: "client" }, "goal-1"));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
-  });
-
-  it("reached goal marks celebrated once", async () => {
-    (getGoalView as jest.Mock).mockResolvedValue({
-      goal: { ...goal, reachedAt: "2026-11-03T10:00:00Z" },
-      progress: progress(4500),
-    });
-    (callMarkCelebrated as jest.Mock).mockResolvedValue(undefined);
-    const { ui } = wrap(<HomeStepCard currency="GBP" timezone="Europe/London" />);
-    const view = await render(ui);
-    expect(
-      await screen.findByText(goalCopy.home.reachedTitle("⚽", "Football boots")),
-    ).toBeOnTheScreen();
-    expect(screen.getByText(goalCopy.home.goalReachedEyebrow)).toBeOnTheScreen();
-    await view.rerender(ui);
-    await waitFor(() => expect(callMarkCelebrated).toHaveBeenCalledTimes(1));
-    expect(callMarkCelebrated).toHaveBeenCalledWith({ id: "client" }, "goal-1");
-    // The moment stays on screen: marking it does not refresh it away.
-    expect(screen.getByText(goalCopy.home.reachedTitle("⚽", "Football boots"))).toBeOnTheScreen();
   });
 });
