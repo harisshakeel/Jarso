@@ -1,5 +1,7 @@
 # Several card providers at once, and Razorpay — Implementation Plan
 
+> **Status: shipped** in #56.
+
 Spec: `docs/superpowers/specs/2026-11-01-multi-provider-razorpay-design.md` (binding). Background: `docs/superpowers/specs/2026-10-31-stripe-card-handover-design.md`, `docs/adr/0013-card-handover-payment-providers.md`.
 
 ## Global Constraints

@@ -1,5 +1,7 @@
 # Mobile Settings menu: implementation plan
 
+> **Status: shipped** in #129.
+
 Spec: `docs/superpowers/specs/2026-11-05-mobile-settings-menu-design.md` (mockup option A, v6).
 Scope: `apps/mobile` and new copy lines in `packages/core`. No commits from this plan.
 

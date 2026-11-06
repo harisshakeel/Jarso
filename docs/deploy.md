@@ -19,7 +19,7 @@ Set in Vercel → Project → Settings → Environment Variables, never in the r
 | `NEXT_PUBLIC_APP_URL` | `https://jarso.vercel.app` | same as production | Used for email redirect targets and the CSRF origin check. Preview hosts still pass the CSRF check via the host match. |
 | `NEXT_PUBLIC_SUPABASE_URL` | set | set | Public by design. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | set | set | Public by design; still never committed. |
-| `SUPABASE_SECRET_KEY` | set (sensitive) | set (sensitive) | Required: the admin client creates child auth users (`features/family`). Previews share the production project, so they need it too. Missing it fails add-child with the generic error, which was the hosted bug behind PR #10's known issue. |
+| `SUPABASE_SECRET_KEY` | set (sensitive) | set (sensitive) | Required: the admin client creates child auth users (`features/family`). Previews share the production project, so they need it too. Without it, add-child answers with the generic error. |
 | `LOG_LEVEL` | `info` | `info` | Optional. |
 | `ANTHROPIC_API_KEY` | set (sensitive) | unset | The money guide (ADR 0010). Server only; read only by `features/guide/server/claude.ts`. |
 | `FEATURE_GUIDE` | `true` to run the guide | `false` | Off by default. With it on, Jarso is on for every child unless their parent turns it off (ADR 0011). |
@@ -139,7 +139,7 @@ Card handover is a test-mode showcase (ADR 0013, 0014). Use test keys only; no r
 | `4000 0027 6000 3184` | Always needs authentication |
 | `4000 0000 0000 9995` | Insufficient funds |
 
-**Manual pass against real test mode** (not run by the agent; it needs real test keys). Run it once per deployment and per provider after the steps above, with `stripe listen` for local Stripe runs. With several providers on, the buttons read "Pay with Stripe" and so on; pick the provider under test:
+**Manual pass against real test mode** (needs real test keys). Run it once per deployment and per provider after the steps above, with `stripe listen` for local Stripe runs. With several providers on, the buttons read "Pay with Stripe" and so on; pick the provider under test:
 
 - [ ] Family with a due allowance. On the handover screen, tap the Stripe row under "Or pay by card", pay with `4242 4242 4242 4242`. The jars fill, history says "Paid by card", the allowance is no longer due.
 - [ ] Open the Stripe card page, then hand over cash before paying. Pay on the Stripe page afterwards: nothing posts again and the screen shows the refund note.

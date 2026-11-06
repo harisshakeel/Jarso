@@ -1,5 +1,7 @@
 # Slice 2 — Allowance, Gifts and Handover Implementation Plan
 
+> **Status: shipped** in #18 and #19.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A parent sets a recurring allowance (or a hidden one-time gift). Due items appear exactly once, and the parent hands each over with a Spend/Save split that posts to the ledger exactly once, or marks it not given. The parent can change, pause or stop the allowance, and the child sees jars, the allowance card and history.

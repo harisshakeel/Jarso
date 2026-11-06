@@ -1,5 +1,7 @@
 # Mobile wave 3, plan 3 of 4: native push (Android) Implementation Plan
 
+> **Status: shipped** in #97 and #101.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Every notice pushed on the web today also buzzes the recipient's Android phone, a tap opens the matching phone screen, a child's notices from 21:00 to 07:00 family time wait until 07:00 and arrive as one summary, and the sweep runs every 15 minutes.

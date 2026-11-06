@@ -1,5 +1,7 @@
 # Money diary complete (FR04) Implementation Plan
 
+> **Status: shipped** in #65.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Every purchase gets a "what was it for" chip, the child records money received, the child fixes a recent line with a trail you can follow, and a "Where your money went" card shows the week as sentences.

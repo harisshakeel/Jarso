@@ -1,5 +1,7 @@
 # Mobile wave 3, plan 2 of 4: parents on the phone (Android) Implementation Plan
 
+> **Status: shipped** in #98.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A parent signs in on the Android app with email and password, finishes setup if needed, and runs the family from the phone: family home, children and the child hub (handover by cash, history, gifts, allowance, rules, learning, the child's Jarso chats), inbox, settings, their own Jarso chat, adding a child and accepting an invitation.

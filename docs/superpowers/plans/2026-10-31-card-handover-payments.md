@@ -1,5 +1,7 @@
 # Card handover through a payment provider — Implementation Plan
 
+> **Status: shipped** in #56.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Parents pay a due allowance or one-time gift by card (manual or auto charge) through a swappable payment provider, Stripe test mode first, and the handover posts to the child's jars exactly once.

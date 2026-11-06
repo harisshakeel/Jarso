@@ -16,7 +16,7 @@ export const pushEndpointSchema = z.object({ endpoint: z.url({ protocol: /^https
 /** An Expo push token, as `getExpoPushTokenAsync` gives it (and as the table checks). */
 export const EXPO_PUSH_TOKEN = /^Expo(nent)?PushToken\[[A-Za-z0-9_-]{1,200}\]$/;
 
-/** `POST /api/v1/push/tokens`: this phone's Expo push token. Android only for now. */
+/** `POST /api/v1/push/tokens`: this phone's Expo push token (Android, through FCM). */
 export const devicePushTokenSchema = z.object({
   token: z.string().regex(EXPO_PUSH_TOKEN),
   platform: z.literal("android"),

@@ -105,8 +105,6 @@ service.ts  ──►  repository.ts  ──►  supabase client
 | `spark_events` | One row per award: `kind` (`log`/`checkin`/`step`/`save`/`goal_milestone`/`goal_reached`), `amount` (0..100; 0 is a silenced award), `source_key` (1..200), `day`; unique `(child_id, source_key)` makes every award happen once for life | select: the child and their parents; writes denied, functions only |
 | `child_badges` | Badges a child earned: `badge_key` (`^[a-z0-9_]{1,40}$`, keys in `@jarso/core/progress`), `earned_at`; primary key `(child_id, badge_key)`. Granted once, never taken away | select: the child and their parents; writes denied, functions only |
 
-TODO (slice 2, with `pg_cron`): retention job that deletes old `usage_counters` windows, expired or accepted `invitations`, and stale `child_pin_attempts` rows.
-
 RLS helpers (`stable security definer`, `search_path = ''`, executable by `authenticated` only): `is_approved_member(family_id)`, `is_parent_of(child_id)`, `is_self(child_id)`, `current_family_id()`. Reuse them in every family-scoped policy.
 
 Functions:

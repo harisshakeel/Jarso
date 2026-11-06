@@ -535,7 +535,7 @@ const SUMMARY_DEADLINE_MS = 8_000;
  * failed call or a failed check): the dashboard reads fine without it, so this never throws.
  * The same parent and facts can be answered from this server's memory for a few hours; on
  * serverless that memory often doesn't outlive the instance, so the hourly limit is the real cap.
- * Its tokens are logged, not yet added to the guide's budget totals.
+ * It checks the guide's shared budget before every call, and its tokens are logged.
  */
 export async function writeFamilySummary(facts: SummaryFacts): Promise<string | null> {
   const writer = getSummaryWriter();

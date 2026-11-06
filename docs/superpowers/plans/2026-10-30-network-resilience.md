@@ -1,5 +1,7 @@
 # Network Resilience Implementation Plan
 
+> **Status: shipped** in #33.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Jarso stays usable on slow and dropping networks. No request waits forever, a child's own activity is saved on the device and sent when the connection returns, parent and account actions refuse cleanly when offline, and retries never duplicate.

@@ -1,5 +1,7 @@
 # Mobile Kid Rework, Plan 5: Learn (quest map, question restyle, right and wrong sheets) and the daily check-in Implementation Plan
 
+> **Status: shipped** in #147.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn the child's Learn tab into a game the child wants to open, and add the one-tap daily check-in:
