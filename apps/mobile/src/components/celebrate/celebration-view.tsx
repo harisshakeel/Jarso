@@ -1,7 +1,8 @@
 import { palette, semantic } from "@jarso/brand/tokens";
 import type { JarsoLook, JarsoMood } from "@jarso/core/mascot";
 import { AwardIcon, FlameIcon, LockOpenIcon, type LucideIcon, ZapIcon } from "lucide-react-native";
-import { Modal, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import { type LayoutChangeEvent, Modal, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { Jarso } from "@/components/brand";
@@ -83,17 +84,36 @@ const ICONS: Record<CelebrationChip["icon"], { Icon: LucideIcon; colour: string 
   unlock: { Icon: LockOpenIcon, colour: palette.teal["600"] },
 };
 
+/**
+ * The tone's gradient behind the whole celebration. The Svg gets the measured size in pixels: on
+ * Android a percentage-sized Svg in a Modal that opens while the screen behind swaps (the intro
+ * handing over to Home) kept a stale, smaller size. The solid `to` colour covers until measured.
+ */
 function Gradient({ id, paint }: { id: string; paint: Paint }) {
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+  const onLayout = ({ nativeEvent }: LayoutChangeEvent) => {
+    const { width, height } = nativeEvent.layout;
+    setSize((s) => (s && s.width === width && s.height === height ? s : { width, height }));
+  };
   return (
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
-      <Defs>
-        <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={paint.from} />
-          <Stop offset="1" stopColor={paint.to} />
-        </LinearGradient>
-      </Defs>
-      <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
-    </Svg>
+    <View
+      testID="celebration-gradient"
+      pointerEvents="none"
+      style={[StyleSheet.absoluteFill, { backgroundColor: paint.to }]}
+      onLayout={onLayout}
+    >
+      {size ? (
+        <Svg testID="celebration-gradient-svg" width={size.width} height={size.height}>
+          <Defs>
+            <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={paint.from} />
+              <Stop offset="1" stopColor={paint.to} />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width={size.width} height={size.height} fill={`url(#${id})`} />
+        </Svg>
+      ) : null}
+    </View>
   );
 }
 
