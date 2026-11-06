@@ -26,6 +26,7 @@ const SHEETS = [
   "received",
   "goal-sheet",
   "guide-sheet",
+  "checkin",
 ];
 
 /** Pages pushed over the tabs, with the native back button and the web's page title. */
