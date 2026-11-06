@@ -19,6 +19,17 @@ describe("JarsoGuess", () => {
     expect(screen.getByText(/Yes! 1 allowance closer\./)).toBeTruthy();
   });
 
+  it("shows the picked pill as selected, not disabled, and ignores a second tap", async () => {
+    await render(<JarsoGuess {...base} amountMinor={1000} />);
+    await fireEvent.press(screen.getByLabelText("Further"));
+    const picked = screen.getByLabelText("Further");
+    expect(picked.props.accessibilityState).toEqual(expect.objectContaining({ selected: true }));
+    expect(picked.props.accessibilityState.disabled).toBeFalsy();
+    await fireEvent.press(screen.getByLabelText("Closer"));
+    expect(screen.getByText(/Good guess!/)).toBeTruthy();
+    expect(screen.queryByText(/Yes!/)).toBeNull();
+  });
+
   it("a wrong guess is calm", async () => {
     await render(<JarsoGuess {...base} amountMinor={1000} />);
     await fireEvent.press(screen.getByLabelText("Further"));

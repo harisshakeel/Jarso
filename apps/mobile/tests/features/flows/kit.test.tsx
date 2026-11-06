@@ -207,6 +207,18 @@ describe("useSparkChips", () => {
     ]);
   });
 
+  it("uses a snapshot once: the next chips() has no gain to report", async () => {
+    (getProgress as jest.Mock).mockResolvedValue({ sparks: 240, streak: 6 });
+    const { result } = await setup();
+    result.current.snapshot();
+    let second: unknown;
+    await act(async () => {
+      await result.current.chips();
+      second = await result.current.chips();
+    });
+    expect(second).not.toContainEqual({ icon: "zap", label: "+10" });
+  });
+
   it("gives [] when the refetch fails", async () => {
     (getProgress as jest.Mock).mockRejectedValue(new Error("offline"));
     const { result } = await setup();

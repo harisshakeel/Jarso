@@ -28,6 +28,9 @@ export function useSparkChips(): {
   }, [queryClient, userId]);
 
   const chips = useCallback(async () => {
+    // One snapshot serves one action: a later chips() call must not reuse it.
+    const prior = before.current;
+    before.current = undefined;
     if (!userId) return [];
     const key = keys.progress(userId);
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -42,7 +45,7 @@ export function useSparkChips(): {
       });
       // A refetch that is too slow still lets the celebration go with what the cache has.
       const after = (await Promise.race([fresh, late])) ?? queryClient.getQueryData<Progress>(key);
-      return sparkChips(before.current, after);
+      return sparkChips(prior, after);
     } catch {
       return [];
     } finally {

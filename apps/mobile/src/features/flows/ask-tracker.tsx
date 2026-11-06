@@ -10,9 +10,10 @@ export function AskTracker({ steps }: { steps: TrackerStep[] }) {
   const Check = pictureIcon("check");
   return (
     <View className="gap-4 rounded-xl border border-border bg-card p-4">
-      {steps.map((step) => (
+      {steps.map((step, i) => (
         <View
-          key={step.title}
+          // biome-ignore lint/suspicious/noArrayIndexKey: a fixed three-step list, never reordered
+          key={i}
           testID={`tracker-step-${step.state}`}
           accessible
           accessibilityLabel={

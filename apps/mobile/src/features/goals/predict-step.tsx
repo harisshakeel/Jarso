@@ -193,9 +193,11 @@ export function JarsoGuess({ move, amountMinor, goal, saveMinor, reservedMinor }
             variant="outline"
             className={cn("flex-1", guess === option.key && "border-primary bg-secondary")}
             accessibilityLabel={option.label}
-            accessibilityState={{ selected: guess === option.key, disabled: guess !== null }}
-            disabled={guess !== null}
-            onPress={() => setAnswered({ amountMinor, guess: option.key })}
+            accessibilityState={{ selected: guess === option.key }}
+            // Not `disabled`: that would dim the pill the child picked. One guess per amount.
+            onPress={() => {
+              if (guess === null) setAnswered({ amountMinor, guess: option.key });
+            }}
           >
             <Text>{option.label}</Text>
           </Button>
