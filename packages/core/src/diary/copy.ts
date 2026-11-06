@@ -179,5 +179,6 @@ export const receivedFlowCopy = {
   spend: { label: "Spend", hint: "Keep the cash" },
   save: { label: "Save", hint: (parent: string) => `Give it to ${parent}` },
   submit: (jar: "Spend" | "Save") => `Put it in ${jar}`,
+  goalReached: (emoji: string, name: string) => `${emoji} ${name}: that gets you there!`,
   goalAfter: (emoji: string, name: string, m: string) => `${emoji} ${name}: ${m} to go after this!`,
 } as const;

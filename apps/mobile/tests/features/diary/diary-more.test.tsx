@@ -163,6 +163,16 @@ describe("Got money", () => {
     expect(await screen.findByText("⚽ Boots: £25 to go after this!")).toBeOnTheScreen();
   });
 
+  it("says the goal is reached instead of 0 to go", async () => {
+    (getGoalView as jest.Mock).mockResolvedValue(GOAL);
+    const user = userEvent.setup();
+    await openReceived();
+    await keyAmount(user, "30");
+    await user.press(await screen.findByRole("radio", { name: "Save" }));
+    expect(await screen.findByText("⚽ Boots: that gets you there!")).toBeOnTheScreen();
+    expect(screen.queryByText(/to go after this/)).toBeNull();
+  });
+
   it("records it once, refreshes and tells the parent", async () => {
     received.mockResolvedValue({ status: "recorded", entryId: ENTRY });
     const user = userEvent.setup();

@@ -4,6 +4,9 @@ import { purchaseFlowCopy, receivedFlowCopy } from "../../src/diary";
 describe("diary flow copy", () => {
   it("done repeats the choice", () =>
     expect(purchaseFlowCopy.done("₹45", "Snacks")).toBe("Done · ₹45 snacks"));
+  it("goalReached is short", () =>
+    expect(receivedFlowCopy.goalReached("⚽", "Boots")).toBe("⚽ Boots: that gets you there!"));
+
   it("goalAfter matches the mockup", () =>
     expect(receivedFlowCopy.goalAfter("⚽", "Boots", "₹0")).toBe("⚽ Boots: ₹0 to go after this!"));
   it("small lines", () => {

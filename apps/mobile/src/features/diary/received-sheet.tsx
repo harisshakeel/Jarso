@@ -227,7 +227,9 @@ export function ReceivedSheet({ onClose }: { onClose: () => void }) {
       <JarChoice value={jar} onChange={setJar} parent={parent} />
       {unreached && toGo !== null ? (
         <Text accessibilityLiveRegion="polite" className="font-sans-bold text-secondary-foreground">
-          {receivedFlowCopy.goalAfter(unreached.goal.emoji, unreached.goal.name, money(toGo))}
+          {toGo === 0
+            ? receivedFlowCopy.goalReached(unreached.goal.emoji, unreached.goal.name)
+            : receivedFlowCopy.goalAfter(unreached.goal.emoji, unreached.goal.name, money(toGo))}
         </Text>
       ) : null}
       <Input
