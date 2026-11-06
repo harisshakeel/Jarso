@@ -1,4 +1,4 @@
-import { goalCopy, PLAN_MESSAGES, PREDICT_QUESTION } from "@jarso/core/goals";
+import { goalCopy, PLAN_MESSAGES } from "@jarso/core/goals";
 import { AppError } from "@jarso/core/lib";
 import { findLatestSchedule } from "@jarso/data/allowance";
 import { getFamilyContext } from "@jarso/data/family";
@@ -12,7 +12,6 @@ import { render, screen, userEvent, waitFor } from "@testing-library/react-nativ
 import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import { GoalCard, GoalSheet, HomeStepCard } from "@/features/goals";
-import { TakeOutSheet } from "@/features/requests";
 import { keys } from "@/lib/query";
 
 jest.mock("@/lib/supabase/client", () => ({ supabase: { id: "client" } }));
@@ -212,27 +211,5 @@ describe("goals", () => {
     expect(callMarkCelebrated).toHaveBeenCalledWith({ id: "client" }, "goal-1");
     // The moment stays on screen: marking it does not refresh it away.
     expect(screen.getByText(goalCopy.home.reachedTitle("⚽", "Football boots"))).toBeOnTheScreen();
-  });
-
-  it("predict step appears in take-out when goal set", async () => {
-    (getGoalView as jest.Mock).mockResolvedValue({ goal, progress: progress(2000) });
-    const user = userEvent.setup();
-    await render(wrap(<TakeOutSheet onClose={jest.fn()} />).ui);
-    const amount = await screen.findByLabelText("Amount");
-    await waitFor(() => expect(getGoalView).toHaveBeenCalled());
-    expect(screen.queryByText(`⚽ ${PREDICT_QUESTION.take_out}`)).toBeNull();
-    await user.type(amount, "5");
-    expect(await screen.findByText(`⚽ ${PREDICT_QUESTION.take_out}`)).toBeOnTheScreen();
-    await user.press(screen.getByRole("button", { name: "Further off" }));
-    expect(screen.getByText(/That's it\./)).toBeOnTheScreen();
-  });
-
-  it("no predict step in take-out without a goal", async () => {
-    (getGoalView as jest.Mock).mockResolvedValue(null);
-    const user = userEvent.setup();
-    await render(wrap(<TakeOutSheet onClose={jest.fn()} />).ui);
-    await user.type(await screen.findByLabelText("Amount"), "5");
-    await waitFor(() => expect(getGoalView).toHaveBeenCalled());
-    expect(screen.queryByText(`⚽ ${PREDICT_QUESTION.take_out}`)).toBeNull();
   });
 });
