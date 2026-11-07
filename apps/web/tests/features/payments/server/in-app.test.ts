@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { prefillSplit } from "@/features/allowance";
 import { paymentCopy } from "@/features/payments";
 import { AppError } from "@/lib";
 import type { PaymentProvider } from "@/lib/payments";
@@ -15,7 +14,7 @@ vi.mock("@/features/family/server", () => ({
   getFamily: vi.fn(),
   listChildren: vi.fn(),
 }));
-vi.mock("@/features/allowance/server", () => ({ getLastSplitWith: vi.fn() }));
+vi.mock("@/features/allowance/server", () => ({ getHandoverPrefillWith: vi.fn() }));
 vi.mock("@/lib/payments", async (importOriginal) => ({
   FAKE_METHODS: (await importOriginal<typeof import("@/lib/payments")>()).FAKE_METHODS,
   getPaymentProviders: vi.fn(),
@@ -119,7 +118,7 @@ beforeEach(() => {
     timezone: "UTC",
   });
   vi.mocked(family.listChildren).mockResolvedValue([{ id: childId, nickname: "Sam" }]);
-  vi.mocked(allowance.getLastSplitWith).mockResolvedValue(null);
+  vi.mocked(allowance.getHandoverPrefillWith).mockResolvedValue({ cash: 1000, saved: 0 });
   vi.mocked(repo.findPaymentSource).mockResolvedValue(occurrence);
   vi.mocked(repo.findLivePayment).mockResolvedValue(null);
   vi.mocked(repo.findLatestPayment).mockResolvedValue(null);
@@ -186,12 +185,15 @@ describe("startInAppPayment", () => {
   });
 
   it("prefills the split when the phone sends none", async () => {
-    vi.mocked(allowance.getLastSplitWith).mockResolvedValue({ cash: 1, saved: 1 });
-    const expected = prefillSplit(1000, { cash: 1, saved: 1 });
+    vi.mocked(allowance.getHandoverPrefillWith).mockResolvedValue({ cash: 500, saved: 500 });
+    const expected = { cash: 500, saved: 500 };
 
     await service.startInAppPayment({ kind: "allowance", id: occurrenceId, provider: "fake" });
 
-    expect(allowance.getLastSplitWith).toHaveBeenCalledWith({ kind: "user" }, childId);
+    expect(allowance.getHandoverPrefillWith).toHaveBeenCalledWith(
+      { kind: "user" },
+      { kind: "allowance", id: occurrenceId, childId, amountMinor: 1000 },
+    );
     expect(repo.insertPayment).toHaveBeenCalledWith(
       ADMIN,
       expect.objectContaining({ cashMinor: expected.cash, savedMinor: expected.saved }),

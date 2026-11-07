@@ -59,7 +59,16 @@ const aisha = child({
   spendMinor: 1200,
   saveMinor: 3000,
   history: [item({ id: "p1", label: "Crisps", occurredOn: "2026-10-29" })],
-  due: [{ kind: "allowance", id: "o1", dueOn: today, amountMinor: 500, note: null }],
+  due: [
+    {
+      kind: "allowance",
+      id: "o1",
+      dueOn: today,
+      amountMinor: 500,
+      note: null,
+      plannedSaveMinor: null,
+    },
+  ],
 });
 const zarrar = child({
   id: "z",

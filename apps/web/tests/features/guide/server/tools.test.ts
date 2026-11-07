@@ -40,6 +40,7 @@ const schedule = {
   autoCharge: false,
   autoChargeProvider: null,
   autoChargeMine: false,
+  saveMinor: null,
 };
 
 /** Spend £12.40, Save £64, nothing waiting unless overridden. */
@@ -398,6 +399,7 @@ describe("propose_action", () => {
         dueOn: "2026-10-30",
         amountMinor: 1000,
         note: null,
+        plannedSaveMinor: null,
       },
     ]);
     const parent = createTurnTools({ ...ctx, childId: SAM, forParent: true, childName: "Sam" });

@@ -1,7 +1,6 @@
 import "server-only";
 import { paymentCopy } from "@jarso/core/payments";
-import { prefillSplit } from "@/features/allowance";
-import { getLastSplitWith } from "@/features/allowance/server";
+import { getHandoverPrefillWith } from "@/features/allowance/server";
 import { isAppError, logger } from "@/lib";
 import { getPaymentProviderById, getPaymentProviders, type PaymentProvider } from "@/lib/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -84,7 +83,13 @@ async function chargeOne(
 
   let paymentId: string | null;
   try {
-    const split = prefillSplit(item.amountMinor, await getLastSplitWith(admin, item.childId));
+    // The allowance's planned split, else the last handover's share (ADR 0019).
+    const split = await getHandoverPrefillWith(admin, {
+      kind: item.source.type === "occurrence" ? "allowance" : "gift",
+      id: item.source.id,
+      childId: item.childId,
+      amountMinor: item.amountMinor,
+    });
     paymentId = await insertPayment(admin, {
       familyId: item.familyId,
       childId: item.childId,

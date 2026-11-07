@@ -10,6 +10,7 @@ export {
   decideAllowancePlan,
   type FamilyContext,
   getFamilyContext,
+  getHandoverPrefillWith,
   getLastSplit,
   getLastSplitWith,
   getSchedule,

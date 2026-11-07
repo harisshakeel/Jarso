@@ -1,7 +1,12 @@
 "use client";
 
 import type { Schedule } from "@jarso/core/allowance";
-import { allowanceSummaryCopy, cadenceAfterAmount, formatDay } from "@jarso/core/allowance";
+import {
+  allowanceSummaryCopy,
+  cadenceAfterAmount,
+  formatDay,
+  scheduleSplit,
+} from "@jarso/core/allowance";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -47,6 +52,10 @@ export function AllowanceSummary({
 }: AllowanceSummaryProps) {
   const paused = schedule.status === "paused";
   const next = schedule.nextDueOn;
+  // The planned split (ADR 0019), when one is set.
+  const split =
+    schedule.saveMinor !== null ? scheduleSplit(schedule.amountMinor, schedule.saveMinor) : null;
+  const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
   return (
     <Card className="rise-in shadow-raised">
       <CardContent className="grid gap-6">
@@ -62,6 +71,11 @@ export function AllowanceSummary({
             </p>
             {paused ? <Badge variant="secondary">{allowanceSummaryCopy.paused}</Badge> : null}
           </div>
+          {split ? (
+            <p className="text-ink-2">
+              {allowanceSummaryCopy.split(money(split.cash), money(split.saved))}
+            </p>
+          ) : null}
           {paused ? (
             <PausedNote schedule={schedule} />
           ) : next ? (

@@ -22,6 +22,7 @@ export {
   findLatestAllowanceSplit,
   findLatestGiftSplit,
   findOccurrenceChildId,
+  findOccurrencePlannedSave,
   findScheduleChildId,
   findScheduleRow,
   findScheduleState,

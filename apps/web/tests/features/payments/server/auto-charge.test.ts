@@ -9,7 +9,7 @@ vi.mock("@/lib/payments", async (importOriginal) => ({
   getPaymentProviders: vi.fn(),
   getPaymentProviderById: vi.fn(),
 }));
-vi.mock("@/features/allowance/server", () => ({ getLastSplitWith: vi.fn() }));
+vi.mock("@/features/allowance/server", () => ({ getHandoverPrefillWith: vi.fn() }));
 vi.mock("@/features/payments/server/repository", () => ({
   applyPayment: vi.fn(),
   expirePayment: vi.fn(),
@@ -65,7 +65,10 @@ beforeEach(() => {
   );
   vi.mocked(repo.listStaleLivePayments).mockResolvedValue([]);
   vi.mocked(repo.listDueAutoCharges).mockResolvedValue([]);
-  vi.mocked(allowance.getLastSplitWith).mockResolvedValue(null);
+  vi.mocked(allowance.getHandoverPrefillWith).mockImplementation(async (_db, item) => ({
+    cash: item.amountMinor,
+    saved: 0,
+  }));
   vi.mocked(repo.insertPayment).mockImplementation(async (_db, row) => `pay-${row.source.id}`);
   vi.mocked(repo.setPaymentProviderRef).mockResolvedValue(true);
   vi.mocked(repo.applyPayment).mockResolvedValue("confirmed");
@@ -83,19 +86,24 @@ describe("runAutoCharges", () => {
     expect(repo.listDueAutoCharges).not.toHaveBeenCalled();
   });
 
-  it("claims each due item with an auto payment split like the last handover", async () => {
+  it("claims each due item with an auto payment split like its handover prefill", async () => {
     vi.mocked(repo.listDueAutoCharges).mockResolvedValue([
       due("o1", FAKE_METHODS.ok, 1000),
       due("o2", FAKE_METHODS.ok, 500),
     ]);
-    vi.mocked(allowance.getLastSplitWith)
-      .mockResolvedValueOnce({ cash: 300, saved: 100 })
-      .mockResolvedValueOnce(null);
+    vi.mocked(allowance.getHandoverPrefillWith)
+      .mockResolvedValueOnce({ cash: 750, saved: 250 })
+      .mockResolvedValueOnce({ cash: 500, saved: 0 });
 
     await runAutoCharges(NOW);
 
     expect(repo.listDueAutoCharges).toHaveBeenCalledWith(ADMIN, ["fake"], NOW, expect.any(Number));
-    expect(allowance.getLastSplitWith).toHaveBeenCalledWith(ADMIN, CHILD);
+    expect(allowance.getHandoverPrefillWith).toHaveBeenCalledWith(ADMIN, {
+      kind: "allowance",
+      id: "o1",
+      childId: CHILD,
+      amountMinor: 1000,
+    });
     expect(repo.insertPayment).toHaveBeenCalledTimes(2);
     const expiresAt = new Date(NOW.getTime() + 30 * 60_000).toISOString();
     expect(repo.insertPayment).toHaveBeenNthCalledWith(1, ADMIN, {

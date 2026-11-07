@@ -31,6 +31,7 @@ vi.mock("@jarso/data/allowance", () => ({
   createAllowance: vi.fn(),
   createGift: vi.fn(),
   getLastSplitWith: vi.fn(),
+  getHandoverPrefillWith: vi.fn(),
   getParentSchedule: vi.fn(),
   listGiftsFor: vi.fn(),
   markNotGiven: vi.fn(),
@@ -189,6 +190,28 @@ describe("parent mutations", () => {
     expect(shared.cancelGift).not.toHaveBeenCalled();
   });
 
+  it("passes the planned Save on to the shared allowance writes", async () => {
+    const create = {
+      childId,
+      amountMinor: 500,
+      frequency: "weekly" as const,
+      firstOn: "2026-11-01",
+      saveMinor: 100,
+    };
+    await service.createAllowance(create);
+    expect(shared.createAllowance).toHaveBeenCalledWith(db, create);
+    vi.mocked(repo.findScheduleChildId).mockResolvedValue(childId);
+    const change = {
+      scheduleId: "s-1",
+      amountMinor: 600,
+      frequency: "weekly" as const,
+      nextOn: "2026-11-08",
+      saveMinor: 0,
+    };
+    await service.changeAllowance(change);
+    expect(shared.changeAllowance).toHaveBeenCalledWith(db, change);
+  });
+
   it("passes the caller's client and input to the shared write", async () => {
     const input = { scheduleId: "s-1", through: "2026-11-10", message: null };
     await service.pauseAllowance(input);
@@ -276,6 +299,7 @@ describe("getSchedule", () => {
     anchorOn: "2026-11-01",
     pausedThrough: null,
     pauseMessage: null,
+    saveMinor: null,
   };
 
   it("gives a parent the shared parent schedule for their id", async () => {

@@ -32,6 +32,28 @@ function renderForm(kind: "allowance" | "gift" = "allowance") {
 }
 
 describe("HandoverForm", () => {
+  it.each([
+    ["plan", "The split you set. Drag or type to change."],
+    ["last", "Same split as last time. Drag or type to change."],
+    ["none", "Drag or type to change."],
+  ] as const)("says where a %s prefill came from", (from, hint) => {
+    render(
+      <HandoverForm
+        kind="allowance"
+        id="occ-1"
+        childId="child-1"
+        nickname="Sam"
+        currency="GBP"
+        amountMinor={500}
+        dueOn="2026-11-02"
+        note={null}
+        prefill={{ cash: 400, saved: 100 }}
+        prefillFrom={from}
+      />,
+    );
+    expect(screen.getByText(hint)).toBeTruthy();
+  });
+
   it("shows the child's goal plan as a note and keeps the prefill", () => {
     render(
       <HandoverForm

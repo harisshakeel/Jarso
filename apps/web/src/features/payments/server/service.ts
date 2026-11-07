@@ -13,8 +13,7 @@ import type {
 } from "@jarso/core/payments";
 import { isFinalStatus, paymentCopy, phoneSchema, returnToSchema } from "@jarso/core/payments";
 import { clientEnv } from "@/config";
-import { prefillSplit } from "@/features/allowance";
-import { getLastSplitWith } from "@/features/allowance/server";
+import { getHandoverPrefillWith } from "@/features/allowance/server";
 import { assertUser } from "@/features/auth/server";
 import {
   assertParentCanRead,
@@ -551,7 +550,12 @@ export async function startInAppPayment(input: {
   if (!provider.inApp) throw new AppError("NOT_FOUND", paymentCopy.off);
   let split = given;
   if (split === null) {
-    const prefill = prefillSplit(row.amountMinor, await getLastSplitWith(db, row.childId));
+    const prefill = await getHandoverPrefillWith(db, {
+      kind: kindOf(source.type),
+      id: source.id,
+      childId: row.childId,
+      amountMinor: row.amountMinor,
+    });
     split = { cashMinor: prefill.cash, savedMinor: prefill.saved };
   }
 

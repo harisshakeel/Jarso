@@ -14,7 +14,7 @@ vi.mock("@/features/family/server", () => ({
   getFamily: vi.fn(),
   listChildren: vi.fn(),
 }));
-vi.mock("@/features/allowance/server", () => ({ getLastSplitWith: vi.fn() }));
+vi.mock("@/features/allowance/server", () => ({ getHandoverPrefillWith: vi.fn() }));
 vi.mock("@/lib/payments", () => ({
   getPaymentProviders: vi.fn(),
   getPaymentProviderById: vi.fn(),

@@ -164,25 +164,36 @@ export async function getLastSplit(childId: string): Promise<Split | null> {
  */
 export const getLastSplitWith = shared.getLastSplitWith;
 
+/**
+ * The handover prefill for one due item: its planned split, else the last handover's share
+ * (ADR 0019). Read with `db`; no auth: the caller authorises, or passes the admin client from a
+ * trusted job (the auto charge).
+ */
+export const getHandoverPrefillWith = shared.getHandoverPrefillWith;
+
 // ---------------------------------------------------------------------------
 // Schedule writes
 // ---------------------------------------------------------------------------
 
+/** `saveMinor` is the planned Save (ADR 0019); null or missing sets no plan. */
 export async function createAllowance(input: {
   childId: string;
   amountMinor: number;
   frequency: Frequency;
   firstOn: string;
+  saveMinor?: number | null;
 }): Promise<string> {
   await assertParentOf(input.childId);
   return shared.createAllowance(await createClient(), input);
 }
 
+/** Without `saveMinor` the current plan is kept while it fits the new amount. */
 export async function changeAllowance(input: {
   scheduleId: string;
   amountMinor: number;
   frequency: Frequency;
   nextOn: string;
+  saveMinor?: number | null;
 }): Promise<void> {
   const db = await createClient();
   await assertParentOfChild(await findScheduleChildId(db, input.scheduleId));

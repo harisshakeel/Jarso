@@ -36,7 +36,14 @@ describe("ThisWeekStrip", () => {
             id: "a",
             nickname: "Aisha",
             due: [
-              { kind: "allowance", id: "o", dueOn: "2026-10-29", amountMinor: 500, note: null },
+              {
+                kind: "allowance",
+                id: "o",
+                dueOn: "2026-10-29",
+                amountMinor: 500,
+                note: null,
+                plannedSaveMinor: null,
+              },
             ],
             gifts: [
               {
