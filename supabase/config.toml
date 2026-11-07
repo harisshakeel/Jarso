@@ -458,6 +458,24 @@ max_frequency = "1m0s"
 # this is pushed with `supabase config push`).
 otp_length = 6
 
+# Resend as the sign-up mailer (docs/auth.md → Hosted setup, item 2, and "When Resend is down").
+# Commented out until the sending domain is verified in Resend and RESEND_SMTP_KEY is exported in
+# the shell that runs `supabase config push`: an unresolved env() fails the push, and a failed
+# config apply stops Supabase's GitHub integration before it applies migrations. Uncomment this
+# block, the two below and `[auth.email.template.confirmation]` together.
+# [remotes.production.auth.email.smtp]
+# enabled = true
+# host = "smtp.resend.com"
+# port = 465
+# user = "resend"
+# pass = "env(RESEND_SMTP_KEY)"
+# admin_email = "no-reply@<verified-domain>"
+# sender_name = "Jarso"
+#
+# [remotes.production.auth.rate_limit]
+# # Emails per hour for the whole project. Resend's free plan allows 100 a day.
+# email_sent = 30
+
 [remotes.production.auth.mfa.totp]
 enroll_enabled = true
 verify_enabled = true
