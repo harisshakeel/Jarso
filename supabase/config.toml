@@ -247,7 +247,8 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Sign-up confirmation links to /auth/confirm (token hash), so they work in any browser.
+# Sign-up confirmation links to /auth/confirm (token hash), so they work in any browser, and
+# carries the same code as {{ .Token }} for sign-up on the phone.
 # Off until the hosted project has custom SMTP: on the free tier with the default email
 # provider, Supabase rejects any template change, and that failure stops the GitHub
 # integration before it applies migrations. Local confirmations are off, so nothing local
@@ -453,7 +454,9 @@ enable_confirmations = false
 double_confirm_changes = true
 secure_password_change = true
 max_frequency = "1m0s"
-otp_length = 8
+# The sign-up email's code, typed on the phone (2026-11-07; the app also takes 8 digits until
+# this is pushed with `supabase config push`).
+otp_length = 6
 
 [remotes.production.auth.mfa.totp]
 enroll_enabled = true
