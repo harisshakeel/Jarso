@@ -181,18 +181,21 @@ test("parent hands over a due allowance with a split", async () => {
   await expect(page.getByRole("button", { name: "Save allowance" })).toBeVisible();
   await page.getByLabel("Amount").fill("500");
   await page.getByRole("group").getByText("Weekly", { exact: true }).click();
+  // A new allowance plans a quarter to Save (ADR 0019).
+  await expect(page.getByText("US$375 to Spend · US$125 to Save")).toBeVisible();
   await page.getByRole("button", { name: "Save allowance" }).click();
   await closeCelebration(page);
   await expect(page).toHaveURL(at(managePath));
   const due = page.getByRole("region", { name: "Due now" });
   await due.getByRole("link", { name: /^Allowance/ }).click();
 
+  // The handover opens on the planned split.
   await expect(page.getByRole("heading", { name: "Hand over to Sam" })).toBeVisible();
   const spend = page.getByLabel("Spend (cash to Sam)");
   const save = page.getByLabel("Save (you keep)", { exact: true });
-  await expect(page.getByText("Drag or type to change.", { exact: true })).toBeVisible();
-  await expect(spend).toHaveValue("500.00");
-  await expect(save).toHaveValue("0.00");
+  await expect(page.getByText("The split you set. Drag or type to change.")).toBeVisible();
+  await expect(spend).toHaveValue("375.00");
+  await expect(save).toHaveValue("125.00");
 
   await save.fill("200");
   await expect(spend).toHaveValue("300.00");
