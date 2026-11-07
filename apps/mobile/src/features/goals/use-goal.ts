@@ -35,6 +35,19 @@ export function useAllowance() {
 }
 
 /**
+ * The planned Save part of a running allowance (ADR 0019), or null (no plan, or no running
+ * allowance). Shares `useAllowance`'s cache.
+ */
+export function useAllowanceSave() {
+  const { userId } = useSession();
+  return useQuery({
+    ...scheduleQuery(userId),
+    select: (schedule) =>
+      schedule && schedule.status !== "stopped" ? (schedule.saveMinor ?? null) : null,
+  });
+}
+
+/**
  * The goal's allowance pace for "about N weeks": the frequency of an active schedule, or null (no
  * schedule, or one that is paused or stopped, which adds nothing). Shares `useAllowance`'s cache.
  */

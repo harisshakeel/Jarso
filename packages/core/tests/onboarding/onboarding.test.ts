@@ -90,6 +90,14 @@ describe("suggestedPlan", () => {
     expect(suggestedPlan(null, "INR")).toBeNull();
     expect(suggestedPlan(0, "INR")).toBeNull();
   });
+
+  it("is the Save split when the parent set one", () => {
+    expect(suggestedPlan(12000, "INR", 4500)).toBe(4500);
+    expect(suggestedPlan(12000, "INR", 12000)).toBe(12000);
+    expect(suggestedPlan(12000, "INR", 0)).toBe(3000);
+    expect(suggestedPlan(12000, "INR", null)).toBe(3000);
+    expect(suggestedPlan(null, "INR", 4500)).toBeNull();
+  });
 });
 
 describe("onboardingGate", () => {

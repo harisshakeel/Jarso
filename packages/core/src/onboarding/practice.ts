@@ -42,11 +42,18 @@ export function practiceFill(jars: PracticeJars): number {
 }
 
 /**
- * The plan behind the intro's "about N weeks": a quarter of the allowance, rounded down to a whole
- * unit and at least one unit. Null without an allowance. The child can change it in the goal sheet.
+ * The plan behind the intro's "about N weeks": the Save part of the allowance's planned split
+ * (ADR 0019) when the parent set one above 0; otherwise a quarter of the allowance, rounded down
+ * to a whole unit and at least one unit. Null without an allowance. The child can change it in
+ * the goal sheet.
  */
-export function suggestedPlan(allowanceMinor: number | null, currency: string): number | null {
+export function suggestedPlan(
+  allowanceMinor: number | null,
+  currency: string,
+  saveMinor: number | null = null,
+): number | null {
   if (allowanceMinor === null || allowanceMinor <= 0) return null;
+  if (saveMinor !== null && saveMinor > 0) return Math.min(saveMinor, allowanceMinor);
   const one = unit(currency);
   return Math.max(Math.floor(allowanceMinor / 4 / one) * one, one);
 }
