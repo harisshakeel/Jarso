@@ -1,8 +1,10 @@
 export { registerBeforeSignOut, runBeforeSignOut } from "./before-sign-out";
 export { Field } from "./form-field";
 export * from "./parent-sign-in-form";
+export { PIN_MAX, PinPad } from "./pin-pad";
 export { homeFor, type Role } from "./role-home";
 export { loadSignInMode, type SignInMode, saveSignInMode } from "./saved-sign-in";
+export { ScanCode } from "./scan-code";
 export * from "./session-provider";
 export { signInChild } from "./sign-in-child";
 export * from "./sign-in-form";
