@@ -41,7 +41,15 @@
           "defaultChannel": "notices"
         }
       ],
-      ["@stripe/stripe-react-native", { "enableGooglePay": false }]
+      ["@stripe/stripe-react-native", { "enableGooglePay": false }],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Jarso uses the camera to scan your family's sign-in code.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

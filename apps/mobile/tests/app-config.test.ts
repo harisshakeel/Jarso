@@ -48,6 +48,14 @@ describe("app config", () => {
     );
   });
 
+  it("camera plugin scans codes and never asks for the microphone", () => {
+    const plugins = appJson.expo.plugins as Plugin[];
+    const [, options] = pluginNamed(plugins, "expo-camera") as [string, Record<string, unknown>];
+    expect(options.recordAudioAndroid).toBe(false);
+    expect(options.microphonePermission).toBe(false);
+    expect(options.cameraPermission).toEqual(expect.stringContaining("sign-in code"));
+  });
+
   it("googleServicesFile comes only from the EAS file var", () => {
     expect(loadConfig({ GOOGLE_SERVICES_JSON: "/tmp/gs.json" }).android?.googleServicesFile).toBe(
       "/tmp/gs.json",
