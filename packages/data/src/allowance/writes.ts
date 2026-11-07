@@ -63,9 +63,16 @@ async function unlessReached(
 // Schedule writes
 // ---------------------------------------------------------------------------
 
+/** `saveMinor` is the planned Save (ADR 0019); null or missing sets no plan. */
 export async function createAllowance(
   db: Client,
-  input: { childId: string; amountMinor: number; frequency: Frequency; firstOn: string },
+  input: {
+    childId: string;
+    amountMinor: number;
+    frequency: Frequency;
+    firstOn: string;
+    saveMinor?: number | null;
+  },
 ): Promise<string> {
   return conflictAs(insertSchedule(db, input), allowanceErrors.alreadyExists);
 }
@@ -76,7 +83,13 @@ export async function createAllowance(
  */
 export async function changeAllowance(
   db: Client,
-  input: { scheduleId: string; amountMinor: number; frequency: Frequency; nextOn: string },
+  input: {
+    scheduleId: string;
+    amountMinor: number;
+    frequency: Frequency;
+    nextOn: string;
+    saveMinor?: number | null;
+  },
 ): Promise<void> {
   try {
     await conflictAs(changeSchedule(db, input), allowanceErrors.stopped);

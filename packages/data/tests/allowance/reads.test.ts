@@ -1,4 +1,9 @@
-import { getLastSplitWith, getParentSchedule, listGiftsFor } from "@jarso/data/allowance";
+import {
+  getHandoverPrefillWith,
+  getLastSplitWith,
+  getParentSchedule,
+  listGiftsFor,
+} from "@jarso/data/allowance";
 import { describe, expect, it } from "vitest";
 import { fakeClient, ok } from "../fake-client";
 
@@ -8,6 +13,7 @@ const scheduleRow = (status: string) =>
     amount_minor: 500,
     frequency: "weekly",
     status,
+    save_minor: 100,
     anchor_on: "2026-11-01",
     paused_through: null,
     pause_message: null,
@@ -42,6 +48,7 @@ describe("getParentSchedule", () => {
       amountMinor: 500,
       frequency: "weekly",
       status: "active",
+      saveMinor: 100,
       anchorOn: "2026-11-01",
       pausedThrough: null,
       pauseMessage: null,
@@ -102,5 +109,36 @@ describe("getLastSplitWith", () => {
 
   it("is null before the first handover", async () => {
     await expect(getLastSplitWith(fakeClient().db, "c1")).resolves.toBeNull();
+  });
+});
+
+describe("getHandoverPrefillWith", () => {
+  const allowance = { kind: "allowance" as const, id: "o1", childId: "c1", amountMinor: 1000 };
+
+  it("uses the allowance's planned split", async () => {
+    const { db, queries } = fakeClient({ allowance_occurrences: ok({ save_minor: 250 }) });
+    await expect(getHandoverPrefillWith(db, allowance)).resolves.toEqual({ cash: 750, saved: 250 });
+    expect(queries).toHaveLength(1);
+    expect(queries[0]?.calls).toContainEqual(["eq", "id", "o1"]);
+  });
+
+  it("falls back to the last handover's share without a plan", async () => {
+    const { db } = fakeClient({
+      allowance_occurrences: (calls) =>
+        calls.some(([method, column]) => method === "eq" && column === "id")
+          ? ok({ save_minor: null })
+          : ok({ cash_minor: 300, saved_minor: 200, confirmed_at: "2026-10-20T10:00:00Z" }),
+    });
+    await expect(getHandoverPrefillWith(db, allowance)).resolves.toEqual({ cash: 600, saved: 400 });
+  });
+
+  it("never reads a plan for a gift", async () => {
+    const { db, queries } = fakeClient({
+      parent_gifts: ok({ cash_minor: 0, saved_minor: 1000, given_at: "2026-10-25T10:00:00Z" }),
+    });
+    await expect(
+      getHandoverPrefillWith(db, { ...allowance, kind: "gift", id: "g1" }),
+    ).resolves.toEqual({ cash: 0, saved: 1000 });
+    expect(queries.some((q) => q.calls.some(([, column]) => column === "id"))).toBe(false);
   });
 });

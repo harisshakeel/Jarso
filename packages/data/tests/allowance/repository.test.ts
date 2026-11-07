@@ -10,21 +10,42 @@ import { describe, expect, it } from "vitest";
 import { fakeClient, ok } from "../fake-client";
 
 describe("findLatestSchedule", () => {
-  it("reads only the amount, frequency and status of the newest schedule", async () => {
+  it("reads only the amount, frequency, status and plan of the newest schedule", async () => {
     const { db, queries } = fakeClient({
-      allowance_schedules: ok({ amount_minor: 500, frequency: "monthly", status: "paused" }),
+      allowance_schedules: ok({
+        amount_minor: 500,
+        frequency: "monthly",
+        status: "paused",
+        save_minor: "125",
+      }),
     });
     await expect(findLatestSchedule(db, "c1")).resolves.toEqual({
       amountMinor: 500,
       frequency: "monthly",
       status: "paused",
+      saveMinor: 125,
     });
-    expect(queries[0]?.calls).toContainEqual(["select", "amount_minor, frequency, status"]);
+    expect(queries[0]?.calls).toContainEqual([
+      "select",
+      "amount_minor, frequency, status, save_minor",
+    ]);
     expect(queries[0]?.calls).toContainEqual(["order", "created_at", { ascending: false }]);
   });
 
   it("is null without a schedule", async () => {
     await expect(findLatestSchedule(fakeClient().db, "c1")).resolves.toBeNull();
+  });
+
+  it("reads a schedule with no plan as saveMinor null", async () => {
+    const { db } = fakeClient({
+      allowance_schedules: ok({
+        amount_minor: 500,
+        frequency: "weekly",
+        status: "active",
+        save_minor: null,
+      }),
+    });
+    await expect(findLatestSchedule(db, "c1")).resolves.toMatchObject({ saveMinor: null });
   });
 });
 
@@ -36,6 +57,7 @@ describe("findScheduleRow", () => {
         amount_minor: "500",
         frequency: "monthly",
         status: "stopped",
+        save_minor: "125",
         anchor_on: "2026-11-01",
         paused_through: null,
         pause_message: null,
@@ -46,6 +68,7 @@ describe("findScheduleRow", () => {
       amountMinor: 500,
       frequency: "monthly",
       status: "stopped",
+      saveMinor: 125,
       anchorOn: "2026-11-01",
       pausedThrough: null,
       pauseMessage: null,
@@ -109,14 +132,58 @@ describe("listDueForParent", () => {
       {},
       {
         list_due_for_parent: ok([
-          { kind: "gift", id: "g", due_on: "2026-10-01", amount_minor: "700", note: "Hi" },
-          { kind: "allowance", id: "o", due_on: "2026-10-02", amount_minor: 500, note: null },
+          {
+            kind: "gift",
+            id: "g",
+            due_on: "2026-10-01",
+            amount_minor: "700",
+            note: "Hi",
+            save_minor: null,
+          },
+          {
+            kind: "allowance",
+            id: "o",
+            due_on: "2026-10-02",
+            amount_minor: 500,
+            note: null,
+            save_minor: "125",
+          },
+          {
+            kind: "allowance",
+            id: "p",
+            due_on: "2026-10-09",
+            amount_minor: 500,
+            note: null,
+            save_minor: null,
+          },
         ]),
       },
     );
     await expect(listDueForParent(db, "c1")).resolves.toEqual([
-      { kind: "gift", id: "g", dueOn: "2026-10-01", amountMinor: 700, note: "Hi" },
-      { kind: "allowance", id: "o", dueOn: "2026-10-02", amountMinor: 500, note: null },
+      {
+        kind: "gift",
+        id: "g",
+        dueOn: "2026-10-01",
+        amountMinor: 700,
+        note: "Hi",
+        plannedSaveMinor: null,
+      },
+      {
+        kind: "allowance",
+        id: "o",
+        dueOn: "2026-10-02",
+        amountMinor: 500,
+        note: null,
+        plannedSaveMinor: 125,
+      },
+      {
+        kind: "allowance",
+        id: "p",
+        dueOn: "2026-10-09",
+        amountMinor: 500,
+        note: null,
+        plannedSaveMinor: null,
+      },
     ]);
   });
 });
