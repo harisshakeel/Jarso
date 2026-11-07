@@ -70,6 +70,7 @@ const ACTIVE: Schedule = {
   autoCharge: false,
   autoChargeProvider: null,
   autoChargeMine: false,
+  saveMinor: null,
 };
 
 function setup(schedule: Schedule | null) {
@@ -124,7 +125,7 @@ describe("AllowanceScreen", () => {
     await waitFor(() =>
       expect(createAllowance).toHaveBeenCalledWith(
         { id: "client" },
-        { childId: CHILD, amountMinor: 500, frequency: "weekly", firstOn: TODAY },
+        { childId: CHILD, amountMinor: 500, frequency: "weekly", firstOn: TODAY, saveMinor: 100 },
       ),
     );
     await waitFor(() => expect(flash).toHaveBeenCalledWith(allowanceFormCopy.saved));
@@ -163,7 +164,13 @@ describe("AllowanceScreen", () => {
     await waitFor(() =>
       expect(changeAllowance).toHaveBeenCalledWith(
         { id: "client" },
-        { scheduleId: SCHEDULE, amountMinor: 500, frequency: "weekly", nextOn: "2026-11-20" },
+        {
+          scheduleId: SCHEDULE,
+          amountMinor: 500,
+          frequency: "weekly",
+          nextOn: "2026-11-20",
+          saveMinor: 100,
+        },
       ),
     );
     // On the date field, not as a form-wide alert.
@@ -224,5 +231,115 @@ describe("AllowanceScreen", () => {
     buttons.find((button) => button.style === "destructive")?.onPress?.();
     await waitFor(() => expect(stopAllowance).toHaveBeenCalledWith({ id: "client" }, SCHEDULE));
     await waitFor(() => expect(flash).toHaveBeenCalledWith(allowanceSummaryCopy.stopped));
+  });
+
+  describe("the Spend/Save split", () => {
+    // The form is up before the screen's reads settle; wait until the typed amount is shown.
+    async function typeAmount(value: string) {
+      fireEvent.changeText(await screen.findByLabelText(allowanceFormCopy.amount), value);
+      await waitFor(() =>
+        expect(screen.getByLabelText(allowanceFormCopy.amount)).toHaveDisplayValue(value),
+      );
+    }
+    const save = () => screen.getByLabelText(allowanceFormCopy.saveAmount);
+    const submit = () =>
+      userEvent.setup().press(screen.getByRole("button", { name: allowanceFormCopy.save }));
+
+    it("a new allowance starts at 25% to Save and shows both parts", async () => {
+      setup(null);
+      (createAllowance as jest.Mock).mockResolvedValue(SCHEDULE);
+      await renderScreen();
+      await typeAmount("20");
+      expect(screen.getByRole("radio", { name: allowanceFormCopy.shareLabel(25) })).toBeChecked();
+      expect(save()).toHaveDisplayValue("5.00");
+      expect(screen.getByText(allowanceFormCopy.splitLine("£15", "£5"))).toBeOnTheScreen();
+      await submit();
+      await waitFor(() =>
+        expect(createAllowance).toHaveBeenCalledWith(
+          { id: "client" },
+          expect.objectContaining({ amountMinor: 2000, saveMinor: 500 }),
+        ),
+      );
+    });
+
+    it("Save follows the amount while a share is picked", async () => {
+      setup(null);
+      await renderScreen();
+      await typeAmount("10");
+      await userEvent
+        .setup()
+        .press(screen.getByRole("radio", { name: allowanceFormCopy.shareLabel(50) }));
+      expect(save()).toHaveDisplayValue("5.00");
+      await typeAmount("30");
+      expect(save()).toHaveDisplayValue("15.00");
+    });
+
+    it("All Spend sends 0", async () => {
+      setup(null);
+      (createAllowance as jest.Mock).mockResolvedValue(SCHEDULE);
+      await renderScreen();
+      await typeAmount("5");
+      await userEvent
+        .setup()
+        .press(screen.getByRole("radio", { name: allowanceFormCopy.shareLabel(0) }));
+      await submit();
+      await waitFor(() =>
+        expect(createAllowance).toHaveBeenCalledWith(
+          { id: "client" },
+          expect.objectContaining({ saveMinor: 0 }),
+        ),
+      );
+    });
+
+    it("a typed Save is sent exactly and leaves the shares", async () => {
+      setup(null);
+      (createAllowance as jest.Mock).mockResolvedValue(SCHEDULE);
+      await renderScreen();
+      await typeAmount("5");
+      fireEvent.changeText(save(), "1.30");
+      await waitFor(() => expect(save()).toHaveDisplayValue("1.30"));
+      expect(
+        screen.getByRole("radio", { name: allowanceFormCopy.shareLabel(25) }),
+      ).not.toBeChecked();
+      await submit();
+      await waitFor(() =>
+        expect(createAllowance).toHaveBeenCalledWith(
+          { id: "client" },
+          expect.objectContaining({ amountMinor: 500, saveMinor: 130 }),
+        ),
+      );
+    });
+
+    it("a Save over the amount shows on the field and sends nothing", async () => {
+      setup(null);
+      await renderScreen();
+      await typeAmount("5");
+      fireEvent.changeText(save(), "6");
+      await waitFor(() => expect(save()).toHaveDisplayValue("6"));
+      await submit();
+      expect(await screen.findByText(allowanceFormCopy.saveOver)).toBeOnTheScreen();
+      expect(createAllowance).not.toHaveBeenCalled();
+    });
+
+    it("changing opens on the allowance's own Save", async () => {
+      setup({ ...ACTIVE, amountMinor: 1000, saveMinor: 300 });
+      (changeAllowance as jest.Mock).mockResolvedValue(undefined);
+      await renderScreen();
+      expect(await screen.findByText(allowanceSummaryCopy.split("£7", "£3"))).toBeOnTheScreen();
+      await userEvent
+        .setup()
+        .press(screen.getByRole("button", { name: allowanceSummaryCopy.change }));
+      expect(save()).toHaveDisplayValue("3.00");
+      expect(
+        screen.getByRole("radio", { name: allowanceFormCopy.shareLabel(25) }),
+      ).not.toBeChecked();
+      await submit();
+      await waitFor(() =>
+        expect(changeAllowance).toHaveBeenCalledWith(
+          { id: "client" },
+          expect.objectContaining({ amountMinor: 1000, saveMinor: 300 }),
+        ),
+      );
+    });
   });
 });

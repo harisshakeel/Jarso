@@ -51,7 +51,14 @@ jest.mock("@jarso/data/progress", () => ({ getProgress: jest.fn() }));
 
 const CHILD = "22222222-2222-4222-8222-222222222222";
 const OCC = "11111111-1111-4111-8111-111111111111";
-const due = { kind: "allowance", id: OCC, dueOn: "2026-11-03", amountMinor: 300, note: null };
+const due = {
+  kind: "allowance",
+  id: OCC,
+  dueOn: "2026-11-03",
+  amountMinor: 300,
+  note: null,
+  plannedSaveMinor: null,
+};
 const confirm = confirmHandover as jest.Mock;
 const onClose = jest.fn();
 const cardsOff = { cards: [], item: { providers: [], pending: null, lastOutcome: null } };
@@ -108,6 +115,22 @@ beforeEach(() => {
 });
 
 describe("HandoverSheet", () => {
+  it("a due allowance with a planned split opens on it, not on last time's", async () => {
+    setup([{ ...due, plannedSaveMinor: 100 }]);
+    (getLastSplitWith as jest.Mock).mockResolvedValue({ cash: 0, saved: 500 });
+    await renderSheet();
+    expect(await screen.findByLabelText(handoverCopy.cashLabel("Sam"))).toHaveDisplayValue("2.00");
+    expect(screen.getByLabelText(handoverCopy.savedLabel)).toHaveDisplayValue("1.00");
+  });
+
+  it("without a plan it opens on last time's share", async () => {
+    setup();
+    (getLastSplitWith as jest.Mock).mockResolvedValue({ cash: 0, saved: 500 });
+    await renderSheet();
+    expect(await screen.findByLabelText(handoverCopy.cashLabel("Sam"))).toHaveDisplayValue("0.00");
+    expect(screen.getByLabelText(handoverCopy.savedLabel)).toHaveDisplayValue("3.00");
+  });
+
   it("the sheet opens on Jarso and the amount to the child", async () => {
     setup();
     await renderSheet();

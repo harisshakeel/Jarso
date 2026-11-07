@@ -15,6 +15,7 @@ const item = {
   dueOn: "2026-11-03",
   amountMinor: 300,
   note: "Birthday",
+  plannedSaveMinor: null,
 } as const;
 
 beforeEach(() => {
