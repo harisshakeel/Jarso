@@ -49,9 +49,18 @@ export type SignInMode = "child" | "parent";
 /** The last "I'm a child" / "I'm a parent" choice on this phone. Not a secret. */
 const MODE_KEY = "jarso.sign-in-mode";
 
-/** The last sign-in choice; `child` when none was kept or it can't be read. */
-export async function loadSignInMode(): Promise<SignInMode> {
-  const raw = await SecureStore.getItemAsync(MODE_KEY).catch(() => null);
+/**
+ * The last sign-in choice, or null when none was ever kept on this phone (it then opens on
+ * Welcome). A value that can't be read counts as `child`, so a broken keystore never loops.
+ */
+export async function loadSignInMode(): Promise<SignInMode | null> {
+  let raw: string | null;
+  try {
+    raw = await SecureStore.getItemAsync(MODE_KEY);
+  } catch {
+    return "child";
+  }
+  if (raw === null) return null;
   return raw === "parent" ? "parent" : "child";
 }
 
