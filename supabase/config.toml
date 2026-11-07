@@ -473,7 +473,9 @@ otp_length = 6
 # sender_name = "Jarso"
 #
 # [remotes.production.auth.rate_limit]
-# # Emails per hour for the whole project. Resend's free plan allows 100 a day.
+# # Emails per hour for the whole project, shared by every family (a burst cap). The binding
+# # limit is Resend's daily quota (free plan: 100 a day), which 30 an hour can exceed: see
+# # docs/auth.md → Hosted setup, item 2, before onboarding many families on one day.
 # email_sent = 30
 
 [remotes.production.auth.mfa.totp]
