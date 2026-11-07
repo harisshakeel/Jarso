@@ -77,7 +77,14 @@ describe("homeSummaryFacts", () => {
   ];
   const money = [
     reads("z", [
-      { kind: "allowance", id: "o1", dueOn: "2026-10-30", amountMinor: 7500, note: null },
+      {
+        kind: "allowance",
+        id: "o1",
+        dueOn: "2026-10-30",
+        amountMinor: 7500,
+        note: null,
+        plannedSaveMinor: null,
+      },
     ]),
     reads("a", [], 1),
   ];

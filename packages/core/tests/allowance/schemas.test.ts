@@ -29,7 +29,28 @@ describe("allowanceSchema", () => {
       amountMinor: 550,
       frequency: "weekly",
       firstOn: today,
+      saveMinor: null,
     });
+  });
+
+  it("takes the planned Save in minor units; blank or missing is no plan", () => {
+    const schema = allowanceSchema("GBP", today);
+    expect(schema.parse({ ...valid, save: "1.25" }).saveMinor).toBe(125);
+    expect(schema.parse({ ...valid, save: "0" }).saveMinor).toBe(0);
+    expect(schema.parse({ ...valid, save: "" }).saveMinor).toBeNull();
+    expect(schema.parse({ ...valid, save: "5.50" }).saveMinor).toBe(550);
+  });
+
+  it("refuses a Save over the amount, on the save field", () => {
+    const result = allowanceSchema("GBP", today).safeParse({ ...valid, save: "6" });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(["save"]);
+    expect(messages(result)).toEqual(["Save can't be more than the amount."]);
+  });
+
+  it("refuses a Save that isn't money", () => {
+    const result = allowanceSchema("GBP", today).safeParse({ ...valid, save: "-1" });
+    expect(result.error?.issues[0]?.path).toEqual(["save"]);
   });
 
   it("rejects a past date", () => {
@@ -72,6 +93,14 @@ describe("changeAllowanceSchema", () => {
     expect(messages(schema.safeParse({ ...base, nextOn: "2027-10-31" }))).toContain(
       "Pick a date within a year.",
     );
+  });
+
+  it("takes the planned Save like a new allowance", () => {
+    const base = { scheduleId: id, amount: "5", frequency: "weekly", nextOn: today };
+    const schema = changeAllowanceSchema("GBP", today);
+    expect(schema.parse(base).saveMinor).toBeNull();
+    expect(schema.parse({ ...base, save: "2" }).saveMinor).toBe(200);
+    expect(schema.safeParse({ ...base, save: "5.01" }).error?.issues[0]?.path).toEqual(["save"]);
   });
 });
 

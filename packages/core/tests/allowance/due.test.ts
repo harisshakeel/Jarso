@@ -8,6 +8,7 @@ const item = (id: string, dueOn: string, kind: DueItem["kind"] = "allowance"): D
   dueOn,
   amountMinor: 500,
   note: null,
+  plannedSaveMinor: null,
 });
 
 describe("mergeDue", () => {
@@ -54,6 +55,7 @@ const schedule = (status: Schedule["status"]): Schedule => ({
   autoCharge: false,
   autoChargeProvider: null,
   autoChargeMine: false,
+  saveMinor: null,
 });
 
 describe("runningSchedule", () => {

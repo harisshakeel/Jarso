@@ -61,6 +61,7 @@ export const handoverCopy = {
   savedLabel: "Save (you keep)",
   hintPrevious: "Same split as last time. Drag or type to change.",
   hint: "Drag or type to change.",
+  hintPlanned: "The split you set. Drag or type to change.",
   /** The short line, in pieces so the amounts can be styled: "{nickname} gets {x} this time, {y} less than was due." */
   short: { gets: "gets", thisTime: "this time,", less: "less than was due." },
   shortLine: (nickname: string, gets: string, less: string) =>
@@ -124,6 +125,13 @@ export const allowanceFormCopy = {
   pausedUntil: (day: string) => `Paused until ${day}, so pick a date after that.`,
   cancel: "Cancel",
   save: "Save allowance",
+  /** The planned Spend/Save split (ADR 0019). */
+  split: "Spend and Save",
+  splitHint: "How each one splits. You can still change it at handover.",
+  saveAmount: "To Save",
+  shareLabel: (share: number) => (share === 0 ? "All Spend" : `${share}% Save`),
+  splitLine: (spend: string, save: string) => `${spend} to Spend · ${save} to Save`,
+  saveOver: "Save can't be more than the amount.",
 } as const;
 
 /** The allowance card on the child page and the manage page's summary. */
@@ -135,6 +143,8 @@ export const allowanceSummaryCopy = {
   setUp: "Set up allowance",
   paused: "Paused",
   next: (day: string) => `Next: ${day}`,
+  /** The planned split under the amount, when one is set. */
+  split: (spend: string, save: string) => `${spend} to Spend · ${save} to Save`,
   change: "Change",
   pausedUntil: (day: string, nextDay: string | null) =>
     `Paused until ${day}.${nextDay ? ` Next one: ${nextDay}.` : ""}`,
