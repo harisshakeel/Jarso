@@ -135,7 +135,7 @@ Decided for the pilot (`REQUIREMENTS.md`, `docs/fr-audit.md`):
 
 The next steps take Jarso to a pilot with real families.
 
-- **Sign-up email.** Custom SMTP, then email confirmation back on (`docs/auth.md`).
+- **Sign-up email.** Custom SMTP, push the confirmation template (link and code) and `otp_length = 6`, then email confirmation back on (`docs/auth.md`, Hosted setup). The phone's sign-up already handles both (plan 9).
 - **Jarso for pilot families.** Run the guide eval gate (every safety and personal case routed correctly, no FR09 breaks, at least 95% helpful), then a UK and US legal review.
 - **Accessibility and performance.** A pass on a real low-end phone before families join.
 - **Pilot measures.** Agree the pilot's period and success thresholds, then read the measures in `docs/pilot-measures.md`: first flows completed, weekly return, due-to-handover time, journey completion, understanding, unanswered requests and balance errors.
