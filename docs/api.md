@@ -93,6 +93,10 @@ Conventions: version under `/api/v1`, plural nouns for collections (`/api/v1/pro
 | GET, POST | `/api/cron/push` | `Authorization: Bearer $CRON_SECRET` | Push sweep (ADR 0012), web and phone, then the Expo receipt check (`receipts: { checked, dropped }` in the answer), every 15 minutes from pg_cron (`push-sweep` → `trigger_push_sweep`, POST via pg_net); GET for a manual run; 404 when the secret is unset |
 | GET | `/api/cron/guide/noticed` | `Authorization: Bearer $CRON_SECRET` | Jarso noticed: the weekly nudges (demo 3); 404 when the secret is unset |
 
+### Allowance split (ADR 0019)
+
+`createAllowanceAction` and `changeAllowanceAction` (`allowanceSchema` / `changeAllowanceSchema`) take an optional `save` field: the planned Save of each allowance as a money string, zero allowed, blank = none. It must not be more than the amount (field error on `save`, "Save can't be more than the amount."); the output is `saveMinor: number | null`. The phone calls the same RPCs straight through `@jarso/data/allowance`: `create_allowance(…, p_save_minor)` and `change_allowance(…, p_save_minor)`, where `p_save_minor` is left out when there is no plan (on change that keeps the current one while it fits). `list_due_for_parent` returns `save_minor`, mapped to `DueItem.plannedSaveMinor`. The handover prefill (`handoverPrefill` in core; `getHandoverPrefillWith` in data for the card auto charge and the in-app card payment) uses it, else last time's share.
+
 ### Progress RPCs (Sparks, levels, streak)
 
 Called straight from the phone's Supabase client through `@jarso/data/progress`; there is no Route Handler. Sparks are never money and are never taken back (`docs/domain.md`). The award triggers have no grants and are not callable.
