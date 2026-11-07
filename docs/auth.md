@@ -83,7 +83,7 @@ Still by hand in the dashboard:
 
    **When Resend is down.** Only sign-up and "Send again" need email; parents sign in with a password and children with their PIN, so everyone already in the family keeps working. A failed send makes `signUp`/`resend` return an error, and both clients show one calm line without the address. There is no automatic second provider (Supabase takes one SMTP server; failover would need a Send Email Hook we would own, not worth it at pilot size). The runbook:
    1. Check Resend's dashboard first: a used-up daily quota (Usage) fails sends just like an outage, and the fix is waiting for the reset or upgrading the plan, not waiting for Resend. Then check Resend's status page and Supabase's Auth logs (Logs → Auth, filter on the send error).
-   2. Families wait and tap "Send again" when Resend is back (sends are a minute apart, so retries can't flood the provider).
+   2. Families wait and tap "Send again" when Resend is back. `max_frequency` stops one family from sending more than once a minute, but every resend still spends the project-wide hourly `email_sent` budget, so a burst of resends can delay other families' codes for up to an hour.
    3. A parent who can't wait: in Supabase, Authentication → Users → the parent's row → confirm the email, after checking with them by another channel that the address is theirs. They then sign in with their password.
    4. Never switch confirmations off as a workaround: it reopens the invitation hole in item 1. Never fall back to Supabase's default mailer: it can't reach parents.
    5. Revisit a second provider (Send Email Hook trying Resend, then Postmark or SES) only if outages block real sign-ups during the pilot.
