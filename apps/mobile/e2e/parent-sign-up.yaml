@@ -1,0 +1,41 @@
+# A new parent signs up on the phone and reaches step 3's "About you" (signed in).
+# Needs email confirmations OFF on the project the build points at (the hosted test project is
+# set that way): with them on, the code screen shows and this flow stops there.
+# Creates a new account with a random example.com address on every run; delete old ones from
+# the Supabase dashboard when the list gets long. No credentials needed:
+#   maestro test e2e/parent-sign-up.yaml
+appId: app.jarso.mobile
+---
+- evalScript: ${output.email = 'jarso-e2e-' + Math.floor(Math.random() * 1000000000) + '@example.com'}
+- evalScript: ${output.password = 'e2e-' + Math.random().toString(36).slice(2) + '-Pw'}
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "I'm a parent"
+    timeout: 20000
+- tapOn: "I'm a parent"
+# Step 2: the three cards.
+- extendedWaitUntil:
+    visible: "Two jars"
+    timeout: 10000
+- tapOn: "Next"
+- tapOn: "Next"
+- tapOn: "Next"
+# Step 3: the account.
+- extendedWaitUntil:
+    visible: "Create your account"
+    timeout: 10000
+- tapOn: "Email"
+- inputText: ${output.email}
+- tapOn: "Password"
+- inputText: ${output.password}
+- tapOn: "Your name"
+- inputText: "E2E Parent"
+- hideKeyboard
+- tapOn: "Continue"
+# Signed in: "About you" with "Your child calls you".
+- extendedWaitUntil:
+    visible: "About you"
+    timeout: 30000
+- tapOn: "Mum"
+- assertVisible: "Your child calls you"

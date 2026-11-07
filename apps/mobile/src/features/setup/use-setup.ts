@@ -1,7 +1,7 @@
 import type { CreateFamilyInput } from "@jarso/core/family";
 import type { ParentDetailsInput } from "@jarso/core/profiles";
 import { createFamilyWithFallback, findMembership } from "@jarso/data/family";
-import { findParentDetails, upsertParentDetails } from "@jarso/data/profiles";
+import { findParentDetails, updateProfileById, upsertParentDetails } from "@jarso/data/profiles";
 import {
   type QueryKey,
   type UseQueryResult,
@@ -73,5 +73,20 @@ export function useCreateFamily() {
   return useMutation({
     mutationFn: (input: CreateFamilyInput) => createFamilyWithFallback(supabase, input),
     onSuccess: (family) => done({ familyId: family.id }, [keys.family(userId ?? "")]),
+  });
+}
+
+/**
+ * What the parent's children call them ("Mum"), shown on every child screen; null clears it.
+ * `profiles.child_facing_name` through RLS (the parent's own row; the column grant is in
+ * migration 20261106120000).
+ */
+export function useSaveChildFacingName() {
+  const { userId } = useSession();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string | null) =>
+      updateProfileById(supabase, userId as string, { child_facing_name: name }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.profile(userId ?? "") }),
   });
 }

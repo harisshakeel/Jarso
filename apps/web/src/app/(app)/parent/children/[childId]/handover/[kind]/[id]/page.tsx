@@ -4,7 +4,7 @@ import { notFound, unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { buttonVariants, Card, CardContent } from "@/components/ui";
 import { routes } from "@/config";
-import { HandoverForm, handoverParamsSchema, prefillSplit } from "@/features/allowance";
+import { HandoverForm, handoverParamsSchema, handoverPrefill } from "@/features/allowance";
 import { getLastSplit, listDue } from "@/features/allowance/server";
 import { parentPageCopy } from "@/features/dashboard";
 import { planNote } from "@/features/goals";
@@ -87,6 +87,8 @@ async function HandoverContent({
       </PageShell>
     );
   }
+  // The allowance's planned split, else last time's share (ADR 0019).
+  const prefill = handoverPrefill(item, last);
   return (
     <PageShell title={parentPageCopy.handOverTo(child.nickname)} back={back}>
       {cancelledCard}
@@ -100,8 +102,8 @@ async function HandoverContent({
         amountMinor={item.amountMinor}
         dueOn={item.dueOn}
         note={item.note}
-        prefill={prefillSplit(item.amountMinor, last)}
-        hasPrevious={last !== null}
+        prefill={prefill.split}
+        prefillFrom={prefill.from}
         goalNote={planNote(child.nickname, goalView?.goal ?? null, currency)}
         card={card}
       />

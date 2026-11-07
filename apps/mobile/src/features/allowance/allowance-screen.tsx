@@ -4,6 +4,8 @@ import {
   formatDay,
   runningSchedule,
   type Schedule,
+  type Split,
+  scheduleSplit,
 } from "@jarso/core/allowance";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -141,6 +143,12 @@ function Summary({
             {cadenceAfterAmount(schedule.frequency, schedule.anchorOn)}
           </Text>
         </View>
+        {schedule.saveMinor !== null ? (
+          <SplitLine
+            split={scheduleSplit(schedule.amountMinor, schedule.saveMinor)}
+            currency={currency}
+          />
+        ) : null}
         {paused ? (
           <>
             <Text className="self-start rounded-full bg-secondary px-3 py-1 font-sans-semibold text-small">
@@ -201,5 +209,15 @@ function Summary({
         <Text className="text-destructive">{allowanceSummaryCopy.stop}</Text>
       </Button>
     </>
+  );
+}
+
+/** The planned split under the amount: "£7 to Spend · £3 to Save". */
+function SplitLine({ split, currency }: { split: Split; currency: string }) {
+  const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
+  return (
+    <Text className="text-muted-foreground">
+      {allowanceSummaryCopy.split(money(split.cash), money(split.saved))}
+    </Text>
   );
 }

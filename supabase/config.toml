@@ -247,7 +247,8 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Sign-up confirmation links to /auth/confirm (token hash), so they work in any browser.
+# Sign-up confirmation links to /auth/confirm (token hash), so they work in any browser, and
+# carries the same code as {{ .Token }} for sign-up on the phone.
 # Off until the hosted project has custom SMTP: on the free tier with the default email
 # provider, Supabase rejects any template change, and that failure stops the GitHub
 # integration before it applies migrations. Local confirmations are off, so nothing local
@@ -453,7 +454,29 @@ enable_confirmations = false
 double_confirm_changes = true
 secure_password_change = true
 max_frequency = "1m0s"
-otp_length = 8
+# The sign-up email's code, typed on the phone (2026-11-07; the app also takes 8 digits until
+# this is pushed with `supabase config push`).
+otp_length = 6
+
+# Resend as the sign-up mailer (docs/auth.md → Hosted setup, item 2, and "When Resend is down").
+# Commented out until the sending domain is verified in Resend and RESEND_SMTP_KEY is exported in
+# the shell that runs `supabase config push`: an unresolved env() fails the push, and a failed
+# config apply stops Supabase's GitHub integration before it applies migrations. Uncomment this
+# block, the two below and `[auth.email.template.confirmation]` together.
+# [remotes.production.auth.email.smtp]
+# enabled = true
+# host = "smtp.resend.com"
+# port = 465
+# user = "resend"
+# pass = "env(RESEND_SMTP_KEY)"
+# admin_email = "no-reply@<verified-domain>"
+# sender_name = "Jarso"
+#
+# [remotes.production.auth.rate_limit]
+# # Emails per hour for the whole project, shared by every family (a burst cap). The binding
+# # limit is Resend's daily quota (free plan: 100 a day), which 30 an hour can exceed: see
+# # docs/auth.md → Hosted setup, item 2, before onboarding many families on one day.
+# email_sent = 30
 
 [remotes.production.auth.mfa.totp]
 enroll_enabled = true

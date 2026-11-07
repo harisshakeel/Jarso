@@ -1,11 +1,18 @@
-import { childSignInCopy, childSignInSchema } from "@jarso/core/family";
+import {
+  type ChildSignInLink,
+  childScanCopy,
+  childSignInCopy,
+  childSignInSchema,
+} from "@jarso/core/family";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { z } from "zod";
 import { Button, Label, Switch, Text } from "@/components/ui";
 import { toUserMessage } from "@/lib";
 import { Field } from "./form-field";
+import { PinPad } from "./pin-pad";
 import { forgetSignIn, loadSavedSignIn, saveSignIn } from "./saved-sign-in";
+import { ScanCode } from "./scan-code";
 import { signInChild } from "./sign-in-child";
 
 const REMEMBER = "Remember me on this phone";
@@ -15,13 +22,16 @@ type FieldErrors = Partial<Record<FieldName, string[]>>;
 
 /**
  * The child's PIN sign-in, mirroring web /sign-in/child: the same labels, limits and Zod schema.
- * Code and nickname survive a wrong PIN; the PIN clears. "Remember me on this phone" (off by
- * default) keeps all three in the device keystore and fills them in next time.
+ * "Scan the code" first (the parent's share-card QR fills in the code and nickname), then the
+ * PIN on a big pad. Code and nickname survive a wrong PIN; the PIN clears. "Remember me on this
+ * phone" (off by default) keeps all three in the device keystore and fills them in next time.
+ * `initial` comes from a sign-in link and wins over what was remembered for someone else.
  */
-export function SignInForm({ notice }: { notice?: string }) {
-  const [familyCode, setFamilyCode] = useState("");
-  const [nickname, setNickname] = useState("");
+export function SignInForm({ notice, initial }: { notice?: string; initial?: ChildSignInLink }) {
+  const [familyCode, setFamilyCode] = useState(initial?.familyCode ?? "");
+  const [nickname, setNickname] = useState(initial?.nickname ?? "");
   const [pin, setPin] = useState("");
+  const [scanned, setScanned] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>();
   const [formError, setFormError] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -31,6 +41,14 @@ export function SignInForm({ notice }: { notice?: string }) {
     let live = true;
     void loadSavedSignIn().then((saved) => {
       if (!live || !saved) return;
+      // A link for another child keeps its own details; a saved PIN belongs to its own child.
+      if (
+        initial &&
+        (initial.familyCode !== saved.familyCode ||
+          initial.nickname.toLowerCase() !== saved.nickname.toLowerCase())
+      ) {
+        return;
+      }
       setFamilyCode(saved.familyCode);
       setNickname(saved.nickname);
       setPin(saved.pin);
@@ -39,7 +57,15 @@ export function SignInForm({ notice }: { notice?: string }) {
     return () => {
       live = false;
     };
-  }, []);
+  }, [initial]);
+
+  function fillFromScan(details: ChildSignInLink) {
+    setFamilyCode(details.familyCode);
+    setNickname(details.nickname);
+    setPin("");
+    setScanned(true);
+    setFieldErrors(undefined);
+  }
 
   function toggleRemember(next: boolean) {
     setRemember(next);
@@ -71,6 +97,12 @@ export function SignInForm({ notice }: { notice?: string }) {
   const message = formError ?? notice;
   return (
     <View className="gap-6 rounded-2xl bg-card p-6">
+      <ScanCode onScanned={fillFromScan} />
+      {scanned ? (
+        <Text accessibilityLiveRegion="polite" className="text-center font-sans-bold text-primary">
+          {childScanCopy.filled}
+        </Text>
+      ) : null}
       <Field
         label="Family code"
         value={familyCode}
@@ -95,18 +127,7 @@ export function SignInForm({ notice }: { notice?: string }) {
         maxLength={20}
         errors={fieldErrors?.nickname}
       />
-      <Field
-        label="Your PIN"
-        value={pin}
-        onChangeText={setPin}
-        keyboardType="number-pad"
-        secureTextEntry
-        autoComplete="off"
-        maxLength={6}
-        returnKeyType="go"
-        onSubmitEditing={() => void submit()}
-        errors={fieldErrors?.pin}
-      />
+      <PinPad value={pin} onChange={setPin} errors={fieldErrors?.pin} />
       <View className="min-h-11 flex-row items-center justify-between gap-4">
         <Label nativeID="remember-label" onPress={() => toggleRemember(!remember)}>
           {REMEMBER}
@@ -124,6 +145,7 @@ export function SignInForm({ notice }: { notice?: string }) {
         </Text>
       ) : null}
       <Button
+        variant="keycap"
         size="lg"
         accessibilityLabel="Sign in"
         accessibilityState={{ busy: pending, disabled: pending }}

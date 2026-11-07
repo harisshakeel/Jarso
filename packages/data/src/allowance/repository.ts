@@ -24,14 +24,22 @@ export type Client = SupabaseClient<Database>;
 // Child-safe reads (no payment columns)
 // ---------------------------------------------------------------------------
 
-/** The child's most recent schedule's amount, frequency and status, or null. A stopped one too. */
+/**
+ * The child's most recent schedule's amount, frequency, status and planned Save (null = no plan),
+ * or null. A stopped one too.
+ */
 export async function findLatestSchedule(
   db: Client,
   childId: string,
-): Promise<{ amountMinor: number; frequency: Frequency; status: ScheduleStatus } | null> {
+): Promise<{
+  amountMinor: number;
+  frequency: Frequency;
+  status: ScheduleStatus;
+  saveMinor: number | null;
+} | null> {
   const { data, error } = await db
     .from("allowance_schedules")
-    .select("amount_minor, frequency, status")
+    .select("amount_minor, frequency, status, save_minor")
     .eq("child_id", childId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -40,7 +48,12 @@ export async function findLatestSchedule(
   if (!data) return null;
   const status: ScheduleStatus =
     data.status === "paused" || data.status === "stopped" ? data.status : "active";
-  return { amountMinor: Number(data.amount_minor), frequency: asFrequency(data.frequency), status };
+  return {
+    amountMinor: Number(data.amount_minor),
+    frequency: asFrequency(data.frequency),
+    status,
+    saveMinor: asMinorOrNull(data.save_minor),
+  };
 }
 
 /** Allowances waiting for a parent (total and count). Allowances only: gifts stay secret. */
@@ -76,6 +89,8 @@ export type ScheduleRow = {
   amountMinor: number;
   frequency: Frequency;
   status: ScheduleStatus;
+  /** Planned Save (ADR 0019); null = no plan. */
+  saveMinor: number | null;
   anchorOn: string;
   pausedThrough: string | null;
   pauseMessage: string | null;
@@ -89,6 +104,11 @@ export type LatestSplit = Split & { at: string };
 function asFrequency(value: string): Frequency {
   if ((frequencies as readonly string[]).includes(value)) return value as Frequency;
   throw new AppError("INTERNAL", "Failed to load allowance", { cause: { frequency: value } });
+}
+
+/** A nullable bigint column (or a function result typed as always present) as minor units. */
+function asMinorOrNull(value: number | null | undefined): number | null {
+  return value === null || value === undefined ? null : Number(value);
 }
 
 function asScheduleStatus(value: string): ScheduleStatus {
@@ -135,7 +155,9 @@ function oneOf<const T extends string>(value: string, allowed: readonly T[], fal
 export async function findScheduleRow(db: Client, childId: string): Promise<ScheduleRow | null> {
   const { data, error } = await db
     .from("allowance_schedules")
-    .select("id, amount_minor, frequency, status, anchor_on, paused_through, pause_message")
+    .select(
+      "id, amount_minor, frequency, status, save_minor, anchor_on, paused_through, pause_message",
+    )
     .eq("child_id", childId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -147,6 +169,7 @@ export async function findScheduleRow(db: Client, childId: string): Promise<Sche
     amountMinor: Number(data.amount_minor),
     frequency: asFrequency(data.frequency),
     status: asScheduleStatus(data.status),
+    saveMinor: asMinorOrNull(data.save_minor),
     anchorOn: data.anchor_on,
     pausedThrough: data.paused_through,
     pauseMessage: data.pause_message,
@@ -267,7 +290,23 @@ export async function listDueForParent(db: Client, childId: string): Promise<Due
     dueOn: row.due_on,
     amountMinor: Number(row.amount_minor),
     note: row.note ?? null,
+    // Gifts never have a plan; the function returns null for them anyway.
+    plannedSaveMinor: row.kind === "gift" ? null : asMinorOrNull(row.save_minor),
   }));
+}
+
+/** The planned Save the occurrence carries (null = no plan, or not visible to the caller). */
+export async function findOccurrencePlannedSave(
+  db: Client,
+  occurrenceId: string,
+): Promise<number | null> {
+  const { data, error } = await db
+    .from("allowance_occurrences")
+    .select("save_minor")
+    .eq("id", occurrenceId)
+    .maybeSingle();
+  if (error) throw toAppError(error, "Failed to load the allowance");
+  return asMinorOrNull(data?.save_minor);
 }
 
 export async function findLatestAllowanceSplit(
@@ -324,29 +363,49 @@ export async function findLatestGiftSplit(
 // Parent writes (security definer functions; each re-checks the caller)
 // ---------------------------------------------------------------------------
 
+/** `p_save_minor` only when there is a plan: left out, the function stores none (or keeps one). */
+function saveArg(saveMinor: number | null | undefined): { p_save_minor?: number } {
+  return saveMinor === null || saveMinor === undefined ? {} : { p_save_minor: saveMinor };
+}
+
 export async function insertSchedule(
   db: Client,
-  args: { childId: string; amountMinor: number; frequency: Frequency; firstOn: string },
+  args: {
+    childId: string;
+    amountMinor: number;
+    frequency: Frequency;
+    firstOn: string;
+    saveMinor?: number | null;
+  },
 ): Promise<string> {
   const { data, error } = await db.rpc("create_allowance", {
     p_child_id: args.childId,
     p_amount_minor: args.amountMinor,
     p_frequency: args.frequency,
     p_first_on: args.firstOn,
+    ...saveArg(args.saveMinor),
   });
   if (error) throw toAppError(error, "Failed to set up the allowance");
   return data;
 }
 
+/** No `saveMinor` keeps the current plan while it fits the new amount (the function decides). */
 export async function changeSchedule(
   db: Client,
-  args: { scheduleId: string; amountMinor: number; frequency: Frequency; nextOn: string },
+  args: {
+    scheduleId: string;
+    amountMinor: number;
+    frequency: Frequency;
+    nextOn: string;
+    saveMinor?: number | null;
+  },
 ): Promise<void> {
   const { error } = await db.rpc("change_allowance", {
     p_schedule_id: args.scheduleId,
     p_amount_minor: args.amountMinor,
     p_frequency: args.frequency,
     p_next_on: args.nextOn,
+    ...saveArg(args.saveMinor),
   });
   if (error) throw toAppError(error, "Failed to change the allowance");
 }

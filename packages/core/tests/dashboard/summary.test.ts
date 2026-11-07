@@ -51,6 +51,7 @@ const schedule: Schedule = {
   autoCharge: false,
   autoChargeProvider: null,
   autoChargeMine: false,
+  saveMinor: null,
 };
 
 const child = (
@@ -85,7 +86,16 @@ const aisha = child({
   spendMinor: 1240,
   saveMinor: 6900,
   schedule,
-  due: [{ kind: "allowance", id: "o", dueOn: "2026-10-29", amountMinor: 500, note: null }],
+  due: [
+    {
+      kind: "allowance",
+      id: "o",
+      dueOn: "2026-10-29",
+      amountMinor: 500,
+      note: null,
+      plannedSaveMinor: null,
+    },
+  ],
   history: [
     item({ id: "n1", occurredOn: "2026-10-28", amountMinor: 400, category: "snacks" }),
     item({ id: "n2", occurredOn: "2026-10-27", amountMinor: 150, category: "games" }),

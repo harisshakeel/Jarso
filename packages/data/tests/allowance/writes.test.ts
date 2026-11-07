@@ -48,7 +48,46 @@ describe("schedule writes", () => {
     ).rejects.toMatchObject({ code: "CONFLICT", message: allowanceErrors.alreadyExists });
   });
 
+  it("create sends the planned Save, and leaves it out without one", async () => {
+    const { db, rpc } = fakeClient({}, { create_allowance: ok("s-1") });
+    const input = {
+      childId: "c1",
+      amountMinor: 500,
+      frequency: "weekly" as const,
+      firstOn: "2026-11-01",
+    };
+    await createAllowance(db, { ...input, saveMinor: 100 });
+    expect(rpc).toHaveBeenLastCalledWith("create_allowance", {
+      p_child_id: "c1",
+      p_amount_minor: 500,
+      p_frequency: "weekly",
+      p_first_on: "2026-11-01",
+      p_save_minor: 100,
+    });
+    await createAllowance(db, { ...input, saveMinor: 0 });
+    expect(rpc).toHaveBeenLastCalledWith(
+      "create_allowance",
+      expect.objectContaining({ p_save_minor: 0 }),
+    );
+    await createAllowance(db, { ...input, saveMinor: null });
+    expect((rpc.mock.lastCall as unknown[] | undefined)?.[1]).not.toHaveProperty("p_save_minor");
+  });
+
   const change = { scheduleId: "s-1", amountMinor: 500, frequency: "weekly", nextOn: "2026-11-01" };
+
+  it("change sends the planned Save, and leaves it out to keep the current one", async () => {
+    const { db, rpc } = fakeClient();
+    await changeAllowance(db, { ...change, frequency: "weekly", saveMinor: 250 });
+    expect(rpc).toHaveBeenLastCalledWith("change_allowance", {
+      p_schedule_id: "s-1",
+      p_amount_minor: 500,
+      p_frequency: "weekly",
+      p_next_on: "2026-11-01",
+      p_save_minor: 250,
+    });
+    await changeAllowance(db, { ...change, frequency: "weekly" });
+    expect((rpc.mock.lastCall as unknown[] | undefined)?.[1]).not.toHaveProperty("p_save_minor");
+  });
 
   it("change 22023 puts nextOn field error", async () => {
     const { db } = fakeClient(

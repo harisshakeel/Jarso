@@ -47,7 +47,9 @@ export async function submitToOutbox(
     idempotencyKey: input.idempotencyKey,
     createdAt: now,
     attempts: 0,
-    nextAttemptAt: now,
+    // The real clock, not `now`: `createdNow` can run a few ms ahead of it, and the drain
+    // would then skip this item as not yet due.
+    nextAttemptAt: new Date(Date.now()).toISOString(),
     status: "waiting",
   };
   // A store that fails to open counts as none (web's `open()` already resolves `null` then).

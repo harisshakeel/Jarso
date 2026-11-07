@@ -12,7 +12,14 @@ import { z } from "zod";
 import { Notice } from "@/components/sheet";
 import { Button, Text } from "@/components/ui";
 import { AmountKeypad } from "@/features/flows";
-import { GoalRing, useAllowance, useGoal, useSaveGoal, useSavingPace } from "@/features/goals";
+import {
+  GoalRing,
+  useAllowance,
+  useAllowanceSave,
+  useGoal,
+  useSaveGoal,
+  useSavingPace,
+} from "@/features/goals";
 import { useHome } from "@/features/jars";
 import { actionErrorMessage, cn, formatMoney, isAppError, parseMoney, toMajorString } from "@/lib";
 import { OnboardingFrame } from "./onboarding-frame";
@@ -132,12 +139,13 @@ function NewGoal({
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
   const allowance = useAllowance();
+  const allowanceSave = useAllowanceSave();
   const pace = useSavingPace();
   const save = useSaveGoal();
   const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
 
   const targetMinor = parseMoney(target, currency);
-  const plan = suggestedPlan(allowance.data ?? null, currency);
+  const plan = suggestedPlan(allowance.data ?? null, currency, allowanceSave.data ?? null);
   const weeks =
     targetMinor && plan
       ? weeksToGoal({

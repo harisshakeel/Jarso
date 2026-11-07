@@ -53,6 +53,7 @@ const schedule = (over: Partial<Schedule> = {}): Schedule => ({
   autoCharge: false,
   autoChargeProvider: null,
   autoChargeMine: false,
+  saveMinor: null,
   ...over,
 });
 
@@ -90,7 +91,16 @@ const aisha = child({
       amountMinor: 500,
     }),
   ],
-  due: [{ kind: "allowance", id: "o1", dueOn: "2026-10-30", amountMinor: 500, note: null }],
+  due: [
+    {
+      kind: "allowance",
+      id: "o1",
+      dueOn: "2026-10-30",
+      amountMinor: 500,
+      note: null,
+      plannedSaveMinor: null,
+    },
+  ],
 });
 const zarrar = child({
   id: "z",

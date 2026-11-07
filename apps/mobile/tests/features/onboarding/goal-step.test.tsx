@@ -98,6 +98,20 @@ describe("GoalStep", () => {
     expect(screen.getByText("About 15 weeks")).toBeTruthy();
   });
 
+  it("with a Save split the weeks line uses it", async () => {
+    (findLatestSchedule as jest.Mock).mockResolvedValue({
+      amountMinor: 12000,
+      frequency: "weekly",
+      status: "active",
+      saveMinor: 4500,
+    });
+    await renderStep();
+    await fireEvent.press(await screen.findByRole("radio", { name: "Boots" }));
+    await typePrice("450");
+    expect(await screen.findByText("With ₹45 a week")).toBeTruthy();
+    expect(screen.getByText("About 10 weeks")).toBeTruthy();
+  });
+
   it("Set my goal saves the real goal", async () => {
     const onNext = await renderStep();
     await fireEvent.press(await screen.findByRole("radio", { name: "Boots" }));

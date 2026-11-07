@@ -104,3 +104,15 @@ export function loginLinkError(value: unknown): string | undefined {
     ? loginLinkErrors[value]
     : undefined;
 }
+
+/** Digits in the sign-up email code (`otp_length` in supabase/config.toml). */
+export const EMAIL_CODE_LENGTH = 6;
+
+/**
+ * The code from the sign-up email, typed on the phone. Spaces are dropped. Six to eight digits:
+ * the repo sets 6, and a hosted project still on Supabase's 8 must keep working until it is pushed.
+ */
+export const emailCodeSchema = z
+  .string()
+  .transform((value) => value.replace(/\s/g, ""))
+  .pipe(z.string().regex(/^\d{6,8}$/, "Enter the code from the email"));

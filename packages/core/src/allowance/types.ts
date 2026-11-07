@@ -11,6 +11,8 @@ export type Schedule = {
   amountMinor: number;
   frequency: Frequency;
   status: ScheduleStatus;
+  /** Planned Save part of each allowance (Spend is the rest, ADR 0019); null = no plan set. */
+  saveMinor: number | null;
   /** First date of the current cadence; every due date is counted from it. */
   anchorOn: string;
   /** Next period to fall due; null when stopped or paused until a parent resumes. */
@@ -32,6 +34,8 @@ export type DueItem = {
   dueOn: string;
   amountMinor: number;
   note: string | null;
+  /** The allowance's planned Save part when it fell due; null for gifts and allowances without one. */
+  plannedSaveMinor: number | null;
 };
 
 /** A due item with the child it is for, for lists across the whole family. */

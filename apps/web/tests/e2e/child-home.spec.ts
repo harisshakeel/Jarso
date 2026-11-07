@@ -69,6 +69,8 @@ test.beforeAll(async ({ browser }) => {
   // Starts today, so the first allowance is due at once.
   await parent.getByLabel("Amount").fill("500");
   await parent.getByRole("group").getByText("Weekly", { exact: true }).click();
+  // A new allowance plans a quarter to Save (ADR 0019); this test wants it all in Spend.
+  await parent.getByRole("radio", { name: "All Spend" }).check({ force: true });
   await parent.getByRole("button", { name: "Save allowance" }).click();
   await closeCelebration(parent);
   await expect(parent.getByRole("region", { name: "Due now" })).toBeVisible();

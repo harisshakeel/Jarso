@@ -1,10 +1,11 @@
-import type { Gift, Schedule, Split } from "@jarso/core/allowance";
+import { type Gift, handoverPrefill, type Schedule, type Split } from "@jarso/core/allowance";
 import {
   type Client,
   fetchNextDueOn,
   fetchScheduleAutoCharge,
   findLatestAllowanceSplit,
   findLatestGiftSplit,
+  findOccurrencePlannedSave,
   findScheduleRow,
   listPendingGifts,
 } from "./repository";
@@ -54,4 +55,19 @@ export async function getLastSplitWith(db: Client, childId: string): Promise<Spl
         : allowance
       : (allowance ?? gift);
   return latest ? { cash: latest.cash, saved: latest.saved } : null;
+}
+
+/**
+ * The handover prefill for one due item, read with `db`: the allowance's planned split when it has
+ * one, else the share of the last handover (ADR 0019). No auth: the caller authorises, or passes
+ * the admin client from a trusted job (the auto charge).
+ */
+export async function getHandoverPrefillWith(
+  db: Client,
+  item: { kind: "allowance" | "gift"; id: string; childId: string; amountMinor: number },
+): Promise<Split> {
+  const plannedSaveMinor =
+    item.kind === "allowance" ? await findOccurrencePlannedSave(db, item.id) : null;
+  const last = plannedSaveMinor === null ? await getLastSplitWith(db, item.childId) : null;
+  return handoverPrefill({ amountMinor: item.amountMinor, plannedSaveMinor }, last).split;
 }

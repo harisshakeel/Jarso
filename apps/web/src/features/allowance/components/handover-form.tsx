@@ -1,6 +1,6 @@
 "use client";
 
-import type { HandoverResult, Split } from "@jarso/core/allowance";
+import type { HandoverResult, PrefillSource, Split } from "@jarso/core/allowance";
 import {
   cashForSaved,
   checkSplit,
@@ -47,10 +47,10 @@ type HandoverFormProps = {
   /** `YYYY-MM-DD`. */
   dueOn: string;
   note: string | null;
-  /** Starting split in minor units (last time's share applied to this amount). */
+  /** Starting split in minor units: the allowance's plan, or last time's share of this amount. */
   prefill: Split;
-  /** True when an earlier handover set the split, so the hint can say "as last time". */
-  hasPrevious?: boolean;
+  /** Where the prefill came from, so the hint can say "the split you set" or "as last time". */
+  prefillFrom?: PrefillSource;
   /** The child's own goal plan, shown as a note; it never changes the prefill. */
   goalNote?: string | null;
   /** Card payment state for this item; null or absent when card payments are off. */
@@ -70,7 +70,7 @@ export function HandoverForm({
   dueOn,
   note,
   prefill,
-  hasPrevious = false,
+  prefillFrom = "none",
   goalNote = null,
   card = null,
 }: HandoverFormProps) {
@@ -195,7 +195,11 @@ export function HandoverForm({
             />
           </div>
           <p className="text-ink-2">
-            {hasPrevious ? handoverCopy.hintPrevious : handoverCopy.hint}
+            {prefillFrom === "plan"
+              ? handoverCopy.hintPlanned
+              : prefillFrom === "last"
+                ? handoverCopy.hintPrevious
+                : handoverCopy.hint}
           </p>
           {goalNote ? <p className="text-ink-2">{goalNote}</p> : null}
           <FieldError errors={totalError ? [totalError] : undefined} />

@@ -1,22 +1,53 @@
 import { safeNextPath } from "@jarso/core/auth";
-import { type Href, Redirect } from "expo-router";
+import type { ChildSummary } from "@jarso/core/family";
+import { type Href, Redirect, useRouter } from "expo-router";
+import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { KeyboardScrollView } from "@/components/screen";
 import { Button, Text } from "@/components/ui";
 import { homeFor, UnavailableNotice, useSession } from "@/features/auth";
+import { AboutStep } from "./about-step";
+import { ChildStep } from "./child-step";
 import { FamilyStep } from "./family-step";
-import { ProfileStep } from "./profile-step";
-import { isSetUp, useParentSetup } from "./use-setup";
+import { FreedomStep } from "./freedom-step";
+import { PocketMoneyStep } from "./pocket-money-step";
+import { SetupFrame } from "./setup-frame";
+import { ShareStep } from "./share-step";
+import { useParentSetup } from "./use-setup";
+
+/** Steps 4–7, once the family exists. Each carries the child added in step 4 (never the PIN). */
+type After =
+  | { name: "child" }
+  | { name: "money"; child: ChildSummary }
+  | { name: "freedom"; child: ChildSummary }
+  | { name: "share"; child: ChildSummary };
+
+function SignOutLink() {
+  const { signOut } = useSession();
+  return (
+    <Button
+      variant="link"
+      accessibilityRole="button"
+      accessibilityLabel="Sign out"
+      onPress={() => void signOut()}
+    >
+      <Text>Sign out</Text>
+    </Button>
+  );
+}
 
 /**
- * The parent's setup on the phone: their details first, then the family, showing only the step
- * still missing. Once both are done it replaces itself with `next` (an invite link opened before
- * setup) or Family.
+ * The parent's setup on the phone, from step 3's "About you" on: their details and what the
+ * children call them, then the family (the only steps ADR 0008 requires, showing whichever is
+ * missing). A family made in this run goes on to add a child, pocket money, freedom and the share
+ * card; otherwise, and always with a `next` (an invite link opened before setup), it replaces
+ * itself with `next` or Family as soon as both are done.
  */
 export function SetupScreen({ next }: { next?: string }) {
-  const { signOut } = useSession();
+  const router = useRouter();
   const { data, isError, refetch } = useParentSetup();
+  // Whether this screen opened before the family existed (decided on the first read).
+  const [fresh, setFresh] = useState<boolean | null>(null);
+  const [after, setAfter] = useState<After>({ name: "child" });
 
   // The gate already waits for this read; this covers opening /setup directly.
   if (!data) {
@@ -27,23 +58,48 @@ export function SetupScreen({ next }: { next?: string }) {
       </View>
     );
   }
-  if (isSetUp(data)) {
-    return <Redirect href={safeNextPath(next, homeFor("parent") as string) as Href} />;
-  }
+  const isFresh = fresh ?? (!next && data.familyId === null);
+  if (fresh === null) setFresh(isFresh);
 
-  return (
-    <SafeAreaView className="flex-1 bg-background">
-      <KeyboardScrollView contentContainerClassName="gap-8 px-4 py-8">
-        {data.profileComplete ? <FamilyStep /> : <ProfileStep />}
-        <Button
-          variant="link"
-          accessibilityRole="button"
-          accessibilityLabel="Sign out"
-          onPress={() => void signOut()}
-        >
-          <Text>Sign out</Text>
-        </Button>
-      </KeyboardScrollView>
-    </SafeAreaView>
-  );
+  const home = safeNextPath(next, homeFor("parent") as string) as Href;
+  if (!data.profileComplete) {
+    return (
+      <AboutStep>
+        <SignOutLink />
+      </AboutStep>
+    );
+  }
+  if (!data.familyId) {
+    return (
+      <SetupFrame step="account">
+        <FamilyStep />
+        <SignOutLink />
+      </SetupFrame>
+    );
+  }
+  if (!isFresh) return <Redirect href={home} />;
+
+  const finish = () => router.replace(home);
+  switch (after.name) {
+    case "child":
+      return <ChildStep onAdded={(child) => setAfter({ name: "money", child })} onLater={finish} />;
+    case "money":
+      return (
+        <PocketMoneyStep
+          childId={after.child.id}
+          nickname={after.child.nickname}
+          onDone={() => setAfter({ name: "freedom", child: after.child })}
+        />
+      );
+    case "freedom":
+      return (
+        <FreedomStep
+          childId={after.child.id}
+          nickname={after.child.nickname}
+          onDone={() => setAfter({ name: "share", child: after.child })}
+        />
+      );
+    case "share":
+      return <ShareStep nickname={after.child.nickname} onDone={finish} />;
+  }
 }

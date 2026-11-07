@@ -28,6 +28,7 @@ describe("NeedsYou", () => {
             dueOn: "2026-10-30",
             amountMinor: 7500,
             note: null,
+            plannedSaveMinor: null,
           },
           {
             kind: "allowance",
@@ -37,6 +38,7 @@ describe("NeedsYou", () => {
             dueOn: "2026-11-04",
             amountMinor: 9000,
             note: null,
+            plannedSaveMinor: null,
           },
         ]}
         currency="USD"

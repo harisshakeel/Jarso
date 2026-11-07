@@ -7,7 +7,7 @@ appId: app.jarso.mobile
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: "I'm a parent|Your family|What happened\\?"
+    visible: "I'm a parent|I'm a kid|Your family|What happened\\?"
     timeout: 20000
 # A child session left by a child flow: clear the app so the sign-in screen shows.
 - runFlow:
@@ -19,6 +19,12 @@ appId: app.jarso.mobile
       - extendedWaitUntil:
           visible: "I'm a parent"
           timeout: 20000
+# A phone nobody has signed in on opens Welcome first.
+- runFlow:
+    when:
+      visible: "I'm a kid"
+    commands:
+      - tapOn: "I have an account. Sign in"
 # The sign-in screen keeps the last choice: pick the parent form if the child one shows.
 - runFlow:
     when:

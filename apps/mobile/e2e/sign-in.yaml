@@ -5,7 +5,7 @@ appId: app.jarso.mobile
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: "Family code|I'm a child|Your family|What happened\\?"
+    visible: "Family code|I'm a child|I'm a kid|Your family|What happened\\?"
     timeout: 20000
 # A parent session left by a parent flow: clear the app so the sign-in screen shows.
 - runFlow:
@@ -15,8 +15,14 @@ appId: app.jarso.mobile
       - launchApp:
           clearState: true
       - extendedWaitUntil:
-          visible: "I'm a child"
+          visible: "I'm a child|I'm a kid"
           timeout: 20000
+# A phone nobody has signed in on opens Welcome first.
+- runFlow:
+    when:
+      visible: "I'm a kid"
+    commands:
+      - tapOn: "I'm a kid"
 # The sign-in screen keeps the last choice: pick the child form if the parent one shows.
 - runFlow:
     when:
@@ -31,9 +37,33 @@ appId: app.jarso.mobile
       - inputText: ${CHILD_FAMILY_CODE}
       - tapOn: "Your nickname"
       - inputText: ${CHILD_NICKNAME}
-      - tapOn: "Your PIN"
-      - inputText: ${CHILD_PIN}
       - hideKeyboard
+      # The PIN is typed on the pad (keys pin-key-0 … pin-key-9), 4 to 6 numbers.
+      - evalScript: ${output.pin = String(CHILD_PIN).split('')}
+      - tapOn:
+          id: "pin-key-${output.pin[0]}"
+      - tapOn:
+          id: "pin-key-${output.pin[1]}"
+      - tapOn:
+          id: "pin-key-${output.pin[2]}"
+      - tapOn:
+          id: "pin-key-${output.pin[3]}"
+      - runFlow:
+          when:
+            true: ${output.pin.length > 4}
+          commands:
+            - tapOn:
+                id: "pin-key-${output.pin[4]}"
+      - runFlow:
+          when:
+            true: ${output.pin.length > 5}
+          commands:
+            - tapOn:
+                id: "pin-key-${output.pin[5]}"
+      - scrollUntilVisible:
+          element:
+            text: "Sign in"
+          direction: DOWN
       - tapOn: "Sign in"
 # A test child who never finished the intro sees it first: skip it (replayable from Me).
 - extendedWaitUntil:

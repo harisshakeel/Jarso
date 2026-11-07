@@ -1,5 +1,6 @@
 import { addDays, moneySchema } from "@jarso/core/lib";
 import { z } from "zod";
+import { allowanceFormCopy } from "./copy";
 import { frequencies } from "./types";
 
 /**
@@ -39,6 +40,19 @@ const childText = z
 
 const frequency = z.enum(frequencies, { error: "Choose how often." });
 
+/**
+ * The planned Save part (ADR 0019): optional, zero allowed, blank or missing → null (no plan, or
+ * keep the current one on a change). Never more than the amount; Spend is the rest.
+ */
+const plannedSave = (currency: string) =>
+  moneySchema(currency, { allowZero: true, allowEmpty: true }).optional();
+
+function saveWithinAmount(value: { amount: number; save?: number | null }, ctx: z.RefinementCtx) {
+  if (value.save != null && value.save > value.amount) {
+    ctx.addIssue({ code: "custom", message: allowanceFormCopy.saveOver, path: ["save"] });
+  }
+}
+
 export const idSchema = z.object({ id: z.uuid("We couldn't find that.") });
 
 /** Route params of the handover page: `/handover/[kind]/[id]`. */
@@ -54,8 +68,14 @@ export const allowanceSchema = (currency: string, today: string) =>
       amount: moneySchema(currency),
       frequency,
       firstOn: dateFrom(today),
+      save: plannedSave(currency),
     })
-    .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));
+    .superRefine(saveWithinAmount)
+    .transform(({ amount, save, ...rest }) => ({
+      ...rest,
+      amountMinor: amount,
+      saveMinor: save ?? null,
+    }));
 
 /** Change screen: same fields, the date is "Next one on" (the new anchor). */
 export const changeAllowanceSchema = (currency: string, today: string) =>
@@ -65,8 +85,14 @@ export const changeAllowanceSchema = (currency: string, today: string) =>
       amount: moneySchema(currency),
       frequency,
       nextOn: dateFrom(today),
+      save: plannedSave(currency),
     })
-    .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));
+    .superRefine(saveWithinAmount)
+    .transform(({ amount, save, ...rest }) => ({
+      ...rest,
+      amountMinor: amount,
+      saveMinor: save ?? null,
+    }));
 
 /** `through` blank = until a parent resumes it. */
 export const pauseSchema = (today: string) =>

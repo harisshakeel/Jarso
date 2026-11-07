@@ -79,6 +79,8 @@ test("parent hands over 1000 to Spend", async () => {
   await parent.goto(`${childBase}/allowance`);
   await parent.getByLabel("Amount").fill("1000");
   await parent.getByRole("group").getByText("Weekly", { exact: true }).click();
+  // A new allowance plans a quarter to Save (ADR 0019); this test wants it all in Spend.
+  await parent.getByRole("radio", { name: "All Spend" }).check({ force: true });
   await parent.getByRole("button", { name: "Save allowance" }).click();
   await closeCelebration(parent);
   await parent

@@ -4,8 +4,8 @@ import {
   type DueItem,
   formatDay,
   handoverCopy,
+  handoverPrefill,
   handoverSchema,
-  prefillSplit,
   type Split,
 } from "@jarso/core/allowance";
 import { familyCardsCopy } from "@jarso/core/dashboard";
@@ -36,7 +36,7 @@ type FieldErrors = { cash?: string[]; saved?: string[] };
 
 /**
  * The handover sheet (the web's handover page): the due item, read fresh, then the cash and
- * saved form. An item no longer due says "Already sorted." and closes. Mount it once per
+ * saved form, prefilled with the allowance's planned split, else last time's (ADR 0019). An item no longer due says "Already sorted." and closes. Mount it once per
  * opening: the form's idempotency key is made on mount.
  */
 export function HandoverSheet({
@@ -97,7 +97,7 @@ export function HandoverSheet({
       nickname={child.nickname}
       currency={family.data.family.currency}
       item={item}
-      prefill={prefillSplit(item.amountMinor, last.data)}
+      prefill={handoverPrefill(item, last.data).split}
       goalNote={planNote(child.nickname, goal.data?.goal ?? null, family.data.family.currency)}
       look={progress.data?.look}
       onDone={() => {

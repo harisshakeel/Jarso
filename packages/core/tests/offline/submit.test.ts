@@ -124,6 +124,18 @@ describe("submit", () => {
     expect(await itemsOf(userId)).toEqual([]);
   });
 
+  it("sends an item submitted in the same millisecond as the last one", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2030-01-01T00:00:00.000Z"));
+    platform.isOffline = () => true;
+    await submitToOutbox(platform, input(crypto.randomUUID()));
+    platform.isOffline = () => false;
+    respond(200, { data: null });
+    expect(await submitToOutbox(platform, input(crypto.randomUUID()))).toEqual({
+      status: "sent",
+      data: null,
+    });
+  });
+
   it("returns queued when the drain throws after storing", async () => {
     platform.fetch = vi.fn<typeof fetch>();
     vi.spyOn(flushModule, "drainOutbox").mockRejectedValue(new Error("boom"));

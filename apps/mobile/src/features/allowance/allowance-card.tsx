@@ -4,6 +4,7 @@ import {
   describeAllowanceState,
   runningSchedule,
   type Schedule,
+  scheduleSplit,
 } from "@jarso/core/allowance";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
@@ -29,6 +30,11 @@ export function AllowanceCard({
   const router = useRouter();
   const running = runningSchedule(schedule);
   const action = running ? allowanceSummaryCopy.manage : allowanceSummaryCopy.setUp;
+  const split =
+    running && running.saveMinor !== null
+      ? scheduleSplit(running.amountMinor, running.saveMinor)
+      : null;
+  const money = (minor: number) => formatMoney(minor, currency, { showMinor: "nonzero" });
   return (
     <Card>
       <Text accessibilityRole="header" className="font-sans-bold text-h3">
@@ -43,6 +49,11 @@ export function AllowanceCard({
             {cadenceAfterAmount(running.frequency, running.anchorOn)}
           </Text>
         </View>
+      ) : null}
+      {split ? (
+        <Text className="text-muted-foreground">
+          {allowanceSummaryCopy.split(money(split.cash), money(split.saved))}
+        </Text>
       ) : null}
       <Text className={running ? "font-sans-semibold" : "text-muted-foreground"}>
         {describeAllowanceState(schedule)}

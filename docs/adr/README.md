@@ -22,3 +22,4 @@ Short records of significant decisions. Copy `0000-template.md`, increment the n
 | [0016](./0016-mobile-direct-supabase.md) | Mobile reads and writes through Supabase directly; /api/v1 only for server secrets | Accepted; supersedes the twin-route part of 0015 |
 | [0017](./0017-bearer-request-scope.md) | Request-scoped bearer auth: routes opt in, services run unchanged | Accepted; extends 0016 |
 | [0018](./0018-native-payment-sheets.md) | Card payments on the phone through the providers' native sheets | Accepted; extends 0013, 0014 |
+| [0019](./0019-allowance-split.md) | The allowance carries a planned Spend/Save split (Save stored, Spend the rest) | Accepted |
