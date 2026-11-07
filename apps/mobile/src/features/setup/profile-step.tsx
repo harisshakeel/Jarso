@@ -41,10 +41,13 @@ export function ParentDetailsForm({
   defaults,
   submitLabel = profileCopy.completeSubmit,
   successMessage = profileCopy.completeSaved,
+  beforeSave,
 }: {
   defaults?: { dateOfBirth: string; country: string; gender: Gender } | null;
   submitLabel?: string;
   successMessage?: string;
+  /** Runs once the details are valid, before they are saved (setup's "Your child calls you"). */
+  beforeSave?: () => Promise<void>;
 }) {
   const save = useSaveParentDetails();
   const [dateOfBirth, setDateOfBirth] = useState<string | null>(defaults?.dateOfBirth ?? null);
@@ -67,6 +70,7 @@ export function ParentDetailsForm({
     }
     setFieldErrors(undefined);
     try {
+      await beforeSave?.();
       await save.mutateAsync(parsed.data);
       flash(successMessage);
     } catch (error) {

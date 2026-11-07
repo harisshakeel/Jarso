@@ -1,7 +1,8 @@
 import { setupCopy } from "@jarso/core/family";
 import { profileCopy } from "@jarso/core/profiles";
+import { setupFlowCopy } from "@jarso/core/setup";
 import { findMembership } from "@jarso/data/family";
-import { findParentDetails, upsertParentDetails } from "@jarso/data/profiles";
+import { findParentDetails, updateProfileById, upsertParentDetails } from "@jarso/data/profiles";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, screen, userEvent, waitFor } from "@testing-library/react-native";
@@ -23,6 +24,7 @@ jest.mock("@/lib/supabase/client", () => ({ supabase: mockDb }));
 jest.mock("@jarso/data/profiles", () => ({
   findParentDetails: jest.fn(),
   upsertParentDetails: jest.fn(),
+  updateProfileById: jest.fn(),
 }));
 jest.mock("@jarso/data/family", () => ({
   ...jest.requireActual("@jarso/data/family"),
@@ -111,6 +113,7 @@ beforeEach(() => {
   (findParentDetails as jest.Mock).mockReset().mockResolvedValue(details);
   (findMembership as jest.Mock).mockReset().mockResolvedValue(membership);
   (upsertParentDetails as jest.Mock).mockReset().mockResolvedValue(undefined);
+  (updateProfileById as jest.Mock).mockReset().mockResolvedValue({});
   mockDb.rpc.mockReset().mockResolvedValue({ data: "family-1", error: null });
   mockDb.from.mockReset().mockImplementation(familyRead);
 });
@@ -121,7 +124,7 @@ describe("setup gate", () => {
     (findMembership as jest.Mock).mockResolvedValue(null);
     await renderApp("/");
 
-    expect(await screen.findByText(profileCopy.completeTitle)).toBeOnTheScreen();
+    expect(await screen.findByText(setupFlowCopy.about.title)).toBeOnTheScreen();
     expect(screen).toHavePathname("/setup");
     expect(screen.queryByText(setupCopy.title)).not.toBeOnTheScreen();
 
@@ -139,6 +142,10 @@ describe("setup gate", () => {
     (findMembership as jest.Mock).mockResolvedValue(membership);
     await userEvent.setup().press(screen.getByRole("button", { name: setupCopy.create }));
 
+    // A family made in this run goes on to step 4; Later ends setup.
+    expect(await screen.findByText(setupFlowCopy.child.title)).toBeOnTheScreen();
+    await userEvent.setup().press(screen.getByRole("button", { name: setupFlowCopy.child.later }));
+
     expect(await screen.findByText("Family home")).toBeOnTheScreen();
     expect(screen).toHavePathname("/");
     expect(mockDb.rpc).toHaveBeenCalledWith("create_family", {
@@ -153,7 +160,7 @@ describe("setup gate", () => {
   it("parent route redirects to setup when profile incomplete", async () => {
     (findParentDetails as jest.Mock).mockResolvedValue(null);
     await renderApp("/inbox");
-    expect(await screen.findByText(profileCopy.completeTitle)).toBeOnTheScreen();
+    expect(await screen.findByText(setupFlowCopy.about.title)).toBeOnTheScreen();
     expect(screen.queryByText("Notifications")).not.toBeOnTheScreen();
     expect(screen).toHavePathname("/setup");
   });
@@ -162,7 +169,7 @@ describe("setup gate", () => {
     (findMembership as jest.Mock).mockResolvedValue(null);
     await renderApp("/");
     expect(await screen.findByText(setupCopy.title)).toBeOnTheScreen();
-    expect(screen.queryByText(profileCopy.completeTitle)).not.toBeOnTheScreen();
+    expect(screen.queryByText(setupFlowCopy.about.title)).not.toBeOnTheScreen();
   });
 
   it("keeps next through setup", async () => {
@@ -207,7 +214,7 @@ describe("setup steps", () => {
   it('under-18 date shows "You need to be 18 or over"', async () => {
     (findParentDetails as jest.Mock).mockResolvedValue(null);
     await renderApp("/setup");
-    await screen.findByText(profileCopy.completeTitle);
+    await screen.findByText(setupFlowCopy.about.title);
 
     const now = new Date();
     const tenYearsAgo = `${now.getFullYear() - 10}-01-15`;
@@ -228,7 +235,7 @@ describe("setup steps", () => {
     (findMembership as jest.Mock).mockResolvedValue(membership);
     await userEvent.setup().press(screen.getByRole("button", { name: setupCopy.create }));
 
-    expect(await screen.findByText("Family home")).toBeOnTheScreen();
+    expect(await screen.findByText(setupFlowCopy.child.title)).toBeOnTheScreen();
     expect(mockDb.rpc).toHaveBeenCalledTimes(2);
     expect(mockDb.rpc).toHaveBeenLastCalledWith("create_family", {
       p_currency: expect.any(String),
@@ -250,5 +257,56 @@ describe("setup steps", () => {
         p_timezone: expect.any(String),
       }),
     );
+  });
+});
+
+describe("about you", () => {
+  beforeEach(() => {
+    (findParentDetails as jest.Mock).mockResolvedValue(null);
+  });
+
+  it("saves what the child calls the parent, then the details", async () => {
+    await renderApp("/setup");
+    await screen.findByText(setupFlowCopy.about.title);
+    await userEvent.setup().press(screen.getByRole("radio", { name: "Mum" }));
+    await fillProfile();
+
+    await waitFor(() => expect(upsertParentDetails).toHaveBeenCalled());
+    expect(updateProfileById).toHaveBeenCalledWith(mockDb, "parent-1", {
+      child_facing_name: "Mum",
+    });
+  });
+
+  it("Other… takes a typed name", async () => {
+    await renderApp("/setup");
+    await screen.findByText(setupFlowCopy.about.title);
+    await userEvent.setup().press(screen.getByRole("radio", { name: setupFlowCopy.about.other }));
+    await fireEvent.changeText(screen.getByLabelText(setupFlowCopy.about.otherLabel), " Nani ");
+    await fillProfile();
+
+    await waitFor(() =>
+      expect(updateProfileById).toHaveBeenCalledWith(mockDb, "parent-1", {
+        child_facing_name: "Nani",
+      }),
+    );
+  });
+
+  it("no pick saves no name", async () => {
+    await renderApp("/setup");
+    await screen.findByText(setupFlowCopy.about.title);
+    await fillProfile();
+
+    await waitFor(() => expect(upsertParentDetails).toHaveBeenCalled());
+    expect(updateProfileById).not.toHaveBeenCalled();
+  });
+
+  it("a name that can't be saved never blocks the details", async () => {
+    (updateProfileById as jest.Mock).mockRejectedValue(new Error("offline"));
+    await renderApp("/setup");
+    await screen.findByText(setupFlowCopy.about.title);
+    await userEvent.setup().press(screen.getByRole("radio", { name: "Dad" }));
+    await fillProfile();
+
+    await waitFor(() => expect(upsertParentDetails).toHaveBeenCalled());
   });
 });
