@@ -141,7 +141,7 @@ jobs:
           key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           restore-keys: |
             next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.122.0 # keep in sync with the `supabase` devDependency
       # Only the services the app uses: database, gateway, auth, REST, Realtime and the mail
@@ -182,7 +182,7 @@ jobs:
       - name: Reserve the local Supabase ports
         run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
       - uses: actions/checkout@v7
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.122.0 # keep in sync with the `supabase` devDependency
       - name: Apply migrations to a fresh local database
