@@ -27,11 +27,11 @@
   "dependencies": {
     "@jarso/core": "workspace:*",
     "@jarso/db": "workspace:*",
-    "@supabase/supabase-js": "^2.118.0"
+    "@supabase/supabase-js": "^2.119.0"
   },
   "devDependencies": {
     "@jarso/tsconfig": "workspace:*",
     "typescript": "^5",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   }
 }
