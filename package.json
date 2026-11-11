@@ -32,7 +32,7 @@
     "@commitlint/config-conventional": "^21.2.4",
     "@commitlint/types": "^21.2.3",
     "husky": "^9.1.7",
-    "supabase": "^2.122.0",
+    "supabase": "^3.0.0",
     "typescript": "^5",
     "turbo": "^2"
   },
